@@ -163,7 +163,7 @@ def get_org_benchmark_summary(org_id: str = Query(...)):
     return _get_engine().get_org_benchmark_summary(org_id)
 
 
-@router.get("", dependencies=[Depends(api_key_auth)])
+@router.get("/", dependencies=[Depends(api_key_auth)])
 def get_root(org_id: str = Query(default="default")):
     """Root endpoint — returns benchmarks list for dashboard health-checks."""
     return _get_engine().list_benchmarks(org_id)

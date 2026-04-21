@@ -93,6 +93,12 @@ class AssessmentApprove(BaseModel):
 # Assessments
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_privacy_impact(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get privacy impact assessment summary for the org."""
+    return _get_engine().get_summary(org_id)
+
+
 @router.post("/assessments", status_code=201)
 def create_assessment(body: AssessmentCreate, org_id: str = Query(...)):
     """Create a new PIA/DPIA assessment."""

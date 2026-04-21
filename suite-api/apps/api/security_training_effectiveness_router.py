@@ -82,6 +82,12 @@ class RetentionRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_training_effectiveness(org_id: str = Query("default")):
+    """Get security training effectiveness summary for the org."""
+    return _get_engine().get_summary(org_id=org_id)
+
+
 @router.post("/programs", status_code=201)
 def create_program(body: ProgramCreate, org_id: str = Query(...)):
     """Create a new training program."""

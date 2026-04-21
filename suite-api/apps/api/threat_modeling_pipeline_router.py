@@ -24,6 +24,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.auth_deps import api_key_auth
+
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -97,6 +99,12 @@ class OrgRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_threat_modeling_pipeline(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+    """List threat models for the org."""
+    return _get_engine().list_models(org_id=org_id)
 
 
 @router.post("/models", summary="Create a new threat model")

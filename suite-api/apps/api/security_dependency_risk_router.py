@@ -97,6 +97,16 @@ class LicenseRiskRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_dependency_risk(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get security dependency risk summary for the org."""
+    try:
+        return _get_engine().get_dependency_summary(org_id=org_id)
+    except Exception as exc:
+        _logger.exception("list_dependency_risk failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @router.post("/dependencies", summary="Register a dependency")
 def register_dependency(req: RegisterDependencyRequest) -> Dict[str, Any]:
     try:

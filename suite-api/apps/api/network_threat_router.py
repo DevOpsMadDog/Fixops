@@ -79,6 +79,12 @@ class BaselineUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_network_threats(org_id: str = Query("default")):
+    """Get network threat statistics for the org."""
+    return _get_engine().get_threat_stats(org_id=org_id)
+
+
 @router.post("/threats", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_threat(body: ThreatCreate, org_id: str = Query(...)):
     """Record or update a network threat."""

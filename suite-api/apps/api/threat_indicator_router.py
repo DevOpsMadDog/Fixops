@@ -76,6 +76,12 @@ class SightingAdd(BaseModel):
 # Indicators
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_threat_indicators(org_id: str = Query("default")):
+    """Get threat indicator summary for the org."""
+    return _get_engine().get_summary(org_id=org_id)
+
+
 @router.post("/indicators", status_code=201)
 def add_indicator(body: IndicatorCreate, org_id: str = Query(...)):
     """Add a new threat indicator (IOC) with confidence clamping."""

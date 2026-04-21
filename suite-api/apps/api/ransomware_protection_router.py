@@ -99,6 +99,12 @@ class PlaybookExecute(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_ransomware_protection(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get ransomware protection summary for the org."""
+    return _get_engine().get_summary(org_id=org_id)
+
+
 @router.post("/detections")
 def register_detection(body: DetectionCreate) -> Dict[str, Any]:
     try:

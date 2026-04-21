@@ -76,6 +76,12 @@ class BaselineSet(BaseModel):
 # Snapshots
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_posture_history(org_id: str = Query("default")):
+    """Get security posture history domain summary for the org."""
+    return _get_engine().get_domain_summary(org_id=org_id)
+
+
 @router.post("/snapshots", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_snapshot(body: SnapshotCreate, org_id: str = Query(...)):
     """Record a posture snapshot for a domain."""

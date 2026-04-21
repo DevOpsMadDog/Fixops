@@ -87,6 +87,12 @@ class UpdateProgressRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_posture_trends(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get security posture velocity summary for the org."""
+    return _get_engine().get_posture_velocity_summary(org_id=org_id)
+
+
 @router.post("/datapoints", dependencies=[Depends(api_key_auth)])
 def record_datapoint(
     req: RecordDatapointRequest,
