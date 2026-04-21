@@ -370,7 +370,7 @@ class WebhookDLQ:
                 conn = _get_db(self._db_path)
                 try:
                     cur = conn.execute(
-                        f"""UPDATE webhook_deliveriesSET status=?, attempts=0, last_error=NULL,
+                        f"""UPDATE webhook_deliveries SET status=?, attempts=0, last_error=NULL,
                                 next_retry_at=?, completed_at=NULL
                             WHERE id IN ({placeholders})""",  # nosec B608
                         [DeliveryStatus.PENDING.value, now, *delivery_ids],

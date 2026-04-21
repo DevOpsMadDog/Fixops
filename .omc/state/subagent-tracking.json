@@ -2076,7 +2076,9 @@
       "agent_type": "oh-my-claudecode:qa-tester",
       "started_at": "2026-04-21T09:34:11.491Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-21T09:42:36.010Z",
+      "duration_ms": 504519
     },
     {
       "agent_id": "aec3592133c7cdacb",
@@ -2171,7 +2173,7 @@
     }
   ],
   "total_spawned": 247,
-  "total_completed": 220,
+  "total_completed": 221,
   "total_failed": 0,
-  "last_updated": "2026-04-21T09:41:30.730Z"
+  "last_updated": "2026-04-21T09:42:36.115Z"
 }

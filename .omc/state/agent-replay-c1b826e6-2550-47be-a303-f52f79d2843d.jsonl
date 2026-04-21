@@ -506,3 +506,4 @@
 {"t":0,"agent":"aa07208","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"aa07208","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"a839c53","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"aafdb04","agent_type":"qa-tester","event":"agent_stop","success":true}

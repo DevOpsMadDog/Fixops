@@ -8299,14 +8299,14 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.red_team_router import router as red_team_router
-        app.include_router(red_team_router)
+        app.include_router(red_team_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Red Team router at /api/v1/red-team")
     except ImportError:
         pass
 
     try:
         from apps.api.regulatory_tracker_router import router as regulatory_tracker_router
-        app.include_router(regulatory_tracker_router)
+        app.include_router(regulatory_tracker_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Regulatory Tracker router at /api/v1/regulatory")
     except ImportError:
         pass
@@ -8327,21 +8327,21 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.secrets_rotation_router import router as secrets_rotation_router
-        app.include_router(secrets_rotation_router)
+        app.include_router(secrets_rotation_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Secrets Rotation router at /api/v1/secrets-rotation")
     except ImportError:
         pass
 
     try:
         from apps.api.session_router import router as session_router
-        app.include_router(session_router)
+        app.include_router(session_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Session router at /api/v1/sessions")
     except ImportError:
         pass
 
     try:
         from apps.api.sla_management_router import router as sla_management_router
-        app.include_router(sla_management_router)
+        app.include_router(sla_management_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted SLA Management router at /api/v1/sla-management")
     except ImportError:
         pass
