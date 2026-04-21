@@ -499,28 +499,33 @@ async def get_faq(
     mgr: ExtendedTrustCenterManager = Depends(_get_manager),
 ) -> Dict[str, Any]:
     """Return security FAQ — no auth required."""
-    valid_categories = {
-        "data_handling", "compliance", "incident_response", "infrastructure",
-        "access_control", "encryption", "vendor_management",
-    }
-    if category and category not in valid_categories:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid category. Must be one of: {sorted(valid_categories)}",
-        )
-    if grouped:
-        by_cat = mgr.get_faq_by_category()
-        return {
-            "faq": {cat: [i.model_dump() for i in items] for cat, items in by_cat.items()},
-            "categories": list(by_cat.keys()),
-            "total": sum(len(v) for v in by_cat.values()),
+    try:
+        valid_categories = {
+            "data_handling", "compliance", "incident_response", "infrastructure",
+            "access_control", "encryption", "vendor_management",
         }
-    items = mgr.get_faq(category=category, public_only=True)
-    return {
-        "faq": [i.model_dump() for i in items],
-        "total": len(items),
-        "categories": sorted(valid_categories),
-    }
+        if category and category not in valid_categories:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid category. Must be one of: {sorted(valid_categories)}",
+            )
+        if grouped:
+            by_cat = mgr.get_faq_by_category()
+            return {
+                "faq": {cat: [i.model_dump() for i in items] for cat, items in by_cat.items()},
+                "categories": list(by_cat.keys()),
+                "total": sum(len(v) for v in by_cat.values()),
+            }
+        items = mgr.get_faq(category=category, public_only=True)
+        return {
+            "faq": [i.model_dump() for i in items],
+            "total": len(items),
+            "categories": sorted(valid_categories),
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        return {"faq": [], "total": 0, "categories": []}
 
 
 # POST /api/v1/trust/nda — generate NDA (no auth)

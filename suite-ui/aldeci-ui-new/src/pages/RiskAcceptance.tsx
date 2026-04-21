@@ -241,8 +241,11 @@ function ApprovalRequestModal({ isOpen, onClose }: ApprovalModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: POST to /api/v1/risk-acceptance/request
-    console.log("Submitting approval request:", formData);
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/risk-acceptance/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': localStorage.getItem('apiKey') || '' },
+      body: JSON.stringify(formData),
+    }).catch(() => {});
     onClose();
   };
 
