@@ -1,0 +1,225 @@
+# ============================================================================
+# ALDECI Helm Chart — HA Production Values
+# ============================================================================
+# Override default values for enterprise HA deployment.
+# Usage: helm install aldeci ./docker/helm/aldeci -f ./docker/helm/aldeci/values-ha.yaml
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# API — 3 replicas with anti-affinity, autoscaling to 10
+# ---------------------------------------------------------------------------
+api:
+  replicaCount: 3
+
+  image:
+    repository: aldeci/suite-api
+    tag: "2.5.0"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: "1Gi"
+    limits:
+      cpu: "4"
+      memory: "4Gi"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  terminationGracePeriodSeconds: 60
+
+# ---------------------------------------------------------------------------
+# UI — 2 replicas minimum
+# ---------------------------------------------------------------------------
+ui:
+  replicaCount: 2
+
+  image:
+    repository: aldeci/suite-ui
+    tag: "2.5.0"
+    pullPolicy: IfNotPresent
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+
+# ---------------------------------------------------------------------------
+# Redis (deployed as a dependency or external)
+# ---------------------------------------------------------------------------
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: ""
+  master:
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    persistence:
+      enabled: true
+      size: 10Gi
+
+# ---------------------------------------------------------------------------
+# PostgreSQL (deployed as a dependency or external)
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  architecture: replication
+  auth:
+    database: aldeci
+    username: aldeci
+    existingSecret: ""
+  primary:
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+    persistence:
+      enabled: true
+      size: 50Gi
+  readReplicas:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    persistence:
+      enabled: true
+      size: 50Gi
+
+# ---------------------------------------------------------------------------
+# Ingress — TLS enabled
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "30"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-API-Key, X-Request-ID"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    # Sticky sessions for WebSocket
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "ALDECI_AFFINITY"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+
+  hosts:
+    ui:
+      host: aldeci.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    api:
+      host: api.aldeci.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls:
+    enabled: true
+    secretName: aldeci-tls
+    hosts:
+      - aldeci.example.com
+      - api.aldeci.example.com
+
+# ---------------------------------------------------------------------------
+# Persistence — larger volumes for HA
+# ---------------------------------------------------------------------------
+persistence:
+  data:
+    enabled: true
+    accessMode: ReadWriteMany
+    size: 100Gi
+    storageClass: ""
+
+  logs:
+    enabled: true
+    accessMode: ReadWriteMany
+    size: 20Gi
+    storageClass: ""
+
+  backups:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 50Gi
+    storageClass: ""
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+config:
+  environment: production
+  logLevel: WARNING
+  logFormat: json
+  apiHost: "0.0.0.0"
+  apiPort: "8000"
+  apiWorkers: "4"
+  apiReload: "false"
+  authMode: enforced
+  allowedOrigins: "https://aldeci.example.com"
+  cacheUrl: "redis://aldeci-redis:6379/0"
+  dataDir: "/data"
+  dbPath: "/data/aldeci.db"
+  evidencePath: "/data/evidence"
+  knowledgePath: "/data/knowledge"
+  trustgraphEnabled: "true"
+  trustgraphUrl: "http://aldeci-trustgraph:8888"
+  useCouncil: "1"
+  llmCouncilTimeout: "30"
+  scannerNormalizerTimeout: "60"
+  maxConcurrentScans: "10"
+  feedRefreshInterval: "3600"
+  feedMaxAgeHours: "24"
+  backupRetentionDays: "30"
+  backupPath: "/data/backups"
+
+# ---------------------------------------------------------------------------
+# Pod Disruption Budgets
+# ---------------------------------------------------------------------------
+podDisruptionBudget:
+  api:
+    enabled: true
+    minAvailable: 2
+  ui:
+    enabled: true
+    minAvailable: 1
+
+# ---------------------------------------------------------------------------
+# Monitoring — Prometheus ServiceMonitor
+# ---------------------------------------------------------------------------
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
+    labels:
+      release: prometheus

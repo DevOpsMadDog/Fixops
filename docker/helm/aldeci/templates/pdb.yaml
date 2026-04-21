@@ -1,0 +1,31 @@
+{{- if and .Values.podDisruptionBudget .Values.podDisruptionBudget.api .Values.podDisruptionBudget.api.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aldeci.fullname" . }}-api
+  namespace: {{ include "aldeci.namespace" . }}
+  labels:
+    {{- include "aldeci.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.api.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aldeci.api.selectorLabels" . | nindent 6 }}
+{{- end }}
+---
+{{- if and .Values.podDisruptionBudget .Values.podDisruptionBudget.ui .Values.podDisruptionBudget.ui.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aldeci.fullname" . }}-ui
+  namespace: {{ include "aldeci.namespace" . }}
+  labels:
+    {{- include "aldeci.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.ui.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aldeci.ui.selectorLabels" . | nindent 6 }}
+{{- end }}
