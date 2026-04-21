@@ -158,12 +158,13 @@ export default function ThreatBriefDashboard() {
   const [distributed, setDistributed] = useState<Set<string>>(
     new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id))
   );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {})
+      .catch((e) => setError(e?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
   }, []);
 
