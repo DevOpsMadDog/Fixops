@@ -23,6 +23,17 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
+// ── API helpers ────────────────────────────────────────────────
+const ORG_ID = "default";
+function getApiKey() {
+  return (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "dev-key";
+}
+async function apiFetch(path: string) {
+  const res = await fetch(`/api/v1${path}`, { headers: { "X-API-Key": getApiKey() } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
 // ── Mock data ──────────────────────────────────────────────────
 
 const OWASP_TOP10 = [
@@ -133,6 +144,20 @@ function TrendBadge({ trend }: { trend: string }) {
 
 export default function APISecurityPage() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api-security-engine/endpoints?org_id=${ORG_ID}`),
+      apiFetch(`/api-security-engine/abuse-events?org_id=${ORG_ID}&limit=15`),
+    ]).then(([endpointsRes, abuseRes]) => {
+      const endpoints = endpointsRes.status === "fulfilled" ? endpointsRes.value : null;
+      const abuse = abuseRes.status === "fulfilled" ? abuseRes.value : null;
+      if (endpoints || abuse) setLiveData({ endpoints, abuse });
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   return (
     <motion.div

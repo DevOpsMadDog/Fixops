@@ -891,6 +891,9 @@ export default function App() {
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
 
+            {/* Security Graph — Wiz-killer interactive relationship canvas */}
+            <Route path="/security-graph" element={<SecurityGraph />} />
+
             {/* Wave 42 domain dashboards (pages for Wave 41 engines) */}
             <Route path="/privacy-impact" element={<PrivacyImpactDashboard />} />
             <Route path="/threat-indicators" element={<ThreatIndicatorDashboard />} />

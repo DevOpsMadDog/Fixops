@@ -17,6 +17,17 @@ import { motion } from "framer-motion";
 import { GraduationCap, Users, AlertTriangle, CheckCircle, XCircle, Calendar, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ── API helpers ────────────────────────────────────────────────
+const ORG_ID = "default";
+function getApiKey() {
+  return (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "dev-key";
+}
+async function apiFetch(path: string) {
+  const res = await fetch(`/api/v1${path}`, { headers: { "X-API-Key": getApiKey() } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
 // ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_PROGRAMS = [

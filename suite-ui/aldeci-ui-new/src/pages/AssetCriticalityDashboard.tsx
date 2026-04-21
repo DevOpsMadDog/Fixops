@@ -33,6 +33,17 @@ interface Factor {
   value: number; // out of 10
 }
 
+// ── API helpers ────────────────────────────────────────────────
+const ORG_ID = "default";
+function getApiKey() {
+  return (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "dev-key";
+}
+async function apiFetch(path: string) {
+  const res = await fetch(`/api/v1${path}`, { headers: { "X-API-Key": getApiKey() } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
 // ── Mock data ──────────────────────────────────────────────────
 
 const ASSETS: Asset[] = [
@@ -235,6 +246,20 @@ function CriticalPath({ assets, rootId }: { assets: Asset[]; rootId: string }) {
 
 export default function AssetCriticalityDashboard() {
   const [selectedId, setSelectedId] = useState<string>(ASSETS[0].id);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/asset-criticality/assets?org_id=${ORG_ID}`),
+      apiFetch(`/asset-criticality/summary?org_id=${ORG_ID}`),
+    ]).then(([assetsRes, summaryRes]) => {
+      const assets = assetsRes.status === "fulfilled" ? assetsRes.value : null;
+      const summary = summaryRes.status === "fulfilled" ? summaryRes.value : null;
+      if (assets || summary) setLiveData({ assets, summary });
+    }).finally(() => setDataLoading(false));
+  }, []);
   const sorted = [...ASSETS].sort((a, b) => b.criticality_score - a.criticality_score);
   const selected = ASSETS.find((a) => a.id === selectedId)!;
   const top10 = sorted.slice(0, 10);
