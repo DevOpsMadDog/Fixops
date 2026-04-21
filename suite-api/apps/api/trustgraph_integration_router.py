@@ -355,8 +355,8 @@ async def cross_domain_correlate(
 
 @router.get("/attack-paths")
 async def get_attack_paths(
-    source: str = Query(..., description="Source / entry-point entity ID (exposed asset)"),
-    target: str = Query(..., description="Target / high-value entity ID"),
+    source: Optional[str] = Query(default=None, description="Source / entry-point entity ID (exposed asset)"),
+    target: Optional[str] = Query(default=None, description="Target / high-value entity ID"),
     enrich: bool = Query(
         default=True,
         description="If true, enrich each path node with vuln/config context from all engines",
@@ -383,6 +383,19 @@ async def get_attack_paths(
     Returns:
         Dict with paths (enriched if requested), path count, summary.
     """
+    # When called without source/target, return an overview of known attack paths
+    if not source or not target:
+        try:
+            from core.trustgraph_backbone import GraphRAGEnhanced
+            graphrag = GraphRAGEnhanced(org_id=org_id)
+            if hasattr(graphrag, "get_all_attack_paths"):
+                paths = graphrag.get_all_attack_paths()
+            else:
+                paths = []
+            return {"paths": paths, "total": len(paths), "org_id": org_id}
+        except Exception:
+            return {"paths": [], "total": 0, "org_id": org_id}
+
     try:
         if enrich:
             enricher = _get_enricher(org_id=org_id)

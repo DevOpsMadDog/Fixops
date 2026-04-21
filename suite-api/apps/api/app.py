@@ -1353,9 +1353,9 @@ except ImportError as e:
 # Developer Risk Profiles router (Apiiro-competitive feature)
 developer_profiles_router: Optional[APIRouter] = None
 try:
-    from api.developer_profiles_router import router as developer_profiles_router
+    from apps.api.developer_profiles_router import router as developer_profiles_router
 
-    _logger.info("Loaded Developer Risk Profiles router from suite-core")
+    _logger.info("Loaded Developer Risk Profiles router")
 except ImportError as e:
     _logger.warning("Developer Risk Profiles router not available: %s", e)
 

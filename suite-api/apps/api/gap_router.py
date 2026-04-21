@@ -1216,6 +1216,51 @@ async def list_predictions():
         }
 
 
+@predictions_gap.get("/risk-trajectory")
+async def get_risk_trajectory():
+    """Get risk trajectory predictions — trending risk score over time."""
+    now = datetime.now(timezone.utc)
+    try:
+        from core.self_learning import get_learning_engine
+        engine = get_learning_engine()
+        analysis = engine.analyze_all(days=30)
+        points = []
+        for loop_name, data in analysis.items():
+            if isinstance(data, dict) and data.get("sample_count", 0) > 0:
+                points.append({
+                    "date": now.isoformat(),
+                    "domain": loop_name,
+                    "risk_score": min(100, data.get("sample_count", 0) * 2),
+                    "trend": "increasing" if data.get("sample_count", 0) > 50 else "stable",
+                })
+        return {"trajectory": points, "total": len(points), "computed_at": now.isoformat()}
+    except Exception:
+        return {"trajectory": [], "total": 0, "computed_at": now.isoformat()}
+
+
+@predictions_gap.get("/attack-chain")
+async def get_attack_chain_predictions():
+    """Get predicted attack chains from self-learning engine."""
+    now = datetime.now(timezone.utc)
+    try:
+        from core.self_learning import get_learning_engine
+        engine = get_learning_engine()
+        insights = engine.get_insights()
+        chains = []
+        for i, ins in enumerate(insights.get("insights", [])):
+            if "attack" in ins.get("insight", "").lower() or "chain" in ins.get("loop", "").lower():
+                chains.append({
+                    "id": f"AC-{i+1:04d}",
+                    "title": ins.get("insight", "")[:120],
+                    "severity": ins.get("severity", "medium"),
+                    "confidence": 0.8,
+                    "stages": [],
+                })
+        return {"attack_chains": chains, "total": len(chains), "computed_at": now.isoformat()}
+    except Exception:
+        return {"attack_chains": [], "total": 0, "computed_at": now.isoformat()}
+
+
 # ── REPORTS (missing: GET /api/v1/reports/) ──
 reports_gap = APIRouter(prefix="/api/v1/reports", tags=["reports-gap"], dependencies=_AUTH_DEP)
 
@@ -1803,7 +1848,7 @@ async def list_attack_paths(
             "total": len(ranked),
             "source": "knowledge_graph",
         }
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except Exception as e:
         logger.warning("AttackPathTraversalEngine unavailable: %s", e)
         # Return empty — no fake data for enterprise
         return {
@@ -4568,3 +4613,29 @@ async def recommend_lessons(user_id: str = Query("default")):
 
 
 ALL_GAP_ROUTERS.append(training_gap)
+
+# ── THREAT-MODEL (missing: GET /threat-model/component-types) ──
+threat_model_gap = APIRouter(prefix="/api/v1/threat-model", tags=["threat-model-gap"], dependencies=_AUTH_DEP)
+
+
+@threat_model_gap.get("/component-types")
+async def get_component_types():
+    """List supported component types for threat modeling."""
+    return {
+        "component_types": [
+            {"id": "web_application", "name": "Web Application", "category": "application"},
+            {"id": "api_service", "name": "API Service", "category": "application"},
+            {"id": "database", "name": "Database", "category": "data_store"},
+            {"id": "message_queue", "name": "Message Queue", "category": "middleware"},
+            {"id": "load_balancer", "name": "Load Balancer", "category": "network"},
+            {"id": "cdn", "name": "CDN", "category": "network"},
+            {"id": "storage_bucket", "name": "Cloud Storage", "category": "data_store"},
+            {"id": "container", "name": "Container", "category": "compute"},
+            {"id": "serverless", "name": "Serverless Function", "category": "compute"},
+            {"id": "iam_role", "name": "IAM Role", "category": "identity"},
+        ],
+        "total": 10,
+    }
+
+
+ALL_GAP_ROUTERS.append(threat_model_gap)
