@@ -6549,6 +6549,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.supply_chain_router import router as supply_chain_crud_router
+        app.include_router(supply_chain_crud_router)
+        _logger.info("Mounted Supply Chain CRUD router at /api/v1/supply-chain (components/vendors/stats/sync)")
+    except ImportError as _e:
+        _logger.warning("Supply Chain CRUD router not available: %s", _e)
+
+    try:
         from apps.api.ciso_report_router import router as ciso_report_router
         app.include_router(ciso_report_router)
         _logger.info("Mounted CISO Report router at /api/v1/ciso-report")

@@ -1471,9 +1471,12 @@ class SupplyChainEngine:
         result = brain.query_nodes(node_type="component", org_id=org_id, limit=5000)
         # Also fetch nodes with no org_id (ingested without org context)
         result_no_org = brain.query_nodes(node_type="component", org_id=None, limit=5000)
+        # Also fetch from the ASPM scan org ("aldeci") — ASPM harness stores
+        # components there regardless of the caller's org_id.
+        result_aspm = brain.query_nodes(node_type="component", org_id="aldeci", limit=5000)
         # Merge, dedup by node_id
         all_nodes: Dict[str, Any] = {}
-        for node in result.nodes + result_no_org.nodes:
+        for node in result.nodes + result_no_org.nodes + result_aspm.nodes:
             all_nodes[node["node_id"]] = node
 
         synced = 0

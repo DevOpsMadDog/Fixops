@@ -208,3 +208,86 @@ def list_subscriptions(org_id: str = Query(...)):
 def get_intel_stats(org_id: str = Query(...)):
     """Return aggregated vulnerability intelligence statistics for the org."""
     return _get_engine().get_intel_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Brain sync — pull ASPM CVE findings into vuln-intel DB
+# ---------------------------------------------------------------------------
+
+@router.post("/sync", dependencies=[Depends(api_key_auth)])
+def sync_cves_from_brain(
+    org_id: str = Query("default", description="Target org for upserted CVEs"),
+) -> Dict[str, Any]:
+    """Pull CVE/vulnerability findings from the brain graph and upsert them into
+    the vuln-intel database.
+
+    The ASPM scanner stores findings under the ``aldeci`` org in the brain graph.
+    This endpoint reads all ``finding``-type nodes from ``aldeci`` (and the
+    caller's org) and inserts any CVE-like entries into the vuln-intel table so
+    that ``GET /api/v1/vuln-intel/cves`` returns real scan data.
+    """
+    try:
+        from core.knowledge_brain import get_brain
+    except ImportError:
+        raise HTTPException(status_code=503, detail="knowledge_brain not available")
+
+    brain = get_brain()
+    engine = _get_engine()
+
+    # Pull finding nodes from both the caller org and the ASPM org
+    all_nodes: Dict[str, Any] = {}
+    for query_org in ("aldeci", org_id):
+        try:
+            res = brain.query_nodes(node_type="finding", org_id=query_org, limit=5000)
+            for node in res.nodes:
+                all_nodes[node["node_id"]] = node
+        except Exception:
+            pass
+
+    synced = 0
+    skipped = 0
+    errors = 0
+
+    for node in all_nodes.values():
+        props = node.get("properties", {})
+        title: str = props.get("title", "")
+        severity: str = props.get("severity", "medium")
+        source: str = props.get("source", "aspm-harness")
+
+        # Only process CVE / GHSA identifiers
+        import re as _re
+        cve_match = _re.search(r"CVE-\d{4}-\d+", title, _re.IGNORECASE)
+        ghsa_match = _re.search(r"GHSA-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+", title, _re.IGNORECASE)
+        if not cve_match and not ghsa_match:
+            skipped += 1
+            continue
+
+        cve_id = cve_match.group(0).upper() if cve_match else ghsa_match.group(0).upper()
+
+        # Map severity to valid values
+        severity = severity.lower()
+        if severity not in ("critical", "high", "medium", "low", "informational"):
+            severity = "medium"
+
+        try:
+            engine.add_cve(org_id, {
+                "cve_id": cve_id,
+                "title": title,
+                "description": f"Detected by ASPM harness via {source}",
+                "severity": severity,
+                "status": "new",
+                "affected_products": [],
+            })
+            synced += 1
+        except Exception as exc:
+            _logger.debug("sync CVE %s skipped: %s", cve_id, exc)
+            # Likely a duplicate — count as skipped not error
+            skipped += 1
+
+    return {
+        "synced": synced,
+        "skipped": skipped,
+        "errors": errors,
+        "source_org": "aldeci",
+        "target_org": org_id,
+    }
