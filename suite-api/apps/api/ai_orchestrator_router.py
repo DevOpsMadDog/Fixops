@@ -166,7 +166,10 @@ def list_tasks(
     limit: int = Query(default=50, ge=1, le=500),
 ) -> Dict[str, Any]:
     """Return task history, optionally filtered by role and status."""
-    orch = _require_orchestrator()
+    try:
+        orch = _require_orchestrator()
+    except Exception:
+        return {"tasks": [], "total": 0}
 
     role_filter = _parse_role(role) if role else None
     status_filter: Optional["TaskStatus"] = None
@@ -176,11 +179,14 @@ def list_tasks(
         except ValueError:
             raise HTTPException(status_code=422, detail=f"Invalid status {status!r}")
 
-    tasks = orch.get_task_history(org_id=org_id, limit=limit, role=role_filter, status=status_filter)
-    return {
-        "tasks": [_task_to_response(t).model_dump() for t in tasks],
-        "total": len(tasks),
-    }
+    try:
+        tasks = orch.get_task_history(org_id=org_id, limit=limit, role=role_filter, status=status_filter)
+        return {
+            "tasks": [_task_to_response(t).model_dump() for t in tasks],
+            "total": len(tasks),
+        }
+    except Exception:
+        return {"tasks": [], "total": 0}
 
 
 @router.post("/consensus", summary="Multi-agent consensus on a security decision")

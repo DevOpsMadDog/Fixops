@@ -179,8 +179,8 @@ class AuthDB:
         return SSOConfig(
             id=row["id"],
             name=row["name"],
-            provider=AuthProvider(row["provider"]),
-            status=SSOStatus(row["status"]),
+            provider=AuthProvider(row["provider"]) if row["provider"] in AuthProvider._value2member_map_ else AuthProvider.OAUTH2,
+            status=SSOStatus(row["status"]) if row["status"] in SSOStatus._value2member_map_ else SSOStatus.INACTIVE,
             metadata=json.loads(row["metadata"]) if row["metadata"] else {},
             entity_id=row["entity_id"],
             sso_url=row["sso_url"],

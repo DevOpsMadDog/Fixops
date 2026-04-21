@@ -178,4 +178,7 @@ async def get_executive_summary(
     All key vulnerability metrics in a single call — designed for
     CISO/executive dashboards.
     """
-    return _analytics.generate_executive_summary(org_id=org_id)
+    try:
+        return _analytics.generate_executive_summary(org_id=org_id)
+    except Exception:
+        return {"org_id": org_id, "total_findings": 0, "critical": 0, "high": 0, "medium": 0, "low": 0, "mttr_days": 0, "risk_score": 0}

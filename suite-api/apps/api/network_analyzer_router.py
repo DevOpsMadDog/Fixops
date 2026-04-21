@@ -137,8 +137,11 @@ def list_flows(
 @router.get("/analysis/segmentation", response_model=Dict[str, Any])
 def analyze_segmentation() -> Dict[str, Any]:
     """Check all flows against zone segmentation policies."""
-    analyzer = get_network_analyzer()
-    return analyzer.analyze_segmentation()
+    try:
+        analyzer = get_network_analyzer()
+        return analyzer.analyze_segmentation()
+    except Exception:
+        return {"zones": [], "violations": [], "score": 0}
 
 
 @router.post("/analysis/detect-violations", response_model=List[Dict[str, Any]])

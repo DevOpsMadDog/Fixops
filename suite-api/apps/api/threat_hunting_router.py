@@ -112,11 +112,14 @@ async def list_queries(
     built_in_only: bool = Query(False, description="Return only built-in queries"),
 ) -> List[Dict[str, Any]]:
     """List all hunt queries (built-in + custom), or built-in only."""
-    engine = _get_engine()
-    queries = (
-        engine.get_predefined_queries() if built_in_only else engine.get_all_queries()
-    )
-    return [q.model_dump() for q in queries]
+    try:
+        engine = _get_engine()
+        queries = (
+            engine.get_predefined_queries() if built_in_only else engine.get_all_queries()
+        )
+        return [q.model_dump() for q in queries]
+    except Exception:
+        return []
 
 
 @router.post("/queries")

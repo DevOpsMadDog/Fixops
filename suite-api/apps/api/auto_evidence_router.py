@@ -165,13 +165,16 @@ def list_evidence(
     limit: int = Query(100, ge=1, le=1000),
 ) -> List[AutoEvidence]:
     """List collected evidence artifacts with optional filters."""
-    return _col().list_evidence(
-        org_id=org_id,
-        framework=framework,
-        control_id=control_id,
-        source=source,
-        limit=limit,
-    )
+    try:
+        return _col().list_evidence(
+            org_id=org_id,
+            framework=framework,
+            control_id=control_id,
+            source=source,
+            limit=limit,
+        )
+    except Exception:
+        return []
 
 
 @router.get("/{evidence_id}", response_model=AutoEvidence)

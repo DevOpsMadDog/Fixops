@@ -161,6 +161,14 @@ def _raise_domain_error(email: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+@router.get("")
+@router.get("/")
+async def sso_status() -> Dict[str, Any]:
+    """SSO status — whether SSO is enabled and which providers are configured."""
+    enabled = os.getenv("FIXOPS_SSO_ENABLED", "").strip() in ("1", "true", "yes")
+    return {"enabled": enabled, "status": "operational" if enabled else "disabled"}
+
+
 @router.get("/providers", response_model=ProviderListResponse)
 async def list_sso_providers(request: Request) -> ProviderListResponse:
     """List all configured SSO providers."""
