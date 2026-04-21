@@ -102,7 +102,7 @@ def register_gateway(req: RegisterGatewayRequest) -> Dict[str, Any]:
     dependencies=[Depends(api_key_auth)],
     summary="List registered gateways",
 )
-def list_gateways(org_id: str = Query(default="default", description="Organisation identifier")) -> List[Dict[str, Any]]:
+def list_gateways(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
     try:
         return _get_engine().list_gateways(org_id)
     except Exception as exc:
@@ -131,7 +131,7 @@ def register_api(req: RegisterApiRequest) -> Dict[str, Any]:
     summary="List registered APIs",
 )
 def list_apis(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Query(..., description="Organisation identifier"),
     gateway_id: Optional[str] = Query(None, description="Filter by gateway UUID"),
 ) -> List[Dict[str, Any]]:
     try:
@@ -162,7 +162,7 @@ def record_security_event(req: RecordSecurityEventRequest) -> Dict[str, Any]:
     summary="List security events",
 )
 def list_security_events(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Query(..., description="Organisation identifier"),
     event_type: Optional[str] = Query(None, description="Filter by event type"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum records to return"),
@@ -183,7 +183,7 @@ def list_security_events(
 )
 def get_api_threat_summary(
     api_id: str,
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Query(..., description="Organisation identifier"),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().get_api_threat_summary(org_id, api_id)
@@ -197,7 +197,7 @@ def get_api_threat_summary(
     dependencies=[Depends(api_key_auth)],
     summary="Get gateway security stats for an org",
 )
-def get_gateway_stats(org_id: str = Query(default="default", description="Organisation identifier")) -> Dict[str, Any]:
+def get_gateway_stats(org_id: str = Query(..., description="Organisation identifier")) -> Dict[str, Any]:
     try:
         return _get_engine().get_gateway_stats(org_id)
     except Exception as exc:

@@ -140,7 +140,7 @@ function VulnCount({ count }: { count: number }) {
 
 export default function SBOMDashboard() {
   const [sboms, setSboms] = useState<any[]>(MOCK_SBOMS);
-  const [stats, setStats] = useState<any>({});
+  const [stats, setStats] = useState<any[]>([]);
   const [selectedSbom, setSelectedSbom] = useState<any | null>(null);
   const [components, setComponents] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);

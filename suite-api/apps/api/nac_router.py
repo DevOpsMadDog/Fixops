@@ -48,7 +48,7 @@ def _get_engine():
 
 
 class DeviceCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     hostname: str
     device_type: str = "laptop"
     owner: Optional[str] = None
@@ -58,14 +58,14 @@ class DeviceCreateReq(BaseModel):
 
 
 class DeviceStatusReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     status: str
     reason: str
     updated_by: str
 
 
 class PolicyCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     name: str
     device_types: List[str] = Field(default_factory=list)
     required_checks: List[str] = Field(default_factory=list)
@@ -75,12 +75,12 @@ class PolicyCreateReq(BaseModel):
 
 
 class ApplyPolicyReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     policy_id: str
 
 
 class AccessEventReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     device_id: str
     event_type: str
     location: Optional[str] = None

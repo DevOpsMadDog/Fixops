@@ -65,7 +65,7 @@ class PolicyResponse(BaseModel):
     effective_date: Optional[str]
     review_date: Optional[str]
     status: str
-    org_id: str = Query(default="default")
+    org_id: str
     created_at: str
     updated_at: str
 

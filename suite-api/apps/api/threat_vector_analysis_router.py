@@ -96,7 +96,7 @@ class CreateMitigationRequest(BaseModel):
 @router.post("/vectors", dependencies=[Depends(api_key_auth)])
 def record_vector(
     req: RecordVectorRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Record a new threat vector."""
     try:
@@ -119,7 +119,7 @@ def record_vector(
 
 @router.get("/vectors", dependencies=[Depends(api_key_auth)])
 def list_vectors(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     vector_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -130,7 +130,7 @@ def list_vectors(
 @router.get("/vectors/{vector_id}", dependencies=[Depends(api_key_auth)])
 def get_vector(
     vector_id: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Retrieve a single threat vector by ID."""
     vec = _get_engine().get_vector(org_id, vector_id)
@@ -143,7 +143,7 @@ def get_vector(
 def add_indicator(
     vector_id: str,
     req: AddIndicatorRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Add an indicator to a threat vector."""
     try:
@@ -163,7 +163,7 @@ def add_indicator(
 
 @router.get("/indicators", dependencies=[Depends(api_key_auth)])
 def list_indicators(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     vector_id: Optional[str] = Query(default=None),
     indicator_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -177,7 +177,7 @@ def list_indicators(
 def create_mitigation(
     vector_id: str,
     req: CreateMitigationRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Create a mitigation plan for a threat vector."""
     try:
@@ -199,7 +199,7 @@ def create_mitigation(
 
 @router.get("/mitigations", dependencies=[Depends(api_key_auth)])
 def list_mitigations(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     vector_id: Optional[str] = Query(default=None),
     mitigation_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -211,7 +211,7 @@ def list_mitigations(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_vector_stats(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return aggregate threat vector statistics."""
     return _get_engine().get_vector_stats(org_id)

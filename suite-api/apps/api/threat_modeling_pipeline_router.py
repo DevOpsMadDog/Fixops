@@ -184,7 +184,7 @@ def finalize_model(model_id: str, req: OrgRequest) -> Dict[str, Any]:
 @router.get("/models/{model_id}", summary="Get a threat model with components and threats")
 def get_model(
     model_id: str,
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Query(..., description="Organisation ID"),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().get_model(model_id=model_id, org_id=org_id)
@@ -194,7 +194,7 @@ def get_model(
 
 @router.get("/models", summary="List threat models")
 def list_models(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Query(..., description="Organisation ID"),
     status: Optional[str] = Query(default=None, description="Filter by status"),
     methodology: Optional[str] = Query(default=None, description="Filter by methodology"),
 ) -> List[Dict[str, Any]]:
@@ -208,7 +208,7 @@ def list_models(
 @router.get("/models/{model_id}/stride-summary", summary="Get STRIDE category summary")
 def get_stride_summary(
     model_id: str,
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Query(..., description="Organisation ID"),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().get_stride_summary(model_id=model_id, org_id=org_id)
@@ -218,6 +218,6 @@ def get_stride_summary(
 
 @router.get("/unmitigated", summary="Get all unmitigated threats across all models")
 def get_unmitigated_threats(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Query(..., description="Organisation ID"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_unmitigated_threats(org_id=org_id)

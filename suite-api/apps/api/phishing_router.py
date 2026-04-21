@@ -80,7 +80,7 @@ class CampaignResponse(BaseModel):
     reported_count: int
     started_at: str
     ended_at: Optional[str]
-    org_id: str = Query(default="default")
+    org_id: str
 
 
 class TemplateResponse(BaseModel):
@@ -173,14 +173,14 @@ def record_report(campaign_id: str, req: InteractionRequest):
 
 
 @router.get("/orgs/{org_id}/history", response_model=List[Dict[str, Any]])
-def get_campaign_history(org_id: str = Query(default="default")):
+def get_campaign_history(org_id: str):
     """Return all phishing campaigns for an organisation, newest first."""
     sim = _get_simulator()
     return sim.get_campaign_history(org_id)
 
 
 @router.get("/orgs/{org_id}/risk", response_model=Dict[str, Any])
-def get_org_risk(org_id: str = Query(default="default")):
+def get_org_risk(org_id: str):
     """
     Return org-wide phishing susceptibility metrics.
 
@@ -194,7 +194,7 @@ def get_org_risk(org_id: str = Query(default="default")):
 @router.get("/users/susceptibility", response_model=Dict[str, Any])
 def get_user_susceptibility(
     email: str = Query(..., description="Employee email address"),
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Query(..., description="Organisation identifier"),
 ):
     """
     Return an individual employee's phishing susceptibility score (0.0–1.0).

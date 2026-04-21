@@ -80,7 +80,7 @@ def create_org(req: CreateOrgRequest) -> Dict[str, Any]:
 
 
 @router.get("/{org_id}/summary", dependencies=[Depends(api_key_auth)])
-def get_org_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_org_summary(org_id: str) -> Dict[str, Any]:
     """Return a dashboard summary for a specific org.
 
     Shows how many engine databases contain data for this org_id and the

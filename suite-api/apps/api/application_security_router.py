@@ -39,7 +39,7 @@ router = APIRouter(
 _engines: Dict[str, Any] = {}
 
 
-def _get_engine(org_id: str = Query(default="default")):
+def _get_engine(org_id: str):
     if org_id not in _engines:
         from core.application_security_engine import ApplicationSecurityEngine
         _engines[org_id] = ApplicationSecurityEngine(org_id=org_id)

@@ -66,7 +66,7 @@ class TransitionResponse(BaseModel):
     changed_by: str
     reason: str
     timestamp: str
-    org_id: str = Query(default="default")
+    org_id: str
 
 
 class CurrentStageResponse(BaseModel):

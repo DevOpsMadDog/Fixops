@@ -85,7 +85,7 @@ class ScanWithConfigRequest(BaseModel):
 
 class ScanResponse(BaseModel):
     scan_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     target: str
     rules: str
     started_at: str
@@ -102,7 +102,7 @@ class ScanSummaryResponse(BaseModel):
     """Scan history entry (findings omitted for brevity)."""
 
     scan_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     target: str
     rules: str
     started_at: str

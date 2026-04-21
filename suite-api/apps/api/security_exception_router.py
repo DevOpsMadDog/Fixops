@@ -72,7 +72,7 @@ class RevokeRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/{org_id}", summary="Request a security exception")
-def request_exception(org_id: str = Query(default="default"), body: ExceptionRequest, _=Depends(api_key_auth)):
+def request_exception(org_id: str, body: ExceptionRequest, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.request_exception(org_id, body.model_dump())
@@ -83,7 +83,7 @@ def request_exception(org_id: str = Query(default="default"), body: ExceptionReq
 
 @router.get("/{org_id}", summary="List security exceptions")
 def list_exceptions(
-    org_id: str = Query(default="default"),
+    org_id: str,
     status: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
     _=Depends(api_key_auth),
@@ -94,7 +94,7 @@ def list_exceptions(
 
 @router.get("/{org_id}/expiring", summary="List exceptions expiring soon")
 def check_expiring(
-    org_id: str = Query(default="default"),
+    org_id: str,
     days_ahead: int = Query(default=7, ge=1, le=90),
     _=Depends(api_key_auth),
 ):
@@ -103,13 +103,13 @@ def check_expiring(
 
 
 @router.get("/{org_id}/stats", summary="Get exception stats")
-def get_exception_stats(org_id: str = Query(default="default"), _=Depends(api_key_auth)):
+def get_exception_stats(org_id: str, _=Depends(api_key_auth)):
     engine = _get_engine()
     return engine.get_exception_stats(org_id)
 
 
 @router.get("/{org_id}/{exception_id}", summary="Get a security exception")
-def get_exception(org_id: str = Query(default="default"), exception_id: str, _=Depends(api_key_auth)):
+def get_exception(org_id: str, exception_id: str, _=Depends(api_key_auth)):
     engine = _get_engine()
     result = engine.get_exception(org_id, exception_id)
     if result is None:
@@ -118,7 +118,7 @@ def get_exception(org_id: str = Query(default="default"), exception_id: str, _=D
 
 
 @router.post("/{org_id}/{exception_id}/review", summary="Review an exception")
-def review_exception(org_id: str = Query(default="default"), exception_id: str, body: ExceptionReview, _=Depends(api_key_auth)):
+def review_exception(org_id: str, exception_id: str, body: ExceptionReview, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.review_exception(
@@ -134,7 +134,7 @@ def review_exception(org_id: str = Query(default="default"), exception_id: str, 
 
 
 @router.post("/{org_id}/{exception_id}/assets", summary="Add asset to exception")
-def add_asset(org_id: str = Query(default="default"), exception_id: str, body: AssetAdd, _=Depends(api_key_auth)):
+def add_asset(org_id: str, exception_id: str, body: AssetAdd, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.add_asset(org_id, exception_id, body.model_dump())
@@ -144,13 +144,13 @@ def add_asset(org_id: str = Query(default="default"), exception_id: str, body: A
 
 
 @router.get("/{org_id}/{exception_id}/assets", summary="List assets for exception")
-def list_assets(org_id: str = Query(default="default"), exception_id: str, _=Depends(api_key_auth)):
+def list_assets(org_id: str, exception_id: str, _=Depends(api_key_auth)):
     engine = _get_engine()
     return engine.list_assets(org_id, exception_id)
 
 
 @router.post("/{org_id}/{exception_id}/revoke", summary="Revoke an exception")
-def revoke_exception(org_id: str = Query(default="default"), exception_id: str, body: RevokeRequest, _=Depends(api_key_auth)):
+def revoke_exception(org_id: str, exception_id: str, body: RevokeRequest, _=Depends(api_key_auth)):
     engine = _get_engine()
     ok = engine.revoke_exception(org_id, exception_id, revoker=body.revoker, reason=body.reason)
     if not ok:

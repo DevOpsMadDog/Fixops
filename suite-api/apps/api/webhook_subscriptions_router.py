@@ -239,7 +239,7 @@ def _deliver_webhook(sub: Dict[str, Any], event_type: str, payload: Dict[str, An
     return result
 
 
-def dispatch_event(event_type: str, payload: Dict[str, Any], org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def dispatch_event(event_type: str, payload: Dict[str, Any], org_id: str) -> List[Dict[str, Any]]:
     """Find matching active subscriptions, deliver webhooks, track failures."""
     if event_type not in ALLOWED_EVENT_TYPES:
         logger.warning("Unknown event type dispatched: %s", event_type)

@@ -77,7 +77,7 @@ class SetBenchmarkRequest(BaseModel):
 @router.post("/metrics", dependencies=[Depends(api_key_auth)])
 def record_metric(
     req: RecordMetricRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Record a new awareness metric data point."""
     try:
@@ -97,7 +97,7 @@ def record_metric(
 
 @router.get("/metrics", dependencies=[Depends(api_key_auth)])
 def list_metrics(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     metric_type: Optional[str] = Query(default=None),
     department: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -107,7 +107,7 @@ def list_metrics(
 
 @router.get("/metrics/latest", dependencies=[Depends(api_key_auth)])
 def get_latest_metric(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     metric_type: str = Query(..., description="Metric type"),
     department: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
@@ -124,7 +124,7 @@ def get_latest_metric(
 
 @router.get("/metrics/trend", dependencies=[Depends(api_key_auth)])
 def get_trend(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     metric_type: str = Query(..., description="Metric type"),
     department: Optional[str] = Query(default=None),
     periods: int = Query(default=4, ge=2, le=52),
@@ -138,7 +138,7 @@ def get_trend(
 @router.post("/benchmarks", dependencies=[Depends(api_key_auth)])
 def set_benchmark(
     req: SetBenchmarkRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Create or update a benchmark for a metric type."""
     try:
@@ -157,7 +157,7 @@ def set_benchmark(
 
 @router.get("/benchmarks", dependencies=[Depends(api_key_auth)])
 def list_benchmarks(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> List[Dict[str, Any]]:
     """List all benchmarks for the org."""
     return _get_engine().list_benchmarks(org_id)
@@ -165,7 +165,7 @@ def list_benchmarks(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_awareness_stats(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return aggregate awareness statistics."""
     return _get_engine().get_awareness_stats(org_id)

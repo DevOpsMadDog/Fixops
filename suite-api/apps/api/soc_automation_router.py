@@ -86,7 +86,7 @@ class RuleResponse(BaseModel):
     enabled: bool
     execution_count: int
     last_triggered: Optional[str]
-    org_id: str = Query(default="default")
+    org_id: str
 
 
 def _rule_to_response(rule: "AutomationRule") -> RuleResponse:

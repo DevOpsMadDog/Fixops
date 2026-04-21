@@ -120,7 +120,7 @@ def create_incident(req: CreateIncidentRequest) -> Dict[str, Any]:
 
 @router.get("/incidents", summary="List incidents for an org")
 def list_incidents(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Query(..., description="Organisation identifier"),
     status: Optional[str] = Query(default=None),
     cloud_provider: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -205,7 +205,7 @@ def create_playbook(req: CreatePlaybookRequest) -> Dict[str, Any]:
 
 
 @router.get("/playbooks", summary="List IR playbooks for an org")
-def list_playbooks(org_id: str = Query(default="default", description="Organisation identifier")) -> List[Dict[str, Any]]:
+def list_playbooks(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
     return _get_engine().list_playbooks(org_id=org_id)
 
 
@@ -221,5 +221,5 @@ def execute_playbook(playbook_id: str, req: ExecutePlaybookRequest) -> Dict[str,
 
 
 @router.get("/metrics", summary="Get IR metrics for an org")
-def get_ir_metrics(org_id: str = Query(default="default", description="Organisation identifier")) -> Dict[str, Any]:
+def get_ir_metrics(org_id: str = Query(..., description="Organisation identifier")) -> Dict[str, Any]:
     return _get_engine().get_ir_metrics(org_id=org_id)

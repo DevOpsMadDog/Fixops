@@ -616,10 +616,10 @@ export default function RiskOverview() {
             </div>
             {/* 4 stat chips */}
             <div className="grid grid-cols-2 gap-3">
-              <StatChip label="Critical" value={criticalCount} sev="critical" />
-              <StatChip label="High" value={highCount} sev="high" />
-              <StatChip label="Medium" value={mediumCount} sev="medium" />
-              <StatChip label="Low" value={lowCount} sev="low" />
+              <StatChip title="Critical" value={criticalCount} sev="critical" />
+              <StatChip title="High" value={highCount} sev="high" />
+              <StatChip title="Medium" value={mediumCount} sev="medium" />
+              <StatChip title="Low" value={lowCount} sev="low" />
             </div>
           </motion.div>
 

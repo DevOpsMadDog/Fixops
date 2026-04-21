@@ -51,7 +51,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class EventCreate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     username: str
     source_ip: str = ""
     country: str = ""
@@ -63,12 +63,12 @@ class EventCreate(BaseModel):
 
 
 class DetectAnomaliesRequest(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     username: str
 
 
 class BaselineUpsert(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     username: str
     typical_countries: List[str] = []
     typical_hours: List[int] = []
@@ -77,12 +77,12 @@ class BaselineUpsert(BaseModel):
 
 
 class ImpossibleTravelRequest(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     hours_window: float = 4.0
 
 
 class ResolveRequest(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
 
 
 # ---------------------------------------------------------------------------

@@ -77,7 +77,7 @@ class IngestResponse(BaseModel):
     """Response after a single-line ingestion."""
 
     entry_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     timestamp: str
     severity: str
     actor: str
@@ -97,7 +97,7 @@ class AuditEntryOut(BaseModel):
     """Serialisable audit entry."""
 
     id: str
-    org_id: str = Query(default="default")
+    org_id: str
     timestamp: str
     source_format: str
     severity: str
@@ -145,7 +145,7 @@ class AnomalyOut(BaseModel):
     """Serialisable anomaly record."""
 
     id: str
-    org_id: str = Query(default="default")
+    org_id: str
     kind: str
     severity: str
     actor: str
@@ -198,14 +198,14 @@ class RetentionPolicyIn(BaseModel):
 
 
 class RetentionPolicyOut(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     archive_after_days: int
     delete_after_days: int
     legal_hold_actor_ids: List[str]
 
 
 class RetentionReportOut(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     archived: int
     deleted: int
     held: int

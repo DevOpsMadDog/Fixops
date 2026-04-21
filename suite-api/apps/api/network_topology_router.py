@@ -54,7 +54,7 @@ router = APIRouter(prefix="/api/v1/network-topology", tags=["network-topology"])
 # ---------------------------------------------------------------------------
 
 class NodeCreate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     node_type: str = "server"
     hostname: str = ""
     ip: str = ""
@@ -65,7 +65,7 @@ class NodeCreate(BaseModel):
 
 
 class EdgeCreate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     src_node_id: str
     dst_node_id: str
     protocol: str
@@ -74,7 +74,7 @@ class EdgeCreate(BaseModel):
 
 
 class SegmentCreate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     name: str = ""
     vlan: str = ""
     subnet: str = ""

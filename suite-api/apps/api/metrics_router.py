@@ -78,7 +78,7 @@ def _get_compliance_engine():
 # Metric collection helpers
 # ---------------------------------------------------------------------------
 
-def _collect_alert_metrics(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def _collect_alert_metrics(org_id: str) -> Dict[str, Any]:
     """Pull severity counts from AlertTriageEngine stats."""
     try:
         stats = _get_alert_engine().get_triage_stats(org_id)
@@ -99,7 +99,7 @@ def _collect_alert_metrics(org_id: str = Query(default="default")) -> Dict[str, 
                 "total": 0, "false_positive_rate": 0.0, "avg_triage_time_minutes": 0.0}
 
 
-def _collect_posture_metrics(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def _collect_posture_metrics(org_id: str) -> Dict[str, Any]:
     """Pull overall posture score from PostureScoreEngine."""
     try:
         result = _get_posture_engine().compute_posture_score(org_id)
@@ -112,7 +112,7 @@ def _collect_posture_metrics(org_id: str = Query(default="default")) -> Dict[str
         return {"overall_score": 0.0, "grade": "F"}
 
 
-def _collect_compliance_metrics(org_id: str = Query(default="default")) -> Dict[str, float]:
+def _collect_compliance_metrics(org_id: str) -> Dict[str, float]:
     """Pull per-framework compliance scores."""
     scores: Dict[str, float] = {}
     try:
@@ -144,7 +144,7 @@ def _prom_line(metric: str, labels: Dict[str, str], value: float) -> str:
     return f"{metric} {value}"
 
 
-def _build_prometheus_text(org_id: str = Query(default="default")) -> str:
+def _build_prometheus_text(org_id: str) -> str:
     """Build the full Prometheus exposition text body."""
     lines: List[str] = []
 

@@ -88,7 +88,7 @@ class CompositeRiskScoreOut(BaseModel):
     score_id: str
     asset_id: Optional[str]
     finding_id: Optional[str]
-    org_id: str = Query(default="default")
+    org_id: str
     score: float
     grade: str
     factors: List[RiskFactorOut]

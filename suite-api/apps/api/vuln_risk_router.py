@@ -75,13 +75,13 @@ class BatchVulnItem(BaseModel):
 
 class BatchScoreRequest(BaseModel):
     vulnerabilities: List[BatchVulnItem] = Field(..., min_length=1)
-    org_id: str = Query(default="default")
+    org_id: str
     save: bool = Field(default=False, description="Persist all scores to DB")
 
 
 class ScoreResponse(BaseModel):
     cve_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     composite_score: float
     priority: str
     factors: Dict[str, Any]
@@ -91,7 +91,7 @@ class ScoreResponse(BaseModel):
 
 
 class StatsResponse(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     distribution: Dict[str, int]
     total: int
 
@@ -184,7 +184,7 @@ def batch_score(req: BatchScoreRequest) -> List[ScoreResponse]:
 
 
 @router.get("/stats", response_model=StatsResponse, summary="Priority distribution statistics")
-def get_stats(org_id: str = Query(default="default", description="Organization identifier")) -> StatsResponse:
+def get_stats(org_id: str = Query(..., description="Organization identifier")) -> StatsResponse:
     """Return count of saved scores per priority tier (P1/P2/P3/P4)."""
     scorer = get_scorer()
     try:
@@ -201,7 +201,7 @@ def get_stats(org_id: str = Query(default="default", description="Organization i
     summary="Priority-ordered queue of saved scores",
 )
 def get_priority_queue(
-    org_id: str = Query(default="default", description="Organization identifier"),
+    org_id: str = Query(..., description="Organization identifier"),
 ) -> List[Dict[str, Any]]:
     """Return all persisted scores for the org sorted P1→P4, then by composite score."""
     scorer = get_scorer()
@@ -219,7 +219,7 @@ def get_priority_queue(
 )
 def get_trend(
     cve_id: str,
-    org_id: str = Query(default="default", description="Organization identifier"),
+    org_id: str = Query(..., description="Organization identifier"),
 ) -> List[Dict[str, Any]]:
     """Return chronological score history for a given CVE in the org."""
     scorer = get_scorer()

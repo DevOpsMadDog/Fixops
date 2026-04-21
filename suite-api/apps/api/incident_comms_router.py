@@ -117,7 +117,7 @@ class CreateTemplateRequest(BaseModel):
 @router.post("/comms", dependencies=[Depends(api_key_auth)])
 def create_comm(
     req: CreateCommRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Create a new incident communication."""
     try:
@@ -142,7 +142,7 @@ def create_comm(
 
 @router.get("/comms", dependencies=[Depends(api_key_auth)])
 def list_comms(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     incident_id: Optional[str] = Query(default=None),
     comm_type: Optional[str] = Query(default=None),
     comm_status: Optional[str] = Query(default=None),
@@ -159,7 +159,7 @@ def list_comms(
 @router.get("/comms/{comm_id}", dependencies=[Depends(api_key_auth)])
 def get_comm(
     comm_id: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Retrieve a single communication by ID."""
     comm = _get_engine().get_comm(org_id, comm_id)
@@ -172,7 +172,7 @@ def get_comm(
 def send_comm(
     comm_id: str,
     req: SendCommRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Mark a communication as sent and update delivery counts."""
     try:
@@ -190,7 +190,7 @@ def send_comm(
 def record_acknowledgment(
     comm_id: str,
     req: AcknowledgeCommRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Record an acknowledgment for a communication."""
     try:
@@ -209,7 +209,7 @@ def record_acknowledgment(
 @router.get("/comms/{comm_id}/acknowledgments", dependencies=[Depends(api_key_auth)])
 def list_acknowledgments(
     comm_id: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> List[Dict[str, Any]]:
     """List all acknowledgments for a specific communication."""
     return _get_engine().list_acknowledgments(org_id, comm_id)
@@ -218,7 +218,7 @@ def list_acknowledgments(
 @router.post("/templates", dependencies=[Depends(api_key_auth)])
 def create_template(
     req: CreateTemplateRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Create a reusable communication template."""
     try:
@@ -239,7 +239,7 @@ def create_template(
 
 @router.get("/templates", dependencies=[Depends(api_key_auth)])
 def list_templates(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     comm_type: Optional[str] = Query(default=None),
     channel: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -253,7 +253,7 @@ def list_templates(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_comms_stats(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return aggregate incident communications statistics."""
     return _get_engine().get_comms_stats(org_id)

@@ -81,7 +81,7 @@ class SeverityBreakdown(BaseModel):
 
 class ImportResponse(BaseModel):
     import_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     owner: str
     repo: str
     started_at: str
@@ -99,7 +99,7 @@ class ImportSummaryResponse(BaseModel):
     """Import history entry — findings omitted."""
 
     import_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     owner: str
     repo: str
     started_at: str

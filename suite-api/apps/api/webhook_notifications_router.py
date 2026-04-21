@@ -274,7 +274,7 @@ def _update_webhook_state(webhook_id: str, success: bool) -> None:
 # Public dispatch function (called by other engine routers on events)
 # ---------------------------------------------------------------------------
 
-def fire_event(event_type: str, payload: Dict[str, Any], org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def fire_event(event_type: str, payload: Dict[str, Any], org_id: str) -> List[Dict[str, Any]]:
     """Fire an event to all active matching webhooks for the given org.
 
     Called from alert, incident, and compliance routers when events occur.
@@ -360,7 +360,7 @@ class RegisterWebhookRequest(BaseModel):
 
 
 class DispatchRequest(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     event_type: str
     payload: Dict[str, Any] = Field(default_factory=dict)
 
@@ -428,7 +428,7 @@ async def register_webhook(req: RegisterWebhookRequest) -> Dict[str, Any]:
 
 @router.get("", summary="List registered webhooks")
 async def list_webhooks(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     active_only: bool = Query(default=True, description="Return only active webhooks"),
 ) -> Dict[str, Any]:
     """List all registered webhooks for an organization."""
@@ -457,7 +457,7 @@ async def list_webhooks(
 @router.delete("/{webhook_id}", summary="Remove a webhook")
 async def delete_webhook(
     webhook_id: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Permanently remove a registered webhook."""
     try:
@@ -482,7 +482,7 @@ async def delete_webhook(
 @router.post("/test/{webhook_id}", summary="Send test payload to a webhook")
 async def test_webhook(
     webhook_id: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Send a test payload to verify the webhook endpoint is reachable."""
     try:

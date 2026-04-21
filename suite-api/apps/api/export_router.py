@@ -53,7 +53,7 @@ def _asset_db_path() -> str:
     return str(_DATA_ROOT / "asset_inventory.db")
 
 
-def _compliance_db_path(org_id: str = Query(default="default")) -> str:
+def _compliance_db_path(org_id: str) -> str:
     return str(_DATA_ROOT / f"{org_id}_cloud_compliance.db")
 
 

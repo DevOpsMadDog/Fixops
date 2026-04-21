@@ -80,7 +80,7 @@ class ConfigureRequest(BaseModel):
 
 @router.get("/{org_id}/public", response_model=TrustCenterData)
 async def get_public_page(
-    org_id: str = Query(default="default"),
+    org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> TrustCenterData:
     """Return full public trust center page for customers — no auth required."""
@@ -95,7 +95,7 @@ async def get_public_page(
 
 @router.get("/{org_id}/report")
 async def get_security_report(
-    org_id: str = Query(default="default"),
+    org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> dict:
     """Return a downloadable security overview report — no auth required."""
@@ -115,7 +115,7 @@ async def get_security_report(
 
 @router.post("/configure", response_model=TrustPageConfig, dependencies=[Depends(api_key_auth)])
 async def configure_trust_page(
-    org_id: str = Query(default="default"),
+    org_id: str,
     body: ConfigureRequest,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> TrustPageConfig:
@@ -126,7 +126,7 @@ async def configure_trust_page(
 
 @router.get("/{org_id}/config", response_model=TrustPageConfig, dependencies=[Depends(api_key_auth)])
 async def get_config(
-    org_id: str = Query(default="default"),
+    org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> TrustPageConfig:
     """Return trust page configuration for an org (admin only)."""
@@ -141,7 +141,7 @@ async def get_config(
 
 @router.get("/{org_id}/stats", dependencies=[Depends(api_key_auth)])
 async def get_trust_stats(
-    org_id: str = Query(default="default"),
+    org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> dict:
     """Return aggregate statistics for an org's trust center."""
@@ -161,7 +161,7 @@ async def get_trust_stats(
 
 @router.post("/{org_id}/badges", response_model=ComplianceBadge, dependencies=[Depends(api_key_auth)])
 async def add_badge(
-    org_id: str = Query(default="default"),
+    org_id: str,
     badge: ComplianceBadge,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> ComplianceBadge:
@@ -172,7 +172,7 @@ async def add_badge(
 
 @router.get("/{org_id}/badges", response_model=List[ComplianceBadge], dependencies=[Depends(api_key_auth)])
 async def list_badges(
-    org_id: str = Query(default="default"),
+    org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> List[ComplianceBadge]:
     """List all compliance badges for an org."""
@@ -182,7 +182,7 @@ async def list_badges(
 
 @router.delete("/{org_id}/badges/{badge_id}", dependencies=[Depends(api_key_auth)])
 async def delete_badge(
-    org_id: str = Query(default="default"),
+    org_id: str,
     badge_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> dict:
@@ -201,7 +201,7 @@ async def delete_badge(
 
 @router.post("/{org_id}/controls", response_model=SecurityControl, dependencies=[Depends(api_key_auth)])
 async def add_control(
-    org_id: str = Query(default="default"),
+    org_id: str,
     control: SecurityControl,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> SecurityControl:
@@ -212,7 +212,7 @@ async def add_control(
 
 @router.get("/{org_id}/controls", response_model=List[SecurityControl], dependencies=[Depends(api_key_auth)])
 async def list_controls(
-    org_id: str = Query(default="default"),
+    org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> List[SecurityControl]:
     """List all security controls for an org."""
@@ -222,7 +222,7 @@ async def list_controls(
 
 @router.delete("/{org_id}/controls/{control_id}", dependencies=[Depends(api_key_auth)])
 async def delete_control(
-    org_id: str = Query(default="default"),
+    org_id: str,
     control_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> dict:
@@ -241,7 +241,7 @@ async def delete_control(
 
 @router.post("/{org_id}/subprocessors", response_model=SubprocessorEntry, dependencies=[Depends(api_key_auth)])
 async def add_subprocessor(
-    org_id: str = Query(default="default"),
+    org_id: str,
     entry: SubprocessorEntry,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> SubprocessorEntry:
@@ -252,7 +252,7 @@ async def add_subprocessor(
 
 @router.get("/{org_id}/subprocessors", response_model=List[SubprocessorEntry], dependencies=[Depends(api_key_auth)])
 async def list_subprocessors(
-    org_id: str = Query(default="default"),
+    org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> List[SubprocessorEntry]:
     """List all sub-processor entries for an org."""
@@ -262,7 +262,7 @@ async def list_subprocessors(
 
 @router.delete("/{org_id}/subprocessors/{entry_id}", dependencies=[Depends(api_key_auth)])
 async def delete_subprocessor(
-    org_id: str = Query(default="default"),
+    org_id: str,
     entry_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
 ) -> dict:
@@ -279,7 +279,7 @@ async def delete_subprocessor(
 # ---------------------------------------------------------------------------
 
 
-def _ensure_org_exists(org_id: str = Query(default="default"), mgr: TrustCenterManager) -> None:
+def _ensure_org_exists(org_id: str, mgr: TrustCenterManager) -> None:
     """Raise 404 if the org has no trust center configured."""
     if mgr.get_config(org_id) is None:
         raise HTTPException(

@@ -51,7 +51,7 @@ def _get_engine():
 
 
 class PackageCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     package_name: str
     ecosystem: str = "npm"
     version: Optional[str] = None
@@ -62,13 +62,13 @@ class PackageCreateReq(BaseModel):
 
 
 class PackageStatusReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     status: str
     attack_type: Optional[str] = None
 
 
 class DetectionCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     package_id: str
     detection_type: str
     confidence_score: float = 0.0
@@ -78,12 +78,12 @@ class DetectionCreateReq(BaseModel):
 
 
 class DetectionConfirmReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     confirmed_status: str
 
 
 class PolicyCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     policy_name: str
     ecosystems: List[str] = Field(default_factory=list)
     action: str = "alert"

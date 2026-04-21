@@ -42,7 +42,7 @@ router = APIRouter(
 _engines: Dict[str, VulnerabilityPrioritizationEngine] = {}
 
 
-def _get_engine(org_id: str = Query(default="default")) -> VulnerabilityPrioritizationEngine:
+def _get_engine(org_id: str) -> VulnerabilityPrioritizationEngine:
     if org_id not in _engines:
         _engines[org_id] = VulnerabilityPrioritizationEngine(org_id=org_id)
     return _engines[org_id]

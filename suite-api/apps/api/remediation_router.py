@@ -45,7 +45,7 @@ class CreateTaskRequest(BaseModel):
     """Request to create a remediation task."""
 
     cluster_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     app_id: str
     title: str
     severity: str
@@ -266,7 +266,7 @@ def link_ticket(task_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
 
 
 @router.post("/sla/check")
-def check_sla_breaches(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def check_sla_breaches(org_id: str) -> Dict[str, Any]:
     """Check for SLA breaches and record them."""
     service = get_remediation_service()
     breaches = service.check_sla_breaches(org_id)
@@ -278,7 +278,7 @@ def check_sla_breaches(org_id: str = Query(default="default")) -> Dict[str, Any]
 
 
 @router.get("/metrics/{org_id}")
-def get_metrics(org_id: str = Query(default="default"), app_id: Optional[str] = None) -> Dict[str, Any]:
+def get_metrics(org_id: str, app_id: Optional[str] = None) -> Dict[str, Any]:
     """Get remediation metrics including MTTR."""
     service = get_remediation_service()
     return service.get_metrics(org_id, app_id)

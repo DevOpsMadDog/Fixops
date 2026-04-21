@@ -124,7 +124,7 @@ async def get_playbook(playbook_id: str) -> Dict[str, Any]:
 @router.post("/{playbook_id}/install")
 async def install_playbook(
     playbook_id: str,
-    org_id: str = Query(default="default", description="Organisation ID to install into"),
+    org_id: str = Query(..., description="Organisation ID to install into"),
 ) -> Dict[str, Any]:
     """Install a playbook template into an organisation."""
     marketplace = _get_marketplace()
@@ -169,7 +169,7 @@ async def import_playbook(request: ImportRequest) -> Dict[str, Any]:
 
 
 @router.get("/installed/{org_id}")
-async def get_installed(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def get_installed(org_id: str) -> Dict[str, Any]:
     """Return all playbooks installed by an organisation."""
     marketplace = _get_marketplace()
     items = marketplace.get_installed(org_id)

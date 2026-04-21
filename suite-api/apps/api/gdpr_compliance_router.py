@@ -43,7 +43,7 @@ def _get_engine():
 
 
 class ProcessingActivityReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     name: str
     purpose: str
     lawful_basis: str
@@ -53,14 +53,14 @@ class ProcessingActivityReq(BaseModel):
 
 
 class ConsentReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     subject_id: str
     purpose: str
     expires_at: Optional[str] = None
 
 
 class WithdrawReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     reason: str = ""
 
 

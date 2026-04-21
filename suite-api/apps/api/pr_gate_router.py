@@ -207,7 +207,7 @@ def _default_policy() -> GatingPolicy:
     return GatingPolicy()
 
 
-def _get_org_policy(org_id: str = Query(default="default")) -> GatingPolicy:
+def _get_org_policy(org_id: str) -> GatingPolicy:
     """Get the gating policy for an org."""
     store = _get_policy_store()
     raw = store.get(f"policy:{org_id}")
@@ -216,12 +216,12 @@ def _get_org_policy(org_id: str = Query(default="default")) -> GatingPolicy:
     return _default_policy()
 
 
-def _save_org_policy(org_id: str = Query(default="default"), policy: GatingPolicy) -> None:
+def _save_org_policy(org_id: str, policy: GatingPolicy) -> None:
     store = _get_policy_store()
     store[f"policy:{org_id}"] = policy.model_dump()
 
 
-def _record_evaluation(org_id: str = Query(default="default"), evaluation: Dict[str, Any]) -> None:
+def _record_evaluation(org_id: str, evaluation: Dict[str, Any]) -> None:
     store = _get_history_store()
     key = f"eval:{org_id}:{evaluation['evaluation_id']}"
     store[key] = evaluation

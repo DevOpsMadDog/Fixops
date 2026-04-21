@@ -27,7 +27,7 @@ class ProcessFindingRequest(BaseModel):
 
     finding: Dict[str, Any]
     run_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     source: str = "sarif"
 
 
@@ -36,7 +36,7 @@ class ProcessFindingsBatchRequest(BaseModel):
 
     findings: List[Dict[str, Any]]
     run_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     source: str = "sarif"
 
 
@@ -86,7 +86,7 @@ class OperatorFeedbackRequest(BaseModel):
 class BaselineComparisonRequest(BaseModel):
     """Request to compare current run against baseline."""
 
-    org_id: str = Query(default="default")
+    org_id: str
     current_run_id: str
     baseline_run_id: str
 
@@ -134,7 +134,7 @@ def process_findings_batch(
 
 @router.get("/clusters")
 def list_clusters(
-    org_id: str = Query(default="default"),
+    org_id: str,
     app_id: Optional[str] = None,
     status: Optional[str] = None,
     severity: Optional[str] = None,
@@ -281,7 +281,7 @@ def get_dedup_stats_global() -> Dict[str, Any]:
 
 
 @router.get("/stats/{org_id}")
-def get_dedup_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_dedup_stats(org_id: str) -> Dict[str, Any]:
     """Get deduplication statistics for an organization."""
     service = get_dedup_service()
     return service.get_dedup_stats(org_id)
@@ -289,7 +289,7 @@ def get_dedup_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
 
 @router.post("/correlate/cross-stage")
 def correlate_cross_stage(
-    org_id: str = Query(default="default"), min_confidence: float = Query(default=0.7, ge=0.0, le=1.0)
+    org_id: str, min_confidence: float = Query(default=0.7, ge=0.0, le=1.0)
 ) -> Dict[str, Any]:
     """Find and create cross-stage correlation links.
 

@@ -48,7 +48,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class FindingCreate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     title: str
     finding_type: str = "vulnerability"
     source_tool: str = "custom"
@@ -61,19 +61,19 @@ class FindingCreate(BaseModel):
 
 
 class FindingStatusUpdate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     status: str
     assigned_to: Optional[str] = None
 
 
 class EvidenceAdd(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     evidence_type: str = "log"
     content: str = ""
 
 
 class FindingSuppress(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     reason: str
     suppressed_by: str
     expires_at: str

@@ -61,7 +61,7 @@ class CheckPermissionRequest(BaseModel):
 
 class CheckPermissionResponse(BaseModel):
     user_id: str
-    org_id: str = Query(default="default")
+    org_id: str
     scope: str
     allowed: bool
 
@@ -127,7 +127,7 @@ async def revoke_role(body: RevokeRoleRequest) -> Dict[str, Any]:
 )
 async def get_user_roles(
     user_id: str,
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Query(..., description="Organisation identifier"),
 ) -> Dict[str, Any]:
     roles = _get_engine().get_user_roles(user_id=user_id, org_id=org_id)
     return {"user_id": user_id, "org_id": org_id, "roles": roles}
@@ -140,7 +140,7 @@ async def get_user_roles(
 )
 async def get_user_scopes(
     user_id: str,
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Query(..., description="Organisation identifier"),
 ) -> Dict[str, Any]:
     scopes = _get_engine().get_user_scopes(user_id=user_id, org_id=org_id)
     return {"user_id": user_id, "org_id": org_id, "scopes": scopes}
@@ -171,7 +171,7 @@ async def check_permission(body: CheckPermissionRequest) -> CheckPermissionRespo
     summary="List users in org",
     description="Return all user-role assignments for an organisation.",
 )
-async def list_org_users(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def list_org_users(org_id: str) -> Dict[str, Any]:
     users = _get_engine().list_users_in_org(org_id=org_id)
     return {"org_id": org_id, "users": users, "count": len(users)}
 

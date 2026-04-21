@@ -101,7 +101,7 @@ def list_alert_triage(org_id: str = Query("default")) -> Dict[str, Any]:
 @router.post("/alerts", dependencies=[Depends(api_key_auth)])
 def ingest_alert(
     req: IngestAlertRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Ingest a new alert. Priority is auto-assigned from severity."""
     try:
@@ -120,7 +120,7 @@ def ingest_alert(
 
 @router.get("/alerts", dependencies=[Depends(api_key_auth)])
 def list_alerts(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     source_system: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -139,7 +139,7 @@ def list_alerts(
 @router.get("/alerts/{alert_id}", dependencies=[Depends(api_key_auth)])
 def get_alert(
     alert_id: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Retrieve a single alert by ID."""
     alert = _get_engine().get_alert(org_id, alert_id)
@@ -152,7 +152,7 @@ def get_alert(
 def triage_alert(
     alert_id: str,
     req: TriageAlertRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Update triage status and metadata for an alert."""
     try:
@@ -175,7 +175,7 @@ def triage_alert(
 @router.post("/bulk-triage", dependencies=[Depends(api_key_auth)])
 def bulk_triage(
     req: BulkTriageRequest,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Apply the same triage action to multiple alerts at once."""
     try:
@@ -186,7 +186,7 @@ def bulk_triage(
 
 @router.get("/queue", dependencies=[Depends(api_key_auth)])
 def get_triage_queue(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
     limit: int = Query(default=50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """Return the prioritized triage queue (new + triaging, p1 first)."""
@@ -195,7 +195,7 @@ def get_triage_queue(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_triage_stats(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return aggregate triage statistics."""
     return _get_engine().get_triage_stats(org_id)
@@ -204,7 +204,7 @@ def get_triage_stats(
 @router.get("/alerts/{alert_id}/context", dependencies=[Depends(api_key_auth)])
 def get_alert_context(
     alert_id: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for an alert (related assets, findings, incidents)."""
     return _get_engine().get_alert_context(org_id, alert_id)

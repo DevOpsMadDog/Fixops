@@ -97,7 +97,7 @@ class SBOMUploadResponse(BaseModel):
     component_count: int
     sha256: str
     attack_signals_detected: int
-    org_id: str = Query(default="default")
+    org_id: str
 
 
 class ScanRequest(BaseModel):

@@ -68,7 +68,7 @@ class ResetRequest(BaseModel):
 
 
 class OnboardingProgressResponse(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     current_step: str
     steps: Dict[str, str]
     started_at: str
@@ -77,13 +77,13 @@ class OnboardingProgressResponse(BaseModel):
 
 
 class StepConfigResponse(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     step: str
     config: Dict[str, Any]
 
 
 class ChecklistResponse(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     onboarding_started: bool
     current_step: Optional[str] = None
     completion_percentage: Optional[float] = None

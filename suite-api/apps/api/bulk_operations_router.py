@@ -161,7 +161,7 @@ def export_findings(req: ExportRequest):
 
 
 @router.get("/import-history", dependencies=[Depends(_verify_api_key)])
-def get_import_history(org_id: str = Query(default="default", description="Organisation ID")):
+def get_import_history(org_id: str = Query(..., description="Organisation ID")):
     """Return all import operations for the given org."""
     try:
         history = _get_engine().get_import_history(org_id=org_id)
@@ -172,7 +172,7 @@ def get_import_history(org_id: str = Query(default="default", description="Organ
 
 
 @router.get("/export-history", dependencies=[Depends(_verify_api_key)])
-def get_export_history(org_id: str = Query(default="default", description="Organisation ID")):
+def get_export_history(org_id: str = Query(..., description="Organisation ID")):
     """Return all export operations for the given org."""
     try:
         history = _get_engine().get_export_history(org_id=org_id)
@@ -195,7 +195,7 @@ def get_field_mapping(format: str):
 
 
 @router.get("/stats", dependencies=[Depends(_verify_api_key)])
-def get_bulk_stats(org_id: str = Query(default="default", description="Organisation ID")):
+def get_bulk_stats(org_id: str = Query(..., description="Organisation ID")):
     """Return aggregate bulk operation stats for the given org."""
     try:
         stats = _get_engine().get_bulk_stats(org_id=org_id)

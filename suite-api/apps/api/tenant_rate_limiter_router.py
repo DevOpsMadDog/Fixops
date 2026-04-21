@@ -55,7 +55,7 @@ class SetQuotaRequest(BaseModel):
 
 
 class QuotaResponse(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     tier: str
     requests_per_minute: int
     requests_per_hour: int
@@ -67,7 +67,7 @@ class QuotaResponse(BaseModel):
 class CheckLimitResponse(BaseModel):
     allowed: bool
     denied_reason: Optional[str]
-    org_id: str = Query(default="default")
+    org_id: str
     tier: str
     remaining_minute: int
     remaining_hour: int
@@ -139,7 +139,7 @@ async def cleanup_expired_windows(
     summary="Set or update quota for an org",
 )
 async def set_quota(
-    org_id: str = Query(default="default"),
+    org_id: str,
     body: SetQuotaRequest,
     limiter: TenantRateLimiter = Depends(_limiter),
 ) -> QuotaResponse:
@@ -157,7 +157,7 @@ async def set_quota(
     summary="Check whether an org is within its rate limits",
 )
 async def check_limit(
-    org_id: str = Query(default="default"),
+    org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
 ) -> CheckLimitResponse:
     """Returns allowed/denied plus remaining counts for all windows."""
@@ -172,7 +172,7 @@ async def check_limit(
     summary="Record a request against an org's quota",
 )
 async def record_request(
-    org_id: str = Query(default="default"),
+    org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
 ) -> Dict[str, Any]:
     """Increment sliding-window counters for org_id."""
@@ -186,7 +186,7 @@ async def record_request(
     summary="Manually reset all usage counters for an org",
 )
 async def reset_usage(
-    org_id: str = Query(default="default"),
+    org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
 ) -> Dict[str, Any]:
     """Delete all request log entries for the org (manual reset)."""
@@ -199,7 +199,7 @@ async def reset_usage(
     summary="Get quota and current usage for an org",
 )
 async def get_quota(
-    org_id: str = Query(default="default"),
+    org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
 ) -> QuotaResponse:
     """Return quota configuration and current usage counters."""

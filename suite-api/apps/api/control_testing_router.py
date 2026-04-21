@@ -49,7 +49,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class ControlCreate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     control_name: str
     control_type: str = "preventive"
     framework: str = "NIST"
@@ -59,7 +59,7 @@ class ControlCreate(BaseModel):
 
 
 class TestRun(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     test_name: str
     test_method: str = "manual"
     tester: str = ""
@@ -70,14 +70,14 @@ class TestRun(BaseModel):
 
 
 class ScheduleCreate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     control_id: str
     schedule_name: str
     frequency_days: int = Field(default=90, ge=1)
 
 
 class ScheduleRunUpdate(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
 
 
 # ---------------------------------------------------------------------------

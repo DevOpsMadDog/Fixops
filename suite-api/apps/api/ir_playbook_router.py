@@ -125,7 +125,7 @@ class IncidentResponse(BaseModel):
     severity: str
     status: str
     current_phase: str
-    org_id: str = Query(default="default")
+    org_id: str
     assigned_to: Optional[str]
     affected_systems: List[str]
     affected_users: List[str]

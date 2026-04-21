@@ -80,7 +80,7 @@ class RegisterSessionRequest(BaseModel):
     user_email: str
     ide_type: str
     project_path: str
-    org_id: str = Query(default="default")
+    org_id: str
 
 
 class FindingsForFileRequest(BaseModel):
@@ -168,7 +168,7 @@ def heartbeat(session_id: str) -> Dict[str, Any]:
 
 @router.get("/sessions")
 def get_active_sessions(
-    org_id: str = Query(default="default", description="Organisation ID to filter sessions"),
+    org_id: str = Query(..., description="Organisation ID to filter sessions"),
 ) -> Dict[str, Any]:
     """List active IDE sessions for an organisation."""
     if not _HAS_INTEGRATION:
@@ -180,7 +180,7 @@ def get_active_sessions(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Query(..., description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Get aggregate IDE usage statistics for an organisation."""
     if not _HAS_INTEGRATION:
@@ -219,7 +219,7 @@ def findings_for_file(request: FindingsForFileRequest) -> Dict[str, Any]:
 
 @router.post("/project/summary")
 def project_summary(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Query(..., description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Return a project-level summary combining session stats and pattern catalogue."""
     if not _HAS_INTEGRATION:

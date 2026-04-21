@@ -72,7 +72,7 @@ class ScanResponse(BaseModel):
     exposed_ports: List[int]
     total_layers: int
     score: float
-    org_id: str = Query(default="default")
+    org_id: str
     findings_count: int
     findings: List[FindingSummary]
     scanned_at: str

@@ -50,7 +50,7 @@ class RegisterCMDBRequest(BaseModel):
 
 class DiscoverResponse(BaseModel):
     provider: str
-    org_id: str = Query(default="default")
+    org_id: str
     discovered: int
     assets: List[Dict[str, Any]]
 

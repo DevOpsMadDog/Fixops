@@ -51,7 +51,7 @@ def _get_engine():
 
 
 class WorkloadCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     workload_name: str
     workload_type: str = "vm"
     cloud_provider: str = "aws"
@@ -63,12 +63,12 @@ class WorkloadCreateReq(BaseModel):
 
 
 class WorkloadProtectionReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     protection_status: str
 
 
 class ThreatCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     workload_id: str
     threat_type: str
     severity: str = "medium"
@@ -77,12 +77,12 @@ class ThreatCreateReq(BaseModel):
 
 
 class ThreatStatusReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     status: str
 
 
 class PolicyCreateReq(BaseModel):
-    org_id: str = Query(default="default")
+    org_id: str
     policy_name: str
     workload_types: List[str] = Field(default_factory=list)
     controls: List[str] = Field(default_factory=list)
