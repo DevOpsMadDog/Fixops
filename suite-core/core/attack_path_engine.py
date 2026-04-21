@@ -583,6 +583,71 @@ class AttackPathEngine:
         }
 
     # ------------------------------------------------------------------
+    # Toxic combinations
+    # ------------------------------------------------------------------
+
+    def get_toxic_combinations(self, org_id: str = "default") -> list[dict]:
+        """Detect assets where multiple medium-severity findings chain into critical risk.
+
+        A "toxic combination" is any asset node that:
+        - Has 3 or more vulnerabilities (findings chained together), AND
+        - Is internet-exposed (connected FROM an 'external' node, directly or
+          indirectly within 1 hop, or is itself of type 'external').
+
+        For each such asset the method returns:
+          - asset: the node dict
+          - findings: the vulnerability IDs present on the asset
+          - combined_risk: amplified risk score (asset risk_score * 1.5, capped at 100)
+          - attack_chain: list of external-node IDs that can directly reach the asset
+
+        Returns: list of toxic combo dicts, sorted by combined_risk descending.
+        """
+        nodes_map = self._load_nodes_map(org_id)
+
+        # Build reverse adjacency: to_node -> list of from_node IDs
+        reverse_adj: dict[str, list[str]] = {}
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT from_node, to_node FROM edges WHERE org_id = ?", (org_id,)
+            ).fetchall()
+        for row in rows:
+            reverse_adj.setdefault(row["to_node"], []).append(row["from_node"])
+
+        # Identify external node IDs
+        external_ids = {
+            nid for nid, n in nodes_map.items() if n["node_type"] == "external"
+        }
+
+        results: list[dict] = []
+        for nid, node in nodes_map.items():
+            vulns = node.get("vulnerabilities") or []
+            if len(vulns) < 3:
+                continue
+
+            # Determine internet-exposure: node itself is external, OR a direct
+            # predecessor is an external node.
+            predecessors = reverse_adj.get(nid, [])
+            is_internet_exposed = (
+                node["node_type"] == "external"
+                or bool(external_ids.intersection(predecessors))
+            )
+            if not is_internet_exposed:
+                continue
+
+            attack_chain = [p for p in predecessors if p in external_ids]
+            combined_risk = min(100.0, round(node["risk_score"] * 1.5, 2))
+
+            results.append({
+                "asset": node,
+                "findings": vulns,
+                "combined_risk": combined_risk,
+                "attack_chain": attack_chain,
+            })
+
+        results.sort(key=lambda x: x["combined_risk"], reverse=True)
+        return results
+
+    # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 

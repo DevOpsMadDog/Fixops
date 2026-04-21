@@ -291,3 +291,42 @@ def test_remove_node_cross_tenant_returns_false_and_preserves_node(engine):
     still_there = engine.get_node("crown", org_id="org1")
     assert still_there is not None
     assert still_there["node_id"] == "crown"
+
+
+# ---------------------------------------------------------------------------
+# Toxic combinations tests
+# ---------------------------------------------------------------------------
+
+
+def test_toxic_combinations_detected_when_internet_exposed_with_3_vulns(engine):
+    """An internet-exposed asset with 3+ CVEs must appear as a toxic combination."""
+    engine.add_node("internet", "external", "Internet", risk_score=80.0)
+    engine.add_node(
+        "web-server",
+        "server",
+        "Web Server",
+        risk_score=70.0,
+        vulnerabilities=["CVE-2024-0001", "CVE-2024-0002", "CVE-2024-0003"],
+    )
+    engine.add_edge("internet", "web-server")
+
+    combos = engine.get_toxic_combinations()
+    assert len(combos) == 1
+    combo = combos[0]
+    assert combo["asset"]["node_id"] == "web-server"
+    assert len(combo["findings"]) == 3
+    # combined_risk = 70.0 * 1.5 = 105 capped to 100
+    assert combo["combined_risk"] == 100.0
+    assert "internet" in combo["attack_chain"]
+
+
+def test_toxic_combinations_excluded_when_not_internet_exposed(engine):
+    """An internal asset with 3+ CVEs but no external predecessor must NOT appear."""
+    engine.add_node("internal-db", "database", "Internal DB", risk_score=60.0,
+                    vulnerabilities=["CVE-2024-0010", "CVE-2024-0011", "CVE-2024-0012"])
+    engine.add_node("internal-app", "server", "App Server", risk_score=50.0)
+    # Only internal-to-internal edge — no external node reaches internal-db
+    engine.add_edge("internal-app", "internal-db")
+
+    combos = engine.get_toxic_combinations()
+    assert combos == []

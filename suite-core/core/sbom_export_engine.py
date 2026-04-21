@@ -1,18 +1,18 @@
 """SBOM Export Engine — ALDECI.
 
-Generates and stores Software Bills of Materials in CycloneDX 1.4 and SPDX 2.3
+Generates and stores Software Bills of Materials in CycloneDX 1.6 and SPDX 2.3
 formats with full multi-tenant isolation.
 
 Capabilities:
   - Component registry with dedup (INSERT OR IGNORE on org+project+name+version)
   - Vulnerability tracking with vuln_count auto-recompute per component
-  - CycloneDX 1.4 JSON generation
+  - CycloneDX 1.6 JSON generation (lifecycles, vulnerabilities, formulation)
   - SPDX 2.3 JSON generation
   - Export history tracking
   - Project summary aggregation
   - Org-scoped isolation — org_a data never visible from org_b
 
-Compliance: NTIA SBOM Minimum Elements, CycloneDX 1.4, SPDX 2.3, EO 14028
+Compliance: NTIA SBOM Minimum Elements, CycloneDX 1.6, SPDX 2.3, EO 14028
 """
 
 from __future__ import annotations
@@ -292,7 +292,7 @@ class SBOMExportEngine:
         version_tag: str = "1.0",
         exported_by: str = "",
     ) -> Dict[str, Any]:
-        """Generate a CycloneDX 1.4 SBOM and record the export."""
+        """Generate a CycloneDX 1.6 SBOM and record the export."""
         now = _now_iso()
         with self._conn() as conn:
             comps = conn.execute(
@@ -340,12 +340,40 @@ class SBOMExportEngine:
             }
             vulnerabilities_list.append(vuln_entry)
 
+        # CycloneDX 1.6 lifecycles — standard phases per spec
+        lifecycles = [
+            {"phase": "design"},
+            {"phase": "build"},
+            {"phase": "post-build"},
+            {"phase": "operations"},
+            {"phase": "discovery"},
+            {"phase": "decommission"},
+        ]
+
+        # CycloneDX 1.6 formulation section
+        formulation = {
+            "components": [
+                {
+                    "type": "platform",
+                    "name": "ALDECI SBOM Engine",
+                    "version": "1.0",
+                    "description": "ALDECI automated SBOM generation pipeline",
+                }
+            ]
+        }
+
+        # Enrich vulnerabilities with CycloneDX 1.6 source/analysis fields
+        for vuln_entry in vulnerabilities_list:
+            vuln_entry["source"] = {"name": "ALDECI", "url": "https://aldeci.io"}
+            vuln_entry["analysis"] = {"state": "in_triage"}
+
         bom = {
             "bomFormat": "CycloneDX",
-            "specVersion": "1.4",
+            "specVersion": "1.6",
             "version": 1,
             "metadata": {
                 "timestamp": now,
+                "lifecycles": lifecycles,
                 "component": {
                     "name": project_name,
                     "version": version_tag,
@@ -353,6 +381,7 @@ class SBOMExportEngine:
             },
             "components": components_list,
             "vulnerabilities": vulnerabilities_list,
+            "formulation": formulation,
         }
 
         # Record the export

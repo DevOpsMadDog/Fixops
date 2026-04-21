@@ -7,8 +7,19 @@
  * Route: /competitive-comparison
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, DollarSign, CheckCircle, XCircle, AlertCircle, TrendingDown, Award, Calculator } from "lucide-react";
+
+// ── API helpers ───────────────────────────────────────────────
+const ORG_ID = "default";
+function getApiKey() {
+  return (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "dev-key";
+}
+async function apiFetch(path: string) {
+  const res = await fetch(`/api/v1${path}`, { headers: { "X-API-Key": getApiKey() } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -324,6 +335,13 @@ const CATEGORIES = [...new Set(FEATURE_ROWS.map(r => r.category))];
 export default function CompetitiveComparisonPage() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedVendors, setSelectedVendors] = useState<Vendor[]>([...VENDORS]);
+  const [livePosture, setLivePosture] = useState<any>(null);
+
+  useEffect(() => {
+    apiFetch(`/posture-score/current?org_id=${ORG_ID}`)
+      .then(d => setLivePosture(d))
+      .catch(() => {});
+  }, []);
 
   const categories = ["All", ...CATEGORIES];
 

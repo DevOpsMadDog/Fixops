@@ -175,7 +175,7 @@ def test_get_cyclonedx_structure(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["bomFormat"] == "CycloneDX"
-    assert body["specVersion"] == "1.4"
+    assert body["specVersion"] == "1.6"
     assert "components" in body
     assert "metadata" in body
 
@@ -277,7 +277,7 @@ def test_post_generate_cyclonedx(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["bomFormat"] == "CycloneDX"
-    assert body["specVersion"] == "1.4"
+    assert body["specVersion"] == "1.6"
 
 
 def test_post_generate_spdx(client):

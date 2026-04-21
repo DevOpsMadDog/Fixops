@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls /Users/devops.ai/fixops/Fixops/suite-api/apps/api/awareness_program_router.py 2>/dev/null && grep -n \\\"prefix=\\\\|@router\\\\.\\\" /Users/devops.ai/fixops/Fixops/suite-api/apps/api/awareness...",
-  "error": "Exit code 1",
-  "timestamp": "2026-04-21T13:23:41.516Z",
-  "retry_count": 5
+  "tool_input_preview": "{\"command\":\"grep -n \\\"sse\\\\|stream\\\\|include_router.*sse\\\\|include_router.*event\\\" /Users/devops.ai/fixops/Fixops/suite-api/app.py | head -20; echo \\\"---TAIL---\\\"; tail -60 /Users/devops.ai/fixops/Fix...",
+  "error": "Exit code 1\ngrep: /Users/devops.ai/fixops/Fixops/suite-api/app.py: No such file or directory\n---TAIL---\ntail: /Users/devops.ai/fixops/Fixops/suite-api/app.py: No such file or directory",
+  "timestamp": "2026-04-21T13:26:14.779Z",
+  "retry_count": 1
 }

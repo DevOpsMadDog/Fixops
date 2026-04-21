@@ -193,3 +193,22 @@ def stats(
     except Exception as exc:
         logger.exception("Failed to get graph stats")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/toxic-combinations", summary="Detect assets where chained medium findings create critical risk")
+def toxic_combinations(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> list[dict]:
+    """Return assets with 3+ vulnerabilities that are internet-exposed.
+
+    Each result contains:
+    - asset: the node metadata
+    - findings: list of CVE IDs present on the asset
+    - combined_risk: amplified risk score (capped at 100)
+    - attack_chain: external nodes that can directly reach this asset
+    """
+    try:
+        return _get_engine().get_toxic_combinations(org_id=org_id)
+    except Exception as exc:
+        logger.exception("Failed to detect toxic combinations")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

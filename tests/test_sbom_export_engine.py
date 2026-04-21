@@ -196,7 +196,7 @@ def test_generate_cyclonedx_structure(engine):
     c = _comp(engine)
     bom = engine.generate_cyclonedx("org1", "myapp", version_tag="1.0")
     assert bom["bomFormat"] == "CycloneDX"
-    assert bom["specVersion"] == "1.4"
+    assert bom["specVersion"] == "1.6"
     assert bom["version"] == 1
     assert "metadata" in bom
     assert bom["metadata"]["component"]["name"] == "myapp"
@@ -447,3 +447,74 @@ def test_export_history_ordered_desc(engine):
     assert len(history) == 2
     # Most recent first
     assert history[0]["generated_at"] >= history[1]["generated_at"]
+
+
+# ---------------------------------------------------------------------------
+# CycloneDX 1.6 new fields
+# ---------------------------------------------------------------------------
+
+
+def test_generate_cyclonedx_16_spec_version(engine):
+    _comp(engine)
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    assert bom["specVersion"] == "1.6"
+
+
+def test_generate_cyclonedx_16_lifecycles_present(engine):
+    _comp(engine)
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    assert "lifecycles" in bom["metadata"]
+    lifecycles = bom["metadata"]["lifecycles"]
+    assert isinstance(lifecycles, list)
+    assert len(lifecycles) == 6
+
+
+def test_generate_cyclonedx_16_lifecycles_phases(engine):
+    _comp(engine)
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    phases = {lc["phase"] for lc in bom["metadata"]["lifecycles"]}
+    assert phases == {"design", "build", "post-build", "operations", "discovery", "decommission"}
+
+
+def test_generate_cyclonedx_16_formulation_present(engine):
+    _comp(engine)
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    assert "formulation" in bom
+    formulation = bom["formulation"]
+    assert "components" in formulation
+    assert len(formulation["components"]) == 1
+    assert formulation["components"][0]["name"] == "ALDECI SBOM Engine"
+
+
+def test_generate_cyclonedx_16_formulation_type(engine):
+    _comp(engine)
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    assert bom["formulation"]["components"][0]["type"] == "platform"
+
+
+def test_generate_cyclonedx_16_vuln_source_field(engine):
+    c = _comp(engine)
+    engine.add_vuln(c["id"], "org1", "CVE-2024-0001", "critical", 9.8, "2.28.0")
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    vuln = bom["vulnerabilities"][0]
+    assert "source" in vuln
+    assert vuln["source"]["name"] == "ALDECI"
+    assert "url" in vuln["source"]
+
+
+def test_generate_cyclonedx_16_vuln_analysis_field(engine):
+    c = _comp(engine)
+    engine.add_vuln(c["id"], "org1", "CVE-2024-0002", "high", 7.5, "2.28.0")
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    vuln = bom["vulnerabilities"][0]
+    assert "analysis" in vuln
+    assert vuln["analysis"]["state"] == "in_triage"
+
+
+def test_generate_cyclonedx_16_no_vulns_empty_vulnerabilities(engine):
+    _comp(engine)
+    bom = engine.generate_cyclonedx("org1", "myapp")
+    assert bom["vulnerabilities"] == []
+    # formulation and lifecycles still present even with no vulns
+    assert "formulation" in bom
+    assert "lifecycles" in bom["metadata"]
