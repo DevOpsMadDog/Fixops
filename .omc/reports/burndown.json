@@ -2,22 +2,22 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-21T20:21:48.397154",
-  "total_scope": 2478,
-  "completed": 2452,
+  "generated_at": "2026-04-21T20:42:23.556296",
+  "total_scope": 2479,
+  "completed": 2451,
   "in_progress": 9,
-  "todo": 16,
-  "completion_pct": 99.0,
+  "todo": 18,
+  "completion_pct": 98.9,
   "by_priority": {
+    "medium": {
+      "done": 2332,
+      "in_progress": 3,
+      "todo": 6
+    },
     "high": {
       "done": 42,
       "in_progress": 3,
-      "todo": 11
-    },
-    "medium": {
-      "done": 2333,
-      "in_progress": 3,
-      "todo": 5
+      "todo": 12
     },
     "urgent": {
       "done": 9,
@@ -32,10 +32,10 @@
   },
   "by_subepic": {
     "ASPM": {
-      "total": 18,
+      "total": 19,
       "done": 15,
       "in_progress": 2,
-      "todo": 1
+      "todo": 2
     },
     "CTEM": {
       "total": 5,
@@ -80,10 +80,10 @@
       "todo": 1
     },
     "THREAT_INTEL": {
-      "total": 14,
+      "total": 15,
       "done": 14,
       "in_progress": 0,
-      "todo": 0
+      "todo": 1
     },
     "SOC": {
       "total": 30,
@@ -126,38 +126,38 @@
   "daily_burndown": [
     {
       "date": "2026-04-21",
-      "remaining": 26,
-      "completed": 2452
+      "remaining": 28,
+      "completed": 2451
     },
     {
       "date": "2026-04-22",
       "remaining": 0,
-      "completed": 2587
+      "completed": 2586
     },
     {
       "date": "2026-04-23",
       "remaining": 0,
-      "completed": 2722
+      "completed": 2721
     },
     {
       "date": "2026-04-24",
       "remaining": 0,
-      "completed": 2857
+      "completed": 2856
     },
     {
       "date": "2026-04-25",
       "remaining": 0,
-      "completed": 2992
+      "completed": 2991
     },
     {
       "date": "2026-04-26",
       "remaining": 0,
-      "completed": 3127
+      "completed": 3126
     },
     {
       "date": "2026-04-27",
       "remaining": 0,
-      "completed": 3262
+      "completed": 3261
     }
   ]
 }

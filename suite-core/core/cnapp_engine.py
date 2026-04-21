@@ -434,12 +434,12 @@ class CNAPPEngine:
                 def _pillar_score(categories: tuple) -> tuple:
                     placeholders = ",".join("?" * len(categories))
                     critical_count = conn.execute(
-                        f"""SELECT COUNT(*) FROM cnapp_findingsWHERE org_id=? AND category IN ({placeholders})
+                        f"""SELECT COUNT(*) FROM cnapp_findings WHERE org_id=? AND category IN ({placeholders})
                             AND severity='critical' AND status='open'""",  # nosec B608
                         (org_id, *categories),
                     ).fetchone()[0]
                     high_count = conn.execute(
-                        f"""SELECT COUNT(*) FROM cnapp_findingsWHERE org_id=? AND category IN ({placeholders})
+                        f"""SELECT COUNT(*) FROM cnapp_findings WHERE org_id=? AND category IN ({placeholders})
                             AND severity='high' AND status='open'""",  # nosec B608
                         (org_id, *categories),
                     ).fetchone()[0]
