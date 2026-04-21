@@ -670,7 +670,7 @@ function ReposTable({ repos }: { repos: Repo[] }) {
                       : `${Math.round((now.getTime() - repo.lastScan.getTime()) / 86_400_000)}d ago`}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <TrendIcon trend={repo.trend} delta={repo.trendDelta} />
+                    <TrendIcon trend={repo.trend} trendLabel={repo.trendDelta} />
                   </td>
                 </motion.tr>
               ))}

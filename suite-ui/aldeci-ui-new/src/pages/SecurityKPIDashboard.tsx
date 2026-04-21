@@ -128,7 +128,7 @@ const MOCK_SCORECARD = {
       name: "Patch Compliance",
       value: 92,
       unit: "%",
-      trend: "stable" as TrendDirection,
+      trend: "flat" as TrendDirection,
       benchmark: "good" as BenchmarkStatus,
       industryAvg: 85,
       target: 95,
@@ -148,7 +148,7 @@ const MOCK_SCORECARD = {
       name: "SLA Compliance",
       value: 96.8,
       unit: "%",
-      trend: "stable" as TrendDirection,
+      trend: "flat" as TrendDirection,
       benchmark: "good" as BenchmarkStatus,
       industryAvg: 93,
       target: 98,
@@ -542,12 +542,12 @@ export default function SecurityKPIDashboard() {
               <Sparkline
                 data={TREND_DATA_7DAY.patch_compliance}
                 label="Patch Compliance (%)"
-                trend="stable"
+                trend="flat"
               />
               <Sparkline
                 data={TREND_DATA_7DAY.sla_compliance}
                 label="SLA Compliance (%)"
-                trend="stable"
+                trend="flat"
               />
               <Sparkline data={TREND_DATA_7DAY.fp_rate} label="FP Rate (%)" trend="down" />
               <Sparkline

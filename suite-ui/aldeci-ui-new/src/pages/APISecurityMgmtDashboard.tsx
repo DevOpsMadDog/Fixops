@@ -246,7 +246,7 @@ export default function APISecurityMgmtDashboard() {
           title="API Keys"
           value={displayStats.total_api_keys ?? "87"}
           icon={Key}
-          trend="neutral"
+          trend="flat"
           className="border-blue-500/20"
         />
         <KpiCard

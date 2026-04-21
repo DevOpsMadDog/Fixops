@@ -322,7 +322,7 @@ function GeneralTab() {
 
 function AuthenticationTab() {
   const [showKey, setShowKey] = useState(false);
-  const [apiKeys, setApiKeys] = useState([]);
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
   const [ssoEnabled, setSsoEnabled] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(true);
@@ -563,7 +563,7 @@ function AuthenticationTab() {
 // ─────────────────────────────────────────────
 
 function IntegrationsTab() {
-  const [integrations, setIntegrations] = useState([]);
+  const [integrations, setIntegrations] = useState<any[]>([]);
 
   const toggleConnect = (id: string) => {
     setIntegrations((prev) =>
@@ -849,7 +849,7 @@ function NotificationsTab() {
 // ─────────────────────────────────────────────
 
 function TeamTab() {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("viewer");
   const [search, setSearch] = useState("");

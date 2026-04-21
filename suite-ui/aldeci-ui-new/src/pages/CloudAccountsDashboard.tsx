@@ -101,8 +101,8 @@ const ALL_PROVIDERS: Provider[] = ["AWS", "Azure", "GCP", "OCI", "Alibaba"];
 
 export default function CloudAccountsDashboard() {
   const [providerFilter, setProviderFilter] = useState<Provider | "All">("All");
-  const [accounts, setAccounts] = useState([]);
-  const [events, setEvents] = useState([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`${_API_BASE}/accounts?org_id=default`, { headers: _getHeaders() })

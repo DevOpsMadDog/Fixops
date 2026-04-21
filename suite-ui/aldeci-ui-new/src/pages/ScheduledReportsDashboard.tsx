@@ -378,7 +378,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 export default function ScheduledReportsDashboard() {
   const [schedules, setSchedules] = useState<Schedule[]>(MOCK_SCHEDULES);
   const [runs, setRuns] = useState<ReportRun[]>(MOCK_RUNS);
-  const [stats, setStats] = useState([]);
+  const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
@@ -504,28 +504,28 @@ export default function ScheduledReportsDashboard() {
         <KpiCard
           title="Active Schedules"
           value={activeCount.toString()}
-          delta={`${schedules.length} total configured`}
+          trendLabel={`${schedules.length} total configured`}
           trend="up"
           icon={<Calendar className="h-4 w-4 text-blue-400" />}
         />
         <KpiCard
           title="Reports Sent"
           value={deliveredCount.toString()}
-          delta={`${stats.success_rate}% success rate`}
+          trendLabel={`${stats.success_rate}% success rate`}
           trend="up"
           icon={<Send className="h-4 w-4 text-green-400" />}
         />
         <KpiCard
           title="Delivery Failures"
           value={failureCount.toString()}
-          delta="Last 30 days"
+          trendLabel="Last 30 days"
           trend={failureCount > 0 ? "down" : "up"}
           icon={<XCircle className="h-4 w-4 text-red-400" />}
         />
         <KpiCard
           title="Next Run"
           value={upcoming ? formatTime(upcoming.next_run_at) : "None"}
-          delta={upcoming ? upcoming.name : "No active schedules"}
+          trendLabel={upcoming ? upcoming.name : "No active schedules"}
           trend="up"
           icon={<Clock className="h-4 w-4 text-amber-400" />}
         />

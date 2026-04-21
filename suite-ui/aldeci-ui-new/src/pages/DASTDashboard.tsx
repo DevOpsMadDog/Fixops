@@ -101,8 +101,8 @@ function StatusBadge({ status }: { status: string }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function DASTDashboard() {
-  const [stats, setStats] = useState([]);
-  const [findings, setFindings] = useState([]);
+  const [stats, setStats] = useState<any[]>([]);
+  const [findings, setFindings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {

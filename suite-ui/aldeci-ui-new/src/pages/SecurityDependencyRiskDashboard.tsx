@@ -119,7 +119,7 @@ function LicenseRiskBadge({ level }: { level: string }) {
 
 export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
-  const [vulns, setVulns] = useState([]);
+  const [vulns, setVulns] = useState<any[]>([]);
   useEffect(() => {
     fetch(`${_API_BASE}/summary?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())

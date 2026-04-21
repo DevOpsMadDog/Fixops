@@ -197,7 +197,7 @@ export default function IdentityAnalyticsDashboard() {
         <KpiCard title="Identities Tracked"       value={liveData?.stats?.total_identities ?? "1,247"} icon={Users}      trend="up" />
         <KpiCard title="Critical Risk"             value={liveData?.stats?.high_risk_identities ?? 12}  icon={AlertTriangle} trend="up"   className="border-red-500/20" />
         <KpiCard title="MFA Off + Privileged"      value={liveData?.stats?.mfa_disabled_privileged ?? 8} icon={Lock}       trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Pending Certifications"    value={liveData?.stats?.active_certifications ?? 23}  icon={UserCheck}  trend="neutral" className="border-yellow-500/20" />
+        <KpiCard title="Pending Certifications"    value={liveData?.stats?.active_certifications ?? 23}  icon={UserCheck}  trend="flat" className="border-yellow-500/20" />
       </div>
 
       {/* Risk Tier Distribution */}

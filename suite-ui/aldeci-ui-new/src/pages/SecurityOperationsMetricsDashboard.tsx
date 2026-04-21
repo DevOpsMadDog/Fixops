@@ -163,7 +163,7 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function SecurityOperationsMetricsDashboard() {
-  const [queue, setQueue] = useState([]);
+  const [queue, setQueue] = useState<any[]>([]);
   useEffect(() => {
     fetch(`${_API_BASE}/summary?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())

@@ -164,7 +164,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function SOCTriageDashboard() {
   const [alerts, setAlerts] = useState<any[]>(MOCK_ALERTS);
-  const [stats, setStats] = useState([]);
+  const [stats, setStats] = useState<any[]>([]);
   const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);

@@ -291,10 +291,10 @@ export default function CloudIAM() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard title="IAM Principals"  value={liveStats?.total ?? "1,247"}    icon={<Users className="h-4 w-4" />}         trend="neutral" />
+        <KpiCard title="IAM Principals"  value={liveStats?.total ?? "1,247"}    icon={<Users className="h-4 w-4" />}         trend="flat" />
         <KpiCard title="Over-privileged" value={liveStats?.critical ?? "89"}     icon={<AlertTriangle className="h-4 w-4" />} trend="up"      trendLabel="+7 this week"        className="border-orange-500/20" />
         <KpiCard title="High Risk"       value={liveStats?.high ?? "234"}        icon={<Lock className="h-4 w-4" />}          trend="up"      trendLabel="High severity risks"  className="border-red-500/20" />
-        <KpiCard title="Admin Accounts"  value="8"                               icon={<Shield className="h-4 w-4" />}        trend="neutral" trendLabel="Requires MFA" />
+        <KpiCard title="Admin Accounts"  value="8"                               icon={<Shield className="h-4 w-4" />}        trend="flat" trendLabel="Requires MFA" />
       </div>
 
       {/* High-Risk Principals + Least Privilege Gauge */}

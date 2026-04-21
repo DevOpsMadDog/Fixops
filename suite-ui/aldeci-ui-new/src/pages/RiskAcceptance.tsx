@@ -461,7 +461,7 @@ export default function RiskAcceptancePage() {
           value={riskData.due_this_week}
           icon={Calendar}
           valueClassName="text-yellow-400"
-          trend="neutral"
+          trend="flat"
         />
       </div>
 

@@ -84,7 +84,7 @@ const MOCK_REPORTS = [
       { section_name: "Security Culture", type: "culture", score: 81, status: "green", content: "Training completion 97%, phishing resilience score +15 pts YoY." },
     ],
     metrics: [
-      { metric_name: "Incidents Resolved", value: 1247, unit: "", previous_value: 1089, trend: "stable", benchmark_value: 1200 },
+      { metric_name: "Incidents Resolved", value: 1247, unit: "", previous_value: 1089, trend: "flat", benchmark_value: 1200 },
       { metric_name: "Awareness Score", value: 87.3, unit: "%", previous_value: 79.1, trend: "improving", benchmark_value: 80.0 },
     ],
     trend_history: {

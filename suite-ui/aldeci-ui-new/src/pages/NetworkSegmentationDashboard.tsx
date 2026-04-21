@@ -184,7 +184,7 @@ export default function NetworkSegmentationDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Segments"               value={stats.segments ?? 8}              icon={Network}      trend="flat" />
         <KpiCard title="Flow Policies"          value={stats.flow_policies ?? 143}       icon={GitBranch}    trend="up" />
-        <KpiCard title="Segmentation Score"     value={`${score}/100`}                  icon={ShieldCheck}  trend="neutral" />
+        <KpiCard title="Segmentation Score"     value={`${score}/100`}                  icon={ShieldCheck}  trend="flat" />
         <KpiCard title="Lateral Movement Risks" value={lateralRisks}                    icon={AlertTriangle} trend="up" className="border-red-500/20" />
       </div>
 

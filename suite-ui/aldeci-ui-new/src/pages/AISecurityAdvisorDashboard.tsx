@@ -229,8 +229,8 @@ function RiskTimeline({ data }: { data: RiskDataPoint[] }) {
 
 export default function AISecurityAdvisorDashboard() {
   const [recs, setRecs] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
-  const [stats, setStats] = useState([]);
-  const [threatBriefing, setThreatBriefing] = useState([]);
+  const [stats, setStats] = useState<any[]>([]);
+  const [threatBriefing, setThreatBriefing] = useState<any[]>([]);
   const [riskTimeline] = useState<RiskDataPoint[]>(MOCK_RISK_TIMELINE);
   const [loading, setLoading] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -339,28 +339,28 @@ export default function AISecurityAdvisorDashboard() {
         <KpiCard
           title="Recommendations Generated"
           value={stats.total_recommendations.toString()}
-          delta="+12 this week"
+          trendLabel="+12 this week"
           trend="up"
           icon={<Lightbulb className="h-4 w-4 text-purple-400" />}
         />
         <KpiCard
           title="Critical Alerts"
           value={criticalRecs.toString()}
-          delta="3 unresolved"
+          trendLabel="3 unresolved"
           trend="down"
           icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
         />
         <KpiCard
           title="Risk Score Reduced"
           value={`${stats.risk_score_reduced}pts`}
-          delta="This month"
+          trendLabel="This month"
           trend="up"
           icon={<TrendingDown className="h-4 w-4 text-green-400" />}
         />
         <KpiCard
           title="Insights Applied"
           value={stats.insights_applied.toString()}
-          delta={`of ${stats.total_recommendations} total`}
+          trendLabel={`of ${stats.total_recommendations} total`}
           trend="up"
           icon={<CheckCircle className="h-4 w-4 text-blue-400" />}
         />

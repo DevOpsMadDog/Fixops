@@ -160,7 +160,7 @@ function sparklineColor(velocity: Velocity, higherIsBetter: boolean): string {
 // ── Component ──────────────────────────────────────────────────
 
 export default function PostureTrendsDashboard() {
-  const [trends, setTrends] = useState([]);
+  const [trends, setTrends] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

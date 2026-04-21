@@ -107,7 +107,7 @@ function krProgress(kr: KeyResult) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecurityOKRDashboard() {
-  const [objectives, setObjectives] = useState([]);
+  const [objectives, setObjectives] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`${_API_BASE}/objectives?org_id=default`, { headers: _getHeaders() })

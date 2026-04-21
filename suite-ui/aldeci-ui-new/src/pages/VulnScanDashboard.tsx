@@ -85,7 +85,7 @@ function ScanStatusBadge({ status }: { status: string }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function VulnScanDashboard() {
-  const [scans, setScans] = useState([]);
+  const [scans, setScans] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`${_API_BASE}/scans?org_id=default`, { headers: _getHeaders() })

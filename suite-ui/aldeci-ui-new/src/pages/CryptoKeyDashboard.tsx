@@ -126,8 +126,8 @@ export default function CryptoKeyDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Keys"       value={stats.total}          icon={Key}           trend="up" />
         <KpiCard title="Expiring (30d)"   value={stats.expiring_soon}  icon={AlertTriangle} trend="up" className="border-amber-500/20" />
-        <KpiCard title="Revoked"          value={stats.revoked}        icon={ShieldOff}     trend="neutral" className="border-red-500/20" />
-        <KpiCard title="Key Types"        value={keyTypeCount}         icon={Layers}        trend="neutral" />
+        <KpiCard title="Revoked"          value={stats.revoked}        icon={ShieldOff}     trend="flat" className="border-red-500/20" />
+        <KpiCard title="Key Types"        value={keyTypeCount}         icon={Layers}        trend="flat" />
       </div>
 
       {/* Key Type Distribution */}

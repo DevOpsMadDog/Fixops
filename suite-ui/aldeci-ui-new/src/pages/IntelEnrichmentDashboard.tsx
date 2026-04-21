@@ -85,7 +85,7 @@ const statusColors: Record<EnrichmentStatus, string> = {
 // ── Component ──────────────────────────────────────────────────
 
 export default function IntelEnrichmentDashboard() {
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState<any[]>([]);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 

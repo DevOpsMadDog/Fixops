@@ -503,8 +503,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 624,
-      "lastAccessed": 1776764191231,
+      "accessCount": 652,
+      "lastAccessed": 1776764544683,
       "type": "directory"
     },
     {

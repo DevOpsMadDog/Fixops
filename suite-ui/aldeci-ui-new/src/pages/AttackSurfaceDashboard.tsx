@@ -250,7 +250,7 @@ export default function AttackSurfaceDashboard() {
         <KpiCard title="Total Assets"      value={totalAssets}  icon={Globe}         trend="up" />
         <KpiCard title="Open Exposures"    value={openExp}      icon={AlertTriangle}  trend="up"   className="border-amber-500/20" />
         <KpiCard title="Critical Exposures" value={criticalExp} icon={Shield}        trend="up"   className="border-red-500/20" />
-        <KpiCard title="Surface Score"     value={surfaceScore} icon={TrendingUp}    trend="neutral" />
+        <KpiCard title="Surface Score"     value={surfaceScore} icon={TrendingUp}    trend="flat" />
       </div>
 
       {/* Asset Inventory + Surface Score */}

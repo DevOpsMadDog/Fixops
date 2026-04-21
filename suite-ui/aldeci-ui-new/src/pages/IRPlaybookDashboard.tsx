@@ -107,8 +107,8 @@ function MttrCell({ hours }: { hours: number }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function IRPlaybookDashboard() {
-  const [stats, setStats] = useState([]);
-  const [executions, setExecutions] = useState([]);
+  const [stats, setStats] = useState<any[]>([]);
+  const [executions, setExecutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {

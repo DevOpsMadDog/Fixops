@@ -231,7 +231,7 @@ export default function CNAPPDashboard() {
         <KpiCard title="Cloud Workloads"       value={liveData?.stats?.total_workloads ?? 342}         icon={Cloud}         trend="up" />
         <KpiCard title="Critical Findings"     value={liveData?.stats?.critical_findings ?? 18}        icon={AlertTriangle} trend="up"      className="border-red-500/20" />
         <KpiCard title="Privileged Containers" value={liveData?.stats?.privileged_containers ?? 7}     icon={Container}     trend="up"      className="border-amber-500/20" />
-        <KpiCard title="Policies Active"       value={liveData?.stats?.active_policies ?? 34}          icon={Lock}          trend="neutral" />
+        <KpiCard title="Policies Active"       value={liveData?.stats?.active_policies ?? 34}          icon={Lock}          trend="flat" />
       </div>
 
       {/* Workload Inventory */}

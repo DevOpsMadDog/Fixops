@@ -134,7 +134,7 @@ export default function SecurityAutomationDashboard() {
         <KpiCard title="Automation Rules"   value={stats.total_rules}       icon={Zap}         trend="up" />
         <KpiCard title="Executions Today"   value={stats.executions_today}  icon={Play}        trend="up" className="border-blue-500/20" />
         <KpiCard title="Success Rate"       value={successRatePct}          icon={CheckCircle2} trend="up" className="border-green-500/20" />
-        <KpiCard title="Avg Duration"       value={avgDuration}             icon={Timer}       trend="neutral" />
+        <KpiCard title="Avg Duration"       value={avgDuration}             icon={Timer}       trend="flat" />
       </div>
 
       {/* Executions Table */}

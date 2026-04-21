@@ -7090,14 +7090,14 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.software_license_security_router import router as software_license_security_router
-        app.include_router(software_license_security_router)
+        app.include_router(software_license_security_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Software License Security router at /api/v1/license-security")
     except ImportError:
         pass
 
     try:
         from apps.api.cloud_identity_router import router as cloud_identity_router
-        app.include_router(cloud_identity_router)
+        app.include_router(cloud_identity_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Cloud Identity router at /api/v1/cloud-identity")
     except ImportError:
         pass
@@ -7398,7 +7398,7 @@ def create_app() -> FastAPI:
     # Wave 26 routers
     try:
         from apps.api.compliance_automation_router import router as compliance_automation_router
-        app.include_router(compliance_automation_router)
+        app.include_router(compliance_automation_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Compliance Automation router at /api/v1/compliance-automation")
     except ImportError:
         pass
@@ -7412,14 +7412,14 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.cloud_access_security_router import router as cloud_access_security_router
-        app.include_router(cloud_access_security_router)
+        app.include_router(cloud_access_security_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Cloud Access Security router at /api/v1/cloud-access-security")
     except ImportError:
         pass
 
     try:
         from apps.api.behavioral_analytics_router import router as behavioral_analytics_router
-        app.include_router(behavioral_analytics_router)
+        app.include_router(behavioral_analytics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Behavioral Analytics router at /api/v1/behavioral-analytics")
     except ImportError:
         pass
@@ -7713,14 +7713,14 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.threat_feed_subscription_router import router as threat_feed_subscription_router
-        app.include_router(threat_feed_subscription_router)
+        app.include_router(threat_feed_subscription_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Feed Subscription router at /api/v1/feed-subscriptions")
     except ImportError:
         pass
 
     try:
         from apps.api.asset_group_router import router as asset_group_router
-        app.include_router(asset_group_router)
+        app.include_router(asset_group_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Asset Group router at /api/v1/asset-groups")
     except ImportError:
         pass
@@ -8131,7 +8131,7 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     try:
         from apps.api.change_tracker_router import router as change_tracker_router
-        app.include_router(change_tracker_router)
+        app.include_router(change_tracker_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Change Tracker router at /api/v1/change-tracker")
     except ImportError:
         pass
@@ -8145,14 +8145,14 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.cloud_graph_router import router as cloud_graph_router
-        app.include_router(cloud_graph_router)
+        app.include_router(cloud_graph_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Cloud Graph router at /api/v1/cloud-graph")
     except ImportError:
         pass
 
     try:
         from apps.api.code_ownership_router import router as code_ownership_router
-        app.include_router(code_ownership_router)
+        app.include_router(code_ownership_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Code Ownership router at /api/v1/ownership")
     except ImportError:
         pass
@@ -8173,7 +8173,7 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.dep_scanner_router import router as dep_scanner_router
-        app.include_router(dep_scanner_router)
+        app.include_router(dep_scanner_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Dependency Scanner router at /api/v1/dep-scanner")
     except ImportError:
         pass
@@ -8187,7 +8187,7 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.fedramp_router import router as fedramp_router
-        app.include_router(fedramp_router)
+        app.include_router(fedramp_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted FedRAMP router at /api/v1/fedramp")
     except ImportError:
         pass
@@ -8236,21 +8236,21 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.license_compliance_router import router as license_compliance_router
-        app.include_router(license_compliance_router)
+        app.include_router(license_compliance_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted License Compliance router at /api/v1/licenses")
     except ImportError:
         pass
 
     try:
         from apps.api.license_scanner_router import router as license_scanner_router
-        app.include_router(license_scanner_router)
+        app.include_router(license_scanner_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted License Scanner router at /api/v1/license-scanner")
     except ImportError:
         pass
 
     try:
         from apps.api.mitre_coverage_router import router as mitre_coverage_router
-        app.include_router(mitre_coverage_router)
+        app.include_router(mitre_coverage_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted MITRE Coverage router at /api/v1/mitre")
     except ImportError:
         pass
@@ -8264,7 +8264,7 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.observability_router import router as observability_router
-        app.include_router(observability_router)
+        app.include_router(observability_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Observability router at /api/v1/observability")
     except ImportError:
         pass
@@ -8285,14 +8285,14 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.playbook_marketplace_router import router as playbook_marketplace_router
-        app.include_router(playbook_marketplace_router)
+        app.include_router(playbook_marketplace_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Playbook Marketplace router at /playbook-marketplace")
     except ImportError:
         pass
 
     try:
         from apps.api.rbac_router import router as rbac_router
-        app.include_router(rbac_router)
+        app.include_router(rbac_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted RBAC router at /api/v1/rbac")
     except ImportError:
         pass

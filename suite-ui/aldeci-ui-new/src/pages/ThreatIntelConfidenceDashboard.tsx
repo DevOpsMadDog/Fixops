@@ -151,7 +151,7 @@ function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ThreatIntelConfidenceDashboard() {
-  const [iocs, setIocs] = useState([]);
+  const [iocs, setIocs] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
 

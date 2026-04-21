@@ -142,7 +142,7 @@ function readinessTextColor(score: number) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ComplianceWorkflowDashboard() {
-  const [workflows, setWorkflows] = useState([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`${_API_BASE}/workflows?org_id=default`, { headers: _getHeaders() })

@@ -42,11 +42,11 @@ const DOMAIN_SCORES: DomainScore[] = [
   { domain: "network",     label: "Network",     latest_score: 78, baseline_score: 70, trend: "improving", change: +8  },
   { domain: "endpoint",    label: "Endpoint",    latest_score: 65, baseline_score: 72, trend: "declining", change: -7  },
   { domain: "cloud",       label: "Cloud",       latest_score: 82, baseline_score: 80, trend: "improving", change: +2  },
-  { domain: "identity",    label: "Identity",    latest_score: 71, baseline_score: 71, trend: "stable",    change:  0  },
+  { domain: "identity",    label: "Identity",    latest_score: 71, baseline_score: 71, trend: "flat",    change:  0  },
   { domain: "application", label: "Application", latest_score: 58, baseline_score: 65, trend: "declining", change: -7  },
   { domain: "data",        label: "Data",        latest_score: 84, baseline_score: 75, trend: "improving", change: +9  },
   { domain: "compliance",  label: "Compliance",  latest_score: 91, baseline_score: 88, trend: "improving", change: +3  },
-  { domain: "physical",    label: "Physical",    latest_score: 76, baseline_score: 76, trend: "stable",    change:  0  },
+  { domain: "physical",    label: "Physical",    latest_score: 76, baseline_score: 76, trend: "flat",    change:  0  },
 ];
 
 const SNAPSHOTS: Snapshot[] = [

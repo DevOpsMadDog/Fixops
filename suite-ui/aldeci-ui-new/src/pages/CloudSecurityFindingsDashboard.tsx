@@ -104,7 +104,7 @@ function dayAge(dateStr: string) {
 
 export default function CloudSecurityFindingsDashboard() {
   const [activeProvider, setActiveProvider] = useState("All");
-  const [findings, setFindings] = useState([]);
+  const [findings, setFindings] = useState<any[]>([]);
   const [ingesting, setIngesting] = useState(false);
 
   useEffect(() => {

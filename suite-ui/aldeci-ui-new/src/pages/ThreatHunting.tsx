@@ -146,10 +146,10 @@ export default function ThreatHuntingPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <KpiCard title="Active Hunts"          value="5"      icon={<Activity className="h-4 w-4" />}    trend="neutral" />
+        <KpiCard title="Active Hunts"          value="5"      icon={<Activity className="h-4 w-4" />}    trend="flat" />
         <KpiCard title="Hypotheses Validated"  value="23"     icon={<CheckCircle2 className="h-4 w-4" />} trend="up"     />
         <KpiCard title="IOCs Discovered"       value="47"     icon={<Search className="h-4 w-4" />}       trend="up"     />
-        <KpiCard title="Avg Duration"          value="3.2d"   icon={<Clock className="h-4 w-4" />}        trend="neutral"/>
+        <KpiCard title="Avg Duration"          value="3.2d"   icon={<Clock className="h-4 w-4" />}        trend="flat"/>
       </motion.div>
 
       {/* Active Hunts Table */}

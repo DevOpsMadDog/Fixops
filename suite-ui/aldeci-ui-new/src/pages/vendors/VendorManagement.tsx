@@ -131,7 +131,7 @@ const MOCK_VENDORS: Vendor[] = [
     tier: "critical",
     grade: "A",
     score: 91,
-    trend: "stable",
+    trend: "flat",
     trendDelta: 1,
     lastAssessed: daysAgo(12),
     nextAssessment: daysFrom(78),
@@ -223,7 +223,7 @@ const MOCK_VENDORS: Vendor[] = [
     tier: "high",
     grade: "C",
     score: 64,
-    trend: "stable",
+    trend: "flat",
     trendDelta: 0,
     lastAssessed: daysAgo(45),
     nextAssessment: daysFrom(45),
@@ -529,7 +529,7 @@ function AssessmentPanel({ vendor }: { vendor: Vendor }) {
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">Risk score:</span>
             <span className={cn("text-sm font-mono font-bold", GRADE_CONFIG[vendor.grade].color)}>{vendor.score}/100</span>
-            <TrendIndicator trend={vendor.trend} delta={vendor.trendDelta} />
+            <TrendIndicator trend={vendor.trend} trendLabel={vendor.trendDelta} />
           </div>
         </div>
       </div>
@@ -728,7 +728,7 @@ function VendorRow({ vendor, selected, onSelect, index }: VendorRowProps) {
       <td className="px-4 py-3 w-36">
         <ScoreBar score={vendor.score} />
         <div className="flex justify-between mt-1">
-          <TrendIndicator trend={vendor.trend} delta={vendor.trendDelta} />
+          <TrendIndicator trend={vendor.trend} trendLabel={vendor.trendDelta} />
           <span className="text-[10px] text-muted-foreground">30d</span>
         </div>
       </td>
@@ -851,7 +851,7 @@ export default function VendorManagement() {
       tier: partial.tier ?? "medium",
       grade: "C",
       score: 60,
-      trend: "stable",
+      trend: "flat",
       trendDelta: 0,
       lastAssessed: new Date(0),
       nextAssessment: daysFrom(30),

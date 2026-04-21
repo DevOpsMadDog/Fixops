@@ -248,9 +248,9 @@ export default function CyberInsuranceDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Policies"   value={activePolicies}               icon={Shield}        trend="stable" />
+        <KpiCard title="Active Policies"   value={activePolicies}               icon={Shield}        trend="flat" />
         <KpiCard title="Total Coverage"    value={fmtMoney(totalCoverage)}      icon={DollarSign}    trend="up"     className="border-green-500/20" />
-        <KpiCard title="Annual Premium"    value={fmtMoney(annualPremium)}      icon={FileText}      trend="stable" className="border-blue-500/20" />
+        <KpiCard title="Annual Premium"    value={fmtMoney(annualPremium)}      icon={FileText}      trend="flat" className="border-blue-500/20" />
         <KpiCard title="Pending Claims"    value={openClaims}                   icon={AlertTriangle} trend="down"   className="border-amber-500/20" />
       </div>
 

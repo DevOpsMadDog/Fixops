@@ -127,7 +127,7 @@ export default function PrivilegeEscalationDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Events"       value={stats.total_events}      icon={Activity}    trend="up" />
         <KpiCard title="Anomalies Detected" value={stats.anomalies}         icon={ShieldAlert} trend="up" className="border-red-500/20" />
-        <KpiCard title="Blocked Attempts"   value={stats.blocked_attempts}  icon={Ban}         trend="neutral" className="border-amber-500/20" />
+        <KpiCard title="Blocked Attempts"   value={stats.blocked_attempts}  icon={Ban}         trend="flat" className="border-amber-500/20" />
         <KpiCard title="Alert Rate"         value={alertRate}               icon={TrendingUp}  trend="up" className="border-purple-500/20" />
       </div>
 

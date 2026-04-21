@@ -131,7 +131,7 @@ export default function CertificateDashboard() {
         <KpiCard title="Total Certs"    value={stats.total}       icon={Globe}         trend="up" />
         <KpiCard title="Active"         value={stats.active}      icon={ShieldCheck}   trend="up"      className="border-green-500/20" />
         <KpiCard title="Expiring (30d)" value={stats.expiring_30d} icon={AlertTriangle} trend="up"     className="border-amber-500/20" />
-        <KpiCard title="Expired"        value={stats.expired}     icon={XCircle}       trend="neutral" className="border-red-500/20" />
+        <KpiCard title="Expired"        value={stats.expired}     icon={XCircle}       trend="flat" className="border-red-500/20" />
       </div>
 
       {/* Type Distribution */}

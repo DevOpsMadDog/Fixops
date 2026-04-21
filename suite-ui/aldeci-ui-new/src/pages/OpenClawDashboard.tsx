@@ -285,7 +285,7 @@ function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreate
 
 export default function OpenClawDashboard() {
   const [campaigns, setCampaigns] = useState<any[]>(MOCK_CAMPAIGNS);
-  const [stats, setStats] = useState([]);
+  const [stats, setStats] = useState<any[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [findings, setFindings] = useState<any[]>([]);

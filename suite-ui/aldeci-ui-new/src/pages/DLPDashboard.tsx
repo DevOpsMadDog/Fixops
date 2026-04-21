@@ -211,7 +211,7 @@ export default function DLPDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Incidents"  value={totalIncidents} icon={ShieldAlert} trend="up"      className="border-red-500/20" />
         <KpiCard title="Blocked Today"    value={blockedToday}   icon={Ban}         trend="up"      className="border-orange-500/20" />
-        <KpiCard title="Quarantined"      value={quarantined}    icon={Archive}     trend="neutral" className="border-amber-500/20" />
+        <KpiCard title="Quarantined"      value={quarantined}    icon={Archive}     trend="flat" className="border-amber-500/20" />
         <KpiCard title="False Positives"  value={falsePositives} icon={ThumbsDown}  trend="down" />
       </div>
 

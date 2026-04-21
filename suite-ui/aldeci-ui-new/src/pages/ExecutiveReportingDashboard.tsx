@@ -55,12 +55,12 @@ const MOCK_REPORTS = [
 const MOCK_KPIS = [
   { id: "KPI-001", kpi_name: "MTTD",                kpi_value: 2.4,  target_value: 4.0,   kpi_unit: "hours",   status: "on_track",  trend: "improving" },
   { id: "KPI-002", kpi_name: "MTTR",                kpi_value: 18.5, target_value: 24.0,  kpi_unit: "hours",   status: "on_track",  trend: "improving" },
-  { id: "KPI-003", kpi_name: "Patch Compliance",    kpi_value: 87.0, target_value: 95.0,  kpi_unit: "%",       status: "at_risk",   trend: "stable"    },
+  { id: "KPI-003", kpi_name: "Patch Compliance",    kpi_value: 87.0, target_value: 95.0,  kpi_unit: "%",       status: "at_risk",   trend: "flat"    },
   { id: "KPI-004", kpi_name: "Vuln Closure Rate",   kpi_value: 94.0, target_value: 90.0,  kpi_unit: "%",       status: "on_track",  trend: "improving" },
-  { id: "KPI-005", kpi_name: "Security Awareness",  kpi_value: 71.0, target_value: 85.0,  kpi_unit: "%",       status: "at_risk",   trend: "stable"    },
+  { id: "KPI-005", kpi_name: "Security Awareness",  kpi_value: 71.0, target_value: 85.0,  kpi_unit: "%",       status: "at_risk",   trend: "flat"    },
   { id: "KPI-006", kpi_name: "Critical Vulns Open", kpi_value: 12.0, target_value: 5.0,   kpi_unit: "count",   status: "off_track", trend: "declining" },
   { id: "KPI-007", kpi_name: "MFA Coverage",        kpi_value: 98.2, target_value: 100.0, kpi_unit: "%",       status: "on_track",  trend: "improving" },
-  { id: "KPI-008", kpi_name: "Risk Score",          kpi_value: 42.0, target_value: 30.0,  kpi_unit: "score",   status: "at_risk",   trend: "stable"    },
+  { id: "KPI-008", kpi_name: "Risk Score",          kpi_value: 42.0, target_value: 30.0,  kpi_unit: "score",   status: "at_risk",   trend: "flat"    },
 ];
 
 const MOCK_BOARD_PRESENTATIONS = [
@@ -73,7 +73,7 @@ const MOCK_SUMMARY = {
   kpi_summary: { on_track: 4, at_risk: 3, off_track: 1 },
   recent_reports: MOCK_REPORTS.slice(0, 3),
   board_presentations_count: 3,
-  posture_trend: "stable",
+  posture_trend: "flat",
 };
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -209,9 +209,9 @@ export default function ExecutiveReportingDashboard() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Published Reports"  value={publishedCount}                                 icon={FileText}      trend="up"     />
-        <KpiCard title="KPIs On Track"      value={`${onTrackKpis} / ${kpis.length}`}             icon={CheckCircle}   trend="stable" className="border-green-500/20" />
+        <KpiCard title="KPIs On Track"      value={`${onTrackKpis} / ${kpis.length}`}             icon={CheckCircle}   trend="flat" className="border-green-500/20" />
         <KpiCard title="KPIs At Risk"       value={atRiskKpis}                                    icon={AlertTriangle} trend="down"   className="border-amber-500/20" />
-        <KpiCard title="Board Decks"        value={summary?.board_presentations_count ?? boards.length} icon={Presentation} trend="stable" className="border-purple-500/20" />
+        <KpiCard title="Board Decks"        value={summary?.board_presentations_count ?? boards.length} icon={Presentation} trend="flat" className="border-purple-500/20" />
       </div>
 
       {/* Reports Table */}

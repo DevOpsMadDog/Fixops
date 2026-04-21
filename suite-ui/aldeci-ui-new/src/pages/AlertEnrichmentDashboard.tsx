@@ -113,8 +113,8 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 
 export default function AlertEnrichmentDashboard() {
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
-  const [sources, setSources] = useState([]);
-  const [queue, setQueue] = useState([]);
+  const [sources, setSources] = useState<any[]>([]);
+  const [queue, setQueue] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`${API_BASE}/queue?org_id=default`, { headers: getHeaders() })

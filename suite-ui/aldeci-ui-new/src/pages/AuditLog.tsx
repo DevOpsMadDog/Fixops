@@ -890,7 +890,7 @@ export default function AuditLogPage() {
           value={kpis.eventsToday.toLocaleString()}
           icon={Activity}
           valueClassName="text-blue-400"
-          trend="neutral"
+          trend="flat"
         />
         <KpiCard
           title="Failed Auth Attempts"
@@ -904,7 +904,7 @@ export default function AuditLogPage() {
           value={kpis.configChanges}
           icon={Settings}
           valueClassName="text-yellow-400"
-          trend="neutral"
+          trend="flat"
         />
         <KpiCard
           title="Policy Violations"

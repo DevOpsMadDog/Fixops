@@ -226,7 +226,7 @@ export default function ThreatIntelPlatformDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Indicators"    value={totalIndicators.toLocaleString()}   icon={Shield}     trend="up" />
-        <KpiCard title="Active Sources"      value={activeSources}                       icon={Globe}      trend="neutral" className="border-blue-500/20" />
+        <KpiCard title="Active Sources"      value={activeSources}                       icon={Globe}      trend="flat" className="border-blue-500/20" />
         <KpiCard title="Reports Published"   value={reportsPublished}                    icon={FileText}   trend="up"      className="border-purple-500/20" />
         <KpiCard title="Relationships Mapped" value={relationshipsMapped.toLocaleString()} icon={GitBranch} trend="up"    className="border-cyan-500/20" />
       </div>

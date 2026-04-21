@@ -216,7 +216,7 @@ export default function SecurityCultureDashboard() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="font-medium text-white text-sm">{metric.label}</div>
-                  <TrendIcon trend={metric.trend} delta={metric.trend_delta} />
+                  <TrendIcon trend={metric.trend} trendLabel={metric.trend_delta} />
                 </div>
                 <div className="text-right">
                   <div className={`text-xl font-bold ${scoreColor(metric.value)}`}>{metric.value}%</div>
