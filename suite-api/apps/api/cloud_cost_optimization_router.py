@@ -86,6 +86,12 @@ class ROIAssessmentCreate(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_cost_optimization(org_id: str = Query("default")):
+    """Get cloud cost optimization portfolio summary for the org."""
+    return _get_engine().get_portfolio_summary(org_id=org_id)
+
+
 @router.post("/tools", status_code=201)
 def register_tool(body: ToolCreate, org_id: str = Query(...)):
     """Register a new security tool for cost tracking."""

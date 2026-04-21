@@ -89,6 +89,12 @@ class ResolveRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_access_anomaly(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get access anomaly summary for the org."""
+    return _get_engine().get_summary(org_id=org_id)
+
+
 @router.post("/events")
 def record_event(body: EventCreate) -> Dict[str, Any]:
     return _get_engine().record_event(

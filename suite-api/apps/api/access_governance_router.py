@@ -107,6 +107,12 @@ class AssignRoleRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_access_governance(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get access governance summary for the org."""
+    return _get_engine().get_access_summary(org_id)
+
+
 @router.post("/entitlements", dependencies=[Depends(api_key_auth)])
 def grant_entitlement(
     req: GrantEntitlementRequest,

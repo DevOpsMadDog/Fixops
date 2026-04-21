@@ -82,6 +82,12 @@ class ApprovalSubmit(BaseModel):
 # Workflows
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_compliance_workflows(org_id: str = Query("default")):
+    """Get compliance workflow summary for the org."""
+    return _get_engine().get_workflow_summary(org_id)
+
+
 @router.post("/workflows", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_workflow(body: WorkflowCreate, org_id: str = Query(...)):
     """Create a new compliance workflow."""

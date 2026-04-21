@@ -84,6 +84,12 @@ class ScheduleRunUpdate(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_control_testing(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get control testing effectiveness summary for the org."""
+    return _get_engine().get_control_effectiveness_summary(org_id=org_id)
+
+
 @router.post("/controls", dependencies=[Depends(api_key_auth)])
 def create_control(body: ControlCreate) -> Dict[str, Any]:
     """Create a new security control."""

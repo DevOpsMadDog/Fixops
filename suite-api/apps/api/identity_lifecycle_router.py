@@ -93,6 +93,12 @@ class RevokeEntitlementBody(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/")
+def list_identity_lifecycle(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get identity lifecycle entitlement summary for the org."""
+    return _get_engine().get_entitlement_summary(org_id)
+
+
 @router.post("/accounts")
 def provision_account(
     body: ProvisionAccountBody,

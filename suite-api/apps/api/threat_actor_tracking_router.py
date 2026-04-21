@@ -78,6 +78,12 @@ class UpdateActivityModel(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_threat_actors(org_id: str = Query("default")):
+    """Get threat actor tracking summary for the org."""
+    return _get_engine().get_tracking_summary(org_id=org_id)
+
+
 @router.post("/actors", dependencies=[Depends(api_key_auth)], status_code=201)
 def track_actor(body: TrackActorModel):
     """Register a threat actor for tracking."""

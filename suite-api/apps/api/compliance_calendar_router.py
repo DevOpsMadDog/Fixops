@@ -77,6 +77,12 @@ class CreateViewRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_compliance_calendar(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get compliance calendar summary for the org."""
+    return _get_engine().get_calendar_summary(org_id)
+
+
 @router.post("/events", dependencies=[Depends(api_key_auth)])
 def create_event(
     req: CreateEventRequest,
