@@ -401,12 +401,34 @@ def slug(path: str) -> str:
     return (path.strip("/").replace("/", "_") or "root") + ".png"
 
 
-def set_auth(context) -> None:
+def set_auth(context, page, base_url: str) -> None:
     """
-    Inject auth state via add_init_script so it fires before React hydrates
-    on every page navigation — no need for a separate goto.
+    Inject auth state so React's AuthProvider reads it on every navigation.
+
+    Strategy:
+      1. add_init_script — sets localStorage before JS runs on fresh page loads.
+      2. Navigate to /login (public route) to let the app boot.
+      3. evaluate() to set localStorage in the live React context.
+      4. Reload to let AuthProvider re-read localStorage with auth state.
     """
     context.add_init_script(AUTH_INIT_SCRIPT)
+
+    # Boot the app on the public login page
+    page.goto(f"{base_url}/login", wait_until="domcontentloaded", timeout=TIMEOUT_MS)
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:
+        pass
+
+    # Set auth state in live React context
+    page.evaluate(AUTH_INIT_SCRIPT)
+
+    # Navigate to root — React Router will render the authenticated workspace
+    page.goto(f"{base_url}/", wait_until="domcontentloaded", timeout=TIMEOUT_MS)
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:
+        pass
 
 
 def check_page(page, url: str, screenshot_dir: Path) -> dict:
@@ -440,8 +462,10 @@ def check_page(page, url: str, screenshot_dir: Path) -> dict:
         current = page.url
         if "/login" in current or "/onboarding" in current:
             result["status"] = "auth_redirect"
+            result["final_url"] = current
         else:
             result["status"] = "loaded"
+            result["final_url"] = current
 
         # Check for visible error elements
         for sel in ERROR_SELECTORS:
@@ -604,9 +628,9 @@ def main() -> None:
         )
         page = context.new_page()
 
-        # Register init script — fires before React hydrates on every page load
-        set_auth(context)
-        print(f"  Auth init script registered (strategy=token, role=admin)")
+        # Boot app + inject auth state
+        set_auth(context, page, base_url)
+        print(f"  Auth injected (strategy=token, role=admin, final_url={page.url})")
 
         for i, path in enumerate(screens, 1):
             url = base_url + path

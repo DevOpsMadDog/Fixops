@@ -308,6 +308,15 @@ class KnowledgeBrain:
             """
             )
 
+    def reload_graph(self) -> Dict[str, int]:
+        """Reload the in-memory NetworkX graph from SQLite (picks up externally inserted edges)."""
+        if self._graph is not None and nx is not None:
+            with self._conn_lock:
+                self._graph.clear()
+            self._load_from_db()
+        s = self.stats()
+        return {"nodes": s["total_nodes"], "edges": s["total_edges"]}
+
     def _load_from_db(self) -> None:
         """Load all nodes and edges from SQLite into NetworkX graph."""
         if self._graph is None:

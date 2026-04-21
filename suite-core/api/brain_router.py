@@ -369,6 +369,23 @@ async def graph_stats() -> Dict[str, Any]:
         return _empty
 
 
+@router.post("/reload", status_code=200)
+async def reload_graph() -> Dict[str, Any]:
+    """Reload the in-memory NetworkX graph from SQLite.
+
+    Call this after bulk-inserting edges directly into the DB (e.g. via
+    the build_brain_edges script) so that path queries and most-connected
+    analytics reflect the new topology.
+    """
+    try:
+        brain = get_brain()
+        result = brain.reload_graph()
+        return {"status": "ok", "nodes": result["nodes"], "edges": result["edges"]}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("brain reload failed: %s: %s", type(exc).__name__, exc)
+        raise HTTPException(status_code=500, detail=f"reload failed: {exc}") from exc
+
+
 @router.get("/most-connected")
 async def most_connected(
     limit: int = Query(10, ge=1, le=100),
