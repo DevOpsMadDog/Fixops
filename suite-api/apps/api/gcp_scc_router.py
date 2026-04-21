@@ -76,7 +76,7 @@ class SeverityBreakdown(BaseModel):
 
 class ImportResponse(BaseModel):
     import_id: str
-    org_id: str
+    org_id: str = Query(default="default")
     started_at: str
     completed_at: str
     status: str
@@ -91,7 +91,7 @@ class ImportSummaryResponse(BaseModel):
     """Import history entry (findings omitted for brevity)."""
 
     import_id: str
-    org_id: str
+    org_id: str = Query(default="default")
     started_at: str
     completed_at: str
     status: str

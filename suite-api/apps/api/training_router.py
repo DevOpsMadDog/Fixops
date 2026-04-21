@@ -167,7 +167,7 @@ async def get_user_training(
 
 
 @router.get("/orgs/{org_id}/completion-rate", response_model=Dict[str, Any])
-async def get_completion_rate(org_id: str):
+async def get_completion_rate(org_id: str = Query(default="default")):
     """Get the percentage of users who completed required training for an org."""
     tracker = _get_tracker()
     return tracker.get_completion_rate(org_id)
@@ -175,7 +175,7 @@ async def get_completion_rate(org_id: str):
 
 @router.get("/orgs/{org_id}/overdue", response_model=List[Dict[str, Any]])
 async def get_overdue_training(
-    org_id: str,
+    org_id: str = Query(default="default"),
     module_ids: Optional[str] = Query(
         default=None,
         description="Comma-separated required module IDs (defaults to all built-in modules)",
@@ -188,14 +188,14 @@ async def get_overdue_training(
 
 
 @router.get("/orgs/{org_id}/stats", response_model=Dict[str, Any])
-async def get_training_stats(org_id: str):
+async def get_training_stats(org_id: str = Query(default="default")):
     """Get comprehensive training stats for an org: by module, by user, pass rates."""
     tracker = _get_tracker()
     return tracker.get_training_stats(org_id)
 
 
 @router.get("/orgs/{org_id}/compliance/{framework}", response_model=Dict[str, Any])
-async def get_compliance_training_status(org_id: str, framework: str):
+async def get_compliance_training_status(org_id: str = Query(default="default"), framework: str):
     """Get training evidence for a compliance framework (SOC2, HIPAA, PCI-DSS, ISO27001, GDPR, NIST)."""
     supported = {"SOC2", "HIPAA", "PCI-DSS", "ISO27001", "GDPR", "NIST"}
     if framework.upper() not in supported:

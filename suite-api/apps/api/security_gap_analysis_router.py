@@ -115,7 +115,7 @@ def create_assessment(req: CreateAssessmentRequest) -> Dict[str, Any]:
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
     framework: Optional[str] = Query(default=None, description="Filter by framework"),
 ) -> list:
     """List assessments for an org."""
@@ -125,7 +125,7 @@ def list_assessments(
 @router.get("/assessments/{assessment_id}", dependencies=[Depends(api_key_auth)])
 def get_assessment_detail(
     assessment_id: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Return assessment detail with gaps and remediation plans."""
     result = _get_engine().get_assessment_detail(assessment_id=assessment_id, org_id=org_id)
@@ -200,7 +200,7 @@ def complete_remediation(plan_id: str, req: CompleteRemediationRequest) -> Dict[
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_gap_summary(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Return aggregated gap summary: counts, by_framework, by_priority, critical_gaps."""
     return _get_engine().get_gap_summary(org_id=org_id)
@@ -208,7 +208,7 @@ def get_gap_summary(
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
 def get_overdue_gaps(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> list:
     """Return open/in_progress gaps past their due date."""
     return _get_engine().get_overdue_gaps(org_id=org_id)
@@ -216,7 +216,7 @@ def get_overdue_gaps(
 
 @router.get("/framework-coverage", dependencies=[Depends(api_key_auth)])
 def get_framework_coverage(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> list:
     """Return per-framework latest coverage_pct, risk_level, and gap_count."""
     return _get_engine().get_framework_coverage(org_id=org_id)

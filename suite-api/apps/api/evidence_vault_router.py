@@ -47,7 +47,7 @@ def _get_engine():
 
 
 class StoreEvidenceIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     evidence_name: str
     evidence_type: str = "screenshot"
     framework: str = "SOC2"
@@ -60,14 +60,14 @@ class StoreEvidenceIn(BaseModel):
 
 
 class AccessLogIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     accessed_by: str
     access_type: str = "view"
     access_reason: str = ""
 
 
 class CreateCollectionIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     collection_name: str
     framework: str = "SOC2"
     audit_period: str = ""
@@ -75,12 +75,12 @@ class CreateCollectionIn(BaseModel):
 
 
 class AddToCollectionIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     evidence_id: str
 
 
 class VerifyIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     content: str
 
 

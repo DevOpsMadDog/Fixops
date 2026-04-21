@@ -84,18 +84,18 @@ class LicenseResultItem(BaseModel):
     risk_level: str
     policy_action: str
     spdx_id: str
-    org_id: str
+    org_id: str = Query(default="default")
     scanned_at: str
 
 
 class ScanResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     total: int
     results: List[LicenseResultItem]
 
 
 class SummaryResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     total: int
     by_risk: Dict[str, int]
     by_policy: Dict[str, int]
@@ -103,13 +103,13 @@ class SummaryResponse(BaseModel):
 
 
 class PolicyResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     rules_saved: int
     status: str
 
 
 class ViolationsResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     total_violations: int
     violations: List[LicenseResultItem]
 

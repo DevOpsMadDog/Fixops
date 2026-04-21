@@ -43,7 +43,7 @@ class MigrationStatusResponse(BaseModel):
 
 
 class MigrationReportResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     modules: List[MigrationStatusResponse]
     total_migrated: int
     total_failed: int
@@ -60,7 +60,7 @@ class VerificationModuleResult(BaseModel):
 
 
 class VerificationReportResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     modules: List[VerificationModuleResult]
     verified_at: str
     all_match: bool
@@ -71,7 +71,7 @@ class RollbackRequest(BaseModel):
 
 
 class RollbackResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     module: str
     status: str
     error: Optional[str] = None

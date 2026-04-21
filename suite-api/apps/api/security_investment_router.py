@@ -195,21 +195,21 @@ def record_spend(req: RecordSpendRequest) -> Dict[str, Any]:
 
 
 @router.get("/portfolio", summary="Get portfolio summary")
-def get_portfolio_summary(org_id: str = Query(..., description="Organisation ID")) -> Dict[str, Any]:
+def get_portfolio_summary(org_id: str = Query(default="default", description="Organisation ID")) -> Dict[str, Any]:
     return _get_engine().get_portfolio_summary(org_id=org_id)
 
 
 @router.get("/budgets/{fiscal_year}", summary="Get budget utilization for a fiscal year")
 def get_budget_utilization(
     fiscal_year: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_budget_utilization(org_id=org_id, fiscal_year=fiscal_year)
 
 
 @router.get("/investments", summary="List investments")
 def list_investments(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
     status: Optional[str] = Query(default=None, description="Filter by status"),
     investment_category: Optional[str] = Query(default=None, description="Filter by category"),
 ) -> List[Dict[str, Any]]:

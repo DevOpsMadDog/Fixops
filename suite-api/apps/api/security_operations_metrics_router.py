@@ -48,7 +48,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class AlertCreate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     alert_source: str = "SIEM"
     severity: str = "medium"
     category: str = "other"
@@ -56,22 +56,22 @@ class AlertCreate(BaseModel):
 
 
 class AlertAcknowledge(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     analyst: str
 
 
 class AlertResolve(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     false_positive: bool = False
 
 
 class SnapshotCreate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     snapshot_date: Optional[str] = None
 
 
 class WorkloadUpdate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     analyst_name: str
     date: str
     alerts_assigned: int = Field(default=0, ge=0)

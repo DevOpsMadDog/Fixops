@@ -97,7 +97,7 @@ async def list_categories() -> Dict[str, Any]:
 
 @router.post("/{org_id}/generate", summary="Generate scorecard", status_code=201)
 async def generate_scorecard(
-    org_id: str, req: GenerateScorecardRequest = GenerateScorecardRequest()
+    org_id: str = Query(default="default"), req: GenerateScorecardRequest = GenerateScorecardRequest()
 ) -> Dict[str, Any]:
     """Compute and store a new security scorecard for the organisation."""
     sc = _get_scorecard().generate_scorecard(org_id, validity_days=req.validity_days)
@@ -105,7 +105,7 @@ async def generate_scorecard(
 
 
 @router.get("/{org_id}", summary="Latest scorecard")
-async def get_scorecard(org_id: str) -> Dict[str, Any]:
+async def get_scorecard(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Return the most recently generated scorecard for an organisation."""
     sc = _get_scorecard().get_scorecard(org_id)
     if sc is None:
@@ -118,7 +118,7 @@ async def get_scorecard(org_id: str) -> Dict[str, Any]:
 
 @router.get("/{org_id}/history", summary="Score history")
 async def get_score_history(
-    org_id: str,
+    org_id: str = Query(default="default"),
     days: int = Query(default=90, ge=1, le=365, description="Number of days to look back"),
 ) -> Dict[str, Any]:
     """Return score history for the organisation over the past N days."""
@@ -132,7 +132,7 @@ async def get_score_history(
 
 
 @router.get("/{org_id}/breakdown", summary="Category breakdown")
-async def get_category_breakdown(org_id: str) -> Dict[str, Any]:
+async def get_category_breakdown(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Return per-category scores, grades, weights, and trends."""
     result = _get_scorecard().get_category_breakdown(org_id)
     if not result.get("generated_at"):
@@ -144,7 +144,7 @@ async def get_category_breakdown(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/{org_id}/improvement", summary="Improvement plan")
-async def get_improvement_plan(org_id: str) -> Dict[str, Any]:
+async def get_improvement_plan(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Return a prioritized list of actions to improve the organisation's score."""
     result = _get_scorecard().get_improvement_plan(org_id)
     if not result.get("generated_at"):
@@ -167,7 +167,7 @@ async def compare_orgs(req: CompareOrgsRequest) -> Dict[str, Any]:
 
 
 @public_router.get("/public/{org_id}", summary="Public scorecard", tags=["security-scorecard-public"])
-async def get_public_score(org_id: str) -> Dict[str, Any]:
+async def get_public_score(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Return a shareable, limited scorecard suitable for external consumption.
 
     Exposes overall score, grade, and per-category letter grades only.

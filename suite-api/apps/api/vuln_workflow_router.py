@@ -40,7 +40,7 @@ router = APIRouter(
 _engines: Dict[str, Any] = {}
 
 
-def _get_engine(org_id: str):
+def _get_engine(org_id: str = Query(default="default")):
     if org_id not in _engines:
         from core.vuln_workflow_engine import VulnWorkflowEngine
         _engines[org_id] = VulnWorkflowEngine(org_id)
@@ -124,7 +124,7 @@ class SLAConfigSet(BaseModel):
 @router.post("/tickets", dependencies=[Depends(api_key_auth)])
 def create_ticket(
     payload: TicketCreate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Create a new vulnerability ticket with auto SLA due-date."""
     engine = _get_engine(org_id)
@@ -136,7 +136,7 @@ def create_ticket(
 
 @router.get("/tickets", dependencies=[Depends(api_key_auth)])
 def list_tickets(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
     status: Optional[str] = Query(None),
     assignee: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -160,7 +160,7 @@ def list_tickets(
 @router.get("/tickets/{ticket_id}", dependencies=[Depends(api_key_auth)])
 def get_ticket(
     ticket_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Get a ticket with its comments."""
     engine = _get_engine(org_id)
@@ -174,7 +174,7 @@ def get_ticket(
 def update_ticket(
     ticket_id: str,
     payload: TicketUpdate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Update ticket fields. Logs a status_change comment on transitions."""
     engine = _get_engine(org_id)
@@ -189,7 +189,7 @@ def update_ticket(
 def add_comment(
     ticket_id: str,
     payload: CommentAdd,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Add a comment to a ticket."""
     engine = _get_engine(org_id)
@@ -208,7 +208,7 @@ def add_comment(
 def assign_ticket(
     ticket_id: str,
     payload: AssignTicket,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Reassign a ticket and log an assignment comment."""
     engine = _get_engine(org_id)
@@ -227,7 +227,7 @@ def assign_ticket(
 def accept_risk(
     ticket_id: str,
     payload: AcceptRisk,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Mark a ticket as accepted_risk with audit trail."""
     engine = _get_engine(org_id)
@@ -245,7 +245,7 @@ def accept_risk(
 @router.post("/tickets/bulk-assign", dependencies=[Depends(api_key_auth)])
 def bulk_assign(
     payload: BulkAssign,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Bulk reassign a list of tickets."""
     engine = _get_engine(org_id)
@@ -264,7 +264,7 @@ def bulk_assign(
 @router.post("/tickets/bulk-close", dependencies=[Depends(api_key_auth)])
 def bulk_close(
     payload: BulkClose,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Bulk resolve a list of tickets."""
     engine = _get_engine(org_id)
@@ -281,7 +281,7 @@ def bulk_close(
 
 @router.get("/sla", dependencies=[Depends(api_key_auth)])
 def get_sla_config(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> List[Dict[str, Any]]:
     """Return all SLA configs for org."""
     engine = _get_engine(org_id)
@@ -291,7 +291,7 @@ def get_sla_config(
 @router.post("/sla", dependencies=[Depends(api_key_auth)])
 def set_sla_config(
     payload: SLAConfigSet,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Upsert SLA config for a severity level."""
     engine = _get_engine(org_id)
@@ -309,7 +309,7 @@ def set_sla_config(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_workflow_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return aggregated workflow stats for org."""
     engine = _get_engine(org_id)

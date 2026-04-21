@@ -84,7 +84,7 @@ class FindingStatusUpdate(BaseModel):
 _engines: Dict[str, OpenClawEngine] = {}
 
 
-def _get_engine(org_id: str) -> OpenClawEngine:
+def _get_engine(org_id: str = Query(default="default")) -> OpenClawEngine:
     if org_id not in _engines:
         _engines[org_id] = get_openclaw_engine(org_id)
     return _engines[org_id]

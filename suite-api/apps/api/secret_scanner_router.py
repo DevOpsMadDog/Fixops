@@ -85,7 +85,7 @@ class PatternCreate(BaseModel):
 class RotationStatusResponse(BaseModel):
     """Response for /rotation-status endpoint."""
 
-    org_id: str
+    org_id: str = Query(default="default")
     total: int
     active: int
     rotated: int

@@ -55,7 +55,7 @@ class RegisterRepoRequest(BaseModel):
 )
 async def get_my_findings(
     developer_email: str = Query(..., description="Developer email"),
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
     status: Optional[str] = Query(None, description="Filter by status (open/resolved)"),
 ) -> List[Dict[str, Any]]:
     """Return findings for repos owned by the developer."""
@@ -69,7 +69,7 @@ async def get_my_findings(
 )
 async def get_my_repo_scores(
     developer_email: str = Query(..., description="Developer email"),
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> List[RepoSecurityScore]:
     """Return security scores for repos the developer owns."""
     owned = _portal._get_owned_repos(developer_email, org_id)
@@ -85,7 +85,7 @@ async def get_my_repo_scores(
 )
 async def get_repo_score(
     name: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> RepoSecurityScore:
     """Return the security score for one repository."""
     return _portal.get_repo_score(name, org_id)
@@ -111,7 +111,7 @@ async def get_fix_suggestion(
 )
 async def get_upgrade_recommendations(
     name: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> List[Dict[str, Any]]:
     """Return dependency upgrade recommendations for a repo."""
     return _portal.get_upgrade_recommendations(name, org_id)
@@ -151,7 +151,7 @@ async def register_repo_owner(body: RegisterRepoRequest) -> Dict[str, str]:
 )
 async def get_developer_stats(
     developer_email: str = Query(..., description="Developer email"),
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Return per-developer security statistics."""
     return _portal.get_developer_stats(developer_email, org_id)
@@ -163,7 +163,7 @@ async def get_developer_stats(
     description="Return the top developers ranked by number of security findings fixed.",
 )
 async def get_leaderboard(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Query(default="default", description="Organisation ID"),
     limit: int = Query(10, ge=1, le=100, description="Maximum number of entries"),
 ) -> List[Dict[str, Any]]:
     """Return a leaderboard of developers ranked by findings fixed."""

@@ -53,7 +53,7 @@ class CheckAccessResponse(BaseModel):
     resource_id: Optional[str]
     access_level: str
     granted: bool
-    org_id: str
+    org_id: str = Query(default="default")
 
 
 # ============================================================================

@@ -710,7 +710,7 @@ async def _process_bulk_export(
     job_id: str,
     ids: List[str],
     fmt: str,
-    org_id: str,
+    org_id: str = Query(default="default"),
     include_fields: Optional[List[str]],
 ):
     """Process bulk export in background — creates a real file on disk."""

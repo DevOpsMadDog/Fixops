@@ -62,7 +62,7 @@ class EscalationPolicyRequest(BaseModel):
 
 
 class EscalationPolicyResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     breach_threshold_hours: int
     auto_action: str
     severity_bump: bool

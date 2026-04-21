@@ -72,7 +72,7 @@ class SessionResponse(BaseModel):
     last_active: str
     expires_at: str
     is_active: bool
-    org_id: str
+    org_id: str = Query(default="default")
     metadata: Dict[str, Any]
 
     @classmethod
@@ -107,7 +107,7 @@ class CleanupResponse(BaseModel):
 class SessionStatsResponse(BaseModel):
     """Session statistics for an org."""
 
-    org_id: str
+    org_id: str = Query(default="default")
     active_count: int
     avg_duration_seconds: float
     by_user: Dict[str, int]
@@ -153,7 +153,7 @@ async def create_session(body: CreateSessionRequest) -> SessionResponse:
 
 
 @router.get("/stats/{org_id}", response_model=SessionStatsResponse)
-async def get_session_stats(org_id: str) -> SessionStatsResponse:
+async def get_session_stats(org_id: str = Query(default="default")) -> SessionStatsResponse:
     """Get session statistics for an organisation."""
     mgr = _get_mgr()
     stats = mgr.get_session_stats(org_id)
@@ -161,7 +161,7 @@ async def get_session_stats(org_id: str) -> SessionStatsResponse:
 
 
 @router.get("/suspicious/{org_id}", response_model=List[SuspiciousSessionEntry])
-async def get_suspicious_sessions(org_id: str) -> List[SuspiciousSessionEntry]:
+async def get_suspicious_sessions(org_id: str = Query(default="default")) -> List[SuspiciousSessionEntry]:
     """Return users with suspicious session patterns (multiple IPs or user agents)."""
     mgr = _get_mgr()
     entries = mgr.get_suspicious_sessions(org_id)

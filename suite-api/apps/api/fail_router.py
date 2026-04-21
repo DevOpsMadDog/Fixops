@@ -97,7 +97,7 @@ class InjectResponse(BaseModel):
     scenario_id: str
     scenario_name: str
     target_component: str
-    org_id: str
+    org_id: str = Query(default="default")
     status: str
     severity: str
     synthetic_finding_id: str

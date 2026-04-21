@@ -39,7 +39,7 @@ router = APIRouter(
 _engine_cache: Dict[str, Any] = {}
 
 
-def _get_engine(org_id: str):
+def _get_engine(org_id: str = Query(default="default")):
     if org_id not in _engine_cache:
         from core.cloud_governance_engine import get_engine
         _engine_cache[org_id] = get_engine(org_id)

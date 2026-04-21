@@ -106,7 +106,7 @@ def register_protected_resource(req: RegisterResourceRequest) -> Dict[str, Any]:
     dependencies=[Depends(api_key_auth)],
     summary="List protected resources",
 )
-def list_protected_resources(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
+def list_protected_resources(org_id: str = Query(default="default", description="Organisation identifier")) -> List[Dict[str, Any]]:
     try:
         return _get_engine().list_protected_resources(org_id)
     except Exception as exc:
@@ -135,7 +135,7 @@ def record_attack_event(req: RecordAttackRequest) -> Dict[str, Any]:
     summary="List attack events",
 )
 def list_attack_events(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Query(default="default", description="Organisation identifier"),
     resource_id: Optional[str] = Query(None, description="Filter by resource UUID"),
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=500, description="Maximum records to return"),
@@ -182,7 +182,7 @@ def create_mitigation_rule(req: CreateMitigationRuleRequest) -> Dict[str, Any]:
     dependencies=[Depends(api_key_auth)],
     summary="List mitigation rules",
 )
-def list_mitigation_rules(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
+def list_mitigation_rules(org_id: str = Query(default="default", description="Organisation identifier")) -> List[Dict[str, Any]]:
     try:
         return _get_engine().list_mitigation_rules(org_id)
     except Exception as exc:
@@ -195,7 +195,7 @@ def list_mitigation_rules(org_id: str = Query(..., description="Organisation ide
     dependencies=[Depends(api_key_auth)],
     summary="Get DDoS stats for an org",
 )
-def get_ddos_stats(org_id: str = Query(..., description="Organisation identifier")) -> Dict[str, Any]:
+def get_ddos_stats(org_id: str = Query(default="default", description="Organisation identifier")) -> Dict[str, Any]:
     try:
         return _get_engine().get_ddos_stats(org_id)
     except Exception as exc:

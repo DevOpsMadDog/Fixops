@@ -92,7 +92,7 @@ def record_event(req: RecordEventRequest) -> Dict[str, Any]:
 
 @router.get("/events", summary="List privilege escalation events")
 def list_events(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
     limit: int = Query(100, ge=1, le=1000, description="Max results"),
 ) -> List[Dict[str, Any]]:
@@ -107,7 +107,7 @@ def list_events(
 @router.get("/events/{event_id}/detect", summary="Detect anomaly for a specific escalation event")
 def detect_anomaly(
     event_id: str,
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
 ) -> Dict[str, Any]:
     """Analyze a specific escalation event and return its anomaly assessment."""
     try:
@@ -133,7 +133,7 @@ def create_rule(req: CreateRuleRequest) -> Dict[str, Any]:
 
 @router.get("/rules", summary="List detection rules for an org")
 def list_rules(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
 ) -> List[Dict[str, Any]]:
     """List all privilege escalation detection rules."""
     try:
@@ -145,7 +145,7 @@ def list_rules(
 
 @router.get("/heatmap", summary="Get escalation activity heatmap")
 def get_heatmap(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
     hours: int = Query(24, ge=1, le=168, description="Time window in hours (max 7 days)"),
 ) -> Dict[str, Any]:
     """Return escalation heatmap: top users, top methods, events by hour."""
@@ -158,7 +158,7 @@ def get_heatmap(
 
 @router.get("/stats", summary="Get privilege escalation detection statistics")
 def get_stats(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
 ) -> Dict[str, Any]:
     """Return aggregate stats: total events, anomalies detected, blocked attempts."""
     try:

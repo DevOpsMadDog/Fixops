@@ -62,7 +62,7 @@ class MaintenanceReportResponse(BaseModel):
     issues: List[MaintenanceIssueResponse]
     stats: Dict[str, int]
     duration_ms: float
-    org_id: str
+    org_id: str = Query(default="default")
     issue_count: int
     critical_count: int
     high_count: int

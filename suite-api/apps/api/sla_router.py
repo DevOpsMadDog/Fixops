@@ -76,7 +76,7 @@ class BulkTrackRequest(BaseModel):
 
 class EscalateResponse(BaseModel):
     escalated_count: int
-    org_id: str
+    org_id: str = Query(default="default")
 
 
 # ---------------------------------------------------------------------------

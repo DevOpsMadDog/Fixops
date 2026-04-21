@@ -60,7 +60,7 @@ class RemediateFailureRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/controls", summary="Register a security control")
-def register_control(org_id: str, req: RegisterControlRequest) -> Dict[str, Any]:
+def register_control(org_id: str = Query(default="default"), req: RegisterControlRequest) -> Dict[str, Any]:
     try:
         return get_engine().register_control(org_id, req.model_dump())
     except ValueError as exc:
@@ -72,7 +72,7 @@ def register_control(org_id: str, req: RegisterControlRequest) -> Dict[str, Any]
 
 @router.get("/orgs/{org_id}/controls", summary="List security controls")
 def list_controls(
-    org_id: str,
+    org_id: str = Query(default="default"),
     framework: Optional[str] = Query(None),
     control_type: Optional[str] = Query(None),
     enabled_only: bool = Query(True),
@@ -90,7 +90,7 @@ def list_controls(
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/controls/{control_id}/tests", summary="Add a control test")
-def add_test(org_id: str, control_id: str, req: AddTestRequest) -> Dict[str, Any]:
+def add_test(org_id: str = Query(default="default"), control_id: str, req: AddTestRequest) -> Dict[str, Any]:
     try:
         return get_engine().add_test(org_id, control_id, req.model_dump())
     except ValueError as exc:
@@ -101,7 +101,7 @@ def add_test(org_id: str, control_id: str, req: AddTestRequest) -> Dict[str, Any
 
 
 @router.post("/orgs/{org_id}/tests/{test_id}/run", summary="Run a control test")
-def run_test(org_id: str, test_id: str) -> Dict[str, Any]:
+def run_test(org_id: str = Query(default="default"), test_id: str) -> Dict[str, Any]:
     try:
         return get_engine().run_test(org_id, test_id)
     except ValueError as exc:
@@ -113,7 +113,7 @@ def run_test(org_id: str, test_id: str) -> Dict[str, Any]:
 
 @router.get("/orgs/{org_id}/tests", summary="List control tests")
 def list_tests(
-    org_id: str,
+    org_id: str = Query(default="default"),
     control_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -129,7 +129,7 @@ def list_tests(
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/failures", summary="Log a control failure")
-def log_failure(org_id: str, req: LogFailureRequest) -> Dict[str, Any]:
+def log_failure(org_id: str = Query(default="default"), req: LogFailureRequest) -> Dict[str, Any]:
     try:
         data = req.model_dump()
         return get_engine().log_failure(org_id, data)
@@ -141,7 +141,7 @@ def log_failure(org_id: str, req: LogFailureRequest) -> Dict[str, Any]:
 
 
 @router.post("/orgs/{org_id}/failures/{failure_id}/remediate", summary="Remediate a failure")
-def remediate_failure(org_id: str, failure_id: str, req: RemediateFailureRequest) -> Dict[str, Any]:
+def remediate_failure(org_id: str = Query(default="default"), failure_id: str, req: RemediateFailureRequest) -> Dict[str, Any]:
     try:
         success = get_engine().remediate_failure(org_id, failure_id, req.notes)
         if not success:
@@ -156,7 +156,7 @@ def remediate_failure(org_id: str, failure_id: str, req: RemediateFailureRequest
 
 @router.get("/orgs/{org_id}/failures", summary="List control failures")
 def list_failures(
-    org_id: str,
+    org_id: str = Query(default="default"),
     remediated: bool = Query(False),
     severity: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -172,7 +172,7 @@ def list_failures(
 # ---------------------------------------------------------------------------
 
 @router.get("/orgs/{org_id}/coverage", summary="Get control coverage by framework")
-def get_control_coverage(org_id: str) -> Dict[str, Any]:
+def get_control_coverage(org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return get_engine().get_control_coverage(org_id)
     except Exception as exc:
@@ -181,7 +181,7 @@ def get_control_coverage(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/orgs/{org_id}/stats", summary="Get CCM statistics")
-def get_ccm_stats(org_id: str) -> Dict[str, Any]:
+def get_ccm_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return get_engine().get_ccm_stats(org_id)
     except Exception as exc:

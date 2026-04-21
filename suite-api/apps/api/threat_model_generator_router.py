@@ -85,7 +85,7 @@ class ReviewCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/{org_id}/models", summary="Create a threat model")
-def create_model(org_id: str, body: ThreatModelCreate, _=Depends(api_key_auth)):
+def create_model(org_id: str = Query(default="default"), body: ThreatModelCreate, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.create_model(org_id, body.model_dump())
@@ -96,7 +96,7 @@ def create_model(org_id: str, body: ThreatModelCreate, _=Depends(api_key_auth)):
 
 @router.get("/{org_id}/models", summary="List threat models")
 def list_models(
-    org_id: str,
+    org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     methodology: Optional[str] = Query(None),
     _=Depends(api_key_auth),
@@ -106,7 +106,7 @@ def list_models(
 
 
 @router.get("/{org_id}/models/{model_id}", summary="Get a threat model")
-def get_model(org_id: str, model_id: str, _=Depends(api_key_auth)):
+def get_model(org_id: str = Query(default="default"), model_id: str, _=Depends(api_key_auth)):
     engine = _get_engine()
     result = engine.get_model(org_id, model_id)
     if result is None:
@@ -115,7 +115,7 @@ def get_model(org_id: str, model_id: str, _=Depends(api_key_auth)):
 
 
 @router.post("/{org_id}/models/{model_id}/auto-generate", summary="Auto-generate STRIDE threats")
-def auto_generate_threats(org_id: str, model_id: str, _=Depends(api_key_auth)):
+def auto_generate_threats(org_id: str = Query(default="default"), model_id: str, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.auto_generate_threats(org_id, model_id)
@@ -127,7 +127,7 @@ def auto_generate_threats(org_id: str, model_id: str, _=Depends(api_key_auth)):
 
 
 @router.post("/{org_id}/models/{model_id}/threats", summary="Add a threat")
-def add_threat(org_id: str, model_id: str, body: ThreatCreate, _=Depends(api_key_auth)):
+def add_threat(org_id: str = Query(default="default"), model_id: str, body: ThreatCreate, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.add_threat(org_id, model_id, body.model_dump())
@@ -138,7 +138,7 @@ def add_threat(org_id: str, model_id: str, body: ThreatCreate, _=Depends(api_key
 
 @router.get("/{org_id}/models/{model_id}/threats", summary="List threats")
 def list_threats(
-    org_id: str,
+    org_id: str = Query(default="default"),
     model_id: str,
     stride_category: Optional[str] = Query(None),
     _=Depends(api_key_auth),
@@ -148,7 +148,7 @@ def list_threats(
 
 
 @router.patch("/{org_id}/threats/{threat_id}/status", summary="Update threat status")
-def update_threat_status(org_id: str, threat_id: str, body: ThreatStatusUpdate, _=Depends(api_key_auth)):
+def update_threat_status(org_id: str = Query(default="default"), threat_id: str, body: ThreatStatusUpdate, _=Depends(api_key_auth)):
     engine = _get_engine()
     ok = engine.update_threat_status(org_id, threat_id, body.status)
     if not ok:
@@ -157,7 +157,7 @@ def update_threat_status(org_id: str, threat_id: str, body: ThreatStatusUpdate, 
 
 
 @router.post("/{org_id}/threats/{threat_id}/mitigations", summary="Add a mitigation")
-def add_mitigation(org_id: str, threat_id: str, body: MitigationCreate, _=Depends(api_key_auth)):
+def add_mitigation(org_id: str = Query(default="default"), threat_id: str, body: MitigationCreate, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.add_mitigation(org_id, threat_id, body.model_dump())
@@ -167,13 +167,13 @@ def add_mitigation(org_id: str, threat_id: str, body: MitigationCreate, _=Depend
 
 
 @router.get("/{org_id}/threats/{threat_id}/mitigations", summary="List mitigations")
-def list_mitigations(org_id: str, threat_id: str, _=Depends(api_key_auth)):
+def list_mitigations(org_id: str = Query(default="default"), threat_id: str, _=Depends(api_key_auth)):
     engine = _get_engine()
     return engine.list_mitigations(org_id, threat_id)
 
 
 @router.post("/{org_id}/models/{model_id}/reviews", summary="Add a model review")
-def add_review(org_id: str, model_id: str, body: ReviewCreate, _=Depends(api_key_auth)):
+def add_review(org_id: str = Query(default="default"), model_id: str, body: ReviewCreate, _=Depends(api_key_auth)):
     engine = _get_engine()
     try:
         return engine.add_review(org_id, model_id, body.model_dump())
@@ -183,6 +183,6 @@ def add_review(org_id: str, model_id: str, body: ReviewCreate, _=Depends(api_key
 
 
 @router.get("/{org_id}/stats", summary="Get threat model stats")
-def get_model_stats(org_id: str, _=Depends(api_key_auth)):
+def get_model_stats(org_id: str = Query(default="default"), _=Depends(api_key_auth)):
     engine = _get_engine()
     return engine.get_model_stats(org_id)

@@ -105,7 +105,7 @@ class AddEvidenceRequest(BaseModel):
 @router.post("/controls", dependencies=[Depends(api_key_auth)])
 def add_control(
     req: AddControlRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Add a compliance control."""
     try:
@@ -128,7 +128,7 @@ def add_control(
 
 @router.get("/controls", dependencies=[Depends(api_key_auth)])
 def list_controls(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
     framework: Optional[str] = Query(default=None),
     control_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -141,7 +141,7 @@ def list_controls(
 @router.get("/controls/{control_id}", dependencies=[Depends(api_key_auth)])
 def get_control(
     control_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Retrieve a single control by its primary-key ID."""
     record = _get_engine().get_control(org_id, control_id)
@@ -154,7 +154,7 @@ def get_control(
 def update_control_status(
     control_id: str,
     req: UpdateControlStatusRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Update control implementation status."""
     try:
@@ -170,7 +170,7 @@ def update_control_status(
 @router.post("/mappings", dependencies=[Depends(api_key_auth)])
 def add_mapping(
     req: AddMappingRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Add a cross-framework control mapping."""
     try:
@@ -191,7 +191,7 @@ def add_mapping(
 
 @router.get("/mappings", dependencies=[Depends(api_key_auth)])
 def list_mappings(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
     source_framework: Optional[str] = Query(default=None),
     target_framework: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -207,7 +207,7 @@ def list_mappings(
 def add_evidence(
     control_id: str,
     req: AddEvidenceRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Add evidence for a compliance control."""
     try:
@@ -229,7 +229,7 @@ def add_evidence(
 
 @router.get("/evidence", dependencies=[Depends(api_key_auth)])
 def list_evidence(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
     control_id: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List evidence records; optionally filter by control ID."""
@@ -238,7 +238,7 @@ def list_evidence(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return aggregate compliance mapping statistics."""
     return _get_engine().get_mapping_stats(org_id)
@@ -247,7 +247,7 @@ def get_stats(
 @router.get("/controls/{control_id}/context", dependencies=[Depends(api_key_auth)])
 def get_control_context(
     control_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Query(default="default", description="Organization ID"),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for a control (related findings, assets, evidence)."""
     return _get_engine().get_control_context(org_id, control_id)

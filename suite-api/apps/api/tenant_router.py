@@ -119,7 +119,7 @@ async def list_tenants_endpoint(
     description="Return database sizes and file counts for a specific tenant.",
 )
 async def get_tenant_stats_endpoint(
-    org_id: str,
+    org_id: str = Query(default="default"),
     request: Request,
 ) -> TenantStatsResponse:
     """Return statistics for the specified tenant's data directory."""
@@ -141,7 +141,7 @@ async def get_tenant_stats_endpoint(
     ),
 )
 async def delete_tenant_endpoint(
-    org_id: str,
+    org_id: str = Query(default="default"),
     request: Request,
 ) -> DeleteTenantResponse:
     """Delete all data for the specified tenant (admin only, irreversible)."""
@@ -178,7 +178,7 @@ def _require_admin(request: Request) -> None:
         )
 
 
-def _require_admin_or_self(request: Request, resource_org_id: str) -> None:
+def _require_admin_or_self(request: Request, resource_org_id: str = Query(default="default")) -> None:
     """Raise HTTP 403 unless the caller is admin OR accessing their own org."""
     scopes: List[str] = getattr(request.state, "user_scopes", [])
     if "admin:all" in scopes:

@@ -65,7 +65,7 @@ class ConfigResponse(BaseModel):
 
 
 class DashboardResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     tracked_keys: int
     top_consumers: List[Dict[str, Any]]
     endpoint_tiers: List[Dict[str, Any]]

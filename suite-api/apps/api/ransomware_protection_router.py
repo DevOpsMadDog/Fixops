@@ -53,7 +53,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class DetectionCreate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     detection_name: str
     detection_type: str = "behavioral"
     affected_systems: List[str] = []
@@ -63,12 +63,12 @@ class DetectionCreate(BaseModel):
 
 
 class ContainmentUpdate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     containment_status: str
 
 
 class BackupCreate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     system_name: str
     backup_type: str = "full"
     backup_location: str = ""
@@ -78,13 +78,13 @@ class BackupCreate(BaseModel):
 
 
 class BackupValidate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     validation_status: str
     recovery_time_mins: int = 0
 
 
 class PlaybookCreate(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     playbook_name: str
     trigger_type: str = "manual"
     steps: List[Any] = []
@@ -92,7 +92,7 @@ class PlaybookCreate(BaseModel):
 
 
 class PlaybookExecute(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
 
 
 # ---------------------------------------------------------------------------

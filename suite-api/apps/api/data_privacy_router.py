@@ -44,7 +44,7 @@ def _get_engine():
 
 
 class DataAssetReq(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     name: str
     data_category: str
     classification: str = "internal"
@@ -55,14 +55,14 @@ class DataAssetReq(BaseModel):
 
 
 class PrivacyRequestReq(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     request_type: str
     subject_email: str
     notes: Optional[str] = None
 
 
 class RequestStatusReq(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     status: str
     notes: str = ""
 

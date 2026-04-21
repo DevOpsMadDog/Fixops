@@ -34,7 +34,7 @@ router = APIRouter(prefix="/api/v1/security-posture-pdf", tags=["security-postur
 # Lazy engine accessors — each returns (data_dict, error_str_or_None)
 # ---------------------------------------------------------------------------
 
-def _posture_stats(org_id: str) -> Dict[str, Any]:
+def _posture_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         from core.posture_score_engine import PostureScoreEngine
         engine = PostureScoreEngine()
@@ -56,7 +56,7 @@ def _posture_stats(org_id: str) -> Dict[str, Any]:
         }
 
 
-def _vuln_stats(org_id: str) -> Dict[str, Any]:
+def _vuln_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         from core.vuln_intelligence_engine import VulnIntelligenceEngine
         engine = VulnIntelligenceEngine()
@@ -73,7 +73,7 @@ def _vuln_stats(org_id: str) -> Dict[str, Any]:
         return {"stats": {}, "critical_cves": []}
 
 
-def _alert_stats(org_id: str) -> Dict[str, Any]:
+def _alert_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         from core.alerting_notification_engine import AlertingNotificationEngine
         engine = AlertingNotificationEngine()
@@ -83,7 +83,7 @@ def _alert_stats(org_id: str) -> Dict[str, Any]:
         return {}
 
 
-def _compliance_status(org_id: str) -> List[Dict[str, Any]]:
+def _compliance_status(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
     """Try cloud_compliance_engine first, fallback to empty list."""
     try:
         from core.cloud_compliance_engine import CloudComplianceEngine
@@ -128,7 +128,7 @@ def _compliance_status(org_id: str) -> List[Dict[str, Any]]:
         ]
 
 
-def _asset_summary(org_id: str) -> Dict[str, Any]:
+def _asset_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         from core.asset_inventory import get_asset_inventory
         inv = get_asset_inventory()
@@ -139,7 +139,7 @@ def _asset_summary(org_id: str) -> Dict[str, Any]:
         return {}
 
 
-def _kpi_list(org_id: str) -> List[Dict[str, Any]]:
+def _kpi_list(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
     try:
         from core.executive_reporting_engine import ExecutiveReportingEngine
         engine = ExecutiveReportingEngine()
@@ -184,7 +184,7 @@ def _compliance_colour(score: float) -> str:
 
 
 def _build_security_posture_pdf(
-    org_id: str,
+    org_id: str = Query(default="default"),
     posture: Dict[str, Any],
     vuln: Dict[str, Any],
     alerts: Dict[str, Any],

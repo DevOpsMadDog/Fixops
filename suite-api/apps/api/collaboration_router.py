@@ -41,7 +41,7 @@ class AddCommentRequest(BaseModel):
 
     entity_type: str
     entity_id: str
-    org_id: str
+    org_id: str = Query(default="default")
     author: str
     content: str
     author_email: Optional[str] = None
@@ -73,7 +73,7 @@ class RecordActivityRequest(BaseModel):
 
     entity_type: str
     entity_id: str
-    org_id: str
+    org_id: str = Query(default="default")
     activity_type: str
     actor: str
     summary: str
@@ -241,7 +241,7 @@ def record_activity(request: RecordActivityRequest) -> Dict[str, Any]:
 
 @router.get("/activities")
 def get_activity_feed(
-    org_id: str,
+    org_id: str = Query(default="default"),
     entity_type: Optional[str] = None,
     entity_id: Optional[str] = None,
     activity_types: Optional[str] = None,

@@ -69,7 +69,7 @@ class APIKeyResponse(BaseModel):
     id: str
     name: str
     prefix: str
-    org_id: str
+    org_id: str = Query(default="default")
     created_by: str
     created_at: datetime
     expires_at: Optional[datetime]
@@ -143,7 +143,7 @@ async def create_key(
 
 @router.get("", response_model=List[APIKeyResponse])
 async def list_keys(
-    org_id: str,
+    org_id: str = Query(default="default"),
     auth: AuthContext = _admin,
     mgr: APIKeyManager = Depends(_mgr),
 ) -> List[APIKeyResponse]:

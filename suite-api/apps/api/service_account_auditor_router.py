@@ -92,7 +92,7 @@ def register_account(req: RegisterAccountRequest) -> Dict[str, Any]:
 
 @router.get("/accounts", summary="List service accounts for an org")
 def list_accounts(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
     system: Optional[str] = Query(None, description="Filter by system (k8s/aws/gcp/azure/linux)"),
 ) -> List[Dict[str, Any]]:
     """List all service accounts, optionally filtered by system."""
@@ -105,7 +105,7 @@ def list_accounts(
 
 @router.get("/accounts/unused", summary="Get unused service accounts")
 def get_unused(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
     days_threshold: int = Query(90, ge=1, description="Days of inactivity threshold"),
 ) -> List[Dict[str, Any]]:
     """Return service accounts not used in the last N days."""
@@ -118,7 +118,7 @@ def get_unused(
 
 @router.get("/accounts/overprivileged", summary="Get overprivileged service accounts")
 def get_overprivileged(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
 ) -> List[Dict[str, Any]]:
     """Return service accounts with risk_score > 70."""
     try:
@@ -155,7 +155,7 @@ def rotate_credentials(account_id: str, req: RotateRequest) -> Dict[str, Any]:
 @router.get("/accounts/{account_id}/rotation-history", summary="Get credential rotation history")
 def rotation_history(
     account_id: str,
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
 ) -> List[Dict[str, Any]]:
     """Return all credential rotation events for a service account."""
     try:
@@ -167,7 +167,7 @@ def rotation_history(
 
 @router.get("/stats", summary="Get service account audit statistics")
 def get_stats(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Query(default="default", description="Organization identifier"),
 ) -> Dict[str, Any]:
     """Return aggregate stats: total accounts, high-risk count, overdue rotations."""
     try:

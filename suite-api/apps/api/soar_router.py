@@ -99,7 +99,7 @@ class ExecutePlaybookRequest(BaseModel):
 
 
 class MTTRResponse(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     mttr_seconds: float
     mttr_minutes: float
 

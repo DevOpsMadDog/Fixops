@@ -66,7 +66,7 @@ class RegisterUserRequest(BaseModel):
 
 
 class IngestEventRequest(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     user_id: str
     event_type: str = Field(
         ...,
@@ -83,7 +83,7 @@ class IngestEventRequest(BaseModel):
 
 
 class CreateAlertRequest(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     user_id: str
     alert_type: str = Field(..., description="Type/category of the alert")
     severity: str = Field("medium", description="low | medium | high | critical")
@@ -91,7 +91,7 @@ class CreateAlertRequest(BaseModel):
 
 
 class UpdateAlertStatusRequest(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     status: str = Field(..., description="open | investigating | resolved | false_positive")
 
 

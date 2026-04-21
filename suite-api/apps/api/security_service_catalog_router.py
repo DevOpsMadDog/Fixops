@@ -47,7 +47,7 @@ def _get_engine():
 
 
 class RegisterServiceIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     service_name: str
     service_category: str = "monitoring"
     description: str = ""
@@ -59,7 +59,7 @@ class RegisterServiceIn(BaseModel):
 
 
 class SubmitRequestIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     requester: str
     requester_dept: str = ""
     priority: str = "medium"
@@ -67,7 +67,7 @@ class SubmitRequestIn(BaseModel):
 
 
 class RecordOutageIn(BaseModel):
-    org_id: str
+    org_id: str = Query(default="default")
     outage_type: str = "unplanned"
     severity: str = "medium"
     started_at: str

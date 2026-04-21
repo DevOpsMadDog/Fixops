@@ -171,7 +171,7 @@ class PeerBenchmarkResponse(BaseModel):
     """Peer benchmarking result."""
 
     vertical: str
-    org_id: str
+    org_id: str = Query(default="default")
     metrics: List[BenchmarkMetricResponse]
     overall_percentile: float
     computed_at: datetime
@@ -204,7 +204,7 @@ class RegulatoryHeatmapResponse(BaseModel):
 class DueDiligenceResponse(BaseModel):
     """M&A due diligence security report."""
 
-    org_id: str
+    org_id: str = Query(default="default")
     security_debt_usd: float
     compliance_readiness_pct: float
     critical_vuln_count: int
@@ -232,7 +232,7 @@ class KPIMetricResponse(BaseModel):
 class KPIDashboardResponse(BaseModel):
     """KPI dashboard response."""
 
-    org_id: str
+    org_id: str = Query(default="default")
     kpis: List[KPIMetricResponse]
     overall_health_score: float
     on_track_count: int
@@ -270,7 +270,7 @@ class BoardReportRequest(BaseModel):
 class BoardReportResponse(BaseModel):
     """Board-level executive risk report."""
 
-    org_id: str
+    org_id: str = Query(default="default")
     report_period: str
     risk_headline_usd: float
     risk_trend: str

@@ -64,7 +64,7 @@ class SimulationResultResponse(BaseModel):
     defenses_tested: List[str]
     gaps_found: List[str]
     score: float
-    org_id: str
+    org_id: str = Query(default="default")
     simulated_at: str
 
     @classmethod
@@ -139,7 +139,7 @@ async def get_scenario_steps(scenario: str):
 @router.get("/scenarios/{scenario}/evaluate")
 async def evaluate_defenses(
     scenario: str,
-    org_id: str = Query(..., description="Organisation ID to evaluate defenses for"),
+    org_id: str = Query(default="default", description="Organisation ID to evaluate defenses for"),
 ):
     """Evaluate which defenses would trigger for a scenario without persisting."""
     try:
@@ -165,7 +165,7 @@ async def evaluate_defenses(
 
 @router.get("/history/{org_id}", response_model=List[SimulationResultResponse])
 async def get_simulation_history(
-    org_id: str,
+    org_id: str = Query(default="default"),
     limit: int = Query(50, ge=1, le=500, description="Max results to return"),
 ):
     """Get simulation history for an organisation, newest first."""
@@ -175,14 +175,14 @@ async def get_simulation_history(
 
 
 @router.get("/coverage/{org_id}", response_model=DefenseCoverage)
-async def get_defense_coverage(org_id: str):
+async def get_defense_coverage(org_id: str = Query(default="default")):
     """Get defense coverage summary — which attack types have been tested."""
     sim = get_breach_simulator()
     return sim.get_defense_coverage(org_id=org_id)
 
 
 @router.get("/gaps/{org_id}", response_model=GapAnalysis)
-async def get_gap_analysis(org_id: str):
+async def get_gap_analysis(org_id: str = Query(default="default")):
     """Get gap analysis — where defenses are weakest across all simulations."""
     sim = get_breach_simulator()
     return sim.get_gap_analysis(org_id=org_id)
