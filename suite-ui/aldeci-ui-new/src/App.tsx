@@ -87,6 +87,7 @@ const OnboardingWizard = lazy(() => import("@/pages/onboarding/OnboardingWizard"
 
 // Developer Portal
 const DeveloperPortal = lazy(() => import("@/pages/developer/DeveloperPortal"));
+const APIExplorer = lazy(() => import("@/pages/developer/APIExplorer"));
 
 // Attack Surface
 const AttackSurface = lazy(() => import("@/pages/attack-surface/AttackSurface"));
@@ -604,6 +605,7 @@ export default function App() {
 
             {/* Developer Portal */}
             <Route path="/developer" element={<DeveloperPortal />} />
+            <Route path="/api-explorer" element={<APIExplorer />} />
 
             {/* Vendor Management */}
             <Route path="/vendors" element={<VendorManagement />} />
