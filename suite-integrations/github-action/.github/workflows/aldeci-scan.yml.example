@@ -1,0 +1,152 @@
+# ALDECI Security Scan — Example GitHub Actions Workflow
+#
+# Copy this file to your repository as .github/workflows/aldeci-scan.yml
+#
+# Required secrets (Settings > Secrets and variables > Actions):
+#   ALDECI_API_URL   — Your ALDECI instance URL
+#   ALDECI_API_KEY   — Your ALDECI API key
+#
+# This workflow runs three scan types (SAST, SCA, IaC) in parallel,
+# then evaluates the combined results against a severity gate.
+
+name: ALDECI Security Scan
+
+on:
+  pull_request:
+    branches: ["main", "master", "develop"]
+  push:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+  pull-requests: write    # PR comments
+  security-events: write  # SARIF upload to Security tab
+
+concurrency:
+  group: aldeci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── SAST Scan ────────────────────────────────────────────────────────
+  sast:
+    name: SAST Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ALDECI SAST Scan
+        id: sast
+        uses: DevOpsMadDog/Fixops/suite-integrations/github-action@main
+        with:
+          api_url: ${{ secrets.ALDECI_API_URL }}
+          api_key: ${{ secrets.ALDECI_API_KEY }}
+          scan_type: sast
+          severity_threshold: high
+          fail_on_findings: true
+          comment_on_pr: true
+
+      # Optional: Upload SARIF to GitHub Security tab
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.sast.outputs.sarif_file }}
+          category: aldeci-sast
+
+  # ── SCA / Dependency Scan ────────────────────────────────────────────
+  sca:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ALDECI SCA Scan
+        id: sca
+        uses: DevOpsMadDog/Fixops/suite-integrations/github-action@main
+        with:
+          api_url: ${{ secrets.ALDECI_API_URL }}
+          api_key: ${{ secrets.ALDECI_API_KEY }}
+          scan_type: sca
+          severity_threshold: high
+          fail_on_findings: true
+          comment_on_pr: false  # Only one job posts comments
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.sca.outputs.sarif_file }}
+          category: aldeci-sca
+
+  # ── IaC Scan ─────────────────────────────────────────────────────────
+  iac:
+    name: IaC Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only run if IaC files exist
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for IaC files
+        id: check
+        run: |
+          if find . -maxdepth 3 \( -name '*.tf' -o -name 'Dockerfile' -o -name '*.cfn.json' \) | head -1 | grep -q .; then
+            echo "has_iac=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_iac=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: ALDECI IaC Scan
+        if: steps.check.outputs.has_iac == 'true'
+        id: iac
+        uses: DevOpsMadDog/Fixops/suite-integrations/github-action@main
+        with:
+          api_url: ${{ secrets.ALDECI_API_URL }}
+          api_key: ${{ secrets.ALDECI_API_KEY }}
+          scan_type: iac
+          iac_paths: "."
+          severity_threshold: high
+          fail_on_findings: true
+          comment_on_pr: false
+
+      - name: Upload SARIF
+        if: always() && steps.check.outputs.has_iac == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.iac.outputs.sarif_file }}
+          category: aldeci-iac
+
+  # ── Combined Gate ────────────────────────────────────────────────────
+  security-gate:
+    name: Security Gate
+    needs: [sast, sca, iac]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate combined results
+        run: |
+          echo "## Security Gate Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          SAST_RESULT="${{ needs.sast.result }}"
+          SCA_RESULT="${{ needs.sca.result }}"
+          IAC_RESULT="${{ needs.iac.result }}"
+
+          echo "| Scan | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SAST | ${SAST_RESULT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SCA  | ${SCA_RESULT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| IaC  | ${IAC_RESULT} |" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$SAST_RESULT" = "failure" ] || [ "$SCA_RESULT" = "failure" ] || [ "$IAC_RESULT" = "failure" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Result: BLOCKED** — One or more scans found findings above threshold." >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Security gate BLOCKED — review scan results above"
+            exit 1
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Result: PASSED**" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::Security gate PASSED"

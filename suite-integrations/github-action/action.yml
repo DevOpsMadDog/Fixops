@@ -1,0 +1,85 @@
+name: "ALDECI Security Scan"
+description: "Run SAST, SCA/SBOM, and IaC security scans via ALDECI ASPM platform. Fail PRs on critical/high findings."
+author: "DevOpsMadDog"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  api_url:
+    description: "ALDECI API base URL (e.g. https://aldeci.example.com)"
+    required: true
+  api_key:
+    description: "ALDECI API key (X-API-Key header)"
+    required: true
+  scan_type:
+    description: "Scan type(s) to run: sast, sca, iac, all"
+    required: false
+    default: "all"
+  severity_threshold:
+    description: "Minimum severity to fail on: critical, high, medium, low"
+    required: false
+    default: "high"
+  fail_on_findings:
+    description: "Whether to fail the workflow when findings exceed threshold (true/false)"
+    required: false
+    default: "true"
+  app_id:
+    description: "ALDECI application ID for SAST scans"
+    required: false
+    default: ""
+  project_id:
+    description: "ALDECI project ID for SCA scans"
+    required: false
+    default: ""
+  iac_paths:
+    description: "Comma-separated paths to IaC files (Terraform, CloudFormation, Kubernetes YAML)"
+    required: false
+    default: "."
+  scanner_type:
+    description: "Scanner type hint for ingestion (semgrep, trivy, bandit, checkov, etc.)"
+    required: false
+    default: ""
+  upload_sarif:
+    description: "Upload SARIF results to GitHub Code Scanning (true/false)"
+    required: false
+    default: "false"
+  comment_on_pr:
+    description: "Post scan summary as PR comment (true/false)"
+    required: false
+    default: "true"
+
+outputs:
+  scan_id:
+    description: "ALDECI scan correlation ID"
+  findings_count:
+    description: "Total number of findings"
+  critical_count:
+    description: "Number of critical findings"
+  high_count:
+    description: "Number of high findings"
+  medium_count:
+    description: "Number of medium findings"
+  low_count:
+    description: "Number of low findings"
+  policy_action:
+    description: "Policy gate result: pass, warn, or block"
+  sarif_file:
+    description: "Path to SARIF output file (if generated)"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    ALDECI_API_URL: ${{ inputs.api_url }}
+    ALDECI_API_KEY: ${{ inputs.api_key }}
+    SCAN_TYPE: ${{ inputs.scan_type }}
+    SEVERITY_THRESHOLD: ${{ inputs.severity_threshold }}
+    FAIL_ON_FINDINGS: ${{ inputs.fail_on_findings }}
+    APP_ID: ${{ inputs.app_id }}
+    PROJECT_ID: ${{ inputs.project_id }}
+    IAC_PATHS: ${{ inputs.iac_paths }}
+    SCANNER_TYPE: ${{ inputs.scanner_type }}
+    UPLOAD_SARIF: ${{ inputs.upload_sarif }}
+    COMMENT_ON_PR: ${{ inputs.comment_on_pr }}
