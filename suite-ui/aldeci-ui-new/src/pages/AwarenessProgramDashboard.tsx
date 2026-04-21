@@ -149,6 +149,20 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function AwarenessProgramDashboard() {
   const [selectedProgram, setSelectedProgram] = useState(MOCK_PROGRAMS[0]);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/awareness-program/?org_id=${ORG_ID}`),
+      apiFetch(`/awareness-program/department-compliance?org_id=${ORG_ID}`),
+    ]).then(([programsRes, deptRes]) => {
+      const programs = programsRes.status === "fulfilled" ? programsRes.value : null;
+      const departments = deptRes.status === "fulfilled" ? deptRes.value : null;
+      if (programs || departments) setLiveData({ programs, departments });
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const totalEnrolled   = MOCK_PROGRAMS.reduce((s, p) => s + p.enrolled, 0);
   const totalCompleted  = MOCK_PROGRAMS.reduce((s, p) => s + p.completed, 0);

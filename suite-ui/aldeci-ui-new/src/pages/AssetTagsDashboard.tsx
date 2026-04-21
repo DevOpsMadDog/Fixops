@@ -102,6 +102,20 @@ const MATRIX_TAG_COLS = ["production", "staging", "development", "critical", "hi
 
 export default function AssetTagsDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<TagCategory | null>(null);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/asset-tags/tags?org_id=${ORG_ID}`),
+      apiFetch(`/asset-tags/stats?org_id=${ORG_ID}`),
+    ]).then(([tagsRes, statsRes]) => {
+      const tags = tagsRes.status === "fulfilled" ? tagsRes.value : null;
+      const stats = statsRes.status === "fulfilled" ? statsRes.value : null;
+      if (tags || stats) setLiveData({ tags, stats });
+    }).finally(() => setDataLoading(false));
+  }, []);
   const [newTagName, setNewTagName] = useState("");
   const [newTagCategory, setNewTagCategory] = useState<TagCategory>("custom");
   const [assetQuery, setAssetQuery] = useState("");
