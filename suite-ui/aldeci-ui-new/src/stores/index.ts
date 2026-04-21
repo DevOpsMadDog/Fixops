@@ -3,10 +3,14 @@ import { create } from "zustand";
 interface UserPreferences {
   role: string;
   homeSpace: string;
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "system";
   copilotOpen: boolean;
   sidebarCollapsed: boolean;
   onboardingComplete: boolean;
+  defaultOrgId: string;
+  dashboardLayout: "grid" | "list";
+  itemsPerPage: number;
+  favoritePages: string[];
 }
 
 interface AppState {
@@ -47,6 +51,10 @@ const DEFAULTS: UserPreferences = {
   copilotOpen: false,
   sidebarCollapsed: false,
   onboardingComplete: false,
+  defaultOrgId: "default",
+  dashboardLayout: "grid",
+  itemsPerPage: 25,
+  favoritePages: [],
 };
 
 export const useAppStore = create<AppState>()((set, get) => ({

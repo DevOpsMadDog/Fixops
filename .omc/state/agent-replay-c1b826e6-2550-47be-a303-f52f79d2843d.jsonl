@@ -500,3 +500,5 @@
 {"t":0,"agent":"a2d9b55","agent_type":"debugger","event":"agent_stop","success":true}
 {"t":0,"agent":"a492af0","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"ad961c2","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"a867adb","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"aec3592","agent_type":"architect","event":"agent_stop","success":true}

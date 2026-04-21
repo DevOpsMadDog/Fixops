@@ -21,9 +21,10 @@ import type {
   Playbook,
   PlaybookRun,
   ComplianceTemplate,
-  ComplianceAssessment,
   StreamEvent,
   EventStats,
+  PipelineStage,
+  ThroughputMetrics,
 } from "./types";
 import * as endpoints from "./endpoints";
 
@@ -63,7 +64,7 @@ export function useApi<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const refetch = useCallback(async () => {
     try {
@@ -250,7 +251,7 @@ export function usePipelineHealth(
  */
 export function usePipelineStages(
   options?: UseApiOptions
-): UseApiResult<ReturnType<typeof endpoints.pipeline.getStages>> {
+): UseApiResult<PipelineStage[]> {
   return useApi(
     () => endpoints.pipeline.getStages(),
     [],
@@ -263,7 +264,7 @@ export function usePipelineStages(
  */
 export function usePipelineThroughput(
   options?: UseApiOptions
-): UseApiResult<ReturnType<typeof endpoints.pipeline.getThroughput>> {
+): UseApiResult<ThroughputMetrics> {
   return useApi(
     () => endpoints.pipeline.getThroughput(),
     [],
@@ -499,7 +500,7 @@ export function useComplianceTemplates(
 export function useComplianceAssessment(
   assessmentId: string,
   options?: UseApiOptions
-): UseApiResult<ComplianceAssessment> {
+): UseApiResult<ComplianceTemplate> {
   return useApi(
     () => endpoints.compliance.getTemplate(assessmentId),
     [assessmentId],

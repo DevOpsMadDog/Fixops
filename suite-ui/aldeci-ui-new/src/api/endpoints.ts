@@ -202,7 +202,8 @@ export const analytics = {
    * Get dashboard overview metrics
    */
   async getDashboard(persona?: string): Promise<Record<string, DashboardMetric>> {
-    const params = persona ? { persona } : {};
+    const params: Record<string, string> = {};
+    if (persona) params.persona = persona;
     return client.get("/api/v1/analytics/dashboard", params);
   },
 
@@ -251,7 +252,8 @@ export const analytics = {
    * Get compliance report
    */
   async getComplianceReport(framework?: string): Promise<Record<string, unknown>> {
-    const params = framework ? { framework } : {};
+    const params: Record<string, string> = {};
+    if (framework) params.framework = framework;
     return client.get("/api/v1/analytics/compliance-report", params);
   },
 };
@@ -388,7 +390,8 @@ export const compliance = {
    * Get compliance controls
    */
   async getControls(framework?: string): Promise<ComplianceControl[]> {
-    const params = framework ? { framework } : {};
+    const params: Record<string, string> = {};
+    if (framework) params.framework = framework;
     return client.get("/api/v1/compliance/controls", params);
   },
 
@@ -396,7 +399,8 @@ export const compliance = {
    * Get compliance gaps
    */
   async getGaps(framework?: string): Promise<ComplianceGap[]> {
-    const params = framework ? { framework } : {};
+    const params: Record<string, string> = {};
+    if (framework) params.framework = framework;
     return client.get("/api/v1/compliance/gaps", params);
   },
 };
