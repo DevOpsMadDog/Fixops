@@ -6575,11 +6575,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
     try:
-        from apps.api.dlp_router import router as dlp_router
-        app.include_router(dlp_router)
-    except ImportError:
-        pass
-    try:
         from apps.api.attack_surface_engine_router import router as attack_surface_mgmt_router
         app.include_router(attack_surface_mgmt_router)
     except ImportError:
@@ -7015,20 +7010,6 @@ def create_app() -> FastAPI:
         from apps.api.policy_enforcement_router import router as policy_enforcement_router
         app.include_router(policy_enforcement_router)
         _logger.info("Mounted Policy Enforcement router at /api/v1/policy-enforcement")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.security_metrics_dashboard_router import router as security_metrics_dashboard_router
-        app.include_router(security_metrics_dashboard_router)
-        _logger.info("Mounted Security Metrics Dashboard router at /api/v1/metrics-dashboard")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.kpi_tracking_router import router as kpi_tracking_router
-        app.include_router(kpi_tracking_router)
-        _logger.info("Mounted KPI Tracking router at /api/v1/kpi-tracking")
     except ImportError:
         pass
 
@@ -7805,13 +7786,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.asset_criticality_router import router as asset_criticality_router
-        app.include_router(asset_criticality_router)
-        _logger.info("Mounted Asset Criticality router at /api/v1/asset-criticality")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.security_investment_router import router as security_investment_router
         app.include_router(security_investment_router)
         _logger.info("Mounted Security Investment router at /api/v1/security-investment")
@@ -8369,14 +8343,14 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.trustgraph_backbone_router import router as trustgraph_backbone_router
-        app.include_router(trustgraph_backbone_router)
+        app.include_router(trustgraph_backbone_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted TrustGraph Backbone router at /api/v1/graph")
     except ImportError:
         pass
 
     try:
         from apps.api.trustgraph_migrator_router import router as trustgraph_migrator_router
-        app.include_router(trustgraph_migrator_router)
+        app.include_router(trustgraph_migrator_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted TrustGraph Migrator router at /api/v1/trustgraph/migrate")
     except ImportError:
         pass

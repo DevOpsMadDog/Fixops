@@ -184,7 +184,6 @@ export default function EndpointComplianceDashboard() {
       <PageHeader
         title="Endpoint Compliance"
         description="CIS benchmark compliance posture across all managed endpoints"
-        icon={<Monitor className="h-6 w-6 text-purple-400" />}
         actions={
           <Button
             variant="outline"

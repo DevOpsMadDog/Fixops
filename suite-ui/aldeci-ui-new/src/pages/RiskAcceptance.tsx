@@ -430,7 +430,6 @@ export default function RiskAcceptancePage() {
       <PageHeader
         title="Risk Acceptance Workflow"
         description="Manage accepted risks and exceptions with formal approval tracking"
-        icon={Shield}
       />
 
       {/* KPI Cards */}

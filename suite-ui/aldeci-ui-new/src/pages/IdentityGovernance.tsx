@@ -491,8 +491,7 @@ export default function IdentityGovernance() {
     <>
       <PageHeader
         title="Identity Governance"
-        subtitle="Access certification, orphan detection, and privilege management"
-        icon={Shield}
+        description="Access certification, orphan detection, and privilege management"
       />
 
       <div className="space-y-6 p-6">

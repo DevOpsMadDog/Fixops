@@ -838,7 +838,6 @@ export default function AuditLogPage() {
       <PageHeader
         title="Audit Log"
         description="Immutable audit trail for compliance, forensics, and access review"
-        icon={Activity}
       />
 
       {/* Anomaly Highlights */}

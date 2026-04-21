@@ -76,7 +76,7 @@ _risk_engine = None  # lazy
 def _get_risk_engine():
     global _risk_engine
     if _risk_engine is None:
-        from core.vendor_risk import get_engine as _gre
+        from core.vendor_risk_engine import get_engine as _gre
         _risk_engine = _gre()
     return _risk_engine
 

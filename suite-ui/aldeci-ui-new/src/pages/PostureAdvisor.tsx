@@ -455,7 +455,7 @@ export default function PostureAdvisor() {
       {/* Header */}
       <PageHeader
         title="Security Posture Advisor"
-        subtitle="AI-powered improvement recommendations from your virtual CISO"
+        description="AI-powered improvement recommendations from your virtual CISO"
       />
 
       {/* ── Current Posture Score ── */}

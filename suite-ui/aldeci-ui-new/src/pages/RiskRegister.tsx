@@ -376,8 +376,7 @@ export default function RiskRegister() {
     <>
       <PageHeader
         title="Risk Register"
-        subtitle="Enterprise-wide risk inventory with likelihood and impact scoring"
-        icon={ClipboardList}
+        description="Enterprise-wide risk inventory with likelihood and impact scoring"
       />
 
       <div className="space-y-6 p-6">

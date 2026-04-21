@@ -575,8 +575,7 @@ export default function IncidentTimeline() {
       {/* Header */}
       <PageHeader
         title="Incident Response Timeline"
-        subtitle="Chronicle and reconstruct security incidents with forensic precision"
-        icon={Activity}
+        description="Chronicle and reconstruct security incidents with forensic precision"
       />
 
       {/* ── KPI Row ── */}
@@ -589,28 +588,28 @@ export default function IncidentTimeline() {
           <KpiCard
             title="Active Incidents"
             value={data.active_incidents}
-            subtitle="Requiring active response"
+            description="Requiring active response"
             icon={AlertCircle}
             trend={{ value: -1, label: "vs last week" }}
           />
           <KpiCard
             title="Mean Time to Detect"
             value={`${data.mttd_hours}h`}
-            subtitle="Avg detection latency"
+            description="Avg detection latency"
             icon={Eye}
             trend={{ value: -0.8, label: "vs last month" }}
           />
           <KpiCard
             title="Mean Time to Contain"
             value={`${data.mttc_hours}h`}
-            subtitle="Avg containment duration"
+            description="Avg containment duration"
             icon={Clock}
             trend={{ value: -2.1, label: "vs last month" }}
           />
           <KpiCard
             title="Incidents This Month"
             value={data.incidents_this_month}
-            subtitle="Apr 2026"
+            description="Apr 2026"
             icon={AlertTriangle}
             trend={{ value: 2, label: "vs Mar 2026" }}
           />

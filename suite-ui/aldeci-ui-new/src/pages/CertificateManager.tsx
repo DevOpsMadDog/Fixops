@@ -422,7 +422,6 @@ export default function CertificateManagerPage() {
       <PageHeader
         title="Certificate Manager"
         description="TLS/SSL certificate inventory, expiry tracking, and weak config detection"
-        icon={<Lock className="w-5 h-5 text-blue-400" />}
       />
 
       {/* KPI Row */}

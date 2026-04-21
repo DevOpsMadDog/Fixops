@@ -484,7 +484,6 @@ export default function ScheduledReportsDashboard() {
       <PageHeader
         title="Scheduled Reports"
         description="Manage automated report delivery via email and Slack — executive summaries, vuln digests, compliance status"
-        icon={<Calendar className="h-6 w-6 text-blue-400" />}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>

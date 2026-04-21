@@ -208,7 +208,6 @@ export default function BugBounty() {
       <PageHeader
         title="Bug Bounty Program"
         description="Manage researcher submissions, triage findings, and track rewards"
-        icon={<Bug className="h-6 w-6 text-emerald-400" />}
       />
 
       {/* KPIs */}

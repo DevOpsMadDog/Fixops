@@ -402,8 +402,7 @@ export default function PatchPrioritizer() {
       {/* Header */}
       <PageHeader
         title="Patch Prioritizer"
-        subtitle="CVSS × EPSS × KEV composite scoring for vulnerability remediation"
-        icon={Shield}
+        description="CVSS × EPSS × KEV composite scoring for vulnerability remediation"
       />
 
       {/* ── Scoring Explanation Banner ── */}
@@ -449,28 +448,28 @@ export default function PatchPrioritizer() {
           <KpiCard
             title="Critical Patches Due"
             value={data.critical_patches_due}
-            subtitle="Require immediate action"
+            description="Require immediate action"
             icon={AlertTriangle}
             trend={{ value: -2, label: "vs last week" }}
           />
           <KpiCard
             title="High Priority This Week"
             value={data.high_priority_this_week}
-            subtitle="Score ≥60, deadline ≤7d"
+            description="Score ≥60, deadline ≤7d"
             icon={Zap}
             trend={{ value: 3, label: "vs last week" }}
           />
           <KpiCard
             title="Patches in SLA"
             value={data.patches_in_sla}
-            subtitle={`${Math.round((data.patches_in_sla / data.patches.length) * 100)}% of queue`}
+            description={`${Math.round((data.patches_in_sla / data.patches.length) * 100)}% of queue`}
             icon={CheckCircle2}
             trend={{ value: 1, label: "vs last week" }}
           />
           <KpiCard
             title="Avg Time to Patch"
             value={`${data.avg_time_to_patch_days}d`}
-            subtitle="From discovery to remediation"
+            description="From discovery to remediation"
             icon={Clock}
             trend={{ value: -1, label: "vs last month" }}
           />

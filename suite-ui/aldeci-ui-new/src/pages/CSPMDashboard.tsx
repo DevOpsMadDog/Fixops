@@ -267,7 +267,7 @@ export default function CSPMDashboard() {
       {/* Header */}
       <PageHeader
         title="Cloud Security Posture"
-        subtitle="Continuous misconfiguration detection across AWS, Azure, GCP"
+        description="Continuous misconfiguration detection across AWS, Azure, GCP"
       />
 
       {/* ── KPI Row ── */}
@@ -282,28 +282,28 @@ export default function CSPMDashboard() {
           value={`${score.posture_score}/100`}
           icon={<Shield className="w-5 h-5 text-blue-400" />}
           trend="up"
-          trendValue="+3 this week"
+          trendLabel="+3 this week"
         />
         <KpiCard
           title="Critical Misconfigs"
           value={String(score.critical_misconfigs)}
           icon={<AlertTriangle className="w-5 h-5 text-red-400" />}
           trend="down"
-          trendValue="-2 resolved"
+          trendLabel="-2 resolved"
         />
         <KpiCard
           title="Resources Scanned"
           value={score.resources_scanned.toLocaleString()}
           icon={<Server className="w-5 h-5 text-purple-400" />}
           trend="up"
-          trendValue="+47 new"
+          trendLabel="+47 new"
         />
         <KpiCard
           title="Compliant"
           value={`${score.compliant_pct}%`}
           icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />}
           trend="up"
-          trendValue="+1.2% vs last scan"
+          trendLabel="+1.2% vs last scan"
         />
       </motion.div>
 

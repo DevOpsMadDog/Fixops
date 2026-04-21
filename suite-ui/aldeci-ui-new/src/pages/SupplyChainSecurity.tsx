@@ -710,8 +710,7 @@ export default function SupplyChainSecurity() {
         {/* Header */}
         <PageHeader
           title="Supply Chain Security"
-          subtitle="SBOM analysis and dependency risk"
-          icon={Package}
+          description="SBOM analysis and dependency risk"
         />
 
         {/* Content */}

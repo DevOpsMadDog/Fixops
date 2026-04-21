@@ -476,7 +476,7 @@ export default function ThreatModeling() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <PageHeader title="Threat Modeling" subtitle="STRIDE analysis for system components" />
+        <PageHeader title="Threat Modeling" description="STRIDE analysis for system components" />
 
         <ScrollArea className="flex-1">
           <div className="p-6 space-y-6 max-w-7xl">
@@ -487,28 +487,28 @@ export default function ThreatModeling() {
                 value={totalThreats}
                 icon={AlertCircle}
                 trend={totalThreats > 0 ? "up" : "neutral"}
-                subtitle={`${mitigatedCount} mitigated`}
+                description={`${mitigatedCount} mitigated`}
               />
               <KpiCard
                 label="Critical"
                 value={criticalCount}
                 icon={AlertTriangle}
                 trend={criticalCount > 0 ? "up" : "neutral"}
-                subtitle="Requires immediate action"
+                description="Requires immediate action"
               />
               <KpiCard
                 label="High"
                 value={highCount}
                 icon={AlertTriangle}
                 trend={highCount > 2 ? "up" : "down"}
-                subtitle="Plan remediation"
+                description="Plan remediation"
               />
               <KpiCard
                 label="Mitigated (%)"
                 value={Math.round((mitigatedCount / totalThreats) * 100)}
                 icon={CheckCircle2}
                 trend="up"
-                subtitle={`${mitigatedCount}/${totalThreats}`}
+                description={`${mitigatedCount}/${totalThreats}`}
               />
             </div>
 

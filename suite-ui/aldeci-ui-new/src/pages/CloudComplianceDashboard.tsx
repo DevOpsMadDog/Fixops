@@ -203,7 +203,6 @@ export default function CloudComplianceDashboard() {
       <PageHeader
         title="Cloud Compliance"
         description="Multi-cloud compliance posture — AWS, Azure, GCP"
-        icon={<Cloud className="h-6 w-6 text-blue-400" />}
         actions={
           <Button
             variant="outline"

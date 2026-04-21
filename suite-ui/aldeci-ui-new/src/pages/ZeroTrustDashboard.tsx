@@ -369,7 +369,7 @@ export default function ZeroTrustDashboard() {
       {/* Page Header */}
       <PageHeader
         title="Zero Trust Policy Engine"
-        subtitle="Never trust, always verify"
+        description="Never trust, always verify"
         action={
           <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
             <RefreshCw className="w-4 h-4" />

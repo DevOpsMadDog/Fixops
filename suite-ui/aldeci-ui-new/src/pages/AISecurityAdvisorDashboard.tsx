@@ -325,7 +325,6 @@ export default function AISecurityAdvisorDashboard() {
       <PageHeader
         title="AI Security Advisor"
         description="LLM council-powered proactive security recommendations, threat analysis, and risk guidance"
-        icon={<Brain className="h-6 w-6 text-purple-400" />}
         actions={
           <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
             <RefreshCw className={cn("h-3.5 w-3.5 mr-2", loading && "animate-spin")} />

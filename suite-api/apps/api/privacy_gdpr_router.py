@@ -139,7 +139,7 @@ def fulfill_dsr(request_id: str, body: DSRFulfill, org_id: str = Query(...)):
 
 @router.patch("/dsrs/{request_id}/status", dependencies=[Depends(api_key_auth)])
 def update_dsr_status(
-    request_id: str, body: DSRStatusUpdate, org_id: str = Query(...)
+    request_id: str, body: DSRStatusUpdate, org_id: str = Query(default="default")
 ):
     """Update DSR status (received/processing/fulfilled/rejected/expired)."""
     try:
@@ -223,7 +223,7 @@ def notify_dpa(incident_id: str, org_id: str = Query(...)):
     "/incidents/{incident_id}/status", dependencies=[Depends(api_key_auth)]
 )
 def update_incident_status(
-    incident_id: str, body: IncidentStatusUpdate, org_id: str = Query(...)
+    incident_id: str, body: IncidentStatusUpdate, org_id: str = Query(default="default")
 ):
     """Update privacy incident status."""
     try:

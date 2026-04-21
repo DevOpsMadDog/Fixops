@@ -321,8 +321,7 @@ export default function VulnHeatmap() {
       {/* Header */}
       <PageHeader
         title="Vulnerability Heatmap"
-        subtitle="Risk concentration across your asset landscape"
-        icon={Shield}
+        description="Risk concentration across your asset landscape"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -340,28 +339,28 @@ export default function VulnHeatmap() {
           <KpiCard
             title="Total Vulnerabilities"
             value={d.total_vulnerabilities.toLocaleString()}
-            subtitle="Across all monitored assets"
+            description="Across all monitored assets"
             icon={AlertTriangle}
             trend={{ value: 12, label: "vs last week" }}
           />
           <KpiCard
             title="Critical Assets Exposed"
             value={d.critical_assets_exposed}
-            subtitle="Risk score ≥ 9.0"
+            description="Risk score ≥ 9.0"
             icon={Shield}
             trend={{ value: -3, label: "vs last week" }}
           />
           <KpiCard
             title="Avg Risk Score"
             value={d.avg_risk_score.toFixed(1)}
-            subtitle="Across all assets"
+            description="Across all assets"
             icon={Activity}
             trend={{ value: -0.2, label: "vs last week" }}
           />
           <KpiCard
             title="Patched This Week"
             value={d.patched_this_week}
-            subtitle="Remediated vulnerabilities"
+            description="Remediated vulnerabilities"
             icon={CheckCircle2}
             trend={{ value: 18, label: "vs last week" }}
           />

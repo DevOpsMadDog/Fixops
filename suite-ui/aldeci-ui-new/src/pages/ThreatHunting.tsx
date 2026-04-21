@@ -136,7 +136,6 @@ export default function ThreatHuntingPage() {
       <PageHeader
         title="Threat Hunting"
         description="Proactive hypothesis-driven threat detection"
-        icon={<Crosshair className="h-6 w-6 text-primary" />}
       />
 
       {/* KPI Row */}

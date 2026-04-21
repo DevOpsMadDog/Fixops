@@ -195,7 +195,6 @@ export default function IPReputation() {
       <PageHeader
         title="IP Reputation Lookup"
         description="Search IP addresses and view threat intelligence, open ports, and C2 status"
-        icon={<Globe className="w-8 h-8" />}
       />
 
       <div className="max-w-6xl mx-auto space-y-8">

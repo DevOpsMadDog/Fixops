@@ -286,7 +286,6 @@ export default function CloudIAM() {
       <PageHeader
         title="Cloud IAM Security"
         description="Privilege analysis, unused permissions, and cloud identity risk"
-        icon={<Key className="h-6 w-6 text-blue-400" />}
       />
 
       {/* KPIs */}

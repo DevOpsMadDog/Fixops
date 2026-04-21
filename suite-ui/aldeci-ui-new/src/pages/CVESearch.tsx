@@ -175,7 +175,6 @@ export default function CVESearch() {
       <PageHeader
         title="CVE Search & Enrichment"
         description="Search vulnerabilities by CVE ID and view enriched threat intelligence"
-        icon={<Search className="w-8 h-8" />}
       />
 
       <div className="max-w-6xl mx-auto space-y-8">

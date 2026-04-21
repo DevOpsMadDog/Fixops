@@ -197,7 +197,6 @@ export default function EndpointSecurity() {
       <PageHeader
         title="Endpoint Security"
         description="EDR coverage, threat detections, and endpoint health monitoring"
-        icon={<Monitor className="h-6 w-6 text-blue-400" />}
       />
 
       {/* Unmanaged endpoints alert */}
@@ -215,10 +214,10 @@ export default function EndpointSecurity() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard title="Managed Endpoints" value="2,847" icon={<Monitor className="h-4 w-4" />} trend="up" trendValue="+12 this week" />
-        <KpiCard title="EDR Coverage"      value="94%"   icon={<Shield className="h-4 w-4" />}  trend="up" trendValue="+2% vs last month" />
-        <KpiCard title="Active Threats"    value="3"     icon={<AlertTriangle className="h-4 w-4" />} trend="down" trendValue="Was 7 yesterday" className="border-red-500/30" />
-        <KpiCard title="Unpatched Critical" value="47"   icon={<Activity className="h-4 w-4" />} trend="down" trendValue="Down from 61" />
+        <KpiCard title="Managed Endpoints" value="2,847" icon={<Monitor className="h-4 w-4" />} trend="up" trendLabel="+12 this week" />
+        <KpiCard title="EDR Coverage"      value="94%"   icon={<Shield className="h-4 w-4" />}  trend="up" trendLabel="+2% vs last month" />
+        <KpiCard title="Active Threats"    value="3"     icon={<AlertTriangle className="h-4 w-4" />} trend="down" trendLabel="Was 7 yesterday" className="border-red-500/30" />
+        <KpiCard title="Unpatched Critical" value="47"   icon={<Activity className="h-4 w-4" />} trend="down" trendLabel="Down from 61" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

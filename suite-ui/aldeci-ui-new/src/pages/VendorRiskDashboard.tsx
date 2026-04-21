@@ -360,8 +360,7 @@ export default function VendorRiskDashboard() {
     <>
       <PageHeader
         title="Vendor Risk Assessment"
-        subtitle="Third-party security posture tracking and assessment"
-        icon={Building2}
+        description="Third-party security posture tracking and assessment"
       />
 
       <div className="space-y-6 p-6">
