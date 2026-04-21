@@ -487,6 +487,11 @@ const CloudAccountsDashboard = lazy(() => import("@/pages/CloudAccountsDashboard
 const IntelEnrichmentDashboard = lazy(() => import("@/pages/IntelEnrichmentDashboard"));
 const SecurityOKRDashboard = lazy(() => import("@/pages/SecurityOKRDashboard"));
 
+// Connector dashboards — Prowler, ServiceNow, SIEM Output
+const ProwlerDashboard = lazy(() => import("@/pages/ProwlerDashboard"));
+const ServiceNowDashboard = lazy(() => import("@/pages/ServiceNowDashboard"));
+const SIEMOutputDashboard = lazy(() => import("@/pages/SIEMOutputDashboard"));
+
 // Neural Brain Visualization
 const BrainVisualization = lazy(() => import("@/pages/BrainVisualization"));
 
@@ -982,6 +987,11 @@ export default function App() {
             <Route path="/cloud-accounts" element={<CloudAccountsDashboard />} />
             <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
             <Route path="/security-okrs" element={<SecurityOKRDashboard />} />
+
+            {/* Connector dashboards — Prowler, ServiceNow, SIEM Output */}
+            <Route path="/prowler" element={<ProwlerDashboard />} />
+            <Route path="/servicenow" element={<ServiceNowDashboard />} />
+            <Route path="/siem-output" element={<SIEMOutputDashboard />} />
 
             {/* Neural Brain Visualization */}
             <Route path="/brain" element={<BrainVisualization />} />
