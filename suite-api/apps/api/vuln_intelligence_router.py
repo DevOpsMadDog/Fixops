@@ -133,6 +133,21 @@ def get_cve(cve_id: str, org_id: str = Query(default="default")):
     return cve
 
 
+@router.get("/cves/{cve_id}/context", dependencies=[Depends(api_key_auth)])
+def get_cve_context(cve_id: str, org_id: str = Query(default="default")):
+    """Return enriched CVE context: CVE details + affected components from SBOM
+    data with fix versions + related CVEs in the same component + org risk score
+    from the risk aggregator.
+
+    Combines data from vuln-intel, supply-chain, and risk-aggregator engines
+    to produce the full Snyk-style CVE → affected packages → fix version view.
+    """
+    ctx = _get_engine().get_cve_context(org_id, cve_id)
+    if ctx is None:
+        raise HTTPException(status_code=404, detail="CVE not found")
+    return ctx
+
+
 @router.patch("/cves/{cve_id}/status", dependencies=[Depends(api_key_auth)])
 def update_cve_status(
     cve_id: str,

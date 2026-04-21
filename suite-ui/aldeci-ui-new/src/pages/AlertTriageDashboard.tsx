@@ -23,6 +23,8 @@ import {
   Pause, Play, ChevronDown, ChevronRight,
   CheckCheck, ArrowUpCircle, XCircle, Shield,
   Activity, Cpu, Radio, Wifi, Globe, Lock,
+  Search, GitMerge, Zap, CheckSquare, Loader2,
+  Server, User, Network, FileText,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -35,6 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { EntityLink } from "@/components/EntityLink";
 
 // ── API config (unchanged) ─────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -812,14 +815,14 @@ export default function AlertTriageDashboard() {
                     {/* Title + dot */}
                     <div className="flex items-center gap-2 min-w-0">
                       <SeverityDot severity={alert.severity} />
-                      <span className={cn(
-                        "text-[12px] font-semibold truncate leading-tight",
+                      <EntityLink type="alert" id={alert.id} className={cn(
+                        "text-[12px] font-semibold truncate leading-tight no-underline hover:underline underline-offset-2",
                         alert.severity === "critical" || alert.severity === "high"
-                          ? "text-zinc-100"
-                          : "text-zinc-200",
+                          ? "text-zinc-100 hover:text-cyan-300"
+                          : "text-zinc-200 hover:text-cyan-300",
                       )}>
                         {alert.title ?? "—"}
-                      </span>
+                      </EntityLink>
                       {isExpanded
                         ? <ChevronDown  className="h-3 w-3 text-zinc-500 shrink-0 ml-auto" />
                         : <ChevronRight className="h-3 w-3 text-zinc-600 shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />

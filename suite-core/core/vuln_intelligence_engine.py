@@ -490,6 +490,111 @@ class VulnIntelligenceEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    def get_cve_context(self, org_id: str, cve_id: str) -> Optional[Dict[str, Any]]:
+        """Return enriched CVE context combining vuln-intel, supply chain,
+        SBOM, and risk aggregator data.
+
+        Returns None if the CVE is not tracked for the org.
+
+        Response shape:
+          cve          — full CVE record from vuln_intelligence_engine
+          affected_components — packages from supply_chain_intel with this CVE
+          related_cves — other CVEs affecting the same product set (up to 5)
+          risk_score   — org composite risk score from risk_aggregator_engine
+        """
+        cve_id_upper = cve_id.strip().upper()
+
+        # 1. Core CVE record
+        cve = self.get_cve(org_id, cve_id_upper)
+        if not cve:
+            return None
+
+        # 2. Affected components from supply chain intel engine
+        affected_components: List[Dict[str, Any]] = []
+        try:
+            from core.supply_chain_intel_engine import SupplyChainIntelEngine
+            sc_engine = SupplyChainIntelEngine()
+            with sc_engine._conn() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT tp.name, tp.ecosystem, tp.version, tp.risk_level,
+                           pv.cve_id, pv.severity, pv.cvss_score,
+                           pv.fixed_in_version, pv.patched
+                    FROM package_vulnerabilities pv
+                    JOIN tracked_packages tp ON tp.pkg_id = pv.pkg_id
+                    WHERE pv.org_id = ? AND pv.cve_id = ?
+                    ORDER BY pv.cvss_score DESC
+                    """,
+                    (org_id, cve_id_upper),
+                ).fetchall()
+            for r in rows:
+                rec = dict(r)
+                rec["patched"] = bool(rec["patched"])
+                fix_ver = rec.get("fixed_in_version") or ""
+                rec["fix_available"] = bool(fix_ver)
+                rec["fix_version"] = fix_ver if fix_ver else None
+                affected_components.append(rec)
+        except Exception:
+            _logger.debug("supply_chain_intel unavailable for CVE context", exc_info=True)
+
+        # 3. Related CVEs — other CVEs affecting the same products
+        related_cves: List[Dict[str, Any]] = []
+        try:
+            product_names: List[str] = []
+            for prod in cve.get("affected_products", []):
+                if isinstance(prod, dict):
+                    name = prod.get("product") or prod.get("name") or ""
+                else:
+                    name = str(prod)
+                if name:
+                    product_names.append(name.lower())
+
+            if product_names:
+                with self._conn(org_id) as conn:
+                    all_cves = conn.execute(
+                        "SELECT cve_id, title, severity, cvss_score, affected_products "
+                        "FROM cve_intel WHERE org_id = ? AND cve_id != ?",
+                        (org_id, cve_id_upper),
+                    ).fetchall()
+                for row in all_cves:
+                    try:
+                        prods = json.loads(row["affected_products"] or "[]")
+                    except (json.JSONDecodeError, TypeError):
+                        prods = []
+                    for p in prods:
+                        p_name = (
+                            (p.get("product") or p.get("name") or str(p))
+                            if isinstance(p, dict)
+                            else str(p)
+                        ).lower()
+                        if p_name in product_names:
+                            related_cves.append({
+                                "cve_id": row["cve_id"],
+                                "title": row["title"],
+                                "severity": row["severity"],
+                                "cvss_score": row["cvss_score"],
+                            })
+                            break
+                related_cves = related_cves[:5]
+        except Exception:
+            _logger.debug("related CVE lookup failed", exc_info=True)
+
+        # 4. Org risk score from risk aggregator
+        risk_score: Optional[Dict[str, Any]] = None
+        try:
+            from core.risk_aggregator_engine import RiskAggregatorEngine
+            ra_engine = RiskAggregatorEngine()
+            risk_score = ra_engine.calculate_org_risk_score(org_id)
+        except Exception:
+            _logger.debug("risk_aggregator unavailable for CVE context", exc_info=True)
+
+        return {
+            "cve": cve,
+            "affected_components": affected_components,
+            "related_cves": related_cves,
+            "risk_score": risk_score,
+        }
+
     def get_intel_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated vuln intelligence stats for org."""
         with self._conn(org_id) as conn:

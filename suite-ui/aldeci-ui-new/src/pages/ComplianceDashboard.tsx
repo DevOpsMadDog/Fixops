@@ -40,6 +40,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { EntityLink } from "@/components/EntityLink";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
@@ -493,7 +494,9 @@ function GapRow({ gap, index }: { gap: ComplianceGap; index: number }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3 mb-1.5">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-zinc-100 leading-tight truncate">{gap.control}</p>
+                <EntityLink type="control" id={gap.id} className="text-sm font-semibold text-zinc-100 hover:text-cyan-300 leading-tight truncate block transition-colors">
+                  {gap.control}
+                </EntityLink>
                 <p className="text-[11px] text-zinc-500 mt-0.5 font-mono">{gap.framework}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -705,7 +708,11 @@ function EvidenceSection({ items, onUpload }: { items: EvidenceItem[]; onUpload:
                     transition={{ duration: 0.2, delay: i * 0.025 }}
                     className="border-white/[0.04] hover:bg-white/[0.02] transition-colors group/row"
                   >
-                    <TableCell className="font-mono text-[11px] text-blue-400 py-2.5">{item.control_id}</TableCell>
+                    <TableCell className="font-mono text-[11px] py-2.5">
+                      <EntityLink type="control" id={item.control_id}>
+                        {item.control_id}
+                      </EntityLink>
+                    </TableCell>
                     <TableCell className="py-2.5">
                       <span className="text-[11px] bg-white/[0.04] border border-white/[0.07] rounded px-1.5 py-0.5 text-zinc-400">
                         {item.framework}

@@ -388,6 +388,143 @@ class AlertTriageEngine:
             pass
         return context
 
+    def investigate(self, org_id: str, alert_id: str) -> Dict[str, Any]:
+        """SOC analyst investigation: correlate the alert across all security domains.
+
+        Returns:
+          - alert: the alert record itself
+          - related_alerts: same source_system or severity in last 24 h (excluding this alert)
+          - affected_assets: assets extracted from raw_alert_json (host, ip)
+          - incident_history: past incidents on those assets from incident_orchestration DB
+          - ioc_summary: IOCs parsed from raw_alert_json (ips, hashes, domains)
+          - graphrag_context: TrustGraph cross-domain context (degrades gracefully)
+          - recommended_playbook: heuristic playbook name based on source/severity
+        """
+        alert = self.get_alert(org_id, alert_id)
+        if alert is None:
+            raise KeyError(f"Alert '{alert_id}' not found for org '{org_id}'")
+
+        # ── 1. Related alerts: same source_system in last 24 h ──────────────
+        related_alerts: List[Dict[str, Any]] = []
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, title, severity, priority, status, source_system, ingested_at
+                FROM at_alerts
+                WHERE org_id = ?
+                  AND id != ?
+                  AND (source_system = ? OR severity = ?)
+                  AND ingested_at >= datetime('now', '-24 hours')
+                ORDER BY ingested_at DESC
+                LIMIT 10
+                """,
+                (org_id, alert_id, alert["source_system"], alert["severity"]),
+            ).fetchall()
+        related_alerts = [self._row(r) for r in rows]
+
+        # ── 2. Extract affected assets from raw_alert_json ──────────────────
+        affected_assets: List[Dict[str, str]] = []
+        try:
+            raw = alert.get("raw_alert_json") or "{}"
+            if isinstance(raw, str):
+                import json as _json
+                raw_data = _json.loads(raw)
+            else:
+                raw_data = raw
+            host = raw_data.get("host") or raw_data.get("hostname") or raw_data.get("asset")
+            ip   = raw_data.get("ip") or raw_data.get("src_ip") or raw_data.get("dest_ip")
+            user = raw_data.get("user") or raw_data.get("username")
+            if host:
+                affected_assets.append({"type": "host", "value": str(host)})
+            if ip:
+                affected_assets.append({"type": "ip", "value": str(ip)})
+            if user:
+                affected_assets.append({"type": "user", "value": str(user)})
+        except Exception:
+            pass
+
+        # ── 3. Incident history for affected assets ──────────────────────────
+        incident_history: List[Dict[str, Any]] = []
+        try:
+            from pathlib import Path as _Path
+            _inc_db = str(_Path(self.db_path).parent / "incident_orchestration.db")
+            if _Path(_inc_db).exists():
+                inc_conn = sqlite3.connect(_inc_db, timeout=5)
+                inc_conn.row_factory = sqlite3.Row
+                asset_values = [a["value"] for a in affected_assets]
+                if asset_values:
+                    placeholders = ",".join("?" * len(asset_values))
+                    like_clauses = " OR ".join(
+                        "title LIKE ? OR source LIKE ?" for _ in asset_values
+                    )
+                    params: List[Any] = []
+                    for v in asset_values:
+                        params.extend([f"%{v}%", f"%{v}%"])
+                    params.append(org_id)
+                    rows = inc_conn.execute(
+                        f"""
+                        SELECT id, title, severity, status, created_at
+                        FROM incidents
+                        WHERE ({like_clauses}) AND org_id = ?
+                        ORDER BY created_at DESC
+                        LIMIT 5
+                        """,
+                        params,
+                    ).fetchall()
+                    incident_history = [dict(r) for r in rows]
+                inc_conn.close()
+        except Exception:
+            pass
+
+        # ── 4. IOC summary from raw payload ─────────────────────────────────
+        import re as _re
+        ioc_summary: Dict[str, List[str]] = {"ips": [], "domains": [], "hashes": []}
+        try:
+            raw_str = alert.get("raw_alert_json") or ""
+            if not isinstance(raw_str, str):
+                import json as _json2
+                raw_str = _json2.dumps(raw_str)
+            ip_pattern     = _re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+            domain_pattern = _re.compile(r"\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|ru|cn|xyz|club)\b", _re.I)
+            hash_pattern   = _re.compile(r"\b[0-9a-f]{32,64}\b", _re.I)
+            ioc_summary["ips"]     = list(set(ip_pattern.findall(raw_str)))[:10]
+            ioc_summary["domains"] = list(set(domain_pattern.findall(raw_str)))[:10]
+            ioc_summary["hashes"]  = list(set(hash_pattern.findall(raw_str)))[:5]
+        except Exception:
+            pass
+
+        # ── 5. TrustGraph GraphRAG context (graceful degradation) ───────────
+        graphrag_context = self.get_alert_context(org_id, alert_id)
+
+        # ── 6. Heuristic playbook recommendation ────────────────────────────
+        _playbook_map = {
+            ("siem",    "critical"): "IR-P1: SIEM Critical Incident Response",
+            ("edr",     "critical"): "IR-P2: Endpoint Compromise Containment",
+            ("edr",     "high"):     "IR-P3: Endpoint Threat Hunting",
+            ("ndr",     "high"):     "IR-P4: Network Threat Containment",
+            ("cloud",   "critical"): "IR-P5: Cloud Breach Response",
+            ("waf",     "high"):     "IR-P6: Application Attack Response",
+            ("ids",     "high"):     "IR-P7: Intrusion Detection Response",
+            ("firewall","high"):     "IR-P8: Perimeter Breach Response",
+        }
+        src = (alert.get("source_system") or "").lower()
+        sev = (alert.get("severity") or "").lower()
+        recommended_playbook = (
+            _playbook_map.get((src, sev))
+            or _playbook_map.get((src, "high"))
+            or "IR-P0: General Security Incident Response"
+        )
+
+        return {
+            "alert": alert,
+            "related_alerts": related_alerts,
+            "affected_assets": affected_assets,
+            "incident_history": incident_history,
+            "ioc_summary": ioc_summary,
+            "graphrag_context": graphrag_context,
+            "recommended_playbook": recommended_playbook,
+        }
+
     def get_triage_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate triage statistics for the org."""
         with self._conn() as conn:

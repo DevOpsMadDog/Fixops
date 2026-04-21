@@ -39,6 +39,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { EntityLink } from "@/components/EntityLink";
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -209,7 +210,11 @@ export default function SupplyChainDashboard() {
                   const risks    = s.risks ?? s.known_breaches ?? 0;
                   return (
                   <TableRow key={name} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium py-2.5">{name}</TableCell>
+                    <TableCell className="text-xs font-medium py-2.5">
+                      <EntityLink type="component" id={encodeURIComponent(name)}>
+                        {name}
+                      </EntityLink>
+                    </TableCell>
                     <TableCell className="py-2.5"><CategoryBadge cat={category} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{country}</TableCell>
                     <TableCell className="py-2.5"><TierBadge tier={tier} /></TableCell>
@@ -262,7 +267,11 @@ export default function SupplyChainDashboard() {
                   const purl     = c.purl ?? c.package_url ?? "—";
                   return (
                   <TableRow key={`${name}-${version}-${idx}`} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium font-mono py-2.5">{name}</TableCell>
+                    <TableCell className="text-xs font-medium font-mono py-2.5">
+                      <EntityLink type="component" id={encodeURIComponent(name)}>
+                        {name}
+                      </EntityLink>
+                    </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{version}</TableCell>
                     <TableCell className="text-xs py-2.5">{supplier}</TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{license}</TableCell>

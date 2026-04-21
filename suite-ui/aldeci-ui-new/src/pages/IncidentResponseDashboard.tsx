@@ -39,6 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { EntityLink } from "@/components/EntityLink";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -274,7 +275,11 @@ export default function IncidentResponseDashboard() {
                     key={inc.id}
                     className={cn("hover:bg-muted/30", inc.slaBreach && "bg-red-500/5 border-l-2 border-l-red-500")}
                   >
-                    <TableCell className="text-xs font-mono py-2.5">{inc.id}</TableCell>
+                    <TableCell className="text-xs font-mono py-2.5">
+                      <EntityLink type="incident" id={inc.id}>
+                        {inc.id}
+                      </EntityLink>
+                    </TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{inc.title}</TableCell>
                     <TableCell className="py-2.5">
                       <Badge className={cn("text-[10px] border", TYPE_COLORS[inc.type])}>

@@ -335,3 +335,70 @@ def test_org_isolation_stats(engine):
     engine.add_cve(ORG, _cve_data())
     stats2 = engine.get_intel_stats(ORG2)
     assert stats2["total_cves"] == 0
+
+
+# ---------------------------------------------------------------------------
+# get_cve_context tests
+# ---------------------------------------------------------------------------
+
+def test_get_cve_context_returns_none_for_unknown(engine):
+    """Context returns None when the CVE does not exist for the org."""
+    result = engine.get_cve_context(ORG, "CVE-9999-99999")
+    assert result is None
+
+
+def test_get_cve_context_basic_structure(engine):
+    """Context endpoint returns all required top-level keys with correct CVE data."""
+    engine.add_cve(ORG, _cve_data(
+        cve_id="CVE-2024-12345",
+        title="Log4Shell",
+        cvss_score=9.8,
+        severity="critical",
+    ))
+    ctx = engine.get_cve_context(ORG, "CVE-2024-12345")
+
+    assert ctx is not None
+    # Required top-level keys
+    assert "cve" in ctx
+    assert "affected_components" in ctx
+    assert "related_cves" in ctx
+    assert "risk_score" in ctx
+    # CVE details are correct
+    assert ctx["cve"]["cve_id"] == "CVE-2024-12345"
+    assert ctx["cve"]["cvss_score"] == 9.8
+    assert ctx["cve"]["severity"] == "critical"
+    # Lists are always present even when empty (no supply chain data in unit test)
+    assert isinstance(ctx["affected_components"], list)
+    assert isinstance(ctx["related_cves"], list)
+
+
+def test_get_cve_context_related_cves_by_product(engine):
+    """Related CVEs sharing an affected product are surfaced (up to 5)."""
+    shared_product = [{"vendor": "apache", "product": "log4j"}]
+
+    engine.add_cve(ORG, _cve_data(
+        cve_id="CVE-2024-12345",
+        affected_products=shared_product,
+    ))
+    engine.add_cve(ORG, _cve_data(
+        cve_id="CVE-2024-11111",
+        title="Related vuln in log4j",
+        severity="high",
+        cvss_score=7.5,
+        affected_products=shared_product,
+    ))
+    # This one has a different product — should NOT appear as related
+    engine.add_cve(ORG, _cve_data(
+        cve_id="CVE-2024-22222",
+        title="Unrelated vuln",
+        severity="medium",
+        cvss_score=4.0,
+        affected_products=[{"vendor": "nginx", "product": "nginx"}],
+    ))
+
+    ctx = engine.get_cve_context(ORG, "CVE-2024-12345")
+    related_ids = [r["cve_id"] for r in ctx["related_cves"]]
+
+    assert "CVE-2024-11111" in related_ids
+    assert "CVE-2024-22222" not in related_ids
+    assert "CVE-2024-12345" not in related_ids  # self must not appear

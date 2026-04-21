@@ -233,3 +233,25 @@ def get_alert_context(
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for an alert (related assets, findings, incidents)."""
     return _get_engine().get_alert_context(org_id, alert_id)
+
+
+@router.post("/investigate/{alert_id}", dependencies=[Depends(api_key_auth)])
+def investigate_alert(
+    alert_id: str,
+    org_id: str = Query(..., description="Organization ID"),
+) -> Dict[str, Any]:
+    """SOC analyst investigation endpoint.
+
+    Correlates an alert across all security domains and returns:
+    - The alert record with full metadata
+    - Related alerts from the same source/severity in last 24 h
+    - Affected assets extracted from raw_alert_json (host, ip, user)
+    - Incident history matching those assets
+    - IOC summary (IPs, domains, hashes) parsed from raw payload
+    - TrustGraph GraphRAG cross-domain context
+    - Recommended IR playbook based on source/severity heuristics
+    """
+    try:
+        return _get_engine().investigate(org_id, alert_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

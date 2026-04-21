@@ -313,3 +313,28 @@ def test_stats_empty_org(engine):
     stats = engine.get_triage_stats("org_empty")
     assert stats["total_alerts"] == 0
     assert stats["false_positive_rate"] == 0.0
+
+
+# ===========================================================================
+# 8. investigate — SOC analyst workflow
+# ===========================================================================
+
+def test_investigate_returns_alert_record(engine, critical_alert):
+    result = engine.investigate("org1", critical_alert["id"])
+    assert result["alert"]["id"] == critical_alert["id"]
+    assert result["alert"]["severity"] == "critical"
+
+
+def test_investigate_returns_related_alerts_same_source(engine):
+    """Related alerts include same-source-system alerts (excluding self)."""
+    a1 = engine.ingest_alert("org1", {"title": "SIEM alert A", "source_system": "siem", "severity": "high"})
+    a2 = engine.ingest_alert("org1", {"title": "SIEM alert B", "source_system": "siem", "severity": "medium"})
+    result = engine.investigate("org1", a1["id"])
+    related_ids = [r["id"] for r in result["related_alerts"]]
+    assert a2["id"] in related_ids
+    assert a1["id"] not in related_ids  # self excluded
+
+
+def test_investigate_not_found_raises_key_error(engine):
+    with pytest.raises(KeyError, match="not found"):
+        engine.investigate("org1", "nonexistent-alert-id")

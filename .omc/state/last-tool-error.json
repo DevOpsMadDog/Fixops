@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\nimport sys; sys.path.insert(0, 'suite-core')\\nfrom core.wireless_security_engine import VALID_BANDS, VALID_SECURITY_TYPES\\nfrom core.application_security_engine import _VALI...",
-  "error": "Exit code 1",
-  "timestamp": "2026-04-21T10:26:59.056Z",
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_alert_triage_engine.py::test_investigate_returns_alert_record tests/test_alert_triage_engine.py::test_investigate_returns_related_al...",
+  "error": "Exit code 3\ncachedir: .pytest_cache\ntimeout: 10.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 3 items\n\ntests/test_alert_triage_engine.py::test_investigate_returns_alert_record \n-------------------------------- live log call ---------------------------------\n2026-04-21 20:35:05 [    INFO] trustgraph.knowledge_store: KnowledgeStore initialized at /tm...",
+  "timestamp": "2026-04-21T10:35:30.438Z",
   "retry_count": 1
 }
