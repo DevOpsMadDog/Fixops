@@ -581,7 +581,7 @@ ALDECI's `MultiLLMConsensusEngine` (core/enhanced_decision.py, 1,279 lines):
 ### ALDECI's Mission (Reiterated)
 
 **ALDECI is the world's best ASPM + CTEM + CSPM platform** — a unified, self-hosted, AI-native security intelligence platform that:
-1. Replaces $50K-500K+/yr enterprise tools with a $35-60/month self-hosted stack
+1. Replaces $50K-500K+/yr enterprise tools with a pricing TBD (target: $199-$1,499/month tiered) self-hosted stack
 2. Uses TrustGraph (5 Knowledge Cores) for versioned, auditable security knowledge management
 3. Employs Karpathy LLM Consensus (4 free models + Opus CTO escalation) for explainable, peer-reviewed security decisions
 4. Covers the complete security lifecycle: code → build → deploy → runtime → compliance → remediation
@@ -928,7 +928,7 @@ NEW COMPONENTS TO ADD:
 | 4 | **Unified ASPM + CTEM + CSPM** | Wiz (CNAPP), CrowdStrike (CTEM), Apiiro (ASPM) | One platform covers all three. Competitors are strong in one. |
 | 5 | **28+ Threat Intelligence Feeds** | CrowdStrike (telemetry), ArmorCode (320 tools) | Broadest open-source feed coverage. CrowdStrike's telemetry is proprietary. ArmorCode aggregates tools, not raw intel. |
 | 6 | **SSVC + Bayesian + Markov Risk Models** | None at this depth | Most mathematically rigorous and transparent risk analysis in the industry. |
-| 7 | **$35-60/month total cost** | Aikido ($350/mo min) | 10x cheaper than cheapest competitor. Free models + self-hosted. |
+| 7 | **pricing TBD (target: $199-$1,499/month tiered) total cost** | Aikido ($350/mo min) | 10x cheaper than cheapest competitor. Free models + self-hosted. |
 | 8 | **Fully open-source stack** | Semgrep (open-source CE) | Apache 2.0 TrustGraph + free LLMs + OWASP DC+DT + self-hosted everything. No vendor lock-in. |
 | 9 | **OntologyRAG** | None | Auto-extract structured knowledge from ANY security document into typed RDF triples. |
 | 10 | **SBOM-Runtime Correlation** | Apiiro (code-to-runtime) | `sbom_runtime_correlator.py` with quantified risk deltas. More transparent than Apiiro's black-box DCA. |
@@ -1519,7 +1519,7 @@ FastAPI (20+ routers, 137+ endpoints)      FastAPI (same routers, TG-backed endp
 | TrustGraph + Neo4j + Qdrant + Pulsar (self-hosted Docker) | $0 |
 | OWASP Dependency-Check + Dependency-Track (self-hosted) | $0 |
 | OpenRouter API overhead | ~$5-10/mo |
-| **TOTAL** | **~$35-60/month** |
+| **TOTAL** | **~pricing TBD (target: $199-$1,499/month tiered)** |
 
 ### vs Competitors
 

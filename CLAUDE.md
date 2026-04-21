@@ -184,7 +184,7 @@ best-mode-dev-framework/
 ## WHAT IS ALDECI
 
 ALDECI is an **ASPM + CTEM + CSPM platform** — a unified, self-hosted, AI-native security intelligence platform.
-- Replaces $50K-500K/yr enterprise tools with $35-60/month self-hosted stack
+- Replaces $50K-500K/yr enterprise tools — tiered pricing: Starter $199/mo, Pro $499/mo, Enterprise $1,499/mo
 - TrustGraph (5 Knowledge Cores) for versioned security knowledge
 - Karpathy LLM Consensus (4 free models + Opus escalation) for decisions
 - 28+ threat intelligence feeds, 32 scanner normalizers, 13 PULL + 7 bidirectional connectors

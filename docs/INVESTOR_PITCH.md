@@ -56,7 +56,7 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 - Docker one-command deploy (`docker compose up`)
 - No data leaves your infrastructure — audit logs, risk decisions, threat intelligence all stay on-prem
 - Compliance ready — full audit trails, evidence auto-collection, compliance reports
-- Cost: $35-60/month for self-hosted (vs. $50K/mo for Wiz + Lacework + Snyk + Rapid7 + Tenable)
+- Cost: pricing TBD (target: $199-$1,499/month tiered) for self-hosted (vs. $50K/mo for Wiz + Lacework + Snyk + Rapid7 + Tenable)
 
 ---
 

@@ -1,7 +1,7 @@
 # ALDECI — 15-Minute Investor Demo Script
 
 > **Platform**: ALDECI (Adaptive Learning Defense & Cyber Intelligence)
-> **Positioning**: Self-hosted ASPM + CTEM + CSPM — replaces $50K-$500K/yr enterprise tools at $35-60/month
+> **Positioning**: Self-hosted ASPM + CTEM + CSPM — replaces $50K-$500K/yr enterprise tools at pricing TBD (target: $199-$1,499/month tiered)
 > **Server**: http://localhost:8000
 > **Auth**: `X-API-Key: <enterprise_key>`
 > **Verified**: All API calls below return live data from production server
@@ -484,7 +484,7 @@ Scanner → Finding → Brain Graph → Risk Score → Alert Queue
 ## Minute 12–14: ROI — $50K→$35/Month Savings
 
 **Talking Points:**
-"The average enterprise security stack costs $500K/year. We replace 8 categories of tools with one self-hosted platform. At $35-60/month infrastructure cost, the math is undeniable."
+"The average enterprise security stack costs $500K/year. We replace 8 categories of tools with one self-hosted platform. At pricing TBD (target: $199-$1,499/month tiered) infrastructure cost, the math is undeniable."
 
 ### Competitive Replacement Map
 
@@ -498,7 +498,7 @@ Scanner → Finding → Brain Graph → Risk Score → Alert Queue
 | CrowdStrike Falcon | $120,000 | EDR + XDR + NDR engines |
 | Splunk SIEM | $100,000 | SIEM Integration + Alert Triage engines |
 | ServiceNow SecOps | $80,000 | Incident Orchestration + SOC Workflow engines |
-| **TOTAL** | **$680,000/year** | **$35-60/month (self-hosted)** |
+| **TOTAL** | **$680,000/year** | **pricing TBD (target: $199-$1,499/month tiered) (self-hosted)** |
 
 ### Platform Cost Breakdown
 

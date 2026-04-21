@@ -466,7 +466,7 @@ cd swarmclaw && docker compose up -d
 │ Claude Code (Shiva daytime, 9-5):     subscription    │
 │ Electricity (Mac overnight):          ~$5-10          │
 │                                                       │
-│ TOTAL: ~$35-60/month + your existing Claude sub       │
+│ TOTAL: ~pricing TBD (target: $199-$1,499/month tiered) + your existing Claude sub       │
 │                                                       │
 │ VALUE: Full engineering team running 24/7              │
 │        156+ battle-tested skills                      │

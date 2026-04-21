@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-ALDECI v1.0.0 is the first Generally Available release of the Autonomous Layered Defense & Enterprise Cyber Intelligence platform — a self-hosted, AI-native ASPM + CTEM + CSPM suite that replaces $280K–$1M/yr of enterprise tooling at a self-hosted infrastructure cost of $35–60/month.
+ALDECI v1.0.0 is the first Generally Available release of the Autonomous Layered Defense & Enterprise Cyber Intelligence platform — a self-hosted, AI-native ASPM + CTEM + CSPM suite that replaces $280K–$1M/yr of enterprise tooling at a self-hosted infrastructure cost of pricing TBD (target: $199-$1,499/month tiered).
 
 This release represents the culmination of Beast Mode Waves 1 through 61, delivering a fully production-ready platform with comprehensive security coverage across every major domain.
 

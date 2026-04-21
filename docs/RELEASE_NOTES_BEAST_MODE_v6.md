@@ -11,7 +11,7 @@
 
 Beast Mode v6 transforms ALDECI from a capable security platform into a **comprehensive,
 enterprise-grade ASPM + CTEM + CSPM suite** that rivals products costing $50K–$500K per year —
-at a self-hosted cost of $35–60/month.
+at a self-hosted cost of pricing TBD (target: $199-$1,499/month tiered).
 
 In a single Beast Mode session, the platform grew from ~327 test files and 709 Beast Mode tests
 to **450 test files and 21,363 collected tests**, with 125 new security engines and features
@@ -166,7 +166,7 @@ Full production stack (docker compose up):
 - Shuffle (SOAR)
 - NetBox (CMDB)
 
-Infrastructure cost: ~$35–60/month on commodity cloud or on-premises.
+Infrastructure cost: ~pricing TBD (target: $199-$1,499/month tiered) on commodity cloud or on-premises.
 
 ---
 
