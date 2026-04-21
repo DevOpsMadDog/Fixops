@@ -82,10 +82,12 @@ class TriageAlertRequest(BaseModel):
 
 
 class BulkTriageRequest(BaseModel):
-    alert_ids: List[str] = Field(..., description="List of alert IDs to action")
+    alert_ids: Optional[List[str]] = Field(default=None, description="List of alert IDs to action")
+    alert_id: Optional[str] = Field(default=None, description="Single alert ID (convenience alias for alert_ids)")
     action: str = Field(
-        ..., description="resolve | false_positive | escalate"
+        ..., description="acknowledge | resolve | false_positive | escalate"
     )
+    org_id: Optional[str] = Field(default=None, description="Organization ID (can also be passed as query param)")
 
 
 # ---------------------------------------------------------------------------
@@ -175,11 +177,34 @@ def triage_alert(
 @router.post("/bulk-triage", dependencies=[Depends(api_key_auth)])
 def bulk_triage(
     req: BulkTriageRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: Optional[str] = Query(default=None, description="Organization ID"),
 ) -> Dict[str, Any]:
-    """Apply the same triage action to multiple alerts at once."""
+    """Apply the same triage action to multiple alerts at once.
+
+    Accepts either ``alert_ids`` (list) or ``alert_id`` (single string).
+    ``org_id`` may be provided as a query parameter or in the request body.
+    Valid actions: acknowledge, resolve, false_positive, escalate.
+    """
+    # Resolve org_id: query param takes precedence, fallback to body field
+    resolved_org_id = org_id or req.org_id
+    if not resolved_org_id:
+        raise HTTPException(status_code=422, detail="org_id is required (query param or body field)")
+
+    # Resolve alert list: support both alert_ids (list) and alert_id (single)
+    if req.alert_ids:
+        ids = req.alert_ids
+    elif req.alert_id:
+        ids = [req.alert_id]
+    else:
+        raise HTTPException(status_code=422, detail="alert_ids or alert_id is required")
+
+    # Normalise action: map 'acknowledge' -> 'resolve' equivalent in engine terms
+    action = req.action
+    _action_aliases = {"acknowledge": "resolve", "ack": "resolve"}
+    action = _action_aliases.get(action, action)
+
     try:
-        return _get_engine().bulk_triage(org_id, req.alert_ids, req.action)
+        return _get_engine().bulk_triage(resolved_org_id, ids, action)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

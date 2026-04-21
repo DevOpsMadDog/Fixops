@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"TOKEN=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\nBASE=\\\"http://localhost:8000\\\"\\nORG=\\\"default\\\"\\n\\necho \\\"=== TPRM vendors ===\\\"\\nfor i in 1 2 3 4 5;...",
-  "error": "Exit code 1\n=== TPRM vendors ===\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n           ^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n           ^...",
-  "timestamp": "2026-04-21T09:45:37.222Z",
+  "tool_name": "Grep",
+  "tool_input_preview": "{\"pattern\":\"def bulk_triage\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-core/core/alert_triage_engine.py\",\"output_mode\":\"content\",\"context\":20}",
+  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
+  "timestamp": "2026-04-21T10:20:26.259Z",
   "retry_count": 1
 }
