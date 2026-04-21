@@ -503,8 +503,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 616,
-      "lastAccessed": 1776721760881,
+      "accessCount": 618,
+      "lastAccessed": 1776762083483,
       "type": "directory"
     },
     {
@@ -550,15 +550,15 @@
       "type": "file"
     },
     {
-      "path": "suite-core/core/supply_chain_security.py",
-      "accessCount": 21,
-      "lastAccessed": 1776762014604,
+      "path": "suite-api/apps/api/supply_chain_router.py",
+      "accessCount": 22,
+      "lastAccessed": 1776762062092,
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/supply_chain_router.py",
-      "accessCount": 21,
-      "lastAccessed": 1776762037430,
+      "path": "suite-core/core/supply_chain_security.py",
+      "accessCount": 22,
+      "lastAccessed": 1776762062439,
       "type": "file"
     },
     {
