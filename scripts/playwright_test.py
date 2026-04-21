@@ -27,6 +27,26 @@ TIMEOUT_MS = 15_000          # per-page timeout
 NETWORK_IDLE_TIMEOUT = 8_000 # wait_for_load_state networkidle timeout
 AUTH_TOKEN = "aldeci-dev-token"
 
+# localStorage state injected before every page load via add_init_script
+# Strategy "token" + non-empty authToken = authenticated admin in auth.tsx
+AUTH_INIT_SCRIPT = """
+(function() {
+  var user = JSON.stringify({
+    id: "playwright-admin",
+    email: "test@aldeci.local",
+    first_name: "Playwright",
+    last_name: "Tester",
+    role: "admin"
+  });
+  localStorage.setItem("aldeci.authToken",    "aldeci-dev-token");
+  localStorage.setItem("aldeci.authStrategy", "token");
+  localStorage.setItem("aldeci.authUser",     user);
+  localStorage.setItem("aldeci.orgId",        "default");
+  localStorage.setItem("authToken",           "aldeci-dev-token");
+  localStorage.setItem("apiKey",              "aldeci-dev-token");
+})();
+"""
+
 # ---------------------------------------------------------------------------
 # All ALDECI routes (extracted from App.tsx)
 # Grouped: core first, then engine dashboards, then Wave 40-41 newest
@@ -381,18 +401,12 @@ def slug(path: str) -> str:
     return (path.strip("/").replace("/", "_") or "root") + ".png"
 
 
-def set_auth(page, base_url: str) -> None:
-    """Inject auth token into localStorage so protected routes render."""
-    page.goto(base_url, wait_until="domcontentloaded", timeout=TIMEOUT_MS)
-    page.evaluate(
-        """(token) => {
-            localStorage.setItem('aldeci.authToken', token);
-            localStorage.setItem('authToken', token);
-            localStorage.setItem('token', token);
-            sessionStorage.setItem('aldeci.authToken', token);
-        }""",
-        AUTH_TOKEN,
-    )
+def set_auth(context) -> None:
+    """
+    Inject auth state via add_init_script so it fires before React hydrates
+    on every page navigation — no need for a separate goto.
+    """
+    context.add_init_script(AUTH_INIT_SCRIPT)
 
 
 def check_page(page, url: str, screenshot_dir: Path) -> dict:
@@ -590,13 +604,9 @@ def main() -> None:
         )
         page = context.new_page()
 
-        # Inject auth token once before test loop
-        try:
-            set_auth(page, base_url)
-            print(f"  Auth token injected into localStorage")
-        except Exception as e:
-            print(f"  WARN: Could not inject auth token (is the dev server running?): {e}")
-            print(f"  Continuing anyway — pages will likely redirect to /login\n")
+        # Register init script — fires before React hydrates on every page load
+        set_auth(context)
+        print(f"  Auth init script registered (strategy=token, role=admin)")
 
         for i, path in enumerate(screens, 1):
             url = base_url + path

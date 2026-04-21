@@ -670,12 +670,11 @@ class KnowledgeBrain:
             ):
                 org_counts[row[0]] = row[1]
 
+        # Compute density from SQL counts (always accurate, never stale from in-memory graph)
         density = 0.0
-        if self._graph is not None and nx is not None and node_count > 1:
-            try:
-                density = nx.density(self._graph)
-            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-                pass
+        if node_count > 1:
+            max_directed_edges = node_count * (node_count - 1)
+            density = edge_count / max_directed_edges if max_directed_edges > 0 else 0.0
 
         return {
             "total_nodes": node_count,
