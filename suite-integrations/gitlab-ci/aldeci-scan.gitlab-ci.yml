@@ -1,0 +1,214 @@
+# ALDECI GitLab CI/CD Security Scanning Template
+# Include this in your .gitlab-ci.yml to run SAST, SCA, and IaC scans via ALDECI ASPM.
+#
+# Usage:
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/DevOpsMadDog/Fixops/main/suite-integrations/gitlab-ci/aldeci-scan.gitlab-ci.yml'
+#
+# Required CI/CD Variables (Settings > CI/CD > Variables):
+#   ALDECI_API_URL  — Your ALDECI instance URL (e.g. https://aldeci.example.com)
+#   ALDECI_API_KEY  — API key (mark as Masked + Protected)
+#
+# Optional Variables:
+#   ALDECI_SEVERITY_THRESHOLD — Minimum severity to fail: critical, high, medium, low (default: high)
+#   ALDECI_FAIL_ON_FINDINGS   — Fail pipeline on threshold breach: true/false (default: true)
+#   ALDECI_APP_ID             — ALDECI application ID for SAST scans
+#   ALDECI_PROJECT_ID         — ALDECI project ID for SCA scans
+#   ALDECI_IAC_PATHS          — Comma-separated IaC paths (default: .)
+#   ALDECI_SCANNER_TYPE       — Scanner type hint: semgrep, trivy, bandit, checkov, etc.
+#   ALDECI_COMMENT_ON_MR      — Post summary as MR note: true/false (default: true)
+
+stages:
+  - security
+
+# ── Base job template (hidden, prefixed with dot) ─────────────────────────
+.aldeci_base:
+  stage: security
+  image:
+    name: devopsmaddog/aldeci-scanner:latest
+    entrypoint: [""]
+  variables:
+    SCAN_TYPE: "all"
+    SEVERITY_THRESHOLD: "${ALDECI_SEVERITY_THRESHOLD}"
+    FAIL_ON_FINDINGS: "${ALDECI_FAIL_ON_FINDINGS}"
+    APP_ID: "${ALDECI_APP_ID}"
+    PROJECT_ID: "${ALDECI_PROJECT_ID}"
+    IAC_PATHS: "${ALDECI_IAC_PATHS}"
+    SCANNER_TYPE: "${ALDECI_SCANNER_TYPE}"
+    COMMENT_ON_MR: "${ALDECI_COMMENT_ON_MR}"
+    GIT_STRATEGY: clone
+  before_script:
+    - chmod +x /opt/aldeci/scan.sh
+  artifacts:
+    when: always
+    paths:
+      - aldeci-results/
+    reports:
+      codequality: aldeci-results/gl-code-quality-report.json
+      sast: aldeci-results/gl-sast-report.json
+    expire_in: 30 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH'
+      when: manual
+      allow_failure: true
+
+# ── SAST Scan ─────────────────────────────────────────────────────────────
+aldeci_sast:
+  extends: .aldeci_base
+  variables:
+    SCAN_TYPE: "sast"
+  script:
+    - /opt/aldeci/scan.sh
+  rules:
+    - if: '$ALDECI_SCAN_SAST == "false"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ── SCA / Dependency Scan ─────────────────────────────────────────────────
+aldeci_sca:
+  extends: .aldeci_base
+  variables:
+    SCAN_TYPE: "sca"
+  script:
+    - /opt/aldeci/scan.sh
+  rules:
+    - if: '$ALDECI_SCAN_SCA == "false"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ── IaC Scan ──────────────────────────────────────────────────────────────
+aldeci_iac:
+  extends: .aldeci_base
+  variables:
+    SCAN_TYPE: "iac"
+  script:
+    - /opt/aldeci/scan.sh
+  rules:
+    - if: '$ALDECI_SCAN_IAC == "false"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      exists:
+        - "**/*.tf"
+        - "**/*.tfvars"
+        - "**/Dockerfile"
+        - "**/docker-compose*.yml"
+        - "**/*.cfn.json"
+        - "**/*.template"
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      exists:
+        - "**/*.tf"
+
+# ── Full Scan (all types) ────────────────────────────────────────────────
+aldeci_full_scan:
+  extends: .aldeci_base
+  variables:
+    SCAN_TYPE: "all"
+  script:
+    - /opt/aldeci/scan.sh
+  rules:
+    - if: '$ALDECI_SCAN_FULL == "true"'
+    - when: never
+
+# ── Security Gate ─────────────────────────────────────────────────────────
+# Runs after all scan jobs, evaluates combined findings, fails pipeline if needed.
+aldeci_security_gate:
+  stage: security
+  image: alpine:3.20
+  needs:
+    - job: aldeci_sast
+      optional: true
+      artifacts: true
+    - job: aldeci_sca
+      optional: true
+      artifacts: true
+    - job: aldeci_iac
+      optional: true
+      artifacts: true
+    - job: aldeci_full_scan
+      optional: true
+      artifacts: true
+  before_script:
+    - apk add --no-cache jq
+  script:
+    - |
+      echo "========================================"
+      echo "  ALDECI Security Gate Evaluation"
+      echo "========================================"
+
+      THRESHOLD="${ALDECI_SEVERITY_THRESHOLD:-high}"
+      FAIL="${ALDECI_FAIL_ON_FINDINGS:-true}"
+
+      # Aggregate findings from all scan summary files
+      TOTAL_CRITICAL=0
+      TOTAL_HIGH=0
+      TOTAL_MEDIUM=0
+      TOTAL_LOW=0
+      TOTAL_FINDINGS=0
+
+      for summary in aldeci-results/scan-summary-*.json; do
+        [ -f "$summary" ] || continue
+        c=$(jq -r '.findings.critical // 0' "$summary")
+        h=$(jq -r '.findings.high // 0' "$summary")
+        m=$(jq -r '.findings.medium // 0' "$summary")
+        l=$(jq -r '.findings.low // 0' "$summary")
+        t=$(jq -r '.findings.total // 0' "$summary")
+        TOTAL_CRITICAL=$((TOTAL_CRITICAL + c))
+        TOTAL_HIGH=$((TOTAL_HIGH + h))
+        TOTAL_MEDIUM=$((TOTAL_MEDIUM + m))
+        TOTAL_LOW=$((TOTAL_LOW + l))
+        TOTAL_FINDINGS=$((TOTAL_FINDINGS + t))
+      done
+
+      echo "Findings: ${TOTAL_FINDINGS} total"
+      echo "  Critical: ${TOTAL_CRITICAL}"
+      echo "  High:     ${TOTAL_HIGH}"
+      echo "  Medium:   ${TOTAL_MEDIUM}"
+      echo "  Low:      ${TOTAL_LOW}"
+      echo "Threshold:  ${THRESHOLD}"
+      echo ""
+
+      ACTION="pass"
+      case "$THRESHOLD" in
+        critical)
+          [ "$TOTAL_CRITICAL" -gt 0 ] && ACTION="block" ;;
+        high)
+          [ "$TOTAL_CRITICAL" -gt 0 ] && ACTION="block"
+          [ "$TOTAL_HIGH" -gt 0 ] && ACTION="block" ;;
+        medium)
+          [ "$TOTAL_CRITICAL" -gt 0 ] && ACTION="block"
+          [ "$TOTAL_HIGH" -gt 0 ] && ACTION="block"
+          [ "$TOTAL_MEDIUM" -gt 0 ] && ACTION="block" ;;
+        low)
+          [ "$TOTAL_FINDINGS" -gt 0 ] && ACTION="block" ;;
+      esac
+
+      if [ "$ACTION" = "block" ] && [ "$FAIL" != "true" ]; then
+        ACTION="warn"
+      fi
+
+      echo "Policy action: ${ACTION}"
+
+      if [ "$ACTION" = "block" ]; then
+        echo ""
+        echo "BLOCKED: ${TOTAL_CRITICAL} critical, ${TOTAL_HIGH} high findings exceed '${THRESHOLD}' threshold"
+        exit 1
+      elif [ "$ACTION" = "warn" ]; then
+        echo ""
+        echo "WARNING: findings detected but fail_on_findings is disabled"
+        exit 0
+      else
+        echo ""
+        echo "PASSED: no findings above '${THRESHOLD}' threshold"
+        exit 0
+      fi
+  artifacts:
+    when: always
+    paths:
+      - aldeci-results/
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

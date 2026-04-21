@@ -429,7 +429,9 @@ class ProwlerEngine:
                     (org_id, check_id, resource_id),
                 ).fetchone()
                 if existing:
-                    return self._row(existing)
+                    result = self._row(existing)
+                    result["_dedup"] = True
+                    return result
 
                 record: Dict[str, Any] = {
                     "id": finding_id,
@@ -754,11 +756,10 @@ class ProwlerEngine:
                     compliance_frameworks=f.get("compliance_frameworks", "[]"),
                     raw_json=f.get("raw_json", "{}"),
                 )
-                # If the returned ID matches what we'd expect for a new record, it was ingested
-                if result.get("scan_id") == scan_id:
-                    ingested += 1
-                else:
+                if result.get("_dedup"):
                     skipped += 1
+                else:
+                    ingested += 1
             except (ValueError, KeyError):
                 skipped += 1
         return {"ingested": ingested, "skipped_duplicates": skipped}
