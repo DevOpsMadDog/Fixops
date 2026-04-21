@@ -6594,6 +6594,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # SIEM Output Connectors — Splunk HEC + Microsoft Sentinel
+    try:
+        from apps.api.siem_output_router import router as siem_output_router
+        app.include_router(siem_output_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted SIEM Output router at /api/v1/siem-output")
+    except ImportError:
+        pass
+
     try:
         from apps.api.nac_router import router as nac_router
         app.include_router(nac_router)
@@ -8388,6 +8396,22 @@ def create_app() -> FastAPI:
         from apps.api.export_router import router as export_router
         app.include_router(export_router)
         _logger.info("Mounted Data Export router at /api/v1/export")
+    except ImportError:
+        pass
+
+    # ServiceNow bidirectional connector (CMDB + incident + change management)
+    try:
+        from servicenow.servicenow_router import router as servicenow_router
+        app.include_router(servicenow_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted ServiceNow connector at /api/v1/servicenow")
+    except ImportError:
+        pass
+
+    # Prowler CSPM — agentless cloud scanning (AWS/Azure/GCP)
+    try:
+        from apps.api.prowler_router import router as prowler_router
+        app.include_router(prowler_router)
+        _logger.info("Mounted Prowler CSPM router at /api/v1/prowler")
     except ImportError:
         pass
 
