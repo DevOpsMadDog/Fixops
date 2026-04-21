@@ -1,0 +1,285 @@
+{
+  "timestamp": "2026-04-21T13:43:15Z",
+  "total": 30,
+  "elapsed_s": 35.7,
+  "summary": {
+    "loaded": 0,
+    "auth_redirect": 30,
+    "errors": 0,
+    "has_data": 30,
+    "ui_errors": 0,
+    "js_errors": 0
+  },
+  "results": [
+    {
+      "url": "http://localhost:5173/",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/root.png",
+      "load_ms": 1417
+    },
+    {
+      "url": "http://localhost:5173/dashboard",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/dashboard.png",
+      "load_ms": 892
+    },
+    {
+      "url": "http://localhost:5173/mission-control",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control.png",
+      "load_ms": 2997
+    },
+    {
+      "url": "http://localhost:5173/mission-control/ciso",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_ciso.png",
+      "load_ms": 898
+    },
+    {
+      "url": "http://localhost:5173/mission-control/executive",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_executive.png",
+      "load_ms": 886
+    },
+    {
+      "url": "http://localhost:5173/mission-control/sla",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_sla.png",
+      "load_ms": 883
+    },
+    {
+      "url": "http://localhost:5173/mission-control/live-feed",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_live-feed.png",
+      "load_ms": 897
+    },
+    {
+      "url": "http://localhost:5173/mission-control/risk",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_risk.png",
+      "load_ms": 894
+    },
+    {
+      "url": "http://localhost:5173/mission-control/soc",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_soc.png",
+      "load_ms": 914
+    },
+    {
+      "url": "http://localhost:5173/mission-control/soc-t1",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_soc-t1.png",
+      "load_ms": 886
+    },
+    {
+      "url": "http://localhost:5173/mission-control/compliance",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_compliance.png",
+      "load_ms": 883
+    },
+    {
+      "url": "http://localhost:5173/mission-control/dev-security",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_dev-security.png",
+      "load_ms": 896
+    },
+    {
+      "url": "http://localhost:5173/mission-control/threat-intel",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_threat-intel.png",
+      "load_ms": 893
+    },
+    {
+      "url": "http://localhost:5173/mission-control/risk-register",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/mission-control_risk-register.png",
+      "load_ms": 886
+    },
+    {
+      "url": "http://localhost:5173/discover",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover.png",
+      "load_ms": 887
+    },
+    {
+      "url": "http://localhost:5173/discover/code",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_code.png",
+      "load_ms": 1036
+    },
+    {
+      "url": "http://localhost:5173/discover/secrets",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_secrets.png",
+      "load_ms": 1100
+    },
+    {
+      "url": "http://localhost:5173/discover/iac",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_iac.png",
+      "load_ms": 900
+    },
+    {
+      "url": "http://localhost:5173/discover/cloud",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_cloud.png",
+      "load_ms": 901
+    },
+    {
+      "url": "http://localhost:5173/discover/containers",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_containers.png",
+      "load_ms": 1113
+    },
+    {
+      "url": "http://localhost:5173/discover/sbom",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_sbom.png",
+      "load_ms": 905
+    },
+    {
+      "url": "http://localhost:5173/discover/graph",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_graph.png",
+      "load_ms": 884
+    },
+    {
+      "url": "http://localhost:5173/discover/attack-paths",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_attack-paths.png",
+      "load_ms": 896
+    },
+    {
+      "url": "http://localhost:5173/discover/threats",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_threats.png",
+      "load_ms": 887
+    },
+    {
+      "url": "http://localhost:5173/discover/correlation",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_correlation.png",
+      "load_ms": 887
+    },
+    {
+      "url": "http://localhost:5173/discover/data-fabric",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/discover_data-fabric.png",
+      "load_ms": 887
+    },
+    {
+      "url": "http://localhost:5173/validate",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/validate.png",
+      "load_ms": 888
+    },
+    {
+      "url": "http://localhost:5173/validate/mpte",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/validate_mpte.png",
+      "load_ms": 881
+    },
+    {
+      "url": "http://localhost:5173/validate/simulation",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/validate_simulation.png",
+      "load_ms": 886
+    },
+    {
+      "url": "http://localhost:5173/validate/playbooks",
+      "status": "auth_redirect",
+      "has_data": true,
+      "errors": [],
+      "js_errors": [],
+      "screenshot": "/Users/devops.ai/fixops/Fixops/.omc/screenshots/validate_playbooks.png",
+      "load_ms": 892
+    }
+  ]
+}
