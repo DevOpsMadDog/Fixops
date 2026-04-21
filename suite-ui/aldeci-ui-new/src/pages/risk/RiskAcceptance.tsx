@@ -692,7 +692,7 @@ function PendingCard({ record, onClick }: { record: RiskAcceptanceRecord; onClic
           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><User className="h-3 w-3" />{record.requester}</span>
             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />Submitted {formatDate(record.submitted_at)}</span>
-            <span className="flex items-center gap-1"><CalendarClock className="h-3 w-3" />Expires in {record.expiration_days ?? Math.round((record.expiration.getTime() - now.getTime()) / 86_400_000)}d if accepted</span>
+            <span className="flex items-center gap-1"><CalendarClock className="h-3 w-3" />Expires in {Math.round((record.expiration.getTime() - now.getTime()) / 86_400_000)}d if accepted</span>
             {record.comments.length > 0 && (
               <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{record.comments.length}</span>
             )}

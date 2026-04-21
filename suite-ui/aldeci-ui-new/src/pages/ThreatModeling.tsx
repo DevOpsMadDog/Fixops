@@ -483,28 +483,28 @@ export default function ThreatModeling() {
             {/* Summary Stats */}
             <div className="grid grid-cols-4 gap-4">
               <KpiCard
-                label="Total Threats"
+                title="Total Threats"
                 value={totalThreats}
                 icon={AlertCircle}
                 trend={totalThreats > 0 ? "up" : "neutral"}
                 description={`${mitigatedCount} mitigated`}
               />
               <KpiCard
-                label="Critical"
+                title="Critical"
                 value={criticalCount}
                 icon={AlertTriangle}
                 trend={criticalCount > 0 ? "up" : "neutral"}
                 description="Requires immediate action"
               />
               <KpiCard
-                label="High"
+                title="High"
                 value={highCount}
                 icon={AlertTriangle}
                 trend={highCount > 2 ? "up" : "down"}
                 description="Plan remediation"
               />
               <KpiCard
-                label="Mitigated (%)"
+                title="Mitigated (%)"
                 value={Math.round((mitigatedCount / totalThreats) * 100)}
                 icon={CheckCircle2}
                 trend="up"

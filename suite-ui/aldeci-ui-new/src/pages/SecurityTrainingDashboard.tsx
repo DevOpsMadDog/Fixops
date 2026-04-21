@@ -140,10 +140,10 @@ export default function SecurityTrainingDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KPICard label="Courses" value={String(liveData?.stats?.total_courses ?? liveData?.courses?.length ?? 24)} sub="8 active this quarter" icon={GraduationCap} color="bg-primary/10 text-primary" />
-        <KPICard label="Active Enrollments" value={liveData?.stats?.active_enrollments ? liveData.stats.active_enrollments.toLocaleString() : "3,847"} sub="+214 this week" icon={Users} color="bg-blue-500/10 text-blue-400" />
-        <KPICard label="Completion Rate" value={liveData?.stats?.completion_rate ? `${liveData.stats.completion_rate.toFixed(1)}%` : "78.4%"} sub="+3.2% vs last quarter" icon={CheckCircle} color="bg-green-500/10 text-green-400" />
-        <KPICard label="Avg Score" value={liveData?.stats?.average_score ? liveData.stats.average_score.toFixed(1) : "82.7"} sub="Passing threshold: 80" icon={Star} color="bg-yellow-500/10 text-yellow-400" />
+        <KPICard title="Courses" value={String(liveData?.stats?.total_courses ?? liveData?.courses?.length ?? 24)} sub="8 active this quarter" icon={GraduationCap} color="bg-primary/10 text-primary" />
+        <KPICard title="Active Enrollments" value={liveData?.stats?.active_enrollments ? liveData.stats.active_enrollments.toLocaleString() : "3,847"} sub="+214 this week" icon={Users} color="bg-blue-500/10 text-blue-400" />
+        <KPICard title="Completion Rate" value={liveData?.stats?.completion_rate ? `${liveData.stats.completion_rate.toFixed(1)}%` : "78.4%"} sub="+3.2% vs last quarter" icon={CheckCircle} color="bg-green-500/10 text-green-400" />
+        <KPICard title="Avg Score" value={liveData?.stats?.average_score ? liveData.stats.average_score.toFixed(1) : "82.7"} sub="Passing threshold: 80" icon={Star} color="bg-yellow-500/10 text-yellow-400" />
       </div>
 
       {/* Tabs */}

@@ -751,7 +751,7 @@ function AlertDetailDrawer({
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 38 }}
             className="fixed top-0 right-0 z-50 h-full w-full max-w-xl bg-background border-l border-border shadow-2xl flex flex-col"
-            aria-label="Alert detail"
+            aria-title="Alert detail"
             role="dialog"
           >
             {/* Drawer header */}
@@ -767,7 +767,7 @@ function AlertDetailDrawer({
               <button
                 onClick={onClose}
                 className="shrink-0 rounded-md p-1.5 hover:bg-muted/60 transition-colors"
-                aria-label="Close drawer"
+                aria-title="Close drawer"
               >
                 <X className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -1254,28 +1254,28 @@ export default function SOCT1Dashboard() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-3"
         >
           <StatCard
-            label="Open Alerts"
+            title="Open Alerts"
             value={stats.openCount}
             sub={stats.openTrend}
             trend="down"
             icon={AlertTriangle}
           />
           <StatCard
-            label="Mean Time to Triage"
+            title="Mean Time to Triage"
             value={stats.mttt}
             sub={stats.mtttTrend}
             trend="up"
             icon={Timer}
           />
           <StatCard
-            label="False Positive Rate"
+            title="False Positive Rate"
             value={stats.fpRate}
             sub={stats.fpTrend}
             trend="flat"
             icon={BarChart3}
           />
           <StatCard
-            label="LLM Accuracy"
+            title="LLM Accuracy"
             value={stats.llmAccuracy}
             sub={stats.llmTrend}
             trend="up"
@@ -1506,7 +1506,7 @@ export default function SOCT1Dashboard() {
                                       <button
                                         className="rounded p-1 hover:bg-muted/60 transition-colors"
                                         onClick={() => setDrawerAlert(alert)}
-                                        aria-label="Open detail"
+                                        aria-title="Open detail"
                                       >
                                         <ChevronsRight className="h-3.5 w-3.5 text-muted-foreground" />
                                       </button>
@@ -1518,7 +1518,7 @@ export default function SOCT1Dashboard() {
                                       <button
                                         className="rounded p-1 hover:bg-green-500/10 transition-colors"
                                         onClick={() => handleAccept(alert.id)}
-                                        aria-label="Accept verdict"
+                                        aria-title="Accept verdict"
                                       >
                                         <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
                                       </button>
@@ -1530,7 +1530,7 @@ export default function SOCT1Dashboard() {
                                       <button
                                         className="rounded p-1 hover:bg-muted/60 transition-colors"
                                         onClick={() => handleOverride(alert.id, "FALSE_POSITIVE")}
-                                        aria-label="Mark false positive"
+                                        aria-title="Mark false positive"
                                       >
                                         <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
                                       </button>

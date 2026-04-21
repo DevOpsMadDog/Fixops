@@ -93,6 +93,7 @@ function LangBadge({ lang }: { lang: string }) {
 
 export default function SCADashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
 
   useEffect(() => {

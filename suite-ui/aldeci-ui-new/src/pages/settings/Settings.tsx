@@ -230,10 +230,10 @@ function GeneralTab() {
         <CardContent className="pt-6">
           <SectionHeader icon={Settings2} title="Organization" description="Core identity and configuration for your ALDECI instance" />
           <div className="max-w-xl divide-y divide-border/40">
-            <FieldRow label="Organization Name" hint="Displayed across dashboards and reports">
+            <FieldRow title="Organization Name" hint="Displayed across dashboards and reports">
               <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} className="max-w-sm" />
             </FieldRow>
-            <FieldRow label="Timezone" hint="Used for scheduling, SLA deadlines, and report timestamps">
+            <FieldRow title="Timezone" hint="Used for scheduling, SLA deadlines, and report timestamps">
               <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger className="max-w-xs">
                   <SelectValue />
@@ -250,7 +250,7 @@ function GeneralTab() {
                 </SelectContent>
               </Select>
             </FieldRow>
-            <FieldRow label="Data Retention" hint="How long to keep raw scan data, findings history, and audit logs">
+            <FieldRow title="Data Retention" hint="How long to keep raw scan data, findings history, and audit logs">
               <div className="flex items-center gap-3">
                 <Select value={retention} onValueChange={setRetention}>
                   <SelectTrigger className="w-40">
@@ -1101,9 +1101,9 @@ function SystemTab() {
           <CardContent className="pt-6">
             <SectionHeader icon={Cpu} title="Resource Usage" description="Current compute and storage utilization" />
             <div className="space-y-5">
-              <MetricBar label="CPU" value={MOCK_SYSTEM.cpu} />
-              <MetricBar label="Memory" value={MOCK_SYSTEM.memory} />
-              <MetricBar label="Disk" value={MOCK_SYSTEM.disk} />
+              <MetricBar title="CPU" value={MOCK_SYSTEM.cpu} />
+              <MetricBar title="Memory" value={MOCK_SYSTEM.memory} />
+              <MetricBar title="Disk" value={MOCK_SYSTEM.disk} />
             </div>
           </CardContent>
         </Card>

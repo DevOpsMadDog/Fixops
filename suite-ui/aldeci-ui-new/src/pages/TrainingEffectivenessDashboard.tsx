@@ -39,6 +39,7 @@ const typeColor: Record<string, string> = {
 export default function TrainingEffectivenessDashboard() {
   const [programs, setPrograms] = useState<TrainingProgram[]>(MOCK_PROGRAMS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);

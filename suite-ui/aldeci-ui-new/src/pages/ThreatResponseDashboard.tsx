@@ -163,10 +163,10 @@ export default function ThreatResponseDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Play}         label="Total Playbooks"      value={MOCK_PLAYBOOKS.length}  color="bg-blue-500/20 text-blue-400" />
-        <KpiCard icon={AlertTriangle} label="Active Incidents"    value={activeIncidents.length} color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={CheckCircle}  label="Resolved"             value={resolved.size}           sub="this session"                 color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={Clock}        label="Avg Resolution"       value="47m"                     sub="last 30 days"                 color="bg-yellow-500/20 text-yellow-400" />
+        <KpiCard icon={Play}         title="Total Playbooks"      value={MOCK_PLAYBOOKS.length}  color="bg-blue-500/20 text-blue-400" />
+        <KpiCard icon={AlertTriangle} title="Active Incidents"    value={activeIncidents.length} color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={CheckCircle}  title="Resolved"             value={resolved.size}           sub="this session"                 color="bg-emerald-500/20 text-emerald-400" />
+        <KpiCard icon={Clock}        title="Avg Resolution"       value="47m"                     sub="last 30 days"                 color="bg-yellow-500/20 text-yellow-400" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -38,6 +38,7 @@ const typeColor: Record<string, string> = {
 export default function ThreatIndicatorDashboard() {
   const [indicators, setIndicators] = useState<Indicator[]>(MOCK_INDICATORS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {

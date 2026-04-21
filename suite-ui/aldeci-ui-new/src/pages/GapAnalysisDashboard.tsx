@@ -173,9 +173,9 @@ export default function GapAnalysisDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <KpiCard icon={BarChart2}    label="Total Gaps"        value={MOCK_GAPS.length} color="bg-purple-500/20 text-purple-400" />
-        <KpiCard icon={AlertTriangle} label="Open Gaps"        value={openGaps.length}  color="bg-orange-500/20 text-orange-400" />
-        <KpiCard icon={Shield}       label="Critical Open"     value={critOpen.length}  color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={BarChart2}    title="Total Gaps"        value={MOCK_GAPS.length} color="bg-purple-500/20 text-purple-400" />
+        <KpiCard icon={AlertTriangle} title="Open Gaps"        value={openGaps.length}  color="bg-orange-500/20 text-orange-400" />
+        <KpiCard icon={Shield}       title="Critical Open"     value={critOpen.length}  color="bg-red-500/20 text-red-400" />
       </div>
 
       {/* Framework Coverage Grid */}

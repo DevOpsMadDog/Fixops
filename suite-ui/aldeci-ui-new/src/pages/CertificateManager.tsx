@@ -427,25 +427,25 @@ export default function CertificateManagerPage() {
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          label="Total Certificates"
+          title="Total Certificates"
           value={stats.total}
           icon={Shield}
           color="bg-blue-900/40 text-blue-400"
         />
         <KPICard
-          label="Expired"
+          title="Expired"
           value={stats.expired}
           icon={XCircle}
           color="bg-red-900/40 text-red-400"
         />
         <KPICard
-          label="Expiring (30d)"
+          title="Expiring (30d)"
           value={stats.expiring_soon}
           icon={AlertTriangle}
           color="bg-amber-900/40 text-amber-400"
         />
         <KPICard
-          label="Healthy"
+          title="Healthy"
           value={stats.healthy}
           icon={CheckCircle}
           color="bg-emerald-900/40 text-emerald-400"

@@ -360,8 +360,8 @@ export default function DLPDashboard() {
             <CardDescription className="text-xs">Block rate and false positive rate across active policies</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-around pt-4">
-            <GaugeMeter label="Block Rate" value={blockRate} color="rgb(239 68 68)" />
-            <GaugeMeter label="False Positive Rate" value={fpRate} color="rgb(251 191 36)" />
+            <GaugeMeter title="Block Rate" value={blockRate} color="rgb(239 68 68)" />
+            <GaugeMeter title="False Positive Rate" value={fpRate} color="rgb(251 191 36)" />
           </CardContent>
         </Card>
       </div>

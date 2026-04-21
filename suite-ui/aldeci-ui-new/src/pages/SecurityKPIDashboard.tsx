@@ -537,22 +537,22 @@ export default function SecurityKPIDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 bg-slate-900/20 rounded-lg">
-              <Sparkline data={TREND_DATA_7DAY.mttd} label="MTTD (hours)" trend="down" />
-              <Sparkline data={TREND_DATA_7DAY.mttr} label="MTTR (hours)" trend="up" />
+              <Sparkline data={TREND_DATA_7DAY.mttd} title="MTTD (hours)" trend="down" />
+              <Sparkline data={TREND_DATA_7DAY.mttr} title="MTTR (hours)" trend="up" />
               <Sparkline
                 data={TREND_DATA_7DAY.patch_compliance}
-                label="Patch Compliance (%)"
+                title="Patch Compliance (%)"
                 trend="flat"
               />
               <Sparkline
                 data={TREND_DATA_7DAY.sla_compliance}
-                label="SLA Compliance (%)"
+                title="SLA Compliance (%)"
                 trend="flat"
               />
-              <Sparkline data={TREND_DATA_7DAY.fp_rate} label="FP Rate (%)" trend="down" />
+              <Sparkline data={TREND_DATA_7DAY.fp_rate} title="FP Rate (%)" trend="down" />
               <Sparkline
                 data={TREND_DATA_7DAY.vuln_density}
-                label="Vuln Density (/1K LOC)"
+                title="Vuln Density (/1K LOC)"
                 trend="down"
               />
             </div>

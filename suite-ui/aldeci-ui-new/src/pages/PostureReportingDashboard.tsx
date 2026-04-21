@@ -149,17 +149,6 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
   const barColor = pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-yellow-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2 w-full">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
       <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
         <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
       </div>

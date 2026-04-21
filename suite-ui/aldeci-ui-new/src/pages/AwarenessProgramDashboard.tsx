@@ -165,10 +165,10 @@ export default function AwarenessProgramDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={GraduationCap} label="Programs"          value={MOCK_PROGRAMS.length} color="bg-blue-500/20 text-blue-400" />
-        <KpiCard icon={Users}         label="Total Enrolled"    value={totalEnrolled.toLocaleString()} sub="unique users" color="bg-purple-500/20 text-purple-400" />
-        <KpiCard icon={CheckCircle}   label="Completed"         value={totalCompleted.toLocaleString()} color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={GraduationCap} label="Avg Pass Rate"     value={`${avgPassRate}%`}    color="bg-teal-500/20 text-teal-400" />
+        <KpiCard icon={GraduationCap} title="Programs"          value={MOCK_PROGRAMS.length} color="bg-blue-500/20 text-blue-400" />
+        <KpiCard icon={Users}         title="Total Enrolled"    value={totalEnrolled.toLocaleString()} sub="unique users" color="bg-purple-500/20 text-purple-400" />
+        <KpiCard icon={CheckCircle}   title="Completed"         value={totalCompleted.toLocaleString()} color="bg-emerald-500/20 text-emerald-400" />
+        <KpiCard icon={GraduationCap} title="Avg Pass Rate"     value={`${avgPassRate}%`}    color="bg-teal-500/20 text-teal-400" />
       </div>
 
       {/* Program List */}

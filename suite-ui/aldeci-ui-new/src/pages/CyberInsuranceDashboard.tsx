@@ -378,11 +378,11 @@ export default function CyberInsuranceDashboard() {
           <CardContent className="space-y-4">
             {assessment && (
               <>
-                <ScoreBar label="Multi-Factor Authentication"  score={assessment.mfa_score ?? 91}               color={assessment.mfa_score >= 80 ? "bg-green-500" : assessment.mfa_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
-                <ScoreBar label="Backup & Recovery"            score={assessment.backup_score ?? 78}             color={assessment.backup_score >= 80 ? "bg-green-500" : assessment.backup_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
-                <ScoreBar label="Incident Response Plan"       score={assessment.incident_response_score ?? 65}  color={assessment.incident_response_score >= 80 ? "bg-green-500" : assessment.incident_response_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
-                <ScoreBar label="Patch Management"             score={assessment.patch_score ?? 54}              color={assessment.patch_score >= 80 ? "bg-green-500" : assessment.patch_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
-                <ScoreBar label="Security Awareness Training"  score={assessment.training_score ?? 42}           color={assessment.training_score >= 80 ? "bg-green-500" : assessment.training_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
+                <ScoreBar title="Multi-Factor Authentication"  score={assessment.mfa_score ?? 91}               color={assessment.mfa_score >= 80 ? "bg-green-500" : assessment.mfa_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
+                <ScoreBar title="Backup & Recovery"            score={assessment.backup_score ?? 78}             color={assessment.backup_score >= 80 ? "bg-green-500" : assessment.backup_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
+                <ScoreBar title="Incident Response Plan"       score={assessment.incident_response_score ?? 65}  color={assessment.incident_response_score >= 80 ? "bg-green-500" : assessment.incident_response_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
+                <ScoreBar title="Patch Management"             score={assessment.patch_score ?? 54}              color={assessment.patch_score >= 80 ? "bg-green-500" : assessment.patch_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
+                <ScoreBar title="Security Awareness Training"  score={assessment.training_score ?? 42}           color={assessment.training_score >= 80 ? "bg-green-500" : assessment.training_score >= 60 ? "bg-yellow-500" : "bg-red-500"} />
               </>
             )}
           </CardContent>

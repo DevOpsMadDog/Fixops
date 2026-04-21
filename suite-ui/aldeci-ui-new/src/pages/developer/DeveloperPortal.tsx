@@ -610,9 +610,9 @@ function ReposTable({ repos }: { repos: Repo[] }) {
           <CardTitle className="text-sm font-semibold">My Repositories</CardTitle>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             Sort:
-            <SortBtn k="grade" label="Score" />
-            <SortBtn k="findings" label="Findings" />
-            <SortBtn k="lastScan" label="Last Scan" />
+            <SortBtn k="grade" title="Score" />
+            <SortBtn k="findings" title="Findings" />
+            <SortBtn k="lastScan" title="Last Scan" />
           </div>
         </div>
       </CardHeader>
@@ -752,8 +752,8 @@ function FindingsTable({
           </CardTitle>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             Sort:
-            <SortBtn k="severity" label="Severity" />
-            <SortBtn k="age" label="Age" />
+            <SortBtn k="severity" title="Severity" />
+            <SortBtn k="age" title="Age" />
           </div>
         </div>
       </CardHeader>

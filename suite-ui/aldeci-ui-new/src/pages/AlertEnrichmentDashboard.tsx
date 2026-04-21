@@ -157,10 +157,10 @@ export default function AlertEnrichmentDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Zap}           label="Total Alerts"   value={queue.length} color="bg-yellow-500/20 text-yellow-400" />
-        <KpiCard icon={CheckCircle}   label="Enriched"       value={enriched}           color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={XCircle}       label="Failed"         value={failed}             color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={AlertTriangle} label="High Risk (≥7)" value={highRisk.length}    color="bg-orange-500/20 text-orange-400" />
+        <KpiCard icon={Zap}           title="Total Alerts"   value={queue.length} color="bg-yellow-500/20 text-yellow-400" />
+        <KpiCard icon={CheckCircle}   title="Enriched"       value={enriched}           color="bg-emerald-500/20 text-emerald-400" />
+        <KpiCard icon={XCircle}       title="Failed"         value={failed}             color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={AlertTriangle} title="High Risk (≥7)" value={highRisk.length}    color="bg-orange-500/20 text-orange-400" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

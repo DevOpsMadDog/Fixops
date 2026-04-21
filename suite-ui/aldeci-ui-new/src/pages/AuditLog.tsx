@@ -888,29 +888,25 @@ export default function AuditLogPage() {
           title="Events Today"
           value={kpis.eventsToday.toLocaleString()}
           icon={Activity}
-          valueClassName="text-blue-400"
           trend="flat"
         />
         <KpiCard
           title="Failed Auth Attempts"
           value={kpis.failedAuth}
           icon={XCircle}
-          valueClassName="text-red-400"
-          trend="negative"
+          trend="down"
         />
         <KpiCard
           title="Config Changes"
           value={kpis.configChanges}
           icon={Settings}
-          valueClassName="text-yellow-400"
           trend="flat"
         />
         <KpiCard
           title="Policy Violations"
           value={kpis.policyViolations}
           icon={AlertTriangle}
-          valueClassName="text-orange-400"
-          trend={kpis.policyViolations > 0 ? "negative" : "positive"}
+          trend={kpis.policyViolations > 0 ? "down" : "up"}
         />
       </div>
 

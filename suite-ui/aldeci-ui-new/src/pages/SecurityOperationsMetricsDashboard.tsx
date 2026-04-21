@@ -212,8 +212,8 @@ export default function SecurityOperationsMetricsDashboard() {
       {/* Gauges + trend */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-gray-800 rounded-lg p-6 flex items-center justify-around">
-          <MetricGauge label="MTTD" value={MOCK_STATS.mttd_minutes} max={120} unit="minutes" color="#14b8a6" />
-          <MetricGauge label="MTTR" value={MOCK_STATS.mttr_minutes} max={480} unit="minutes" color="#f97316" />
+          <MetricGauge title="MTTD" value={MOCK_STATS.mttd_minutes} max={120} unit="minutes" color="#14b8a6" />
+          <MetricGauge title="MTTR" value={MOCK_STATS.mttr_minutes} max={480} unit="minutes" color="#f97316" />
         </div>
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">7-Day Snapshot Trend</h2>

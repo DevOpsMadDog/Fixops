@@ -176,10 +176,10 @@ export default function SBOMExportDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Package}       label="Total Projects"    value={MOCK_PROJECTS.length} sub="active repositories"        color="bg-cyan-500/20 text-cyan-400" />
-        <KpiCard icon={FileText}      label="Total Components"  value={totalComponents.toLocaleString()} sub="unique packages"  color="bg-blue-500/20 text-blue-400" />
-        <KpiCard icon={AlertTriangle} label="Open Vulns"        value={totalVulns}            sub="across all projects"        color="bg-orange-500/20 text-orange-400" />
-        <KpiCard icon={Shield}        label="Critical Vulns"    value={totalCritical}          sub="require immediate action"   color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={Package}       title="Total Projects"    value={MOCK_PROJECTS.length} sub="active repositories"        color="bg-cyan-500/20 text-cyan-400" />
+        <KpiCard icon={FileText}      title="Total Components"  value={totalComponents.toLocaleString()} sub="unique packages"  color="bg-blue-500/20 text-blue-400" />
+        <KpiCard icon={AlertTriangle} title="Open Vulns"        value={totalVulns}            sub="across all projects"        color="bg-orange-500/20 text-orange-400" />
+        <KpiCard icon={Shield}        title="Critical Vulns"    value={totalCritical}          sub="require immediate action"   color="bg-red-500/20 text-red-400" />
       </div>
 
       {/* Project Cards */}

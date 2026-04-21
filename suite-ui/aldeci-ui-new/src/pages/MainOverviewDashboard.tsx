@@ -601,7 +601,7 @@ export default function MainOverviewDashboard() {
       {/* ═══ KPI STRIP ═════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard
-          label="Posture Score"
+          title="Posture Score"
           value={p.score}
           sub={`Grade ${p.grade} — ${p.trend}`}
           icon={<Shield className="w-4 h-4 text-cyan-400" />}
@@ -612,7 +612,7 @@ export default function MainOverviewDashboard() {
           delay={0.05}
         />
         <KpiCard
-          label="Total Alerts"
+          title="Total Alerts"
           value={a.total}
           sub={`${a.p1_open} P1 open`}
           icon={<Bell className="w-4 h-4 text-orange-400" />}
@@ -623,7 +623,7 @@ export default function MainOverviewDashboard() {
           delay={0.10}
         />
         <KpiCard
-          label="Critical Alerts"
+          title="Critical Alerts"
           value={criticalCount}
           sub="Immediate action needed"
           icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
@@ -634,7 +634,7 @@ export default function MainOverviewDashboard() {
           delay={0.15}
         />
         <KpiCard
-          label="Active Feeds"
+          title="Active Feeds"
           value={`${activeFeeds}/${fd.length}`}
           sub="Threat intel sources"
           icon={<Wifi className="w-4 h-4 text-emerald-400" />}
@@ -645,7 +645,7 @@ export default function MainOverviewDashboard() {
           delay={0.20}
         />
         <KpiCard
-          label="Avg Triage"
+          title="Avg Triage"
           value={`${a.avg_triage_time_min}m`}
           sub="Mean triage time"
           icon={<Target className="w-4 h-4 text-zinc-400" />}
@@ -655,7 +655,7 @@ export default function MainOverviewDashboard() {
           delay={0.25}
         />
         <KpiCard
-          label="Compliant"
+          title="Compliant"
           value={`${compliantCount}/${c.frameworks.length}`}
           sub="Frameworks passing"
           icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}

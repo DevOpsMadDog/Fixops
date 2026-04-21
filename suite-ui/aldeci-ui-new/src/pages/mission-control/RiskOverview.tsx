@@ -616,10 +616,10 @@ export default function RiskOverview() {
             </div>
             {/* 4 stat chips */}
             <div className="grid grid-cols-2 gap-3">
-              <StatChip label="Critical" value={criticalCount} sev="critical" />
-              <StatChip label="High" value={highCount} sev="high" />
-              <StatChip label="Medium" value={mediumCount} sev="medium" />
-              <StatChip label="Low" value={lowCount} sev="low" />
+              <StatChip title="Critical" value={criticalCount} sev="critical" />
+              <StatChip title="High" value={highCount} sev="high" />
+              <StatChip title="Medium" value={mediumCount} sev="medium" />
+              <StatChip title="Low" value={lowCount} sev="low" />
             </div>
           </motion.div>
 
@@ -944,28 +944,28 @@ export default function RiskOverview() {
             </div>
             <div className="space-y-5">
               <TreatmentBar
-                label="Critical Risks"
+                title="Critical Risks"
                 mitigated={Math.round(criticalCount * 0.3)}
                 accepted={Math.round(criticalCount * 0.1)}
                 transferred={Math.round(criticalCount * 0.05)}
                 avoided={Math.round(criticalCount * 0.05)}
               />
               <TreatmentBar
-                label="High Risks"
+                title="High Risks"
                 mitigated={Math.round(highCount * 0.45)}
                 accepted={Math.round(highCount * 0.2)}
                 transferred={Math.round(highCount * 0.1)}
                 avoided={Math.round(highCount * 0.05)}
               />
               <TreatmentBar
-                label="Medium Risks"
+                title="Medium Risks"
                 mitigated={Math.round(mediumCount * 0.55)}
                 accepted={Math.round(mediumCount * 0.25)}
                 transferred={Math.round(mediumCount * 0.1)}
                 avoided={Math.round(mediumCount * 0.05)}
               />
               <TreatmentBar
-                label="Low Risks"
+                title="Low Risks"
                 mitigated={Math.round(lowCount * 0.6)}
                 accepted={Math.round(lowCount * 0.3)}
                 transferred={Math.round(lowCount * 0.05)}
