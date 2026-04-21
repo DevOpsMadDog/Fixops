@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\nimport sys; sys.path.insert(0, 'suite-core')\\nORG = 'default'\\n\\n# aldeci-self_threat_feed_subscription.db\\nfrom core.threat_feed_subscription_engine import ThreatFeedSubscr...",
-  "error": "Exit code 1\n['create_delivery', 'create_subscription', 'get_due_subscriptions', 'get_ingestion_stats', 'get_subscription', 'list_subscriptions', 'record_delivery', 'record_ingestion', 'update_subscription_status']",
-  "timestamp": "2026-04-21T11:21:54.783Z",
-  "retry_count": 3
+  "tool_input_preview": "{\"command\":\"ls /Users/devops.ai/fixops/Fixops/tests/test_oauth* /Users/devops.ai/fixops/Fixops/tests/test_sso* 2>/dev/null\",\"description\":\"Check existing OAuth/SSO test files\"}",
+  "error": "Exit code 1\n/Users/devops.ai/fixops/Fixops/tests/test_sso_bridge.py\n/Users/devops.ai/fixops/Fixops/tests/test_sso_provider.py",
+  "timestamp": "2026-04-21T13:20:26.545Z",
+  "retry_count": 1
 }
