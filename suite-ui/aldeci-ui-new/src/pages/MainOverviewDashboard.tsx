@@ -57,6 +57,88 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
+// ── Normalizers: map live API shapes → internal shapes ───────────
+
+/**
+ * Posture score: API /current returns { overall_score, grade, trend }
+ * API /stats  returns { current_score, grade, trend, worst_score_30d, best_score_30d }
+ * Internal shape: { score, grade, trend, previous_score }
+ */
+function normalizePosture(raw: Record<string, unknown>) {
+  // /current endpoint
+  const score = (raw.overall_score ?? raw.current_score ?? raw.score ?? 0) as number;
+  const grade = (raw.grade ?? "B") as string;
+  const trend = (raw.trend ?? "stable") as string;
+  // Derive previous_score: use worst_score_30d as a proxy for "before", fall back to score-3
+  const previous_score = (raw.worst_score_30d ?? raw.previous_score ?? Math.max(0, score - 3)) as number;
+  return { score: Math.round(score), grade, trend, previous_score: Math.round(previous_score as number) };
+}
+
+/**
+ * Alert triage stats: API returns {
+ *   total_alerts, by_severity: { critical: 12, high: 47 }, avg_triage_time_minutes, new_alerts
+ * }
+ * Internal shape: { total, p1_open, avg_triage_time_min, by_severity: [{severity, count}] }
+ */
+function normalizeAlerts(raw: Record<string, unknown>) {
+  // by_severity can be a dict OR already an array (mock shape)
+  let bySeverityArr: { severity: string; count: number }[];
+  const bySev = raw.by_severity;
+  if (Array.isArray(bySev)) {
+    bySeverityArr = bySev as { severity: string; count: number }[];
+  } else if (bySev && typeof bySev === "object") {
+    const dict = bySev as Record<string, number>;
+    const order = ["critical", "high", "medium", "low"];
+    bySeverityArr = order
+      .filter(k => dict[k] != null)
+      .map(k => ({ severity: k, count: dict[k] }));
+    // include any extra keys not in the canonical order
+    Object.keys(dict).forEach(k => {
+      if (!order.includes(k)) bySeverityArr.push({ severity: k, count: dict[k] });
+    });
+  } else {
+    bySeverityArr = [];
+  }
+  const total = (raw.total_alerts ?? raw.total ?? bySeverityArr.reduce((s, x) => s + x.count, 0)) as number;
+  const criticalEntry = bySeverityArr.find(s => s.severity === "critical");
+  const p1_open = (raw.p1_open ?? criticalEntry?.count ?? 0) as number;
+  const avg_triage_time_min = (raw.avg_triage_time_minutes ?? raw.avg_triage_time_min ?? 0) as number;
+  return { total, p1_open, avg_triage_time_min, by_severity: bySeverityArr };
+}
+
+/**
+ * Compliance: API /status returns {
+ *   overall_score, frameworks: [{ framework, full_name, score, passing, total_controls }]
+ * }
+ * Internal shape: { frameworks: [{ name, score, status }] }
+ */
+function normalizeCompliance(raw: Record<string, unknown>) {
+  const fwsRaw = (raw.frameworks ?? []) as Record<string, unknown>[];
+  const frameworks = fwsRaw.map(fw => ({
+    name: (fw.full_name ?? fw.framework ?? fw.name ?? "Unknown") as string,
+    score: Math.round((fw.score ?? 0) as number),
+    // derive status from score since API doesn't include it
+    status: ((fw.status as string) ?? ((fw.score as number) >= 80 ? "compliant" : "partial")),
+  }));
+  return { frameworks };
+}
+
+/**
+ * Feeds: API returns {
+ *   feeds: [{ name, status: "operational"|"degraded", record_count, last_sync, ... }]
+ * }
+ * Internal shape: [{ name, status: "active"|"inactive", ioc_count, last_sync }]
+ */
+function normalizeFeeds(raw: Record<string, unknown>[]) {
+  return raw.map(f => ({
+    name: (f.name ?? f.id ?? "Unknown") as string,
+    // API uses "operational"/"degraded"; mock uses "active"/"inactive"
+    status: (f.status === "operational" || f.status === "active") ? "active" : "inactive",
+    ioc_count: (f.record_count ?? f.ioc_count ?? 0) as number,
+    last_sync: (f.last_sync ?? new Date().toISOString()) as string,
+  }));
+}
+
 // ── Fallback mock data ───────────────────────────────────────────
 const MOCK_POSTURE = { score: 74, grade: "B", trend: "improving", previous_score: 71 };
 
@@ -525,12 +607,44 @@ export default function MainOverviewDashboard() {
     ]);
 
     const [p, a, c, v, i, f] = results;
-    setPosture(   p.status === "fulfilled" ? p.value : MOCK_POSTURE);
-    setAlerts(    a.status === "fulfilled" ? a.value : MOCK_ALERT_STATS);
-    setCompliance(c.status === "fulfilled" ? c.value : MOCK_COMPLIANCE);
-    setVulns(     v.status === "fulfilled" ? (v.value.top_critical ?? MOCK_VULNS) : MOCK_VULNS);
-    setIncidents( i.status === "fulfilled" ? (i.value.incidents ?? MOCK_INCIDENTS) : MOCK_INCIDENTS);
-    setFeeds(     f.status === "fulfilled" ? (f.value.feeds ?? MOCK_FEEDS) : MOCK_FEEDS);
+
+    // Posture: normalise overall_score → score, derive previous_score
+    setPosture(p.status === "fulfilled"
+      ? normalizePosture(p.value as Record<string, unknown>)
+      : MOCK_POSTURE);
+
+    // Alerts: normalise total_alerts → total, dict by_severity → array, avg_triage_time_minutes → _min
+    setAlerts(a.status === "fulfilled"
+      ? normalizeAlerts(a.value as Record<string, unknown>)
+      : MOCK_ALERT_STATS);
+
+    // Compliance: normalise framework key, derive status from score
+    setCompliance(c.status === "fulfilled"
+      ? normalizeCompliance(c.value as Record<string, unknown>)
+      : MOCK_COMPLIANCE);
+
+    // Vuln intel: stats endpoint has no top_critical — keep mock for vuln table
+    // (real CVE table wiring is a separate task; stats used for KPIs only)
+    setVulns(v.status === "fulfilled"
+      ? (Array.isArray((v.value as Record<string, unknown>).top_critical)
+          ? ((v.value as Record<string, unknown>).top_critical as typeof MOCK_VULNS)
+          : MOCK_VULNS)
+      : MOCK_VULNS);
+
+    // Incidents: list endpoint returns array directly (no wrapper object)
+    setIncidents(i.status === "fulfilled"
+      ? (Array.isArray(i.value) ? i.value as typeof MOCK_INCIDENTS
+          : ((i.value as Record<string, unknown>).incidents as typeof MOCK_INCIDENTS ?? MOCK_INCIDENTS))
+      : MOCK_INCIDENTS);
+
+    // Feeds: normalise record_count → ioc_count, status "operational" → "active"
+    setFeeds(f.status === "fulfilled"
+      ? normalizeFeeds(
+          Array.isArray((f.value as Record<string, unknown>).feeds)
+            ? ((f.value as Record<string, unknown>).feeds as Record<string, unknown>[])
+            : (Array.isArray(f.value) ? f.value as Record<string, unknown>[] : [])
+        )
+      : MOCK_FEEDS);
 
     setLastRefresh(new Date());
     setLoading(false);
@@ -547,9 +661,9 @@ export default function MainOverviewDashboard() {
   const inc = incidents  ?? MOCK_INCIDENTS;
   const fd  = feeds      ?? MOCK_FEEDS;
 
-  const activeFeeds      = fd.filter(f => f.status === "active").length;
-  const criticalCount    = a.by_severity.find(s => s.severity === "critical")?.count ?? 0;
-  const compliantCount   = c.frameworks.filter(f => f.status === "compliant").length;
+  const activeFeeds   = fd.filter(f => f.status === "active").length;
+  const criticalCount = a.by_severity.find(s => s.severity === "critical")?.count ?? 0;
+  const compliantCount = c.frameworks.filter(f => f.status === "compliant").length;
 
   return (
     <div className="flex flex-col gap-5 p-5 lg:p-6 min-h-screen bg-background">
