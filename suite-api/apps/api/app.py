@@ -8058,6 +8058,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.sse_router import router as sse_router
+        app.include_router(sse_router)
+        _logger.info("Mounted SSE event stream router at /api/v1/events/stream")
+    except ImportError:
+        pass
+
     # Wave 42 pre-wiring
     try:
         from apps.api.endpoint_forensics_router import router as endpoint_forensics_router
