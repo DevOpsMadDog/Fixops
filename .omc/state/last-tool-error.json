@@ -1,7 +1,7 @@
 {
-  "tool_name": "Glob",
-  "tool_input_preview": "{\"pattern\":\"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/vuln_intel*\"}",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-21T09:06:30.625Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"PYTHONPATH=suite-core:suite-api/apps:. python3 -m uvicorn suite-api.apps.api.app:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 5 2>&1 &\\nsleep 4\\ncurl -s -H \\\"X-API-Key: fixops_ent_3...",
+  "error": "Exit code 7\nWebSocket router not available: No module named 'suite_core'\nCTEM Pipeline router not available: No module named 'suite_core'\n/Users/devops.ai/fixops/Fixops/suite-api/apps/api/db_security_router.py:69: UserWarning: Field name \"schema\" in \"ScanRequest\" shadows an attribute in parent \"BaseModel\"\n  class ScanRequest(BaseModel):\n/Users/devops.ai/fixops/Fixops/suite-api/apps/api/db_security_router.py:125: UserWarning: Field name \"schema\" in \"DataExposureRequest\" shadows an attribute in pa...",
+  "timestamp": "2026-04-21T09:07:59.873Z",
   "retry_count": 1
 }
