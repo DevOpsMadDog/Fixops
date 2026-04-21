@@ -126,13 +126,13 @@ export default function GapAnalysisDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    apiFetch(`/api/v1/gap-analysis/assessments?org_id=${ORG_ID}`).catch((err) => {
+    return apiFetch(`/api/v1/gap-analysis/assessments?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load gap analysis data");
     });
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const today = new Date("2026-04-16");

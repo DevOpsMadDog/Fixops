@@ -165,13 +165,13 @@ export default function IncidentCostsDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    apiFetch(`/api/v1/incident-costs/costs?org_id=${ORG_ID}`).catch((err) => {
+    return apiFetch(`/api/v1/incident-costs/costs?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load incident costs data");
     });
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const selected = MOCK_INCIDENTS.find(i => i.id === selectedId) ?? null;

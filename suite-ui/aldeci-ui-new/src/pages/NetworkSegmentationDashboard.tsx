@@ -134,7 +134,7 @@ export default function NetworkSegmentationDashboard() {
   const loadData = (isRefresh = false) => {
     setFetchError(null);
     if (isRefresh) setRefreshing(true);
-    apiFetch(`/api/v1/network-segmentation/stats?org_id=${ORG_ID}`)
+    return apiFetch(`/api/v1/network-segmentation/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
       .catch((err) => {
         setFetchError(err instanceof Error ? err.message : "Failed to load segmentation data");
@@ -143,7 +143,7 @@ export default function NetworkSegmentationDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const stats    = liveData ?? MOCK_STATS;

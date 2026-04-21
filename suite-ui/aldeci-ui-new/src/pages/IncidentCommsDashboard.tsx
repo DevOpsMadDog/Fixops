@@ -145,13 +145,13 @@ export default function IncidentCommsDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    apiFetch(`/api/v1/incident-comms/comms?org_id=${ORG_ID}`).catch((err) => {
+    return apiFetch(`/api/v1/incident-comms/comms?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load incident comms data");
     });
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);

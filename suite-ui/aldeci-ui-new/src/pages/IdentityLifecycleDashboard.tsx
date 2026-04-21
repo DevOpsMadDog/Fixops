@@ -61,7 +61,7 @@ export default function IdentityLifecycleDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    fetch(`${_API_BASE}/accounts?org_id=default`, { headers: _getHeaders() })
+    return fetch(`${_API_BASE}/accounts?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
         void d;
@@ -72,7 +72,7 @@ export default function IdentityLifecycleDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const [filterAccount, setFilterAccount] = useState("all");

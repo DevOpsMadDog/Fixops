@@ -92,7 +92,7 @@ export default function IntelEnrichmentDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    fetch(`${_API_BASE}/requests?org_id=default`, { headers: _getHeaders() })
+    return fetch(`${_API_BASE}/requests?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => { if (Array.isArray(d)) setRequests(d); })
       .catch((err) => {
@@ -101,7 +101,7 @@ export default function IntelEnrichmentDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const [selectedRequest, setSelectedRequest] = useState<string>(MOCK_REQUESTS[0].id);

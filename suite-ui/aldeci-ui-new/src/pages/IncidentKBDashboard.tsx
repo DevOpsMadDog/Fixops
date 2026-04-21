@@ -186,13 +186,13 @@ export default function IncidentKBDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    apiFetch(`/api/v1/incident-kb/articles?org_id=${ORG_ID}`).catch((err) => {
+    return apiFetch(`/api/v1/incident-kb/articles?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load knowledge base data");
     });
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
   const [executeMsg, setExecuteMsg] = useState<string | null>(null);
 

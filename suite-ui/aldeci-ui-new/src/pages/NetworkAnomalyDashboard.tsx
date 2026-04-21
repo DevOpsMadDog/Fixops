@@ -110,13 +110,13 @@ export default function NetworkAnomalyDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    apiFetch(`/api/v1/network-anomaly/anomalies?org_id=${ORG_ID}`).catch((err) => {
+    return apiFetch(`/api/v1/network-anomaly/anomalies?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load network anomaly data");
     });
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
   const [detectForm, setDetectForm] = useState({ segment: "DMZ", protocol: "TCP", bytes: "", packets: "" });
 

@@ -43,7 +43,7 @@ export default function HuntingPlaybookDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    fetch(`${_API_BASE}/playbooks?org_id=default`, { headers: _getHeaders() })
+    return fetch(`${_API_BASE}/playbooks?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
         void d;
@@ -54,7 +54,7 @@ export default function HuntingPlaybookDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const [filterPlaybook, setFilterPlaybook] = useState("all");

@@ -136,7 +136,7 @@ export default function NetworkThreatsDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    fetch(`${_API_BASE}/threats/active?org_id=default`, { headers: _getHeaders() })
+    return fetch(`${_API_BASE}/threats/active?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
         void d;
@@ -147,7 +147,7 @@ export default function NetworkThreatsDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "resolved">("all");

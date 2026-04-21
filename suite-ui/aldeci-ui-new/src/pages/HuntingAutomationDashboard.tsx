@@ -154,13 +154,13 @@ export default function HuntingAutomationDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    apiFetch(`/api/v1/hunting-automation/hypotheses?org_id=${ORG_ID}`).catch((err) => {
+    return apiFetch(`/api/v1/hunting-automation/hypotheses?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load hunting automation data");
     });
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const totalHypotheses = MOCK_HYPOTHESES.length;

@@ -132,7 +132,7 @@ export default function NetworkTopology() {
       if (assets || stats) setLiveData({ assets, stats });
     });
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll().finally(() => setLoading(false)); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);

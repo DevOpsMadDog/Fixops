@@ -131,13 +131,13 @@ export default function IncidentLessonsDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    apiFetch(`/api/v1/incident-lessons/lessons?org_id=${ORG_ID}`).catch((err) => {
+    return apiFetch(`/api/v1/incident-lessons/lessons?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load incident lessons data");
     });
   };
 
   useEffect(() => {
-    loadData();
+    loadData().finally(() => setLoading(false));
   }, []);
 
   const overdueActions = MOCK_ACTIONS.filter(a => a.status === "overdue");
