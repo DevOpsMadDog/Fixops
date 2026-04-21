@@ -2,22 +2,22 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-21T19:58:56.148216",
-  "total_scope": 2476,
-  "completed": 2451,
+  "generated_at": "2026-04-21T20:21:48.397154",
+  "total_scope": 2478,
+  "completed": 2452,
   "in_progress": 9,
-  "todo": 15,
+  "todo": 16,
   "completion_pct": 99.0,
   "by_priority": {
-    "medium": {
-      "done": 2332,
-      "in_progress": 3,
-      "todo": 5
-    },
     "high": {
       "done": 42,
       "in_progress": 3,
-      "todo": 10
+      "todo": 11
+    },
+    "medium": {
+      "done": 2333,
+      "in_progress": 3,
+      "todo": 5
     },
     "urgent": {
       "done": 9,
@@ -86,10 +86,10 @@
       "todo": 0
     },
     "SOC": {
-      "total": 29,
+      "total": 30,
       "done": 27,
       "in_progress": 1,
-      "todo": 1
+      "todo": 2
     },
     "CLOUD": {
       "total": 28,
@@ -126,38 +126,38 @@
   "daily_burndown": [
     {
       "date": "2026-04-21",
-      "remaining": 25,
-      "completed": 2451
+      "remaining": 26,
+      "completed": 2452
     },
     {
       "date": "2026-04-22",
       "remaining": 0,
-      "completed": 2586
+      "completed": 2587
     },
     {
       "date": "2026-04-23",
       "remaining": 0,
-      "completed": 2721
+      "completed": 2722
     },
     {
       "date": "2026-04-24",
       "remaining": 0,
-      "completed": 2856
+      "completed": 2857
     },
     {
       "date": "2026-04-25",
       "remaining": 0,
-      "completed": 2991
+      "completed": 2992
     },
     {
       "date": "2026-04-26",
       "remaining": 0,
-      "completed": 3126
+      "completed": 3127
     },
     {
       "date": "2026-04-27",
       "remaining": 0,
-      "completed": 3261
+      "completed": 3262
     }
   ]
 }

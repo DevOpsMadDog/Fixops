@@ -1,7 +1,7 @@
 {
-  "tool_name": "Grep",
-  "tool_input_preview": "{\"pattern\":\"def bulk_triage\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-core/core/alert_triage_engine.py\",\"output_mode\":\"content\",\"context\":20}",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-21T10:20:26.259Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"curl -s -X POST \\\"http://localhost:8000/api/v1/tip/indicators?org_id=default\\\" \\\\\\n  -H \\\"X-API-Key: fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\" \\\\\\n  -H ...",
+  "error": "Exit code 7",
+  "timestamp": "2026-04-21T10:21:53.396Z",
   "retry_count": 1
 }

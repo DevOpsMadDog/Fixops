@@ -143,7 +143,7 @@ def list_sources(
 def add_indicator(body: IndicatorCreate, org_id: str = Query("default")) -> Dict[str, Any]:
     """Add an IOC/indicator."""
     try:
-        return _get_engine().add_indicator(org_id, body.model_dump())
+        return _get_engine().add_indicator(org_id, body.model_dump(exclude_none=True))
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 

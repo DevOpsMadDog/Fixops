@@ -411,7 +411,9 @@ export class ALDECIClient {
 
   /** Current security posture score and top risks. */
   getPostureScore(): Promise<PostureScore> {
-    return this.get<PostureScore>("/api/v1/analytics/dashboard/top-risks");
+    return this.get<Record<string, unknown>>("/api/v1/posture-score/current").then(
+      (d) => ({ ...d, score: (d.overall_score as number) ?? 0 } as PostureScore),
+    );
   }
 
   /** Compliance status across all frameworks. */
