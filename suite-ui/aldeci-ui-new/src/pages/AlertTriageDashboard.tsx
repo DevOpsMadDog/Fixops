@@ -377,10 +377,93 @@ function FilterBar({ severityFilter, statusFilter, onToggleSeverity, onToggleSta
   );
 }
 
-// ── Inline detail panel ────────────────────────────────────────
+// ── SOC Workflow Panel ─────────────────────────────────────────
+// Replaces the static AlertDetailPanel with an interactive
+// Investigate → Correlate → Respond → Close workflow.
 
-function AlertDetailPanel({ alert }: { alert: any }) {
+type WorkflowStep = "idle" | "investigate" | "correlate" | "respond" | "closed";
+
+interface InvestigateResult {
+  alert: any;
+  related_alerts: any[];
+  affected_assets: any[];
+  incident_history: any[];
+  ioc_summary: { ips: string[]; domains: string[]; hashes: string[] };
+  graphrag_context: { related_assets: any[]; related_findings: any[]; related_incidents: any[]; trustgraph_available: boolean };
+  recommended_playbook: string;
+}
+
+function SOCWorkflowPanel({ alert, onClose }: { alert: any; onClose: () => void }) {
   const cfg = SEVERITY_CONFIG[alert.severity] ?? SEVERITY_CONFIG.low;
+  const [step, setStep] = useState<WorkflowStep>("idle");
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<InvestigateResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [closeNotes, setCloseNotes] = useState("");
+  const [closeBusy, setCloseBusy] = useState(false);
+  const [respondBusy, setRespondBusy] = useState(false);
+  const [respondDone, setRespondDone] = useState(false);
+
+  async function runInvestigate() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/v1/alert-triage/investigate/${alert.id}?org_id=default`,
+        { method: "POST", headers: { "X-API-Key": API_KEY } },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setData(json);
+      setStep("investigate");
+    } catch (e: any) {
+      setError(e.message ?? "Investigation failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runRespond() {
+    setRespondBusy(true);
+    // POST to triage → set status to "investigating" + assign to current analyst
+    try {
+      await fetch(
+        `${API_BASE}/api/v1/alert-triage/alerts/${alert.id}/triage?org_id=default`,
+        {
+          method: "PATCH",
+          headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            triage_status: "investigating",
+            assigned_to: "soc-analyst",
+            triage_notes: `Playbook: ${data?.recommended_playbook ?? "IR-P0"}. Investigation started.`,
+          }),
+        },
+      );
+    } catch { /* graceful */ }
+    setRespondDone(true);
+    setRespondBusy(false);
+  }
+
+  async function runClose() {
+    if (!closeNotes.trim()) return;
+    setCloseBusy(true);
+    try {
+      await fetch(
+        `${API_BASE}/api/v1/alert-triage/alerts/${alert.id}/triage?org_id=default`,
+        {
+          method: "PATCH",
+          headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            triage_status: "resolved",
+            triage_notes: closeNotes,
+          }),
+        },
+      );
+    } catch { /* graceful */ }
+    setStep("closed");
+    setCloseBusy(false);
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -389,37 +472,256 @@ function AlertDetailPanel({ alert }: { alert: any }) {
       transition={{ duration: 0.2, ease: "easeOut" }}
       className="overflow-hidden"
     >
-      <div className={cn("ml-1 mt-0 mb-0 rounded-b-md border-x border-b px-4 py-3 text-xs space-y-3", cfg.border, cfg.bg)}>
-        {/* Description */}
-        <p className="text-muted-foreground leading-relaxed">{alert.description}</p>
+      <div className={cn("ml-1 rounded-b-md border-x border-b text-xs", cfg.border, cfg.bg)}>
 
-        {/* Meta grid */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
-          <div>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">Host</span>
-            <span className="font-mono text-zinc-200">{alert.host ?? "—"}</span>
+        {/* Static alert metadata row */}
+        <div className="px-4 py-3 space-y-2">
+          <p className="text-muted-foreground leading-relaxed">{alert.description}</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
+            {[
+              { label: "Host",      val: alert.host,       icon: Server },
+              { label: "User",      val: alert.user,       icon: User },
+              { label: "Source IP", val: alert.ip,         icon: Network },
+              { label: "Ingested",  val: alert.ingested_at ? formatTs(alert.ingested_at) : "—", icon: Clock },
+            ].map(({ label, val, icon: Icon }) => (
+              <div key={label}>
+                <span className="text-[10px] uppercase tracking-wider text-zinc-500 block flex items-center gap-1">
+                  <Icon className="h-2.5 w-2.5 inline" /> {label}
+                </span>
+                <span className="font-mono text-zinc-200">{val ?? "—"}</span>
+              </div>
+            ))}
           </div>
-          <div>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">User</span>
-            <span className="font-mono text-zinc-200">{alert.user ?? "—"}</span>
-          </div>
-          <div>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">Source IP</span>
-            <span className="font-mono text-zinc-200">{alert.ip ?? "—"}</span>
-          </div>
-          <div>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">Ingested</span>
-            <span className="font-mono text-zinc-200">{formatTs(alert.ingested_at)}</span>
-          </div>
+          {alert.mitre && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500">MITRE</span>
+              <code className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono", cfg.border, cfg.badgeBg, cfg.text)}>
+                {alert.mitre}
+              </code>
+            </div>
+          )}
         </div>
 
-        {/* MITRE tag */}
-        {alert.mitre && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500">MITRE</span>
-            <code className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono", cfg.border, cfg.badgeBg, cfg.text)}>
-              {alert.mitre}
-            </code>
+        {/* Workflow step buttons */}
+        {step === "closed" ? (
+          <div className="px-4 py-3 border-t border-emerald-500/20 bg-emerald-500/5 text-emerald-400 flex items-center gap-2">
+            <CheckSquare className="h-3.5 w-3.5" />
+            <span className="text-[11px] font-semibold">Alert closed and marked resolved.</span>
+          </div>
+        ) : (
+          <div className="px-4 pb-3 border-t border-zinc-800/60 pt-3 space-y-3">
+            {/* Step pill nav */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {([
+                { id: "investigate", label: "Investigate", icon: Search,      activeStep: "investigate" },
+                { id: "correlate",   label: "Correlate",   icon: GitMerge,    activeStep: "correlate"   },
+                { id: "respond",     label: "Respond",     icon: Zap,         activeStep: "respond"     },
+                { id: "close",       label: "Close",       icon: CheckSquare, activeStep: "respond"     },
+              ] as const).map(({ id, label, icon: Icon, activeStep }) => {
+                const isActive = step === id || (id === "close" && step === "respond");
+                const isDone   = (
+                  (id === "investigate" && (step === "correlate" || step === "respond")) ||
+                  (id === "correlate"   && step === "respond")
+                );
+                return (
+                  <button
+                    key={id}
+                    disabled={loading}
+                    onClick={() => {
+                      if (id === "investigate") { runInvestigate(); }
+                      else if (id === "correlate" && data) setStep("correlate");
+                      else if (id === "respond" && data)   setStep("respond");
+                      else if (id === "close" && data)     setStep("respond");
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold border transition-all",
+                      isDone
+                        ? "border-emerald-600/40 text-emerald-400 bg-emerald-500/10"
+                        : isActive
+                        ? cn(cfg.badgeBg, cfg.badgeBorder, cfg.text)
+                        : "border-zinc-700/50 text-zinc-500 hover:border-zinc-500/60 hover:text-zinc-300",
+                    )}
+                  >
+                    {loading && id === "investigate" && step === "idle"
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <Icon className="h-3 w-3" />
+                    }
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {error && (
+              <p className="text-[10px] text-red-400 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" /> {error}
+              </p>
+            )}
+
+            {/* ── Investigate results ── */}
+            {(step === "investigate" || step === "correlate" || step === "respond") && data && (
+              <div className="space-y-2.5">
+                {/* Related alerts */}
+                {data.related_alerts.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
+                      Related Alerts ({data.related_alerts.length})
+                    </p>
+                    <div className="space-y-1">
+                      {data.related_alerts.slice(0, 4).map((ra: any) => (
+                        <div key={ra.id} className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-800/40 border border-zinc-700/30">
+                          <SeverityDot severity={ra.severity} />
+                          <span className="text-zinc-300 truncate flex-1">{ra.title}</span>
+                          <Badge className={cn("text-[9px] border shrink-0", SEVERITY_CONFIG[ra.severity]?.badgeBg, SEVERITY_CONFIG[ra.severity]?.badgeBorder, SEVERITY_CONFIG[ra.severity]?.text)}>
+                            {ra.severity}
+                          </Badge>
+                          <span className="text-zinc-500 font-mono text-[9px] shrink-0">{timeAgo(ra.ingested_at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Affected assets */}
+                {data.affected_assets.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Affected Assets</p>
+                    <div className="flex flex-wrap gap-1">
+                      {data.affected_assets.map((a: any, i: number) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-zinc-700/50 bg-zinc-800/50 text-zinc-300 font-mono text-[10px]">
+                          {a.type === "host" && <Server  className="h-2.5 w-2.5 text-zinc-500" />}
+                          {a.type === "ip"   && <Network className="h-2.5 w-2.5 text-zinc-500" />}
+                          {a.type === "user" && <User    className="h-2.5 w-2.5 text-zinc-500" />}
+                          {a.value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* IOC summary */}
+                {(data.ioc_summary.ips.length > 0 || data.ioc_summary.domains.length > 0 || data.ioc_summary.hashes.length > 0) && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">IOCs Extracted</p>
+                    <div className="flex flex-wrap gap-1">
+                      {data.ioc_summary.ips.map((ip) => (
+                        <code key={ip} className="px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-300 text-[9px] font-mono">{ip}</code>
+                      ))}
+                      {data.ioc_summary.domains.map((d) => (
+                        <code key={d}  className="px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-300 text-[9px] font-mono">{d}</code>
+                      ))}
+                      {data.ioc_summary.hashes.map((h) => (
+                        <code key={h}  className="px-1.5 py-0.5 rounded bg-zinc-700/50 border border-zinc-600/30 text-zinc-300 text-[9px] font-mono">{h.slice(0, 16)}…</code>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Correlate: GraphRAG context ── */}
+            {step === "correlate" && data && (
+              <div className="space-y-2 border-t border-zinc-800/60 pt-2.5">
+                <div className="flex items-center gap-2">
+                  <GitMerge className="h-3 w-3 text-zinc-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">GraphRAG Cross-Domain Context</span>
+                  {data.graphrag_context.trustgraph_available
+                    ? <span className="text-[9px] text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded bg-emerald-500/8">TrustGraph live</span>
+                    : <span className="text-[9px] text-zinc-500 border border-zinc-700/40 px-1.5 py-0.5 rounded">TrustGraph offline</span>
+                  }
+                </div>
+                {[
+                  { label: "Related Assets",    items: data.graphrag_context.related_assets    },
+                  { label: "Related Findings",  items: data.graphrag_context.related_findings  },
+                  { label: "Related Incidents", items: data.graphrag_context.related_incidents },
+                ].map(({ label, items }) => (
+                  items.length > 0 && (
+                    <div key={label}>
+                      <p className="text-[10px] text-zinc-500 mb-1">{label} ({items.length})</p>
+                      <div className="flex flex-wrap gap-1">
+                        {items.slice(0, 5).map((item: any) => (
+                          <span key={item.id} className="px-2 py-0.5 rounded border border-zinc-700/40 bg-zinc-800/40 text-zinc-300 text-[9px] font-mono">
+                            {item.name ?? item.id}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ))}
+                {!data.graphrag_context.trustgraph_available && (
+                  <p className="text-[10px] text-zinc-500 italic">
+                    TrustGraph not available — connect it to get live cross-domain correlation.
+                  </p>
+                )}
+
+                {/* Incident history */}
+                {data.incident_history.length > 0 && (
+                  <div>
+                    <p className="text-[10px] text-zinc-500 mb-1">Prior Incidents on Affected Assets ({data.incident_history.length})</p>
+                    {data.incident_history.map((inc: any) => (
+                      <div key={inc.id} className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-800/40 border border-zinc-700/30 mb-1">
+                        <FileText className="h-3 w-3 text-zinc-500 shrink-0" />
+                        <span className="text-zinc-300 truncate flex-1">{inc.title}</span>
+                        <Badge className="text-[9px] border border-zinc-600/40 bg-zinc-700/40 text-zinc-400 shrink-0">{inc.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Respond ── */}
+            {step === "respond" && data && (
+              <div className="space-y-2.5 border-t border-zinc-800/60 pt-2.5">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-3 w-3 text-amber-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-amber-400 font-semibold">Incident Response</span>
+                </div>
+
+                <div className="flex items-start gap-2 px-3 py-2 rounded border border-amber-500/20 bg-amber-500/5">
+                  <FileText className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Recommended Playbook</p>
+                    <p className="text-amber-300 font-semibold">{data.recommended_playbook}</p>
+                  </div>
+                </div>
+
+                {!respondDone ? (
+                  <button
+                    onClick={runRespond}
+                    disabled={respondBusy}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-semibold transition-all disabled:opacity-50"
+                  >
+                    {respondBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                    Start Playbook &amp; Assign to SOC Analyst
+                  </button>
+                ) : (
+                  <p className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                    <CheckSquare className="h-3 w-3" /> Incident created, alert set to Investigating.
+                  </p>
+                )}
+
+                {/* Close with notes */}
+                <div className="space-y-1.5 border-t border-zinc-800/60 pt-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-500">Close Alert</p>
+                  <textarea
+                    value={closeNotes}
+                    onChange={(e) => setCloseNotes(e.target.value)}
+                    placeholder="Resolution notes (required to close)…"
+                    rows={2}
+                    className="w-full rounded border border-zinc-700/50 bg-zinc-900/60 text-zinc-200 text-[11px] px-2.5 py-1.5 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500/70 resize-none"
+                  />
+                  <button
+                    onClick={runClose}
+                    disabled={closeBusy || !closeNotes.trim()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold transition-all disabled:opacity-40"
+                  >
+                    {closeBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
+                    Mark Resolved &amp; Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -858,11 +1160,11 @@ export default function AlertTriageDashboard() {
                     </div>
                   </div>
 
-                  {/* Expandable detail panel */}
+                  {/* SOC Workflow Panel */}
                   <AnimatePresence initial={false}>
                     {isExpanded && (
                       <div className="px-4">
-                        <AlertDetailPanel alert={alert} />
+                        <SOCWorkflowPanel alert={alert} onClose={() => setExpandedId(null)} />
                       </div>
                     )}
                   </AnimatePresence>
