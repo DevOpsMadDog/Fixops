@@ -317,6 +317,79 @@ class SoftwareCompositionAnalysisEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    def test_package_version(
+        self, org_id: str, ecosystem: str, package: str, version: str
+    ) -> Dict[str, Any]:
+        """Check whether a specific package version is vulnerable.
+
+        Checks _KNOWN_VULNERABLE first (fast in-memory lookup), then
+        queries the scans table for any dependency with the exact name+version
+        that has CVEs attached.
+
+        Returns:
+          safe        — True if no CVEs found
+          vulnerable  — True if CVEs found
+          cves        — list of {cve_id, description}
+          recommended_upgrade — best-guess safe version hint (None if unknown)
+          package     — {ecosystem, name, version}
+        """
+        name_lower = package.lower()
+
+        cves: List[Dict[str, str]] = []
+
+        # 1. Static _KNOWN_VULNERABLE table (fast, always available)
+        for vuln_name, vuln_list in _KNOWN_VULNERABLE.items():
+            if vuln_name in name_lower or name_lower in vuln_name:
+                cves.extend(vuln_list)
+                break
+
+        # 2. Scan history — check if this exact name+version showed up as vulnerable
+        if not cves:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    "SELECT dependencies FROM scans WHERE org_id = ? ORDER BY scanned_at DESC LIMIT 50",
+                    (org_id,),
+                ).fetchall()
+            for row in rows:
+                try:
+                    deps = json.loads(row["dependencies"] or "[]")
+                except (json.JSONDecodeError, TypeError):
+                    deps = []
+                for dep in deps:
+                    if (
+                        dep.get("name", "").lower() == name_lower
+                        and dep.get("version", "") == version
+                        and dep.get("is_vulnerable")
+                    ):
+                        for c in dep.get("cves", []):
+                            if c not in cves:
+                                cves.append(c)
+
+        vulnerable = len(cves) > 0
+
+        # Best-guess recommended upgrade: strip patch, bump minor by 1
+        recommended_upgrade: Optional[str] = None
+        if vulnerable:
+            try:
+                parts = version.lstrip("v^~").split(".")
+                if len(parts) >= 2:
+                    major, minor = int(parts[0]), int(parts[1])
+                    recommended_upgrade = f"{major}.{minor + 1}.0"
+            except (ValueError, IndexError):
+                pass
+
+        return {
+            "package": {
+                "ecosystem": ecosystem,
+                "name": package,
+                "version": version,
+            },
+            "safe": not vulnerable,
+            "vulnerable": vulnerable,
+            "cves": cves,
+            "recommended_upgrade": recommended_upgrade,
+        }
+
     def get_sca_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated SCA stats for org."""
         with self._conn() as conn:

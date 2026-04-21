@@ -226,6 +226,46 @@ def get_intel_stats(org_id: str = Query(default="default")):
 
 
 # ---------------------------------------------------------------------------
+# PURL-based package vulnerability lookup (Snyk API parity)
+# ---------------------------------------------------------------------------
+
+@router.get("/packages/{purl:path}/issues", dependencies=[Depends(api_key_auth)])
+def get_package_issues(purl: str, org_id: str = Query(default="default")):
+    """Return CVEs and risk score for a PURL-identified package.
+
+    Parses ``pkg:ecosystem/name@version`` and queries both the SBOM component
+    table and cve_intel affected_products to build a Snyk-compatible response.
+
+    Example: GET /api/v1/vuln-intel/packages/pkg:npm/lodash@4.17.21/issues
+    """
+    import re as _re
+
+    # Parse PURL: pkg:ecosystem/name@version (namespace/name@version also accepted)
+    purl_match = _re.match(
+        r"pkg:(?P<ecosystem>[^/]+)/(?:(?P<namespace>[^/]+)/)?(?P<name>[^@]+)@(?P<version>.+)",
+        purl,
+    )
+    if not purl_match:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Invalid PURL format. Expected: pkg:ecosystem/name@version "
+                "e.g. pkg:npm/lodash@4.17.21"
+            ),
+        )
+
+    ecosystem = purl_match.group("ecosystem")
+    name = purl_match.group("name")
+    version = purl_match.group("version")
+
+    try:
+        return _get_engine().lookup_package_issues(org_id, ecosystem, name, version)
+    except Exception as exc:
+        _logger.error("lookup_package_issues failed for %s: %s", purl, exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Brain sync — pull ASPM CVE findings into vuln-intel DB
 # ---------------------------------------------------------------------------
 

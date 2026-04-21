@@ -595,6 +595,129 @@ class VulnIntelligenceEngine:
             "risk_score": risk_score,
         }
 
+    def lookup_package_issues(
+        self, org_id: str, ecosystem: str, name: str, version: str
+    ) -> Dict[str, Any]:
+        """Return CVEs and risk score for a specific package version.
+
+        Queries sbom_export's component+vuln tables first (exact purl match),
+        then falls back to a name-substring search across cve_intel
+        affected_products JSON.
+
+        Returns:
+          package     — {ecosystem, name, version, purl}
+          cves        — list of CVE records with fix_version
+          risk_score  — aggregate float (max cvss_score across matched CVEs)
+          vulnerable  — bool
+        """
+        purl = f"pkg:{ecosystem}/{name}@{version}"
+
+        cves: List[Dict[str, Any]] = []
+
+        # --- Primary: sbom_export component + vulnerability tables ---
+        try:
+            from core.sbom_export_engine import SBOMExportEngine
+            sbom_engine = SBOMExportEngine()
+            with sbom_engine._conn() as conn:
+                comp_row = conn.execute(
+                    """SELECT id FROM sbom_components
+                       WHERE org_id = ?
+                         AND (
+                           purl = ?
+                           OR (component_name = ? AND component_version = ?
+                               AND (ecosystem = ? OR ecosystem = ''))
+                         )
+                       LIMIT 1""",
+                    (org_id, purl, name, version, ecosystem),
+                ).fetchone()
+                if comp_row:
+                    vuln_rows = conn.execute(
+                        """SELECT cve_id, severity, cvss_score, fixed_in
+                           FROM sbom_vulnerabilities
+                           WHERE component_id = ? AND org_id = ?
+                           ORDER BY cvss_score DESC""",
+                        (comp_row["id"], org_id),
+                    ).fetchall()
+                    for vr in vuln_rows:
+                        cves.append({
+                            "cve_id": vr["cve_id"],
+                            "severity": vr["severity"],
+                            "cvss_score": float(vr["cvss_score"]),
+                            "fix_version": vr["fixed_in"] or None,
+                            "source": "sbom_export",
+                        })
+        except Exception:
+            _logger.debug("sbom_export lookup failed for purl %s", purl, exc_info=True)
+
+        # --- Secondary: cve_intel affected_products name match ---
+        if not cves:
+            name_lower = name.lower()
+            with self._conn(org_id) as conn:
+                rows = conn.execute(
+                    """SELECT cve_id, severity, cvss_score, patch_url, affected_products
+                       FROM cve_intel
+                       WHERE org_id = ?
+                       ORDER BY cvss_score DESC""",
+                    (org_id,),
+                ).fetchall()
+            for row in rows:
+                try:
+                    products = json.loads(row["affected_products"] or "[]")
+                except (json.JSONDecodeError, TypeError):
+                    products = []
+                matched = False
+                for p in products:
+                    prod_name = (
+                        (p.get("product") or p.get("name") or str(p))
+                        if isinstance(p, dict)
+                        else str(p)
+                    ).lower()
+                    if name_lower in prod_name or prod_name in name_lower:
+                        matched = True
+                        break
+                if matched:
+                    cves.append({
+                        "cve_id": row["cve_id"],
+                        "severity": row["severity"],
+                        "cvss_score": float(row["cvss_score"]),
+                        "fix_version": None,
+                        "source": "cve_intel",
+                    })
+
+        # --- Tertiary: SCA engine _KNOWN_VULNERABLE in-memory table ---
+        if not cves:
+            try:
+                from core.software_composition_analysis_engine import _KNOWN_VULNERABLE
+                name_lower = name.lower()
+                for vuln_name, vuln_list in _KNOWN_VULNERABLE.items():
+                    if vuln_name in name_lower or name_lower in vuln_name:
+                        for v in vuln_list:
+                            cves.append({
+                                "cve_id": v["cve_id"],
+                                "severity": "high",
+                                "cvss_score": 0.0,
+                                "fix_version": None,
+                                "source": "sca_known",
+                            })
+                        break
+            except Exception:
+                _logger.debug("_KNOWN_VULNERABLE lookup failed", exc_info=True)
+
+        risk_score = max((c["cvss_score"] for c in cves), default=0.0)
+
+        return {
+            "package": {
+                "ecosystem": ecosystem,
+                "name": name,
+                "version": version,
+                "purl": purl,
+            },
+            "cves": cves,
+            "cve_count": len(cves),
+            "risk_score": round(risk_score, 2),
+            "vulnerable": len(cves) > 0,
+        }
+
     def get_intel_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated vuln intelligence stats for org."""
         with self._conn(org_id) as conn:

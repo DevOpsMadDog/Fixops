@@ -8384,6 +8384,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # OAuth2 client credentials token endpoint (public — no api_key_auth wrapper)
+    try:
+        from apps.api.oauth2_router import router as oauth2_router
+        app.include_router(oauth2_router)
+        _logger.info("Mounted OAuth2 token endpoint at /api/v1/oauth2/token")
+    except ImportError:
+        pass
+
     # -----------------------------------------------------------------------
     # Serve React frontend — MUST be last (catch-all route)
     # -----------------------------------------------------------------------

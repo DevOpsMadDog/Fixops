@@ -158,3 +158,23 @@ def get_license_report(scan_id: str, org_id: str = Query(default="default")):
 def get_sca_stats(org_id: str = Query(default="default")):
     """Return aggregated SCA statistics for the org."""
     return _get_engine().get_sca_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Snyk-parity: test a specific package version for vulnerabilities
+# ---------------------------------------------------------------------------
+
+@router.get("/test/{ecosystem}/{package}/{version:path}", dependencies=[Depends(api_key_auth)])
+def test_package_version(
+    ecosystem: str,
+    package: str,
+    version: str,
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Check whether a specific package version is vulnerable.
+
+    Returns safe/vulnerable status, CVE list, and a recommended upgrade version.
+
+    Example: GET /api/v1/sca/test/npm/lodash/4.17.20
+    """
+    return _get_engine().test_package_version(org_id, ecosystem, package, version)

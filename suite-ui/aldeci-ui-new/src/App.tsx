@@ -484,6 +484,9 @@ const CloudAccountsDashboard = lazy(() => import("@/pages/CloudAccountsDashboard
 const IntelEnrichmentDashboard = lazy(() => import("@/pages/IntelEnrichmentDashboard"));
 const SecurityOKRDashboard = lazy(() => import("@/pages/SecurityOKRDashboard"));
 
+// Neural Brain Visualization
+const BrainVisualization = lazy(() => import("@/pages/BrainVisualization"));
+
 // Main Overview Dashboard
 const MainOverviewDashboard = lazy(() => import("@/pages/MainOverviewDashboard"));
 
@@ -973,6 +976,9 @@ export default function App() {
             <Route path="/cloud-accounts" element={<CloudAccountsDashboard />} />
             <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
             <Route path="/security-okrs" element={<SecurityOKRDashboard />} />
+
+            {/* Neural Brain Visualization */}
+            <Route path="/brain" element={<BrainVisualization />} />
 
             {/* Main Overview Dashboard */}
             <Route path="/dashboard" element={<MainOverviewDashboard />} />

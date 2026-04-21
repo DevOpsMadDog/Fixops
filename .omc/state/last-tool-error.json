@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls /Users/devops.ai/fixops/Fixops/tests/test_oauth* /Users/devops.ai/fixops/Fixops/tests/test_sso* 2>/dev/null\",\"description\":\"Check existing OAuth/SSO test files\"}",
-  "error": "Exit code 1\n/Users/devops.ai/fixops/Fixops/tests/test_sso_bridge.py\n/Users/devops.ai/fixops/Fixops/tests/test_sso_provider.py",
-  "timestamp": "2026-04-21T13:20:26.545Z",
-  "retry_count": 1
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -c \\\"from apps.api.oauth2_router import router; print('Import OK, prefix:', router.prefix)\\\"\"}",
+  "error": "Exit code 2\nsh: -c: line 0: syntax error near unexpected token `'Import OK, prefix:','\nsh: -c: line 0: `python -c from apps.api.oauth2_router import router; print('Import OK, prefix:', router.prefix)'",
+  "timestamp": "2026-04-21T13:23:17.855Z",
+  "retry_count": 4
 }
