@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\nimport sys; sys.path.insert(0, 'suite-core')\\nfrom core.security_awareness_program_engine import _VALID_PROGRAM_TYPES, _VALID_AUDIENCES, _VALID_FREQUENCIES\\nfrom core.securi...",
-  "error": "Exit code 1",
-  "timestamp": "2026-04-21T10:23:09.590Z",
+  "tool_input_preview": "{\"command\":\"KEY=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\nAPI=\\\"http://localhost:8000/api/v1/tip/indicators?org_id=default\\\"\\n\\n# 4 remaining file hashes with va...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n           ^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n           ^^^^^^^^^^^^^^^^^^^^^^...",
+  "timestamp": "2026-04-21T10:24:43.324Z",
   "retry_count": 1
 }
