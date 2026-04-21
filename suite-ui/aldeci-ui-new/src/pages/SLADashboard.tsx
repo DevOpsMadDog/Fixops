@@ -455,7 +455,7 @@ export default function SLADashboard() {
                 </CardTitle>
                 <CardDescription className="text-xs">Current SLA thresholds by severity tier</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast.info("SLA policy editor coming soon")}>Edit Policy</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast.info("Feature available in next release")}>Edit Policy</Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">

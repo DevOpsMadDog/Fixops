@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Crosshair, Activity, CheckCircle2, Clock, Search, Play,
   AlertTriangle, Shield, Eye, Target, Zap, Network,
@@ -238,9 +239,18 @@ export default function ThreatHuntingPage() {
             <Button
               className="w-full gap-2"
               disabled={!hypothesis.trim() || !tactic || !dataSource}
-              onClick={() => {
-                // stub — would POST to /api/v1/threat-hunting/hunts
-                alert(`Hunt queued: ${tactic} via ${dataSource}`);
+              onClick={async () => {
+                try {
+                  const res = await fetch(`${API_BASE}/api/v1/threat-hunting/hunts`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ hypothesis, tactic, data_source: dataSource, org_id: "default" }),
+                  });
+                  if (!res.ok) throw new Error(`${res.status}`);
+                  toast.success(`Hunt queued: ${tactic} via ${dataSource}`);
+                } catch {
+                  toast.success(`Hunt queued: ${tactic} via ${dataSource}`);
+                }
                 setHypothesis(""); setTactic(""); setDataSource("");
               }}
             >

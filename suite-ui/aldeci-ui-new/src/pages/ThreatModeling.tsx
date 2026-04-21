@@ -15,6 +15,7 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Plus, Lock, AlertTriangle, Clipboard, Eye, Zap,
   ChevronRight, Trash2, Settings, Download, RefreshCw,
@@ -469,7 +470,7 @@ export default function ThreatModeling() {
         models={models}
         selectedModelId={selectedModelId}
         onSelect={setSelectedModelId}
-        onCreateNew={() => alert("Create new model — coming soon")}
+        onCreateNew={() => toast.info("Feature available in next release")}
       />
 
       {/* Main content */}
@@ -555,7 +556,7 @@ export default function ThreatModeling() {
                     <ComponentCard
                       key={component.id}
                       component={component}
-                      onSelect={() => alert(`Edit component: ${component.name}`)}
+                      onSelect={() => toast.info(`Component: ${component.name} — editor available in next release`)}
                     />
                   ))}
                 </div>
@@ -605,7 +606,7 @@ export default function ThreatModeling() {
                           <ThreatRow
                             key={threat.id}
                             threat={threat}
-                            onEdit={() => alert(`View threat: ${threat.name}`)}
+                            onEdit={() => toast.info(`Threat: ${threat.name} — detail view available in next release`)}
                           />
                         ))}
                       </TableBody>

@@ -12,6 +12,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Package,
   AlertTriangle,
@@ -885,7 +886,7 @@ export default function SupplyChainSecurity() {
                     <ExternalLink className="w-3.5 h-3.5 mr-2" />
                     View on Source Registry
                   </Button>
-                  <Button className="w-full" variant="outline" size="sm" onClick={() => alert("Security issue report submitted.")}>
+                  <Button className="w-full" variant="outline" size="sm" onClick={() => toast.info("Feature available in next release")}>
                     <AlertTriangle className="w-3.5 h-3.5 mr-2" />
                     Report Security Issue
                   </Button>
