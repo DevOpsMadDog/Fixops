@@ -1,7 +1,7 @@
 {
-  "tool_name": "Grep",
-  "tool_input_preview": "{\"pattern\":\"title=\\\"Posture Score\\\"\\\\|title=\\\"Total Alerts\\\"\\\\|title=\\\"Critical\\\"\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/MainOverviewDashboard.tsx\",\"output_mode\":\"con...",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-21T10:22:27.345Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\nimport sys; sys.path.insert(0, 'suite-core')\\nfrom core.security_awareness_program_engine import _VALID_PROGRAM_TYPES, _VALID_AUDIENCES, _VALID_FREQUENCIES\\nfrom core.securi...",
+  "error": "Exit code 1",
+  "timestamp": "2026-04-21T10:23:09.590Z",
   "retry_count": 1
 }

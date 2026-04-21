@@ -524,3 +524,4 @@
 {"t":0,"agent":"a486fd9","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a9ea2fc","agent_type":"debugger","event":"agent_stop","success":true}
 {"t":0,"agent":"a486fd9","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"a4a3d4f","agent_type":"designer","event":"agent_stop","success":true}

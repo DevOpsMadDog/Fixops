@@ -432,7 +432,8 @@ function AlertSeverityChart({ data }: { data: { severity: string; count: number 
 
 // ── KPI Card (premium) ────────────────────────────────────────────
 interface KpiProps {
-  label: string;
+  label?: string;
+  title?: string;  // alias for label — JSX call sites use title=
   value: string | number;
   sub?: string;
   icon: React.ReactNode;
@@ -443,7 +444,8 @@ interface KpiProps {
   delay?: number;
 }
 
-function KpiCard({ label, value, sub, icon, accentClass, borderClass, bgClass, trend, delay = 0 }: KpiProps) {
+function KpiCard({ label, title, value, sub, icon, accentClass, borderClass, bgClass, trend, delay = 0 }: KpiProps) {
+  const displayLabel = label ?? title ?? "";
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : null;
   const trendColor = trend === "up" ? "text-emerald-400" : trend === "down" ? "text-red-400" : "text-zinc-500";
 
@@ -466,7 +468,7 @@ function KpiCard({ label, value, sub, icon, accentClass, borderClass, bgClass, t
 
         <div className="flex items-start justify-between relative z-10">
           <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{displayLabel}</span>
             <span className={cn("text-2xl font-black tabular-nums leading-none", accentClass)}>
               {value}
             </span>
