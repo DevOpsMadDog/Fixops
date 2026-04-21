@@ -412,6 +412,9 @@ const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptim
 const CompetitiveComparisonPage = lazy(() => import("@/pages/CompetitiveComparisonPage"));
 const LandingPage = lazy(() => import("@/pages/LandingPage"));
 
+// Security Graph — interactive force-directed security relationship canvas
+const SecurityGraph = lazy(() => import("@/pages/SecurityGraph"));
+
 // Wave 41 domain dashboards (frontend pages for Wave 40 engines)
 const ArchReviewDashboard = lazy(() => import("@/pages/ArchReviewDashboard"));
 const HuntingPlaybookDashboard = lazy(() => import("@/pages/HuntingPlaybookDashboard"));
