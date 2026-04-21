@@ -2,12 +2,12 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-21T07:58:10.561018",
+  "generated_at": "2026-04-21T19:07:22.576925",
   "total_scope": 2476,
-  "completed": 2449,
+  "completed": 2451,
   "in_progress": 9,
-  "todo": 17,
-  "completion_pct": 98.9,
+  "todo": 15,
+  "completion_pct": 99.0,
   "by_priority": {
     "medium": {
       "done": 2332,
@@ -15,14 +15,14 @@
       "todo": 5
     },
     "high": {
-      "done": 41,
+      "done": 42,
       "in_progress": 3,
-      "todo": 11
+      "todo": 10
     },
     "urgent": {
-      "done": 8,
+      "done": 9,
       "in_progress": 3,
-      "todo": 1
+      "todo": 0
     },
     "low": {
       "done": 68,
@@ -33,9 +33,9 @@
   "by_subepic": {
     "ASPM": {
       "total": 18,
-      "done": 14,
+      "done": 15,
       "in_progress": 2,
-      "todo": 2
+      "todo": 1
     },
     "CTEM": {
       "total": 5,
@@ -69,9 +69,9 @@
     },
     "GRC": {
       "total": 31,
-      "done": 29,
+      "done": 30,
       "in_progress": 1,
-      "todo": 1
+      "todo": 0
     },
     "VULN": {
       "total": 27,
@@ -111,9 +111,9 @@
     },
     "ENGINE": {
       "total": 41,
-      "done": 30,
+      "done": 32,
       "in_progress": 1,
-      "todo": 10
+      "todo": 8
     }
   },
   "velocity": {
@@ -126,38 +126,38 @@
   "daily_burndown": [
     {
       "date": "2026-04-21",
-      "remaining": 27,
-      "completed": 2449
+      "remaining": 25,
+      "completed": 2451
     },
     {
       "date": "2026-04-22",
       "remaining": 0,
-      "completed": 2584
+      "completed": 2586
     },
     {
       "date": "2026-04-23",
       "remaining": 0,
-      "completed": 2719
+      "completed": 2721
     },
     {
       "date": "2026-04-24",
       "remaining": 0,
-      "completed": 2854
+      "completed": 2856
     },
     {
       "date": "2026-04-25",
       "remaining": 0,
-      "completed": 2989
+      "completed": 2991
     },
     {
       "date": "2026-04-26",
       "remaining": 0,
-      "completed": 3124
+      "completed": 3126
     },
     {
       "date": "2026-04-27",
       "remaining": 0,
-      "completed": 3259
+      "completed": 3261
     }
   ]
 }

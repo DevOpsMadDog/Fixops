@@ -125,9 +125,46 @@ def list_components(
     supplier_id: Optional[str] = Query(None),
     is_eol: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
-    """List software/hardware components, optionally filtered by supplier or EOL status."""
+    """List software/hardware components, optionally filtered by supplier or EOL status.
+
+    Falls back to the SBOM/brain-synced SupplyChainEngine when the risk engine
+    has no data for this org (e.g. after a brain sync but before manual entry).
+    """
     try:
-        return _get_engine().list_components(org_id, supplier_id=supplier_id, is_eol=is_eol)
+        results = _get_engine().list_components(org_id, supplier_id=supplier_id, is_eol=is_eol)
+        if results:
+            return results
+        # Fall back to the brain-synced SBOM engine
+        try:
+            from core.supply_chain_security import SupplyChainEngine as _SBOMEngine
+            sbom_engine = _SBOMEngine()
+            sbom_components = sbom_engine.list_components(org_id=org_id, limit=1000)
+            # Normalize to the risk-router shape expected by the dashboard
+            normalized = []
+            for c in sbom_components:
+                normalized.append({
+                    "id": c.get("id"),
+                    "org_id": c.get("org_id", org_id),
+                    "name": c.get("name", ""),
+                    "version": c.get("version", "unknown"),
+                    "ecosystem": c.get("ecosystem", "unknown"),
+                    "purl": c.get("purl"),
+                    "license_id": c.get("license_id", "UNKNOWN"),
+                    "license_risk": c.get("license_risk", "unknown"),
+                    "description": c.get("description"),
+                    "supplier_id": None,
+                    "component_type": "library",
+                    "is_eol": False,
+                    "risk_tier": "low",
+                    "cve_count": 0,
+                    "risk_score": (c.get("risk_score") or {}).get("overall_score", 0),
+                    "source": "brain-sync",
+                    "created_at": c.get("created_at"),
+                })
+            return normalized
+        except Exception as _fb_exc:
+            logger.debug("supply_chain_security fallback failed: %s", _fb_exc)
+        return results
     except Exception as exc:
         logger.exception("list_components failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -206,9 +243,37 @@ def import_sbom(
 def get_stats(
     org_id: str = Query("default"),
 ) -> Dict[str, Any]:
-    """Return aggregated supply-chain statistics for an org."""
+    """Return aggregated supply-chain statistics for an org.
+
+    Falls back to the SBOM/brain-synced SupplyChainEngine when the risk engine
+    has no suppliers for this org.
+    """
     try:
-        return _get_engine().get_supply_chain_stats(org_id)
+        stats = _get_engine().get_supply_chain_stats(org_id)
+        # If risk engine has no data, compute stats from the brain-synced SBOM engine
+        if stats.get("total_suppliers", 0) == 0 and stats.get("total_components", 0) == 0:
+            try:
+                from core.supply_chain_security import SupplyChainEngine as _SBOMEngine
+                sbom_engine = _SBOMEngine()
+                comps = sbom_engine.list_components(org_id=org_id, limit=5000)
+                if comps:
+                    ecosystems = {c.get("ecosystem", "unknown") for c in comps}
+                    critical_count = sum(
+                        1 for c in comps
+                        if (c.get("risk_score") or {}).get("risk_level") in ("critical", "high")
+                    )
+                    stats = {
+                        "total_suppliers": len(ecosystems),
+                        "critical_tier": critical_count,
+                        "total_components": len(comps),
+                        "eol_components": 0,
+                        "open_risks": critical_count,
+                        "avg_compliance_score": 0.0,
+                        "source": "brain-sync",
+                    }
+            except Exception as _fb_exc:
+                logger.debug("supply_chain_security stats fallback failed: %s", _fb_exc)
+        return stats
     except Exception as exc:
         logger.exception("get_stats failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
