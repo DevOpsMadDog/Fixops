@@ -7,7 +7,7 @@ import { AlertTriangle, Shield, Eye, Server, Globe, Activity, Clock, MapPin, Key
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||

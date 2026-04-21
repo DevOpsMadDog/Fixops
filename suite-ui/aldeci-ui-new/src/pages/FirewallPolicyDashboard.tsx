@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Flame, Shield, AlertTriangle, GitMerge, RefreshCw } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
   import.meta.env.VITE_API_KEY ||

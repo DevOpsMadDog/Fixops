@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { Map, TrendingUp, CheckCircle, Clock, AlertTriangle, DollarSign, RefreshCw } from "lucide-react";
 
 // ── API ────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {

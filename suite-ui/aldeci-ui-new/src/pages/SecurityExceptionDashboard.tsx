@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { ShieldAlert, Clock, AlertTriangle, CheckCircle, XCircle, HelpCircle, RefreshCw, BarChart3 } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {

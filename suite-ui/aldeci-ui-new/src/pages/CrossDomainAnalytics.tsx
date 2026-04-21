@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 import { Database, Search, Shield, AlertTriangle, RefreshCw, BarChart3, Globe, Activity } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID   = "aldeci-demo";
 

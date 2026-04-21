@@ -30,7 +30,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "";
 const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG = "default";
 

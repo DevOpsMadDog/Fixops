@@ -19,7 +19,7 @@ import { Clock, AlertTriangle, Shield, Users, Settings, RefreshCw, BarChart3 } f
 import { toast } from "sonner";
 
 // ── API ────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {

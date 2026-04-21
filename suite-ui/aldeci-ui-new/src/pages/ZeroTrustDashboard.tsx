@@ -30,7 +30,7 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ══════════════════════════════════════════════════════════════
 // Types

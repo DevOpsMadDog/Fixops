@@ -31,7 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "";
 
 // ═══════════════════════════════════════════════════════════
 // Types

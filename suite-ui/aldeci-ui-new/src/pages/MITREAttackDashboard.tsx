@@ -41,7 +41,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ──────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const apiKey =
   (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
   import.meta.env.VITE_API_KEY ||

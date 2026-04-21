@@ -51,7 +51,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ═══════════════════════════════════════════════════════════
 // Types

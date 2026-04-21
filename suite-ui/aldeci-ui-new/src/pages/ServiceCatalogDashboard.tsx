@@ -12,7 +12,7 @@ import {
   TrendingUp, Activity, Users, PlusCircle, Zap,
 } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {

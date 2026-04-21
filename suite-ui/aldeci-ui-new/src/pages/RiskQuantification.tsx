@@ -23,7 +23,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API config ─────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {

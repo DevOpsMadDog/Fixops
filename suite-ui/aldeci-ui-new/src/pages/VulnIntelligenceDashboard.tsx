@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 import { EntityLink } from "@/components/EntityLink";
 
 // ── API helpers ──────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
