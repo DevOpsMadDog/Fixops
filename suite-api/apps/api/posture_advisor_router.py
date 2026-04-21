@@ -136,3 +136,74 @@ def get_stats(org_id: str = Query("default", description="Organisation identifie
     """Return aggregate advisor stats: analyses run, recommendations accepted/completed, avg improvement."""
     advisor = get_posture_advisor()
     return advisor.get_advisor_stats(org_id=org_id)
+
+
+@router.get("/score", summary="Get current posture score summary")
+def get_score(org_id: str = Query("default", description="Organisation identifier")) -> Dict[str, Any]:
+    """Return overall posture score, grade and trend from the posture score engine."""
+    try:
+        from core.posture_score_engine import PostureScoreEngine
+        engine = PostureScoreEngine()
+        current = engine.get_current_score(org_id=org_id)
+        if current:
+            return {
+                "overall_score": current.get("overall_score", 0),
+                "grade": current.get("grade", "N/A"),
+                "trend": current.get("trend", "stable"),
+                "computed_at": current.get("computed_at"),
+                "percentile": current.get("percentile"),
+            }
+    except Exception:
+        pass
+    # Fallback: derive from advisor stats
+    advisor = get_posture_advisor()
+    stats = advisor.get_advisor_stats(org_id=org_id)
+    return {
+        "overall_score": 0,
+        "grade": "N/A",
+        "trend": "stable",
+        "computed_at": None,
+        "analyses_run": stats.get("analyses_run", 0),
+    }
+
+
+@router.get("/components", summary="Get posture component scores")
+def get_components(org_id: str = Query("default", description="Organisation identifier")) -> List[Dict[str, Any]]:
+    """Return per-domain component scores for the posture breakdown chart."""
+    try:
+        from core.posture_score_engine import PostureScoreEngine
+        engine = PostureScoreEngine()
+        current = engine.get_current_score(org_id=org_id)
+        if current and current.get("components"):
+            raw = current["components"]
+            label_map = {
+                "vulnerability_mgmt_score": "Vulnerability Management",
+                "identity_security_score": "Identity Security",
+                "endpoint_security_score": "Endpoint Protection",
+                "network_security_score": "Network Security",
+                "cloud_security_score": "Cloud Security Posture",
+                "compliance_score": "Compliance Coverage",
+                "incident_response_score": "Incident Response",
+                "training_score": "Security Awareness",
+            }
+            weight_map = {
+                "vulnerability_mgmt_score": "25%",
+                "identity_security_score": "20%",
+                "endpoint_security_score": "15%",
+                "network_security_score": "15%",
+                "cloud_security_score": "10%",
+                "compliance_score": "8%",
+                "incident_response_score": "5%",
+                "training_score": "2%",
+            }
+            return [
+                {
+                    "name": label_map.get(k, k),
+                    "score": v,
+                    "weight": weight_map.get(k, "—"),
+                }
+                for k, v in raw.items()
+            ]
+    except Exception:
+        pass
+    return []

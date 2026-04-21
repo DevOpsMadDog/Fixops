@@ -50,7 +50,7 @@ async def list_sources(
     auth=Depends(api_key_auth),
 ):
     try:
-        return _get_engine().list_feed_sources(org_id=org_id, feed_type=feed_type)
+        return _get_engine().list_feed_sources(org_id=org_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -80,7 +80,7 @@ async def list_items(
     auth=Depends(api_key_auth),
 ):
     try:
-        return _get_engine().list_feed_items(org_id=org_id, feed_type=feed_type, severity=severity, limit=limit)
+        return _get_engine().list_feed_items(org_id=org_id, feed_type=feed_type, severity=severity)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
