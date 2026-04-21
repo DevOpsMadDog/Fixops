@@ -568,6 +568,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/attack_surface_router.py",
+      "accessCount": 11,
+      "lastAccessed": 1776764785793,
+      "type": "file"
+    },
+    {
       "path": "tests/test_phase2_connectors.py",
       "accessCount": 10,
       "lastAccessed": 1776318787210,
@@ -610,15 +616,15 @@
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/attack_surface_router.py",
-      "accessCount": 6,
-      "lastAccessed": 1776090389451,
-      "type": "file"
-    },
-    {
       "path": "suite-core/core/api_key_manager.py",
       "accessCount": 6,
       "lastAccessed": 1776331768100,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/attack_surface.py",
+      "accessCount": 6,
+      "lastAccessed": 1776764793284,
       "type": "file"
     },
     {
@@ -643,12 +649,6 @@
       "path": "suite-api/apps/api/attack_surface_manager_router.py",
       "accessCount": 4,
       "lastAccessed": 1776084595501,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/attack_surface.py",
-      "accessCount": 4,
-      "lastAccessed": 1776084914810,
       "type": "file"
     },
     {

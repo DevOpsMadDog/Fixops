@@ -438,28 +438,27 @@ export default function RiskAcceptancePage() {
           title="Pending Approvals"
           value={riskData.pending_count}
           icon={Clock}
-          valueClassName="text-orange-400"
-          trend={riskData.pending_count > 0 ? "neutral" : "positive"}
+
+          trend={riskData.pending_count > 0 ? "flat" : "up"}
         />
         <KpiCard
           title="Accepted Risks"
           value={riskData.accepted_count}
           icon={CheckCircle2}
-          valueClassName="text-green-400"
-          trend="positive"
+
+          trend="up"
         />
         <KpiCard
           title="Expired Acceptances"
           value={riskData.expired_count}
           icon={AlertTriangle}
-          valueClassName="text-red-400"
-          trend={riskData.expired_count > 0 ? "negative" : "positive"}
+
+          trend={riskData.expired_count > 0 ? "down" : "up"}
         />
         <KpiCard
           title="Due This Week"
           value={riskData.due_this_week}
           icon={Calendar}
-          valueClassName="text-yellow-400"
           trend="flat"
         />
       </div>

@@ -181,3 +181,26 @@ async def log_detection(
     except Exception as exc:
         logger.exception("mitre_attack.detections.log failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/stats")
+async def get_stats(
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Return aggregated MITRE ATT&CK statistics: technique count, detection count, coverage %."""
+    try:
+        engine = _get_engine()
+        coverage = engine.get_coverage(org_id)
+        detections = engine.get_detections(org_id, limit=1000)
+        techniques = engine.get_techniques(org_id)
+        return {
+            "org_id": org_id,
+            "total_techniques": len(techniques),
+            "total_detections": len(detections),
+            "coverage_pct": coverage.get("coverage_pct", 0.0),
+            "tactics_covered": coverage.get("tactics_covered", 0),
+            "tactics_total": coverage.get("tactics_total", 0),
+        }
+    except Exception as exc:
+        logger.exception("mitre_attack.stats failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

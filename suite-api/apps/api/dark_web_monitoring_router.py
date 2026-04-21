@@ -183,6 +183,15 @@ def list_credential_exposures(
 # Stats
 # ---------------------------------------------------------------------------
 
+@router.get("/credential-exposures", dependencies=[Depends(api_key_auth)])
+def list_credential_exposures_alias(
+    org_id: str = Query(default="default"),
+    verified: Optional[bool] = Query(None),
+):
+    """Alias for /exposures — list credential exposures with optional verified filter."""
+    return _get_engine().list_credential_exposures(org_id, verified=verified)
+
+
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_dark_web_stats(org_id: str = Query(default="default")):
     """Return aggregated dark web monitoring statistics."""

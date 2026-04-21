@@ -175,3 +175,31 @@ def update_task_status(org_id: str, task_id: str, req: UpdateTaskStatusRequest) 
 def get_compliance_stats(org_id: str) -> dict:
     """Get aggregate compliance statistics for an org."""
     return _get_engine().get_compliance_stats(org_id)
+
+
+@router.get("/scans")
+def list_scans_alias(
+    org_id: str,
+    profile_id: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+) -> list:
+    """Alias for /results — list scan results for an org, most recent first."""
+    return _get_engine().list_scan_results(org_id, profile_id=profile_id, limit=limit)
+
+
+@router.get("/findings")
+def list_findings_alias(
+    org_id: str,
+    status: Optional[str] = Query(None),
+    framework: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+) -> list:
+    """Alias mapping /findings to scan results with optional status/framework filter."""
+    results = _get_engine().list_scan_results(org_id, limit=limit)
+    checks: list = []
+    for r in results:
+        result_id = r.get("result_id") or r.get("id", "")
+        if result_id:
+            batch = _get_engine().list_checks(org_id, result_id, status=status, framework=framework)
+            checks.extend(batch)
+    return checks

@@ -404,28 +404,28 @@ export default function VendorRiskDashboard() {
         {/* Summary Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
-            label="Total Vendors"
+            title="Total Vendors"
             value={totalVendors}
             icon={Building2}
-            trend={null}
+
           />
           <KpiCard
-            label="Critical Risk"
+            title="Critical Risk"
             value={criticalCount}
             icon={AlertTriangle}
-            trendColor={criticalCount > 0 ? "red" : "green"}
+
           />
           <KpiCard
-            label="High Risk"
+            title="High Risk"
             value={highCount}
             icon={AlertCircle}
-            trendColor={highCount > 0 ? "orange" : "green"}
+
           />
           <KpiCard
-            label="Assessments Pending"
+            title="Assessments Pending"
             value={pendingCount}
             icon={Clock}
-            trendColor={pendingCount > 0 ? "yellow" : "green"}
+
           />
         </div>
 

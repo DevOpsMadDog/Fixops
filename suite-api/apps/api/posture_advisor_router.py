@@ -57,6 +57,29 @@ class DismissRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/analyze", summary="Get posture analysis summary (GET)")
+def get_analyze(
+    org_id: str = Query("default", description="Organisation identifier"),
+) -> Dict[str, Any]:
+    """Return posture score, grade, and top recommendations — GET version for dashboard polling."""
+    advisor = get_posture_advisor()
+    try:
+        from core.posture_score_engine import PostureScoreEngine
+        score_engine = PostureScoreEngine()
+        current = score_engine.get_current_score(org_id=org_id) or {}
+    except Exception:
+        current = {}
+    recs = advisor.list_recommendations(org_id=org_id, status="open")
+    return {
+        "org_id": org_id,
+        "overall_score": current.get("overall_score", 0),
+        "grade": current.get("grade", "N/A"),
+        "trend": current.get("trend", "stable"),
+        "open_recommendations": len(recs),
+        "top_recommendations": recs[:5],
+    }
+
+
 @router.post("/analyze", summary="Analyze security posture and generate recommendations")
 def analyze_posture(req: AnalyzeRequest) -> Dict[str, Any]:
     """Analyze current security posture metrics and return prioritized recommendations."""

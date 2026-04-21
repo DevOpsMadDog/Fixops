@@ -180,6 +180,42 @@ def discover_from_findings(req: DiscoverFromFindingsRequest) -> List[Asset]:
         raise HTTPException(status_code=500, detail=f"Discovery failed: {exc}") from exc
 
 
+@router.get("/score", summary="Attack surface risk score")
+def get_surface_score(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Return a numeric risk score (0-100) derived from the attack surface summary."""
+    mapper = _get_mapper()
+    surface = mapper.get_attack_surface(org_id)
+    return {
+        "org_id": org_id,
+        "risk_score": round(surface.risk_score, 2),
+        "total_assets": surface.total_assets,
+        "external_assets": surface.external_assets,
+        "high_risk_paths": surface.high_risk_paths,
+    }
+
+
+@router.get("/exposed", summary="Exposed assets")
+def get_exposed_assets(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> List[Asset]:
+    """Return internet-facing (externally exposed) assets — alias for /external."""
+    mapper = _get_mapper()
+    return mapper.get_external_assets(org_id)
+
+
+@router.get("/shadow-it", summary="Shadow IT assets")
+def get_shadow_it(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Return a list of unmanaged / shadow-IT assets (those with 'shadow' or 'unmanaged' tags)."""
+    mapper = _get_mapper()
+    all_assets = mapper.list_assets(org_id)
+    shadow = [a for a in all_assets if any(t in ("shadow", "unmanaged", "shadow-it") for t in (getattr(a, "tags", []) or []))]
+    return {"org_id": org_id, "shadow_it_count": len(shadow), "assets": shadow}
+
+
 @router.post("/paths", response_model=ExposurePath, summary="Map an exposure path")
 def map_exposure_path(req: MapPathRequest) -> ExposurePath:
     """Explicitly map an exposure path between two assets."""
