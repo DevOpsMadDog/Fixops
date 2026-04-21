@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec git commit -m \\\"$(cat <<'EOF'\\nfix(cnapp): fix SQL syntax error in calculate_cnapp_score missing space before WHERE\\n\\ncnapp_findingsWHERE → cnapp_findings WHER...",
-  "error": "Exit code 2\nsh: -c: line 0: syntax error near unexpected token `('\nsh: -c: line 0: `git commit -m fix(cnapp): fix SQL syntax error in calculate_cnapp_score missing space before WHERE'",
-  "timestamp": "2026-04-21T10:55:11.360Z",
+  "tool_input_preview": "{\"command\":\"$(cat /Users/devops.ai/fixops/Fixops/graphify-out/.graphify_python) -c \\\"\\nimport json\\nfrom pathlib import Path\\n\\nanalysis = json.loads(Path('/Users/devops.ai/fixops/Fixops/graphify-out/...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 16, in <module>\nTypeError: unhashable type: 'list'",
+  "timestamp": "2026-04-21T11:13:06.848Z",
   "retry_count": 1
 }

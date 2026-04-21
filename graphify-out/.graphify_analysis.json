@@ -1,0 +1,3637 @@
+{
+  "communities": {
+    "0": [
+      "analytics_analytics",
+      "analytics_charttooltip",
+      "analytics_heatcolor",
+      "livefeed_connectionstatus",
+      "livefeed_eventtypebadge",
+      "livefeed_livefeed",
+      "livefeed_severitydot",
+      "logviewer_jsonviewerdialog",
+      "logviewer_logviewer",
+      "mpteconsole_handlesubmit",
+      "mpteconsole_toarray",
+      "mpteconsole_verdictbadge",
+      "soc2evidence_categoryprogressbar",
+      "soc2evidence_soc2evidence",
+      "systemhealth_endpointbadge",
+      "systemhealth_loglevelbadge",
+      "systemhealth_statusdot",
+      "systemhealth_systemhealth",
+      "use_api_useapps",
+      "use_api_useassesscompliance",
+      "use_api_useauditlog",
+      "use_api_useautofix",
+      "use_api_usecase",
+      "use_api_usecases",
+      "use_api_usechangesriskprofile",
+      "use_api_usechangesvelocity",
+      "use_api_usecomplianceevidencerequests",
+      "use_api_usecomplianceevidencestats",
+      "use_api_usecomplianceframeworks",
+      "use_api_usecompliancegaps",
+      "use_api_usecomplianceoverallstatus",
+      "use_api_usecompliancepci",
+      "use_api_usecompliancesoc2",
+      "use_api_usecompliancestatus",
+      "use_api_useconfigureintegration",
+      "use_api_usecontainerstatus",
+      "use_api_usecopilotagents",
+      "use_api_usecopilotchat",
+      "use_api_usecreateapp",
+      "use_api_usecreateplaybook",
+      "use_api_usecreatepolicy",
+      "use_api_usecreateteam",
+      "use_api_usecreateuser",
+      "use_api_usecreateworkflow",
+      "use_api_usedashboardcompliance",
+      "use_api_usedashboardoverview",
+      "use_api_usedashboardtoprisks",
+      "use_api_usedashboardtrends",
+      "use_api_usedeleteworkflow",
+      "use_api_useendpointhealth",
+      "use_api_useevidencebundles",
+      "use_api_useevidencecompliancestatus",
+      "use_api_useevidencelist",
+      "use_api_useevidencesummary",
+      "use_api_usefaildrills",
+      "use_api_usefailhistory",
+      "use_api_usefailreadiness",
+      "use_api_usefailscenarios",
+      "use_api_usefindings",
+      "use_api_usegenerateevidence",
+      "use_api_useingestscanner",
+      "use_api_useingeststats",
+      "use_api_useinjectfail",
+      "use_api_useintegrations",
+      "use_api_useintegrationsstatus",
+      "use_api_useintelligencemap",
+      "use_api_useknowledgegraph",
+      "use_api_usellmstatus",
+      "use_api_usempteconfigs",
+      "use_api_usempterequests",
+      "use_api_usempteresults",
+      "use_api_usemptestats",
+      "use_api_usemptestatus",
+      "use_api_usempteverifications",
+      "use_api_usenerveoverlay",
+      "use_api_usenervepulse",
+      "use_api_usenervestate",
+      "use_api_useplatformhealth",
+      "use_api_useplaybooks",
+      "use_api_usepolicies",
+      "use_api_useremediationtasks",
+      "use_api_usereports",
+      "use_api_userunbrainpipeline",
+      "use_api_userunmptescan",
+      "use_api_userunplaybook",
+      "use_api_usescannerparsers",
+      "use_api_usesyncintegration",
+      "use_api_usesystemhealthcheck",
+      "use_api_usesystemlogsrecent",
+      "use_api_usesystemmetrics",
+      "use_api_useteams",
+      "use_api_usetestintegration",
+      "use_api_usethreatfeeds",
+      "use_api_usethreattrending",
+      "use_api_usetriagecase",
+      "use_api_usetriggerworkflow",
+      "use_api_useupdateplaybook",
+      "use_api_useupdatepolicy",
+      "use_api_useupdateteam",
+      "use_api_useupdateuser",
+      "use_api_useupdateworkflow",
+      "use_api_useusers",
+      "use_api_useworkflowrules",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_hooks_use_api_ts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_analytics_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_soc2evidence_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_livefeed_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_logviewer_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_systemhealth_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_users_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_validate_mpteconsole_tsx",
+      "users_handlesave",
+      "users_inviteuserdialog",
+      "users_userapikeydialog"
+    ],
+    "1": [
+      "accessanomalydashboard_fetchdata",
+      "accessanomalydashboard_getheaders",
+      "accessanomalydashboard_riskcolor",
+      "alerttriagedashboard_apifetch",
+      "alerttriagedashboard_clearfilters",
+      "alerttriagedashboard_cn",
+      "alerttriagedashboard_filterbar",
+      "alerttriagedashboard_formatts",
+      "alerttriagedashboard_handlebulkacknowledge",
+      "alerttriagedashboard_handlebulkdismiss",
+      "alerttriagedashboard_handlebulkescalate",
+      "alerttriagedashboard_handlerefresh",
+      "alerttriagedashboard_severitydot",
+      "alerttriagedashboard_socworkflowpanel",
+      "alerttriagedashboard_timeago",
+      "alerttriagedashboard_toggleexpand",
+      "alerttriagedashboard_toggleselect",
+      "alerttriagedashboard_toggleselectall",
+      "alerttriagedashboard_toggleseverity",
+      "alerttriagedashboard_togglestatus",
+      "client_apiclient",
+      "client_apiclient_buildheaders",
+      "client_apiclient_buildurl",
+      "client_apiclient_clearauth",
+      "client_apiclient_constructor",
+      "client_apiclient_delete",
+      "client_apiclient_get",
+      "client_apiclient_getauthstrategy",
+      "client_apiclient_getdefaultbaseurl",
+      "client_apiclient_getstoredauthtoken",
+      "client_apiclient_getstoredorgid",
+      "client_apiclient_getstream",
+      "client_apiclient_handleresponse",
+      "client_apiclient_patch",
+      "client_apiclient_post",
+      "client_apiclient_put",
+      "client_apiclient_setauthtoken",
+      "client_apiclient_setorgid",
+      "client_createapiclient",
+      "client_getapiclient",
+      "client_resetapiclient",
+      "dependencymappingdashboard_apifetch",
+      "dependencymappingdashboard_runblastanalysis",
+      "dependencymappingdashboard_svcname",
+      "predictions_async",
+      "predictions_simulateattack",
+      "predictions_trendicon",
+      "securityposturedashboard_apifetch",
+      "securityposturedashboard_effortbadge",
+      "securityposturedashboard_handlerefresh",
+      "securityposturedashboard_scorebg",
+      "securityposturedashboard_scorecolor",
+      "settingshub_sectionheader",
+      "settingshub_settingshub",
+      "use_api_usesystemhealth",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_api_client_ts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_accessanomalydashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ai_predictions_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_alerttriagedashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_dependencymappingdashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityposturedashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_settingshub_tsx"
+    ],
+    "2": [
+      "api_client_aldeciclient",
+      "api_client_aldeciclient_buildheaders",
+      "api_client_aldeciclient_constructor",
+      "api_client_aldeciclient_delay",
+      "api_client_aldeciclient_get",
+      "api_client_aldeciclient_getattacksurface",
+      "api_client_aldeciclient_getcompliancestatus",
+      "api_client_aldeciclient_getfindings",
+      "api_client_aldeciclient_getincidents",
+      "api_client_aldeciclient_getintegrationhealth",
+      "api_client_aldeciclient_getmetrics",
+      "api_client_aldeciclient_getposturescore",
+      "api_client_aldeciclient_getslastatus",
+      "api_client_aldeciclient_getthreathunting",
+      "api_client_aldeciclient_getvendors",
+      "api_client_aldeciclient_post",
+      "api_client_aldeciclient_request",
+      "api_client_aldeciclient_resolvetoken",
+      "api_client_apierror",
+      "api_client_apierror_constructor",
+      "api_utils_apiclient",
+      "api_utils_toarray",
+      "api_utils_toobject",
+      "riskacceptance_addcontrol",
+      "riskacceptance_daysago",
+      "riskacceptance_daysfrom",
+      "riskacceptance_daysuntil",
+      "riskacceptance_expirationclass",
+      "riskacceptance_expirationlabel",
+      "riskacceptance_formatdate",
+      "riskacceptance_getdaysremainingcolor",
+      "riskacceptance_handlesubmit",
+      "riskacceptance_removecontrol",
+      "riskacceptance_set",
+      "riskacceptance_setcontrol",
+      "riskacceptance_severitybadge",
+      "riskacceptance_statuschip",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_api_client_ts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_api_utils_ts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_risk_riskacceptance_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_riskacceptance_tsx"
+    ],
+    "3": [
+      "hooks_useapi",
+      "hooks_useassignfinding",
+      "hooks_usebulkupdatefindings",
+      "hooks_usecomplianceassessment",
+      "hooks_usecompliancetemplates",
+      "hooks_useconnectorhealth",
+      "hooks_useconnectors",
+      "hooks_usedashboard",
+      "hooks_useeventstats",
+      "hooks_useeventstream",
+      "hooks_useexecuteplaybook",
+      "hooks_useexecutivereport",
+      "hooks_useexportfindings",
+      "hooks_usefinding",
+      "hooks_usefindingsla",
+      "hooks_usefindingslist",
+      "hooks_usefindingssummary",
+      "hooks_usefindingtimeline",
+      "hooks_usekpis",
+      "hooks_usemetrictrend",
+      "hooks_usepipelinehealth",
+      "hooks_usepipelinestages",
+      "hooks_usepipelinethroughput",
+      "hooks_useplaybook",
+      "hooks_useplaybookruns",
+      "hooks_useplaybooks",
+      "hooks_userecentevents",
+      "hooks_useriskposture",
+      "hooks_usesyncconnector",
+      "hooks_useupdatefindingstatus",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_api_hooks_ts"
+    ],
+    "4": [
+      "incidentresponsedashboard_apifetch",
+      "incidentresponsedashboard_incidentresponsedashboard",
+      "securitymetricsdashboard_apifetch",
+      "securitymetricsdashboard_securitymetricsdashboard",
+      "securitymetricsdashboard_trendarrow",
+      "threatfeeddashboard_fmtcount",
+      "threatfeeddashboard_sevdot",
+      "threatfeeddashboard_threatfeeddashboard",
+      "threatfeeddashboard_typebadge",
+      "threathuntingdashboard_apifetch",
+      "threathuntingdashboard_hunttypebadge",
+      "threathuntingdashboard_threathuntingdashboard",
+      "ubadashboard_apifetch",
+      "ubadashboard_cn",
+      "ubadashboard_eventtypebadge",
+      "ubadashboard_scorecolor",
+      "ubadashboard_scoretextcolor",
+      "ubadashboard_ubadashboard",
+      "use_auto_refresh_useautorefresh",
+      "use_page_title_usepagetitle",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_hooks_use_auto_refresh_ts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_hooks_use_page_title_ts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidentresponsedashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitymetricsdashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatfeeddashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threathuntingdashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ubadashboard_tsx"
+    ],
+    "5": [
+      "exportbutton_escapecsvcell",
+      "exportbutton_exportbutton",
+      "exportbutton_flattenvalue",
+      "exportbutton_triggerdownload",
+      "feedsubscriptionsdashboard_apifetch",
+      "feedsubscriptionsdashboard_feedsubscriptionsdashboard",
+      "feedsubscriptionsdashboard_fmtnum",
+      "sladashboard_handlesort",
+      "sladashboard_slagauge",
+      "sladashboard_sorticon",
+      "sladashboard_string",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_exportbutton_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_feedsubscriptionsdashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_sladashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vendors_vendormanagement_tsx",
+      "vendormanagement_addvendorform",
+      "vendormanagement_daysago",
+      "vendormanagement_daysfrom",
+      "vendormanagement_daysuntil",
+      "vendormanagement_formatdate",
+      "vendormanagement_gradebadge",
+      "vendormanagement_handleaddvendor",
+      "vendormanagement_scorebar",
+      "vendormanagement_sorticon",
+      "vendormanagement_togglesort",
+      "vendormanagement_trendindicator"
+    ],
+    "6": [
+      "attacksurface_assettypechip",
+      "attacksurface_daysago",
+      "attacksurface_exposuredot",
+      "attacksurface_hoursago",
+      "attacksurface_minsago",
+      "attacksurface_pathchain",
+      "attacksurface_riskbadge",
+      "attacksurface_surfacescore",
+      "attacksurface_timeago",
+      "devsecuritydashboard_buildmockdata",
+      "devsecuritydashboard_sevbadge",
+      "devsecuritydashboard_toggle",
+      "devsecuritydashboard_verdictbadge",
+      "preferences_applytheme",
+      "preferences_canusebrowserstorage",
+      "preferences_loadpreferences",
+      "preferences_savepreferences",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_preferences_ts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_attack_surface_attacksurface_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_devsecuritydashboard_tsx"
+    ],
+    "7": [
+      "settings_fieldrow",
+      "settings_handlebackup",
+      "settings_handleclearcache",
+      "settings_handlecopy",
+      "settings_handlecreate",
+      "settings_handleinvite",
+      "settings_handleremove",
+      "settings_handlerevoke",
+      "settings_handlerolechange",
+      "settings_handlesave",
+      "settings_metricbar",
+      "settings_rolebadge",
+      "settings_sectionheader",
+      "settings_statusbadge",
+      "settings_statusdot",
+      "settings_statusicon",
+      "settings_toggleconnect",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_settings_tsx"
+    ],
+    "8": [
+      "threathunting_addcondition",
+      "threathunting_async",
+      "threathunting_confidencebadge",
+      "threathunting_findingstatusbadge",
+      "threathunting_formatduration",
+      "threathunting_formatrelative",
+      "threathunting_handlerun",
+      "threathunting_hoursago",
+      "threathunting_iochighlight",
+      "threathunting_minsago",
+      "threathunting_removecondition",
+      "threathunting_sessioncard",
+      "threathunting_severitybadge",
+      "threathunting_statusbadge",
+      "threathunting_tacticbadge",
+      "threathunting_updatecondition",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_hunting_threathunting_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threathunting_tsx"
+    ],
+    "9": [
+      "identitygovernance_apikey",
+      "identitygovernance_campaignstatusclass",
+      "identitygovernance_deadlinecolor",
+      "identitygovernance_fetchigastats",
+      "identitygovernance_fetchorphanedaccounts",
+      "identitygovernance_fetchreviews",
+      "identitygovernance_fetchsodviolations",
+      "identitygovernance_formatdateago",
+      "identitygovernance_formatdeadline",
+      "identitygovernance_handledisable",
+      "identitygovernance_iafetch",
+      "identitygovernance_igaheaders",
+      "identitygovernance_progresscolor",
+      "identitygovernance_riskbadgeclass",
+      "identitygovernance_setdecision",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_identitygovernance_tsx"
+    ],
+    "10": [
+      "riskregister_apifetch",
+      "riskregister_categorybadge",
+      "riskregister_fetchrisks",
+      "riskregister_generatetrenddata",
+      "riskregister_heatzonecolor",
+      "riskregister_matrixcellcolor",
+      "riskregister_riskheatmap",
+      "riskregister_scorebadgecls",
+      "riskregister_scorebg",
+      "riskregister_scorecolor",
+      "riskregister_scorelabel",
+      "riskregister_sorticon",
+      "riskregister_statusbadge",
+      "riskregister_togglecat",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_riskregister_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_riskregister_tsx"
+    ],
+    "11": [
+      "setup_eventsourcestub",
+      "setup_eventsourcestub_addeventlistener",
+      "setup_eventsourcestub_close",
+      "setup_eventsourcestub_constructor",
+      "setup_eventsourcestub_dispatchevent",
+      "setup_eventsourcestub_removeeventlistener",
+      "setup_intersectionobserverstub",
+      "setup_intersectionobserverstub_disconnect",
+      "setup_intersectionobserverstub_observe",
+      "setup_intersectionobserverstub_unobserve",
+      "setup_resizeobserverstub",
+      "setup_resizeobserverstub_disconnect",
+      "setup_resizeobserverstub_observe",
+      "setup_resizeobserverstub_unobserve",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_setup_ts"
+    ],
+    "12": [
+      "errorboundary_errorboundary",
+      "errorboundary_errorboundary_componentdidcatch",
+      "errorboundary_errorboundary_constructor",
+      "errorboundary_errorboundary_getderivedstatefromerror",
+      "errorboundary_errorboundary_render",
+      "test_utils_allproviders",
+      "test_utils_createtestqueryclient",
+      "test_utils_mockmutationresult",
+      "test_utils_mockqueryerror",
+      "test_utils_mockqueryloading",
+      "test_utils_mockqueryresult",
+      "test_utils_renderpage",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_shared_errorboundary_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_test_utils_tsx"
+    ],
+    "13": [
+      "socdashboard_ageurgency",
+      "socdashboard_bulkacknowledge",
+      "socdashboard_bulkescalate",
+      "socdashboard_bulkfalsepositive",
+      "socdashboard_daysago",
+      "socdashboard_formatage",
+      "socdashboard_handleacknowledge",
+      "socdashboard_handledismiss",
+      "socdashboard_handleescalate",
+      "socdashboard_hoursago",
+      "socdashboard_minsago",
+      "socdashboard_sorticon",
+      "socdashboard_toggleall",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_socdashboard_tsx"
+    ],
+    "14": [
+      "api_hooks_isapiunavailable",
+      "api_hooks_useapiquery",
+      "api_hooks_useattacksurface",
+      "api_hooks_usecompliance",
+      "api_hooks_usefindings",
+      "api_hooks_useincidents",
+      "api_hooks_useintegrationhealth",
+      "api_hooks_usemetrics",
+      "api_hooks_useposture",
+      "api_hooks_usesla",
+      "api_hooks_usethreathunting",
+      "api_hooks_usevendors",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_api_hooks_ts"
+    ],
+    "15": [
+      "threatinteldashboard_authedfetch",
+      "threatinteldashboard_cn",
+      "threatinteldashboard_cvsstoseverity",
+      "threatinteldashboard_formatcount",
+      "threatinteldashboard_generatemockcves",
+      "threatinteldashboard_generatemockiocs",
+      "threatinteldashboard_generatemockmitrecoverage",
+      "threatinteldashboard_getcellstatus",
+      "threatinteldashboard_handlecopy",
+      "threatinteldashboard_kevstatusbar",
+      "threatinteldashboard_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_threatinteldashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatinteldashboard_tsx"
+    ],
+    "16": [
+      "mainoverviewdashboard_animatednumber",
+      "mainoverviewdashboard_apifetch",
+      "mainoverviewdashboard_compliancebarcolour",
+      "mainoverviewdashboard_gradecolour",
+      "mainoverviewdashboard_gradeglow",
+      "mainoverviewdashboard_normalizealerts",
+      "mainoverviewdashboard_normalizecompliance",
+      "mainoverviewdashboard_normalizefeeds",
+      "mainoverviewdashboard_normalizeposture",
+      "mainoverviewdashboard_scorecolour",
+      "mainoverviewdashboard_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mainoverviewdashboard_tsx"
+    ],
+    "17": [
+      "api_buildapiurl",
+      "api_canusebrowserstorage",
+      "api_getstoredauthstrategy",
+      "api_getstoredauthtoken",
+      "api_getstoredorgid",
+      "api_getstoredvalue",
+      "api_setstoredauthstrategy",
+      "api_setstoredauthtoken",
+      "api_setstoredorgid",
+      "api_setstoredvalue",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_api_ts"
+    ],
+    "18": [
+      "exceptionworkflowdashboard_apifetch",
+      "exceptionworkflowdashboard_daysuntil",
+      "exceptionworkflowdashboard_decisionbadge",
+      "exceptionworkflowdashboard_isexpiringsoon",
+      "exceptionworkflowdashboard_isoverdue",
+      "exceptionworkflowdashboard_prioritybg",
+      "exceptionworkflowdashboard_prioritycolor",
+      "exceptionworkflowdashboard_statusbadge",
+      "exceptionworkflowdashboard_typebadge",
+      "exceptionworkflowdashboard_typelabel",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_exceptionworkflowdashboard_tsx"
+    ],
+    "19": [
+      "soct1dashboard_agreementmeter",
+      "soct1dashboard_daysago",
+      "soct1dashboard_formatage",
+      "soct1dashboard_formatts",
+      "soct1dashboard_handler",
+      "soct1dashboard_hoursago",
+      "soct1dashboard_minsago",
+      "soct1dashboard_severitybadge",
+      "soct1dashboard_sorticon",
+      "soct1dashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_soct1dashboard_tsx"
+    ],
+    "20": [
+      "scheduledreportsdashboard_apifetch",
+      "scheduledreportsdashboard_createschedulemodal",
+      "scheduledreportsdashboard_formattime",
+      "scheduledreportsdashboard_frequencybadge",
+      "scheduledreportsdashboard_handledelete",
+      "scheduledreportsdashboard_handletoggle",
+      "scheduledreportsdashboard_handletrigger",
+      "scheduledreportsdashboard_loaddata",
+      "scheduledreportsdashboard_runstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_scheduledreportsdashboard_tsx"
+    ],
+    "21": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnintelligencedashboard_tsx",
+      "vulnintelligencedashboard_apifetch",
+      "vulnintelligencedashboard_cn",
+      "vulnintelligencedashboard_cvssscore",
+      "vulnintelligencedashboard_epssscore",
+      "vulnintelligencedashboard_exploitindicator",
+      "vulnintelligencedashboard_kevindicator",
+      "vulnintelligencedashboard_severitybadge",
+      "vulnintelligencedashboard_statusbadge",
+      "vulnintelligencedashboard_vulnintelligencedashboard"
+    ],
+    "22": [
+      "bugbounty_apifetch",
+      "bugbounty_badgecolor",
+      "bugbounty_getapikey",
+      "bugbounty_severitycolor",
+      "bugbounty_statuscolor",
+      "commanddashboard_arcpath",
+      "commanddashboard_cn",
+      "commanddashboard_torad",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_bugbounty_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_commanddashboard_tsx"
+    ],
+    "23": [
+      "securityposturematuritydashboard_arcx",
+      "securityposturematuritydashboard_arcy",
+      "securityposturematuritydashboard_domainbg",
+      "securityposturematuritydashboard_domaincolor",
+      "securityposturematuritydashboard_effortbadge",
+      "securityposturematuritydashboard_getheaders",
+      "securityposturematuritydashboard_prioritybadge",
+      "securityposturematuritydashboard_statusbadge",
+      "securityposturematuritydashboard_torad",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityposturematuritydashboard_tsx"
+    ],
+    "24": [
+      "developerportal_apifetch",
+      "developerportal_daysago",
+      "developerportal_fixpanel",
+      "developerportal_gradebadge",
+      "developerportal_handlerefresh",
+      "developerportal_loaddata",
+      "developerportal_sevbadge",
+      "developerportal_togglesort",
+      "developerportal_trendicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_developer_developerportal_tsx"
+    ],
+    "25": [
+      "playbookeditor_addstep",
+      "playbookeditor_deletestep",
+      "playbookeditor_generateyaml",
+      "playbookeditor_getstepoptions",
+      "playbookeditor_handlesave",
+      "playbookeditor_handletest",
+      "playbookeditor_movestep",
+      "playbookeditor_stepcard",
+      "playbookeditor_updatestep",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_validate_playbookeditor_tsx"
+    ],
+    "26": [
+      "findingexplorer_async",
+      "findingexplorer_epssbadge",
+      "findingexplorer_mptebadge",
+      "findingexplorer_severitybadge",
+      "findingexplorer_sorticon",
+      "findingexplorer_statusbadge",
+      "findingexplorer_toggleall",
+      "findingexplorer_togglerow",
+      "findingexplorer_togglesort",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_findingexplorer_tsx"
+    ],
+    "27": [
+      "findingsexplorer_daysago",
+      "findingsexplorer_detailpanel",
+      "findingsexplorer_handler",
+      "findingsexplorer_hoursago",
+      "findingsexplorer_minsago",
+      "findingsexplorer_severitybadge",
+      "findingsexplorer_sorticon",
+      "findingsexplorer_statusbadge",
+      "findingsexplorer_verdictbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_findings_findingsexplorer_tsx"
+    ],
+    "28": [
+      "auth_authprovider",
+      "auth_decodejwtpayload",
+      "auth_istokenexpired",
+      "auth_persistuser",
+      "auth_requireauth",
+      "auth_requirerole",
+      "auth_useauth",
+      "auth_userfromstorage",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_auth_tsx"
+    ],
+    "29": [
+      "openclawdashboard_apifetch",
+      "openclawdashboard_newcampaignform",
+      "openclawdashboard_openclawdashboard",
+      "openclawdashboard_riskscore",
+      "openclawdashboard_sevdot",
+      "openclawdashboard_statusbadge",
+      "openclawdashboard_taskstatusbadge",
+      "openclawdashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_openclawdashboard_tsx"
+    ],
+    "30": [
+      "pkimanagementdashboard_apifetch",
+      "pkimanagementdashboard_catypebadge",
+      "pkimanagementdashboard_certstatusbadge",
+      "pkimanagementdashboard_certtypebadge",
+      "pkimanagementdashboard_daysuntil",
+      "pkimanagementdashboard_expirycolor",
+      "pkimanagementdashboard_keyalgobadge",
+      "pkimanagementdashboard_pkimanagementdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_pkimanagementdashboard_tsx"
+    ],
+    "31": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnheatmap_tsx",
+      "vulnheatmap_apifetch",
+      "vulnheatmap_buildmockassets",
+      "vulnheatmap_getriskbadge",
+      "vulnheatmap_getriskcellcolor",
+      "vulnheatmap_getrisktextcolor",
+      "vulnheatmap_getzonebadge",
+      "vulnheatmap_heatmapcell",
+      "vulnheatmap_seededrisk"
+    ],
+    "32": [
+      "endpointcompliancedashboard_apifetch",
+      "endpointcompliancedashboard_benchmarklabel",
+      "endpointcompliancedashboard_fetchall",
+      "endpointcompliancedashboard_levelbadge",
+      "endpointcompliancedashboard_levellabel",
+      "endpointcompliancedashboard_scorebgbar",
+      "endpointcompliancedashboard_scorecolor",
+      "endpointcompliancedashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_endpointcompliancedashboard_tsx"
+    ],
+    "33": [
+      "cloudcompliancedashboard_apifetch",
+      "cloudcompliancedashboard_fetchall",
+      "cloudcompliancedashboard_fmlabel",
+      "cloudcompliancedashboard_prioritybadge",
+      "cloudcompliancedashboard_scorebg",
+      "cloudcompliancedashboard_scorecolor",
+      "cloudcompliancedashboard_severitybadge",
+      "cloudcompliancedashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudcompliancedashboard_tsx"
+    ],
+    "34": [
+      "executiveriskreport_apifetch",
+      "executiveriskreport_circulargauge",
+      "executiveriskreport_gradecolorclass",
+      "executiveriskreport_handlerefresh",
+      "executiveriskreport_pillargaugecolor",
+      "executiveriskreport_pillariconel",
+      "executiveriskreport_prioritybadgeclass",
+      "executiveriskreport_riskbadgeclass",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_executiveriskreport_tsx"
+    ],
+    "35": [
+      "incidentcostsdashboard_apifetch",
+      "incidentcostsdashboard_benchmarkbadge",
+      "incidentcostsdashboard_buildcategorybreakdown",
+      "incidentcostsdashboard_fmt",
+      "incidentcostsdashboard_incidentcostsdashboard",
+      "incidentcostsdashboard_severitycolor",
+      "incidentcostsdashboard_statusbadge",
+      "incidentcostsdashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidentcostsdashboard_tsx"
+    ],
+    "36": [
+      "systemhealthdashboard_apifetch",
+      "systemhealthdashboard_cn",
+      "systemhealthdashboard_enginestatusdot",
+      "systemhealthdashboard_formatenginename",
+      "systemhealthdashboard_handlerefresh",
+      "systemhealthdashboard_scorecolor",
+      "systemhealthdashboard_scoreringcolor",
+      "systemhealthdashboard_statusbadgevariant",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_systemhealthdashboard_tsx"
+    ],
+    "37": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_remediate_workflows_tsx",
+      "workflows_addaction",
+      "workflows_handleconfirm",
+      "workflows_handlecreaterule",
+      "workflows_handledelete",
+      "workflows_handleduplicate",
+      "workflows_handletoggle",
+      "workflows_removeaction",
+      "workflows_updateaction"
+    ],
+    "38": [
+      "compliancecalendardashboard_frameworkbadge",
+      "compliancecalendardashboard_getheaders",
+      "compliancedashboard_evidencestatusbadge",
+      "compliancedashboard_generatemocktrend",
+      "compliancedashboard_handleexport",
+      "compliancedashboard_prioritybadge",
+      "compliancedashboard_scorering",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_compliancecalendardashboard_tsx",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_compliancedashboard_tsx"
+    ],
+    "39": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_utils_ts",
+      "utils_cn",
+      "utils_formatcurrency",
+      "utils_formatduration",
+      "utils_formatnumber",
+      "utils_getinitials",
+      "utils_severitycolor",
+      "utils_statuscolor"
+    ],
+    "40": [
+      "cloudidentitydashboard_apifetch",
+      "cloudidentitydashboard_cloudidentitydashboard",
+      "cloudidentitydashboard_cloudproviderbadge",
+      "cloudidentitydashboard_fmttime",
+      "cloudidentitydashboard_identitytypebadge",
+      "cloudidentitydashboard_privilegebadge",
+      "cloudidentitydashboard_reviewoutcomebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudidentitydashboard_tsx"
+    ],
+    "41": [
+      "apisecuritymgmtdashboard_apifetch",
+      "apisecuritymgmtdashboard_apisecuritymgmtdashboard",
+      "apisecuritymgmtdashboard_cn",
+      "apisecuritymgmtdashboard_methodbadge",
+      "apisecuritymgmtdashboard_sensitivitybadge",
+      "apisecuritymgmtdashboard_severitybadge",
+      "apisecuritymgmtdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_apisecuritymgmtdashboard_tsx"
+    ],
+    "42": [
+      "securitytabletopdashboard_apifetch",
+      "securitytabletopdashboard_exercisestatusbadge",
+      "securitytabletopdashboard_findingstatusbadge",
+      "securitytabletopdashboard_scenariotypebadge",
+      "securitytabletopdashboard_scorecolor",
+      "securitytabletopdashboard_securitytabletopdashboard",
+      "securitytabletopdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitytabletopdashboard_tsx"
+    ],
+    "43": [
+      "cyberinsurancedashboard_apifetch",
+      "cyberinsurancedashboard_claimstatusbadge",
+      "cyberinsurancedashboard_fetchdata",
+      "cyberinsurancedashboard_fmtmoney",
+      "cyberinsurancedashboard_handlerefresh",
+      "cyberinsurancedashboard_incidenttypebadge",
+      "cyberinsurancedashboard_policystatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cyberinsurancedashboard_tsx"
+    ],
+    "44": [
+      "containerruntimesecuritydashboard_actionbadge",
+      "containerruntimesecuritydashboard_apifetch",
+      "containerruntimesecuritydashboard_containerruntimesecuritydashboard",
+      "containerruntimesecuritydashboard_containerstatusbadge",
+      "containerruntimesecuritydashboard_fmttime",
+      "containerruntimesecuritydashboard_riskscorebadge",
+      "containerruntimesecuritydashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_containerruntimesecuritydashboard_tsx"
+    ],
+    "45": [
+      "ccmdashboard_apifetch",
+      "ccmdashboard_controlstatusicon",
+      "ccmdashboard_failuretypebadge",
+      "ccmdashboard_frameworkstatusbadge",
+      "ccmdashboard_fwbadge",
+      "ccmdashboard_handlerefresh",
+      "ccmdashboard_testtypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ccmdashboard_tsx"
+    ],
+    "46": [
+      "pentestmanagementdashboard_apifetch",
+      "pentestmanagementdashboard_catbadge",
+      "pentestmanagementdashboard_pentestmanagementdashboard",
+      "pentestmanagementdashboard_retestbadge",
+      "pentestmanagementdashboard_sevbadge",
+      "pentestmanagementdashboard_sevdot",
+      "pentestmanagementdashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_pentestmanagementdashboard_tsx"
+    ],
+    "47": [
+      "executivereportingdashboard_apifetch",
+      "executivereportingdashboard_audiencebadge",
+      "executivereportingdashboard_executivereportingdashboard",
+      "executivereportingdashboard_kpistatusbadge",
+      "executivereportingdashboard_reportstatusbadge",
+      "executivereportingdashboard_reporttypebadge",
+      "executivereportingdashboard_trendicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_executivereportingdashboard_tsx"
+    ],
+    "48": [
+      "riskquantdashboard_apifetch",
+      "riskquantdashboard_fmt",
+      "riskquantdashboard_pctbar",
+      "riskquantdashboard_riskbadge",
+      "riskquantdashboard_riskquantdashboard",
+      "riskquantdashboard_threatbadge",
+      "riskquantdashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_riskquantdashboard_tsx"
+    ],
+    "49": [
+      "compliancedashboard_apifetch",
+      "compliancedashboard_cn",
+      "compliancedashboard_fetchcompliancestatus",
+      "compliancedashboard_fetchevidence",
+      "compliancedashboard_fetchgaps",
+      "compliancedashboard_fetchscannerstats",
+      "compliancedashboard_usecountup",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_compliancedashboard_tsx"
+    ],
+    "50": [
+      "securitytoolinventorydashboard_apifetch",
+      "securitytoolinventorydashboard_categorybadge",
+      "securitytoolinventorydashboard_deploymentbadge",
+      "securitytoolinventorydashboard_fmtcost",
+      "securitytoolinventorydashboard_scorebar",
+      "securitytoolinventorydashboard_securitytoolinventorydashboard",
+      "securitytoolinventorydashboard_toolstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitytoolinventorydashboard_tsx"
+    ],
+    "51": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vendorriskdashboard_tsx",
+      "vendorriskdashboard_apifetch",
+      "vendorriskdashboard_formatassessmenttime",
+      "vendorriskdashboard_formatdate",
+      "vendorriskdashboard_riskbadgeclass",
+      "vendorriskdashboard_riskcolor",
+      "vendorriskdashboard_scorecolor",
+      "vendorriskdashboard_tierbadgeclass"
+    ],
+    "52": [
+      "cisoreportdashboard_apifetch",
+      "cisoreportdashboard_handleexport",
+      "cisoreportdashboard_load",
+      "cisoreportdashboard_riskscorecolor",
+      "cisoreportdashboard_sectionhighlight",
+      "cisoreportdashboard_severityclass",
+      "cisoreportdashboard_severityvariant",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cisoreportdashboard_tsx"
+    ],
+    "53": [
+      "cloudworkloadprotectiondashboard_apifetch",
+      "cloudworkloadprotectiondashboard_cloudproviderbadge",
+      "cloudworkloadprotectiondashboard_cloudworkloadprotectiondashboard",
+      "cloudworkloadprotectiondashboard_protectionstatusbadge",
+      "cloudworkloadprotectiondashboard_riskbadge",
+      "cloudworkloadprotectiondashboard_severitybadge",
+      "cloudworkloadprotectiondashboard_threatstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudworkloadprotectiondashboard_tsx"
+    ],
+    "54": [
+      "ipreputation_copytoclipboard",
+      "ipreputation_getabuseconfidencecolor",
+      "ipreputation_getcountryflag",
+      "ipreputation_handlecheckmyip",
+      "ipreputation_handlequickselect",
+      "ipreputation_handlesearch",
+      "ipreputation_isvalidip",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ipreputation_tsx"
+    ],
+    "55": [
+      "datagovernancedashboard_apifetch",
+      "datagovernancedashboard_classificationbadge",
+      "datagovernancedashboard_datagovernancedashboard",
+      "datagovernancedashboard_enforcementbadge",
+      "datagovernancedashboard_severitydot",
+      "datagovernancedashboard_statusbadge",
+      "datagovernancedashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_datagovernancedashboard_tsx"
+    ],
+    "56": [
+      "browsersecuritydashboard_apifetch",
+      "browsersecuritydashboard_browserbadge",
+      "browsersecuritydashboard_browsersecuritydashboard",
+      "browsersecuritydashboard_eventtypebadge",
+      "browsersecuritydashboard_extstatusbadge",
+      "browsersecuritydashboard_risklevelbadge",
+      "browsersecuritydashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_browsersecuritydashboard_tsx"
+    ],
+    "57": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_zerodayintelligencedashboard_tsx",
+      "zerodayintelligencedashboard_actortypebadge",
+      "zerodayintelligencedashboard_apifetch",
+      "zerodayintelligencedashboard_cvsscolor",
+      "zerodayintelligencedashboard_disclosurebadge",
+      "zerodayintelligencedashboard_exploitstatusbadge",
+      "zerodayintelligencedashboard_patchstatusbadge",
+      "zerodayintelligencedashboard_zerodayintelligencedashboard"
+    ],
+    "58": [
+      "deceptionanalyticsdashboard_apifetch",
+      "deceptionanalyticsdashboard_assettypebadge",
+      "deceptionanalyticsdashboard_confidencecolor",
+      "deceptionanalyticsdashboard_deceptionanalyticsdashboard",
+      "deceptionanalyticsdashboard_decoycategory",
+      "deceptionanalyticsdashboard_fmttime",
+      "deceptionanalyticsdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_deceptionanalyticsdashboard_tsx"
+    ],
+    "59": [
+      "securityculturedashboard_circleprogress",
+      "securityculturedashboard_maturitycolor",
+      "securityculturedashboard_scorebarcolor",
+      "securityculturedashboard_scorecolor",
+      "securityculturedashboard_securityculturedashboard",
+      "securityculturedashboard_statusbadge",
+      "securityculturedashboard_trendicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityculturedashboard_tsx"
+    ],
+    "60": [
+      "sbommanagement_cn",
+      "sbommanagement_flat",
+      "sbommanagement_formatdate",
+      "sbommanagement_formatdateshort",
+      "sbommanagement_licensebadge",
+      "sbommanagement_severitydot",
+      "sbommanagement_vulnbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_sbom_sbommanagement_tsx"
+    ],
+    "61": [
+      "integrationhealth_cn",
+      "integrationhealth_daysago",
+      "integrationhealth_formatms",
+      "integrationhealth_formatrelative",
+      "integrationhealth_hoursago",
+      "integrationhealth_makehistory",
+      "integrationhealth_minsago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_integrations_integrationhealth_tsx"
+    ],
+    "62": [
+      "evidenceexportcenter_downloadblob",
+      "evidenceexportcenter_handlegenerate",
+      "evidenceexportcenter_handlesend",
+      "evidenceexportcenter_toggleapp",
+      "evidenceexportcenter_toggleexpand",
+      "evidenceexportcenter_toggleframework",
+      "evidenceexportcenter_toggleinclude",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_evidenceexportcenter_tsx"
+    ],
+    "63": [
+      "pamdashboard_apifetch",
+      "pamdashboard_handleapprove",
+      "pamdashboard_handledeny",
+      "pamdashboard_handleendsession",
+      "pamdashboard_handlerefresh",
+      "pamdashboard_handlerotate",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_pamdashboard_tsx"
+    ],
+    "64": [
+      "apiabusedashboard_apiabusedashboard",
+      "apiabusedashboard_apifetch",
+      "apiabusedashboard_endpointstatusbadge",
+      "apiabusedashboard_incidentstatusbadge",
+      "apiabusedashboard_methodbadge",
+      "apiabusedashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_apiabusedashboard_tsx"
+    ],
+    "65": [
+      "postureadvisor_categoryicon",
+      "postureadvisor_effortbadgecolor",
+      "postureadvisor_getcolor",
+      "postureadvisor_getpoint",
+      "postureadvisor_prioritycolor",
+      "postureadvisor_priorityicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_postureadvisor_tsx"
+    ],
+    "66": [
+      "securitykpidashboard_apifetch",
+      "securitykpidashboard_benchmarkcolor",
+      "securitykpidashboard_categorycolor",
+      "securitykpidashboard_categorytextcolor",
+      "securitykpidashboard_gradecolor",
+      "securitykpidashboard_trendicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitykpidashboard_tsx"
+    ],
+    "67": [
+      "threatscoredashboard_apifetch",
+      "threatscoredashboard_fmttime",
+      "threatscoredashboard_risklevelbadge",
+      "threatscoredashboard_scorebg",
+      "threatscoredashboard_scorecolor",
+      "threatscoredashboard_threatscoredashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatscoredashboard_tsx"
+    ],
+    "68": [
+      "securitybaselinedashboard_categorybadge",
+      "securitybaselinedashboard_fmt",
+      "securitybaselinedashboard_getheaders",
+      "securitybaselinedashboard_publishbaseline",
+      "securitybaselinedashboard_runassessment",
+      "securitybaselinedashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitybaselinedashboard_tsx"
+    ],
+    "69": [
+      "securitychaosdashboard_apifetch",
+      "securitychaosdashboard_experimentstatusbadge",
+      "securitychaosdashboard_fmttime",
+      "securitychaosdashboard_resiliencescorebadge",
+      "securitychaosdashboard_securitychaosdashboard",
+      "securitychaosdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitychaosdashboard_tsx"
+    ],
+    "70": [
+      "compliancegapdashboard_apifetch",
+      "compliancegapdashboard_compliancebar",
+      "compliancegapdashboard_compliancecolor",
+      "compliancegapdashboard_compliancegapdashboard",
+      "compliancegapdashboard_gapstatusbadge",
+      "compliancegapdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_compliancegapdashboard_tsx"
+    ],
+    "71": [
+      "securityoperationsmetricsdashboard_arcx",
+      "securityoperationsmetricsdashboard_arcy",
+      "securityoperationsmetricsdashboard_cn",
+      "securityoperationsmetricsdashboard_getheaders",
+      "securityoperationsmetricsdashboard_timeage",
+      "securityoperationsmetricsdashboard_torad",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityoperationsmetricsdashboard_tsx"
+    ],
+    "72": [
+      "digitaltwindashboard_apifetch",
+      "digitaltwindashboard_digitaltwindashboard",
+      "digitaltwindashboard_formatts",
+      "digitaltwindashboard_riskscore",
+      "digitaltwindashboard_statusbadge",
+      "digitaltwindashboard_truncateid",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_digitaltwindashboard_tsx"
+    ],
+    "73": [
+      "dataexfiltrationdashboard_apifetch",
+      "dataexfiltrationdashboard_dataclassbadge",
+      "dataexfiltrationdashboard_dataexfiltrationdashboard",
+      "dataexfiltrationdashboard_incidentstatusbadge",
+      "dataexfiltrationdashboard_incidenttypebadge",
+      "dataexfiltrationdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_dataexfiltrationdashboard_tsx"
+    ],
+    "74": [
+      "securitychampionsdashboard_apifetch",
+      "securitychampionsdashboard_campaigntypebadge",
+      "securitychampionsdashboard_certstatusbadge",
+      "securitychampionsdashboard_levelbadge",
+      "securitychampionsdashboard_rankbadge",
+      "securitychampionsdashboard_securitychampionsdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitychampionsdashboard_tsx"
+    ],
+    "75": [
+      "risktreatmentdashboard_apifetch",
+      "risktreatmentdashboard_exportcsv",
+      "risktreatmentdashboard_progressbar",
+      "risktreatmentdashboard_riskbadge",
+      "risktreatmentdashboard_risktreatmentdashboard",
+      "risktreatmentdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_risktreatmentdashboard_tsx"
+    ],
+    "76": [
+      "mobileappsecuritydashboard_apifetch",
+      "mobileappsecuritydashboard_findingstatusbadge",
+      "mobileappsecuritydashboard_mobileappsecuritydashboard",
+      "mobileappsecuritydashboard_platformbadge",
+      "mobileappsecuritydashboard_riskbadge",
+      "mobileappsecuritydashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mobileappsecuritydashboard_tsx"
+    ],
+    "77": [
+      "mitreattackdashboard_apifetch",
+      "mitreattackdashboard_coveragecolor",
+      "mitreattackdashboard_coveragetextcolor",
+      "mitreattackdashboard_load",
+      "mitreattackdashboard_severitylabel",
+      "mitreattackdashboard_severityvariant",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mitreattackdashboard_tsx"
+    ],
+    "78": [
+      "actortrackingdashboard_actortypebadge",
+      "actortrackingdashboard_getheaders",
+      "actortrackingdashboard_intelbadge",
+      "actortrackingdashboard_relativetime",
+      "actortrackingdashboard_threatbordercolor",
+      "actortrackingdashboard_threattextcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_actortrackingdashboard_tsx"
+    ],
+    "79": [
+      "supplychainattackdashboard_apifetch",
+      "supplychainattackdashboard_detectionstatusbadge",
+      "supplychainattackdashboard_ecosystembadge",
+      "supplychainattackdashboard_packagestatusbadge",
+      "supplychainattackdashboard_severitybadge",
+      "supplychainattackdashboard_supplychainattackdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_supplychainattackdashboard_tsx"
+    ],
+    "80": [
+      "aigovernancedashboard_aigovernancedashboard",
+      "aigovernancedashboard_apifetch",
+      "aigovernancedashboard_deploymentbadge",
+      "aigovernancedashboard_incidentstatusbadge",
+      "aigovernancedashboard_riskbadge",
+      "aigovernancedashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_aigovernancedashboard_tsx"
+    ],
+    "81": [
+      "itdrdashboard_actionstatusbadge",
+      "itdrdashboard_apifetch",
+      "itdrdashboard_fmttime",
+      "itdrdashboard_itdrdashboard",
+      "itdrdashboard_severitybadge",
+      "itdrdashboard_threatstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_itdrdashboard_tsx"
+    ],
+    "82": [
+      "cspmdashboard_apifetch",
+      "cspmdashboard_handleremediate",
+      "cspmdashboard_providercolor",
+      "cspmdashboard_scorebar",
+      "cspmdashboard_scoregrade",
+      "cspmdashboard_severitycolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cspmdashboard_tsx"
+    ],
+    "83": [
+      "aisecurityadvisordashboard_apifetch",
+      "aisecurityadvisordashboard_getmockanswer",
+      "aisecurityadvisordashboard_handleask",
+      "aisecurityadvisordashboard_handleupdatestatus",
+      "aisecurityadvisordashboard_loaddata",
+      "aisecurityadvisordashboard_yscale",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_aisecurityadvisordashboard_tsx"
+    ],
+    "84": [
+      "mfamanagementdashboard_apifetch",
+      "mfamanagementdashboard_enrollmentstatusbadge",
+      "mfamanagementdashboard_eventtypebadge",
+      "mfamanagementdashboard_fmttime",
+      "mfamanagementdashboard_mfamanagementdashboard",
+      "mfamanagementdashboard_mfatypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mfamanagementdashboard_tsx"
+    ],
+    "85": [
+      "identityanalyticsdashboard_apifetch",
+      "identityanalyticsdashboard_eventbadge",
+      "identityanalyticsdashboard_identityanalyticsdashboard",
+      "identityanalyticsdashboard_risktypebadge",
+      "identityanalyticsdashboard_sevdot",
+      "identityanalyticsdashboard_tierbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_identityanalyticsdashboard_tsx"
+    ],
+    "86": [
+      "darkwebmonitoringdashboard_apifetch",
+      "darkwebmonitoringdashboard_darkwebmonitoringdashboard",
+      "darkwebmonitoringdashboard_fmttime",
+      "darkwebmonitoringdashboard_mentionstatusbadge",
+      "darkwebmonitoringdashboard_riskscorebadge",
+      "darkwebmonitoringdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_darkwebmonitoringdashboard_tsx"
+    ],
+    "87": [
+      "alertenrichmentdashboard_fmt",
+      "alertenrichmentdashboard_getheaders",
+      "alertenrichmentdashboard_kpicard",
+      "alertenrichmentdashboard_riskcolor",
+      "alertenrichmentdashboard_togglesource",
+      "alertenrichmentdashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_alertenrichmentdashboard_tsx"
+    ],
+    "88": [
+      "certificatemanager_apifetch",
+      "certificatemanager_daysuntil",
+      "certificatemanager_expirylabel",
+      "certificatemanager_handlecheck",
+      "certificatemanager_kpicard",
+      "certificatemanager_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_certificatemanager_tsx"
+    ],
+    "89": [
+      "incidentkbdashboard_apifetch",
+      "incidentkbdashboard_handleexecute",
+      "incidentkbdashboard_handlehelpful",
+      "incidentkbdashboard_loaddata",
+      "incidentkbdashboard_matchessearch",
+      "incidentkbdashboard_successratecolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidentkbdashboard_tsx"
+    ],
+    "90": [
+      "iotsecuritydashboard_anomalystatusbadge",
+      "iotsecuritydashboard_apifetch",
+      "iotsecuritydashboard_devicestatusbadge",
+      "iotsecuritydashboard_fmttime",
+      "iotsecuritydashboard_iotsecuritydashboard",
+      "iotsecuritydashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_iotsecuritydashboard_tsx"
+    ],
+    "91": [
+      "sbominventory_ecobadge",
+      "sbominventory_getlicenserisk",
+      "sbominventory_licensebadge",
+      "sbominventory_reachbadge",
+      "sbominventory_runtimestatusbadge",
+      "sbominventory_vulnseveritydot",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_sbominventory_tsx"
+    ],
+    "92": [
+      "autofix_codediffview",
+      "autofix_fixtypebadge",
+      "autofix_handlebatchapprove",
+      "autofix_sorticon",
+      "autofix_statusbadge",
+      "autofix_togglesort",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_remediate_autofix_tsx"
+    ],
+    "93": [
+      "incidentresponse_hoursago",
+      "incidentresponse_hoursfromnow",
+      "incidentresponse_minsago",
+      "incidentresponse_severitybadge",
+      "incidentresponse_statebadge",
+      "incidentresponse_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidents_incidentresponse_tsx"
+    ],
+    "94": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_layout_workspacelayout_tsx",
+      "workspacelayout_routeerrorboundary",
+      "workspacelayout_routeerrorboundary_componentdidupdate",
+      "workspacelayout_routeerrorboundary_constructor",
+      "workspacelayout_routeerrorboundary_getderivedstatefromerror",
+      "workspacelayout_routeerrorboundary_render"
+    ],
+    "95": [
+      "globalsearch_fetchsearchresults",
+      "globalsearch_handle",
+      "globalsearch_handlekeydown",
+      "globalsearch_handlekeynav",
+      "globalsearch_usedebounce",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_layout_globalsearch_tsx"
+    ],
+    "96": [
+      "liveeventfeed_cn",
+      "liveeventfeed_eventrow",
+      "liveeventfeed_makemockevent",
+      "liveeventfeed_statusdot",
+      "liveeventfeed_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_widgets_liveeventfeed_tsx"
+    ],
+    "97": [
+      "assetriskdashboard_apifetch",
+      "assetriskdashboard_assetriskdashboard",
+      "assetriskdashboard_heatcolor",
+      "assetriskdashboard_scorebar",
+      "assetriskdashboard_scoreindicator",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_assetriskdashboard_tsx"
+    ],
+    "98": [
+      "accessrequestmanagementdashboard_accessrequestmanagementdashboard",
+      "accessrequestmanagementdashboard_apifetch",
+      "accessrequestmanagementdashboard_exportcsv",
+      "accessrequestmanagementdashboard_formatts",
+      "accessrequestmanagementdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_accessrequestmanagementdashboard_tsx"
+    ],
+    "99": [
+      "applicationriskdashboard_apifetch",
+      "applicationriskdashboard_applicationriskdashboard",
+      "applicationriskdashboard_envbadge",
+      "applicationriskdashboard_risklevelbadge",
+      "applicationriskdashboard_riskscore",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_applicationriskdashboard_tsx"
+    ],
+    "100": [
+      "securitygamificationdashboard_apifetch",
+      "securitygamificationdashboard_challengtypebadge",
+      "securitygamificationdashboard_difficultybadge",
+      "securitygamificationdashboard_rankbadge",
+      "securitygamificationdashboard_securitygamificationdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitygamificationdashboard_tsx"
+    ],
+    "101": [
+      "firmwaresecuritydashboard_apifetch",
+      "firmwaresecuritydashboard_firmwaresecuritydashboard",
+      "firmwaresecuritydashboard_riskbadge",
+      "firmwaresecuritydashboard_severitybadge",
+      "firmwaresecuritydashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_firmwaresecuritydashboard_tsx"
+    ],
+    "102": [
+      "autonomousremediationdashboard_apifetch",
+      "autonomousremediationdashboard_autolevelbadge",
+      "autonomousremediationdashboard_autonomousremediationdashboard",
+      "autonomousremediationdashboard_fmttime",
+      "autonomousremediationdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_autonomousremediationdashboard_tsx"
+    ],
+    "103": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnscoringdashboard_tsx",
+      "vulnscoringdashboard_prioritycolor",
+      "vulnscoringdashboard_scorebarcolor",
+      "vulnscoringdashboard_scorecolor",
+      "vulnscoringdashboard_statusbadge",
+      "vulnscoringdashboard_vulnscoringdashboard"
+    ],
+    "104": [
+      "privilegedidentitydashboard_anomalybar",
+      "privilegedidentitydashboard_apifetch",
+      "privilegedidentitydashboard_cn",
+      "privilegedidentitydashboard_rotationage",
+      "privilegedidentitydashboard_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_privilegedidentitydashboard_tsx"
+    ],
+    "105": [
+      "datadiscoverydashboard_apifetch",
+      "datadiscoverydashboard_datadiscoverydashboard",
+      "datadiscoverydashboard_exportcsv",
+      "datadiscoverydashboard_formatrecords",
+      "datadiscoverydashboard_riskbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_datadiscoverydashboard_tsx"
+    ],
+    "106": [
+      "securityawareness_apifetch",
+      "securityawareness_campaignstable",
+      "securityawareness_completionbarcolor",
+      "securityawareness_getapikey",
+      "securityawareness_riskscorecolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityawareness_tsx"
+    ],
+    "107": [
+      "edrdashboard_apifetch",
+      "edrdashboard_getapikey",
+      "edrdashboard_handlerefresh",
+      "edrdashboard_osbadge",
+      "edrdashboard_sevdot",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_edrdashboard_tsx"
+    ],
+    "108": [
+      "cwppdashboard_apifetch",
+      "cwppdashboard_cn",
+      "cwppdashboard_cwppdashboard",
+      "cwppdashboard_statusbadge",
+      "cwppdashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cwppdashboard_tsx"
+    ],
+    "109": [
+      "behavioralanalyticsdashboard_apifetch",
+      "behavioralanalyticsdashboard_behavioralanalyticsdashboard",
+      "behavioralanalyticsdashboard_formatts",
+      "behavioralanalyticsdashboard_severitybadge",
+      "behavioralanalyticsdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_behavioralanalyticsdashboard_tsx"
+    ],
+    "110": [
+      "incidentmetricsdashboard_apifetch",
+      "incidentmetricsdashboard_fmttime",
+      "incidentmetricsdashboard_incidentmetricsdashboard",
+      "incidentmetricsdashboard_incidentstatusbadge",
+      "incidentmetricsdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidentmetricsdashboard_tsx"
+    ],
+    "111": [
+      "threatvectordashboard_apifetch",
+      "threatvectordashboard_exportcsv",
+      "threatvectordashboard_riskcolor",
+      "threatvectordashboard_severitybadge",
+      "threatvectordashboard_threatvectordashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatvectordashboard_tsx"
+    ],
+    "112": [
+      "saassecurityposturedashboard_apifetch",
+      "saassecurityposturedashboard_compliancebadge",
+      "saassecurityposturedashboard_exportcsv",
+      "saassecurityposturedashboard_riskbadge",
+      "saassecurityposturedashboard_saassecurityposturedashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_saassecurityposturedashboard_tsx"
+    ],
+    "113": [
+      "securityscorecarddashboard_domainbarcolor",
+      "securityscorecarddashboard_gradecircle",
+      "securityscorecarddashboard_gradecolor",
+      "securityscorecarddashboard_scoretopercent",
+      "securityscorecarddashboard_securityscorecarddashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityscorecarddashboard_tsx"
+    ],
+    "114": [
+      "phishingsimulation_apifetch",
+      "phishingsimulation_difficultybadge",
+      "phishingsimulation_phishingsimulation",
+      "phishingsimulation_statusbadge",
+      "phishingsimulation_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_phishingsimulation_tsx"
+    ],
+    "115": [
+      "devsecopsdashboard_apifetch",
+      "devsecopsdashboard_cn",
+      "devsecopsdashboard_devsecopsdashboard",
+      "devsecopsdashboard_sevdot",
+      "devsecopsdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_devsecopsdashboard_tsx"
+    ],
+    "116": [
+      "quantumcryptodashboard_apifetch",
+      "quantumcryptodashboard_migrationstatusbadge",
+      "quantumcryptodashboard_prioritybadge",
+      "quantumcryptodashboard_quantumcryptodashboard",
+      "quantumcryptodashboard_risklevelbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_quantumcryptodashboard_tsx"
+    ],
+    "117": [
+      "awarenesscampaigndashboard_apifetch",
+      "awarenesscampaigndashboard_awarenesscampaigndashboard",
+      "awarenesscampaigndashboard_exportcsv",
+      "awarenesscampaigndashboard_passratecolor",
+      "awarenesscampaigndashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_awarenesscampaigndashboard_tsx"
+    ],
+    "118": [
+      "cloudposturedashboard_apifetch",
+      "cloudposturedashboard_cloudposturedashboard",
+      "cloudposturedashboard_providerbadge",
+      "cloudposturedashboard_severitybadge",
+      "cloudposturedashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudposturedashboard_tsx"
+    ],
+    "119": [
+      "cvesearch_copytoclipboard",
+      "cvesearch_getcvsscolor",
+      "cvesearch_getpatchprioritycolor",
+      "cvesearch_handlequickselect",
+      "cvesearch_handlesearch",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cvesearch_tsx"
+    ],
+    "120": [
+      "ndrdashboard_alerttypebadge",
+      "ndrdashboard_apifetch",
+      "ndrdashboard_getapikey",
+      "ndrdashboard_ndrdashboard",
+      "ndrdashboard_sevdot",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ndrdashboard_tsx"
+    ],
+    "121": [
+      "certificatedashboard_apifetch",
+      "certificatedashboard_autorenewbadge",
+      "certificatedashboard_certificatedashboard",
+      "certificatedashboard_certtypebadge",
+      "certificatedashboard_daysuntil",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_certificatedashboard_tsx"
+    ],
+    "122": [
+      "attackchaindashboard_apifetch",
+      "attackchaindashboard_attackchaindashboard",
+      "attackchaindashboard_chainstatusbadge",
+      "attackchaindashboard_fmtdate",
+      "attackchaindashboard_phasebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_attackchaindashboard_tsx"
+    ],
+    "123": [
+      "cryptokeydashboard_apifetch",
+      "cryptokeydashboard_expirybadge",
+      "cryptokeydashboard_handlerefresh",
+      "cryptokeydashboard_handlerotate",
+      "cryptokeydashboard_keytypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cryptokeydashboard_tsx"
+    ],
+    "124": [
+      "sbomdashboard_apifetch",
+      "sbomdashboard_assettypebadge",
+      "sbomdashboard_licenseriskbadge",
+      "sbomdashboard_sbomdashboard",
+      "sbomdashboard_vulncount",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_sbomdashboard_tsx"
+    ],
+    "125": [
+      "posturebenchmarkingdashboard_apifetch",
+      "posturebenchmarkingdashboard_frameworkbadge",
+      "posturebenchmarkingdashboard_posturebenchmarkingdashboard",
+      "posturebenchmarkingdashboard_scorecolor",
+      "posturebenchmarkingdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_posturebenchmarkingdashboard_tsx"
+    ],
+    "126": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnprioritizationdashboard_tsx",
+      "vulnprioritizationdashboard_apifetch",
+      "vulnprioritizationdashboard_prioritybadge",
+      "vulnprioritizationdashboard_priorityscore",
+      "vulnprioritizationdashboard_statusbadge",
+      "vulnprioritizationdashboard_vulnprioritizationdashboard"
+    ],
+    "127": [
+      "apiinventorydashboard_apifetch",
+      "apiinventorydashboard_apiinventorydashboard",
+      "apiinventorydashboard_authbadge",
+      "apiinventorydashboard_exportcsv",
+      "apiinventorydashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_apiinventorydashboard_tsx"
+    ],
+    "128": [
+      "tprmexchangedashboard_apifetch",
+      "tprmexchangedashboard_assessstatusbadge",
+      "tprmexchangedashboard_fmt",
+      "tprmexchangedashboard_tierbadge",
+      "tprmexchangedashboard_tprmexchangedashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_tprmexchangedashboard_tsx"
+    ],
+    "129": [
+      "cyberresiliencedashboard_arcx",
+      "cyberresiliencedashboard_arcy",
+      "cyberresiliencedashboard_describearc",
+      "cyberresiliencedashboard_getheaders",
+      "cyberresiliencedashboard_torad",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cyberresiliencedashboard_tsx"
+    ],
+    "130": [
+      "aipoweredsocdashboard_aipoweredsocdashboard",
+      "aipoweredsocdashboard_apifetch",
+      "aipoweredsocdashboard_detectionstatusbadge",
+      "aipoweredsocdashboard_modelstatusbadge",
+      "aipoweredsocdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_aipoweredsocdashboard_tsx"
+    ],
+    "131": [
+      "threatintelconfidencedashboard_apifetch",
+      "threatintelconfidencedashboard_cn",
+      "threatintelconfidencedashboard_confidencecolor",
+      "threatintelconfidencedashboard_truncate",
+      "threatintelconfidencedashboard_typedonut",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatintelconfidencedashboard_tsx"
+    ],
+    "132": [
+      "securitytelemetrydashboard_apifetch",
+      "securitytelemetrydashboard_exportcsv",
+      "securitytelemetrydashboard_formatts",
+      "securitytelemetrydashboard_securitytelemetrydashboard",
+      "securitytelemetrydashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitytelemetrydashboard_tsx"
+    ],
+    "133": [
+      "containerposturedashboard_apifetch",
+      "containerposturedashboard_containerposturedashboard",
+      "containerposturedashboard_severitybadge",
+      "containerposturedashboard_statusbadge",
+      "containerposturedashboard_truncateid",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_containerposturedashboard_tsx"
+    ],
+    "134": [
+      "grcassessment_apifetch",
+      "grcassessment_auditgauge",
+      "grcassessment_cn",
+      "grcassessment_controlstatusbadge",
+      "grcassessment_grcassessment",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_grcassessment_tsx"
+    ],
+    "135": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnerabilitycorrelationdashboard_tsx",
+      "vulnerabilitycorrelationdashboard_apifetch",
+      "vulnerabilitycorrelationdashboard_correlationstatusbadge",
+      "vulnerabilitycorrelationdashboard_criticalitybadge",
+      "vulnerabilitycorrelationdashboard_riskcolor",
+      "vulnerabilitycorrelationdashboard_vulnerabilitycorrelationdashboard"
+    ],
+    "136": [
+      "threatexposuredashboard_apifetch",
+      "threatexposuredashboard_exposurecolor",
+      "threatexposuredashboard_exposurelevelbadge",
+      "threatexposuredashboard_exposuretextcolor",
+      "threatexposuredashboard_threatexposuredashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatexposuredashboard_tsx"
+    ],
+    "137": [
+      "accessgovernancedashboard_daysuntil",
+      "accessgovernancedashboard_expirywarning",
+      "accessgovernancedashboard_getheaders",
+      "accessgovernancedashboard_handleacknowledge",
+      "accessgovernancedashboard_handlerevoke",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_accessgovernancedashboard_tsx"
+    ],
+    "138": [
+      "datapipelinedashboard_apifetch",
+      "datapipelinedashboard_datapipelinedashboard",
+      "datapipelinedashboard_formatrecords",
+      "datapipelinedashboard_formatts",
+      "datapipelinedashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_datapipelinedashboard_tsx"
+    ],
+    "139": [
+      "cyberthreatinteldashboard_apifetch",
+      "cyberthreatinteldashboard_confidencebar",
+      "cyberthreatinteldashboard_cyberthreatinteldashboard",
+      "cyberthreatinteldashboard_statusbadge",
+      "cyberthreatinteldashboard_tlpbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cyberthreatinteldashboard_tsx"
+    ],
+    "140": [
+      "changemanagementdashboard_apifetch",
+      "changemanagementdashboard_changemanagementdashboard",
+      "changemanagementdashboard_prioritybadge",
+      "changemanagementdashboard_riskbadge",
+      "changemanagementdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_changemanagementdashboard_tsx"
+    ],
+    "141": [
+      "apidiscoverydashboard_apidiscoverydashboard",
+      "apidiscoverydashboard_apifetch",
+      "apidiscoverydashboard_endpointstatusbadge",
+      "apidiscoverydashboard_methodbadge",
+      "apidiscoverydashboard_riskscorebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_apidiscoverydashboard_tsx"
+    ],
+    "142": [
+      "securitybudgetdashboard_apifetch",
+      "securitybudgetdashboard_fmtmoney",
+      "securitybudgetdashboard_securitybudgetdashboard",
+      "securitybudgetdashboard_transactionstatusbadge",
+      "securitybudgetdashboard_utilizationcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitybudgetdashboard_tsx"
+    ],
+    "143": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_xdrdashboard_tsx",
+      "xdrdashboard_apifetch",
+      "xdrdashboard_getapikey",
+      "xdrdashboard_killchaincolor",
+      "xdrdashboard_sevdot",
+      "xdrdashboard_xdrdashboard"
+    ],
+    "144": [
+      "incidenttimeline_formatts",
+      "incidenttimeline_geteventtypeconfig",
+      "incidenttimeline_getphasestyle",
+      "incidenttimeline_getseveritystyle",
+      "incidenttimeline_phaseprogress",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidenttimeline_tsx"
+    ],
+    "145": [
+      "securityokrdashboard_getheaders",
+      "securityokrdashboard_handleupdatesubmit",
+      "securityokrdashboard_krprogress",
+      "securityokrdashboard_progresscolor",
+      "securityokrdashboard_progresstextcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityokrdashboard_tsx"
+    ],
+    "146": [
+      "ticketintegration_handlesaveconfig",
+      "ticketintegration_handlesync",
+      "ticketintegration_handletest",
+      "ticketintegration_handletogglebidirectional",
+      "ticketintegration_integrationstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_remediate_ticketintegration_tsx"
+    ],
+    "147": [
+      "remediationcenter_async",
+      "remediationcenter_normalizetask",
+      "remediationcenter_severitybadge",
+      "remediationcenter_slacountdown",
+      "remediationcenter_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_remediate_remediationcenter_tsx"
+    ],
+    "148": [
+      "bulkoperations_getopconfig",
+      "bulkoperations_handleexecute",
+      "bulkoperations_operationcard",
+      "bulkoperations_severitybadge",
+      "bulkoperations_toggleall",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_remediate_bulkoperations_tsx"
+    ],
+    "149": [
+      "collaboration_getinitials",
+      "collaboration_handleaddactionitem",
+      "collaboration_handlecreateroom",
+      "collaboration_handlesendmessage",
+      "collaboration_toggleactionitem",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_remediate_collaboration_tsx"
+    ],
+    "150": [
+      "compliancedashboard_arcgauge",
+      "compliancedashboard_buildgapbardata",
+      "compliancedashboard_daysoffset",
+      "compliancedashboard_frameworkstatuscard",
+      "compliancedashboard_ragcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_compliancedashboard_tsx"
+    ],
+    "151": [
+      "evidencevault_clearselection",
+      "evidencevault_downloadbundleblob",
+      "evidencevault_quantumbadge",
+      "evidencevault_toggleselect",
+      "evidencevault_toggleselectall",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_evidencevault_tsx"
+    ],
+    "152": [
+      "audittrail_getactioncolor",
+      "audittrail_getcontrolbadges",
+      "audittrail_handleexportcsv",
+      "audittrail_handleexportjson",
+      "audittrail_hashbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_audittrail_tsx"
+    ],
+    "153": [
+      "securitybenchmarksdashboard_percentileposition",
+      "securitybenchmarksdashboard_performancebadge",
+      "securitybenchmarksdashboard_sourcebadge",
+      "securitybenchmarksdashboard_sparkline",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitybenchmarksdashboard_tsx"
+    ],
+    "154": [
+      "threatattributiondashboard_apifetch",
+      "threatattributiondashboard_confidencebadge",
+      "threatattributiondashboard_statusbadge",
+      "threatattributiondashboard_threatattributiondashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatattributiondashboard_tsx"
+    ],
+    "155": [
+      "privilegeescalationdashboard_anomalyscore",
+      "privilegeescalationdashboard_apifetch",
+      "privilegeescalationdashboard_methodbadge",
+      "privilegeescalationdashboard_privilegeescalationdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_privilegeescalationdashboard_tsx"
+    ],
+    "156": [
+      "soctriagedashboard_actionbadge",
+      "soctriagedashboard_apifetch",
+      "soctriagedashboard_classificationbadge",
+      "soctriagedashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_soctriagedashboard_tsx"
+    ],
+    "157": [
+      "threatresponsedashboard_age",
+      "threatresponsedashboard_getheaders",
+      "threatresponsedashboard_kpicard",
+      "threatresponsedashboard_resolveincident",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatresponsedashboard_tsx"
+    ],
+    "158": [
+      "cloudaccesssecuritydashboard_apifetch",
+      "cloudaccesssecuritydashboard_cloudaccesssecuritydashboard",
+      "cloudaccesssecuritydashboard_riskbadge",
+      "cloudaccesssecuritydashboard_sanctionedbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudaccesssecuritydashboard_tsx"
+    ],
+    "159": [
+      "posturetrendsdashboard_getheaders",
+      "posturetrendsdashboard_sparklinecolor",
+      "posturetrendsdashboard_sparklinepath",
+      "posturetrendsdashboard_velocityindicator",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_posturetrendsdashboard_tsx"
+    ],
+    "160": [
+      "digitalidentitydashboard_apifetch",
+      "digitalidentitydashboard_digitalidentitydashboard",
+      "digitalidentitydashboard_ialbadge",
+      "digitalidentitydashboard_verificationstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_digitalidentitydashboard_tsx"
+    ],
+    "161": [
+      "evidencevaultdashboard_apifetch",
+      "evidencevaultdashboard_daysuntil",
+      "evidencevaultdashboard_handleverify",
+      "evidencevaultdashboard_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_evidencevaultdashboard_tsx"
+    ],
+    "162": [
+      "cnappdashboard_apifetch",
+      "cnappdashboard_cnappdashboard",
+      "cnappdashboard_providerbadge",
+      "cnappdashboard_scorecircle",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cnappdashboard_tsx"
+    ],
+    "163": [
+      "posturereportingdashboard_apifetch",
+      "posturereportingdashboard_cn",
+      "posturereportingdashboard_scorebar",
+      "posturereportingdashboard_trendicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_posturereportingdashboard_tsx"
+    ],
+    "164": [
+      "pagdashboard_accounttypebadge",
+      "pagdashboard_apifetch",
+      "pagdashboard_pagdashboard",
+      "pagdashboard_riskscore",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_pagdashboard_tsx"
+    ],
+    "165": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnintelfusiondashboard_tsx",
+      "vulnintelfusiondashboard_apifetch",
+      "vulnintelfusiondashboard_cvssbadge",
+      "vulnintelfusiondashboard_fusionbar",
+      "vulnintelfusiondashboard_vulnintelfusiondashboard"
+    ],
+    "166": [
+      "softwarelicensedashboard_apifetch",
+      "softwarelicensedashboard_riskbadge",
+      "softwarelicensedashboard_softwarelicensedashboard",
+      "softwarelicensedashboard_violationstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_softwarelicensedashboard_tsx"
+    ],
+    "167": [
+      "networkanomalydashboard_apifetch",
+      "networkanomalydashboard_bytesbar",
+      "networkanomalydashboard_networkanomalydashboard",
+      "networkanomalydashboard_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networkanomalydashboard_tsx"
+    ],
+    "168": [
+      "apithreatprotectiondashboard_actionbadge",
+      "apithreatprotectiondashboard_apifetch",
+      "apithreatprotectiondashboard_apithreatprotectiondashboard",
+      "apithreatprotectiondashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_apithreatprotectiondashboard_tsx"
+    ],
+    "169": [
+      "privacygdprdashboard_apifetch",
+      "privacygdprdashboard_dsrstatusbadge",
+      "privacygdprdashboard_dsrtypebadge",
+      "privacygdprdashboard_privacygdprdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_privacygdprdashboard_tsx"
+    ],
+    "170": [
+      "securityautomationdashboard_apifetch",
+      "securityautomationdashboard_securityautomationdashboard",
+      "securityautomationdashboard_statusbadge",
+      "securityautomationdashboard_triggerbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityautomationdashboard_tsx"
+    ],
+    "171": [
+      "patchprioritizer_apifetch",
+      "patchprioritizer_getscorebadgecolor",
+      "patchprioritizer_getscorecolor",
+      "patchprioritizer_getscoretextcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_patchprioritizer_tsx"
+    ],
+    "172": [
+      "privilegedsessionrecordingdashboard_apifetch",
+      "privilegedsessionrecordingdashboard_exportcsv",
+      "privilegedsessionrecordingdashboard_privilegedsessionrecordingdashboard",
+      "privilegedsessionrecordingdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_privilegedsessionrecordingdashboard_tsx"
+    ],
+    "173": [
+      "eventtimelinedashboard_apifetch",
+      "eventtimelinedashboard_eventtypebadge",
+      "eventtimelinedashboard_outcomebadge",
+      "eventtimelinedashboard_sourcebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_eventtimelinedashboard_tsx"
+    ],
+    "174": [
+      "networkmonitoringdashboard_apifetch",
+      "networkmonitoringdashboard_networkmonitoringdashboard",
+      "networkmonitoringdashboard_severitybadge",
+      "networkmonitoringdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networkmonitoringdashboard_tsx"
+    ],
+    "175": [
+      "firewallanalyzer_apifetch",
+      "firewallanalyzer_cn",
+      "firewallanalyzer_fetchall",
+      "firewallanalyzer_handlerefresh",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_firewallanalyzer_tsx"
+    ],
+    "176": [
+      "pentestmanagement_apifetch",
+      "pentestmanagement_cn",
+      "pentestmanagement_getapikey",
+      "pentestmanagement_handlerefresh",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_pentestmanagement_tsx"
+    ],
+    "177": [
+      "malwareanalysisdashboard_apifetch",
+      "malwareanalysisdashboard_filetypebadge",
+      "malwareanalysisdashboard_malwareanalysisdashboard",
+      "malwareanalysisdashboard_verdictbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_malwareanalysisdashboard_tsx"
+    ],
+    "178": [
+      "securitytrainingdashboard_apifetch",
+      "securitytrainingdashboard_isoverdue",
+      "securitytrainingdashboard_kpicard",
+      "securitytrainingdashboard_progressbar",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitytrainingdashboard_tsx"
+    ],
+    "179": [
+      "regulatorytrackerdashboard_apifetch",
+      "regulatorytrackerdashboard_changetypebadge",
+      "regulatorytrackerdashboard_handlerefresh",
+      "regulatorytrackerdashboard_impactbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_regulatorytrackerdashboard_tsx"
+    ],
+    "180": [
+      "posturehistorydashboard_getheaders",
+      "posturehistorydashboard_scorebarcolor",
+      "posturehistorydashboard_scorecolor",
+      "posturehistorydashboard_trendicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_posturehistorydashboard_tsx"
+    ],
+    "181": [
+      "redteamstatus_apifetch",
+      "redteamstatus_getapikey",
+      "redteamstatus_redteamstatus",
+      "redteamstatus_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_redteamstatus_tsx"
+    ],
+    "182": [
+      "ipreputationdashboard_apifetch",
+      "ipreputationdashboard_ipreputationdashboard",
+      "ipreputationdashboard_scorecolor",
+      "ipreputationdashboard_threattypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ipreputationdashboard_tsx"
+    ],
+    "183": [
+      "cloudresourceinventorydashboard_apifetch",
+      "cloudresourceinventorydashboard_cloudresourceinventorydashboard",
+      "cloudresourceinventorydashboard_compliancebadge",
+      "cloudresourceinventorydashboard_providerbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudresourceinventorydashboard_tsx"
+    ],
+    "184": [
+      "threatdeceptiondashboard_activebadge",
+      "threatdeceptiondashboard_apifetch",
+      "threatdeceptiondashboard_threatdeceptiondashboard",
+      "threatdeceptiondashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatdeceptiondashboard_tsx"
+    ],
+    "185": [
+      "scadashboard_apifetch",
+      "scadashboard_langbadge",
+      "scadashboard_riskbadge",
+      "scadashboard_scadashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_scadashboard_tsx"
+    ],
+    "186": [
+      "capacityplanningdashboard_apifetch",
+      "capacityplanningdashboard_capacityplanningdashboard",
+      "capacityplanningdashboard_rolebadge",
+      "capacityplanningdashboard_utilbar",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_capacityplanningdashboard_tsx"
+    ],
+    "187": [
+      "securitymaturitydashboard_apifetch",
+      "securitymaturitydashboard_handlerefresh",
+      "securitymaturitydashboard_loaddata",
+      "securitymaturitydashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitymaturitydashboard_tsx"
+    ],
+    "188": [
+      "huntingautomationdashboard_apifetch",
+      "huntingautomationdashboard_cn",
+      "huntingautomationdashboard_huntingautomationdashboard",
+      "huntingautomationdashboard_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_huntingautomationdashboard_tsx"
+    ],
+    "189": [
+      "complianceautomationdashboard_apifetch",
+      "complianceautomationdashboard_complianceautomationdashboard",
+      "complianceautomationdashboard_formatts",
+      "complianceautomationdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_complianceautomationdashboard_tsx"
+    ],
+    "190": [
+      "awarenessmetricsdashboard_apifetch",
+      "awarenessmetricsdashboard_awarenessmetricsdashboard",
+      "awarenessmetricsdashboard_formatts",
+      "awarenessmetricsdashboard_metrictypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_awarenessmetricsdashboard_tsx"
+    ],
+    "191": [
+      "securityhealthscorecarddashboard_categorycolor",
+      "securityhealthscorecarddashboard_computeoverallscore",
+      "securityhealthscorecarddashboard_scoretograde",
+      "securityhealthscorecarddashboard_sparkline",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityhealthscorecarddashboard_tsx"
+    ],
+    "192": [
+      "patchmanagementdashboard_apifetch",
+      "patchmanagementdashboard_patchmanagementdashboard",
+      "patchmanagementdashboard_severitybadge",
+      "patchmanagementdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_patchmanagementdashboard_tsx"
+    ],
+    "193": [
+      "attackpathanalysis_apifetch",
+      "attackpathanalysis_entrypointcard",
+      "attackpathanalysis_loaddata",
+      "attackpathanalysis_nodegraph",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_attackpathanalysis_tsx"
+    ],
+    "194": [
+      "cloudiam_apifetch",
+      "cloudiam_cn",
+      "cloudiam_leastprivilegegauge",
+      "cloudiam_riskbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudiam_tsx"
+    ],
+    "195": [
+      "riskregisterdashboard_apifetch",
+      "riskregisterdashboard_risklevelbadge",
+      "riskregisterdashboard_riskregisterdashboard",
+      "riskregisterdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_riskregisterdashboard_tsx"
+    ],
+    "196": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnerabilityscannerpage_tsx",
+      "vulnerabilityscannerpage_apifetch",
+      "vulnerabilityscannerpage_scannerbadge",
+      "vulnerabilityscannerpage_statusbadge",
+      "vulnerabilityscannerpage_vulnerabilityscannerpage"
+    ],
+    "197": [
+      "thirdpartyvendordashboard_apifetch",
+      "thirdpartyvendordashboard_contractbadge",
+      "thirdpartyvendordashboard_riskratingbadge",
+      "thirdpartyvendordashboard_thirdpartyvendordashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_thirdpartyvendordashboard_tsx"
+    ],
+    "198": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnworkflowdashboard_tsx",
+      "vulnworkflowdashboard_apifetch",
+      "vulnworkflowdashboard_prioritybadge",
+      "vulnworkflowdashboard_statusbadge",
+      "vulnworkflowdashboard_vulnworkflowdashboard"
+    ],
+    "199": [
+      "teams_handleadd",
+      "teams_handleremove",
+      "teams_handlesave",
+      "teams_togglemember",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_teams_tsx"
+    ],
+    "200": [
+      "integrations_handlesave",
+      "integrations_handlesync",
+      "integrations_handletest",
+      "integrations_handletoggleconnection",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_integrations_tsx"
+    ],
+    "201": [
+      "threatfeeds_feedstatusbadge",
+      "threatfeeds_getfeedenabled",
+      "threatfeeds_severitybadge",
+      "threatfeeds_togglefeed",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_threatfeeds_tsx"
+    ],
+    "202": [
+      "cloudposture_cloudproviderbadge",
+      "cloudposture_compliancebadge",
+      "cloudposture_riskscore",
+      "cloudposture_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_cloudposture_tsx"
+    ],
+    "203": [
+      "riskoverview_cellseverity",
+      "riskoverview_cn",
+      "riskoverview_handlesort",
+      "riskoverview_sorticon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_riskoverview_tsx"
+    ],
+    "204": [
+      "threatintelautomation_actionbadge",
+      "threatintelautomation_apifetch",
+      "threatintelautomation_threatintelautomation",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatintelautomation_tsx"
+    ],
+    "205": [
+      "aisecurityadvisor_aisecurityadvisor",
+      "aisecurityadvisor_apifetch",
+      "aisecurityadvisor_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_aisecurityadvisor_tsx"
+    ],
+    "206": [
+      "posturescoringdashboard_apifetch",
+      "posturescoringdashboard_posturescoringdashboard",
+      "posturescoringdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_posturescoringdashboard_tsx"
+    ],
+    "207": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnscandashboard_tsx",
+      "vulnscandashboard_getheaders",
+      "vulnscandashboard_handletrigger",
+      "vulnscandashboard_scanstatusbadge"
+    ],
+    "208": [
+      "huntingplaybookdashboard_confbadge",
+      "huntingplaybookdashboard_getheaders",
+      "huntingplaybookdashboard_huntingplaybookdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_huntingplaybookdashboard_tsx"
+    ],
+    "209": [
+      "securityhealthdashboard_apifetch",
+      "securityhealthdashboard_cn",
+      "securityhealthdashboard_securityhealthdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityhealthdashboard_tsx"
+    ],
+    "210": [
+      "containersecuritydashboard_apifetch",
+      "containersecuritydashboard_handlerefresh",
+      "containersecuritydashboard_loaddata",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_containersecuritydashboard_tsx"
+    ],
+    "211": [
+      "networksegmentationdashboard_apifetch",
+      "networksegmentationdashboard_segtypebadge",
+      "networksegmentationdashboard_trustbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networksegmentationdashboard_tsx"
+    ],
+    "212": [
+      "competitivecomparisonpage_cell",
+      "competitivecomparisonpage_tcocalculator",
+      "competitivecomparisonpage_togglevendor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_competitivecomparisonpage_tsx"
+    ],
+    "213": [
+      "servicecatalogdashboard_apifetch",
+      "servicecatalogdashboard_availabilitygauge",
+      "servicecatalogdashboard_cn",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_servicecatalogdashboard_tsx"
+    ],
+    "214": [
+      "otsecuritydashboard_apifetch",
+      "otsecuritydashboard_assettypebadge",
+      "otsecuritydashboard_otsecuritydashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_otsecuritydashboard_tsx"
+    ],
+    "215": [
+      "serviceaccountauditdashboard_actionbadge",
+      "serviceaccountauditdashboard_apifetch",
+      "serviceaccountauditdashboard_serviceaccountauditdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_serviceaccountauditdashboard_tsx"
+    ],
+    "216": [
+      "breachresponse_apifetch",
+      "breachresponse_breachresponse",
+      "breachresponse_breachtypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_breachresponse_tsx"
+    ],
+    "217": [
+      "deceptionengine_apifetch",
+      "deceptionengine_cn",
+      "deceptionengine_scorecolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_deceptionengine_tsx"
+    ],
+    "218": [
+      "iochunter_apifetch",
+      "iochunter_iochunter",
+      "iochunter_typeicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_iochunter_tsx"
+    ],
+    "219": [
+      "threatactordashboard_actortypebadge",
+      "threatactordashboard_apifetch",
+      "threatactordashboard_handlerefresh",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatactordashboard_tsx"
+    ],
+    "220": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulntrenddashboard_tsx",
+      "vulntrenddashboard_apifetch",
+      "vulntrenddashboard_cn",
+      "vulntrenddashboard_vulntrenddashboard"
+    ],
+    "221": [
+      "compliancescannerdashboard_apifetch",
+      "compliancescannerdashboard_compliancescannerdashboard",
+      "compliancescannerdashboard_frameworkbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_compliancescannerdashboard_tsx"
+    ],
+    "222": [
+      "threatgeolocationdashboard_apifetch",
+      "threatgeolocationdashboard_riskcolor",
+      "threatgeolocationdashboard_threatgeolocationdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatgeolocationdashboard_tsx"
+    ],
+    "223": [
+      "supplychaininteldashboard_apifetch",
+      "supplychaininteldashboard_ecobadge",
+      "supplychaininteldashboard_supplychaininteldashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_supplychaininteldashboard_tsx"
+    ],
+    "224": [
+      "cmdbdashboard_apifetch",
+      "cmdbdashboard_cmdbdashboard",
+      "cmdbdashboard_cn",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cmdbdashboard_tsx"
+    ],
+    "225": [
+      "firewallpolicydashboard_apifetch",
+      "firewallpolicydashboard_firewallpolicydashboard",
+      "firewallpolicydashboard_typebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_firewallpolicydashboard_tsx"
+    ],
+    "226": [
+      "playbooklibrary_apifetch",
+      "playbooklibrary_cn",
+      "playbooklibrary_toggleplaybook",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_playbooklibrary_tsx"
+    ],
+    "227": [
+      "supplychainsecurity_licensecolor",
+      "supplychainsecurity_riskcolor",
+      "supplychainsecurity_risklabel",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_supplychainsecurity_tsx"
+    ],
+    "228": [
+      "riskquantification_actorbadge",
+      "riskquantification_apifetch",
+      "riskquantification_riskquantification",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_riskquantification_tsx"
+    ],
+    "229": [
+      "cloudsecurityfindingsdashboard_apifetch",
+      "cloudsecurityfindingsdashboard_cloudsecurityfindingsdashboard",
+      "cloudsecurityfindingsdashboard_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudsecurityfindingsdashboard_tsx"
+    ],
+    "230": [
+      "dataclassificationdashboard_apifetch",
+      "dataclassificationdashboard_cn",
+      "dataclassificationdashboard_dataclassificationdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_dataclassificationdashboard_tsx"
+    ],
+    "231": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_zerotrustdashboard_tsx",
+      "zerotrustdashboard_cn",
+      "zerotrustdashboard_getcolor",
+      "zerotrustdashboard_getmobilitydescription"
+    ],
+    "232": [
+      "cloudsecuritydashboard_apifetch",
+      "cloudsecuritydashboard_handlerefresh",
+      "cloudsecuritydashboard_loaddata",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudsecuritydashboard_tsx"
+    ],
+    "233": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_watchlistmanager_tsx",
+      "watchlistmanager_apifetch",
+      "watchlistmanager_categorybadge",
+      "watchlistmanager_watchlistmanager"
+    ],
+    "234": [
+      "microsegmentationpolicydashboard_apifetch",
+      "microsegmentationpolicydashboard_enforcementbadge",
+      "microsegmentationpolicydashboard_microsegmentationpolicydashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_microsegmentationpolicydashboard_tsx"
+    ],
+    "235": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnerabilityagedashboard_tsx",
+      "vulnerabilityagedashboard_cn",
+      "vulnerabilityagedashboard_getheaders",
+      "vulnerabilityagedashboard_savepolicy"
+    ],
+    "236": [
+      "supplychaindashboard_apifetch",
+      "supplychaindashboard_cn",
+      "supplychaindashboard_supplychaindashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_supplychaindashboard_tsx"
+    ],
+    "237": [
+      "securityroadmap_apifetch",
+      "securityroadmap_categorybadge",
+      "securityroadmap_securityroadmap",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityroadmap_tsx"
+    ],
+    "238": [
+      "containerregistrydashboard_apifetch",
+      "containerregistrydashboard_handlerefresh",
+      "containerregistrydashboard_policybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_containerregistrydashboard_tsx"
+    ],
+    "239": [
+      "networkthreatsdashboard_getheaders",
+      "networkthreatsdashboard_networkthreatsdashboard",
+      "networkthreatsdashboard_topsourceips",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networkthreatsdashboard_tsx"
+    ],
+    "240": [
+      "sbomexportdashboard_fmt",
+      "sbomexportdashboard_getheaders",
+      "sbomexportdashboard_handleexport",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_sbomexportdashboard_tsx"
+    ],
+    "241": [
+      "attacksimulation_apifetch",
+      "attacksimulation_attacksimulation",
+      "attacksimulation_simtypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_attacksimulation_tsx"
+    ],
+    "242": [
+      "assetinventory_detailpanel",
+      "assetinventory_riskcolor",
+      "assetinventory_risklabel",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_assetinventory_tsx"
+    ],
+    "243": [
+      "grcdashboard_apifetch",
+      "grcdashboard_categorybadge",
+      "grcdashboard_grcdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_grcdashboard_tsx"
+    ],
+    "244": [
+      "securitymetricsdashboard2_apifetch",
+      "securitymetricsdashboard2_securitymetricsdashboard2",
+      "securitymetricsdashboard2_trendicon",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitymetricsdashboard2_tsx"
+    ],
+    "245": [
+      "threatmodelingpipelinedashboard_getheaders",
+      "threatmodelingpipelinedashboard_handlemitigate",
+      "threatmodelingpipelinedashboard_handlerecompute",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatmodelingpipelinedashboard_tsx"
+    ],
+    "246": [
+      "complianceworkflowdashboard_getheaders",
+      "complianceworkflowdashboard_readinesscolor",
+      "complianceworkflowdashboard_readinesstextcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_complianceworkflowdashboard_tsx"
+    ],
+    "247": [
+      "networktrafficdashboard_anomalytypebadge",
+      "networktrafficdashboard_apifetch",
+      "networktrafficdashboard_networktrafficdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networktrafficdashboard_tsx"
+    ],
+    "248": [
+      "securitydependencyriskdashboard_getheaders",
+      "securitydependencyriskdashboard_riskbar",
+      "securitydependencyriskdashboard_riskcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securitydependencyriskdashboard_tsx"
+    ],
+    "249": [
+      "attacksurfacedashboard_apifetch",
+      "attacksurfacedashboard_assettypebadge",
+      "attacksurfacedashboard_exposuretypebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_attacksurfacedashboard_tsx"
+    ],
+    "250": [
+      "networkforensicsdashboard_apifetch",
+      "networkforensicsdashboard_networkforensicsdashboard",
+      "networkforensicsdashboard_statusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networkforensicsdashboard_tsx"
+    ],
+    "251": [
+      "identitylifecycledashboard_dayssince",
+      "identitylifecycledashboard_getheaders",
+      "identitylifecycledashboard_identitylifecycledashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_identitylifecycledashboard_tsx"
+    ],
+    "252": [
+      "marketplace_handlefinish",
+      "marketplace_handletest",
+      "marketplace_healthbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_marketplace_tsx"
+    ],
+    "253": [
+      "playbooks_handleconfirmrun",
+      "playbooks_handlerun",
+      "playbooks_playbookstatusbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_validate_playbooks_tsx"
+    ],
+    "254": [
+      "reachability_exposurebadge",
+      "reachability_networkpathdialog",
+      "reachability_riskscorebadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_validate_reachability_tsx"
+    ],
+    "255": [
+      "containersecurity_cn",
+      "containersecurity_k8sborder",
+      "containersecurity_k8scolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_containersecurity_tsx"
+    ],
+    "256": [
+      "knowledgegraph_handlequery",
+      "knowledgegraph_handlesuggestedquery",
+      "knowledgegraph_togglenodetype",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_knowledgegraph_tsx"
+    ],
+    "257": [
+      "exposurecases_handletriage",
+      "exposurecases_lifecyclebadge",
+      "exposurecases_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_remediate_exposurecases_tsx"
+    ],
+    "258": [
+      "copilotdashboard_handlequickaction",
+      "copilotdashboard_handlesubmit",
+      "copilotdashboard_sendmessage",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ai_copilotdashboard_tsx"
+    ],
+    "259": [
+      "executiveview_cellcolor",
+      "executiveview_scoretograde",
+      "executiveview_textcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_executiveview_tsx"
+    ],
+    "260": [
+      "cisodashboard_compliancecard",
+      "cisodashboard_generatemockcisodata",
+      "cisodashboard_riskgauge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_cisodashboard_tsx"
+    ],
+    "261": [
+      "reports_downloadreportblob",
+      "reports_handlegenerate",
+      "reports_toggleframework",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_reports_tsx"
+    ],
+    "262": [
+      "evidencebundles_handlebulkgenerate",
+      "evidencebundles_handlegenerate",
+      "evidencebundles_retentioncountdown",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_evidencebundles_tsx"
+    ],
+    "263": [
+      "index_safehydrate",
+      "index_safepersist",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_stores_index_ts"
+    ],
+    "264": [
+      "notificationbell_handleclick",
+      "notificationbell_timeago",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_layout_notificationbell_tsx"
+    ],
+    "265": [
+      "pageskeleton_bone",
+      "pageskeleton_progressbar",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_shared_pageskeleton_tsx"
+    ],
+    "266": [
+      "discover_test_loadpage",
+      "discover_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_discover_test_tsx"
+    ],
+    "267": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_validate_test_tsx",
+      "validate_test_loadpage",
+      "validate_test_s"
+    ],
+    "268": [
+      "comply_test_loadpage",
+      "comply_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_comply_test_tsx"
+    ],
+    "269": [
+      "remediate_test_loadpage",
+      "remediate_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_remediate_test_tsx"
+    ],
+    "270": [
+      "mission_control_test_loadpage",
+      "mission_control_test_stub",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_mission_control_test_tsx"
+    ],
+    "271": [
+      "identityriskdashboard_apifetch",
+      "identityriskdashboard_identityriskdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_identityriskdashboard_tsx"
+    ],
+    "272": [
+      "irplaybookdashboard_apifetch",
+      "irplaybookdashboard_load",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_irplaybookdashboard_tsx"
+    ],
+    "273": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_zerotrustpolicydashboard_tsx",
+      "zerotrustpolicydashboard_apifetch",
+      "zerotrustpolicydashboard_handlerefresh"
+    ],
+    "274": [
+      "securityoperationscenter_apifetch",
+      "securityoperationscenter_securityoperationscenter",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityoperationscenter_tsx"
+    ],
+    "275": [
+      "awarenessscoredashboard_apifetch",
+      "awarenessscoredashboard_handlerefresh",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_awarenessscoredashboard_tsx"
+    ],
+    "276": [
+      "crossdomainanalytics_apifetch",
+      "crossdomainanalytics_crossdomainanalytics",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_crossdomainanalytics_tsx"
+    ],
+    "277": [
+      "securityquestionnairedashboard_isoverdue",
+      "securityquestionnairedashboard_securityquestionnairedashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityquestionnairedashboard_tsx"
+    ],
+    "278": [
+      "endpointhuntingdashboard_apifetch",
+      "endpointhuntingdashboard_endpointhuntingdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_endpointhuntingdashboard_tsx"
+    ],
+    "279": [
+      "cyberthreatmodelingdashboard_apifetch",
+      "cyberthreatmodelingdashboard_cyberthreatmodelingdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cyberthreatmodelingdashboard_tsx"
+    ],
+    "280": [
+      "incidentlessonsdashboard_apifetch",
+      "incidentlessonsdashboard_incidentlessonsdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidentlessonsdashboard_tsx"
+    ],
+    "281": [
+      "executivebriefing_apifetch",
+      "executivebriefing_executivebriefing",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_executivebriefing_tsx"
+    ],
+    "282": [
+      "apisecuritypage_apisecuritypage",
+      "apisecuritypage_trendbadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_apisecuritypage_tsx"
+    ],
+    "283": [
+      "intelenrichmentdashboard_getheaders",
+      "intelenrichmentdashboard_intelenrichmentdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_intelenrichmentdashboard_tsx"
+    ],
+    "284": [
+      "sladashboard_apifetch",
+      "sladashboard_sladashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_sladashboard_tsx"
+    ],
+    "285": [
+      "configbenchmarkdashboard_apifetch",
+      "configbenchmarkdashboard_configbenchmarkdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_configbenchmarkdashboard_tsx"
+    ],
+    "286": [
+      "cloudsecurityanalyticsdashboard_apifetch",
+      "cloudsecurityanalyticsdashboard_cloudsecurityanalyticsdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudsecurityanalyticsdashboard_tsx"
+    ],
+    "287": [
+      "securityfindingsdashboard_getheaders",
+      "securityfindingsdashboard_securityfindingsdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityfindingsdashboard_tsx"
+    ],
+    "288": [
+      "appsecurity_apifetch",
+      "appsecurity_appsecurity",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_appsecurity_tsx"
+    ],
+    "289": [
+      "controltestingdashboard_getheaders",
+      "controltestingdashboard_isdue",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_controltestingdashboard_tsx"
+    ],
+    "290": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnriskqueue_tsx",
+      "vulnriskqueue_apifetch",
+      "vulnriskqueue_vulnriskqueue"
+    ],
+    "291": [
+      "mobilesecurity_apifetch",
+      "mobilesecurity_mobilesecurity",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mobilesecurity_tsx"
+    ],
+    "292": [
+      "landingpage_usecountup",
+      "landingpage_usesynefontinjection",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_landingpage_tsx"
+    ],
+    "293": [
+      "dastdashboard_apifetch",
+      "dastdashboard_load",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_dastdashboard_tsx"
+    ],
+    "294": [
+      "networkanalysis_apifetch",
+      "networkanalysis_cn",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networkanalysis_tsx"
+    ],
+    "295": [
+      "incidentcommsdashboard_apifetch",
+      "incidentcommsdashboard_cn",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidentcommsdashboard_tsx"
+    ],
+    "296": [
+      "securityinvestmentdashboard_fmt",
+      "securityinvestmentdashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityinvestmentdashboard_tsx"
+    ],
+    "297": [
+      "cyberinsurance_apifetch",
+      "cyberinsurance_cyberinsurance",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cyberinsurance_tsx"
+    ],
+    "298": [
+      "emailsecurity_apifetch",
+      "emailsecurity_handleenforce",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_emailsecurity_tsx"
+    ],
+    "299": [
+      "awarenessprogramdashboard_fmt",
+      "awarenessprogramdashboard_kpicard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_awarenessprogramdashboard_tsx"
+    ],
+    "300": [
+      "privacyimpactdashboard_getheaders",
+      "privacyimpactdashboard_riskcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_privacyimpactdashboard_tsx"
+    ],
+    "301": [
+      "socialengineering_apifetch",
+      "socialengineering_socialengineering",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_socialengineering_tsx"
+    ],
+    "302": [
+      "soardashboard_apifetch",
+      "soardashboard_soardashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_soardashboard_tsx"
+    ],
+    "303": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnerabilityscanner_tsx",
+      "vulnerabilityscanner_apifetch",
+      "vulnerabilityscanner_vulnerabilityscanner"
+    ],
+    "304": [
+      "threatintelplatformdashboard_apifetch",
+      "threatintelplatformdashboard_threatintelplatformdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatintelplatformdashboard_tsx"
+    ],
+    "305": [
+      "networktopology_apifetch",
+      "networktopology_networktopology",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_networktopology_tsx"
+    ],
+    "306": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vulnlifecycle_tsx",
+      "vulnlifecycle_apifetch",
+      "vulnlifecycle_vulncard"
+    ],
+    "307": [
+      "threatcorrelation_apifetch",
+      "threatcorrelation_threatcorrelation",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatcorrelation_tsx"
+    ],
+    "308": [
+      "threatmodeldashboard_apifetch",
+      "threatmodeldashboard_threatmodeldashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatmodeldashboard_tsx"
+    ],
+    "309": [
+      "securityexceptiondashboard_apifetch",
+      "securityexceptiondashboard_securityexceptiondashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityexceptiondashboard_tsx"
+    ],
+    "310": [
+      "metricsaggregatordashboard_apifetch",
+      "metricsaggregatordashboard_metricsaggregatordashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_metricsaggregatordashboard_tsx"
+    ],
+    "311": [
+      "incidenttimelinedashboard_apifetch",
+      "incidenttimelinedashboard_incidenttimelinedashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidenttimelinedashboard_tsx"
+    ],
+    "312": [
+      "threatbriefdashboard_cn",
+      "threatbriefdashboard_handledistribute",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatbriefdashboard_tsx"
+    ],
+    "313": [
+      "gapanalysisdashboard_apifetch",
+      "gapanalysisdashboard_gapanalysisdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_gapanalysisdashboard_tsx"
+    ],
+    "314": [
+      "digitalforensicsdashboard_apifetch",
+      "digitalforensicsdashboard_digitalforensicsdashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_digitalforensicsdashboard_tsx"
+    ],
+    "315": [
+      "programmaturitydashboard_apifetch",
+      "programmaturitydashboard_levelcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_programmaturitydashboard_tsx"
+    ],
+    "316": [
+      "cloudaccountsdashboard_getheaders",
+      "cloudaccountsdashboard_riskbarcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudaccountsdashboard_tsx"
+    ],
+    "317": [
+      "policies_handlesave",
+      "policies_togglepolicy",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_settings_policies_tsx"
+    ],
+    "318": [
+      "developerportal_test_loaddeveloperportal",
+      "developerportal_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_developer_tests_developerportal_test_tsx"
+    ],
+    "319": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_vendors_tests_vendormanagement_test_tsx",
+      "vendormanagement_test_loadvendormanagement",
+      "vendormanagement_test_s"
+    ],
+    "320": [
+      "failengine_drillstatusbadge",
+      "failengine_handlesubmit",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_validate_failengine_tsx"
+    ],
+    "321": [
+      "iacscanning_providerbadge",
+      "iacscanning_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_iacscanning_tsx"
+    ],
+    "322": [
+      "attackpaths_blastradiusbar",
+      "attackpaths_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_attackpaths_tsx"
+    ],
+    "323": [
+      "codescanning_scannerbadge",
+      "codescanning_severitybadge",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_codescanning_tsx"
+    ],
+    "324": [
+      "correlationengine_handleconfirm",
+      "correlationengine_heatcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_correlationengine_tsx"
+    ],
+    "325": [
+      "loginpage_fadein",
+      "loginpage_fadeup",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_auth_loginpage_tsx"
+    ],
+    "326": [
+      "threathunting_test_loadthreathunting",
+      "threathunting_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_hunting_tests_threathunting_test_tsx"
+    ],
+    "327": [
+      "integrationhealth_test_loadintegrationhealth",
+      "integrationhealth_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_integrations_tests_integrationhealth_test_tsx"
+    ],
+    "328": [
+      "brainpipeline_cn",
+      "brainpipeline_parsetypes",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ai_brainpipeline_tsx"
+    ],
+    "329": [
+      "socdashboard_test_loadsocdashboard",
+      "socdashboard_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_tests_socdashboard_test_tsx"
+    ],
+    "330": [
+      "cisodashboard_test_loadcisodashboard",
+      "cisodashboard_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_mission_control_tests_cisodashboard_test_tsx"
+    ],
+    "331": [
+      "onboardingwizard_generateapikey",
+      "onboardingwizard_handlescan",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_onboarding_onboardingwizard_tsx"
+    ],
+    "332": [
+      "incidentresponse_test_loadincidentresponse",
+      "incidentresponse_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_incidents_tests_incidentresponse_test_tsx"
+    ],
+    "333": [
+      "compliancedashboard_test_loadcompliancedashboard",
+      "compliancedashboard_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_tests_compliancedashboard_test_tsx"
+    ],
+    "334": [
+      "attacksurface_test_loadattacksurface",
+      "attacksurface_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_attack_surface_tests_attacksurface_test_tsx"
+    ],
+    "335": [
+      "app_app",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_app_tsx"
+    ],
+    "336": [
+      "entitylink_entitylink",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_entitylink_tsx"
+    ],
+    "337": [
+      "pagination_getpagenumbers",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_pagination_tsx"
+    ],
+    "338": [
+      "keyboardshortcutshelp_kbd",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_keyboardshortcutshelp_tsx"
+    ],
+    "339": [
+      "copilotsidebar_sendmessage",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_layout_copilotsidebar_tsx"
+    ],
+    "340": [
+      "kpi_card_kpicard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_shared_kpi_card_tsx"
+    ],
+    "341": [
+      "emptystate_emptystate",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_shared_emptystate_tsx"
+    ],
+    "342": [
+      "settings_auth_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_settings_auth_test_tsx"
+    ],
+    "343": [
+      "ai_test_s",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_tests_ai_test_tsx"
+    ],
+    "344": [
+      "use_sort_filter_usesortfilter",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_hooks_use_sort_filter_ts"
+    ],
+    "345": [
+      "use_keyboard_shortcuts_usekeyboardshortcuts",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_hooks_use_keyboard_shortcuts_ts"
+    ],
+    "346": [
+      "use_preferences_usepreferences",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_hooks_use_preferences_ts"
+    ],
+    "347": [
+      "use_pagination_usepagination",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_hooks_use_pagination_ts"
+    ],
+    "348": [
+      "entity_links_entitylink",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_entity_links_ts"
+    ],
+    "349": [
+      "apisecuritydashboard_apisecuritydashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_apisecuritydashboard_tsx"
+    ],
+    "350": [
+      "useraccessreviewdashboard_setdecision",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_useraccessreviewdashboard_tsx"
+    ],
+    "351": [
+      "dlpdashboard_apifetch",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_dlpdashboard_tsx"
+    ],
+    "352": [
+      "archreviewdashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_archreviewdashboard_tsx"
+    ],
+    "353": [
+      "threatlandscapedashboard_threatlandscapedashboard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatlandscapedashboard_tsx"
+    ],
+    "354": [
+      "cloudirdashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudirdashboard_tsx"
+    ],
+    "355": [
+      "riskscenariodashboard_cellcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_riskscenariodashboard_tsx"
+    ],
+    "356": [
+      "trainingeffectivenessdashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_trainingeffectivenessdashboard_tsx"
+    ],
+    "357": [
+      "threatindicatordashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatindicatordashboard_tsx"
+    ],
+    "358": [
+      "assettagsdashboard_handlebulktag",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_assettagsdashboard_tsx"
+    ],
+    "359": [
+      "cloudcostoptimizationdashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_cloudcostoptimizationdashboard_tsx"
+    ],
+    "360": [
+      "ransomwareprotectiondashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ransomwareprotectiondashboard_tsx"
+    ],
+    "361": [
+      "insiderthreatmonitor_apifetch",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_insiderthreatmonitor_tsx"
+    ],
+    "362": [
+      "notfound_shieldscan",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_notfound_tsx"
+    ],
+    "363": [
+      "auditlog_formattimestamp",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_auditlog_tsx"
+    ],
+    "364": [
+      "assetgroupsdashboard_getheaders",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_assetgroupsdashboard_tsx"
+    ],
+    "365": [
+      "threatmodeling_componentcard",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_threatmodeling_tsx"
+    ],
+    "366": [
+      "mldashboard_sevcolor",
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ai_mldashboard_tsx"
+    ],
+    "367": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_main_tsx"
+    ],
+    "368": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_vite_env_d_ts"
+    ],
+    "369": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_tabs_tsx"
+    ],
+    "370": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_card_tsx"
+    ],
+    "371": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_popover_tsx"
+    ],
+    "372": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_progress_tsx"
+    ],
+    "373": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_scroll_area_tsx"
+    ],
+    "374": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_label_tsx"
+    ],
+    "375": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_accordion_tsx"
+    ],
+    "376": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_tooltip_tsx"
+    ],
+    "377": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_alert_tsx"
+    ],
+    "378": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_switch_tsx"
+    ],
+    "379": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_avatar_tsx"
+    ],
+    "380": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_dialog_tsx"
+    ],
+    "381": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_badge_tsx"
+    ],
+    "382": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_table_tsx"
+    ],
+    "383": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_separator_tsx"
+    ],
+    "384": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_button_tsx"
+    ],
+    "385": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_checkbox_tsx"
+    ],
+    "386": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_collapsible_tsx"
+    ],
+    "387": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_dropdown_menu_tsx"
+    ],
+    "388": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_select_tsx"
+    ],
+    "389": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_textarea_tsx"
+    ],
+    "390": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_input_tsx"
+    ],
+    "391": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_ui_skeleton_tsx"
+    ],
+    "392": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_shared_data_table_tsx"
+    ],
+    "393": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_shared_errorstate_tsx"
+    ],
+    "394": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_components_shared_page_header_tsx"
+    ],
+    "395": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_lib_api_config_ts"
+    ],
+    "396": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_api_endpoints_ts"
+    ],
+    "397": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_api_types_ts"
+    ],
+    "398": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_api_index_ts"
+    ],
+    "399": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_securityregistrydashboard_tsx"
+    ],
+    "400": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_compliancemappingdashboard_tsx"
+    ],
+    "401": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_assetcriticalitydashboard_tsx"
+    ],
+    "402": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_endpointsecurity_tsx"
+    ],
+    "403": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_validate_attacksimulation_tsx"
+    ],
+    "404": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_discover_datafabric_tsx"
+    ],
+    "405": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_auth_accessdenied_tsx"
+    ],
+    "406": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ai_multillm_tsx"
+    ],
+    "407": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_ai_algorithmiclab_tsx"
+    ],
+    "408": [
+      "users_devops_ai_fixops_fixops_suite_ui_aldeci_ui_new_src_pages_comply_slsaprovenance_tsx"
+    ]
+  },
+  "cohesion": {
+    "0": 0.02,
+    "1": 0.05,
+    "2": 0.07,
+    "3": 0.11,
+    "4": 0.07,
+    "5": 0.08,
+    "6": 0.12,
+    "7": 0.11,
+    "8": 0.11,
+    "9": 0.16,
+    "10": 0.13,
+    "11": 0.13,
+    "12": 0.15,
+    "13": 0.14,
+    "14": 0.28,
+    "15": 0.15,
+    "16": 0.17,
+    "17": 0.33,
+    "18": 0.22,
+    "19": 0.18,
+    "20": 0.29,
+    "21": 0.2,
+    "22": 0.29,
+    "23": 0.24,
+    "24": 0.24,
+    "25": 0.22,
+    "26": 0.2,
+    "27": 0.2,
+    "28": 0.31,
+    "29": 0.22,
+    "30": 0.25,
+    "31": 0.22,
+    "32": 0.25,
+    "33": 0.25,
+    "34": 0.28,
+    "35": 0.22,
+    "36": 0.22,
+    "37": 0.22,
+    "38": 0.22,
+    "39": 0.25,
+    "40": 0.25,
+    "41": 0.25,
+    "42": 0.25,
+    "43": 0.32,
+    "44": 0.25,
+    "45": 0.25,
+    "46": 0.25,
+    "47": 0.25,
+    "48": 0.25,
+    "49": 0.39,
+    "50": 0.25,
+    "51": 0.25,
+    "52": 0.29,
+    "53": 0.25,
+    "54": 0.29,
+    "55": 0.25,
+    "56": 0.25,
+    "57": 0.25,
+    "58": 0.25,
+    "59": 0.25,
+    "60": 0.25,
+    "61": 0.25,
+    "62": 0.25,
+    "63": 0.29,
+    "64": 0.29,
+    "65": 0.29,
+    "66": 0.29,
+    "67": 0.29,
+    "68": 0.29,
+    "69": 0.29,
+    "70": 0.29,
+    "71": 0.38,
+    "72": 0.29,
+    "73": 0.29,
+    "74": 0.29,
+    "75": 0.29,
+    "76": 0.29,
+    "77": 0.33,
+    "78": 0.29,
+    "79": 0.29,
+    "80": 0.29,
+    "81": 0.29,
+    "82": 0.29,
+    "83": 0.43,
+    "84": 0.29,
+    "85": 0.29,
+    "86": 0.29,
+    "87": 0.29,
+    "88": 0.38,
+    "89": 0.33,
+    "90": 0.29,
+    "91": 0.29,
+    "92": 0.29,
+    "93": 0.29,
+    "94": 0.33,
+    "95": 0.33,
+    "96": 0.33,
+    "97": 0.33,
+    "98": 0.33,
+    "99": 0.33,
+    "100": 0.33,
+    "101": 0.33,
+    "102": 0.33,
+    "103": 0.33,
+    "104": 0.33,
+    "105": 0.33,
+    "106": 0.4,
+    "107": 0.4,
+    "108": 0.33,
+    "109": 0.33,
+    "110": 0.33,
+    "111": 0.33,
+    "112": 0.33,
+    "113": 0.4,
+    "114": 0.33,
+    "115": 0.33,
+    "116": 0.33,
+    "117": 0.33,
+    "118": 0.33,
+    "119": 0.33,
+    "120": 0.4,
+    "121": 0.33,
+    "122": 0.33,
+    "123": 0.33,
+    "124": 0.33,
+    "125": 0.33,
+    "126": 0.33,
+    "127": 0.33,
+    "128": 0.33,
+    "129": 0.6,
+    "130": 0.33,
+    "131": 0.33,
+    "132": 0.33,
+    "133": 0.33,
+    "134": 0.33,
+    "135": 0.33,
+    "136": 0.33,
+    "137": 0.4,
+    "138": 0.33,
+    "139": 0.33,
+    "140": 0.33,
+    "141": 0.33,
+    "142": 0.33,
+    "143": 0.4,
+    "144": 0.33,
+    "145": 0.33,
+    "146": 0.33,
+    "147": 0.33,
+    "148": 0.33,
+    "149": 0.33,
+    "150": 0.4,
+    "151": 0.33,
+    "152": 0.33,
+    "153": 0.4,
+    "154": 0.4,
+    "155": 0.4,
+    "156": 0.4,
+    "157": 0.4,
+    "158": 0.4,
+    "159": 0.4,
+    "160": 0.4,
+    "161": 0.4,
+    "162": 0.4,
+    "163": 0.4,
+    "164": 0.4,
+    "165": 0.4,
+    "166": 0.4,
+    "167": 0.4,
+    "168": 0.4,
+    "169": 0.4,
+    "170": 0.4,
+    "171": 0.4,
+    "172": 0.4,
+    "173": 0.4,
+    "174": 0.4,
+    "175": 0.6,
+    "176": 0.5,
+    "177": 0.4,
+    "178": 0.4,
+    "179": 0.4,
+    "180": 0.4,
+    "181": 0.5,
+    "182": 0.4,
+    "183": 0.4,
+    "184": 0.4,
+    "185": 0.4,
+    "186": 0.4,
+    "187": 0.6,
+    "188": 0.4,
+    "189": 0.4,
+    "190": 0.4,
+    "191": 0.4,
+    "192": 0.4,
+    "193": 0.5,
+    "194": 0.4,
+    "195": 0.4,
+    "196": 0.4,
+    "197": 0.4,
+    "198": 0.4,
+    "199": 0.4,
+    "200": 0.4,
+    "201": 0.5,
+    "202": 0.4,
+    "203": 0.4,
+    "204": 0.5,
+    "205": 0.5,
+    "206": 0.5,
+    "207": 0.5,
+    "208": 0.5,
+    "209": 0.5,
+    "210": 0.83,
+    "211": 0.5,
+    "212": 0.5,
+    "213": 0.5,
+    "214": 0.5,
+    "215": 0.5,
+    "216": 0.5,
+    "217": 0.5,
+    "218": 0.5,
+    "219": 0.5,
+    "220": 0.5,
+    "221": 0.5,
+    "222": 0.5,
+    "223": 0.5,
+    "224": 0.5,
+    "225": 0.5,
+    "226": 0.5,
+    "227": 0.5,
+    "228": 0.5,
+    "229": 0.5,
+    "230": 0.5,
+    "231": 0.5,
+    "232": 0.83,
+    "233": 0.5,
+    "234": 0.5,
+    "235": 0.5,
+    "236": 0.5,
+    "237": 0.5,
+    "238": 0.67,
+    "239": 0.67,
+    "240": 0.5,
+    "241": 0.5,
+    "242": 0.5,
+    "243": 0.5,
+    "244": 0.5,
+    "245": 0.5,
+    "246": 0.5,
+    "247": 0.5,
+    "248": 0.83,
+    "249": 0.5,
+    "250": 0.5,
+    "251": 0.5,
+    "252": 0.5,
+    "253": 0.5,
+    "254": 0.5,
+    "255": 0.5,
+    "256": 0.5,
+    "257": 0.5,
+    "258": 0.83,
+    "259": 0.5,
+    "260": 0.5,
+    "261": 0.5,
+    "262": 0.5,
+    "263": 0.67,
+    "264": 0.67,
+    "265": 0.67,
+    "266": 0.67,
+    "267": 0.67,
+    "268": 0.67,
+    "269": 0.67,
+    "270": 0.67,
+    "271": 0.67,
+    "272": 1.0,
+    "273": 0.67,
+    "274": 0.67,
+    "275": 0.67,
+    "276": 0.67,
+    "277": 0.67,
+    "278": 0.67,
+    "279": 0.67,
+    "280": 0.67,
+    "281": 0.67,
+    "282": 0.67,
+    "283": 0.67,
+    "284": 0.67,
+    "285": 0.67,
+    "286": 0.67,
+    "287": 0.67,
+    "288": 0.67,
+    "289": 0.67,
+    "290": 0.67,
+    "291": 0.67,
+    "292": 0.67,
+    "293": 1.0,
+    "294": 0.67,
+    "295": 0.67,
+    "296": 0.67,
+    "297": 0.67,
+    "298": 0.67,
+    "299": 0.67,
+    "300": 0.67,
+    "301": 0.67,
+    "302": 0.67,
+    "303": 0.67,
+    "304": 0.67,
+    "305": 0.67,
+    "306": 0.67,
+    "307": 0.67,
+    "308": 0.67,
+    "309": 0.67,
+    "310": 0.67,
+    "311": 0.67,
+    "312": 0.67,
+    "313": 0.67,
+    "314": 0.67,
+    "315": 0.67,
+    "316": 0.67,
+    "317": 0.67,
+    "318": 0.67,
+    "319": 0.67,
+    "320": 0.67,
+    "321": 0.67,
+    "322": 0.67,
+    "323": 0.67,
+    "324": 0.67,
+    "325": 0.67,
+    "326": 0.67,
+    "327": 0.67,
+    "328": 0.67,
+    "329": 0.67,
+    "330": 0.67,
+    "331": 0.67,
+    "332": 0.67,
+    "333": 0.67,
+    "334": 0.67,
+    "335": 1.0,
+    "336": 1.0,
+    "337": 1.0,
+    "338": 1.0,
+    "339": 1.0,
+    "340": 1.0,
+    "341": 1.0,
+    "342": 1.0,
+    "343": 1.0,
+    "344": 1.0,
+    "345": 1.0,
+    "346": 1.0,
+    "347": 1.0,
+    "348": 1.0,
+    "349": 1.0,
+    "350": 1.0,
+    "351": 1.0,
+    "352": 1.0,
+    "353": 1.0,
+    "354": 1.0,
+    "355": 1.0,
+    "356": 1.0,
+    "357": 1.0,
+    "358": 1.0,
+    "359": 1.0,
+    "360": 1.0,
+    "361": 1.0,
+    "362": 1.0,
+    "363": 1.0,
+    "364": 1.0,
+    "365": 1.0,
+    "366": 1.0,
+    "367": 1.0,
+    "368": 1.0,
+    "369": 1.0,
+    "370": 1.0,
+    "371": 1.0,
+    "372": 1.0,
+    "373": 1.0,
+    "374": 1.0,
+    "375": 1.0,
+    "376": 1.0,
+    "377": 1.0,
+    "378": 1.0,
+    "379": 1.0,
+    "380": 1.0,
+    "381": 1.0,
+    "382": 1.0,
+    "383": 1.0,
+    "384": 1.0,
+    "385": 1.0,
+    "386": 1.0,
+    "387": 1.0,
+    "388": 1.0,
+    "389": 1.0,
+    "390": 1.0,
+    "391": 1.0,
+    "392": 1.0,
+    "393": 1.0,
+    "394": 1.0,
+    "395": 1.0,
+    "396": 1.0,
+    "397": 1.0,
+    "398": 1.0,
+    "399": 1.0,
+    "400": 1.0,
+    "401": 1.0,
+    "402": 1.0,
+    "403": 1.0,
+    "404": 1.0,
+    "405": 1.0,
+    "406": 1.0,
+    "407": 1.0,
+    "408": 1.0
+  },
+  "gods": [
+    {
+      "id": "hooks_useapi",
+      "label": "useApi()",
+      "degree": 23
+    },
+    {
+      "id": "client_apiclient",
+      "label": "ApiClient",
+      "degree": 20
+    },
+    {
+      "id": "api_client_aldeciclient",
+      "label": "ALDECIClient",
+      "degree": 18
+    },
+    {
+      "id": "api_hooks_useapiquery",
+      "label": "useApiQuery()",
+      "degree": 11
+    },
+    {
+      "id": "systemhealth_systemhealth",
+      "label": "SystemHealth()",
+      "degree": 8
+    },
+    {
+      "id": "setup_eventsourcestub",
+      "label": "EventSourceStub",
+      "degree": 6
+    },
+    {
+      "id": "use_page_title_usepagetitle",
+      "label": "usePageTitle()",
+      "degree": 6
+    },
+    {
+      "id": "accessanomalydashboard_fetchdata",
+      "label": "fetchData()",
+      "degree": 6
+    },
+    {
+      "id": "workspacelayout_routeerrorboundary",
+      "label": "RouteErrorBoundary",
+      "degree": 5
+    },
+    {
+      "id": "errorboundary_errorboundary",
+      "label": "ErrorBoundary",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "flattenValue()",
+      "target": "String()",
+      "source_files": [
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/components/ExportButton.tsx",
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/mission-control/SLADashboard.tsx"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `flattenValue()` unexpectedly reaches hub `String()`"
+    },
+    {
+      "source": "UBADashboard()",
+      "target": "usePageTitle()",
+      "source_files": [
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/UBADashboard.tsx",
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/hooks/use-page-title.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `UBADashboard()` unexpectedly reaches hub `usePageTitle()`"
+    },
+    {
+      "source": "ThreatFeedDashboard()",
+      "target": "usePageTitle()",
+      "source_files": [
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/ThreatFeedDashboard.tsx",
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/hooks/use-page-title.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `ThreatFeedDashboard()` unexpectedly reaches hub `usePageTitle()`"
+    },
+    {
+      "source": "ThreatHuntingDashboard()",
+      "target": "usePageTitle()",
+      "source_files": [
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/ThreatHuntingDashboard.tsx",
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/hooks/use-page-title.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `ThreatHuntingDashboard()` unexpectedly reaches hub `usePageTitle()`"
+    },
+    {
+      "source": "SecurityMetricsDashboard()",
+      "target": "usePageTitle()",
+      "source_files": [
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/SecurityMetricsDashboard.tsx",
+        "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/hooks/use-page-title.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `SecurityMetricsDashboard()` unexpectedly reaches hub `usePageTitle()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `SettingsHub()` connect `Community 1` to `Community 17`?",
+      "why": "High betweenness centrality (0.003) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `useSystemHealth()` connect `Community 1` to `Community 0`?",
+      "why": "High betweenness centrality (0.002) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `ApiClient` (e.g. with `simulateAttack()` and `async()`) actually correct?",
+      "why": "`ApiClient` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 7 inferred relationships involving `SystemHealth()` (e.g. with `useSystemHealth()` and `useSystemMetrics()`) actually correct?",
+      "why": "`SystemHealth()` has 7 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.02 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.07 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
