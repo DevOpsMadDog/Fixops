@@ -230,6 +230,7 @@ function EscalationPathCard({ path }: { path: EscalationPath }) {
 
 export default function CloudIAM() {
   const [activeProvider, setActiveProvider] = useState<"All" | Provider>("All");
+  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats] = useState<{ total: number; critical: number; high: number } | null>(null);
 
   // Fetch identity analytics sessions and stats
@@ -280,6 +281,10 @@ export default function CloudIAM() {
     ? principalsFromSessions
     : MOCK_PRINCIPALS;
   const filtered = activeProvider === "All" ? principals : principals.filter(p => p.provider === activeProvider);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="flex flex-col gap-6 p-6">

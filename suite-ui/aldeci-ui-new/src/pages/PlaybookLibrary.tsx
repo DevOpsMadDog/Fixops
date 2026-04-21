@@ -324,6 +324,7 @@ const STATUS_ICONS: Record<ExecStatus, typeof CheckCircle2> = {
 
 export default function PlaybookLibrary() {
   const [playbooks, setPlaybooks] = useState<Playbook[]>(MOCK_PLAYBOOKS);
+  const [loading, setLoading] = useState(true);
   const [selectedExec, setSelectedExec] = useState<Execution | null>(null);
   const [showCreatePanel, setShowCreatePanel] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
@@ -352,6 +353,7 @@ export default function PlaybookLibrary() {
         }
       }
     });
+    setLoading(false);
   }, []);
 
   const activeCount = playbooks.filter((p) => p.enabled).length;
@@ -527,6 +529,9 @@ export default function PlaybookLibrary() {
                   {MOCK_EXECUTIONS.map((exec, idx) => {
                     const StatusIcon = STATUS_ICONS[exec.status];
                     const isSelected = selectedExec?.id === exec.id;
+
+                    if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                     return (
                       <motion.tr
                         key={exec.id}

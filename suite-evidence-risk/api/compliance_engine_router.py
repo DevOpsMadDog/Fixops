@@ -489,3 +489,24 @@ async def compliance_mappings():
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("compliance_mappings error: %s", e)
         raise HTTPException(status_code=500, detail=type(e).__name__)
+
+
+@router.get("/assess-all")
+async def assess_all_frameworks_get(
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Assess compliance posture across all frameworks (GET convenience endpoint)."""
+    try:
+        from compliance.compliance_engine import ComplianceEngine
+        engine = ComplianceEngine()
+        result = engine.assess_all_frameworks([])
+        if isinstance(result, dict):
+            result["org_id"] = org_id
+        return result
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "frameworks": {},
+            "org_id": org_id,
+            "error": type(e).__name__,
+        }

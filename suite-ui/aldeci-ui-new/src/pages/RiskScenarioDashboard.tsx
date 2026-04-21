@@ -157,12 +157,14 @@ function cellColor(l: number, i: number): string {
 
 export default function RiskScenarioDashboard() {
   const [selectedScenario, setSelectedScenario] = useState<RiskScenario | null>(SCENARIOS[0]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/risk-scenarios", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [sortField, setSortField] = useState<"residual_risk" | "inherent_risk">("residual_risk");
 
@@ -324,6 +326,9 @@ export default function RiskScenarioDashboard() {
             <div className="text-xs text-gray-400 font-medium mb-2">Distribution by Level</div>
             {(["critical","high","medium","low"] as const).map(lvl => {
               const pct = Math.round((byLevel[lvl] / SCENARIOS.length) * 100);
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={lvl}>
                   <div className="flex justify-between text-xs mb-1">

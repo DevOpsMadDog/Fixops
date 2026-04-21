@@ -52,6 +52,7 @@ const implBadge = (s: string) => {
 
 export default function ArchReviewDashboard() {
   const [activeTab, setActiveTab] = useState<"reviews" | "findings" | "controls" | "gaps">("reviews");
+  const [loading, setLoading] = useState(true);
   const [filterReview, setFilterReview] = useState("all");
   const [showAddReview, setShowAddReview] = useState(false);
   const [showAddFinding, setShowAddFinding] = useState(false);
@@ -59,16 +60,18 @@ export default function ArchReviewDashboard() {
   const [newFinding, setNewFinding] = useState({ review_id: "rev-001", component: "", finding_type: "injection", title: "", severity: "high", recommendation: "" });
   const [liveReviews, setLiveReviews] = useState(reviews);
   const [liveFindings, setLiveFindings] = useState(findings);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/reviews?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
     fetch(`${API_BASE}/control-gaps?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'));
+    setLoading(false);
   }, []);
 
   const totalReviews = reviews.length;
@@ -79,6 +82,10 @@ export default function ArchReviewDashboard() {
   const filteredFindings = filterReview === "all" ? findings : findings.filter(f => f.review_id === filterReview);
   const filteredControls = filterReview === "all" ? controls : controls.filter(c => c.review_id === filterReview);
   const gapControls = controls.filter(c => c.implementation_status === "not_implemented").sort((a, b) => a.effectiveness - b.effectiveness);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">

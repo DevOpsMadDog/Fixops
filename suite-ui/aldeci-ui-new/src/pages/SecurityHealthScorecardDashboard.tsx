@@ -168,11 +168,14 @@ function Sparkline({ data }: { data: Snapshot[] }) {
 
 export default function SecurityHealthScorecardDashboard() {
   const [snapshotMsg, setSnapshotMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/health-scorecard", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const overallScore = computeOverallScore(DOMAINS);
   const { grade, color, bg } = scoreToGrade(overallScore);
@@ -365,6 +368,9 @@ export default function SecurityHealthScorecardDashboard() {
             {TARGETS.map((t) => {
               const gap = t.target_score - t.current_score;
               const pct = Math.round((t.current_score / t.target_score) * 100);
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <tr key={t.domain} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                   <td className="py-2 text-gray-200">{t.domain}</td>

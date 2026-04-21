@@ -51,17 +51,20 @@ const statusBadge = (s: string) => {
 
 export default function DependencyMappingDashboard() {
   const [activeTab, setActiveTab] = useState<"services" | "graph" | "blast" | "critical">("services");
+  const [loading, setLoading] = useState(true);
   const [filterService, setFilterService] = useState("svc-001");
   const [analysisType, setAnalysisType] = useState<"downstream" | "upstream">("downstream");
 
   useEffect(() => {
-    apiFetch(`/api/v1/dependency-mapping/services?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/dependency-mapping/services?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [blastResult, setBlastResult] = useState<null | { affected: string[]; affectedCount: number; criticalCount: number }>(null);
   const [showAddService, setShowAddService] = useState(false);
   const [showAddDep, setShowAddDep] = useState(false);
   const [newService, setNewService] = useState({ service_name: "", service_type: "api", criticality: "medium", environment: "production", data_classification: "internal", owner: "" });
   const [newDep, setNewDep] = useState({ from_service: "svc-001", to_service: "svc-002", dep_type: "data", criticality: "medium", protocol: "HTTPS", port: 443 });
+  const [error, setError] = useState<string | null>(null);
 
   const totalServices = services.length;
   const totalDeps = dependencies.length;
@@ -328,6 +331,9 @@ export default function DependencyMappingDashboard() {
                   <div className="flex flex-wrap gap-2">
                     {blastResult.affected.map(name => {
                       const svc = services.find(s => s.service_name === name);
+
+                      if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                       return (
                         <div key={name} className="bg-gray-900 rounded px-3 py-2 flex items-center gap-2">
                           <span className="font-mono text-sm">{name}</span>

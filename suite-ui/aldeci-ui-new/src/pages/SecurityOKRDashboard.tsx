@@ -108,12 +108,13 @@ function krProgress(kr: KeyResult) {
 
 export default function SecurityOKRDashboard() {
   const [objectives, setObjectives] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${_API_BASE}/objectives?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
   }, []);
 
   const [period, setPeriod] = useState<Period>("Q2 2026");
@@ -124,10 +125,12 @@ export default function SecurityOKRDashboard() {
     fetch(`${_API_BASE}/objectives?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [updateNotes, setUpdateNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const filteredObjectives = MOCK_OBJECTIVES.filter(o => o.period === period);
 
@@ -311,6 +314,9 @@ export default function SecurityOKRDashboard() {
           {teams.map(team => {
             const teamObjs = filteredObjectives.filter(o => o.team === team);
             const avg = Math.round(teamObjs.reduce((s, o) => s + o.overall_progress, 0) / (teamObjs.length || 1));
+
+            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
             return (
               <div key={team} className="bg-gray-700/50 rounded-lg p-4 text-center">
                 <p className="text-gray-300 text-xs font-medium mb-2">{team}</p>

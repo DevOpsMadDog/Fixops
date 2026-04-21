@@ -147,6 +147,7 @@ function timeAgo(iso: string) {
 
 export default function HuntingAutomationDashboard() {
   const [selectedHyp, setSelectedHyp] = useState(MOCK_HYPOTHESES[0]);
+  const [loading, setLoading] = useState(true);
   const [expandedHyp, setExpandedHyp] = useState<string | null>("hyp-001");
 
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -169,6 +170,10 @@ export default function HuntingAutomationDashboard() {
 
   const allQueries = MOCK_HYPOTHESES.flatMap(h => h.queries);
   const highYieldQueries = allQueries.filter(q => q.findings_count >= 1).sort((a, b) => b.findings_count - a.findings_count);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

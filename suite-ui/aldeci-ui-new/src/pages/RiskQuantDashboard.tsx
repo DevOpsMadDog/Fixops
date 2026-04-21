@@ -134,12 +134,14 @@ function PctBar({ pct, color = "bg-blue-500" }: { pct: number; color?: string })
 
 export default function RiskQuantDashboard() {
   const [scenarioFilter, setScenarioFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/risk-quant/summary?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/risk-quant/summary?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [form, setForm] = useState({
     scenario_name: "", asset_name: "", threat_actor: "", threat_type: "ransomware",
@@ -362,6 +364,9 @@ export default function RiskQuantDashboard() {
             {MOCK_SNAPSHOTS.map((snap, i) => {
               const maxAle = Math.max(...MOCK_SNAPSHOTS.map(s => s.total_ale));
               const pct = (snap.total_ale / maxAle) * 100;
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={i} className="flex items-center gap-3">
                   <span className="text-[11px] text-muted-foreground w-24 shrink-0">{snap.snapshot_date}</span>

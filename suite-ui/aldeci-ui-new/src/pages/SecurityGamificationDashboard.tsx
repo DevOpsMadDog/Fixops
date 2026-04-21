@@ -103,6 +103,7 @@ function RankBadge({ rank }: { rank: number }) {
 
 export default function SecurityGamificationDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveLeaderboard, setLiveLB]      = useState<any[] | null>(null);
   const [liveChallenges, setLiveChallenges] = useState<any[] | null>(null);
   const [liveStats, setLiveStats]         = useState<any | null>(null);
@@ -117,6 +118,7 @@ export default function SecurityGamificationDashboard() {
       if (challengesRes.status === "fulfilled") setLiveChallenges(challengesRes.value?.challenges ?? challengesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -124,6 +126,10 @@ export default function SecurityGamificationDashboard() {
   const leaderboard = liveLeaderboard ?? MOCK_LEADERBOARD;
   const challenges  = liveChallenges  ?? MOCK_CHALLENGES;
   const stats       = liveStats       ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

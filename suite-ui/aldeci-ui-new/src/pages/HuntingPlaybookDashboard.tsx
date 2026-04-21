@@ -38,6 +38,7 @@ const confBadge = (c: string) => {
 
 export default function HuntingPlaybookDashboard() {
   const [activeTab, setActiveTab] = useState<"playbooks" | "executions" | "hypotheses">("playbooks");
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadData = () => {
@@ -71,6 +72,10 @@ export default function HuntingPlaybookDashboard() {
 
   const filteredExecs = filterPlaybook === "all" ? executions : executions.filter(e => e.playbook_id === filterPlaybook);
   const filteredHyps = filterPlaybook === "all" ? hypotheses : hypotheses.filter(h => h.playbook_id === filterPlaybook);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">

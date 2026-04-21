@@ -87,6 +87,7 @@ function FindingStatusBadge({ status }: { status: string }) {
 
 export default function CloudSecurityAnalyticsDashboard() {
   const [refreshing, setRefreshing]   = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveFindings, setLiveFindings] = useState<any[] | null>(null);
   const [liveStats, setLiveStats]       = useState<any | null>(null);
 
@@ -98,6 +99,7 @@ export default function CloudSecurityAnalyticsDashboard() {
       if (eventsRes.status === "fulfilled") setLiveFindings(eventsRes.value?.events ?? eventsRes.value ?? null);
       if (anomaliesRes.status === "fulfilled") setLiveStats(anomaliesRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -106,6 +108,10 @@ export default function CloudSecurityAnalyticsDashboard() {
   const stats    = liveStats    ?? MOCK_STATS;
 
   const openCount = findings.filter((f: any) => (f.status ?? "open") === "open").length;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

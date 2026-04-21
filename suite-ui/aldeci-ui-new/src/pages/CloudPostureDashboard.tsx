@@ -98,6 +98,7 @@ function ProviderBadge({ provider }: { provider: string }) {
 
 export default function CloudPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveFindings, setLiveFindings] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
@@ -109,12 +110,17 @@ export default function CloudPostureDashboard() {
       if (findingsRes.status === "fulfilled") setLiveFindings(findingsRes.value?.findings ?? findingsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const findings = liveFindings ?? MOCK_FINDINGS;
   const stats    = liveStats    ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

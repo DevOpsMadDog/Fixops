@@ -162,15 +162,18 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
 
 export default function SecurityScorecardDashboard() {
   const [scorecard, setScorecard] = useState<ScorecardData>(MOCK_SCORECARD);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     apiFetch(`/api/v1/security-scorecard/?org_id=${ORG_ID}`).then((d) => {
       if (d?.overall_score !== undefined) setScorecard(d);
-    }).catch(() => {});
+    }).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [generated, setGenerated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -330,6 +333,9 @@ export default function SecurityScorecardDashboard() {
               {TREND_DATA.map((pt, i) => {
                 const pct = scoreToPercent(pt.score);
                 const isLatest = i === TREND_DATA.length - 1;
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <div key={pt.day} className="flex-1 flex flex-col items-center gap-0.5">
                     <span className="text-[9px] text-muted-foreground tabular-nums">{pt.score}</span>

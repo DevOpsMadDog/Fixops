@@ -129,10 +129,13 @@ function AvailabilityGauge({ pct }: { pct: number }) {
 
 export default function ServiceCatalogDashboard() {
   const [showRequestForm, setShowRequestForm] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [requestForm, setRequestForm] = useState({ service: "", requester: "", dept: "Engineering", priority: "medium", notes: "" });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const activeServices = MOCK_SERVICES.filter(s => s.status === "active").length;
@@ -149,6 +152,10 @@ export default function ServiceCatalogDashboard() {
     const total = reqs.filter(r => r.sla_met !== null).length;
     return { ...svc, req_count: reqs.length, sla_met: met, total_measured: total, compliance: total ? Math.round((met / total) * 100) : null };
   });
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

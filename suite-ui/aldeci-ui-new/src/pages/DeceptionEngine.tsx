@@ -113,6 +113,7 @@ function scoreColor(s: number) {
 // ── Component ──────────────────────────────────────────────────
 export default function DeceptionEngine() {
   const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -127,10 +128,15 @@ export default function DeceptionEngine() {
         setLiveData({ stats, canaries, alerts });
       }
     });
+    setLoading(false);
   }, []);
 
   const activeHoneypots = liveData?.stats?.active_honeypots ?? HONEYPOTS.filter((h) => h.status === "active").length;
   const triggeredCanaries = liveData?.stats?.triggered_canaries ?? CANARIES.filter((c) => c.triggered).length;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-slate-900 p-8 space-y-8">

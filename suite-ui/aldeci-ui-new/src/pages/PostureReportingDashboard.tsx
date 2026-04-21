@@ -161,12 +161,14 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
 
 export default function PostureReportingDashboard() {
   const [selectedReport, setSelectedReport] = useState(MOCK_REPORTS[0]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [metricFilter, setMetricFilter] = useState(selectedReport.metrics[0].metric_name);
 
   useEffect(() => {
-    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newReport, setNewReport] = useState({ name: "", type: "monthly", audience: "ciso", period_start: "", period_end: "" });
@@ -178,6 +180,10 @@ export default function PostureReportingDashboard() {
   const published = MOCK_REPORTS.filter(r => r.status === "published").length;
   const avgScore = Math.round(MOCK_REPORTS.reduce((a, r) => a + r.overall_score, 0) / MOCK_REPORTS.length);
   const drafts = MOCK_REPORTS.filter(r => r.status === "draft").length;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

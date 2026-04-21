@@ -149,9 +149,12 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
 
 export default function CyberInsurance() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -161,6 +164,10 @@ export default function CyberInsurance() {
 
   const gaugeColor = OVERALL_SCORE >= 80 ? "text-green-400" : OVERALL_SCORE >= 60 ? "text-yellow-400" : "text-red-400";
   const gaugeBorder = OVERALL_SCORE >= 80 ? "border-green-500/40" : OVERALL_SCORE >= 60 ? "border-yellow-500/40" : "border-red-500/40";
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

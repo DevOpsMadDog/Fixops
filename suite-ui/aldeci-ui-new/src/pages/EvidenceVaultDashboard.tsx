@@ -131,14 +131,17 @@ function timeAgo(iso: string) {
 
 export default function EvidenceVaultDashboard() {
   const [selectedEvidence, setSelectedEvidence] = useState(MOCK_EVIDENCE[0]);
+  const [loading, setLoading] = useState(true);
   const [sealedSet, setSealedSet] = useState<Set<string>>(new Set(MOCK_EVIDENCE.filter(e => e.sealed).map(e => e.id)));
   const [verifyId, setVerifyId] = useState("");
 
   useEffect(() => {
-    apiFetch(`/api/v1/evidence-vault/search?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
+    apiFetch(`/api/v1/evidence-vault/search?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [verifyContent, setVerifyContent] = useState("");
   const [verifyResult, setVerifyResult] = useState<"valid" | "invalid" | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const totalEvidence = MOCK_EVIDENCE.length;
   const sealedCount = sealedSet.size;
@@ -188,6 +191,9 @@ export default function EvidenceVaultDashboard() {
                       const daysLeft = daysUntil(e.expires_at);
                       const isSealed = sealedSet.has(e.id);
                       const expiringSoonFlag = daysLeft > 0 && daysLeft < 90;
+
+                      if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                       return (
                         <tr key={e.id} className={cn("border-b border-zinc-700/50 hover:bg-zinc-700/20 cursor-pointer", selectedEvidence.id === e.id && "bg-zinc-700/30")}
                           onClick={() => setSelectedEvidence(e)}>

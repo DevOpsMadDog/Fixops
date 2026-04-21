@@ -131,10 +131,13 @@ function typeLabel(t: ExceptionType): string {
 
 export default function ExceptionWorkflowDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("exc-001");
+  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/exception-workflow/requests?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
+    apiFetch(`/api/v1/exception-workflow/requests?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const selected = MOCK_EXCEPTIONS.find(e => e.id === selectedId) ?? null;
@@ -370,6 +373,9 @@ export default function ExceptionWorkflowDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {(["policy-waiver", "risk-acceptance", "compensating-control", "temporary-bypass", "architectural-exception"] as ExceptionType[]).map(t => {
             const c = MOCK_EXCEPTIONS.filter(e => e.exception_type === t).length;
+
+            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
             return (
               <div key={t} className="text-center">
                 <div className={`text-xl font-bold text-white mb-1`}>{c}</div>

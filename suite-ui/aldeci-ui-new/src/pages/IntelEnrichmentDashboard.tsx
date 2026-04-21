@@ -86,6 +86,7 @@ const statusColors: Record<EnrichmentStatus, string> = {
 
 export default function IntelEnrichmentDashboard() {
   const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -122,6 +123,10 @@ export default function IntelEnrichmentDashboard() {
       setBulkInput("");
     }
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

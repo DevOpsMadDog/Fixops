@@ -161,6 +161,7 @@ function sparklineColor(velocity: Velocity, higherIsBetter: boolean): string {
 
 export default function PostureTrendsDashboard() {
   const [trends, setTrends] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -178,7 +179,8 @@ export default function PostureTrendsDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
 
@@ -298,6 +300,9 @@ export default function PostureTrendsDashboard() {
           const ind = velocityIndicator(metric.velocity, metric.higher_is_better);
           const sColor = sparklineColor(metric.velocity, metric.higher_is_better);
           const path = sparklinePath(metric.datapoints);
+
+          if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
           return (
             <div key={metric.id} className="bg-gray-800 rounded-lg p-5 space-y-3">
               <div className="flex items-start justify-between gap-2">

@@ -166,16 +166,23 @@ function fmtNum(n: number): string {
 
 export default function FeedSubscriptionsDashboard() {
   const [selectedFeed, setSelectedFeed] = useState<FeedSubscription | null>(FEEDS[0]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"logs" | "delivery">("logs");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/feed-subscriptions/subscriptions?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/feed-subscriptions/subscriptions?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const errorFeeds = FEEDS.filter(f => f.status === "error");
   const totalIOCs = FEEDS.reduce((s, f) => s + f.ioc_count, 0);
   const activeCount = FEEDS.filter(f => f.status === "active").length;
   const totalErrors = FEEDS.reduce((s, f) => s + f.error_count, 0);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

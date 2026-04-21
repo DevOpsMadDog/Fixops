@@ -143,12 +143,13 @@ function readinessTextColor(score: number) {
 
 export default function ComplianceWorkflowDashboard() {
   const [workflows, setWorkflows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${_API_BASE}/workflows?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setWorkflows(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
   }, []);
 
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>(MOCK_WORKFLOWS[0].id);
@@ -159,10 +160,12 @@ export default function ComplianceWorkflowDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const [filterFramework, setFilterFramework] = useState<Framework | "All">("All");
+  const [error, setError] = useState<string | null>(null);
 
   const overdueTasks = MOCK_TASKS.filter(t => {
     const wf = MOCK_WORKFLOWS.find(w => w.id === t.workflow_id);
@@ -181,6 +184,10 @@ export default function ComplianceWorkflowDashboard() {
   const activeWorkflows = MOCK_WORKFLOWS.filter(w => w.status === "in_progress" || w.status === "review").length;
   const approvedWorkflows = MOCK_WORKFLOWS.filter(w => w.status === "approved").length;
   const overdueWorkflows = MOCK_WORKFLOWS.filter(w => w.overdue).length;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

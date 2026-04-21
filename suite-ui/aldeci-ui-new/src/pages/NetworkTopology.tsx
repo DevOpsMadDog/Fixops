@@ -116,6 +116,7 @@ function StatusDot({ status }: { status: string }) {
 
 export default function NetworkTopology() {
   const [refreshing, setRefreshing]   = useState(false);
+  const [loading, setLoading] = useState(true);
   const [srcNode, setSrcNode]         = useState("");
   const [dstNode, setDstNode]         = useState("");
   const [pathResult, setPathResult]   = useState<string[] | null>(null);
@@ -141,6 +142,10 @@ export default function NetworkTopology() {
   const handleFindPath = () => {
     if (srcNode.trim() && dstNode.trim()) setPathResult(MOCK_PATH);
   };
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

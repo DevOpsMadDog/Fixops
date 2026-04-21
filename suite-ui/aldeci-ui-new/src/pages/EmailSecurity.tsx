@@ -282,6 +282,7 @@ function RiskScoreBadge({ score }: { score: number }) {
 
 export default function EmailSecurity() {
   const [enforcing, setEnforcing] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<any>(null);
 
   useEffect(() => {
@@ -318,6 +319,7 @@ export default function EmailSecurity() {
         setLiveData({ stats, threats, reports: null, domains: null });
       }
     });
+    setLoading(false);
   }, []);
 
   const handleEnforce = (domainId: string) => {
@@ -647,6 +649,9 @@ export default function EmailSecurity() {
             <CardContent className="p-4 space-y-3">
               {RECOMMENDATIONS.map((rec, idx) => {
                 const Icon = rec.icon;
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <motion.div
                     key={rec.id}

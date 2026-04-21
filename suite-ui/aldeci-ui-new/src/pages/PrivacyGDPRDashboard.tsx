@@ -125,6 +125,7 @@ function RegBadge({ reg }: { reg: string }) {
 
 export default function PrivacyGDPRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<any>(null);
 
   useEffect(() => {
@@ -144,6 +145,7 @@ export default function PrivacyGDPRDashboard() {
         setLiveData({ stats, dsrs, consents, incidents, activities });
       }
     });
+    setLoading(false);
   }, []);
 
   const openDSRs    = DSRS.filter((d) => d.status === "open" || d.status === "in_progress").length;
@@ -152,6 +154,10 @@ export default function PrivacyGDPRDashboard() {
   const openIncidents  = INCIDENTS.filter((i) => i.status !== "closed").length;
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

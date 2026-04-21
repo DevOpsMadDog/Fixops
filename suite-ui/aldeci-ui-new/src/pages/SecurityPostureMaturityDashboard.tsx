@@ -180,12 +180,19 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
 
 export default function SecurityPostureMaturityDashboard() {
   const [advanced, setAdvanced] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch(`${_API_BASE}/overview?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

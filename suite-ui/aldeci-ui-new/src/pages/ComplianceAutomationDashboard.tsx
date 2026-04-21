@@ -85,6 +85,7 @@ function formatTs(ts: string | null) {
 
 export default function ComplianceAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveJobs, setLiveJobs] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
@@ -113,12 +114,17 @@ export default function ComplianceAutomationDashboard() {
         });
       }
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const jobs  = liveJobs  ?? MOCK_JOBS;
   const stats = liveStats ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

@@ -709,6 +709,7 @@ const PAGE_SIZE = 20;
 
 export default function AuditLogPage() {
   const [dateRange, setDateRange] = useState("Last 24h");
+  const [loading, setLoading] = useState(true);
   const [eventTypeFilter, setEventTypeFilter] = useState<"all" | EventType>(
     "all"
   );
@@ -757,6 +758,7 @@ export default function AuditLogPage() {
         });
       }
     });
+    setLoading(false);
   }, []);
 
   // Filter + search
@@ -1053,6 +1055,9 @@ export default function AuditLogPage() {
                 ) : (
                   paginated.map((event) => {
                     const TypeIcon = EVENT_TYPE_ICON[event.event_type];
+
+                    if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                     return (
                       <motion.tr
                         key={event.id}

@@ -89,6 +89,7 @@ function daysUntil(dateStr: string) {
 
 export default function CertificateDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [expiring, setExpiring]     = useState<typeof MOCK_EXPIRING>(MOCK_EXPIRING);
 
@@ -105,6 +106,7 @@ export default function CertificateDashboard() {
         if (list.length) setExpiring(list);
       }
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -174,6 +176,9 @@ export default function CertificateDashboard() {
               <TableBody>
                 {expiring.map((cert: any) => {
                   const days = daysUntil(cert.expiry_date);
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <TableRow key={cert.id} className="hover:bg-muted/30">
                       <TableCell className="py-2 font-mono text-[11px]">{cert.domain}</TableCell>

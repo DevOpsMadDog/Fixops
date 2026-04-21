@@ -86,12 +86,13 @@ function ScanStatusBadge({ status }: { status: string }) {
 
 export default function VulnScanDashboard() {
   const [scans, setScans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${_API_BASE}/scans?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setScans(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
   }, []);
 
   const [scannerType, setScannerType] = useState("Nessus");
@@ -99,10 +100,12 @@ export default function VulnScanDashboard() {
     fetch(`${_API_BASE}/scans?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setScans(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [target, setTarget] = useState("");
   const [triggering, setTriggering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const activeScanCount = MOCK_SCANS.filter((s) => s.status === "running").length;
   const totalFindings = MOCK_SCANS.reduce((s, sc) => s + sc.findings_count, 0);
@@ -115,6 +118,10 @@ export default function VulnScanDashboard() {
     setTriggering(true);
     setTimeout(() => setTriggering(false), 2000);
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">

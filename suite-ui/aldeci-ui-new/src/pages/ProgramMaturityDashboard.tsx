@@ -45,12 +45,14 @@ const priorityBadge = (p: string) => {
 
 export default function ProgramMaturityDashboard() {
   const [activeTab, setActiveTab] = useState<"domains" | "assessments" | "roadmap">("domains");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterDomain, setFilterDomain] = useState("all");
   const [showAddDomain, setShowAddDomain] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [showAddImprovement, setShowAddImprovement] = useState(false);
   const [newDomain, setNewDomain] = useState({ domain_name: "", domain_type: "identity", current_level: 1, target_level: 3 });
@@ -256,6 +258,9 @@ export default function ProgramMaturityDashboard() {
               {filteredImprovements.map(i => {
                 const domain = domains.find(d => d.id === i.domain_id);
                 const overdue = i.status !== "completed" && i.due_date < today;
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <div key={i.id} className="p-4 flex items-center gap-4">
                     <div className="flex-1">

@@ -154,16 +154,19 @@ function MatrixCell({ likelihood, impact }: { likelihood: number; impact: number
 
 export default function ThreatModelingPipelineDashboard() {
   const [showAddPanel, setShowAddPanel] = useState(false);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(`${_API_BASE}/models?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [mitigating, setMitigating] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);
   const [mitigatedIds, setMitigatedIds] = useState<Set<string>>(new Set());
   const [newThreat, setNewThreat] = useState({ name: "", stride: "Spoofing", likelihood: "3", impact: "3" });
+  const [error, setError] = useState<string | null>(null);
 
   function handleMitigate(id: string) {
     setMitigating(id);
@@ -289,6 +292,9 @@ export default function ThreatModelingPipelineDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {STRIDE_STATS.map((s) => {
             const pct = Math.round((s.mitigated / s.count) * 100);
+
+            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
             return (
               <div key={s.category} className="bg-gray-700/50 rounded-lg p-3 text-center">
                 <div className={`text-xs font-bold mb-1 px-1 py-0.5 rounded ${RISK_LEVEL_COLOR[s.risk_level]}`}>

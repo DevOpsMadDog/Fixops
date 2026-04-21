@@ -218,13 +218,16 @@ function ScoreGauge({ score }: { score: number }) {
 
 export default function SystemHealthDashboard() {
   const [health, setHealth] = useState<HealthData>(MOCK_HEALTH);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "healthy" | "degraded" | "unavailable">("all");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/system-health/?org_id=${ORG_ID}`).then((d) => {
       if (d?.score !== undefined) setHealth(d);
-    }).catch(() => {});
+    }).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -246,6 +249,10 @@ export default function SystemHealthDashboard() {
       return (a.last_updated ?? "").localeCompare(b.last_updated ?? "");
     })
     .slice(0, 8);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

@@ -82,6 +82,7 @@ function ExpiryBadge({ days }: { days: number }) {
 
 export default function CryptoKeyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [expiring, setExpiring]     = useState<typeof MOCK_EXPIRING>(MOCK_EXPIRING);
   const [rotating, setRotating]     = useState<string | null>(null);
@@ -94,6 +95,7 @@ export default function CryptoKeyDashboard() {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (expiringRes.status === "fulfilled" && expiringRes.value) setExpiring(expiringRes.value);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -104,6 +106,10 @@ export default function CryptoKeyDashboard() {
   };
 
   const keyTypeCount = Object.keys(stats.by_type ?? {}).length;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

@@ -159,6 +159,7 @@ const MAX_CAT = CATEGORY_BREAKDOWN[0]?.total ?? 1;
 
 export default function IncidentCostsDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("ic-001");
+  const [loading, setLoading] = useState(true);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -330,6 +331,9 @@ export default function IncidentCostsDashboard() {
             <div className="space-y-3">
               {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([type, total]) => {
                 const maxVal = Math.max(...Object.values(byType));
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <div key={type}>
                     <div className="flex justify-between text-xs mb-1">

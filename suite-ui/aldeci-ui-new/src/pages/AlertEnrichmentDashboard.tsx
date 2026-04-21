@@ -113,18 +113,21 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 
 export default function AlertEnrichmentDashboard() {
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [sources, setSources] = useState<any[]>([]);
   const [queue, setQueue] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/queue?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setQueue(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
     fetch(`${API_BASE}/high-risk?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSources(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
+    setLoading(false);
   }, []);
 
   const sortedQueue = [...queue].sort((a, b) => b.risk_score - a.risk_score);
@@ -141,6 +144,10 @@ export default function AlertEnrichmentDashboard() {
     if (score >= 5) return "text-orange-400";
     return "text-yellow-400";
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

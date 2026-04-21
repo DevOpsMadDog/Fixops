@@ -178,6 +178,7 @@ function matchesSearch(article: KBArticle, query: string): boolean {
 
 export default function IncidentKBDashboard() {
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const [helpfulMap, setHelpfulMap] = useState<Record<string, boolean>>({});
   const [executedRunbooks, setExecutedRunbooks] = useState<Record<string, boolean>>({});
 
@@ -342,6 +343,9 @@ export default function IncidentKBDashboard() {
           <div className="space-y-4">
             {MOCK_RUNBOOKS.map(rb => {
               const executed = executedRunbooks[rb.id];
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={rb.id} className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
                   <div className="flex-1 min-w-0 space-y-1.5">

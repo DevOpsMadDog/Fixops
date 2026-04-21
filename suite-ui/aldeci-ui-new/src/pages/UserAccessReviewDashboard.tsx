@@ -104,11 +104,14 @@ const decisionColors: Record<ItemDecision, string> = {
 
 export default function UserAccessReviewDashboard() {
   const [selectedReview, setSelectedReview] = useState<string>(MOCK_REVIEWS[0].id);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/access-reviews", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [itemDecisions, setItemDecisions] = useState<Record<string, ItemDecision>>(
     Object.fromEntries(MOCK_ITEMS.map(i => [i.id, i.decision]))
@@ -184,6 +187,9 @@ export default function UserAccessReviewDashboard() {
                 const progress = review.total_items > 0
                   ? Math.round((review.completed_items / review.total_items) * 100)
                   : 0;
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <tr
                     key={review.id}

@@ -135,14 +135,17 @@ const severityConfig: Record<ThreatSeverity, { label: string; badge: string; tex
 
 export default function ThreatLandscapeDashboard() {
   const [threats, setThreats] = useState<EmergingThreat[]>(MOCK_THREATS);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/threat-landscape", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
   const [resolvedMsg, setResolvedMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const filteredActors = MOCK_ACTORS.filter(a => {
     if (filterActive === "active") return a.active;
@@ -163,6 +166,10 @@ export default function ThreatLandscapeDashboard() {
     setResolvedMsg("Threat marked as resolved.");
     setTimeout(() => setResolvedMsg(null), 3000);
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

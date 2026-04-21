@@ -147,18 +147,21 @@ const MAX_TTP = TOP_TTPS[0].count;
 
 export default function ActorTrackingDashboard() {
   const [selectedId, setSelectedId] = useState<string>("act-001");
+  const [loading, setLoading] = useState(true);
   const [actors, setActors] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/actors?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setActors(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
     fetch(`${API_BASE}/active?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setActivity(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
+    setLoading(false);
   }, []);
 
   const selected = actors.find(a => a.id === selectedId) ?? actors[0];
@@ -170,6 +173,10 @@ export default function ActorTrackingDashboard() {
     targeting: actors.filter(a => a.targeting_our_sector).length,
     campaigns: actors.reduce((s, a) => s + a.active_campaigns, 0),
   };
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

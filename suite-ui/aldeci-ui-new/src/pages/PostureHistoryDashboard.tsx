@@ -100,6 +100,7 @@ function scoreBarColor(score: number) {
 
 export default function PostureHistoryDashboard() {
   const [period, setPeriod] = useState<Period>("weekly");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch(`${_API_BASE}/snapshots?org_id=default`, { headers: _getHeaders() })
@@ -108,7 +109,8 @@ export default function PostureHistoryDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const [selectedDomain, setSelectedDomain] = useState<Domain>("network");
@@ -193,6 +195,9 @@ export default function PostureHistoryDashboard() {
         <div className="flex items-end gap-2 h-40">
           {trendPoints.map((val, i) => {
             const heightPct = range === 0 ? 50 : ((val - minVal) / range) * 80 + 10;
+
+            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-xs text-gray-400">{val}</span>

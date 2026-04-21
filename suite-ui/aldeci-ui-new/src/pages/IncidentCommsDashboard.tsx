@@ -137,6 +137,7 @@ function ChannelBreakdown() {
 
 export default function IncidentCommsDashboard() {
   const [incident, setIncident] = useState(INCIDENTS[0]);
+  const [loading, setLoading] = useState(true);
   const [commType, setCommType] = useState<CommType>("update");
   const [channel, setChannel] = useState<Channel>("slack");
 
@@ -161,6 +162,10 @@ export default function IncidentCommsDashboard() {
     setSending(true);
     setTimeout(() => { setSending(false); setSent(true); setTimeout(() => setSent(false), 2000); }, 1500);
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">

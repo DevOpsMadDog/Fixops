@@ -101,11 +101,14 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
 
 export default function ComplianceMappingDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/compliance-mapping", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = selectedFramework
@@ -256,6 +259,9 @@ export default function ComplianceMappingDashboard() {
                                   : score >= 75 ? "bg-yellow-500/20 text-yellow-300"
                                   : score >= 50 ? "bg-orange-500/20 text-orange-300"
                                   : "bg-red-500/20 text-red-300";
+
+                        if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                         return (
                           <td key={i} className="py-2 px-2 text-center">
                             <span className={cn("inline-block px-2 py-0.5 rounded text-xs font-medium", bg)}>{score}%</span>

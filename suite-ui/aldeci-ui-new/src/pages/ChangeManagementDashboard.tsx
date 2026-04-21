@@ -109,6 +109,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 export default function ChangeManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveChanges, setLiveChanges] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
@@ -120,12 +121,17 @@ export default function ChangeManagementDashboard() {
       if (changesRes.status === "fulfilled") setLiveChanges(changesRes.value?.changes ?? changesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const changes = liveChanges ?? MOCK_CHANGES;
   const stats   = liveStats   ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

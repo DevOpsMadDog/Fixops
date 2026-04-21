@@ -124,15 +124,18 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function SBOMExportDashboard() {
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(`${_API_BASE}/projects?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);
   const [exportMsg, setExportMsg] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const filteredComponents = MOCK_COMPONENTS.filter(c =>
     c.component_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -147,6 +150,10 @@ export default function SBOMExportDashboard() {
     setExportMsg(`Generating ${format} export for "${selectedProject.project_name}"…`);
     setTimeout(() => setExportMsg(`${format} export ready — ${selectedProject.component_count} components`), 1500);
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

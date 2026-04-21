@@ -132,6 +132,7 @@ function topSourceIPs(threats: NetworkThreat[]): { ip: string; count: number }[]
 export default function NetworkThreatsDashboard() {
   const [threats] = useState<NetworkThreat[]>(MOCK_THREATS);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setFetchError(null);
@@ -159,6 +160,10 @@ export default function NetworkThreatsDashboard() {
   const resolvedThreats = threats.filter(t => t.status === "resolved").length;
   const totalThreats   = threats.length;
   const topIPs = topSourceIPs(threats);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

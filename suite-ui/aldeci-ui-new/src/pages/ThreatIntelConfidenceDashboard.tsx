@@ -152,14 +152,17 @@ function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
 
 export default function ThreatIntelConfidenceDashboard() {
   const [iocs, setIocs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/ti-confidence/summary?org_id=${ORG_ID}`).then((d) => {
       if (Array.isArray(d?.iocs)) setIocs(d.iocs);
       else if (Array.isArray(d)) setIocs(d);
-    }).catch(() => {});
+    }).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = search
@@ -181,6 +184,10 @@ export default function ThreatIntelConfidenceDashboard() {
       setExpiring(false);
     }, 1000);
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

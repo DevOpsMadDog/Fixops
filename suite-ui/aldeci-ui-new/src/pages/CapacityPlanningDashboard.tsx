@@ -128,14 +128,21 @@ function UtilBar({ pct }: { pct: number }) {
 
 export default function CapacityPlanningDashboard() {
   const [showResourceForm, setShowResourceForm] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showDemandForm, setShowDemandForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/capacity-planning/summary?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/capacity-planning/summary?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [resourceForm, setResourceForm] = useState({ resource_name: "", role: "", team: "SOC", fte: "1.0", status: "active" });
   const [demandForm, setDemandForm] = useState({ demand_name: "", domain: "cloud", priority: "high", required_fte: "1.0", timeline: "" });
+  const [error, setError] = useState<string | null>(null);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">

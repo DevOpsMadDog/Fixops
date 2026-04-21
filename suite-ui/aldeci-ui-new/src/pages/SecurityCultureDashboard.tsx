@@ -163,11 +163,14 @@ function CircleProgress({ pct }: { pct: number }) {
 
 export default function SecurityCultureDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<string>("asm-001");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/security-culture", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const selAsmn = MOCK_ASSESSMENTS.find(a => a.id === selectedAssessment)!;
@@ -327,6 +330,9 @@ export default function SecurityCultureDashboard() {
             <div className="flex items-end gap-3 h-16">
               {MOCK_ASSESSMENTS.slice().reverse().map((a, i) => {
                 const h = Math.round((a.score / 100) * 64);
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <div key={a.id} className="flex flex-col items-center gap-1 flex-1">
                     <div className="w-full rounded-t" style={{ height: `${h}px`, backgroundColor: i === MOCK_ASSESSMENTS.length - 1 ? "#6366f1" : "#374151" }} />

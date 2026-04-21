@@ -86,6 +86,7 @@ function RiskScoreBar({ score }: { score: number }) {
 
 export default function IdentityRiskDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveIdentities, setLiveIdentities] = useState<any[] | null>(null);
   const [liveStats, setLiveStats]           = useState<any | null>(null);
 
@@ -97,6 +98,7 @@ export default function IdentityRiskDashboard() {
       if (idRes.status === "fulfilled") setLiveIdentities(idRes.value?.identities ?? idRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -161,6 +163,9 @@ export default function IdentityRiskDashboard() {
               <TableBody>
                 {identities.map((id: any, i: number) => {
                   const factors: string[] = id.risk_factors ?? [];
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <TableRow key={id.id ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{id.id}</TableCell>

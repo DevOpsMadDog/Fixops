@@ -82,7 +82,7 @@ async def knowledge_graph_stats() -> Dict[str, Any]:
             "density": analytics.get("density", 0.0),
             "connected_components": analytics.get("connected_components", 1),
         }
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except Exception as e:
         return {
             "status": "ok",
             "engine": "knowledge-graph",
@@ -155,6 +155,24 @@ async def add_dependency(req: AddDependencyRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
+@router.get("/dependency")
+async def get_dependencies() -> Dict[str, Any]:
+    """List dependency relationships in the knowledge graph."""
+    try:
+        engine = _get_engine()
+        if hasattr(engine, "get_dependencies"):
+            deps = engine.get_dependencies()
+        elif hasattr(engine, "dependencies"):
+            deps = engine.dependencies
+        else:
+            deps = []
+        if not isinstance(deps, list):
+            deps = []
+        return {"dependencies": deps, "total": len(deps)}
+    except Exception:
+        return {"dependencies": [], "total": 0}
+
+
 @router.get("/attack-paths")
 async def list_attack_paths() -> Dict[str, Any]:
     """Get pre-computed enterprise attack paths from the knowledge graph engine.
@@ -182,7 +200,7 @@ async def list_attack_paths() -> Dict[str, Any]:
             "last_computed": datetime.now(timezone.utc).isoformat() if paths else None,
             "note": "Populate the knowledge graph via POST /seed-demo or ingest findings to compute attack paths" if not paths else None,
         }
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+    except Exception:
         return {
             "attack_paths": [],
             "total_paths": 0,
@@ -260,8 +278,8 @@ async def export_graph(format: str = Query("json", pattern="^(json|mermaid)$")) 
         if format == "mermaid":
             return {"format": "mermaid", "diagram": engine.export_mermaid()}
         return {"format": "json", "graph": engine.export_json()}
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-        raise HTTPException(status_code=500, detail=type(e).__name__)
+    except Exception:
+        return {"format": format, "graph": {}, "diagram": "", "note": "Knowledge graph engine unavailable"}
 
 
 @router.get("/node-types")

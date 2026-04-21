@@ -40,13 +40,14 @@ export default function CloudCostOptimizationDashboard() {
   const [resources, setResources] = useState<CloudResource[]>(MOCK_RESOURCES);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"cost" | "roi" | "utilization">("cost");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     fetch(`${API_BASE}/tools?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setResources(d); })
-      .catch(() => {})
+      .catch((e) => setError(e?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
   }, []);
 

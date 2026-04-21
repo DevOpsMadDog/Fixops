@@ -97,6 +97,7 @@ function truncateId(id: string) {
 
 export default function ContainerPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveFindings, setLiveFindings] = useState<any[] | null>(null);
   const [liveStats, setLiveStats]       = useState<any | null>(null);
 
@@ -108,12 +109,17 @@ export default function ContainerPostureDashboard() {
       if (findRes.status === "fulfilled")  setLiveFindings(findRes.value?.findings ?? findRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const findings = liveFindings ?? MOCK_FINDINGS;
   const stats    = liveStats    ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

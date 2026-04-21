@@ -76,12 +76,15 @@ function TypeBadge({ type }: { type: string }) {
 
 export default function FirewallPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const stats     = liveData ?? MOCK_STATS;
@@ -91,9 +94,13 @@ export default function FirewallPolicyDashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {})
+      .catch((e) => setError(e?.message || 'Failed to load data'))
       .finally(() => setRefreshing(false));
   };
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

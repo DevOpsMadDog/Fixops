@@ -119,12 +119,15 @@ function LicenseRiskBadge({ level }: { level: string }) {
 
 export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
+  const [loading, setLoading] = useState(true);
   const [vulns, setVulns] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch(`${_API_BASE}/summary?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setVulns(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredDeps = activeEco === "All"
@@ -222,6 +225,9 @@ export default function SecurityDependencyRiskDashboard() {
           <div className="space-y-2">
             {filteredVulns.map(v => {
               const dep = MOCK_DEPS.find(d => d.id === v.dep_id);
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={v.id} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                   <div>

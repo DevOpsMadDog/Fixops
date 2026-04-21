@@ -125,14 +125,17 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function ThreatResponseDashboard() {
   const [selectedIncident, setSelectedIncident] = useState(MOCK_INCIDENTS[0]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(`${_API_BASE}/incidents/active?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedIncident(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [resolveMsg, setResolveMsg] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const actions = MOCK_ACTIONS[selectedIncident.id] ?? [];
   const activeIncidents = MOCK_INCIDENTS.filter(i => !resolved.has(i.id));
@@ -177,6 +180,9 @@ export default function ThreatResponseDashboard() {
             <div className="space-y-3">
               {MOCK_INCIDENTS.map(inc => {
                 const isResolved = resolved.has(inc.id);
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <button key={inc.id} onClick={() => !isResolved && setSelectedIncident(inc)}
                     className={cn("w-full bg-gray-900 rounded-lg px-4 py-3 text-left transition-all border",

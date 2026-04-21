@@ -104,14 +104,17 @@ function dayAge(dateStr: string) {
 
 export default function CloudSecurityFindingsDashboard() {
   const [activeProvider, setActiveProvider] = useState("All");
+  const [loading, setLoading] = useState(true);
   const [findings, setFindings] = useState<any[]>([]);
   const [ingesting, setIngesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/cloud-findings/findings?org_id=${ORG_ID}`).then((d) => {
       if (Array.isArray(d?.findings)) setFindings(d.findings);
       else if (Array.isArray(d)) setFindings(d);
-    }).catch(() => {});
+    }).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const displayed = activeProvider === "All" ? findings : findings.filter(f => f.provider === activeProvider);
@@ -130,6 +133,10 @@ export default function CloudSecurityFindingsDashboard() {
     setIngesting(true);
     setTimeout(() => setIngesting(false), 1500);
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

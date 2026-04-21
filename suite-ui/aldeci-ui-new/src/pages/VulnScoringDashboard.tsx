@@ -121,13 +121,16 @@ const distribution = [
 
 export default function VulnScoringDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("v001");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/vuln-scoring", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
 
   const selected = MOCK_VULNS.find(v => v.id === selectedId) ?? null;
 
@@ -203,6 +206,9 @@ export default function VulnScoringDashboard() {
               <tbody>
                 {filtered.map(v => {
                   const pc = priorityColor(v.priority);
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <tr
                       key={v.id}

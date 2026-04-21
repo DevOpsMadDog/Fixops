@@ -114,6 +114,7 @@ function exportCsv(treatments: any[]) {
 
 export default function RiskTreatmentDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveTreatments, setLiveTreatments] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
@@ -125,12 +126,17 @@ export default function RiskTreatmentDashboard() {
       if (treatRes.status === "fulfilled") setLiveTreatments(treatRes.value?.treatments ?? treatRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const treatments = liveTreatments ?? MOCK_TREATMENTS;
   const stats      = liveStats      ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

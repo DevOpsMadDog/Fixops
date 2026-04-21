@@ -44,6 +44,7 @@ const blastBadge = (b: string) => {
 
 export default function CloudIRDashboard() {
   const [activeTab, setActiveTab] = useState<"incidents" | "actions" | "playbooks">("incidents");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(`${_API_BASE}/incidents?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
@@ -51,7 +52,8 @@ export default function CloudIRDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const [filterIncident, setFilterIncident] = useState("all");
@@ -61,6 +63,7 @@ export default function CloudIRDashboard() {
   const [showAddAction, setShowAddAction] = useState(false);
   const [newIncident, setNewIncident] = useState({ incident_name: "", cloud_provider: "aws", incident_type: "data_exposure", severity: "high" });
   const [newAction, setNewAction] = useState({ incident_id: "ci-001", action_type: "isolate", resource_id: "", description: "" });
+  const [error, setError] = useState<string | null>(null);
 
   const totalIncidents = incidents.length;
   const openCritical = incidents.filter(i => i.severity === "critical" && i.status !== "resolved").length;
@@ -73,6 +76,10 @@ export default function CloudIRDashboard() {
     (filterProvider === "all" || p.cloud_provider === filterProvider) &&
     (filterType === "all" || p.incident_type === filterType)
   );
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">

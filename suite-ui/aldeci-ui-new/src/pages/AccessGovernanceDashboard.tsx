@@ -131,19 +131,22 @@ function expiryWarning(expires_at: string | null): { warn: boolean; label: strin
 
 export default function AccessGovernanceDashboard() {
   const [entitlements, setEntitlements] = useState<Entitlement[]>(MOCK_ENTITLEMENTS);
+  const [loading, setLoading] = useState(true);
   const [violations, setViolations] = useState<SoDViolation[]>(MOCK_VIOLATIONS);
   const [revokeMsg, setRevokeMsg] = useState<string | null>(null);
   const [ackMsg, setAckMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/expiring?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setEntitlements(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
     fetch(`${API_BASE}/summary?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (d && Array.isArray(d.violations)) setViolations(d.violations); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
+    setLoading(false);
   }, []);
 
   function handleRevoke(id: string) {
@@ -210,6 +213,9 @@ export default function AccessGovernanceDashboard() {
             <tbody className="divide-y divide-gray-700/50">
               {entitlements.map(ent => {
                 const expiry = expiryWarning(ent.expires_at);
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <tr key={ent.id} className={`hover:bg-gray-700/30 transition-colors ${ent.revoked ? "opacity-50" : ""}`}>
                     <td className="py-2.5 pr-3 text-gray-200 font-medium">{ent.user_id}</td>

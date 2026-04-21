@@ -93,13 +93,15 @@ function LangBadge({ lang }: { lang: string }) {
 
 export default function SCADashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const stats    = liveData ?? MOCK_STATS;
@@ -109,9 +111,13 @@ export default function SCADashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {})
+      .catch((e) => setError(e?.message || 'Failed to load data'))
       .finally(() => setRefreshing(false));
   };
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

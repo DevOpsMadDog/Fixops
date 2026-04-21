@@ -146,6 +146,7 @@ export default function SBOMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const ORG_ID = "aldeci-demo";
 
@@ -183,7 +184,7 @@ export default function SBOMDashboard() {
     apiFetch(`/api/v1/sbom/assets/${sbom.id}/components?org_id=${ORG_ID}`).then((data) => {
       if (Array.isArray(data) && data.length > 0) setComponents(data);
       else if (Array.isArray(data?.components) && data.components.length > 0) setComponents(data.components);
-    }).catch(() => {});
+    }).catch((e) => setError(e?.message || 'Failed to load data'));
   };
 
   const handleExport = async (sbomId: string, format: string) => {

@@ -84,6 +84,7 @@ function formatRecords(n: number) {
 
 export default function DataPipelineDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [livePipelines, setLivePipelines] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
@@ -95,12 +96,17 @@ export default function DataPipelineDashboard() {
       if (pipeRes.status === "fulfilled") setLivePipelines(pipeRes.value?.pipelines ?? pipeRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const pipelines = livePipelines ?? MOCK_PIPELINES;
   const stats     = liveStats     ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

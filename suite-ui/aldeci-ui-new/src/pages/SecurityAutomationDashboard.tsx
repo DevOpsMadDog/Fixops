@@ -94,6 +94,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function SecurityAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [executions, setExecutions] = useState<typeof MOCK_EXECUTIONS>(MOCK_EXECUTIONS);
 
@@ -105,12 +106,17 @@ export default function SecurityAutomationDashboard() {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (execRes.status === "fulfilled" && execRes.value) setExecutions(execRes.value);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const successRatePct = `${Math.round((stats.success_rate ?? 0) * 100)}%`;
   const avgDuration    = `${stats.avg_duration_ms ?? 0}ms`;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

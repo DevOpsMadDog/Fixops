@@ -122,11 +122,14 @@ function TrendIcon({ trend }: { trend: MetricTrend }) {
 
 export default function SecurityMetricsDashboard2() {
   const [selectedMetric, setSelectedMetric] = useState<string>("m1");
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [acked, setAcked] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const readings = READINGS[selectedMetric] ?? [];
@@ -215,6 +218,9 @@ export default function SecurityMetricsDashboard2() {
               {readings.map((v, i) => {
                 const pct = maxReading > 0 ? (v / maxReading) * 100 : 0;
                 const isLast = i === readings.length - 1;
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end" title={`${v}${selMetric?.unit ?? ""}`}>
                     <div

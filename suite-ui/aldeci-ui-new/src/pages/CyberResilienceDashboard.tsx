@@ -209,11 +209,14 @@ function Sparkline({ data }: { data: Snapshot[] }) {
 
 export default function CyberResilienceDashboard() {
   const [metricFilter, setMetricFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch(`${_API_BASE}/score?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredMetrics = metricFilter === "all" ? METRICS : METRICS.filter((m) =>
@@ -343,6 +346,9 @@ export default function CyberResilienceDashboard() {
             {filteredMetrics.map((m) => {
               const pct = Math.min(100, Math.round((m.value / m.target) * 100));
               const onTarget = m.value >= m.target;
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={m.category}>
                   <div className="flex justify-between text-sm mb-1">

@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_sse_router.py -x --tb=short --timeout=10 -q -o \\\"addopts=\\\" 2>&1\"}",
-  "error": "Exit code 1\n\ntests/test_sse_router.py::test_stream_content_type \n-------------------------------- live log setup --------------------------------\n2026-04-21 23:27:39 [ WARNING] apps.api.auth_deps: JWT signing key is only 30 chars (minimum 32) — JWT auth disabled.\n2026-04-21 23:27:39 [    INFO] apps.api.app: Loaded Evidence Chain router\n2026-04-21 23:27:39 [    INFO] apps.api.app: Loaded Unified Triage router\n2026-04-21 23:27:39 [    INFO] apps.api.app: Loaded APP_ID Configuration router\n2026-04-...",
-  "timestamp": "2026-04-21T13:27:53.095Z",
+  "tool_name": "Grep",
+  "tool_input_preview": "{\"pattern\":\"^### \\\\d+\\\\.\\\\d+\",\"path\":\"/Users/devops.ai/fixops/Fixops/.omc/reports/competitor_snyk_deep.md\",\"output_mode\":\"content\",\"head_limit\":100}",
+  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
+  "timestamp": "2026-04-21T21:45:24.081Z",
   "retry_count": 1
 }

@@ -263,6 +263,7 @@ function KanbanColumn({
 export default function VulnLifecycle() {
   usePageTitle("Vulnerability Lifecycle");
   const [sevFilter, setSevFilter] = useState<Severity | "all">("all");
+  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats] = useState<Record<string, any> | null>(null);
   const queryClient = useQueryClient();
 
@@ -274,6 +275,7 @@ export default function VulnLifecycle() {
         setLiveStats(statsResult.value);
       }
     });
+    setLoading(false);
   }, []);
 
   const { data: vulns } = useQuery<Vuln[]>({
@@ -415,6 +417,9 @@ export default function VulnLifecycle() {
             <div className="flex gap-4 pb-4 min-w-max">
               {COLUMNS.map((col) => {
                 const colVulns = filtered.filter((v) => v.state === col.state);
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <KanbanColumn
                     key={col.state}

@@ -86,6 +86,7 @@ function ActionBadge({ action }: { action: string }) {
 
 export default function APIThreatProtectionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveEvents, setLiveEvents] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
@@ -97,12 +98,17 @@ export default function APIThreatProtectionDashboard() {
       if (eventsRes.status === "fulfilled") setLiveEvents(eventsRes.value?.events ?? eventsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const events = liveEvents ?? MOCK_EVENTS;
   const stats  = liveStats  ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

@@ -107,11 +107,14 @@ function TypeBadge({ type }: { type: ArtifactType }) {
 
 export default function SecurityRegistryDashboard() {
   const [filterStatus, setFilterStatus] = useState<ArtifactStatus | "all">("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/security-registry", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = filterStatus === "all"
@@ -122,6 +125,10 @@ export default function SecurityRegistryDashboard() {
   const activeCount = MOCK_ARTIFACTS.filter((a) => a.status === "active").length;
   const pendingReview = MOCK_ARTIFACTS.filter((a) => a.status === "review").length;
   const deprecatedCount = MOCK_ARTIFACTS.filter((a) => a.status === "deprecated").length;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">

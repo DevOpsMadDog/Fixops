@@ -121,12 +121,13 @@ const OUTCOME_COLOR: Record<OutcomeType, string> = {
 
 export default function SecurityInvestmentDashboard() {
   const [investments, setInvestments] = useState(INVESTMENTS);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${_API_BASE}/investments?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'));
   }, []);
 
   const [showForm, setShowForm] = useState(false);
@@ -134,9 +135,11 @@ export default function SecurityInvestmentDashboard() {
     fetch(`${_API_BASE}/investments?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [newAlloc, setNewAlloc] = useState({ category: "detection", amount: "" });
+  const [error, setError] = useState<string | null>(null);
 
   const totalInvested = INVESTMENTS.reduce((s, i) => s + i.amount, 0);
   const avgROI = Math.round(INVESTMENTS.reduce((s, i) => s + i.roi_score, 0) / INVESTMENTS.length);
@@ -267,6 +270,9 @@ export default function SecurityInvestmentDashboard() {
             {BUDGET.map((b) => {
               const pct = Math.round((b.spent / b.allocated) * 100);
               const over = b.spent > b.allocated;
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={b.category}>
                   <div className="flex justify-between text-xs mb-1">

@@ -145,11 +145,14 @@ function FusionBar({ score }: { score: number }) {
 
 export default function VulnIntelFusionDashboard() {
   const [selectedCve, setSelectedCve] = useState<string>("CVE-2024-3400");
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/vuln-intel-fusion/summary?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
+    apiFetch(`/api/v1/vuln-intel-fusion/summary?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [form, setForm] = useState({
     cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "",
@@ -169,6 +172,10 @@ export default function VulnIntelFusionDashboard() {
 
   const sources = MOCK_SOURCES[selectedCve] ?? [];
   const assets  = MOCK_ASSETS[selectedCve] ?? [];
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">

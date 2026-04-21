@@ -143,16 +143,19 @@ function ConfBar({ val }: { val: number }) {
 
 export default function EventTimelineDashboard() {
   const [selectedIncident, setSelectedIncident] = useState<string>(MOCK_INCIDENTS[0].id);
+  const [loading, setLoading] = useState(true);
   const [actorFilter, setActorFilter] = useState<string>("");
   const [showEventForm, setShowEventForm] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/event-timeline/summary?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
+    apiFetch(`/api/v1/event-timeline/summary?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [incidentForm, setIncidentForm] = useState({ incident_id: "", title: "" });
   const [eventForm, setEventForm] = useState({ event_type: "authentication", source_system: "", actor: "", target: "", action: "", outcome: "success", severity: "medium", tags: "" });
+  const [error, setError] = useState<string | null>(null);
 
   const incident = MOCK_INCIDENTS.find(i => i.id === selectedIncident)!;
   const events = MOCK_EVENTS[selectedIncident] ?? [];
@@ -374,6 +377,9 @@ export default function EventTimelineDashboard() {
                 {MOCK_CORRELATIONS.map((c, i) => {
                   const pev = events.find(e => e.id === c.primary_id);
                   const cev = events.find(e => e.id === c.correlated_id);
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-[11px] text-blue-300">{pev?.event_type ?? c.primary_id}</TableCell>

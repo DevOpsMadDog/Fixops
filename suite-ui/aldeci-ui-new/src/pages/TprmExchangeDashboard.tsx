@@ -153,16 +153,19 @@ function fmt$(n: number) {
 
 export default function TprmExchangeDashboard() {
   const [vendorFilter, setVendorFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
   const [completedAssessments, setCompletedAssessments] = useState<Set<string>>(
     new Set(MOCK_ASSESSMENTS.filter(a => a.status === "completed").map(a => a.id))
   );
 
   useEffect(() => {
-    apiFetch(`/api/v1/tprm-exchange/summary?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
+    apiFetch(`/api/v1/tprm-exchange/summary?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [form, setForm] = useState({ vendor_name: "", category: "cloud-provider", criticality: "high", contract_value: "" });
+  const [error, setError] = useState<string | null>(null);
 
   const handleComplete = async (assessId: string) => {
     try { await apiFetch(`/api/v1/tprm-exchange/assessments/${assessId}/complete?org_id=${ORG_ID}`, { method: "POST" }); } catch (_) {}
@@ -319,6 +322,9 @@ export default function TprmExchangeDashboard() {
               <TableBody>
                 {filteredAssessments.map(a => {
                   const done = completedAssessments.has(a.id);
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <TableRow key={a.id} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-[11px] font-medium">{vendorName(a.vendor_id)}</TableCell>

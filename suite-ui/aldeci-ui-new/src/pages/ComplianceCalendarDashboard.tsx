@@ -134,12 +134,13 @@ const FRAMEWORKS: Framework[] = ["ALL", "SOC2", "ISO27001", "PCI-DSS", "HIPAA", 
 
 export default function ComplianceCalendarDashboard() {
   const [calEvents, setCalEvents] = useState(EVENTS);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${_API_BASE}/upcoming?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setCalEvents(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'));
   }, []);
 
   const [activeFramework, setActiveFramework] = useState<Framework>("ALL");
@@ -150,11 +151,13 @@ export default function ComplianceCalendarDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEvent, setNewEvent] = useState({ name: "", framework: "SOC2", due_date: "", priority: "medium" });
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = activeFramework === "ALL" ? EVENTS : EVENTS.filter((e) => e.framework === activeFramework);
   const overdue = EVENTS.filter((e) => e.overdue);
@@ -351,6 +354,9 @@ export default function ComplianceCalendarDashboard() {
             <div className="space-y-3">
               {upcoming.map((ev) => {
                 const days = daysRemaining(ev.due_date);
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <div key={ev.id} className="border-b border-gray-700/50 pb-3 last:border-0 last:pb-0">
                     <div className="flex items-start justify-between gap-2">

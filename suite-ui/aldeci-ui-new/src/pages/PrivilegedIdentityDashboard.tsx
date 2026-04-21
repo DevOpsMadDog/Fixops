@@ -106,6 +106,7 @@ function AnomalyBar({ score }: { score: number }) {
 
 export default function PrivilegedIdentityDashboard() {
   const [certifyTarget, setCertifyTarget] = useState("");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [certifiedSet, setCertifiedSet] = useState<Set<string>>(
     new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id))
@@ -113,7 +114,8 @@ export default function PrivilegedIdentityDashboard() {
   const [rotatedSet, setRotatedSet] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    apiFetch(`/api/v1/privileged-identity/summary?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/privileged-identity/summary?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const highRisk = MOCK_ACCOUNTS.filter(a => ["critical","high"].includes(a.risk_level)).length;
@@ -172,6 +174,9 @@ export default function PrivilegedIdentityDashboard() {
                   const { days, needsRotation: needs } = rotationAge(a.password_last_rotated);
                   const isRotated = rotatedSet.has(a.id);
                   const isCertified = certifiedSet.has(a.id);
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <tr key={a.id} className="border-b border-zinc-700/50 hover:bg-zinc-700/20">
                       <td className="py-2 px-2 font-mono text-zinc-200">{a.username}</td>

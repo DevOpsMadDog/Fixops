@@ -238,6 +238,7 @@ function ApprovalRequestModal({ isOpen, onClose }: ApprovalModalProps) {
     requested_expiry: "",
     compensating_controls: "",
   });
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,7 +246,7 @@ function ApprovalRequestModal({ isOpen, onClose }: ApprovalModalProps) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': localStorage.getItem('apiKey') || '' },
       body: JSON.stringify(formData),
-    }).catch(() => {});
+    }).catch((e) => setSubmitError(e?.message || 'Failed to load data'));
     onClose();
   };
 
@@ -378,7 +379,7 @@ export default function RiskAcceptancePage() {
   const [expandedExpired, setExpandedExpired] = useState(false);
 
   // Fetch data
-  const { data: riskData = MOCK_DATA, isLoading, error } = useQuery({
+  const { data: riskData = MOCK_DATA, isLoading } = useQuery({
     queryKey: ["risk-acceptance"],
     queryFn: async () => {
       try {

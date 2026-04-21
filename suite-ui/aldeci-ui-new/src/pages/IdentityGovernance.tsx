@@ -417,6 +417,7 @@ export default function IdentityGovernance() {
   const [decisions, setDecisions] = useState<Record<string, ReviewDecision>>(
     {}
   );
+  const [loading, setLoading] = useState(true);
   const [disabledAccounts, setDisabledAccounts] = useState<Set<string>>(
     new Set()
   );
@@ -444,6 +445,7 @@ export default function IdentityGovernance() {
       const iaStats   = iaStatsRes.status   === "fulfilled" ? iaStatsRes.value   : null;
       if (sessions || iaStats) setIdentityAnalytics({ sessions, stats: iaStats });
     });
+    setLoading(false);
   }, []);
 
   const reviewsQuery = useQuery({
@@ -776,6 +778,9 @@ export default function IdentityGovernance() {
                   <AnimatePresence>
                     {orphanedAccounts.map((account, idx) => {
                       const isDisabled = disabledAccounts.has(account.id);
+
+                      if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                       return (
                         <motion.div
                           key={account.id}

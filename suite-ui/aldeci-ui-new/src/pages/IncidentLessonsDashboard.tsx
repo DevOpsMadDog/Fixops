@@ -125,6 +125,7 @@ const maxTypeCount = Math.max(...Object.values(typeBarCounts));
 
 export default function IncidentLessonsDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string>(MOCK_LESSONS[0].id);
+  const [loading, setLoading] = useState(true);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -143,6 +144,10 @@ export default function IncidentLessonsDashboard() {
   const selectedLesson_obj = MOCK_LESSONS.find(l => l.id === selectedLesson);
   const lessonActions = MOCK_ACTIONS.filter(a => a.lesson_id === selectedLesson);
   const lessonOutcomes = MOCK_OUTCOMES.filter(o => o.lesson_id === selectedLesson);
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

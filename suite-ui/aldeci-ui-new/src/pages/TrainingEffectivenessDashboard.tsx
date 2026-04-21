@@ -46,7 +46,7 @@ export default function TrainingEffectivenessDashboard() {
     fetch(`${API_BASE}/programs?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setPrograms(d); })
-      .catch(() => {})
+      .catch((e) => setError(e?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
   }, []);
 

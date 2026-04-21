@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ls suite-ui/aldeci-ui-new/src/pages/Threat*.tsx 2>/dev/null\",\"description\":\"Find ThreatModeling file\"}",
+  "error": "Exit code 1",
+  "timestamp": "2026-04-21T21:30:23.744Z",
+  "retry_count": 1
+}

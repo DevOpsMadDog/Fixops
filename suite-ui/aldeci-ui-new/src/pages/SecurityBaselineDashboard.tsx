@@ -113,15 +113,18 @@ function SeverityBadge({ s }: { s: string }) {
 
 export default function SecurityBaselineDashboard() {
   const [selectedBaseline, setSelectedBaseline] = useState(MOCK_BASELINES[0]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(`${_API_BASE}/baselines?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedBaseline(d); })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [targetName, setTargetName] = useState("");
   const [assessMsg, setAssessMsg] = useState("");
   const [publishMsg, setPublishMsg] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const controls = MOCK_CONTROLS[selectedBaseline.id] ?? [];
   const maxPct = Math.max(...MOCK_TREND.map(t => t.pct));
@@ -139,6 +142,10 @@ export default function SecurityBaselineDashboard() {
       setPublishMsg(`Baseline "${selectedBaseline.baseline_name}" published successfully.`);
     }
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

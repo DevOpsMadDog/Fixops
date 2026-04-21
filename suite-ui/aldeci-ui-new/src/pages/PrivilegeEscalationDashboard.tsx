@@ -87,6 +87,7 @@ function AnomalyScore({ score, isAnomaly }: { score: number; isAnomaly: boolean 
 
 export default function PrivilegeEscalationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [events, setEvents]         = useState<typeof MOCK_EVENTS>(MOCK_EVENTS);
 
@@ -98,6 +99,7 @@ export default function PrivilegeEscalationDashboard() {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (eventsRes.status === "fulfilled" && eventsRes.value) setEvents(eventsRes.value);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -105,6 +107,10 @@ export default function PrivilegeEscalationDashboard() {
   const alertRate = stats.total_events > 0
     ? ((stats.anomalies / stats.total_events) * 100).toFixed(1) + "%"
     : "0%";
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

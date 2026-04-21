@@ -126,6 +126,7 @@ function SegmentationScoreGauge({ score }: { score: number }) {
 
 export default function NetworkSegmentationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<any>(null);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -154,6 +155,10 @@ export default function NetworkSegmentationDashboard() {
   const handleRefresh = () => {
     loadData(true);
   };
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

@@ -79,6 +79,7 @@ function RiskScore({ score }: { score: number }) {
 
 export default function PAGDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveAccounts, setLiveAccounts] = useState<any[] | null>(null);
   const [liveStats, setLiveStats]       = useState<any | null>(null);
 
@@ -90,12 +91,17 @@ export default function PAGDashboard() {
       if (accountsRes.status === "fulfilled") setLiveAccounts(accountsRes.value?.accounts ?? accountsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const accounts = liveAccounts ?? MOCK_ACCOUNTS;
   const stats    = liveStats    ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

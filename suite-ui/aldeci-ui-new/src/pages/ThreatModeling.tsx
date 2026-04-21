@@ -444,9 +444,95 @@ function ModelsList({
 
 export default function ThreatModeling() {
   const [selectedModelId, setSelectedModelId] = useState(MOCK_MODEL.id);
-  const [models] = useState([MOCK_MODEL]);
 
-  const selectedModel = models.find((m) => m.id === selectedModelId) || MOCK_MODEL;
+  // Fetch models list from API, fall back to mock
+  const { data: models = [MOCK_MODEL] } = useQuery<ThreatModel[]>({
+    queryKey: ["threat-models"],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/threat-modeling/models?org_id=default`);
+        if (!res.ok) throw new Error("API unavailable");
+        const data = await res.json();
+        if (!Array.isArray(data) || data.length === 0) return [MOCK_MODEL];
+        // Map API response to our ThreatModel shape
+        return data.map((m: any) => ({
+          id: m.model_id ?? m.id ?? MOCK_MODEL.id,
+          name: m.name ?? "Unnamed Model",
+          description: m.description ?? "",
+          components: (m.components ?? []).map((c: any) => ({
+            id: c.component_id ?? c.id ?? crypto.randomUUID(),
+            name: c.name ?? "Unknown",
+            type: (c.component_type ?? c.type ?? "Service") as ComponentType,
+            trust_boundary: c.trust_level ?? c.trust_boundary ?? "internal",
+            threat_count: c.threat_count ?? 0,
+            description: c.description ?? "",
+          })),
+          threats: (m.threats ?? []).map((t: any) => ({
+            id: t.threat_id ?? t.id ?? crypto.randomUUID(),
+            name: t.name ?? t.title ?? "Unknown Threat",
+            stride_category: (t.stride_category ?? t.category ?? "Tampering") as StrideCategory,
+            component: t.component ?? "",
+            severity: (t.severity ?? "medium") as Severity,
+            mitigation_status: (t.mitigation_status ?? t.status ?? "Open") as MitigationStatus,
+            description: t.description ?? "",
+            mitigation_strategy: t.mitigation_strategy ?? t.mitigation ?? "",
+          })),
+          created_at: m.created_at ?? new Date().toISOString().slice(0, 10),
+          updated_at: m.updated_at ?? new Date().toISOString().slice(0, 10),
+        }));
+      } catch {
+        return [MOCK_MODEL];
+      }
+    },
+    staleTime: 60_000,
+  });
+
+  // When models load, auto-select the first one if current selection isn't in the list
+  const validSelection = models.some((m) => m.id === selectedModelId);
+  const effectiveModelId = validSelection ? selectedModelId : (models[0]?.id ?? MOCK_MODEL.id);
+
+  // Fetch selected model detail (may have full components/threats)
+  const { data: fetchedModel } = useQuery<ThreatModel>({
+    queryKey: ["threat-model-detail", effectiveModelId],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/threat-modeling/models/${effectiveModelId}`);
+        if (!res.ok) throw new Error("API unavailable");
+        const m = await res.json();
+        return {
+          id: m.model_id ?? m.id ?? effectiveModelId,
+          name: m.name ?? "Unnamed Model",
+          description: m.description ?? "",
+          components: (m.components ?? []).map((c: any) => ({
+            id: c.component_id ?? c.id ?? crypto.randomUUID(),
+            name: c.name ?? "Unknown",
+            type: (c.component_type ?? c.type ?? "Service") as ComponentType,
+            trust_boundary: c.trust_level ?? c.trust_boundary ?? "internal",
+            threat_count: c.threat_count ?? 0,
+            description: c.description ?? "",
+          })),
+          threats: (m.threats ?? []).map((t: any) => ({
+            id: t.threat_id ?? t.id ?? crypto.randomUUID(),
+            name: t.name ?? t.title ?? "Unknown Threat",
+            stride_category: (t.stride_category ?? t.category ?? "Tampering") as StrideCategory,
+            component: t.component ?? "",
+            severity: (t.severity ?? "medium") as Severity,
+            mitigation_status: (t.mitigation_status ?? t.status ?? "Open") as MitigationStatus,
+            description: t.description ?? "",
+            mitigation_strategy: t.mitigation_strategy ?? t.mitigation ?? "",
+          })),
+          created_at: m.created_at ?? new Date().toISOString().slice(0, 10),
+          updated_at: m.updated_at ?? new Date().toISOString().slice(0, 10),
+        };
+      } catch {
+        return models.find((m) => m.id === effectiveModelId) ?? MOCK_MODEL;
+      }
+    },
+    enabled: !!effectiveModelId,
+    staleTime: 30_000,
+  });
+
+  const selectedModel = fetchedModel ?? models.find((m) => m.id === effectiveModelId) ?? MOCK_MODEL;
 
   const mitigatedCount = selectedModel.threats.filter(
     (t) => t.mitigation_status === "Mitigated"
@@ -468,7 +554,7 @@ export default function ThreatModeling() {
       {/* Left sidebar — Models list */}
       <ModelsList
         models={models}
-        selectedModelId={selectedModelId}
+        selectedModelId={effectiveModelId}
         onSelect={setSelectedModelId}
         onCreateNew={() => toast.info("Feature available in next release")}
       />

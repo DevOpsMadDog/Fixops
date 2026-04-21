@@ -101,18 +101,21 @@ const ALL_PROVIDERS: Provider[] = ["AWS", "Azure", "GCP", "OCI", "Alibaba"];
 
 export default function CloudAccountsDashboard() {
   const [providerFilter, setProviderFilter] = useState<Provider | "All">("All");
+  const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${_API_BASE}/accounts?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setAccounts(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
     fetch(`${_API_BASE}/events/unresolved?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setEvents(d); })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'));
+    setLoading(false);
   }, []);
 
   const filtered = providerFilter === "All"
@@ -225,6 +228,9 @@ export default function CloudAccountsDashboard() {
           <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
             {events.map(evt => {
               const account = accounts.find(a => a.id === evt.account_id);
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={evt.id} className={`p-3 rounded-lg border border-transparent ${severityColors[evt.severity]} ${evt.resolved ? "opacity-50" : ""}`}>
                   <div className="flex items-start justify-between gap-2">

@@ -153,16 +153,19 @@ const THREAT_LEVEL_CONFIG: Record<string, string> = {
 
 export default function ThreatBriefDashboard() {
   const [selectedBrief, setSelectedBrief] = useState<ThreatBrief | null>(MOCK_BRIEFS[0]);
-  useEffect(() => {
-    fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
-      .catch(() => {});
-  }, []);
+  const [loading, setLoading] = useState(true);
   const [distributing, setDistributing] = useState<string | null>(null);
   const [distributed, setDistributed] = useState<Set<string>>(
     new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id))
   );
+
+  useEffect(() => {
+    fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const totalBriefs = MOCK_BRIEFS.length;
   const distributedToday = MOCK_BRIEFS.filter((b) => b.distributed && b.created_at.startsWith("2026-04-16")).length;
@@ -176,6 +179,10 @@ export default function ThreatBriefDashboard() {
       setDistributing(null);
     }, 1500);
   }
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">

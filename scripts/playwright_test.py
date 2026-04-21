@@ -397,38 +397,50 @@ ERROR_SELECTORS = [
 # ---------------------------------------------------------------------------
 
 def slug(path: str) -> str:
-    """Convert URL path to safe filename."""
-    return (path.strip("/").replace("/", "_") or "root") + ".png"
+    """Convert URL path (may contain #/) to safe filename."""
+    # Strip base URL, hash prefix, leading slashes
+    clean = path.replace("/#", "").replace("#", "").strip("/")
+    return (clean.replace("/", "_") or "root") + ".png"
 
 
-def set_auth(context, page, base_url: str) -> None:
+_MOCK_API_RESPONSE = json.dumps({
+    "status": "ok", "data": [], "items": [], "results": [], "total": 0,
+    "page": 1, "pages": 1, "count": 0,
+    "metrics": {}, "stats": {}, "summary": {},
+    "access_token": "mock-jwt", "user": {
+        "id": "api-key", "email": "test@aldeci.local",
+        "first_name": "Playwright", "last_name": "Tester", "role": "admin",
+    },
+})
+
+
+def _stub_api(route):
+    """Return a mock 200 JSON response for any /api/v1/* request."""
+    route.fulfill(
+        status=200,
+        content_type="application/json",
+        body=_MOCK_API_RESPONSE,
+    )
+
+
+def setup_api_mocks(context) -> None:
+    """
+    Intercept ALL /api/* requests context-wide and return 200 mocks.
+    This prevents the 401-on-missing-backend → window.location.hash='#/login' redirect
+    that both api-client.ts and api/client.ts fire when the backend is down.
+    """
+    context.route("**/api/**", _stub_api)
+
+
+def set_auth(context) -> None:
     """
     Inject auth state so React's AuthProvider reads it on every navigation.
 
-    Strategy:
-      1. add_init_script — sets localStorage before JS runs on fresh page loads.
-      2. Navigate to /login (public route) to let the app boot.
-      3. evaluate() to set localStorage in the live React context.
-      4. Reload to let AuthProvider re-read localStorage with auth state.
+    1. add_init_script — sets localStorage before React's useState initializer runs.
+    2. setup_api_mocks — intercepts API calls to prevent 401→#/login redirects.
     """
     context.add_init_script(AUTH_INIT_SCRIPT)
-
-    # Boot the app on the public login page
-    page.goto(f"{base_url}/login", wait_until="domcontentloaded", timeout=TIMEOUT_MS)
-    try:
-        page.wait_for_load_state("networkidle", timeout=5000)
-    except Exception:
-        pass
-
-    # Set auth state in live React context
-    page.evaluate(AUTH_INIT_SCRIPT)
-
-    # Navigate to root — React Router will render the authenticated workspace
-    page.goto(f"{base_url}/", wait_until="domcontentloaded", timeout=TIMEOUT_MS)
-    try:
-        page.wait_for_load_state("networkidle", timeout=5000)
-    except Exception:
-        pass
+    setup_api_mocks(context)
 
 
 def check_page(page, url: str, screenshot_dir: Path) -> dict:
@@ -459,13 +471,14 @@ def check_page(page, url: str, screenshot_dir: Path) -> dict:
         result["load_ms"] = int((time.time() - t0) * 1000)
 
         # Check for redirect to /login (auth wall)
+        # With HashRouter the path is in the fragment: http://host/#/login
         current = page.url
-        if "/login" in current or "/onboarding" in current:
+        current_hash = page.evaluate("() => window.location.hash")
+        result["final_url"] = current + " (hash=" + current_hash + ")"
+        if "#/login" in current or "#/onboarding" in current or current_hash in ("#/login", "#/onboarding", "#!/login"):
             result["status"] = "auth_redirect"
-            result["final_url"] = current
         else:
             result["status"] = "loaded"
-            result["final_url"] = current
 
         # Check for visible error elements
         for sel in ERROR_SELECTORS:
@@ -628,12 +641,12 @@ def main() -> None:
         )
         page = context.new_page()
 
-        # Boot app + inject auth state
-        set_auth(context, page, base_url)
-        print(f"  Auth injected (strategy=token, role=admin, final_url={page.url})")
+        # Inject auth + API mocks (must be done on context before any navigation)
+        set_auth(context)
+        print(f"  Auth init script + API mocks registered")
 
         for i, path in enumerate(screens, 1):
-            url = base_url + path
+            url = base_url + "/#" + path
             print(f"  [{i:>3}/{len(screens)}] {path}", end=" ... ", flush=True)
             r = check_page(page, url, SCREENSHOT_DIR)
             results.append(r)

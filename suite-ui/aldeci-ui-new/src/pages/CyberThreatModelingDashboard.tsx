@@ -115,6 +115,7 @@ function RiskGauge({ score }: { score: number }) {
 
 export default function CyberThreatModelingDashboard() {
   const [selectedModel, setSelectedModel] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
   const [mitigatedTrees, setMitigatedTrees] = useState<Set<string>>(
     new Set(MOCK_TREES.filter(t => t.mitigated).map(t => t.id))
   );
@@ -123,10 +124,12 @@ export default function CyberThreatModelingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/cyber-threat-models/summary?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
+    apiFetch(`/api/v1/cyber-threat-models/summary?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [modelForm, setModelForm] = useState({ model_name: "", scope: "application", methodology: "STRIDE", risk_level: "high" });
   const [treeForm, setTreeForm] = useState({ tree_name: "", model_id: "m1", likelihood: "medium", impact: "high", risk_level: "high" });
+  const [error, setError] = useState<string | null>(null);
 
   const handleMitigate = async (treeId: string) => {
     try {
@@ -304,6 +307,9 @@ export default function CyberThreatModelingDashboard() {
         <CardContent className="space-y-4">
           {visibleTrees.map(tree => {
             const isMitigated = mitigatedTrees.has(tree.id);
+
+            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
             return (
               <div key={tree.id} className={cn("rounded-lg border p-4 space-y-3", isMitigated ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5")}>
                 <div className="flex items-start justify-between gap-2">

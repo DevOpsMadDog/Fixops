@@ -111,14 +111,17 @@ function isOverdue(a: Assessment): boolean {
 
 export default function SecurityQuestionnaireDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"assessments" | "questionnaires">("assessments");
+  const [error, setError] = useState<string | null>(null);
 
   const overdue = ASSESSMENTS.filter(isOverdue);
   const completed = ASSESSMENTS.filter(a => a.status === "completed");
@@ -132,6 +135,10 @@ export default function SecurityQuestionnaireDashboard() {
     medium: ASSESSMENTS.filter(a => a.risk_level === "medium").length,
     low: ASSESSMENTS.filter(a => a.risk_level === "low").length,
   };
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

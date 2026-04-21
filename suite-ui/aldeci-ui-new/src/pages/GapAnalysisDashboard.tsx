@@ -120,6 +120,7 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 
 export default function GapAnalysisDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -253,6 +254,9 @@ export default function GapAnalysisDashboard() {
           <div className="space-y-2">
             {displayedGaps.map(g => {
               const overdue = g.status === "open" && new Date(g.due_date) < today;
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={g.id} className={cn("bg-gray-900 rounded-lg px-4 py-3 flex items-center gap-3", overdue && "border border-red-500/30")}>
                   <code className="text-xs text-cyan-300 font-mono w-28 flex-shrink-0">{g.control_id}</code>

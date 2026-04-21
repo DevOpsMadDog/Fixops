@@ -94,6 +94,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function PatchManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [livePatches, setLivePatches] = useState<any[] | null>(null);
   const [liveStats, setLiveStats]     = useState<any | null>(null);
 
@@ -105,12 +106,17 @@ export default function PatchManagementDashboard() {
       if (patchRes.status === "fulfilled")  setLivePatches(patchRes.value?.patches ?? patchRes.value ?? null);
       if (statsRes.status === "fulfilled")  setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const patches = livePatches ?? MOCK_PATCHES;
   const stats   = liveStats   ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

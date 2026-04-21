@@ -56,6 +56,7 @@ function daysSince(dateStr: string): number {
 
 export default function IdentityLifecycleDashboard() {
   const [activeTab, setActiveTab] = useState<"accounts" | "entitlements" | "orphans" | "events">("accounts");
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadData = () => {
@@ -307,6 +308,9 @@ export default function IdentityLifecycleDashboard() {
             <div className="divide-y divide-gray-700">
               {filteredEvents.map(ev => {
                 const acc = accounts.find(a => a.id === ev.account_id);
+
+                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                 return (
                   <div key={ev.id} className="p-4 flex items-center gap-4">
                     <div className="flex-1">

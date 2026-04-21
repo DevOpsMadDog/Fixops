@@ -174,6 +174,7 @@ const policyTypeColor: Record<GroupPolicy["policy_type"], string> = {
 
 export default function AssetGroupsDashboard() {
   const [selectedGroup, setSelectedGroup] = useState<AssetGroup | null>(GROUPS[0]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(`${_API_BASE}/groups?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
@@ -181,12 +182,14 @@ export default function AssetGroupsDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const [activeTab, setActiveTab] = useState<"members" | "policies">("members");
   const [bulkInput, setBulkInput] = useState("");
   const [showBulk, setShowBulk] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const byCriticality = {
     critical: GROUPS.filter(g => g.criticality === "critical").length,
@@ -288,6 +291,9 @@ export default function AssetGroupsDashboard() {
             <div className="text-xs text-gray-400 font-medium mb-3">By Type</div>
             {Object.entries(byType).map(([type, count]) => {
               const pct = Math.round((count / GROUPS.length) * 100);
+
+              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
               return (
                 <div key={type} className="mb-2">
                   <div className="flex justify-between text-xs mb-1">

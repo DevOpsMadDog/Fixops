@@ -81,6 +81,7 @@ function SanctionedBadge({ sanctioned }: { sanctioned: boolean }) {
 
 export default function CloudAccessSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveApps, setLiveApps] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
@@ -92,12 +93,17 @@ export default function CloudAccessSecurityDashboard() {
       if (appsRes.status === "fulfilled") setLiveApps(appsRes.value?.apps ?? appsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
     });
+    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const apps  = liveApps  ?? MOCK_APPS;
   const stats = liveStats ?? MOCK_STATS;
+
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
 
   return (
     <motion.div

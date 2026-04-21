@@ -102,6 +102,7 @@ function BytesBar({ value, max }: { value: number; max: number }) {
 
 export default function NetworkAnomalyDashboard() {
   const [resolvedSet, setResolvedSet] = useState<Set<string>>(new Set(["anm-006"]));
+  const [loading, setLoading] = useState(true);
   const [segmentFilter, setSegmentFilter] = useState("DMZ");
   const [showDetectForm, setShowDetectForm] = useState(false);
 
@@ -254,6 +255,9 @@ export default function NetworkAnomalyDashboard() {
                 {trafficData.map((v, i) => {
                   const pct = (v / maxTraffic) * 100;
                   const isSpike = v > maxTraffic * 0.6;
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div className={cn("w-full rounded-sm", isSpike ? "bg-red-500" : "bg-blue-500")} style={{ height: `${Math.max(4, pct)}px` }} />

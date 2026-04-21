@@ -176,15 +176,18 @@ const ALL_TOOLS = ["all", ...Array.from(new Set(FINDINGS.map(f => f.source_tool)
 
 export default function SecurityFindingsDashboard() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
+  const [loading, setLoading] = useState(true);
   const [filterSeverity, setFilterSeverity] = useState("all");
   useEffect(() => {
     fetch(`${_API_BASE}/findings?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { /* graceful fallback */ });
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTool, setFilterTool] = useState("all");
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = FINDINGS.filter(f =>
     (filterSeverity === "all" || f.severity === filterSeverity) &&
@@ -246,6 +249,9 @@ export default function SecurityFindingsDashboard() {
           </div>
           {(["critical","high","medium","low"] as const).map(sev => {
             const pct = Math.round((bySeverity[sev] / FINDINGS.length) * 100);
+
+            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
             return (
               <div key={sev} className="mb-3">
                 <div className="flex justify-between text-xs mb-1">

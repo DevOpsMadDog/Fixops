@@ -334,13 +334,16 @@ const CATEGORIES = [...new Set(FEATURE_ROWS.map(r => r.category))];
 
 export default function CompetitiveComparisonPage() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [loading, setLoading] = useState(true);
   const [selectedVendors, setSelectedVendors] = useState<Vendor[]>([...VENDORS]);
   const [livePosture, setLivePosture] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch(`/posture-score/current?org_id=${ORG_ID}`)
       .then(d => setLivePosture(d))
-      .catch(() => {});
+      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   }, []);
 
   const categories = ["All", ...CATEGORIES];
@@ -588,6 +591,9 @@ export default function CompetitiveComparisonPage() {
               <div className="space-y-1.5">
                 {VENDORS.map(v => {
                   const score = SCORECARD[v][dim];
+
+                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+
                   return (
                     <div key={v} className="flex items-center gap-2">
                       <span className={`text-xs w-20 flex-shrink-0 ${VENDOR_TEXT[v]}`}>{v}</span>
