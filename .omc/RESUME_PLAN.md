@@ -95,12 +95,22 @@ Beast Mode v6 config at `/Users/devops.ai/fixops/best-mode-dev-framework/layer1-
 
 **If plugin can't be re-enabled:** read `SKILL.md` files in `~/.claude/plugins/cache/omc/oh-my-claudecode/4.11.5/skills/ultrawork/` and `/plan/` etc. directly and follow their instructions — same effect, Claude drives it instead of plugin runtime.
 
-## Pause/Resume runtime
+## Pause/Resume runtime — USE `./start.sh ../Fixops`
 
-Session paused so user can relaunch with `--dangerously-skip-permissions` for continuous execution. On resume:
-1. `claude --dangerously-skip-permissions` from repo root
-2. Say "resume session" — I'll detect this file and continue from step 1 above
-3. Background synthesis agent `a07a34afcb393d818` may have finished while paused — check `/tmp/gap-matrix.md` first
+The correct launcher is `/Users/devops.ai/fixops/best-mode-dev-framework/start.sh`. It:
+- Starts Layer 2 Docker services (swarmclaw + multica + ollama + hermes) via `layer2-swarmclaw-autonomous/docker-compose.yml`
+- Starts Ollama if not running
+- Rebuilds `.code-review-graph/graph.db` if >24h stale
+- `cd ../Fixops` (correct cwd for memory + agents + skills auto-resolve)
+- `unset ANTHROPIC_API_KEY` (forces MAX plan, no API billing)
+- Launches `claude --dangerously-skip-permissions`
+
+```bash
+cd /Users/devops.ai/fixops/best-mode-dev-framework
+./start.sh ../Fixops
+```
+
+On resume, first message: "read CLAUDE.md + docs/CTEM_PLUS_IDENTITY.md + all 18 memories, then open .omc/RESUME_PLAN.md and continue from 'Next steps'."
 
 ## Key facts to remember
 
