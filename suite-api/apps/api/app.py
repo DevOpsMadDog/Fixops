@@ -7901,6 +7901,38 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-001 Air-Gap Bundle (Sonatype SAGE parity) — signed offline intel bundles
+    try:
+        from apps.api.air_gap_bundle_router import router as air_gap_bundle_router
+        app.include_router(air_gap_bundle_router)
+        _logger.info("Mounted Air-Gap Bundle router at /api/v1/air-gap")
+    except ImportError:
+        pass
+
+    # GAP-024 Security Query Language Engine — RQL-style DSL over cloud/audit/IAM
+    try:
+        from apps.api.security_query_router import router as security_query_router
+        app.include_router(security_query_router)
+        _logger.info("Mounted Security Query Language router")
+    except ImportError:
+        pass
+
+    # GAP-022/023 Compliance Seed — 100+ framework controls + 3000+ policy rules
+    try:
+        from apps.api.compliance_seed_router import router as compliance_seed_router
+        app.include_router(compliance_seed_router)
+        _logger.info("Mounted Compliance Seed router at /api/v1/compliance-seed")
+    except ImportError:
+        pass
+
+    # GAP-063 Findings Lifecycle — firstSeenAt/previousViolationId/resolvedAt chain
+    try:
+        from apps.api.findings_lifecycle_router import router as findings_lifecycle_router
+        app.include_router(findings_lifecycle_router)
+        _logger.info("Mounted Findings Lifecycle router at /api/v1/findings/lifecycle")
+    except ImportError:
+        pass
+
     try:
         from apps.api.security_gap_analysis_router import router as security_gap_analysis_router
         app.include_router(security_gap_analysis_router)
