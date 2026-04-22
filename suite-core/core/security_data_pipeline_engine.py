@@ -10,6 +10,7 @@ Compliance: NIST CSF ID.AM, ISO/IEC 27001 A.12.4, SOC 2 CC6.1
 
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 import threading
@@ -95,6 +96,32 @@ class SecurityDataPipelineEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_sdp_runs_status
                     ON sdp_runs (org_id, run_status, started_at);
+
+                CREATE TABLE IF NOT EXISTS pipeline_sources (
+                    id                 TEXT PRIMARY KEY,
+                    org_id             TEXT NOT NULL,
+                    source_name        TEXT NOT NULL,
+                    schema_mapping_json TEXT NOT NULL DEFAULT '{}',
+                    enabled            INTEGER NOT NULL DEFAULT 1,
+                    created_at         TEXT NOT NULL,
+                    updated_at         TEXT NOT NULL,
+                    UNIQUE(org_id, source_name)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_pipeline_sources_org
+                    ON pipeline_sources (org_id, enabled);
+
+                CREATE TABLE IF NOT EXISTS pipeline_records (
+                    id                  TEXT PRIMARY KEY,
+                    org_id              TEXT NOT NULL,
+                    source              TEXT NOT NULL,
+                    target_fields_json  TEXT NOT NULL DEFAULT '{}',
+                    raw_record_json     TEXT NOT NULL DEFAULT '{}',
+                    ingested_at         TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_pipeline_records_org
+                    ON pipeline_records (org_id, source, ingested_at);
                 """
             )
 
@@ -391,3 +418,255 @@ class SecurityDataPipelineEngine:
             "by_source_type": by_source_type,
             "error_rate": error_rate,
         }
+
+    # ------------------------------------------------------------------
+    # Universal Ingest — source registration & field mapping (GAP-034)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _jsonpath_extract(record: Dict[str, Any], path: str) -> Any:
+        """Resolve a simple JSONPath expression against record.
+
+        Supported grammar:
+          - "$.foo.bar"           dotted field traversal from root
+          - "foo.bar"              same, without leading "$."
+          - "$.items[0].id"        array indexing
+          - "$['weird key'].x"     bracketed keys with quotes
+
+        Returns None if any segment cannot be resolved.
+        """
+        if path is None:
+            return None
+        expr = str(path).strip()
+        if expr.startswith("$"):
+            expr = expr[1:]
+            if expr.startswith("."):
+                expr = expr[1:]
+        if expr == "":
+            return record
+
+        import re as _re
+
+        tokens: List[Any] = []
+        i = 0
+        while i < len(expr):
+            ch = expr[i]
+            if ch == ".":
+                i += 1
+                continue
+            if ch == "[":
+                close = expr.find("]", i)
+                if close < 0:
+                    return None
+                seg = expr[i + 1 : close].strip()
+                if (seg.startswith("'") and seg.endswith("'")) or (
+                    seg.startswith('"') and seg.endswith('"')
+                ):
+                    tokens.append(seg[1:-1])
+                else:
+                    try:
+                        tokens.append(int(seg))
+                    except ValueError:
+                        tokens.append(seg)
+                i = close + 1
+                continue
+            m = _re.match(r"[^.\[]+", expr[i:])
+            if not m:
+                return None
+            tokens.append(m.group(0))
+            i += m.end()
+
+        cur: Any = record
+        for tok in tokens:
+            if cur is None:
+                return None
+            if isinstance(tok, int):
+                if isinstance(cur, list) and 0 <= tok < len(cur):
+                    cur = cur[tok]
+                else:
+                    return None
+            else:
+                if isinstance(cur, dict) and tok in cur:
+                    cur = cur[tok]
+                else:
+                    return None
+        return cur
+
+    def register_source(
+        self,
+        org_id: str,
+        source_name: str,
+        schema_mapping: Dict[str, str],
+        enabled: bool = True,
+    ) -> Dict[str, Any]:
+        """Register (or update) a universal-ingest source with a field mapping.
+
+        Args:
+            org_id: Tenant identifier.
+            source_name: Human-readable source name (unique per org).
+            schema_mapping: Dict of {target_field: source_jsonpath}.
+            enabled: Whether the source is active.
+
+        Idempotent: re-registering the same (org_id, source_name) updates
+        the mapping and enabled flag in place.
+        """
+        if not source_name or not str(source_name).strip():
+            raise ValueError("source_name is required")
+        if schema_mapping is None:
+            schema_mapping = {}
+        if not isinstance(schema_mapping, dict):
+            raise ValueError("schema_mapping must be a dict of {target_field: jsonpath}")
+
+        now = self._now()
+        mapping_json = json.dumps(schema_mapping)
+        enabled_int = 1 if enabled else 0
+
+        with self._lock, self._conn() as conn:
+            existing = conn.execute(
+                "SELECT id, created_at FROM pipeline_sources WHERE org_id = ? AND source_name = ?",
+                (org_id, source_name),
+            ).fetchone()
+            if existing:
+                src_id = existing["id"]
+                created_at = existing["created_at"]
+                conn.execute(
+                    """UPDATE pipeline_sources
+                       SET schema_mapping_json = ?, enabled = ?, updated_at = ?
+                       WHERE id = ?""",
+                    (mapping_json, enabled_int, now, src_id),
+                )
+            else:
+                src_id = str(uuid.uuid4())
+                created_at = now
+                conn.execute(
+                    """INSERT INTO pipeline_sources
+                       (id, org_id, source_name, schema_mapping_json, enabled, created_at, updated_at)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    (src_id, org_id, source_name, mapping_json, enabled_int, now, now),
+                )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "ENTITY_UPDATED",
+                        {
+                            "entity_type": "pipeline_source",
+                            "org_id": org_id,
+                            "source_engine": "security_data_pipeline",
+                            "source_name": source_name,
+                        },
+                    )
+            except Exception:
+                pass
+
+        return {
+            "id": src_id,
+            "org_id": org_id,
+            "source_name": source_name,
+            "schema_mapping": schema_mapping,
+            "enabled": bool(enabled_int),
+            "created_at": created_at,
+            "updated_at": now,
+        }
+
+    def list_sources(self, org_id: str) -> List[Dict[str, Any]]:
+        """List all universal-ingest sources registered for org."""
+        with self._lock, self._conn() as conn:
+            rows = conn.execute(
+                """SELECT id, org_id, source_name, schema_mapping_json, enabled,
+                          created_at, updated_at
+                   FROM pipeline_sources
+                   WHERE org_id = ?
+                   ORDER BY created_at DESC""",
+                (org_id,),
+            ).fetchall()
+
+        results: List[Dict[str, Any]] = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["schema_mapping"] = json.loads(d.pop("schema_mapping_json") or "{}")
+            except (json.JSONDecodeError, TypeError):
+                d["schema_mapping"] = {}
+            d["enabled"] = bool(d.get("enabled", 1))
+            results.append(d)
+        return results
+
+    def ingest_record(
+        self,
+        org_id: str,
+        source_name: str,
+        raw_record: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Apply the source mapping to raw_record and persist to pipeline_records.
+
+        Returns the persisted row including the extracted target_fields dict.
+        Raises ValueError if the source is not registered for this org.
+        """
+        if raw_record is None:
+            raw_record = {}
+        if not isinstance(raw_record, dict):
+            raise ValueError("raw_record must be a dict")
+
+        with self._lock, self._conn() as conn:
+            src = conn.execute(
+                """SELECT schema_mapping_json, enabled
+                   FROM pipeline_sources
+                   WHERE org_id = ? AND source_name = ?""",
+                (org_id, source_name),
+            ).fetchone()
+            if not src:
+                raise ValueError(
+                    f"source '{source_name}' not registered for org {org_id}"
+                )
+
+            try:
+                schema_mapping = json.loads(src["schema_mapping_json"] or "{}")
+            except (json.JSONDecodeError, TypeError):
+                schema_mapping = {}
+
+            target_fields: Dict[str, Any] = {}
+            for target_field, jsonpath in schema_mapping.items():
+                target_fields[target_field] = self._jsonpath_extract(raw_record, jsonpath)
+
+            record_id = str(uuid.uuid4())
+            now = self._now()
+            conn.execute(
+                """INSERT INTO pipeline_records
+                   (id, org_id, source, target_fields_json, raw_record_json, ingested_at)
+                   VALUES (?,?,?,?,?,?)""",
+                (
+                    record_id,
+                    org_id,
+                    source_name,
+                    json.dumps(target_fields, default=str),
+                    json.dumps(raw_record, default=str),
+                    now,
+                ),
+            )
+
+        return {
+            "id": record_id,
+            "org_id": org_id,
+            "source": source_name,
+            "target_fields": target_fields,
+            "raw_record": raw_record,
+            "ingested_at": now,
+        }
+
+    def count_records(self, org_id: str, source_name: Optional[str] = None) -> int:
+        """Return count of ingested records for org (optionally filtered by source)."""
+        with self._lock, self._conn() as conn:
+            if source_name:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM pipeline_records WHERE org_id = ? AND source = ?",
+                    (org_id, source_name),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM pipeline_records WHERE org_id = ?",
+                    (org_id,),
+                ).fetchone()
+        return int(row[0]) if row else 0

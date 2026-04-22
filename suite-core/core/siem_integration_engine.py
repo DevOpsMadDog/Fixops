@@ -30,7 +30,7 @@ _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "siem_integration.db"
 )
 
-_VALID_SIEM_TYPES = {"splunk", "qradar", "elastic", "sentinel", "generic"}
+_VALID_SIEM_TYPES = {"splunk", "qradar", "elastic", "sentinel", "generic", "chronicle", "datadog"}
 _VALID_EVENT_TYPES = {"auth", "network", "endpoint", "application"}
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
 _VALID_ALERT_STATUSES = {"open", "acknowledged", "resolved"}
@@ -1152,3 +1152,111 @@ class SIEMIntegrationEngine:
             "open_alerts_count": open_alerts,
             "critical_alerts": critical_alerts,
         }
+
+
+# ======================================================================
+# GAP-035 — SIEM forwarding adapter registry
+# Mock HTTP forwarders for Chronicle, Datadog (and legacy Splunk/QRadar/Elastic).
+# These do NOT perform real network I/O; they return a deterministic
+# success envelope suitable for pipeline integration tests.
+# ======================================================================
+
+
+class _BaseSIEMAdapter:
+    """Base class — subclasses set ``adapter_name`` and optionally override
+    ``_endpoint_hint`` to label the mocked request target."""
+
+    adapter_name: str = "generic"
+    _endpoint_hint: str = "siem://generic"
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+        self.config = config or {}
+
+    def forward_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        if event is None or not isinstance(event, dict):
+            return {
+                "adapter": self.adapter_name,
+                "success": False,
+                "status": "error",
+                "error": "event must be a non-null dict",
+                "endpoint": self._endpoint_hint,
+            }
+        event_id = event.get("event_id") or event.get("id") or str(uuid.uuid4())
+        return {
+            "adapter": self.adapter_name,
+            "success": True,
+            "status": "forwarded",
+            "event_id": event_id,
+            "endpoint": self._endpoint_hint,
+            "bytes": len(json.dumps(event, default=str)),
+            "forwarded_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+class ChronicleAdapter(_BaseSIEMAdapter):
+    """Google Chronicle SIEM forwarding adapter (mocked HTTP)."""
+
+    adapter_name = "chronicle"
+    _endpoint_hint = "https://chronicle.googleapis.com/v1/events:batchCreate"
+
+
+class DatadogAdapter(_BaseSIEMAdapter):
+    """Datadog SIEM / Logs forwarding adapter (mocked HTTP)."""
+
+    adapter_name = "datadog"
+    _endpoint_hint = "https://http-intake.logs.datadoghq.com/api/v2/logs"
+
+
+class SplunkAdapter(_BaseSIEMAdapter):
+    adapter_name = "splunk"
+    _endpoint_hint = "https://splunk.local:8088/services/collector"
+
+
+class QRadarAdapter(_BaseSIEMAdapter):
+    adapter_name = "qradar"
+    _endpoint_hint = "https://qradar.local/api/siem/offenses"
+
+
+class ElasticAdapter(_BaseSIEMAdapter):
+    adapter_name = "elastic"
+    _endpoint_hint = "https://elastic.local:9200/_bulk"
+
+
+class SentinelAdapter(_BaseSIEMAdapter):
+    adapter_name = "sentinel"
+    _endpoint_hint = "https://sentinel.azure.com/api/logs"
+
+
+# Registry — adapters keyed by lowercase name.  Callers should treat this
+# dict as a read-mostly singleton; additional adapters may register here.
+SIEM_ADAPTERS: Dict[str, type] = {
+    "chronicle": ChronicleAdapter,
+    "datadog": DatadogAdapter,
+    "splunk": SplunkAdapter,
+    "qradar": QRadarAdapter,
+    "elastic": ElasticAdapter,
+    "sentinel": SentinelAdapter,
+}
+
+
+def forward_to_siem(
+    adapter_name: str,
+    event: Dict[str, Any],
+    config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Convenience function: look up an adapter by name and forward one event.
+
+    Returns a result envelope with ``adapter``, ``success``, ``status``.  If the
+    adapter name is unknown, returns a failure envelope (does not raise).
+    """
+    key = (adapter_name or "").strip().lower()
+    cls = SIEM_ADAPTERS.get(key)
+    if cls is None:
+        return {
+            "adapter": adapter_name,
+            "success": False,
+            "status": "error",
+            "error": f"unknown adapter '{adapter_name}'",
+            "available": sorted(SIEM_ADAPTERS.keys()),
+        }
+    return cls(config).forward_event(event)

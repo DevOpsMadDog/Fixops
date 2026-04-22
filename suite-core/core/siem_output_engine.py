@@ -29,7 +29,7 @@ _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "siem_output.db"
 )
 
-_VALID_SIEM_TYPES = {"splunk_hec", "sentinel", "generic"}
+_VALID_SIEM_TYPES = {"splunk_hec", "sentinel", "generic", "chronicle", "datadog"}
 _VALID_STATUSES = {"active", "inactive", "error"}
 
 
@@ -418,3 +418,21 @@ class SIEMOutputEngine:
             bus.emit(event_type, {"org_id": org_id, **data})
         except Exception:  # noqa: BLE001
             pass
+
+
+# ======================================================================
+# GAP-035 — Mirror SIEM adapter registry (re-exports from siem_integration_engine)
+# ======================================================================
+
+try:
+    from core.siem_integration_engine import (  # type: ignore[import]
+        SIEM_ADAPTERS as _INTEG_ADAPTERS,
+        ChronicleAdapter,  # noqa: F401
+        DatadogAdapter,  # noqa: F401
+        forward_to_siem,  # noqa: F401
+    )
+
+    # Expose the same registry reference so both modules agree.
+    SIEM_ADAPTERS: Dict[str, type] = dict(_INTEG_ADAPTERS)
+except ImportError:
+    SIEM_ADAPTERS = {}
