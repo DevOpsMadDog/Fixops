@@ -5,6 +5,13 @@
       "input_tokens": 0,
       "output_tokens": 0,
       "files": 442
+    },
+    {
+      "date": "2026-04-22T12:57:37.303753+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 9,
+      "note": "competitive research ingest (semantic via in-session extraction, no external LLM calls)"
     }
   ],
   "total_input_tokens": 0,
