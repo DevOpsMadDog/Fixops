@@ -7,8 +7,11 @@ and network topology.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
+import threading
+import time
 import uuid
 from collections import deque
 from pathlib import Path
@@ -126,6 +129,7 @@ class AttackPathEngine:
 
     def __init__(self, db_path: str = "data/attack_paths.db") -> None:
         self._db_path = db_path
+        self._lock = threading.RLock()
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
         _logger.info("AttackPathEngine initialised", db=db_path)
@@ -161,6 +165,25 @@ class AttackPathEngine:
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_node, org_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_nodes_org ON nodes(org_id)")
+            # GAP-026 — choke-point analysis cache (max-flow min-cut results)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS choke_point_analyses (
+                    id             TEXT PRIMARY KEY,
+                    org_id         TEXT NOT NULL,
+                    source_count   INTEGER NOT NULL,
+                    sink_count     INTEGER NOT NULL,
+                    cache_key      TEXT NOT NULL,
+                    analysis_json  TEXT NOT NULL,
+                    computed_at    REAL NOT NULL
+                )
+            """)
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_choke_org ON choke_point_analyses(org_id)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_choke_cache "
+                "ON choke_point_analyses(org_id, cache_key)"
+            )
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self._db_path)
@@ -673,3 +696,436 @@ class AttackPathEngine:
                     queue.append(nxt)
         visited.discard(entry_point)
         return visited
+
+    # ------------------------------------------------------------------
+    # GAP-026 — Choke-point analyzer (max-flow min-cut)
+    # ------------------------------------------------------------------
+    #
+    # Given an attack graph, we model each real edge with unit capacity and
+    # run the Edmonds-Karp algorithm to compute max-flow from a virtual
+    # super-source (linking every source_id) to a virtual super-sink
+    # (linking every sink_id). With unit capacities, the max-flow equals
+    # the number of edge-disjoint paths from sources to sinks, and the
+    # min-cut identifies the set of edges whose removal maximally reduces
+    # blast radius. We rank each min-cut edge by the per-edge impact
+    # (reachable sinks lost if that edge is removed).
+    #
+    # Implementation notes:
+    #   * Pure-Python, stdlib only (no networkx / scipy).
+    #   * Residual graph is a dict-of-dicts keyed by node name.
+    #   * Virtual nodes use reserved names '__SRC__' / '__SNK__'; we reject
+    #     real node_ids that collide with these sentinels.
+    #   * For each candidate choke edge, we recompute blast radius with
+    #     that edge removed to derive a concrete reduction percentage,
+    #     which is the intuition customers care about.
+    # ------------------------------------------------------------------
+
+    _VIRTUAL_SOURCE = "__SRC__"
+    _VIRTUAL_SINK = "__SNK__"
+
+    @staticmethod
+    def _bfs_augmenting_path(
+        residual: dict[str, dict[str, int]],
+        source: str,
+        sink: str,
+    ) -> Optional[list[str]]:
+        """BFS for an augmenting path in the residual graph.
+
+        Returns the path as a list of node ids (source..sink), or None if
+        no augmenting path exists. Uses a deterministic ordering (sorted
+        neighbours) so results are reproducible across runs.
+        """
+        if source == sink:
+            return [source]
+        parent: dict[str, str] = {source: source}
+        queue: deque[str] = deque([source])
+        while queue:
+            u = queue.popleft()
+            if u not in residual:
+                continue
+            # Sorted for deterministic BFS order — important for caching.
+            for v in sorted(residual[u].keys()):
+                if v in parent:
+                    continue
+                cap = residual[u][v]
+                if cap <= 0:
+                    continue
+                parent[v] = u
+                if v == sink:
+                    # Reconstruct path.
+                    path: list[str] = [v]
+                    while path[-1] != source:
+                        path.append(parent[path[-1]])
+                    path.reverse()
+                    return path
+                queue.append(v)
+        return None
+
+    @classmethod
+    def _edmonds_karp(
+        cls,
+        capacity: dict[str, dict[str, int]],
+        source: str,
+        sink: str,
+    ) -> tuple[int, dict[str, dict[str, int]]]:
+        """Pure-Python Edmonds-Karp max-flow.
+
+        ``capacity`` is a dict-of-dicts of original capacities. Returns the
+        tuple ``(max_flow, residual)`` where ``residual[u][v]`` is the
+        remaining capacity after flow has been pushed.
+        """
+        # Build residual graph — include reverse edges with 0 initial capacity.
+        residual: dict[str, dict[str, int]] = {}
+        for u, nbrs in capacity.items():
+            residual.setdefault(u, {})
+            for v, cap in nbrs.items():
+                residual[u][v] = residual[u].get(v, 0) + cap
+                residual.setdefault(v, {})
+                residual[v].setdefault(u, 0)
+
+        if source not in residual or sink not in residual:
+            return 0, residual
+
+        max_flow = 0
+        while True:
+            path = cls._bfs_augmenting_path(residual, source, sink)
+            if not path:
+                break
+            # Bottleneck capacity along the path.
+            bottleneck = min(
+                residual[path[i]][path[i + 1]] for i in range(len(path) - 1)
+            )
+            if bottleneck <= 0:
+                break
+            for i in range(len(path) - 1):
+                u, v = path[i], path[i + 1]
+                residual[u][v] -= bottleneck
+                residual[v][u] = residual[v].get(u, 0) + bottleneck
+            max_flow += bottleneck
+        return max_flow, residual
+
+    @staticmethod
+    def _reachable_in_residual(
+        residual: dict[str, dict[str, int]],
+        source: str,
+    ) -> set[str]:
+        """Return the set of nodes reachable from ``source`` using edges
+        with strictly positive residual capacity."""
+        visited: set[str] = {source}
+        queue: deque[str] = deque([source])
+        while queue:
+            u = queue.popleft()
+            for v, cap in residual.get(u, {}).items():
+                if cap > 0 and v not in visited:
+                    visited.add(v)
+                    queue.append(v)
+        return visited
+
+    def _build_capacity_graph(
+        self,
+        adj: dict[str, list[dict]],
+        sources: list[str],
+        sinks: list[str],
+    ) -> tuple[dict[str, dict[str, int]], list[dict]]:
+        """Construct a unit-capacity graph with virtual super-source/sink.
+
+        Returns a tuple ``(capacity_map, real_edges)`` where ``real_edges``
+        is the list of edge rows participating in the graph. We only
+        include real edges (not the virtual super-source/sink connectors)
+        in the ranking output.
+        """
+        capacity: dict[str, dict[str, int]] = {}
+        real_edges: list[dict] = []
+        for _, edge_list in adj.items():
+            for e in edge_list:
+                u, v = e["from_node"], e["to_node"]
+                if u in {self._VIRTUAL_SOURCE, self._VIRTUAL_SINK} or v in {
+                    self._VIRTUAL_SOURCE,
+                    self._VIRTUAL_SINK,
+                }:
+                    # Refuse to build over reserved ids — defensive.
+                    continue
+                capacity.setdefault(u, {})
+                # Unit capacity. If duplicate edges exist, collapse to 1.
+                capacity[u][v] = 1
+                real_edges.append(e)
+        # Connect virtual super-source to every source node.
+        capacity.setdefault(self._VIRTUAL_SOURCE, {})
+        for s in sources:
+            capacity[self._VIRTUAL_SOURCE][s] = 10**9  # effectively unbounded
+        # Connect every sink node to virtual super-sink.
+        for t in sinks:
+            capacity.setdefault(t, {})
+            capacity[t][self._VIRTUAL_SINK] = 10**9
+        capacity.setdefault(self._VIRTUAL_SINK, {})
+        return capacity, real_edges
+
+    @staticmethod
+    def _count_reachable(
+        adj: dict[str, list[dict]],
+        sources: list[str],
+        sinks: set[str],
+    ) -> int:
+        """Count sinks reachable from any source via BFS on ``adj``."""
+        visited: set[str] = set(sources)
+        queue: deque[str] = deque(sources)
+        while queue:
+            u = queue.popleft()
+            for e in adj.get(u, []):
+                v = e["to_node"]
+                if v not in visited:
+                    visited.add(v)
+                    queue.append(v)
+        return sum(1 for s in sinks if s in visited)
+
+    @staticmethod
+    def _cache_key(
+        source_ids: list[str],
+        sink_ids: list[str],
+        top_k: int,
+        adj: dict[str, list[dict]],
+    ) -> str:
+        """Deterministic SHA-256 key including edge topology.
+
+        We include edges so that cache entries are invalidated when the
+        underlying graph changes (e.g. a new edge added between the same
+        set of nodes).
+        """
+        edge_sig = sorted(
+            (e["from_node"], e["to_node"]) for edges in adj.values() for e in edges
+        )
+        payload = json.dumps(
+            {
+                "s": sorted(source_ids),
+                "t": sorted(sink_ids),
+                "k": top_k,
+                "e": edge_sig,
+            },
+            sort_keys=True,
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def compute_choke_points(
+        self,
+        org_id: str,
+        source_ids: list[str],
+        sink_ids: list[str],
+        top_k: int = 10,
+    ) -> list[dict]:
+        """Rank attack-graph edges by max-flow min-cut impact.
+
+        Builds a unit-capacity residual graph, runs Edmonds-Karp from a
+        virtual super-source connecting ``source_ids`` to a virtual
+        super-sink connecting ``sink_ids``, then identifies min-cut edges.
+        Each min-cut edge is annotated with the percentage reduction in
+        reachable sinks if that edge is removed.
+
+        Returns a list of dicts (sorted by ``blast_reduction_pct`` desc,
+        then ``edge_id``) of at most ``top_k`` entries. Results are cached
+        in ``choke_point_analyses`` — identical queries reuse the cached
+        row.
+
+        Raises:
+            ValueError: if ``source_ids`` or ``sink_ids`` is empty, or
+                ``top_k`` < 1.
+        """
+        if not source_ids:
+            raise ValueError("source_ids must not be empty")
+        if not sink_ids:
+            raise ValueError("sink_ids must not be empty")
+        if top_k < 1:
+            raise ValueError("top_k must be >= 1")
+
+        # Dedup while preserving order.
+        source_ids = list(dict.fromkeys(source_ids))
+        sink_ids = list(dict.fromkeys(sink_ids))
+
+        adj = self._load_adjacency(org_id)
+        sinks_set = set(sink_ids)
+
+        cache_key = self._cache_key(source_ids, sink_ids, top_k, adj)
+        with self._lock:
+            # Cache hit — return stored ranking verbatim.
+            with self._conn() as conn:
+                row = conn.execute(
+                    "SELECT analysis_json FROM choke_point_analyses "
+                    "WHERE org_id = ? AND cache_key = ? LIMIT 1",
+                    (org_id, cache_key),
+                ).fetchone()
+            if row is not None:
+                payload = json.loads(row["analysis_json"])
+                return payload.get("edges", [])
+
+            # Baseline reach (no edges removed).
+            baseline_reach = self._count_reachable(adj, source_ids, sinks_set)
+            if baseline_reach == 0:
+                # No path from any source to any sink — nothing to cut.
+                ranked: list[dict] = []
+                self._persist_analysis(
+                    org_id, source_ids, sink_ids, cache_key,
+                    ranked, baseline_reach, 0,
+                )
+                return ranked
+
+            capacity, real_edges = self._build_capacity_graph(
+                adj, source_ids, sink_ids
+            )
+            max_flow, residual = self._edmonds_karp(
+                capacity, self._VIRTUAL_SOURCE, self._VIRTUAL_SINK
+            )
+
+            # Min-cut: edges (u,v) in the original capacity graph where u is
+            # reachable from source in residual and v is not.
+            reachable = self._reachable_in_residual(residual, self._VIRTUAL_SOURCE)
+            cut_pairs: set[tuple[str, str]] = set()
+            for u, nbrs in capacity.items():
+                if u not in reachable:
+                    continue
+                for v, cap in nbrs.items():
+                    if cap <= 0:
+                        continue
+                    if v in reachable:
+                        continue
+                    cut_pairs.add((u, v))
+
+            # For each real edge matching a cut pair, compute its per-edge
+            # blast-reduction impact by rebuilding adjacency without that
+            # single edge and re-counting reachable sinks.
+            ranked = []
+            seen_ids: set[str] = set()
+            for edge in real_edges:
+                if (edge["from_node"], edge["to_node"]) not in cut_pairs:
+                    continue
+                if edge["edge_id"] in seen_ids:
+                    continue
+                seen_ids.add(edge["edge_id"])
+                adj_wo = self._adj_without_edge(adj, edge["edge_id"])
+                reach_after = self._count_reachable(adj_wo, source_ids, sinks_set)
+                reduction = baseline_reach - reach_after
+                blast_reduction_pct = round(
+                    (reduction / baseline_reach) * 100.0, 2
+                ) if baseline_reach else 0.0
+                ranked.append({
+                    "edge_id": edge["edge_id"],
+                    "source": edge["from_node"],
+                    "target": edge["to_node"],
+                    "flow_value": 1,  # unit capacity
+                    "blast_reduction_pct": blast_reduction_pct,
+                    "sinks_saved": reduction,
+                })
+
+            # Deterministic ordering: highest reduction first, then edge_id.
+            ranked.sort(
+                key=lambda r: (-r["blast_reduction_pct"], r["edge_id"])
+            )
+            ranked = ranked[:top_k]
+
+            self._persist_analysis(
+                org_id, source_ids, sink_ids, cache_key, ranked,
+                baseline_reach, max_flow,
+            )
+            return ranked
+
+    def _adj_without_edge(
+        self,
+        adj: dict[str, list[dict]],
+        edge_id: str,
+    ) -> dict[str, list[dict]]:
+        """Return a shallow copy of ``adj`` with ``edge_id`` removed."""
+        out: dict[str, list[dict]] = {}
+        for u, edges in adj.items():
+            filtered = [e for e in edges if e["edge_id"] != edge_id]
+            if filtered:
+                out[u] = filtered
+        return out
+
+    def _persist_analysis(
+        self,
+        org_id: str,
+        source_ids: list[str],
+        sink_ids: list[str],
+        cache_key: str,
+        ranked: list[dict],
+        baseline_reach: int,
+        max_flow: int,
+    ) -> str:
+        """Insert the analysis row and return the new analysis id."""
+        analysis_id = str(uuid.uuid4())
+        payload = {
+            "edges": ranked,
+            "sources": source_ids,
+            "sinks": sink_ids,
+            "baseline_reach": baseline_reach,
+            "max_flow": max_flow,
+        }
+        with self._conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO choke_point_analyses
+                    (id, org_id, source_count, sink_count, cache_key,
+                     analysis_json, computed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    analysis_id, org_id, len(source_ids), len(sink_ids),
+                    cache_key, json.dumps(payload), time.time(),
+                ),
+            )
+        return analysis_id
+
+    def list_analyses(self, org_id: str = "default") -> list[dict]:
+        """Return cached choke-point analyses for ``org_id`` (newest first)."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT id, org_id, source_count, sink_count, computed_at "
+                "FROM choke_point_analyses WHERE org_id = ? "
+                "ORDER BY computed_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_analysis(
+        self,
+        analysis_id: str,
+        org_id: str = "default",
+    ) -> Optional[dict]:
+        """Return the full cached analysis row or None if missing.
+
+        ``org_id`` guard prevents cross-tenant reads.
+        """
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM choke_point_analyses "
+                "WHERE id = ? AND org_id = ? LIMIT 1",
+                (analysis_id, org_id),
+            ).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["analysis"] = json.loads(d.pop("analysis_json"))
+        return d
+
+    def get_choke_point_stats(self, org_id: str = "default") -> dict:
+        """Return summary stats: analyses count, avg/max top blast reduction."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT analysis_json FROM choke_point_analyses WHERE org_id = ?",
+                (org_id,),
+            ).fetchall()
+        total = len(rows)
+        top_reductions: list[float] = []
+        for r in rows:
+            try:
+                payload = json.loads(r["analysis_json"])
+                edges = payload.get("edges") or []
+                if edges:
+                    top_reductions.append(float(edges[0].get("blast_reduction_pct", 0.0)))
+            except (ValueError, TypeError):
+                continue
+        avg_top = round(sum(top_reductions) / len(top_reductions), 2) if top_reductions else 0.0
+        max_top = round(max(top_reductions), 2) if top_reductions else 0.0
+        return {
+            "total_analyses": total,
+            "avg_top_blast_reduction_pct": avg_top,
+            "max_top_blast_reduction_pct": max_top,
+        }

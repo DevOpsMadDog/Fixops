@@ -7885,6 +7885,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-018 SLSA Provenance — in-toto v0.2 attestations + DSSE envelope (placeholder sig)
+    try:
+        from apps.api.slsa_provenance_router import router as slsa_provenance_router
+        app.include_router(slsa_provenance_router)
+        _logger.info("Mounted SLSA Provenance router at /api/v1/slsa")
+    except ImportError:
+        pass
+
     # GAP-007: upgrade_path_resolver_engine (CVE-aware version walker)
     try:
         from apps.api.upgrade_path_router import router as upgrade_path_router
@@ -8079,6 +8087,14 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Threat Indicator router at /api/v1/threat-indicators")
     except ImportError:
         pass
+
+    # GAP-026 — Choke-point analyzer (max-flow min-cut on attack graph)
+    try:
+        from apps.api.choke_point_router import router as choke_point_router
+        app.include_router(choke_point_router)
+        _logger.info("Mounted Choke Point router at /api/v1/choke-point")
+    except ImportError as _cp_err:
+        _logger.warning("Choke Point router not available: %s", _cp_err)
 
     try:
         from apps.api.ransomware_protection_router import router as ransomware_protection_router
