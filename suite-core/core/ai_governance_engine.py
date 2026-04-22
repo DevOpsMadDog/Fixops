@@ -58,6 +58,31 @@ _VALID_INCIDENT_TYPES = {
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
 _VALID_INCIDENT_STATUSES = {"open", "investigating", "resolved"}
 
+# GAP-061: Tiered LLM context router
+_VALID_CONTEXT_TIERS = {"metadata", "targeted", "full_file"}
+
+# Cost per 1M tokens, hardcoded by tier.  Input tokens for simplicity; the
+# numbers below reflect a blended estimate (prompt + completion weights) that
+# is stable enough for pre-flight budget checks.
+_TIER_COST_PER_1M_USD: Dict[str, float] = {
+    "metadata": 0.5,
+    "targeted": 2.0,
+    "full_file": 10.0,
+}
+
+# Default token envelopes per tier — caller can override per-rule via
+# register_rule_context_requirement(max_tokens=...).
+_TIER_DEFAULT_MAX_TOKENS: Dict[str, int] = {
+    "metadata": 500,
+    "targeted": 4_000,
+    "full_file": 32_000,
+}
+
+# Output token share assumed per invocation for cost estimation.  The router
+# bills input + output; we use a fixed 25% output fraction of max_tokens which
+# matches observed Qwen/Kimi pentest/review traffic.
+_OUTPUT_TOKEN_FRACTION = 0.25
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -132,6 +157,20 @@ class AIGovernanceEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_incidents_org
                     ON ai_incidents (org_id, model_id, status, severity, reported_at DESC);
+
+                -- GAP-061: per-rule context tier for pre-flight cost control
+                CREATE TABLE IF NOT EXISTS rule_context_requirements (
+                    id          TEXT PRIMARY KEY,
+                    org_id      TEXT NOT NULL,
+                    rule_key    TEXT NOT NULL,
+                    tier        TEXT NOT NULL,
+                    max_tokens  INTEGER NOT NULL,
+                    created_at  TEXT NOT NULL,
+                    UNIQUE(org_id, rule_key)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_rule_ctx_req_org
+                    ON rule_context_requirements (org_id, rule_key);
                 """
             )
 
@@ -499,4 +538,224 @@ class AIGovernanceEngine:
             "total_assessments": total_assessments,
             "total_incidents": total_incidents,
             "open_incidents": open_incidents,
+        }
+
+    # ------------------------------------------------------------------
+    # GAP-061: Tiered LLM context router
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _validate_tier(tier: str) -> str:
+        if tier not in _VALID_CONTEXT_TIERS:
+            raise ValueError(
+                f"Invalid tier: {tier!r}. "
+                f"Must be one of {sorted(_VALID_CONTEXT_TIERS)}"
+            )
+        return tier
+
+    def register_rule_context_requirement(
+        self,
+        org_id: str,
+        rule_key: str,
+        tier: str,
+        max_tokens: int,
+    ) -> Dict[str, Any]:
+        """Register/upsert a per-rule context requirement.
+
+        Parameters
+        ----------
+        org_id: tenant id.
+        rule_key: stable identifier of the rule (e.g. "owasp-a01-sqli").
+        tier: one of {metadata, targeted, full_file}.
+        max_tokens: upper bound of prompt+completion tokens for this rule.
+
+        UNIQUE(org_id, rule_key) — subsequent calls update tier/max_tokens.
+        """
+        rule_key = (rule_key or "").strip()
+        if not rule_key:
+            raise ValueError("rule_key is required.")
+        if not org_id:
+            raise ValueError("org_id is required.")
+        tier = self._validate_tier(tier)
+        try:
+            max_tokens_int = int(max_tokens)
+        except (TypeError, ValueError):
+            raise ValueError("max_tokens must be an integer.")
+        if max_tokens_int <= 0:
+            raise ValueError("max_tokens must be > 0.")
+
+        now = _now_iso()
+        record_id = str(uuid.uuid4())
+        with self._lock:
+            with self._conn() as conn:
+                # UPSERT on (org_id, rule_key)
+                existing = conn.execute(
+                    "SELECT id FROM rule_context_requirements "
+                    "WHERE org_id = ? AND rule_key = ?",
+                    (org_id, rule_key),
+                ).fetchone()
+                if existing:
+                    record_id = existing["id"]
+                    conn.execute(
+                        """UPDATE rule_context_requirements
+                           SET tier = ?, max_tokens = ?
+                           WHERE id = ?""",
+                        (tier, max_tokens_int, record_id),
+                    )
+                    created_at = conn.execute(
+                        "SELECT created_at FROM rule_context_requirements WHERE id = ?",
+                        (record_id,),
+                    ).fetchone()["created_at"]
+                else:
+                    created_at = now
+                    conn.execute(
+                        """INSERT INTO rule_context_requirements
+                           (id, org_id, rule_key, tier, max_tokens, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        (record_id, org_id, rule_key, tier, max_tokens_int, now),
+                    )
+
+        return {
+            "id": record_id,
+            "org_id": org_id,
+            "rule_key": rule_key,
+            "tier": tier,
+            "max_tokens": max_tokens_int,
+            "created_at": created_at,
+        }
+
+    def list_rule_context_requirements(
+        self, org_id: str
+    ) -> List[Dict[str, Any]]:
+        """Return all registered rule context requirements for an org."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM rule_context_requirements "
+                "WHERE org_id = ? ORDER BY rule_key ASC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def estimate_llm_cost(
+        self,
+        org_id: str,
+        rule_keys: List[str],
+        file_count: int = 1,
+    ) -> Dict[str, Any]:
+        """Estimate LLM cost for a run across the supplied rules.
+
+        Returns ::
+
+            {
+                "by_tier": {
+                    "metadata":  {"rules": [...], "est_tokens_in": int,
+                                  "est_tokens_out": int, "est_cost_usd": float},
+                    "targeted":  {...},
+                    "full_file": {...},
+                },
+                "total": {"rules": int, "est_tokens_in": int,
+                          "est_tokens_out": int, "est_cost_usd": float},
+            }
+
+        Rules without a registered requirement are treated as ``metadata`` tier
+        with the default envelope — this keeps the estimator conservative but
+        always returns a usable figure.  ``file_count`` multiplies per-rule
+        cost to model a scan hitting multiple files.
+        """
+        if rule_keys is None:
+            rule_keys = []
+        if not isinstance(rule_keys, list):
+            raise ValueError("rule_keys must be a list.")
+        try:
+            file_count_int = int(file_count)
+        except (TypeError, ValueError):
+            raise ValueError("file_count must be an integer.")
+        if file_count_int < 1:
+            raise ValueError("file_count must be >= 1.")
+
+        # Load all requirements for the org once.
+        reqs = {
+            r["rule_key"]: r
+            for r in self.list_rule_context_requirements(org_id)
+        }
+
+        by_tier: Dict[str, Dict[str, Any]] = {
+            tier: {
+                "rules": [],
+                "est_tokens_in": 0,
+                "est_tokens_out": 0,
+                "est_cost_usd": 0.0,
+            }
+            for tier in sorted(_VALID_CONTEXT_TIERS)
+        }
+
+        for rule_key in rule_keys:
+            rk = (rule_key or "").strip()
+            if not rk:
+                continue
+            req = reqs.get(rk)
+            if req:
+                tier = req["tier"]
+                max_tokens = int(req["max_tokens"])
+            else:
+                tier = "metadata"
+                max_tokens = _TIER_DEFAULT_MAX_TOKENS[tier]
+
+            # tokens-in dominate; tokens-out is a fraction of the budget.
+            tokens_in = int(max_tokens * (1.0 - _OUTPUT_TOKEN_FRACTION)) * file_count_int
+            tokens_out = int(max_tokens * _OUTPUT_TOKEN_FRACTION) * file_count_int
+            total_tokens = tokens_in + tokens_out
+            cost = (total_tokens / 1_000_000.0) * _TIER_COST_PER_1M_USD[tier]
+
+            bucket = by_tier[tier]
+            bucket["rules"].append(rk)
+            bucket["est_tokens_in"] += tokens_in
+            bucket["est_tokens_out"] += tokens_out
+            bucket["est_cost_usd"] = round(bucket["est_cost_usd"] + cost, 6)
+
+        total = {
+            "rules": sum(len(b["rules"]) for b in by_tier.values()),
+            "est_tokens_in": sum(b["est_tokens_in"] for b in by_tier.values()),
+            "est_tokens_out": sum(b["est_tokens_out"] for b in by_tier.values()),
+            "est_cost_usd": round(
+                sum(b["est_cost_usd"] for b in by_tier.values()), 6
+            ),
+        }
+
+        return {"by_tier": by_tier, "total": total}
+
+    def preflight_estimate(
+        self,
+        org_id: str,
+        rule_keys: List[str],
+        file_count: int = 1,
+    ) -> Dict[str, Any]:
+        """User-facing pre-flight wrapper around :meth:`estimate_llm_cost`.
+
+        Adds a human-readable ``summary`` and a ``tier_distribution`` so the
+        caller can render a budget warning before firing the scan.
+        """
+        estimate = self.estimate_llm_cost(org_id, rule_keys, file_count=file_count)
+        total = estimate["total"]
+        by_tier = estimate["by_tier"]
+
+        tier_distribution = {
+            tier: len(bucket["rules"]) for tier, bucket in by_tier.items()
+        }
+        summary = (
+            f"Pre-flight: {total['rules']} rule(s) across {file_count} file(s) — "
+            f"~{total['est_tokens_in']:,} in / {total['est_tokens_out']:,} out tokens, "
+            f"est. ${total['est_cost_usd']:.4f} USD "
+            f"(metadata={tier_distribution.get('metadata', 0)}, "
+            f"targeted={tier_distribution.get('targeted', 0)}, "
+            f"full_file={tier_distribution.get('full_file', 0)})"
+        )
+
+        return {
+            "org_id": org_id,
+            "file_count": file_count,
+            "by_tier": by_tier,
+            "total": total,
+            "tier_distribution": tier_distribution,
+            "summary": summary,
         }

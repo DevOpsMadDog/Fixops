@@ -262,3 +262,99 @@ def consensus_stats(
     orch = _require_orchestrator()
     stats = orch.get_consensus_stats(org_id=org_id)
     return stats
+
+
+# ---------------------------------------------------------------------------
+# GAP-061: Tiered LLM context router (per-rule tier + pre-flight cost)
+# ---------------------------------------------------------------------------
+
+
+class ContextRequirementRequest(BaseModel):
+    rule_key: str = Field(..., min_length=1, max_length=256)
+    tier: str = Field(..., description="metadata|targeted|full_file")
+    max_tokens: int = Field(..., gt=0, le=1_000_000)
+
+
+class PreflightRequest(BaseModel):
+    rule_keys: List[str] = Field(..., min_length=0, max_length=10_000)
+    file_count: int = Field(default=1, ge=1, le=100_000)
+
+
+_AI_GOV_SINGLETON: Optional[Any] = None
+
+
+def _require_ai_gov() -> Any:
+    """Lazy-load the AIGovernanceEngine singleton."""
+    global _AI_GOV_SINGLETON
+    if _AI_GOV_SINGLETON is not None:
+        return _AI_GOV_SINGLETON
+    try:
+        from core.ai_governance_engine import AIGovernanceEngine
+    except ImportError as exc:  # pragma: no cover — engine ships with core
+        raise HTTPException(
+            status_code=503,
+            detail=f"AIGovernanceEngine not available: {exc}",
+        )
+    _AI_GOV_SINGLETON = AIGovernanceEngine()
+    return _AI_GOV_SINGLETON
+
+
+def _resolve_org_id(org_id: Optional[str], fallback: Optional[str]) -> str:
+    """Pick explicit body/query org_id, else dependency-provided."""
+    value = (fallback or org_id or "").strip() if isinstance(fallback, str) or isinstance(org_id, str) else ""
+    if not value:
+        raise HTTPException(status_code=400, detail="org_id is required")
+    return value
+
+
+@router.post(
+    "/context-requirement",
+    summary="GAP-061: Register/upsert per-rule LLM context tier",
+)
+def register_context_requirement(
+    body: ContextRequirementRequest,
+    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    dep_org_id: Optional[str] = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Assign an LLM context tier (metadata/targeted/full_file) to a rule."""
+    engine = _require_ai_gov()
+    effective_org = _resolve_org_id(dep_org_id, org_id)
+    try:
+        return engine.register_rule_context_requirement(
+            effective_org, body.rule_key, body.tier, body.max_tokens
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get(
+    "/context-requirements",
+    summary="GAP-061: List registered rule context requirements",
+)
+def list_context_requirements(
+    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    dep_org_id: Optional[str] = Depends(get_org_id),
+) -> Dict[str, Any]:
+    engine = _require_ai_gov()
+    effective_org = _resolve_org_id(dep_org_id, org_id)
+    items = engine.list_rule_context_requirements(effective_org)
+    return {"org_id": effective_org, "total": len(items), "items": items}
+
+
+@router.post(
+    "/preflight-estimate",
+    summary="GAP-061: Pre-flight LLM cost estimate for a set of rules",
+)
+def preflight_estimate(
+    body: PreflightRequest,
+    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    dep_org_id: Optional[str] = Depends(get_org_id),
+) -> Dict[str, Any]:
+    engine = _require_ai_gov()
+    effective_org = _resolve_org_id(dep_org_id, org_id)
+    try:
+        return engine.preflight_estimate(
+            effective_org, body.rule_keys, file_count=body.file_count
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
