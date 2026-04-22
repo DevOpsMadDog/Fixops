@@ -147,6 +147,20 @@ class DarkWebMonitoringEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_exposures_org
                     ON credential_exposures (org_id, verified, created_at DESC);
+
+                -- GAP-030: subsidiary dark-web monitors
+                CREATE TABLE IF NOT EXISTS subsidiary_monitors (
+                    id               TEXT PRIMARY KEY,
+                    org_id           TEXT NOT NULL,
+                    subsidiary_name  TEXT NOT NULL,
+                    keywords_json    TEXT NOT NULL DEFAULT '[]',
+                    enabled          INTEGER NOT NULL DEFAULT 1,
+                    created_at       TEXT NOT NULL,
+                    UNIQUE(org_id, subsidiary_name)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_submon_org
+                    ON subsidiary_monitors (org_id, enabled);
                 """
             )
 
@@ -482,3 +496,126 @@ class DarkWebMonitoringEngine:
             "total_exposures": total_exposures,
             "unverified_exposures": unverified_exposures,
         }
+
+    # ------------------------------------------------------------------
+    # GAP-030: Subsidiary Dark-Web Monitors
+    # ------------------------------------------------------------------
+
+    def monitor_subsidiary_mentions(
+        self,
+        org_id: str,
+        subsidiary_name: str,
+        keywords: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Register (or update) a dark-web monitor for a subsidiary (GAP-030).
+
+        UNIQUE(org_id, subsidiary_name) — re-registering the same subsidiary
+        updates its keyword list and re-enables the monitor.
+        """
+        subsidiary_name = (subsidiary_name or "").strip()
+        if not subsidiary_name:
+            raise ValueError("subsidiary_name is required.")
+
+        # Normalise keywords: strip, drop empties, dedupe while preserving order
+        clean_keywords: List[str] = []
+        seen = set()
+        for k in (keywords or []):
+            if not isinstance(k, str):
+                raise ValueError("keywords must be a list of strings.")
+            kk = k.strip()
+            if kk and kk not in seen:
+                clean_keywords.append(kk)
+                seen.add(kk)
+
+        now = _now_iso()
+        keywords_json = json.dumps(clean_keywords)
+        record_id = str(uuid.uuid4())
+
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    "SELECT id FROM subsidiary_monitors "
+                    "WHERE org_id = ? AND subsidiary_name = ?",
+                    (org_id, subsidiary_name),
+                ).fetchone()
+                if existing:
+                    record_id = existing["id"]
+                    conn.execute(
+                        "UPDATE subsidiary_monitors "
+                        "SET keywords_json = ?, enabled = 1 "
+                        "WHERE org_id = ? AND subsidiary_name = ?",
+                        (keywords_json, org_id, subsidiary_name),
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO subsidiary_monitors
+                           (id, org_id, subsidiary_name, keywords_json, enabled, created_at)
+                           VALUES (?, ?, ?, ?, 1, ?)""",
+                        (record_id, org_id, subsidiary_name, keywords_json, now),
+                    )
+                row = conn.execute(
+                    "SELECT * FROM subsidiary_monitors WHERE id = ?",
+                    (record_id,),
+                ).fetchone()
+
+        result = dict(row)
+        result["enabled"] = bool(result["enabled"])
+        try:
+            result["keywords"] = json.loads(result.get("keywords_json") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            result["keywords"] = []
+
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("ASSET_DISCOVERED", {
+                    "entity_type": "subsidiary_monitor",
+                    "org_id": org_id,
+                    "subsidiary_name": subsidiary_name,
+                    "source_engine": "dark_web_monitoring",
+                })
+            except Exception:
+                pass
+        return result
+
+    def list_subsidiary_monitors(
+        self,
+        org_id: str,
+        enabled: Optional[bool] = None,
+    ) -> List[Dict[str, Any]]:
+        """List subsidiary monitors for an org, with optional enabled filter."""
+        sql = "SELECT * FROM subsidiary_monitors WHERE org_id = ?"
+        params: list = [org_id]
+        if enabled is not None:
+            sql += " AND enabled = ?"
+            params.append(1 if enabled else 0)
+        sql += " ORDER BY created_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            d = dict(r)
+            d["enabled"] = bool(d["enabled"])
+            try:
+                d["keywords"] = json.loads(d.get("keywords_json") or "[]")
+            except (json.JSONDecodeError, TypeError):
+                d["keywords"] = []
+            out.append(d)
+        return out
+
+    def disable_subsidiary_monitor(
+        self,
+        org_id: str,
+        subsidiary_name: str,
+    ) -> bool:
+        """Disable a subsidiary monitor. Returns True if found and flipped."""
+        subsidiary_name = (subsidiary_name or "").strip()
+        if not subsidiary_name:
+            raise ValueError("subsidiary_name is required.")
+        with self._lock:
+            with self._conn() as conn:
+                cur = conn.execute(
+                    "UPDATE subsidiary_monitors SET enabled = 0 "
+                    "WHERE org_id = ? AND subsidiary_name = ?",
+                    (org_id, subsidiary_name),
+                )
+                return cur.rowcount > 0
