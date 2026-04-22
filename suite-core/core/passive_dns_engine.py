@@ -373,6 +373,75 @@ class PassiveDNSEngine:
         }
 
     # ------------------------------------------------------------------
+    # GAP-030: Subsidiary domain discovery
+    # ------------------------------------------------------------------
+
+    def find_subsidiary_domains(
+        self,
+        org_id: str,
+        parent_domain: str,
+        seed_patterns: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Heuristic discovery of candidate subsidiary domains from pdns records.
+
+        Scans recorded DNS resolutions for the org and returns domains that
+        (a) contain the parent-org naming token, or (b) match any supplied
+        seed_patterns substring. Returns candidate list with heuristic confidence.
+        """
+        parent_domain = (parent_domain or "").strip().lower()
+        if not parent_domain:
+            raise ValueError("parent_domain is required")
+
+        # Extract the naming token (strip TLD / subdomain prefix).
+        # e.g. "acmecorp.com" -> "acmecorp"
+        token = parent_domain.split(".")[0]
+        if not token:
+            token = parent_domain
+
+        patterns = [p.strip().lower() for p in (seed_patterns or []) if p and p.strip()]
+
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    "SELECT DISTINCT domain FROM dns_resolutions WHERE org_id = ?",
+                    (org_id,),
+                ).fetchall()
+
+        candidates: List[Dict[str, Any]] = []
+        for r in rows:
+            d = r["domain"]
+            if not d or d == parent_domain:
+                continue
+            confidence = 0.0
+            reasons: List[str] = []
+            # (a) Parent naming token embedded in candidate
+            if token and token in d:
+                confidence = max(confidence, 0.75)
+                reasons.append(f"contains parent token '{token}'")
+            # (b) Seed pattern match
+            for p in patterns:
+                if p and p in d:
+                    confidence = max(confidence, 0.85)
+                    reasons.append(f"matches seed pattern '{p}'")
+            # (c) Shares parent apex domain (e.g. acmecorp.co.uk vs parent acmecorp.com)
+            #     naive suffix compare on the token portion
+            if token and d != parent_domain:
+                d_token = d.split(".")[0] if "." in d else d
+                if d_token == token:
+                    confidence = max(confidence, 0.9)
+                    reasons.append("shares parent apex token")
+            if confidence > 0.0:
+                candidates.append({
+                    "domain": d,
+                    "confidence": round(confidence, 2),
+                    "reasons": reasons,
+                    "parent_domain": parent_domain,
+                })
+        # Deterministic order: highest confidence first, then alpha
+        candidates.sort(key=lambda c: (-c["confidence"], c["domain"]))
+        return candidates
+
+    # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
 

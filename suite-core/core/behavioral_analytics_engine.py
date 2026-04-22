@@ -13,12 +13,13 @@ Compliance: UEBA frameworks, NIST SP 800-207, ISO 27001 A.12.4
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

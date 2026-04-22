@@ -84,6 +84,25 @@ class SupplyChainAttackDetectionEngine:
                     created_at    TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS quarantined_packages (
+                    id               TEXT PRIMARY KEY,
+                    org_id           TEXT NOT NULL,
+                    package_purl     TEXT NOT NULL,
+                    reason           TEXT NOT NULL,
+                    quarantined_by   TEXT NOT NULL,
+                    quarantined_at   TEXT NOT NULL,
+                    released_at      TEXT,
+                    released_by      TEXT,
+                    release_reason   TEXT
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_quarantine_active_unique
+                    ON quarantined_packages(org_id, package_purl)
+                    WHERE released_at IS NULL;
+
+                CREATE INDEX IF NOT EXISTS idx_quarantine_org
+                    ON quarantined_packages(org_id);
+
                 CREATE TABLE IF NOT EXISTS scad_detections (
                     id               TEXT PRIMARY KEY,
                     org_id           TEXT NOT NULL,
@@ -450,3 +469,241 @@ class SupplyChainAttackDetectionEngine:
             "by_attack_type": {r["attack_type"]: r["cnt"] for r in attack_rows},
             "by_detection_type": {r["detection_type"]: r["cnt"] for r in det_type_rows},
         }
+
+    # ------------------------------------------------------------------
+    # BEHAVIORAL RISK SCORING (GAP-009)
+    # ------------------------------------------------------------------
+    # Weighted-signal scorer. Each known signal has a weight; contributing
+    # signals are accumulated to a 0-100 risk score, bucketed into
+    # low/medium/high/critical. Unknown signals are ignored.
+
+    _SIGNAL_WEIGHTS: Dict[str, float] = {
+        "postinstall_script": 18.0,
+        "typosquat_score": 22.0,       # value in 0.0-1.0 scales weight
+        "author_change_recent": 15.0,
+        "deps_expanded_recently": 12.0,
+        "obfuscated_code_detected": 20.0,
+        "ioc_matches": 25.0,           # value in 0.0-1.0 scales weight
+    }
+
+    def score_package_behavior(
+        self,
+        org_id: str,
+        package_purl: str,
+        signals: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Compute a weighted-signal risk score for a package's behavior.
+
+        Args:
+            org_id: Tenant identifier (for audit / downstream emission).
+            package_purl: Package URL (pkg:npm/.., pkg:pypi/..).
+            signals: Dict of signal_name -> value. Booleans contribute full
+                weight; numeric values in [0,1] scale the weight linearly.
+
+        Returns:
+            {risk_score, risk_level, contributing: [{signal, weight}]}
+        """
+        if not package_purl:
+            raise ValueError("package_purl is required")
+        if not isinstance(signals, dict):
+            raise ValueError("signals must be a dict")
+
+        score = 0.0
+        contributing: List[Dict[str, Any]] = []
+
+        for name, weight in self._SIGNAL_WEIGHTS.items():
+            raw = signals.get(name)
+            if raw is None or raw is False:
+                continue
+            if isinstance(raw, bool):
+                factor = 1.0 if raw else 0.0
+            else:
+                try:
+                    factor = float(raw)
+                except (TypeError, ValueError):
+                    continue
+                if factor <= 0:
+                    continue
+                # Clamp 0..1 for continuous signals
+                factor = max(0.0, min(1.0, factor))
+            contribution = weight * factor
+            if contribution <= 0:
+                continue
+            score += contribution
+            contributing.append({
+                "signal": name,
+                "value": raw,
+                "weight": weight,
+                "contribution": round(contribution, 2),
+            })
+
+        score = max(0.0, min(100.0, score))
+        if score >= 80.0:
+            level = "critical"
+        elif score >= 55.0:
+            level = "high"
+        elif score >= 25.0:
+            level = "medium"
+        else:
+            level = "low"
+
+        result = {
+            "org_id": org_id,
+            "package_purl": package_purl,
+            "risk_score": round(score, 2),
+            "risk_level": level,
+            "contributing": contributing,
+            "scored_at": self._now(),
+        }
+
+        _logger.info(
+            "scad.score_package_behavior org=%s purl=%s score=%.2f level=%s signals=%d",
+            org_id, package_purl, score, level, len(contributing),
+        )
+
+        if _get_tg_bus is not None and level in {"high", "critical"}:
+            try:
+                _get_tg_bus().emit("THREAT_DETECTED", {
+                    "org_id": org_id,
+                    "entity": "malicious_package_score",
+                    "package_purl": package_purl,
+                    "risk_score": round(score, 2),
+                    "risk_level": level,
+                    "signals": [c["signal"] for c in contributing],
+                })
+            except Exception:
+                pass
+
+        return result
+
+    # ------------------------------------------------------------------
+    # QUARANTINE QUEUE (GAP-009)
+    # ------------------------------------------------------------------
+
+    def quarantine_package(
+        self,
+        org_id: str,
+        package_purl: str,
+        reason: str,
+        quarantined_by: str,
+    ) -> Dict[str, Any]:
+        """Quarantine a package (purl) for an org. Unique on (org_id, purl)
+        while active (released_at IS NULL). Raises ValueError if already
+        actively quarantined.
+        """
+        if not package_purl:
+            raise ValueError("package_purl is required")
+        if not reason:
+            raise ValueError("reason is required")
+        if not quarantined_by:
+            raise ValueError("quarantined_by is required")
+
+        qid = str(uuid.uuid4())
+        now = self._now()
+        with self._lock, self._connect() as conn:
+            existing = conn.execute(
+                """SELECT id FROM quarantined_packages
+                   WHERE org_id=? AND package_purl=? AND released_at IS NULL""",
+                (org_id, package_purl),
+            ).fetchone()
+            if existing is not None:
+                raise ValueError(
+                    f"Package {package_purl} already actively quarantined for org {org_id}"
+                )
+            conn.execute(
+                """INSERT INTO quarantined_packages
+                   (id, org_id, package_purl, reason, quarantined_by,
+                    quarantined_at, released_at, released_by, release_reason)
+                   VALUES (?,?,?,?,?,?,?,?,?)""",
+                (qid, org_id, package_purl, reason, quarantined_by,
+                 now, None, None, None),
+            )
+
+        _logger.info(
+            "scad.quarantine org=%s purl=%s by=%s", org_id, package_purl, quarantined_by
+        )
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("POLICY_ENFORCED", {
+                    "org_id": org_id,
+                    "entity": "malicious_package_quarantine",
+                    "package_purl": package_purl,
+                    "action": "quarantine",
+                    "reason": reason,
+                })
+            except Exception:
+                pass
+
+        return self._get_quarantine_row(qid)
+
+    def release_quarantine(
+        self,
+        org_id: str,
+        package_purl: str,
+        released_by: str,
+        reason: str,
+    ) -> Dict[str, Any]:
+        """Release an active quarantine for (org_id, package_purl)."""
+        if not released_by:
+            raise ValueError("released_by is required")
+        if not reason:
+            raise ValueError("reason is required")
+
+        now = self._now()
+        with self._lock, self._connect() as conn:
+            row = conn.execute(
+                """SELECT id FROM quarantined_packages
+                   WHERE org_id=? AND package_purl=? AND released_at IS NULL""",
+                (org_id, package_purl),
+            ).fetchone()
+            if row is None:
+                raise ValueError(
+                    f"No active quarantine for {package_purl} in org {org_id}"
+                )
+            qid = row["id"]
+            conn.execute(
+                """UPDATE quarantined_packages
+                   SET released_at=?, released_by=?, release_reason=?
+                   WHERE id=?""",
+                (now, released_by, reason, qid),
+            )
+
+        _logger.info(
+            "scad.release_quarantine org=%s purl=%s by=%s", org_id, package_purl, released_by
+        )
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("POLICY_ENFORCED", {
+                    "org_id": org_id,
+                    "entity": "malicious_package_release",
+                    "package_purl": package_purl,
+                    "action": "release",
+                    "reason": reason,
+                })
+            except Exception:
+                pass
+        return self._get_quarantine_row(qid)
+
+    def list_quarantine(
+        self,
+        org_id: str,
+        active_only: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """List quarantined packages for org. active_only excludes released."""
+        query = "SELECT * FROM quarantined_packages WHERE org_id=?"
+        params: List[Any] = [org_id]
+        if active_only:
+            query += " AND released_at IS NULL"
+        query += " ORDER BY quarantined_at DESC"
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def _get_quarantine_row(self, qid: str) -> Dict[str, Any]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM quarantined_packages WHERE id=?", (qid,)
+            ).fetchone()
+        if not row:
+            raise ValueError(f"Quarantine record {qid} not found")
+        return dict(row)

@@ -52,6 +52,11 @@ _VALID_CHANGE_TYPES = {
     "ssl_changed", "port_opened", "port_closed",
 }
 
+# GAP-045: exposure-layer enum (network-zone tagging)
+_VALID_EXPOSURE_LAYERS = {
+    "external-internet", "dmz", "internal", "restricted", "isolated",
+}
+
 # Severity weights for surface score calculation
 _SEVERITY_WEIGHTS = {"critical": 10, "high": 5, "medium": 2, "low": 1, "info": 0}
 
@@ -166,6 +171,34 @@ class AttackSurfaceEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_changes_org_time
                     ON surface_changes (org_id, created_at DESC);
+
+                -- GAP-030: subsidiary attribution
+                CREATE TABLE IF NOT EXISTS asset_subsidiary_attribution (
+                    id                  TEXT PRIMARY KEY,
+                    org_id              TEXT NOT NULL,
+                    asset_ref           TEXT NOT NULL,
+                    subsidiary_name     TEXT NOT NULL,
+                    attribution_source  TEXT NOT NULL,
+                    confidence          REAL NOT NULL DEFAULT 0.5,
+                    attributed_at       DATETIME NOT NULL,
+                    UNIQUE(org_id, asset_ref)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_subsidiary_org_name
+                    ON asset_subsidiary_attribution (org_id, subsidiary_name);
+
+                -- GAP-045: exposure-layer metadata (network-zone tagging)
+                CREATE TABLE IF NOT EXISTS asset_exposure_layer (
+                    id              TEXT PRIMARY KEY,
+                    org_id          TEXT NOT NULL,
+                    asset_ref       TEXT NOT NULL,
+                    exposure_layer  TEXT NOT NULL,
+                    tagged_at       DATETIME NOT NULL,
+                    UNIQUE(org_id, asset_ref)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_exposure_layer_org
+                    ON asset_exposure_layer (org_id, exposure_layer);
             """)
 
     def _ensure_db(self, org_id: str) -> None:
@@ -596,3 +629,182 @@ class AttackSurfaceEngine:
             "by_severity": by_severity,
             "by_exposure_type": {r["exposure_type"]: r["cnt"] for r in by_exposure_type_rows},
         }
+
+    # ------------------------------------------------------------------
+    # GAP-030: Subsidiary Attribution
+    # ------------------------------------------------------------------
+
+    def attribute_asset_to_subsidiary(
+        self,
+        org_id: str,
+        asset_ref: str,
+        subsidiary_name: str,
+        attribution_source: str,
+        confidence: float,
+    ) -> Dict[str, Any]:
+        """Attribute an asset to a subsidiary org (GAP-030).
+
+        UNIQUE(org_id, asset_ref) — re-attribution updates the existing row
+        (INSERT OR REPLACE on conflict).
+        """
+        self._ensure_db(org_id)
+        asset_ref = (asset_ref or "").strip()
+        subsidiary_name = (subsidiary_name or "").strip()
+        attribution_source = (attribution_source or "").strip()
+        if not asset_ref:
+            raise ValueError("asset_ref is required.")
+        if not subsidiary_name:
+            raise ValueError("subsidiary_name is required.")
+        if not attribution_source:
+            raise ValueError("attribution_source is required.")
+        try:
+            confidence = float(confidence)
+        except (TypeError, ValueError):
+            raise ValueError("confidence must be a float between 0 and 1.")
+        if not (0.0 <= confidence <= 1.0):
+            raise ValueError("confidence must be between 0 and 1.")
+
+        now = _now_iso()
+        record = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "asset_ref": asset_ref,
+            "subsidiary_name": subsidiary_name,
+            "attribution_source": attribution_source,
+            "confidence": confidence,
+            "attributed_at": now,
+        }
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                # UPSERT: keep id stable if row already exists
+                existing = conn.execute(
+                    "SELECT id FROM asset_subsidiary_attribution WHERE org_id = ? AND asset_ref = ?",
+                    (org_id, asset_ref),
+                ).fetchone()
+                if existing:
+                    record["id"] = existing["id"]
+                    conn.execute(
+                        """UPDATE asset_subsidiary_attribution
+                           SET subsidiary_name = :subsidiary_name,
+                               attribution_source = :attribution_source,
+                               confidence = :confidence,
+                               attributed_at = :attributed_at
+                           WHERE org_id = :org_id AND asset_ref = :asset_ref""",
+                        record,
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO asset_subsidiary_attribution
+                           (id, org_id, asset_ref, subsidiary_name, attribution_source,
+                            confidence, attributed_at)
+                           VALUES (:id, :org_id, :asset_ref, :subsidiary_name,
+                                   :attribution_source, :confidence, :attributed_at)""",
+                        record,
+                    )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ASSET_DISCOVERED", {
+                        "entity_type": "subsidiary_attribution",
+                        "org_id": org_id,
+                        "asset_ref": asset_ref,
+                        "subsidiary_name": subsidiary_name,
+                        "source_engine": "attack_surface",
+                    })
+            except Exception:
+                pass
+        return record
+
+    def list_subsidiary_assets(
+        self,
+        org_id: str,
+        subsidiary_name: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List subsidiary-attributed assets (GAP-030)."""
+        self._ensure_db(org_id)
+        sql = "SELECT * FROM asset_subsidiary_attribution WHERE org_id = ?"
+        params: list = [org_id]
+        if subsidiary_name:
+            sql += " AND subsidiary_name = ?"
+            params.append(subsidiary_name)
+        sql += " ORDER BY attributed_at DESC"
+        with self._conn(org_id) as conn:
+            return [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+    # ------------------------------------------------------------------
+    # GAP-045: Exposure-Layer Metadata
+    # ------------------------------------------------------------------
+
+    def tag_exposure_layer(
+        self,
+        org_id: str,
+        asset_ref: str,
+        exposure_layer: str,
+    ) -> Dict[str, Any]:
+        """Tag an asset with its network-zone exposure layer (GAP-045).
+
+        exposure_layer MUST be one of _VALID_EXPOSURE_LAYERS.
+        UNIQUE(org_id, asset_ref) — re-tagging updates the existing row.
+        """
+        self._ensure_db(org_id)
+        asset_ref = (asset_ref or "").strip()
+        if not asset_ref:
+            raise ValueError("asset_ref is required.")
+        if exposure_layer not in _VALID_EXPOSURE_LAYERS:
+            raise ValueError(
+                f"Invalid exposure_layer: {exposure_layer!r}. "
+                f"Must be one of {sorted(_VALID_EXPOSURE_LAYERS)}"
+            )
+
+        now = _now_iso()
+        record = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "asset_ref": asset_ref,
+            "exposure_layer": exposure_layer,
+            "tagged_at": now,
+        }
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                existing = conn.execute(
+                    "SELECT id FROM asset_exposure_layer WHERE org_id = ? AND asset_ref = ?",
+                    (org_id, asset_ref),
+                ).fetchone()
+                if existing:
+                    record["id"] = existing["id"]
+                    conn.execute(
+                        """UPDATE asset_exposure_layer
+                           SET exposure_layer = :exposure_layer,
+                               tagged_at = :tagged_at
+                           WHERE org_id = :org_id AND asset_ref = :asset_ref""",
+                        record,
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO asset_exposure_layer
+                           (id, org_id, asset_ref, exposure_layer, tagged_at)
+                           VALUES (:id, :org_id, :asset_ref, :exposure_layer, :tagged_at)""",
+                        record,
+                    )
+        return record
+
+    def list_assets_by_exposure(
+        self,
+        org_id: str,
+        exposure_layer: str,
+    ) -> List[Dict[str, Any]]:
+        """List assets tagged with a given exposure layer (GAP-045)."""
+        self._ensure_db(org_id)
+        if exposure_layer not in _VALID_EXPOSURE_LAYERS:
+            raise ValueError(
+                f"Invalid exposure_layer: {exposure_layer!r}. "
+                f"Must be one of {sorted(_VALID_EXPOSURE_LAYERS)}"
+            )
+        with self._conn(org_id) as conn:
+            rows = conn.execute(
+                "SELECT * FROM asset_exposure_layer WHERE org_id = ? AND exposure_layer = ? "
+                "ORDER BY tagged_at DESC",
+                (org_id, exposure_layer),
+            ).fetchall()
+            return [dict(r) for r in rows]

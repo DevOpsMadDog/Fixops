@@ -17,14 +17,17 @@ Compliance: MITRE ATT&CK, STIX 2.1, TLP protocol, NIST SP 800-150
 
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import logging
 import sqlite3
+import tarfile
 import threading
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
@@ -348,6 +351,195 @@ class ThreatIntelFusionEngine:
             "expired": expired_count,
             "timestamp": now,
         }
+
+    # ------------------------------------------------------------------
+    # Offline / Air-Gapped Intelligence Bundle Ingest (GAP-002)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _sha256_bytes(data: bytes) -> str:
+        return hashlib.sha256(data).hexdigest()
+
+    def ingest_offline_bundle(
+        self,
+        org_id: str,
+        bundle_path: Union[str, Path],
+        verify: bool = True,
+    ) -> Dict[str, Any]:
+        """Ingest an air-gapped intel bundle produced by air_gap_bundle_engine.
+
+        The bundle is a tar.gz containing MANIFEST.json plus entries/*/<key>.json.
+        When verify=True, each entry's sha256 is recomputed and checked against
+        the manifest. Any entries under entries/ti/* are applied as fusion
+        indicators via ingest_indicator().
+
+        Returns: {ingested, skipped, errors, bundle_id, verified}
+        """
+        self._ensure_db(org_id)
+        archive_path = Path(bundle_path)
+        if not archive_path.exists():
+            return {
+                "ingested": 0,
+                "skipped": 0,
+                "errors": [f"bundle not found: {archive_path}"],
+                "bundle_id": "",
+                "verified": False,
+            }
+
+        manifest: Dict[str, Any] = {}
+        entry_bytes: Dict[str, bytes] = {}
+        errors: List[str] = []
+
+        try:
+            with tarfile.open(str(archive_path), "r:gz") as tar:
+                for member in tar.getmembers():
+                    f = tar.extractfile(member)
+                    if f is None:
+                        continue
+                    data = f.read()
+                    if member.name == "MANIFEST.json":
+                        try:
+                            manifest = json.loads(data.decode("utf-8"))
+                        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                            errors.append(f"manifest parse error: {exc}")
+                    else:
+                        entry_bytes[member.name] = data
+        except (tarfile.TarError, OSError) as exc:
+            return {
+                "ingested": 0,
+                "skipped": 0,
+                "errors": [f"archive open failed: {exc}"],
+                "bundle_id": "",
+                "verified": False,
+            }
+
+        if not manifest:
+            return {
+                "ingested": 0,
+                "skipped": 0,
+                "errors": errors + ["MANIFEST.json missing from archive"],
+                "bundle_id": "",
+                "verified": False,
+            }
+
+        bundle_id = manifest.get("bundle_id", "")
+        entries_meta: List[Dict[str, Any]] = manifest.get("entries", []) or []
+
+        # ---- verify manifest hashes if requested -------------------------
+        verified = True
+        if verify:
+            for meta in entries_meta:
+                tar_path = meta.get("path") or (
+                    f"entries/{meta.get('type')}/{meta.get('key')}.json"
+                )
+                declared = meta.get("sha256", "")
+                payload = entry_bytes.get(tar_path)
+                if payload is None:
+                    verified = False
+                    errors.append(f"entry payload missing: {tar_path}")
+                    continue
+                actual = self._sha256_bytes(payload)
+                if actual != declared:
+                    verified = False
+                    errors.append(
+                        f"sha256 mismatch: {tar_path} expected={declared} got={actual}"
+                    )
+
+            if not verified:
+                return {
+                    "ingested": 0,
+                    "skipped": len(entries_meta),
+                    "errors": errors,
+                    "bundle_id": bundle_id,
+                    "verified": False,
+                }
+
+        # ---- apply TI entries as indicators ------------------------------
+        ingested = 0
+        skipped = 0
+        for meta in entries_meta:
+            entry_type = meta.get("type", "")
+            if entry_type != "ti":
+                skipped += 1
+                continue
+            tar_path = meta.get("path") or (
+                f"entries/{entry_type}/{meta.get('key')}.json"
+            )
+            payload = entry_bytes.get(tar_path)
+            if payload is None:
+                skipped += 1
+                errors.append(f"missing payload for ti entry: {tar_path}")
+                continue
+            try:
+                row = json.loads(payload.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                skipped += 1
+                errors.append(f"ti entry decode failed: {tar_path}: {exc}")
+                continue
+
+            indicator_type = row.get("indicator_type") or row.get("type") or "ip"
+            if indicator_type not in _VALID_INDICATOR_TYPES:
+                indicator_type = "ip"
+            value = (
+                row.get("value")
+                or row.get("indicator_value")
+                or row.get("indicator")
+                or ""
+            )
+            if not value:
+                skipped += 1
+                errors.append(f"ti entry missing value: {tar_path}")
+                continue
+
+            try:
+                self.ingest_indicator(
+                    org_id,
+                    {
+                        "indicator_type": indicator_type,
+                        "value": str(value),
+                        "confidence": int(row.get("confidence", 50) or 50),
+                        "tags": row.get("tags") if isinstance(row.get("tags"), list) else [],
+                        "source_id": str(row.get("source_id", f"offline:{bundle_id}")),
+                        "expiry_days": int(row.get("expiry_days", 30) or 30),
+                    },
+                )
+                ingested += 1
+            except (ValueError, TypeError, sqlite3.Error) as exc:
+                skipped += 1
+                errors.append(f"ingest failed for {tar_path}: {exc}")
+
+        return {
+            "ingested": ingested,
+            "skipped": skipped,
+            "errors": errors,
+            "bundle_id": bundle_id,
+            "verified": verified,
+        }
+
+    def list_offline_bundles(self, org_id: str) -> List[Dict[str, Any]]:
+        """List air-gapped bundles discovered under .omc/air_gap_bundles/.
+
+        Scans the shared bundle directory and returns minimal metadata. Used
+        by operators to see which bundles are available for offline ingest.
+        """
+        base = Path(__file__).resolve().parents[2] / ".omc" / "air_gap_bundles"
+        if not base.exists():
+            return []
+        bundles: List[Dict[str, Any]] = []
+        for p in sorted(base.glob("*.tar.gz")):
+            try:
+                stat = p.stat()
+            except OSError:
+                continue
+            bundles.append({
+                "path": str(p),
+                "name": p.name,
+                "size_bytes": stat.st_size,
+                "modified_at": datetime.fromtimestamp(
+                    stat.st_mtime, tz=timezone.utc
+                ).isoformat(),
+            })
+        return bundles
 
     # ------------------------------------------------------------------
     # Stats
