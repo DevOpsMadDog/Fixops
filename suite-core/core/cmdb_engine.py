@@ -121,6 +121,19 @@ class CMDBEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_ci_categories_org
                     ON ci_categories (org_id);
+
+                -- GAP-059: shadow AI flags keyed to arbitrary asset references.
+                -- Reused across cmdb CIs, cloud inventory ids, and identity ids.
+                CREATE TABLE IF NOT EXISTS shadow_ai_flags (
+                    id         TEXT PRIMARY KEY,
+                    org_id     TEXT NOT NULL,
+                    asset_ref  TEXT NOT NULL,
+                    reason     TEXT NOT NULL DEFAULT '',
+                    flagged_at DATETIME NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_shadow_ai_flags_org
+                    ON shadow_ai_flags (org_id, asset_ref);
                 """
             )
 
@@ -402,6 +415,68 @@ class CMDBEngine:
             query = "SELECT * FROM ci_changes WHERE org_id=? ORDER BY change_date DESC"
             params = [org_id]
 
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # GAP-059: Shadow-AI flagging
+    # ------------------------------------------------------------------
+
+    def flag_as_shadow_ai(
+        self,
+        org_id: str,
+        asset_ref: str,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Tag an asset as shadow AI.
+
+        Writes to ``shadow_ai_flags``.  ``asset_ref`` is opaque — could be a
+        ci_id, a cloud_resource_inventory id, or an identity id.  Returns the
+        flag record.  Not idempotent; duplicate flags accumulate so that
+        repeat detections retain a forensic trail.
+        """
+        if not org_id:
+            raise ValueError("org_id is required")
+        asset_ref = (asset_ref or "").strip()
+        if not asset_ref:
+            raise ValueError("asset_ref is required")
+        flag_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    "INSERT INTO shadow_ai_flags "
+                    "(id, org_id, asset_ref, reason, flagged_at) "
+                    "VALUES (?,?,?,?,?)",
+                    (flag_id, org_id, asset_ref, reason, now),
+                )
+        return {
+            "id": flag_id,
+            "org_id": org_id,
+            "asset_ref": asset_ref,
+            "reason": reason,
+            "flagged_at": now,
+        }
+
+    def list_shadow_ai_flags(
+        self,
+        org_id: str,
+        asset_ref: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List shadow-AI flags scoped to org and optional asset_ref."""
+        if asset_ref is not None:
+            query = (
+                "SELECT * FROM shadow_ai_flags WHERE org_id=? AND asset_ref=? "
+                "ORDER BY flagged_at DESC"
+            )
+            params: list = [org_id, asset_ref]
+        else:
+            query = (
+                "SELECT * FROM shadow_ai_flags WHERE org_id=? "
+                "ORDER BY flagged_at DESC"
+            )
+            params = [org_id]
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]

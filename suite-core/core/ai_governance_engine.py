@@ -171,6 +171,22 @@ class AIGovernanceEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_rule_ctx_req_org
                     ON rule_context_requirements (org_id, rule_key);
+
+                -- GAP-059: Shadow-AI registry
+                CREATE TABLE IF NOT EXISTS ai_services_registry (
+                    id                  TEXT PRIMARY KEY,
+                    org_id              TEXT NOT NULL,
+                    service_name        TEXT NOT NULL,
+                    provider            TEXT NOT NULL DEFAULT '',
+                    data_classification TEXT NOT NULL DEFAULT 'internal',
+                    approved_by         TEXT NOT NULL DEFAULT '',
+                    approved_at         TEXT NOT NULL DEFAULT '',
+                    created_at          TEXT NOT NULL,
+                    UNIQUE(org_id, service_name)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ai_services_registry_org
+                    ON ai_services_registry (org_id, service_name);
                 """
             )
 
@@ -758,4 +774,445 @@ class AIGovernanceEngine:
             "total": total,
             "tier_distribution": tier_distribution,
             "summary": summary,
+        }
+
+    # ------------------------------------------------------------------
+    # GAP-059: Shadow-AI inventory
+    # ------------------------------------------------------------------
+
+    # Known AI provider domain signatures
+    _SHADOW_AI_DOMAIN_PATTERNS = (
+        "openai.com", "api.openai.com",
+        "anthropic.com", "api.anthropic.com",
+        "huggingface.co", "huggingface.com",
+        "cohere.ai", "cohere.com",
+        "mistral.ai",
+        "replicate.com",
+        "together.ai", "together.xyz",
+        "perplexity.ai",
+        "stability.ai",
+        "deepmind.com",
+        "x.ai",
+        "mulerouter.ai", "openrouter.ai",
+        "poe.com",
+    )
+
+    _SHADOW_AI_PACKAGE_PATTERNS = (
+        "openai", "anthropic", "langchain", "llama_index",
+        "transformers", "sentence-transformers", "huggingface-hub",
+        "cohere", "mistralai", "replicate", "together",
+        "tiktoken", "langgraph",
+    )
+
+    _SHADOW_AI_ENVVAR_PATTERNS = (
+        "OPENAI_", "ANTHROPIC_", "HUGGINGFACE_", "HF_",
+        "COHERE_", "MISTRAL_", "REPLICATE_", "TOGETHER_",
+        "PERPLEXITY_", "OPENROUTER_", "MULEROUTER_",
+    )
+
+    @staticmethod
+    def _shadow_match_text(text: str, patterns: tuple) -> Optional[str]:
+        if not text:
+            return None
+        hay = str(text).lower()
+        for p in patterns:
+            if p.lower() in hay:
+                return p
+        return None
+
+    @staticmethod
+    def _shadow_match_envvar(envvars: List[str]) -> Optional[str]:
+        for v in envvars or []:
+            vu = str(v).upper()
+            for p in AIGovernanceEngine._SHADOW_AI_ENVVAR_PATTERNS:
+                if vu.startswith(p):
+                    return v
+        return None
+
+    def _iter_cmdb_saas_signals(self, org_id: str) -> List[Dict[str, Any]]:
+        """Direct SQL read from cmdb.db (no cmdb import).
+
+        Looks at ci_items with ci_type in {'application','cloud_resource'} and
+        inspects name/ip_address/version/tags for AI-provider signals.
+        """
+        cmdb_path = Path(self._db_path).parent / "cmdb.db"
+        if not cmdb_path.exists():
+            return []
+        out: List[Dict[str, Any]] = []
+        try:
+            conn = sqlite3.connect(str(cmdb_path), timeout=5)
+            conn.row_factory = sqlite3.Row
+            try:
+                rows = conn.execute(
+                    "SELECT ci_id, name, ci_type, version, ip_address, tags "
+                    "FROM ci_items WHERE org_id = ? "
+                    "AND ci_type IN ('application','cloud_resource','container')",
+                    (org_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return []
+
+        for r in rows:
+            blob = " ".join([
+                str(r["name"] or ""),
+                str(r["version"] or ""),
+                str(r["ip_address"] or ""),
+                str(r["tags"] or ""),
+            ])
+            hit = (
+                self._shadow_match_text(blob, self._SHADOW_AI_DOMAIN_PATTERNS)
+                or self._shadow_match_text(blob, self._SHADOW_AI_PACKAGE_PATTERNS)
+            )
+            if hit:
+                out.append({
+                    "source": "cmdb",
+                    "asset_ref": r["ci_id"],
+                    "name": r["name"],
+                    "signal": hit,
+                    "signal_type": "domain_or_package",
+                })
+        return out
+
+    def _iter_cloud_inventory_signals(self, org_id: str) -> List[Dict[str, Any]]:
+        inv_path = Path(self._db_path).parent / "cloud_resource_inventory.db"
+        if not inv_path.exists():
+            return []
+        out: List[Dict[str, Any]] = []
+        try:
+            conn = sqlite3.connect(str(inv_path), timeout=5)
+            conn.row_factory = sqlite3.Row
+            try:
+                rows = conn.execute(
+                    "SELECT id, resource_id, resource_name, resource_type, tags_json "
+                    "FROM cri_resources WHERE org_id = ?",
+                    (org_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return []
+
+        for r in rows:
+            blob = " ".join([
+                str(r["resource_name"] or ""),
+                str(r["resource_id"] or ""),
+                str(r["tags_json"] or ""),
+            ])
+            hit = (
+                self._shadow_match_text(blob, self._SHADOW_AI_DOMAIN_PATTERNS)
+                or self._shadow_match_text(blob, self._SHADOW_AI_PACKAGE_PATTERNS)
+            )
+            if hit:
+                out.append({
+                    "source": "cloud_inventory",
+                    "asset_ref": r["id"],
+                    "name": r["resource_name"] or r["resource_id"],
+                    "signal": hit,
+                    "signal_type": "domain_or_package",
+                })
+        return out
+
+    def _iter_identity_signals(self, org_id: str) -> List[Dict[str, Any]]:
+        idr_path = Path(self._db_path).parent / "identity_risk.db"
+        if not idr_path.exists():
+            return []
+        out: List[Dict[str, Any]] = []
+        try:
+            conn = sqlite3.connect(str(idr_path), timeout=5)
+            conn.row_factory = sqlite3.Row
+            try:
+                rows = conn.execute(
+                    "SELECT id, username, email FROM ir_identities "
+                    "WHERE org_id = ?",
+                    (org_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return []
+
+        for r in rows:
+            blob = f"{r['username'] or ''} {r['email'] or ''}"
+            hit = self._shadow_match_text(blob, self._SHADOW_AI_DOMAIN_PATTERNS)
+            if hit:
+                out.append({
+                    "source": "identity_risk",
+                    "asset_ref": r["id"],
+                    "name": r["username"] or r["email"],
+                    "signal": hit,
+                    "signal_type": "domain",
+                })
+        return out
+
+    def _registered_service_names(self, org_id: str) -> set:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT service_name FROM ai_services_registry WHERE org_id = ?",
+                (org_id,),
+            ).fetchall()
+        return {r["service_name"].lower() for r in rows}
+
+    def discover_shadow_ai(
+        self,
+        org_id: str,
+        sources: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """Discover unregistered AI usage across cmdb / cloud inventory /
+        identity risk / explicit caller-supplied sources.
+
+        ``sources`` is an optional list of dicts with free-form fields,
+        e.g. ``{"asset_ref": "...", "domain": "...", "package": "...",
+        "envvars": ["OPENAI_API_KEY"]}``.  Each match contributes a
+        ``discovered`` entry tagged with the matching signal.
+        """
+        if not org_id:
+            raise ValueError("org_id is required.")
+
+        discovered: List[Dict[str, Any]] = []
+        discovered.extend(self._iter_cmdb_saas_signals(org_id))
+        discovered.extend(self._iter_cloud_inventory_signals(org_id))
+        discovered.extend(self._iter_identity_signals(org_id))
+
+        for entry in sources or []:
+            if not isinstance(entry, dict):
+                continue
+            domain = entry.get("domain")
+            pkg = entry.get("package")
+            envvars = entry.get("envvars") or []
+            hit = (
+                self._shadow_match_text(domain, self._SHADOW_AI_DOMAIN_PATTERNS)
+                or self._shadow_match_text(pkg, self._SHADOW_AI_PACKAGE_PATTERNS)
+                or self._shadow_match_envvar(envvars)
+            )
+            if hit:
+                discovered.append({
+                    "source": entry.get("source", "caller"),
+                    "asset_ref": entry.get("asset_ref", ""),
+                    "name": entry.get("name") or entry.get("asset_ref", ""),
+                    "signal": hit,
+                    "signal_type": (
+                        "envvar" if envvars and hit in envvars
+                        else "domain" if domain and hit.lower() in str(domain).lower()
+                        else "package"
+                    ),
+                })
+
+        # Split against registry
+        registered = self._registered_service_names(org_id)
+        unregistered: List[Dict[str, Any]] = []
+        already_registered: List[Dict[str, Any]] = []
+        for d in discovered:
+            # Use the matching signal as the canonical service token.
+            token = str(d.get("signal") or "").lower()
+            # The registry key is service_name; a simple containment check
+            # lets "OpenAI GPT-4" match a registered service called "openai".
+            is_registered = any(reg in token or token in reg for reg in registered)
+            if is_registered:
+                already_registered.append(d)
+            else:
+                unregistered.append(d)
+
+        total_signals = len(discovered)
+        registered_count = len(already_registered)
+        unregistered_count = len(unregistered)
+        coverage_pct = (
+            round(registered_count / total_signals * 100.0, 2)
+            if total_signals > 0
+            else 100.0
+        )
+
+        return {
+            "discovered": discovered,
+            "unregistered": unregistered,
+            "registered": already_registered,
+            "unregistered_count": unregistered_count,
+            "registered_count": registered_count,
+            "total_signals": total_signals,
+            "coverage_pct": coverage_pct,
+        }
+
+    def register_ai_service(
+        self,
+        org_id: str,
+        service_name: str,
+        provider: str = "",
+        data_classification: str = "internal",
+        approved_by: str = "",
+        approved_at: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Register an AI service into the approved registry.
+
+        UNIQUE(org_id, service_name) — ``INSERT OR IGNORE`` keeps idempotency;
+        re-registering the same service is a no-op that returns the stored row.
+        """
+        if not org_id:
+            raise ValueError("org_id is required.")
+        service_name = (service_name or "").strip()
+        if not service_name:
+            raise ValueError("service_name is required.")
+        if data_classification not in _VALID_DATA_CLASSIFICATIONS:
+            raise ValueError(
+                f"Invalid data_classification: {data_classification}. "
+                f"Must be one of {sorted(_VALID_DATA_CLASSIFICATIONS)}"
+            )
+        now = _now_iso()
+        approved_at = approved_at or now
+        record_id = str(uuid.uuid4())
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT OR IGNORE INTO ai_services_registry
+                       (id, org_id, service_name, provider, data_classification,
+                        approved_by, approved_at, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        record_id, org_id, service_name, provider,
+                        data_classification, approved_by, approved_at, now,
+                    ),
+                )
+                row = conn.execute(
+                    "SELECT * FROM ai_services_registry "
+                    "WHERE org_id = ? AND service_name = ?",
+                    (org_id, service_name),
+                ).fetchone()
+        return dict(row) if row else {}
+
+    def list_ai_services(self, org_id: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM ai_services_registry "
+                "WHERE org_id = ? ORDER BY service_name ASC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def ai_attack_paths(
+        self,
+        org_id: str,
+        service_name: str,
+    ) -> Dict[str, Any]:
+        """Return likely attack paths involving an AI service.
+
+        Graph shape:  identity → service → data_store
+
+        The method composes paths from: registered/unregistered identities
+        (best-effort from identity_risk.db), the service row (if registered),
+        and CMDB data stores (ci_type='database'/'storage').  For unregistered
+        services we still return a path — marked ``unregistered=True`` so
+        the caller can surface the gap.
+        """
+        if not org_id:
+            raise ValueError("org_id is required.")
+        service_name = (service_name or "").strip()
+        if not service_name:
+            raise ValueError("service_name is required.")
+
+        # Registry lookup
+        with self._conn() as conn:
+            svc = conn.execute(
+                "SELECT * FROM ai_services_registry "
+                "WHERE org_id = ? AND service_name = ?",
+                (org_id, service_name),
+            ).fetchone()
+        service_row = dict(svc) if svc else None
+        unregistered = service_row is None
+
+        # Pull a handful of human/service-account identities as likely callers
+        identities: List[Dict[str, Any]] = []
+        idr_path = Path(self._db_path).parent / "identity_risk.db"
+        if idr_path.exists():
+            try:
+                conn = sqlite3.connect(str(idr_path), timeout=5)
+                conn.row_factory = sqlite3.Row
+                try:
+                    rows = conn.execute(
+                        "SELECT id, username, identity_type, risk_level "
+                        "FROM ir_identities WHERE org_id = ? "
+                        "AND identity_type IN ('human','service_account','privileged') "
+                        "LIMIT 5",
+                        (org_id,),
+                    ).fetchall()
+                    identities = [dict(r) for r in rows]
+                finally:
+                    conn.close()
+            except sqlite3.Error:
+                identities = []
+
+        # Pull data stores from CMDB (if present)
+        data_stores: List[Dict[str, Any]] = []
+        cmdb_path = Path(self._db_path).parent / "cmdb.db"
+        if cmdb_path.exists():
+            try:
+                conn = sqlite3.connect(str(cmdb_path), timeout=5)
+                conn.row_factory = sqlite3.Row
+                try:
+                    rows = conn.execute(
+                        "SELECT ci_id, name, ci_type, criticality "
+                        "FROM ci_items WHERE org_id = ? "
+                        "AND ci_type IN ('database','storage') "
+                        "ORDER BY CASE criticality "
+                        "  WHEN 'critical' THEN 0 WHEN 'high' THEN 1 "
+                        "  WHEN 'medium' THEN 2 ELSE 3 END "
+                        "LIMIT 5",
+                        (org_id,),
+                    ).fetchall()
+                    data_stores = [dict(r) for r in rows]
+                finally:
+                    conn.close()
+            except sqlite3.Error:
+                data_stores = []
+
+        # Build attack paths. If either side is empty, emit a partial path
+        # keyed to the service alone so the frontend can still render the gap.
+        paths: List[Dict[str, Any]] = []
+        if identities and data_stores:
+            for ident in identities:
+                for ds in data_stores:
+                    paths.append({
+                        "path": [
+                            {"type": "identity", "ref": ident["id"],
+                             "label": ident.get("username") or ident["id"],
+                             "risk_level": ident.get("risk_level")},
+                            {"type": "ai_service", "ref": service_name,
+                             "label": service_name,
+                             "registered": not unregistered},
+                            {"type": "data_store", "ref": ds["ci_id"],
+                             "label": ds.get("name") or ds["ci_id"],
+                             "criticality": ds.get("criticality")},
+                        ],
+                        "techniques": [
+                            "prompt_injection",
+                            "data_exfiltration_via_tool_use",
+                            "unauthorized_model_access" if unregistered
+                            else "excessive_context_exposure",
+                        ],
+                        "severity": "critical" if unregistered else "high",
+                    })
+        else:
+            paths.append({
+                "path": [
+                    {"type": "identity", "ref": None, "label": "(unknown)"},
+                    {"type": "ai_service", "ref": service_name,
+                     "label": service_name,
+                     "registered": not unregistered},
+                    {"type": "data_store", "ref": None, "label": "(unknown)"},
+                ],
+                "techniques": [
+                    "prompt_injection",
+                    "data_exfiltration_via_tool_use",
+                ],
+                "severity": "critical" if unregistered else "medium",
+                "note": "partial_path: identities or data_stores missing",
+            })
+
+        return {
+            "service_name": service_name,
+            "registered": not unregistered,
+            "service": service_row,
+            "identity_count": len(identities),
+            "data_store_count": len(data_stores),
+            "path_count": len(paths),
+            "paths": paths,
         }
