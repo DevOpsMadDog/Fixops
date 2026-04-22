@@ -85,6 +85,21 @@ class SecurityPostureHistoryEngine:
                 CREATE INDEX IF NOT EXISTS idx_ps_org_domain
                     ON posture_snapshots (org_id, domain, snapshot_date);
 
+                -- GAP-063 lifecycle daily snapshot — one row per (org_id, day)
+                CREATE TABLE IF NOT EXISTS lifecycle_daily_snapshots (
+                    id              TEXT PRIMARY KEY,
+                    org_id          TEXT NOT NULL,
+                    day             TEXT NOT NULL,
+                    new_count       INTEGER NOT NULL DEFAULT 0,
+                    unchanged_count INTEGER NOT NULL DEFAULT 0,
+                    resolved_count  INTEGER NOT NULL DEFAULT 0,
+                    created_at      TEXT NOT NULL,
+                    UNIQUE (org_id, day)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_lds_org_day
+                    ON lifecycle_daily_snapshots (org_id, day DESC);
+
                 CREATE TABLE IF NOT EXISTS posture_trends (
                     id              TEXT PRIMARY KEY,
                     org_id          TEXT NOT NULL,
@@ -113,6 +128,24 @@ class SecurityPostureHistoryEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_pb_org_domain
                     ON posture_baselines (org_id, domain);
+                """
+            )
+            # Idempotent migration — ensure lifecycle snapshot table exists on
+            # pre-existing DBs created before GAP-063.
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS lifecycle_daily_snapshots (
+                    id              TEXT PRIMARY KEY,
+                    org_id          TEXT NOT NULL,
+                    day             TEXT NOT NULL,
+                    new_count       INTEGER NOT NULL DEFAULT 0,
+                    unchanged_count INTEGER NOT NULL DEFAULT 0,
+                    resolved_count  INTEGER NOT NULL DEFAULT 0,
+                    created_at      TEXT NOT NULL,
+                    UNIQUE (org_id, day)
+                );
+                CREATE INDEX IF NOT EXISTS idx_lds_org_day
+                    ON lifecycle_daily_snapshots (org_id, day DESC);
                 """
             )
 
@@ -492,3 +525,96 @@ class SecurityPostureHistoryEngine:
                 "gap_from_target": gap_from_target,
             })
         return summary
+
+    # ------------------------------------------------------------------
+    # GAP-063 Lifecycle daily snapshot
+    # ------------------------------------------------------------------
+
+    def record_lifecycle_snapshot(
+        self,
+        org_id: str,
+        day: Optional[str] = None,
+        new_count: Optional[int] = None,
+        unchanged_count: Optional[int] = None,
+        resolved_count: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Snapshot `{new, unchanged, resolved}` counts for an org for a day.
+
+        If ``day`` is None the current UTC date is used. Counts may be passed
+        directly (e.g. by a scheduler/reconciler); when omitted we pull them
+        from ``SecurityFindingsEngine.count_lifecycle_by_day`` so the snapshot
+        self-populates.
+        """
+        if not day:
+            day = datetime.now(timezone.utc).date().isoformat()
+        day = day[:10]
+
+        if new_count is None or unchanged_count is None or resolved_count is None:
+            try:
+                from core.security_findings_engine import SecurityFindingsEngine
+                sfe = SecurityFindingsEngine()
+                counts = sfe.count_lifecycle_by_day(org_id=org_id, day_iso=day)
+                if new_count is None:
+                    new_count = counts.get("new", 0)
+                if unchanged_count is None:
+                    unchanged_count = counts.get("unchanged", 0)
+                if resolved_count is None:
+                    resolved_count = counts.get("resolved", 0)
+            except Exception as exc:  # pragma: no cover — defensive
+                _logger.warning("lifecycle snapshot fallback due to %s", exc)
+                new_count = new_count or 0
+                unchanged_count = unchanged_count or 0
+                resolved_count = resolved_count or 0
+
+        now = _now_iso()
+        record_id = str(uuid.uuid4())
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    "SELECT id FROM lifecycle_daily_snapshots WHERE org_id = ? AND day = ?",
+                    (org_id, day),
+                ).fetchone()
+                if existing:
+                    record_id = existing["id"]
+                    conn.execute(
+                        """UPDATE lifecycle_daily_snapshots
+                           SET new_count = ?, unchanged_count = ?, resolved_count = ?,
+                               created_at = ?
+                           WHERE org_id = ? AND day = ?""",
+                        (int(new_count), int(unchanged_count), int(resolved_count),
+                         now, org_id, day),
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO lifecycle_daily_snapshots
+                           (id, org_id, day, new_count, unchanged_count, resolved_count, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        (record_id, org_id, day, int(new_count),
+                         int(unchanged_count), int(resolved_count), now),
+                    )
+        return {
+            "id": record_id,
+            "org_id": org_id,
+            "day": day,
+            "new_count": int(new_count),
+            "unchanged_count": int(unchanged_count),
+            "resolved_count": int(resolved_count),
+            "created_at": now,
+        }
+
+    def get_lifecycle_history(
+        self, org_id: str, days: int = 30
+    ) -> List[Dict[str, Any]]:
+        """Return the last N days of lifecycle snapshots for an org, newest-first."""
+        if days <= 0:
+            days = 30
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).date().isoformat()
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """SELECT * FROM lifecycle_daily_snapshots
+                       WHERE org_id = ? AND day >= ?
+                       ORDER BY day DESC""",
+                    (org_id, cutoff),
+                ).fetchall()
+        return [self._row(r) for r in rows]

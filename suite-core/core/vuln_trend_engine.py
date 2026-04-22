@@ -420,6 +420,50 @@ class VulnTrendEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # GAP-063 Lifecycle-aware trend
+    # ------------------------------------------------------------------
+
+    def trend_by_lifecycle(self, org_id: str, days: int = 7) -> Dict[str, Any]:
+        """Return rolling `{new, unchanged, resolved}` counts sourced from the
+        SecurityFindingsEngine lifecycle columns (GAP-063).
+
+        Falls back to zeros if the findings engine cannot be imported (keeps
+        the trend engine standalone-usable).
+        """
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+        except ImportError:
+            return {
+                "org_id": org_id,
+                "window_days": days,
+                "new": 0,
+                "unchanged": 0,
+                "resolved": 0,
+                "source": "unavailable",
+            }
+        try:
+            sfe = SecurityFindingsEngine()
+            summary = sfe.lifecycle_summary(org_id=org_id, days=days)
+            return {
+                "org_id": org_id,
+                "window_days": days,
+                "new": summary.get("new_last_Nd", 0),
+                "unchanged": summary.get("unchanged_last_Nd", 0),
+                "resolved": summary.get("resolved_last_Nd", 0),
+                "source": "security_findings_engine",
+            }
+        except Exception as exc:  # pragma: no cover — defensive
+            _logger.warning("trend_by_lifecycle fallback due to %s", exc)
+            return {
+                "org_id": org_id,
+                "window_days": days,
+                "new": 0,
+                "unchanged": 0,
+                "resolved": 0,
+                "source": "error",
+            }
+
     def get_trend_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate stats for an org."""
         with self._conn() as conn:

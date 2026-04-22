@@ -524,6 +524,77 @@ class SecurityDependencyMappingEngine:
             "total_affected": len(affected_service_details),
         }
 
+    # ------------------------------------------------------------------
+    # GAP-010 — reachability enrichment
+    # ------------------------------------------------------------------
+
+    def enrich_with_reachability(
+        self,
+        org_id: str,
+        finding_id: str,
+        cve_id: str,
+        dependency_fqn_pattern: str,
+    ) -> Dict[str, Any]:
+        """Delegate reachability analysis to function_reachability_engine.
+
+        Writes the ``reachability_verdict`` (reachable | unreachable |
+        unknown) to the reachability engine's own ``finding_reachability_verdicts``
+        table — no schema change on this engine.
+
+        This is the entry point called from vuln-finding pipelines: when a
+        dependency CVE is created, we call this to annotate the finding with
+        whether the customer's code can actually reach the vulnerable symbol.
+
+        Fails-closed: any error inside the reachability engine produces a
+        ``verdict: unknown`` record so the finding is never silently marked
+        unreachable on an error path.
+        """
+        try:
+            from core.function_reachability_engine import FunctionReachabilityEngine
+        except ImportError:
+            # Reachability engine unavailable -> emit an "unknown" verdict
+            _logger.warning(
+                "dep_map.enrich.fr_engine_missing org=%s finding=%s", org_id, finding_id
+            )
+            return {
+                "finding_id": finding_id,
+                "cve_id": cve_id,
+                "dependency_fqn_pattern": dependency_fqn_pattern,
+                "verdict": "unknown",
+                "reachable_callers": [],
+            }
+
+        fr = FunctionReachabilityEngine()
+        try:
+            callers = fr.vulnerable_reachability(
+                org_id=org_id,
+                cve_id=cve_id,
+                dependency_fqn_pattern=dependency_fqn_pattern,
+            )
+        except ValueError as exc:
+            _logger.warning(
+                "dep_map.enrich.fr_engine_error org=%s finding=%s err=%s",
+                org_id, finding_id, exc,
+            )
+            verdict = "unknown"
+            callers = []
+        else:
+            verdict = "reachable" if callers else "unreachable"
+
+        record = fr.record_finding_verdict(
+            org_id=org_id,
+            finding_id=finding_id,
+            cve_id=cve_id,
+            dependency_fqn_pattern=dependency_fqn_pattern,
+            verdict=verdict,
+            reachable_callers=callers,
+        )
+        _logger.info(
+            "dep_map.enrich_ok org=%s finding=%s verdict=%s callers=%d",
+            org_id, finding_id, verdict, len(callers),
+        )
+        return record
+
     def get_summary(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate summary for org's dependency map."""
         with self._conn() as conn:
