@@ -31,6 +31,17 @@ User asked for: graphify (deep) on Fixops + compare vs truecourse-ai + 5-agent c
 
 **Patch needed after synthesis completes:** add truecourse-analysis.md insights (tiered LLM router, violation lifecycle, architecture graph, VS Code extension gap, YAML rule DSL gap) into the gap matrix.
 
+## LATEST STATE (updated 2026-04-22 ~22:10)
+
+Work completed since resume plan was first written:
+- ✅ Multica push succeeded — **374 stories / 481 sub-tasks** now on board at http://localhost:3000/aldeci/issues
+- ✅ TrueCourse patch pass added 9 gaps → matrix is 69 rows / 42 tasks total
+- ✅ All 42 v2 PRDs generated in `.omc/prds/v2/` (naming: `<new_engine>.md` or `gap_<gap_id>_<slug>.md`)
+- ✅ `.env` restored with MuleRouter key (`MULEROUTER_API_KEY`, `OPENROUTER_API_KEY`, base URL, default model `qwen/qwen3-6b-max`)
+- ✅ Two commits made on `features/intermediate-stage`: `50f1596e` + follow-up TrueCourse patch commit
+- ⏳ TrustGraph wiring agent `a1144042d23314e6c` running in background — writes `scripts/inject_gap_intelligence_to_trustgraph.py` + dry-run report
+- ⏸ SwarmClaw push deferred — :3456 API needs manual web UI login for API token; I triggered rate limiter (900s lockout)
+
 ## Next steps (after resume)
 
 In order:
