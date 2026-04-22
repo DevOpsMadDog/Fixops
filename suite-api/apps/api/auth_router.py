@@ -283,3 +283,140 @@ async def get_key_audit_log(key_id: str, request: Request, limit: int = Query(de
     km = _get_key_manager()
     log = km.get_audit_log(key_id=key_id, limit=limit)
     return {"key_id": key_id, "entries": log}
+
+
+# ---------------------------------------------------------------------------
+# GAP-039 — Disposable scoped user tokens
+# GAP-050 — Role-view switcher
+# ---------------------------------------------------------------------------
+
+def _get_rbac_engine():
+    """Lazy-load RBAC engine."""
+    try:
+        from core.rbac_engine import RBACEngine
+        return RBACEngine()
+    except (ImportError, OSError) as exc:
+        raise HTTPException(status_code=503, detail=f"RBAC engine unavailable: {exc}")
+
+
+def _caller_identity(request: Request) -> Dict[str, str]:
+    """Extract caller org_id + user_id from request state (set by auth middleware)."""
+    org_id = getattr(request.state, "org_id", None) or "default"
+    user_id = getattr(request.state, "user_id", None) or "system"
+    return {"org_id": str(org_id), "user_id": str(user_id)}
+
+
+class DisposableTokenCreate(BaseModel):
+    """Request to mint a disposable scoped token."""
+    scope: List[str] = Field(..., min_length=1)
+    ttl_seconds: int = Field(..., gt=0, le=86400 * 30)
+    purpose: str = Field(..., min_length=1, max_length=512)
+
+
+class DisposableTokenCreateResponse(BaseModel):
+    """Disposable token mint response — raw_token returned ONCE."""
+    token_id: str
+    raw_token: str
+    expires_at: str
+    scope: List[str]
+
+
+class RoleViewCreate(BaseModel):
+    """Request to switch role view."""
+    target_role: str = Field(..., min_length=1)
+    duration_seconds: int = Field(default=3600, gt=0, le=86400)
+
+
+@router.post("/disposable-token", response_model=DisposableTokenCreateResponse,
+             status_code=201, dependencies=[Depends(api_key_auth)])
+async def mint_disposable_token_endpoint(req: DisposableTokenCreate, request: Request):
+    """Mint a disposable scoped token — raw token returned ONCE."""
+    ident = _caller_identity(request)
+    engine = _get_rbac_engine()
+    try:
+        result = engine.mint_disposable_token(
+            org_id=ident["org_id"],
+            minted_by=ident["user_id"],
+            scope=req.scope,
+            ttl_seconds=req.ttl_seconds,
+            purpose=req.purpose,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return DisposableTokenCreateResponse(**result)
+
+
+@router.delete("/disposable-token/{token_id}", dependencies=[Depends(api_key_auth)])
+async def revoke_disposable_token_endpoint(token_id: str, request: Request):
+    """Revoke a disposable token in the caller's org."""
+    ident = _caller_identity(request)
+    engine = _get_rbac_engine()
+    ok = engine.revoke_disposable_token(
+        org_id=ident["org_id"],
+        token_id=token_id,
+        revoked_by=ident["user_id"],
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Token not found or already revoked")
+    return {"status": "revoked", "token_id": token_id}
+
+
+@router.get("/disposable-tokens", dependencies=[Depends(api_key_auth)])
+async def list_disposable_tokens_endpoint(
+    request: Request,
+    org_id: Optional[str] = None,
+    active_only: bool = Query(default=True),
+):
+    """List disposable tokens (never returns raw_token/hash). Defaults to caller's org."""
+    ident = _caller_identity(request)
+    target_org = org_id or ident["org_id"]
+    # Tenant isolation: prevent cross-org listing unless caller has admin:all
+    caller_scopes: list = getattr(request.state, "user_scopes", []) or []
+    if target_org != ident["org_id"] and "admin:all" not in caller_scopes:
+        raise HTTPException(status_code=403, detail="Cannot list tokens from another org")
+    engine = _get_rbac_engine()
+    tokens = engine.list_disposable_tokens(org_id=target_org, active_only=active_only)
+    return {"org_id": target_org, "count": len(tokens), "tokens": tokens}
+
+
+@router.post("/role-view", status_code=201, dependencies=[Depends(api_key_auth)])
+async def switch_role_view_endpoint(req: RoleViewCreate, request: Request):
+    """Switch caller's role view (temporary override)."""
+    ident = _caller_identity(request)
+    engine = _get_rbac_engine()
+    try:
+        result = engine.switch_role_view(
+            org_id=ident["org_id"],
+            user_id=ident["user_id"],
+            target_role=req.target_role,
+            duration_seconds=req.duration_seconds,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return result
+
+
+@router.get("/role-view", dependencies=[Depends(api_key_auth)])
+async def get_role_view_endpoint(request: Request):
+    """Get the caller's current active role-view override (or null)."""
+    ident = _caller_identity(request)
+    engine = _get_rbac_engine()
+    active = engine.get_active_role_view(
+        org_id=ident["org_id"], user_id=ident["user_id"]
+    )
+    return {"active_override": active}
+
+
+@router.delete("/role-view/{override_id}", dependencies=[Depends(api_key_auth)])
+async def end_role_view_endpoint(override_id: str, request: Request):
+    """End an active role-view override."""
+    ident = _caller_identity(request)
+    engine = _get_rbac_engine()
+    ok = engine.end_role_view(
+        org_id=ident["org_id"],
+        override_id=override_id,
+        user_id=ident["user_id"],
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Override not found or already ended")
+    return {"status": "ended", "override_id": override_id}

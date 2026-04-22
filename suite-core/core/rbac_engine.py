@@ -1,10 +1,13 @@
 """Multi-tenant RBAC engine — role-based access control with tenant isolation."""
 from __future__ import annotations
 
+import hashlib
 import json
+import secrets
 import sqlite3
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -123,6 +126,39 @@ class RBACEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_audit_org
                     ON audit_trail(org_id);
+
+                CREATE TABLE IF NOT EXISTS disposable_tokens (
+                    id          TEXT PRIMARY KEY,
+                    org_id      TEXT NOT NULL,
+                    token_hash  TEXT NOT NULL UNIQUE,
+                    minted_by   TEXT NOT NULL,
+                    scope_json  TEXT NOT NULL,
+                    purpose     TEXT NOT NULL,
+                    ttl_seconds INTEGER NOT NULL,
+                    minted_at   TEXT NOT NULL,
+                    expires_at  TEXT NOT NULL,
+                    revoked_at  TEXT,
+                    revoked_by  TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_disposable_tokens_org
+                    ON disposable_tokens(org_id);
+
+                CREATE INDEX IF NOT EXISTS idx_disposable_tokens_hash
+                    ON disposable_tokens(token_hash);
+
+                CREATE TABLE IF NOT EXISTS role_view_overrides (
+                    id          TEXT PRIMARY KEY,
+                    org_id      TEXT NOT NULL,
+                    user_id     TEXT NOT NULL,
+                    target_role TEXT NOT NULL,
+                    started_at  TEXT NOT NULL,
+                    expires_at  TEXT NOT NULL,
+                    ended_at    TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_role_view_user_org
+                    ON role_view_overrides(user_id, org_id);
                 """
             )
 
@@ -347,6 +383,273 @@ class RBACEngine:
         return [dict(r) for r in rows]
 
 
+    # ------------------------------------------------------------------
+    # GAP-039 — Disposable scoped user tokens
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _hash_token(raw_token: str) -> str:
+        return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+    def mint_disposable_token(
+        self,
+        org_id: str,
+        minted_by: str,
+        scope: List[str],
+        ttl_seconds: int,
+        purpose: str,
+    ) -> Dict[str, Any]:
+        """Mint a disposable scoped token. Raw token returned ONCE; only hash is stored."""
+        if not isinstance(scope, list) or not all(isinstance(s, str) for s in scope):
+            raise ValueError("scope must be a list of strings")
+        if not isinstance(ttl_seconds, int) or ttl_seconds <= 0:
+            raise ValueError("ttl_seconds must be a positive integer")
+        if not purpose:
+            raise ValueError("purpose must be non-empty")
+
+        token_id = str(uuid.uuid4())
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = self._hash_token(raw_token)
+        now = datetime.now(timezone.utc)
+        minted_at = now.isoformat()
+        expires_at = (now + timedelta(seconds=ttl_seconds)).isoformat()
+
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO disposable_tokens
+                    (id, org_id, token_hash, minted_by, scope_json, purpose,
+                     ttl_seconds, minted_at, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    token_id,
+                    org_id,
+                    token_hash,
+                    minted_by,
+                    json.dumps(scope),
+                    purpose,
+                    ttl_seconds,
+                    minted_at,
+                    expires_at,
+                ),
+            )
+
+        _logger.info(
+            "rbac.mint_disposable_token",
+            token_id=token_id,
+            org_id=org_id,
+            minted_by=minted_by,
+            purpose=purpose,
+            ttl_seconds=ttl_seconds,
+        )
+
+        return {
+            "token_id": token_id,
+            "raw_token": raw_token,
+            "expires_at": expires_at,
+            "scope": list(scope),
+        }
+
+    def verify_disposable_token(self, raw_token: str) -> Optional[Dict[str, Any]]:
+        """Verify a disposable token. Returns metadata if valid, else None."""
+        if not raw_token:
+            return None
+        token_hash = self._hash_token(raw_token)
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM disposable_tokens WHERE token_hash=?",
+                (token_hash,),
+            ).fetchone()
+        if row is None:
+            return None
+        if row["revoked_at"] is not None:
+            return None
+        try:
+            expires_at = datetime.fromisoformat(row["expires_at"])
+        except ValueError:
+            return None
+        if expires_at <= datetime.now(timezone.utc):
+            return None
+        try:
+            scope = json.loads(row["scope_json"])
+        except (ValueError, TypeError):
+            scope = []
+        return {
+            "token_id": row["id"],
+            "org_id": row["org_id"],
+            "minted_by": row["minted_by"],
+            "scope": scope,
+            "purpose": row["purpose"],
+            "expires_at": row["expires_at"],
+        }
+
+    def revoke_disposable_token(
+        self, org_id: str, token_id: str, revoked_by: str
+    ) -> bool:
+        """Revoke a disposable token (org-scoped). Returns True if revoked."""
+        now_iso = _now_iso()
+        with self._get_conn() as conn:
+            cur = conn.execute(
+                """
+                UPDATE disposable_tokens
+                SET revoked_at=?, revoked_by=?
+                WHERE id=? AND org_id=? AND revoked_at IS NULL
+                """,
+                (now_iso, revoked_by, token_id, org_id),
+            )
+        revoked = cur.rowcount > 0
+        if revoked:
+            _logger.info(
+                "rbac.revoke_disposable_token",
+                token_id=token_id,
+                org_id=org_id,
+                revoked_by=revoked_by,
+            )
+        return revoked
+
+    def list_disposable_tokens(
+        self, org_id: str, active_only: bool = True
+    ) -> List[Dict[str, Any]]:
+        """List disposable tokens for an org. Never returns raw_token or token_hash."""
+        with self._get_conn() as conn:
+            if active_only:
+                now_iso = _now_iso()
+                rows = conn.execute(
+                    """
+                    SELECT id, org_id, minted_by, scope_json, purpose, ttl_seconds,
+                           minted_at, expires_at, revoked_at, revoked_by
+                    FROM disposable_tokens
+                    WHERE org_id=? AND revoked_at IS NULL AND expires_at > ?
+                    ORDER BY minted_at DESC
+                    """,
+                    (org_id, now_iso),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT id, org_id, minted_by, scope_json, purpose, ttl_seconds,
+                           minted_at, expires_at, revoked_at, revoked_by
+                    FROM disposable_tokens
+                    WHERE org_id=?
+                    ORDER BY minted_at DESC
+                    """,
+                    (org_id,),
+                ).fetchall()
+        results: List[Dict[str, Any]] = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["scope"] = json.loads(d.pop("scope_json"))
+            except (ValueError, TypeError):
+                d["scope"] = []
+                d.pop("scope_json", None)
+            results.append(d)
+        return results
+
+    # ------------------------------------------------------------------
+    # GAP-050 — Role-view switcher
+    # ------------------------------------------------------------------
+
+    def switch_role_view(
+        self,
+        org_id: str,
+        user_id: str,
+        target_role: str,
+        duration_seconds: int = 3600,
+    ) -> Dict[str, Any]:
+        """Temporarily switch user's view to another role. Ends any active override first."""
+        if target_role not in ROLES:
+            raise ValueError(f"Unknown role '{target_role}'. Valid roles: {list(ROLES)}")
+        if not isinstance(duration_seconds, int) or duration_seconds <= 0:
+            raise ValueError("duration_seconds must be a positive integer")
+
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat()
+        # End any currently active override for this user+org (one active at a time).
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                UPDATE role_view_overrides
+                SET ended_at=?
+                WHERE org_id=? AND user_id=? AND ended_at IS NULL
+                """,
+                (now_iso, org_id, user_id),
+            )
+            override_id = str(uuid.uuid4())
+            expires_at = (now + timedelta(seconds=duration_seconds)).isoformat()
+            conn.execute(
+                """
+                INSERT INTO role_view_overrides
+                    (id, org_id, user_id, target_role, started_at, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (override_id, org_id, user_id, target_role, now_iso, expires_at),
+            )
+
+        _logger.info(
+            "rbac.switch_role_view",
+            override_id=override_id,
+            org_id=org_id,
+            user_id=user_id,
+            target_role=target_role,
+            duration_seconds=duration_seconds,
+        )
+
+        return {
+            "override_id": override_id,
+            "org_id": org_id,
+            "user_id": user_id,
+            "target_role": target_role,
+            "started_at": now_iso,
+            "expires_at": expires_at,
+        }
+
+    def get_active_role_view(
+        self, org_id: str, user_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get the currently active (not expired, not ended) role-view override."""
+        now_iso = _now_iso()
+        with self._get_conn() as conn:
+            row = conn.execute(
+                """
+                SELECT id, org_id, user_id, target_role, started_at, expires_at, ended_at
+                FROM role_view_overrides
+                WHERE org_id=? AND user_id=? AND ended_at IS NULL AND expires_at > ?
+                ORDER BY started_at DESC
+                LIMIT 1
+                """,
+                (org_id, user_id, now_iso),
+            ).fetchone()
+        if row is None:
+            return None
+        return dict(row)
+
+    def end_role_view(
+        self, org_id: str, override_id: str, user_id: str
+    ) -> bool:
+        """End an active role-view override. Returns True if ended."""
+        now_iso = _now_iso()
+        with self._get_conn() as conn:
+            cur = conn.execute(
+                """
+                UPDATE role_view_overrides
+                SET ended_at=?
+                WHERE id=? AND org_id=? AND user_id=? AND ended_at IS NULL
+                """,
+                (now_iso, override_id, org_id, user_id),
+            )
+        ended = cur.rowcount > 0
+        if ended:
+            _logger.info(
+                "rbac.end_role_view",
+                override_id=override_id,
+                org_id=org_id,
+                user_id=user_id,
+            )
+        return ended
+
+
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
@@ -359,7 +662,6 @@ except ImportError:
 
 
 def _now_iso() -> str:
-    from datetime import datetime, timezone
     return datetime.now(timezone.utc).isoformat()
 
 
