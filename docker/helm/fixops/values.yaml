@@ -1,0 +1,173 @@
+# Fixops Helm values — placeholder (Sprint 3 fills out Patroni, Sentinel, ingress)
+# Reference document: docs/deployment/on-prem-ha.md
+#
+# Supersedes the former `onprem_ha_reference_engine` PRD (GAP-003 KILL 2026-04-22).
+# This is an artefact, not runtime code.
+
+global:
+  # Deployment mode: single | ha-3 | ha-5 | dr-pair | air-gap
+  mode: ha-3
+  # Enable air-gap guard (disables any component that might try to phone home)
+  airGap: false
+  # Enable FIPS 140-3 crypto (GAP-042)
+  fipsMode: false
+  # Image registry override (mandatory in air-gap)
+  imageRegistry: ""
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  storageClass: ""
+  # TLS config
+  tls:
+    enabled: true
+    secretName: fixops-tls
+    caBundleSecretName: fixops-ca-bundle
+
+# Fixops API gateway (FastAPI)
+api:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/devopsmaddog/fixops-api
+    tag: ""  # defaults to .Chart.appVersion
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  service:
+    type: ClusterIP
+    port: 8000
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+  livenessProbe:
+    httpGet:
+      path: /api/v1/platform/health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /api/v1/platform/health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+
+# Pipeline workers (Brain Pipeline 12-step)
+pipelineWorker:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/devopsmaddog/fixops-pipeline-worker
+    tag: ""
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetQueueDepth: 50
+
+# UI (React 19 + Vite 6)
+ui:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/devopsmaddog/fixops-ui
+    tag: ""
+
+# Postgres (via CloudNativePG or Zalando Postgres Operator — operator-of-choice)
+postgres:
+  # When bundled: Fixops ships a Patroni-managed StatefulSet
+  # When external: set external.enabled=true and supply connection details via secret
+  bundled:
+    enabled: true
+    replicas: 3
+    version: "15.5"
+    storage:
+      size: 500Gi
+      className: ""
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 16Gi
+      requests:
+        cpu: 1000m
+        memory: 4Gi
+    backup:
+      enabled: true
+      objectStore: "s3://fixops-backups/pg"
+      retentionDays: 30
+  external:
+    enabled: false
+    secretName: fixops-postgres-external
+    # Secret must contain: host, port, database, username, password, sslmode=verify-full
+
+# Redis Sentinel
+redis:
+  bundled:
+    enabled: true
+    replicas: 3
+    sentinels: 3
+    version: "7.2"
+    password:
+      secretName: fixops-redis-auth
+    persistence:
+      enabled: true
+      size: 50Gi
+  external:
+    enabled: false
+    secretName: fixops-redis-external
+
+# TrustGraph (event bus + knowledge graph)
+trustgraph:
+  enabled: true
+  storage:
+    size: 200Gi
+
+# Evidence vault (object store — S3 / MinIO / Azure Blob)
+evidenceVault:
+  enabled: true
+  objectStore: ""  # e.g. "s3://fixops-evidence"
+  objectLockEnabled: true
+  retention:
+    hotDays: 30
+    warmDays: 365
+    coldYears: 7
+
+# Ingress
+ingress:
+  enabled: true
+  className: nginx
+  host: fixops.example.com
+  tls:
+    enabled: true
+    secretName: fixops-tls
+
+# Network policies (default-deny + targeted allow-lists)
+networkPolicy:
+  enabled: true
+
+# Prometheus / observability
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitorEnabled: true
+  grafana:
+    dashboardsEnabled: true
+
+# Preflight job (runs before install completes)
+preflight:
+  enabled: true
+  exitOnFailure: true

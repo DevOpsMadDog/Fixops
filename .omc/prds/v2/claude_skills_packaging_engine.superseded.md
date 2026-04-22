@@ -1,3 +1,5 @@
+> **SUPERSEDED 2026-04-22** — GAP-067 is **not an engine**. Replacement artefact: `scripts/publish_skills.sh` (shell packager) + `.claude/skills/fixops/*.md` (skill content). See `docs/GAP_PRD_RECONCILE_2026-04-22.md` KILL row for GAP-067. No Python engine or router will be created for this gap.
+
 # US-0067: Claude Code Skills as first-class UX: /fixops-scan, /fixops-triage, /fixops-suppress, /fixops-hooks
 
 ## Sub-Epic: Integrations

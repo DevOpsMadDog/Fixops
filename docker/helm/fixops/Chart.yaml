@@ -1,0 +1,26 @@
+apiVersion: v2
+name: fixops
+description: Fixops — Unified ASPM + CTEM + CSPM platform. HA reference chart (placeholder; real templates land in Sprint 3).
+type: application
+version: 0.1.0
+appVersion: "1.0.0-alpha"
+kubeVersion: ">=1.28.0-0"
+keywords:
+  - security
+  - aspm
+  - ctem
+  - cspm
+  - ctem-plus
+  - fixops
+  - aldeci
+home: https://github.com/DevOpsMadDog/Fixops
+sources:
+  - https://github.com/DevOpsMadDog/Fixops
+maintainers:
+  - name: Fixops Core
+    email: info@devopsai.co
+    url: https://github.com/DevOpsMadDog
+annotations:
+  supersedes: onprem_ha_reference_engine (GAP-003 KILL 2026-04-22)
+  reference-doc: docs/deployment/on-prem-ha.md
+dependencies: []

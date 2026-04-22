@@ -1,3 +1,5 @@
+> **SUPERSEDED 2026-04-22** — GAP-003 is **not an engine**. Replacement artifacts: `docs/deployment/on-prem-ha.md` (hardening + HA guide) + `docker/helm/fixops/` (Helm chart). See `docs/GAP_PRD_RECONCILE_2026-04-22.md` KILL row for GAP-003. No Python engine or router will be created for this gap.
+
 # US-0003: Publish Fixops on-prem HA reference architecture: Helm charts, StatefulSet, external PG, HA LB, hardening guide
 
 ## Sub-Epic: Air-gap/On-prem

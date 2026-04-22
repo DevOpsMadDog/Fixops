@@ -1,0 +1,69 @@
+{{/*
+Fixops API StatefulSet — placeholder stub (GAP-003 KILL replacement).
+
+Sprint 3 will split this into per-component StatefulSets/Deployments:
+  - templates/api-deployment.yaml
+  - templates/pipeline-statefulset.yaml
+  - templates/postgres-patroni.yaml
+  - templates/redis-sentinel.yaml
+  - templates/trustgraph-statefulset.yaml
+  - templates/evidence-vault.yaml
+  - templates/ingress.yaml
+  - templates/networkpolicy.yaml
+
+See docs/deployment/on-prem-ha.md §8 for the planned layout.
+*/}}
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "fixops.fullname" . | default "fixops-api" }}
+  labels:
+    app.kubernetes.io/name: fixops
+    app.kubernetes.io/component: api
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    fixops.io/supersedes: "onprem_ha_reference_engine (GAP-003 KILL 2026-04-22)"
+spec:
+  serviceName: {{ include "fixops.fullname" . | default "fixops-api" }}
+  replicas: {{ .Values.api.replicaCount | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fixops
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fixops
+        app.kubernetes.io/component: api
+    spec:
+      securityContext:
+        runAsNonRoot: {{ .Values.api.securityContext.runAsNonRoot | default true }}
+        runAsUser: {{ .Values.api.securityContext.runAsUser | default 1000 }}
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.service.port | default 8000 }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.api.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.api.readinessProbe | nindent 12 }}
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.api.securityContext.readOnlyRootFilesystem | default true }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: FIXOPS_DEPLOY_MODE
+              value: {{ .Values.global.mode | quote }}
+            - name: FIXOPS_AIRGAP
+              value: {{ .Values.global.airGap | quote }}
+            - name: FIXOPS_FIPS_MODE
+              value: {{ .Values.global.fipsMode | quote }}
+{{- end }}

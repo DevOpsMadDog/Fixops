@@ -266,7 +266,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ### LOWER PRIORITY
 9. ✅ **Frontend pages wired to live APIs** — 372 pages, 99.1% engine DBs seeded (105/106) — DONE
-10. ✅ **TrustGraph event bus** — 332/332 engines wired (was 97% gap), 296 emit sites, 100% connected — DONE
+10. ✅ **TrustGraph event bus** — 334/334 engines wired (was 97% gap), 296 emit sites, 100% connected — DONE
 
 ### DONE (sessions 2026-04-13 and 2026-04-14)
 - ✅ Beast Mode test coverage +138 tests (brain_pipeline + 19 scanner normalizers) → 285 tests
@@ -1012,7 +1012,7 @@ ComplianceGapDashboard (all wired in App.tsx)
 - ✅ UserPreferences modal — notification settings, default time range, density
 
 **TrustGraph Intelligence Mesh (100% closed):**
-- ✅ 332/332 engines wired to event bus (was 240/331 — gap fully closed)
+- ✅ 334/334 engines wired to event bus (was 240/331 — gap fully closed)
 - ✅ 296 emit sites across 268 engines
 - ✅ 9 subscriber chains verified (21 tests), dedup guard (deque maxlen=1000) on all
 - ✅ GraphRAG: 5/5 templates return real data (964 relationships indexed)
@@ -1078,7 +1078,7 @@ ComplianceGapDashboard (all wired in App.tsx)
 - ✅ Dedup guard on all 9 subscribers (deque maxlen=1000)
 
 **TrustGraph Wiring:**
-- ✅ 332/332 engines now wired to TrustGraph event bus (was 240/331)
+- ✅ 334/334 engines now wired to TrustGraph event bus (was 240/331)
 - ✅ 296 emit sites across 268 engines
 - ✅ TrustGraph gap CLOSED — 100% connected
 
@@ -1102,7 +1102,7 @@ ComplianceGapDashboard (all wired in App.tsx)
 - ✅ 111 new smoke tests (5 previously uncovered engines)
 - ✅ Zero Trust router prefix collision fixed
 
-**Test totals after Wave 43:** 36,272 test functions, 332/332 engines covered, zero regressions
+**Test totals after Wave 43:** 36,272 test functions, 334/334 engines covered, zero regressions
 
 ---
 
@@ -1118,7 +1118,7 @@ ComplianceGapDashboard (all wired in App.tsx)
 - ✅ 1 rate limiter not clearing on valid auth
 
 **Intelligence Mesh (100% active):**
-- ✅ 332/332 engines TrustGraph wired (296 emit sites)
+- ✅ 334/334 engines TrustGraph wired (296 emit sites)
 - ✅ Risk aggregator ← brain graph sync + FINDING_CREATED subscriber
 - ✅ Supply chain ← brain graph sync + GRAPH_UPDATED subscriber
 - ✅ 9 subscriber chains verified (21 tests), dedup on all
@@ -1145,7 +1145,7 @@ ComplianceGapDashboard (all wired in App.tsx)
 - ✅ ASPM 5 real repos (291 components, 66 CVEs)
 
 **Board & PRDs:**
-- ✅ 332 detailed PRDs (mermaid + code proof + personas)
+- ✅ 334 detailed PRDs (mermaid + code proof + personas — engine-aligned count after 2026-04-22 reconcile)
 - ✅ 2,449/2,466 Multica issues done (99.3%)
 - ✅ ALDECI-560 enriched (16K chars, scrum master WOW)
 - ✅ Multica auto-updater + burndown
@@ -1166,7 +1166,7 @@ ComplianceGapDashboard (all wired in App.tsx)
 - ✅ Frontend code-splitting (all chunks <500kB)
 - ✅ Rate limiter auto-clear on valid auth, 429 retry in scripts
 
-**Totals:** 332 engines | 560 routers | 289 pages (287 wired) | 36,545 tests | 150/150 walkthrough | 10/10 investor demo
+**Totals:** 334 engines | 560 routers | 289 pages (287 wired) | 36,545 tests | 150/150 walkthrough | 10/10 investor demo
 
 ---
 
