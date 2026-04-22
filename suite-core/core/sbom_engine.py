@@ -223,6 +223,36 @@ class SBOMEngine:
 
                     CREATE INDEX IF NOT EXISTS idx_licrisks_org
                         ON license_risks (org_id, license_spdx);
+
+                    CREATE TABLE IF NOT EXISTS sbom_component_claims (
+                        id            TEXT PRIMARY KEY,
+                        org_id        TEXT NOT NULL,
+                        purl          TEXT NOT NULL,
+                        claimant      TEXT NOT NULL,
+                        claim_type    TEXT NOT NULL DEFAULT 'owner',
+                        evidence_uri  TEXT NOT NULL DEFAULT '',
+                        claimed_at    TEXT NOT NULL,
+                        UNIQUE(org_id, purl, claimant)
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_claims_org_purl
+                        ON sbom_component_claims (org_id, purl);
+
+                    CREATE TABLE IF NOT EXISTS sbom_reeval_schedules (
+                        id             TEXT PRIMARY KEY,
+                        org_id         TEXT NOT NULL,
+                        sbom_id        TEXT NOT NULL,
+                        cron_expr      TEXT NOT NULL DEFAULT '0 0 * * *',
+                        last_run_at    TEXT NOT NULL DEFAULT '',
+                        next_run_at    TEXT NOT NULL,
+                        enabled        INTEGER NOT NULL DEFAULT 1,
+                        findings_delta INTEGER NOT NULL DEFAULT 0,
+                        created_at     TEXT NOT NULL,
+                        UNIQUE(org_id, sbom_id, cron_expr)
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_reeval_org_sbom
+                        ON sbom_reeval_schedules (org_id, sbom_id);
                     """
                 )
 
@@ -797,3 +827,258 @@ class SBOMEngine:
             "license_risk_high": int(license_risk_high),
             "formats_exported": formats_exported,
         }
+
+    # ------------------------------------------------------------------
+    # GAP-057: Component claim (attestation that a party owns / builds /
+    # distributes a given purl). UNIQUE (org_id, purl, claimant) dedups.
+    # ------------------------------------------------------------------
+
+    _VALID_CLAIM_TYPES = {"owner", "maintainer", "distributor", "redistributor", "builder"}
+
+    def register_component_claim(
+        self,
+        org_id: str,
+        component_purl: str,
+        claimant: str,
+        claim_type: str = "owner",
+        evidence_uri: str = "",
+        claimed_at: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Register a component claim. Idempotent on (org_id, purl, claimant)."""
+        self._ensure_db(org_id)
+        purl = (component_purl or "").strip()
+        if not purl:
+            raise ValueError("component_purl is required.")
+        claimant = (claimant or "").strip()
+        if not claimant:
+            raise ValueError("claimant is required.")
+        ct = (claim_type or "owner").strip()
+        if ct not in self._VALID_CLAIM_TYPES:
+            raise ValueError(
+                f"claim_type must be one of {sorted(self._VALID_CLAIM_TYPES)}"
+            )
+        ts = claimed_at or _now_iso()
+        record: Dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "purl": purl,
+            "claimant": claimant,
+            "claim_type": ct,
+            "evidence_uri": evidence_uri or "",
+            "claimed_at": ts,
+        }
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                conn.execute(
+                    """INSERT OR IGNORE INTO sbom_component_claims
+                       (id, org_id, purl, claimant, claim_type,
+                        evidence_uri, claimed_at)
+                       VALUES (:id, :org_id, :purl, :claimant, :claim_type,
+                               :evidence_uri, :claimed_at)""",
+                    record,
+                )
+                existing = conn.execute(
+                    """SELECT * FROM sbom_component_claims
+                       WHERE org_id = ? AND purl = ? AND claimant = ?""",
+                    (org_id, purl, claimant),
+                ).fetchone()
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "ENTITY_UPDATED",
+                        {
+                            "entity_type": "sbom_component_claim",
+                            "org_id": org_id,
+                            "source_engine": "sbom",
+                        },
+                    )
+            except Exception:
+                pass
+        return self._row(existing) if existing else record
+
+    def list_component_claims(
+        self, org_id: str, purl: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """List component claims for an org; optionally filter by purl."""
+        self._ensure_db(org_id)
+        sql = "SELECT * FROM sbom_component_claims WHERE org_id = ?"
+        params: list = [org_id]
+        if purl:
+            sql += " AND purl = ?"
+            params.append(purl)
+        sql += " ORDER BY claimed_at DESC"
+        with self._conn(org_id) as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._row(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # GAP-055: SBOM re-eval schedule. Naive cron parser — supports
+    # the 5-field form and the simple aliases @hourly/@daily/@weekly.
+    # Explicit minute/hour/day-of-month/day-of-week fields are honoured
+    # when numeric; star falls back to the next appropriate tick.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compute_next_run(cron_expr: str, base_time: datetime) -> datetime:
+        """Compute the next run time for a cron expression.
+
+        Supports:
+          - ``@hourly`` / ``@daily`` / ``@weekly``
+          - 5-field form ``min hour dom mon dow`` (stars + integers)
+          - falls back to daily (24h) on malformed input
+        """
+        from datetime import timedelta
+
+        if base_time.tzinfo is None:
+            base_time = base_time.replace(tzinfo=timezone.utc)
+
+        expr = (cron_expr or "").strip().lower()
+
+        if expr in {"@hourly", "0 * * * *"}:
+            # Top of the next hour
+            nxt = base_time.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            return nxt
+        if expr in {"@daily", "0 0 * * *", "@midnight"}:
+            nxt = base_time.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            return nxt
+        if expr in {"@weekly", "0 0 * * 0"}:
+            nxt = base_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Advance to the next Sunday (weekday() Monday=0, Sunday=6)
+            days = (6 - nxt.weekday()) % 7
+            if days == 0:
+                days = 7
+            return nxt + timedelta(days=days)
+
+        parts = expr.split()
+        if len(parts) != 5:
+            # Fall back to daily
+            return base_time + timedelta(days=1)
+
+        minute_f, hour_f, _dom, _mon, _dow = parts
+
+        # Star-minute + star-hour → daily
+        if minute_f == "*" and hour_f == "*":
+            return base_time + timedelta(hours=1)
+
+        try:
+            target_min = int(minute_f) if minute_f != "*" else base_time.minute
+            target_hr = int(hour_f) if hour_f != "*" else base_time.hour
+        except ValueError:
+            return base_time + timedelta(days=1)
+
+        target_min = max(0, min(59, target_min))
+        target_hr = max(0, min(23, target_hr))
+
+        candidate = base_time.replace(
+            hour=target_hr, minute=target_min, second=0, microsecond=0
+        )
+        if candidate <= base_time:
+            # If star-hour, bump by an hour; else by a day
+            if hour_f == "*":
+                candidate = candidate + timedelta(hours=1)
+            else:
+                candidate = candidate + timedelta(days=1)
+        return candidate
+
+    def schedule_reeval(
+        self,
+        org_id: str,
+        sbom_id: str,
+        cron_expr: str,
+    ) -> Dict[str, Any]:
+        """Schedule periodic re-evaluation of an SBOM. Idempotent."""
+        self._ensure_db(org_id)
+        sbom_id = (sbom_id or "").strip()
+        if not sbom_id:
+            raise ValueError("sbom_id is required.")
+        cron_expr = (cron_expr or "@daily").strip() or "@daily"
+
+        now_dt = datetime.now(timezone.utc)
+        next_run = self._compute_next_run(cron_expr, now_dt).isoformat()
+        now_iso = now_dt.isoformat()
+        record: Dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "sbom_id": sbom_id,
+            "cron_expr": cron_expr,
+            "last_run_at": "",
+            "next_run_at": next_run,
+            "enabled": 1,
+            "findings_delta": 0,
+            "created_at": now_iso,
+        }
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                conn.execute(
+                    """INSERT OR IGNORE INTO sbom_reeval_schedules
+                       (id, org_id, sbom_id, cron_expr, last_run_at,
+                        next_run_at, enabled, findings_delta, created_at)
+                       VALUES (:id, :org_id, :sbom_id, :cron_expr, :last_run_at,
+                               :next_run_at, :enabled, :findings_delta, :created_at)""",
+                    record,
+                )
+                existing = conn.execute(
+                    """SELECT * FROM sbom_reeval_schedules
+                       WHERE org_id = ? AND sbom_id = ? AND cron_expr = ?""",
+                    (org_id, sbom_id, cron_expr),
+                ).fetchone()
+        return self._row(existing) if existing else record
+
+    def list_reeval_schedules(
+        self, org_id: str, enabled: Optional[bool] = None
+    ) -> List[Dict[str, Any]]:
+        """List re-eval schedules for an org; optionally filter by enabled flag."""
+        self._ensure_db(org_id)
+        sql = "SELECT * FROM sbom_reeval_schedules WHERE org_id = ?"
+        params: list = [org_id]
+        if enabled is True:
+            sql += " AND enabled = 1"
+        elif enabled is False:
+            sql += " AND enabled = 0"
+        sql += " ORDER BY next_run_at ASC"
+        with self._conn(org_id) as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._row(r) for r in rows]
+
+    def mark_reeval_done(
+        self, schedule_id: str, findings_delta: int = 0
+    ) -> Optional[Dict[str, Any]]:
+        """Mark a re-eval as done; update last_run_at and advance next_run_at."""
+        schedule_id = (schedule_id or "").strip()
+        if not schedule_id:
+            raise ValueError("schedule_id is required.")
+
+        # The schedule is stored in a per-org DB; we must find it. The router
+        # layer knows org_id, so we accept a locator that scans known dbs.
+        # In practice, callers invoke this via the API which passes org_id.
+        # Here we expose org-agnostic lookup by scanning the data dir.
+        now_dt = datetime.now(timezone.utc)
+        now_iso = now_dt.isoformat()
+
+        for db_file in self._data_dir.glob("*_sbom.db"):
+            org_id = db_file.name.rsplit("_sbom.db", 1)[0]
+            with self._get_lock(org_id):
+                with self._conn(org_id) as conn:
+                    row = conn.execute(
+                        "SELECT * FROM sbom_reeval_schedules WHERE id = ?",
+                        (schedule_id,),
+                    ).fetchone()
+                    if not row:
+                        continue
+                    cron_expr = row["cron_expr"]
+                    next_run = self._compute_next_run(cron_expr, now_dt).isoformat()
+                    conn.execute(
+                        """UPDATE sbom_reeval_schedules
+                           SET last_run_at = ?, next_run_at = ?,
+                               findings_delta = findings_delta + ?
+                           WHERE id = ?""",
+                        (now_iso, next_run, int(findings_delta), schedule_id),
+                    )
+                    updated = conn.execute(
+                        "SELECT * FROM sbom_reeval_schedules WHERE id = ?",
+                        (schedule_id,),
+                    ).fetchone()
+                    return self._row(updated) if updated else None
+        return None

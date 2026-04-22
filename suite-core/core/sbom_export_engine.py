@@ -45,7 +45,7 @@ _VALID_ECOSYSTEMS = {
     "npm", "pypi", "maven", "nuget", "cargo", "go", "gem", "composer",
 }
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "informational"}
-_VALID_FORMATS = {"cyclonedx", "spdx"}
+_VALID_FORMATS = {"cyclonedx", "spdx", "swid", "ort", "csaf"}
 
 
 def _now_iso() -> str:
@@ -577,6 +577,323 @@ class SBOMExportEngine:
                 (org_id, project_name),
             ).fetchall()
         return [self._row(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # GAP-041: Format matrix — SWID (ISO/IEC 19770-2), ORT, CSAF
+    # ------------------------------------------------------------------
+
+    def _fetch_components_for_project(
+        self, org_id: str, project_name: str
+    ) -> List[sqlite3.Row]:
+        with self._conn() as conn:
+            return conn.execute(
+                """SELECT * FROM sbom_components
+                   WHERE org_id = ? AND project_name = ?
+                   ORDER BY component_name""",
+                (org_id, project_name),
+            ).fetchall()
+
+    def _record_export(
+        self,
+        org_id: str,
+        project_name: str,
+        fmt: str,
+        version_tag: str,
+        component_count: int,
+        exported_by: str,
+    ) -> str:
+        now = _now_iso()
+        export_id = str(uuid.uuid4())
+        export_row = {
+            "id": export_id,
+            "org_id": org_id,
+            "project_name": project_name,
+            "format": fmt,
+            "version_tag": version_tag,
+            "component_count": component_count,
+            "generated_at": now,
+            "exported_by": exported_by,
+            "created_at": now,
+        }
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO sbom_exports
+                       (id, org_id, project_name, format, version_tag,
+                        component_count, generated_at, exported_by, created_at)
+                       VALUES (:id, :org_id, :project_name, :format, :version_tag,
+                               :component_count, :generated_at, :exported_by, :created_at)""",
+                    export_row,
+                )
+        return export_id
+
+    def generate_swid(
+        self,
+        org_id: str,
+        project_name: str,
+        version_tag: str = "1.0",
+        exported_by: str = "",
+    ) -> str:
+        """Generate a SWID tag (ISO/IEC 19770-2) XML document.
+
+        Returns the XML string. Emits one top-level <SoftwareIdentity>
+        wrapping one <Entity> per registered component plus the project root.
+        """
+        import xml.etree.ElementTree as ET
+
+        comps = self._fetch_components_for_project(org_id, project_name)
+
+        root = ET.Element(
+            "SoftwareIdentity",
+            {
+                "xmlns": "http://standards.iso.org/iso/19770/-2/2015/schema.xsd",
+                "name": project_name,
+                "tagId": f"aldeci-{org_id}-{project_name}-{version_tag}",
+                "version": version_tag,
+                "versionScheme": "multipartnumeric",
+            },
+        )
+        ET.SubElement(
+            root,
+            "Entity",
+            {"name": "ALDECI", "regid": "aldeci.io", "role": "tagCreator softwareCreator"},
+        )
+
+        for c in comps:
+            payload = ET.SubElement(root, "Payload")
+            ET.SubElement(
+                payload,
+                "File",
+                {
+                    "name": c["component_name"],
+                    "version": c["component_version"],
+                    "size": "0",
+                    **({"SHA256": c["hash_sha256"]} if c["hash_sha256"] else {}),
+                },
+            )
+            link_attrs = {
+                "rel": "component",
+                "href": c["purl"] or f"swid:{c['component_name']}@{c['component_version']}",
+            }
+            ET.SubElement(root, "Link", link_attrs)
+
+        xml_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+        xml_str = xml_bytes.decode("utf-8")
+
+        self._record_export(
+            org_id, project_name, "swid", version_tag, len(comps), exported_by
+        )
+        return xml_str
+
+    def generate_ort(
+        self,
+        org_id: str,
+        project_name: str,
+        version_tag: str = "1.0",
+        exported_by: str = "",
+    ) -> Dict[str, Any]:
+        """Generate OSS Review Toolkit (ORT) analyzer_result JSON."""
+        now = _now_iso()
+        comps = self._fetch_components_for_project(org_id, project_name)
+
+        project = {
+            "id": f"Project::{project_name}:{version_tag}",
+            "definition_file_path": "",
+            "declared_licenses": [],
+            "homepage_url": "",
+            "scope_names": ["default"],
+            "vcs": {"type": "", "url": "", "revision": ""},
+        }
+        packages: List[Dict[str, Any]] = []
+        for c in comps:
+            packages.append(
+                {
+                    "package": {
+                        "id": (
+                            f"{(c['ecosystem'] or 'Generic').capitalize()}::"
+                            f"{c['component_name']}:{c['component_version']}"
+                        ),
+                        "purl": c["purl"],
+                        "declared_licenses": [c["license"]] if c["license"] else [],
+                        "homepage_url": "",
+                        "description": "",
+                        "binary_artifact": {"url": "", "hash": {"value": c["hash_sha256"], "algorithm": "SHA-256"}},
+                        "vcs": {"type": "", "url": "", "revision": ""},
+                        "supplier": c["supplier"],
+                    },
+                    "curations": [],
+                }
+            )
+
+        doc = {
+            "analyzer_result": {
+                "projects": [project],
+                "packages": packages,
+                "has_issues": False,
+            },
+            "start_time": now,
+            "end_time": now,
+            "environment": {
+                "ort_version": "ALDECI-1.0",
+                "java_version": "",
+                "os": "",
+                "variables": {},
+                "tool_versions": {},
+            },
+        }
+
+        export_id = self._record_export(
+            org_id, project_name, "ort", version_tag, len(comps), exported_by
+        )
+        doc["_export_id"] = export_id
+        return doc
+
+    def generate_csaf(
+        self,
+        org_id: str,
+        project_name: str,
+        version_tag: str = "1.0",
+        exported_by: str = "",
+    ) -> Dict[str, Any]:
+        """Generate a CSAF 2.0 JSON document with product_tree and vulnerabilities."""
+        now = _now_iso()
+        comps = self._fetch_components_for_project(org_id, project_name)
+
+        # Build vulnerability rollup
+        comp_ids = [c["id"] for c in comps]
+        vulns: list = []
+        if comp_ids:
+            placeholders = ",".join("?" * len(comp_ids))
+            with self._conn() as conn:
+                vulns = conn.execute(
+                    f"SELECT * FROM sbom_vulnerabilities WHERE component_id IN ({placeholders}) AND org_id = ?",  # nosec B608
+                    comp_ids + [org_id],
+                ).fetchall()
+
+        product_tree: Dict[str, Any] = {"branches": []}
+        for c in comps:
+            product_id = f"CSAFPID-{c['id']}"
+            product_tree["branches"].append(
+                {
+                    "category": "product_name",
+                    "name": c["component_name"],
+                    "branches": [
+                        {
+                            "category": "product_version",
+                            "name": c["component_version"],
+                            "product": {
+                                "name": c["component_name"],
+                                "product_id": product_id,
+                                "product_identification_helper": {
+                                    "purl": c["purl"],
+                                    **({"cpe": c["cpe"]} if c["cpe"] else {}),
+                                },
+                            },
+                        }
+                    ],
+                }
+            )
+
+        purl_to_pid = {c["purl"]: f"CSAFPID-{c['id']}" for c in comps}
+        csaf_vulnerabilities: List[Dict[str, Any]] = []
+        for v in vulns:
+            # Find the component via id match
+            pid = None
+            for c in comps:
+                if c["id"] == v["component_id"]:
+                    pid = f"CSAFPID-{c['id']}"
+                    break
+            csaf_vulnerabilities.append(
+                {
+                    "cve": v["cve_id"],
+                    "notes": [
+                        {
+                            "category": "description",
+                            "text": f"Affects {v['affects_version']}" if v["affects_version"] else "Affected component",
+                        }
+                    ],
+                    "product_status": {"known_affected": [pid] if pid else []},
+                    "scores": [
+                        {
+                            "cvss_v3": {
+                                "version": "3.1",
+                                "baseScore": v["cvss_score"],
+                                "baseSeverity": v["severity"].upper(),
+                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            },
+                            "products": [pid] if pid else [],
+                        }
+                    ],
+                }
+            )
+
+        doc = {
+            "document": {
+                "category": "csaf_vex",
+                "csaf_version": "2.0",
+                "title": f"CSAF VEX: {project_name} {version_tag}",
+                "publisher": {
+                    "category": "vendor",
+                    "name": "ALDECI",
+                    "namespace": "https://aldeci.io",
+                },
+                "tracking": {
+                    "id": f"ALDECI-CSAF-{org_id}-{project_name}-{version_tag}",
+                    "initial_release_date": now,
+                    "current_release_date": now,
+                    "version": version_tag,
+                    "status": "final",
+                    "revision_history": [
+                        {"number": version_tag, "date": now, "summary": "Initial release"}
+                    ],
+                    "generator": {
+                        "engine": {"name": "ALDECI SBOMExportEngine", "version": "1.0"},
+                    },
+                },
+                "distribution": {"tlp": {"label": "WHITE"}},
+            },
+            "product_tree": product_tree,
+            "vulnerabilities": csaf_vulnerabilities,
+        }
+
+        export_id = self._record_export(
+            org_id, project_name, "csaf", version_tag, len(comps), exported_by
+        )
+        doc["_export_id"] = export_id
+        return doc
+
+    @property
+    def export_formats(self) -> Dict[str, Any]:
+        """Dispatcher mapping format name → generator callable.
+
+        Each generator has signature:
+          (org_id, project_name, version_tag='1.0', exported_by='') -> dict|str
+        """
+        return {
+            "cyclonedx": self.generate_cyclonedx,
+            "spdx": self.generate_spdx,
+            "swid": self.generate_swid,
+            "ort": self.generate_ort,
+            "csaf": self.generate_csaf,
+        }
+
+    def export(
+        self,
+        fmt: str,
+        org_id: str,
+        project_name: str,
+        version_tag: str = "1.0",
+        exported_by: str = "",
+    ) -> Any:
+        """Universal dispatcher: export(fmt, org, project) → document in fmt."""
+        fmt_l = (fmt or "").lower().strip()
+        if fmt_l not in _VALID_FORMATS:
+            raise ValueError(
+                f"format must be one of: {sorted(_VALID_FORMATS)}"
+            )
+        return self.export_formats[fmt_l](
+            org_id, project_name, version_tag, exported_by
+        )
 
     def search_component(self, org_id: str, query: str) -> List[Dict[str, Any]]:
         """Search components by name or purl."""
