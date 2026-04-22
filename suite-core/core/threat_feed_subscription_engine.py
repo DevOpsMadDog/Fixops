@@ -109,6 +109,8 @@ class ThreatFeedSubscriptionEngine:
                     last_fetched            TEXT,
                     ioc_count               INTEGER NOT NULL DEFAULT 0,
                     error_count             INTEGER NOT NULL DEFAULT 0,
+                    offline_mode            INTEGER NOT NULL DEFAULT 0,
+                    offline_bundle_source   TEXT NOT NULL DEFAULT '',
                     created_at              TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_fs_org ON feed_subscriptions (org_id, status);
@@ -144,6 +146,26 @@ class ThreatFeedSubscriptionEngine:
 
     def _ensure_db(self, org_id: str) -> None:
         self._init_db(org_id)
+        # Back-compat: ALTER TABLE for existing DBs missing offline_mode columns.
+        with self._conn(org_id) as conn:
+            cols = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(feed_subscriptions)").fetchall()
+            }
+            if "offline_mode" not in cols:
+                try:
+                    conn.execute(
+                        "ALTER TABLE feed_subscriptions ADD COLUMN offline_mode INTEGER NOT NULL DEFAULT 0"
+                    )
+                except sqlite3.OperationalError:
+                    pass
+            if "offline_bundle_source" not in cols:
+                try:
+                    conn.execute(
+                        "ALTER TABLE feed_subscriptions ADD COLUMN offline_bundle_source TEXT NOT NULL DEFAULT ''"
+                    )
+                except sqlite3.OperationalError:
+                    pass
 
     @staticmethod
     def _row(row: sqlite3.Row) -> Dict[str, Any]:
@@ -393,6 +415,98 @@ class ThreatFeedSubscriptionEngine:
                 except (ValueError, TypeError):
                     due.append(sub)
         return due
+
+    # ------------------------------------------------------------------
+    # Offline mode (GAP-002 — air-gapped bundle ingestion)
+    # ------------------------------------------------------------------
+
+    def enable_offline_mode(
+        self,
+        org_id: str,
+        bundle_source_path: str,
+        subscription_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Flip a subscription (or all active subs for the org) to offline mode.
+
+        When offline_mode=1, the subscription is fed from a local air-gapped
+        bundle directory instead of an HTTP feed. Returns updated rows.
+        """
+        self._ensure_db(org_id)
+        if not bundle_source_path or not str(bundle_source_path).strip():
+            raise ValueError("bundle_source_path is required")
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                if subscription_id:
+                    cursor = conn.execute(
+                        """UPDATE feed_subscriptions
+                              SET offline_mode = 1, offline_bundle_source = ?
+                            WHERE id = ? AND org_id = ?""",
+                        (bundle_source_path, subscription_id, org_id),
+                    )
+                    if cursor.rowcount == 0:
+                        raise ValueError(f"Subscription '{subscription_id}' not found.")
+                else:
+                    conn.execute(
+                        """UPDATE feed_subscriptions
+                              SET offline_mode = 1, offline_bundle_source = ?
+                            WHERE org_id = ?""",
+                        (bundle_source_path, org_id),
+                    )
+                rows = conn.execute(
+                    "SELECT * FROM feed_subscriptions WHERE org_id = ? AND offline_mode = 1",
+                    (org_id,),
+                ).fetchall()
+        return {
+            "org_id": org_id,
+            "bundle_source_path": bundle_source_path,
+            "updated": [self._row(r) for r in rows],
+            "count": len(rows),
+        }
+
+    def disable_offline_mode(
+        self,
+        org_id: str,
+        subscription_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Return a subscription (or all offline subs) to online mode."""
+        self._ensure_db(org_id)
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                if subscription_id:
+                    cursor = conn.execute(
+                        """UPDATE feed_subscriptions
+                              SET offline_mode = 0, offline_bundle_source = ''
+                            WHERE id = ? AND org_id = ?""",
+                        (subscription_id, org_id),
+                    )
+                    if cursor.rowcount == 0:
+                        raise ValueError(f"Subscription '{subscription_id}' not found.")
+                else:
+                    conn.execute(
+                        """UPDATE feed_subscriptions
+                              SET offline_mode = 0, offline_bundle_source = ''
+                            WHERE org_id = ?""",
+                        (org_id,),
+                    )
+                rows = conn.execute(
+                    "SELECT * FROM feed_subscriptions WHERE org_id = ?",
+                    (org_id,),
+                ).fetchall()
+        return {
+            "org_id": org_id,
+            "remaining_offline": sum(1 for r in rows if r["offline_mode"] == 1),
+            "count": len(rows),
+        }
+
+    def list_offline_subscriptions(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return subscriptions currently configured for offline ingestion."""
+        self._ensure_db(org_id)
+        with self._conn(org_id) as conn:
+            rows = conn.execute(
+                "SELECT * FROM feed_subscriptions WHERE org_id = ? AND offline_mode = 1 ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [self._row(r) for r in rows]
 
     def get_ingestion_stats(self, org_id: str) -> Dict[str, Any]:
         """Aggregate ingestion statistics for an org."""

@@ -35,6 +35,10 @@ _VALID_ENFORCEMENT_MECHANISMS = {"automated", "manual", "hybrid"}
 _VALID_EXCEPTION_TYPES = {"permanent", "temporary", "conditional"}
 _VALID_EXCEPTION_STATUSES = {"pending", "approved", "rejected", "expired"}
 
+# GAP-004: CTEM stage matrix — policies can opt into specific pipeline stages
+_VALID_STAGES = {"ide", "pr", "build", "deploy", "runtime"}
+_DEFAULT_STAGE_MATRIX: Dict[str, bool] = {s: False for s in _VALID_STAGES}
+
 
 class PolicyEnforcementEngine:
     """SQLite WAL-backed Policy Enforcement Engine.
@@ -67,6 +71,7 @@ class PolicyEnforcementEngine:
                     content              TEXT NOT NULL DEFAULT '',
                     version              TEXT NOT NULL DEFAULT '1.0',
                     version_history      TEXT NOT NULL DEFAULT '[]',
+                    stage_matrix         TEXT NOT NULL DEFAULT '{}',
                     status               TEXT NOT NULL DEFAULT 'active',
                     created_at           TEXT NOT NULL
                 );
@@ -94,6 +99,18 @@ class PolicyEnforcementEngine:
                     ON policy_exceptions (org_id, status);
                 """
             )
+            # GAP-004 migration: add stage_matrix column if missing on pre-existing DBs
+            cols = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(enforcement_policies)").fetchall()
+            }
+            if "stage_matrix" not in cols:
+                try:
+                    conn.execute(
+                        "ALTER TABLE enforcement_policies ADD COLUMN stage_matrix TEXT NOT NULL DEFAULT '{}'"
+                    )
+                except sqlite3.OperationalError:
+                    pass
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=10)
@@ -211,7 +228,103 @@ class PolicyEnforcementEngine:
     def _policy_row_dict(self, row: Any) -> Dict[str, Any]:
         d = dict(row)
         d["version_history"] = json.loads(d.get("version_history") or "[]")
+        raw_matrix = d.get("stage_matrix") or "{}"
+        try:
+            parsed = json.loads(raw_matrix) if isinstance(raw_matrix, str) else raw_matrix
+        except (json.JSONDecodeError, TypeError):
+            parsed = {}
+        # Ensure all 5 stage keys exist (default False)
+        merged = {**_DEFAULT_STAGE_MATRIX, **{k: bool(v) for k, v in parsed.items() if k in _VALID_STAGES}}
+        d["stage_matrix"] = merged
         return d
+
+    # ------------------------------------------------------------------
+    # GAP-004 — CTEM stage matrix
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalise_stage_matrix(stage_matrix: Dict[str, Any]) -> Dict[str, bool]:
+        if not isinstance(stage_matrix, dict):
+            raise ValueError("stage_matrix must be a dict")
+        unknown = set(stage_matrix.keys()) - _VALID_STAGES
+        if unknown:
+            raise ValueError(
+                f"Invalid stage keys {sorted(unknown)}. Valid: {sorted(_VALID_STAGES)}"
+            )
+        return {**_DEFAULT_STAGE_MATRIX, **{k: bool(stage_matrix.get(k, False)) for k in _VALID_STAGES}}
+
+    def set_stage_matrix(
+        self,
+        org_id: str,
+        policy_id: str,
+        stage_matrix: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Set the CTEM stage opt-in matrix for a policy.
+
+        stage_matrix must contain keys from {ide, pr, build, deploy, runtime}
+        with boolean values. Missing keys default to False.
+        """
+        normalised = self._normalise_stage_matrix(stage_matrix)
+        payload = json.dumps(normalised, sort_keys=True)
+        with self._lock:
+            with self._conn() as conn:
+                cursor = conn.execute(
+                    "UPDATE enforcement_policies SET stage_matrix = ? "
+                    "WHERE org_id = ? AND id = ?",
+                    (payload, org_id, policy_id),
+                )
+                conn.commit()
+                if cursor.rowcount == 0:
+                    return None
+                row = conn.execute(
+                    "SELECT * FROM enforcement_policies WHERE org_id = ? AND id = ?",
+                    (org_id, policy_id),
+                ).fetchone()
+        return self._policy_row_dict(row) if row else None
+
+    def list_policies_for_stage(
+        self,
+        org_id: str,
+        stage: str,
+    ) -> List[Dict[str, Any]]:
+        """Return policies whose stage_matrix[stage] is True."""
+        if stage not in _VALID_STAGES:
+            raise ValueError(f"Invalid stage '{stage}'. Valid: {sorted(_VALID_STAGES)}")
+        policies = self.list_policies(org_id)
+        return [p for p in policies if p.get("stage_matrix", {}).get(stage) is True]
+
+    def evaluate(
+        self,
+        org_id: str,
+        stage: str,
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Filter enforcement policies by stage and return matched policies.
+
+        Returns a dict with matched_policies, stage, policy_count, and
+        an aggregate decision ('block' if any policy_type='prohibited',
+        'enforce' if any mandatory, else 'advisory').
+        """
+        if stage not in _VALID_STAGES:
+            raise ValueError(f"Invalid stage '{stage}'. Valid: {sorted(_VALID_STAGES)}")
+        matched = self.list_policies_for_stage(org_id, stage)
+        active = [p for p in matched if p.get("status") == "active"]
+        if any(p.get("policy_type") == "prohibited" for p in active):
+            decision = "block"
+        elif any(p.get("policy_type") == "mandatory" for p in active):
+            decision = "enforce"
+        elif active:
+            decision = "advisory"
+        else:
+            decision = "allow"
+        return {
+            "org_id": org_id,
+            "stage": stage,
+            "context": context,
+            "policy_count": len(active),
+            "matched_policies": active,
+            "decision": decision,
+        }
 
     def create_policy_version(
         self,

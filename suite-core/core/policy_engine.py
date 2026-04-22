@@ -579,6 +579,33 @@ class PolicyEngine:
         """Evaluate multiple inputs. Returns one PolicyEvaluation per input."""
         return [self.evaluate(inp, scope, org_id) for inp in inputs]
 
+    def evaluate_at_stage(
+        self,
+        org_id: str,
+        stage: str,
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """GAP-004: CTEM stage-aware evaluation.
+
+        Delegates to policy_enforcement_engine.PolicyEnforcementEngine.evaluate()
+        which filters policies by stage_matrix[stage]=True. Allows a single
+        entry-point for IDE/PR/build/deploy/runtime hooks.
+        """
+        try:
+            from core.policy_enforcement_engine import get_engine as _get_enforcement_engine
+        except ImportError:
+            return {
+                "org_id": org_id,
+                "stage": stage,
+                "context": context,
+                "policy_count": 0,
+                "matched_policies": [],
+                "decision": "allow",
+                "error": "policy_enforcement_engine unavailable",
+            }
+        enforcement = _get_enforcement_engine(org_id)
+        return enforcement.evaluate(org_id, stage, context)
+
     def test_policy(
         self, policy: Policy, test_input: Dict[str, Any]
     ) -> PolicyEvaluation:
