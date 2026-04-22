@@ -6395,6 +6395,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.nl_graph_router import router as nl_graph_router
+        app.include_router(nl_graph_router)
+        _logger.info("Mounted NL Graph Assistant router at /api/v1/nl-graph (GAP-029)")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.ai_code_scanner_router import router as ai_code_scanner_router
         app.include_router(ai_code_scanner_router)
         _logger.info("Mounted AI Code Scanner router at /api/v1/ai-scan")
@@ -7931,6 +7938,21 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-015 + GAP-068: GitHub App registration/webhook + .fixops/hooks.yaml policy
+    try:
+        from apps.api.github_app_router import (
+            router as github_app_router,
+            router_hooks as hooks_yaml_router,
+        )
+        app.include_router(github_app_router)
+        app.include_router(hooks_yaml_router)
+        _logger.info(
+            "Mounted GitHub App router at /api/v1/github-app and "
+            "Hooks YAML router at /api/v1/hooks-yaml"
+        )
+    except ImportError:
+        pass
+
     # GAP-018 SLSA Provenance — in-toto v0.2 attestations + DSSE envelope (placeholder sig)
     try:
         from apps.api.slsa_provenance_router import router as slsa_provenance_router
@@ -8086,6 +8108,14 @@ def create_app() -> FastAPI:
         from apps.api.risk_quantification_engine_router import router as risk_quantification_engine_router
         app.include_router(risk_quantification_engine_router)
         _logger.info("Mounted Risk Quantification router at /api/v1/risk-quant")
+    except ImportError:
+        pass
+
+    # GAP-028 FAIR per-BU + GAP-051 ROI-of-fixes trend
+    try:
+        from apps.api.fair_per_bu_router import router as fair_per_bu_router
+        app.include_router(fair_per_bu_router)
+        _logger.info("Mounted FAIR per-BU router at /api/v1/fair")
     except ImportError:
         pass
 
