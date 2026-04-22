@@ -7067,6 +7067,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.malicious_pkg_router import router as malicious_pkg_router
+        app.include_router(malicious_pkg_router)
+        _logger.info("Mounted Malicious Package router at /api/v1/malicious-pkg")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.vendor_compliance_router import router as vendor_compliance_router
         app.include_router(vendor_compliance_router)
         _logger.info("Mounted Vendor Compliance router at /api/v1/vendor-compliance")
@@ -7169,6 +7176,13 @@ def create_app() -> FastAPI:
         from apps.api.dark_web_monitoring_router import router as dark_web_monitoring_router
         app.include_router(dark_web_monitoring_router)
         _logger.info("Mounted Dark Web Monitoring router at /api/v1/dark-web")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.subsidiary_attribution_router import router as subsidiary_attribution_router
+        app.include_router(subsidiary_attribution_router)
+        _logger.info("Mounted Subsidiary Attribution router at /api/v1/subsidiary")
     except ImportError:
         pass
 
@@ -8659,6 +8673,22 @@ def create_app() -> FastAPI:
         from apps.api.oauth2_router import router as oauth2_router
         app.include_router(oauth2_router)
         _logger.info("Mounted OAuth2 token endpoint at /api/v1/oauth2/token")
+    except ImportError:
+        pass
+
+    # GAP-002: Offline Feed Router (air-gapped threat-intel bundle ingestion)
+    try:
+        from apps.api.offline_feed_router import router as offline_feed_router
+        app.include_router(offline_feed_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Offline Feed router at /api/v1/offline-feed")
+    except ImportError:
+        pass
+
+    # GAP-004: Stage Matrix Router (CTEM stage-aware policy enforcement)
+    try:
+        from apps.api.stage_matrix_router import router as stage_matrix_router
+        app.include_router(stage_matrix_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Stage Matrix router at /api/v1/stage-matrix")
     except ImportError:
         pass
 

@@ -159,6 +159,22 @@ class SupplyChainIntelEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_sbom_org_project
                     ON sbom_snapshots (org_id, project_name, taken_at DESC);
+
+                CREATE TABLE IF NOT EXISTS supply_chain_signals (
+                    id             TEXT PRIMARY KEY,
+                    org_id         TEXT NOT NULL,
+                    package_purl   TEXT NOT NULL,
+                    signal_type    TEXT NOT NULL,
+                    value          TEXT NOT NULL DEFAULT '',
+                    evidence_uri   TEXT NOT NULL DEFAULT '',
+                    ingested_at    DATETIME NOT NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_scsignals_unique
+                    ON supply_chain_signals (org_id, package_purl, signal_type);
+
+                CREATE INDEX IF NOT EXISTS idx_scsignals_org_purl
+                    ON supply_chain_signals (org_id, package_purl);
                 """
             )
 
@@ -578,3 +594,98 @@ class SupplyChainIntelEngine:
             "projects_count": projects_count,
             "highest_risk_packages": highest_risk_packages,
         }
+
+    # ------------------------------------------------------------------
+    # Malicious signal ingestion (GAP-009)
+    # ------------------------------------------------------------------
+
+    def ingest_malicious_signal(
+        self,
+        org_id: str,
+        package_purl: str,
+        signal_type: str,
+        value: Any = "",
+        evidence_uri: str = "",
+    ) -> Dict[str, Any]:
+        """Ingest a malicious-behavior signal for a package purl.
+
+        Deduplicates on (org_id, package_purl, signal_type) via UNIQUE index.
+        On duplicate, returns the existing record without re-emitting an event.
+        Emits TrustGraph FINDING_CREATED for new signals.
+        """
+        if not package_purl:
+            raise ValueError("package_purl is required.")
+        if not signal_type:
+            raise ValueError("signal_type is required.")
+
+        value_str = "" if value is None else str(value)
+        evidence_str = evidence_uri or ""
+        now = _now_iso()
+        record = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "package_purl": package_purl,
+            "signal_type": signal_type,
+            "value": value_str,
+            "evidence_uri": evidence_str,
+            "ingested_at": now,
+        }
+
+        inserted = False
+        with self._lock:
+            with self._conn() as conn:
+                try:
+                    conn.execute(
+                        """INSERT INTO supply_chain_signals
+                           (id, org_id, package_purl, signal_type,
+                            value, evidence_uri, ingested_at)
+                           VALUES (:id, :org_id, :package_purl, :signal_type,
+                                   :value, :evidence_uri, :ingested_at)""",
+                        record,
+                    )
+                    inserted = True
+                except sqlite3.IntegrityError:
+                    existing = conn.execute(
+                        """SELECT * FROM supply_chain_signals
+                           WHERE org_id=? AND package_purl=? AND signal_type=?""",
+                        (org_id, package_purl, signal_type),
+                    ).fetchone()
+                    if existing is not None:
+                        return dict(existing)
+                    raise
+
+        if inserted and _get_tg_bus is not None:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "finding.created",
+                        {
+                            "org_id": org_id,
+                            "source_engine": "supply_chain_intel",
+                            "entity_type": "malicious_package_signal",
+                            "package_purl": package_purl,
+                            "signal_type": signal_type,
+                            "value": value_str,
+                            "evidence_uri": evidence_str,
+                        },
+                    )
+            except Exception:
+                pass
+
+        return record
+
+    def list_malicious_signals(
+        self,
+        org_id: str,
+        package_purl: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List ingested malicious signals for org, optionally filtered by purl."""
+        sql = "SELECT * FROM supply_chain_signals WHERE org_id = ?"
+        params: list = [org_id]
+        if package_purl:
+            sql += " AND package_purl = ?"
+            params.append(package_purl)
+        sql += " ORDER BY ingested_at DESC"
+        with self._conn() as conn:
+            return [self._row(r) for r in conn.execute(sql, params).fetchall()]
