@@ -20,7 +20,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -41,6 +41,9 @@ _VALID_SOURCE_TYPES = {
 _VALID_METRIC_TYPES = {"counter", "gauge", "histogram", "percentage", "score"}
 _VALID_CATEGORIES = {"security", "compliance", "operational", "risk", "performance"}
 _VALID_AGGREGATION_TYPES = {"sum", "avg", "min", "max", "count", "weighted_avg"}
+_VALID_TS_BUCKETS = {"daily", "weekly", "monthly"}
+_MAX_TS_METRIC_KEYS = 20
+_MAX_TS_DAYS = 365
 
 
 def _now_iso() -> str:
@@ -424,6 +427,189 @@ class SecurityMetricsAggregatorEngine:
     # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Timeseries (GAP-060)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _bucket_start(ts_iso: str, bucket: str) -> Optional[str]:
+        """Normalize a collected_at ISO timestamp to bucket start ISO (UTC)."""
+        if not ts_iso:
+            return None
+        try:
+            # Handle both 'Z' and '+00:00' offsets
+            raw = ts_iso.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(raw)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.astimezone(timezone.utc)
+        except (ValueError, TypeError):
+            return None
+
+        if bucket == "daily":
+            start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif bucket == "weekly":
+            # Monday UTC midnight
+            start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            start = start - timedelta(days=start.weekday())
+        elif bucket == "monthly":
+            start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            return None
+        return start.isoformat()
+
+    @staticmethod
+    def _generate_buckets(days: int, bucket: str) -> List[str]:
+        """Generate bucket-start ISO timestamps covering last `days`, oldest first."""
+        now = datetime.now(timezone.utc)
+        end = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if bucket == "weekly":
+            end = end - timedelta(days=end.weekday())
+        elif bucket == "monthly":
+            end = end.replace(day=1)
+
+        start_dt = (now - timedelta(days=days)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        if bucket == "weekly":
+            start_dt = start_dt - timedelta(days=start_dt.weekday())
+        elif bucket == "monthly":
+            start_dt = start_dt.replace(day=1)
+
+        out: List[str] = []
+        cur = start_dt
+        # Cap iterations defensively (max ~365 daily buckets + small margin)
+        max_iter = 400
+        iterations = 0
+        while cur <= end and iterations < max_iter:
+            out.append(cur.isoformat())
+            if bucket == "daily":
+                cur = cur + timedelta(days=1)
+            elif bucket == "weekly":
+                cur = cur + timedelta(days=7)
+            else:  # monthly
+                year = cur.year + (1 if cur.month == 12 else 0)
+                month = 1 if cur.month == 12 else cur.month + 1
+                cur = cur.replace(year=year, month=month)
+            iterations += 1
+        return out
+
+    def export_timeseries(
+        self,
+        org_id: str,
+        metric_keys: List[str],
+        days: int = 90,
+        bucket: str = "daily",
+    ) -> Dict[str, Any]:
+        """Export bucketed timeseries for 1..N metric keys.
+
+        Output shape:
+          {"metric_keys": [...], "buckets": [iso,...],
+           "series": {key: [v|None, ...], ...}}
+
+        Missing datapoints are ``None`` (not 0) so the UI can draw gaps.
+        Within a bucket, multiple samples are averaged.
+        """
+        if not isinstance(metric_keys, list) or not metric_keys:
+            raise ValueError("metric_keys must be a non-empty list")
+        if len(metric_keys) > _MAX_TS_METRIC_KEYS:
+            raise ValueError(
+                f"metric_keys exceeds limit of {_MAX_TS_METRIC_KEYS}"
+            )
+        # Dedup and stringify
+        unique_keys: List[str] = []
+        seen = set()
+        for k in metric_keys:
+            s = str(k).strip()
+            if s and s not in seen:
+                seen.add(s)
+                unique_keys.append(s)
+        if not unique_keys:
+            raise ValueError("metric_keys must contain at least one non-empty string")
+
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            raise ValueError("days must be an integer")
+        if days <= 0:
+            raise ValueError("days must be >= 1")
+        if days > _MAX_TS_DAYS:
+            raise ValueError(f"days exceeds limit of {_MAX_TS_DAYS}")
+
+        if bucket not in _VALID_TS_BUCKETS:
+            raise ValueError(
+                f"bucket must be one of {sorted(_VALID_TS_BUCKETS)}"
+            )
+
+        self._ensure_db()
+        buckets = self._generate_buckets(days, bucket)
+        bucket_index = {b: i for i, b in enumerate(buckets)}
+
+        # Accumulators: key -> list[list[float]] per bucket
+        accum: Dict[str, List[List[float]]] = {
+            k: [[] for _ in buckets] for k in unique_keys
+        }
+
+        cutoff = (
+            datetime.now(timezone.utc) - timedelta(days=days)
+        ).isoformat()
+        placeholders = ",".join(["?"] * len(unique_keys))
+        params: list = [org_id, cutoff, *unique_keys]
+        sql = (
+            "SELECT metric_name, value, collected_at FROM sma_metrics "
+            "WHERE org_id = ? AND collected_at >= ? "
+            f"AND metric_name IN ({placeholders})"
+        )
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(sql, params).fetchall()
+
+        for row in rows:
+            start_iso = self._bucket_start(row["collected_at"], bucket)
+            if start_iso is None:
+                continue
+            idx = bucket_index.get(start_iso)
+            if idx is None:
+                continue
+            key = row["metric_name"]
+            if key not in accum:
+                continue
+            try:
+                accum[key][idx].append(float(row["value"]))
+            except (TypeError, ValueError):
+                continue
+
+        series: Dict[str, List[Optional[float]]] = {}
+        for key in unique_keys:
+            slots = accum[key]
+            out_vals: List[Optional[float]] = []
+            for slot in slots:
+                if not slot:
+                    out_vals.append(None)
+                else:
+                    out_vals.append(round(sum(slot) / len(slot), 6))
+            series[key] = out_vals
+
+        return {
+            "metric_keys": unique_keys,
+            "buckets": buckets,
+            "series": series,
+            "bucket": bucket,
+            "days": days,
+        }
+
+    def list_metric_keys(self, org_id: str) -> List[str]:
+        """Return distinct metric names available for an org."""
+        self._ensure_db()
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    "SELECT DISTINCT metric_name FROM sma_metrics WHERE org_id = ? "
+                    "ORDER BY metric_name",
+                    (org_id,),
+                ).fetchall()
+        return [r["metric_name"] for r in rows]
 
     def get_aggregator_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated stats for an org."""

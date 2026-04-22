@@ -356,6 +356,65 @@ class KPITrackingEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Available metrics registry (GAP-060)
+    # ------------------------------------------------------------------
+
+    def list_available_metrics(
+        self,
+        org_id: str,
+        aggregator: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Return all metric keys aggregatable across KPI + metrics aggregator.
+
+        Precedence: kpi_tracking wins when the same key exists in both. Output:
+          {"metric_keys": [...],
+           "keys_by_source": {"kpi_tracking": [...], "security_metrics_aggregator": [...]},
+           "available_count": N}
+
+        Pass ``aggregator`` to reuse a pre-instantiated
+        :class:`SecurityMetricsAggregatorEngine` (e.g. for tests or shared
+        engine singletons). When omitted a default instance is constructed.
+        """
+        with self._conn() as conn:
+            kpi_rows = conn.execute(
+                "SELECT DISTINCT name FROM kpis WHERE org_id = ? ORDER BY name",
+                (org_id,),
+            ).fetchall()
+        kpi_keys = [r["name"] for r in kpi_rows]
+
+        aggregator_keys: List[str] = []
+        try:
+            if aggregator is None:
+                from core.security_metrics_aggregator_engine import (
+                    SecurityMetricsAggregatorEngine,
+                )
+                aggregator = SecurityMetricsAggregatorEngine()
+            aggregator_keys = aggregator.list_metric_keys(org_id)
+        except Exception as exc:  # pragma: no cover — defensive
+            _logger.warning("aggregator metric key lookup failed: %s", exc)
+
+        merged: List[str] = []
+        seen = set()
+        # KPI takes precedence — append first
+        for k in kpi_keys:
+            if k and k not in seen:
+                seen.add(k)
+                merged.append(k)
+        for k in aggregator_keys:
+            if k and k not in seen:
+                seen.add(k)
+                merged.append(k)
+
+        return {
+            "metric_keys": merged,
+            "keys_by_source": {
+                "kpi_tracking": kpi_keys,
+                "security_metrics_aggregator": aggregator_keys,
+            },
+            "available_count": len(merged),
+        }
+
     def get_kpi_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated KPI statistics for an org."""
         with self._conn() as conn:

@@ -527,6 +527,88 @@ class SecurityPostureHistoryEngine:
         return summary
 
     # ------------------------------------------------------------------
+    # GAP-060 Posture timeseries
+    # ------------------------------------------------------------------
+
+    def posture_timeseries(
+        self, org_id: str, days: int = 90
+    ) -> Dict[str, Any]:
+        """Return daily-bucketed posture_score series for an org.
+
+        Output matches `export_timeseries` shape but fixed to key=posture_score.
+        When multiple snapshots hit the same day the AVG of their scores is
+        used. Missing days are filled with ``None`` so the UI can draw gaps.
+        """
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            raise ValueError("days must be an integer")
+        if days <= 0:
+            raise ValueError("days must be >= 1")
+        if days > 365:
+            raise ValueError("days exceeds limit of 365")
+
+        now = datetime.now(timezone.utc)
+        end = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        start = (now - timedelta(days=days)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        buckets: List[str] = []
+        cur = start
+        while cur <= end:
+            buckets.append(cur.isoformat())
+            cur = cur + timedelta(days=1)
+
+        bucket_index = {b: i for i, b in enumerate(buckets)}
+        accum: List[List[float]] = [[] for _ in buckets]
+
+        cutoff = start.isoformat()
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    "SELECT snapshot_date, score FROM posture_snapshots "
+                    "WHERE org_id=? AND snapshot_date >= ?",
+                    (org_id, cutoff),
+                ).fetchall()
+
+        for row in rows:
+            raw = row["snapshot_date"]
+            if not raw:
+                continue
+            try:
+                dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                dt = dt.astimezone(timezone.utc)
+            except (ValueError, TypeError):
+                continue
+            day_iso = dt.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ).isoformat()
+            idx = bucket_index.get(day_iso)
+            if idx is None:
+                continue
+            try:
+                accum[idx].append(float(row["score"]))
+            except (TypeError, ValueError):
+                continue
+
+        out_vals: List[Optional[float]] = []
+        for slot in accum:
+            if not slot:
+                out_vals.append(None)
+            else:
+                out_vals.append(round(sum(slot) / len(slot), 4))
+
+        return {
+            "metric_keys": ["posture_score"],
+            "buckets": buckets,
+            "series": {"posture_score": out_vals},
+            "bucket": "daily",
+            "days": days,
+        }
+
+    # ------------------------------------------------------------------
     # GAP-063 Lifecycle daily snapshot
     # ------------------------------------------------------------------
 
