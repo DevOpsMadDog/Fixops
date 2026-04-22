@@ -6265,6 +6265,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"CNAPP router not loaded: {e}")
 
+    # GAP-025 Multi-CSP Router — OCI + Alibaba + IBM adapters on top of AWS/Azure/GCP
+    try:
+        from apps.api.multi_csp_router import router as multi_csp_router
+        app.include_router(multi_csp_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Multi-CSP router at /api/v1/multi-csp")
+    except Exception as e:
+        _logger.warning(f"Multi-CSP router not loaded: {e}")
+
     # XDR Correlation Engine — cross-domain signal ingestion, incident correlation, rules
     try:
         from apps.api.xdr_router import router as xdr_router
@@ -7922,6 +7930,14 @@ def create_app() -> FastAPI:
         from apps.api.security_query_router import router as security_query_router
         app.include_router(security_query_router)
         _logger.info("Mounted Security Query Language router")
+    except ImportError:
+        pass
+
+    # GAP-069 Dynamic Rule DSL — user-authored YAML/JSON detection rules
+    try:
+        from apps.api.dynamic_rule_dsl_router import router as dynamic_rule_dsl_router
+        app.include_router(dynamic_rule_dsl_router)
+        _logger.info("Mounted Dynamic Rule DSL router at /api/v1/rules/dsl")
     except ImportError:
         pass
 

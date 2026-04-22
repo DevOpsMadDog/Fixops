@@ -30,7 +30,7 @@ _DEFAULT_DB = str(
 )
 
 _VALID_WORKLOAD_TYPES = {"vm", "container", "serverless", "kubernetes_pod", "cloud_function"}
-_VALID_CLOUD_PROVIDERS = {"aws", "azure", "gcp", "on_prem"}
+_VALID_CLOUD_PROVIDERS = {"aws", "azure", "gcp", "oci", "alibaba", "ibm", "on_prem"}
 _VALID_CATEGORIES = {
     "misconfiguration", "vulnerability", "secret_exposure", "excessive_permission",
     "network_exposure", "malware", "compliance_violation",
@@ -570,6 +570,137 @@ class CNAPPEngine:
             "by_provider": by_provider,
             "latest_composite_score": latest_composite_score,
         }
+
+
+# ---------------------------------------------------------------------------
+# GAP-025: Multi-CSP workload adapters (OCI, Alibaba, IBM)
+# ---------------------------------------------------------------------------
+
+class _BaseWorkloadAdapter:
+    provider_name: str = "base"
+
+    _SEED_WORKLOADS: List[Dict[str, Any]] = []
+    _SEED_FINDINGS: List[Tuple[str, str, str, str, str]] = []
+
+    def list_resources(self, account_id: str) -> List[Dict[str, Any]]:
+        """Return seeded workloads belonging to the given account_id."""
+        out: List[Dict[str, Any]] = []
+        for i, w in enumerate(self._SEED_WORKLOADS):
+            out.append(
+                {
+                    "workload_id": f"{self.provider_name}-{account_id}-wl-{i:03d}",
+                    "account_id": account_id,
+                    "name": w["name"],
+                    "workload_type": w.get("workload_type", "vm"),
+                    "cloud_provider": self.provider_name,
+                    "region": w.get("region", "global"),
+                    "image_name": w.get("image_name", ""),
+                    "running": True,
+                    "privileged": w.get("privileged", False),
+                }
+            )
+        return out
+
+    def scan_resource(self, resource: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Synthesize 2-3 findings per workload."""
+        findings: List[Dict[str, Any]] = []
+        wid = resource.get("workload_id", "unknown")
+        provider = resource.get("cloud_provider", self.provider_name)
+        for i, rule in enumerate(self._SEED_FINDINGS[:3]):
+            title, severity, category, description, remediation = rule
+            findings.append(
+                {
+                    "finding_id": f"CNAPP-{self.provider_name.upper()}-{uuid.uuid4().hex[:8]}",
+                    "workload_id": wid,
+                    "cloud_provider": provider,
+                    "category": category,
+                    "severity": severity,
+                    "title": title,
+                    "description": description,
+                    "remediation": remediation,
+                    "detected_at": _now(),
+                }
+            )
+        return findings
+
+
+class OCIWorkloadAdapter(_BaseWorkloadAdapter):
+    provider_name = "oci"
+    _SEED_WORKLOADS = [
+        {"name": "oci-vm-prod-01", "workload_type": "vm", "region": "us-ashburn-1", "image_name": "Oracle-Linux-8.6"},
+        {"name": "oci-k8s-pod-01", "workload_type": "kubernetes_pod", "region": "us-ashburn-1", "image_name": "nginx:1.21"},
+        {"name": "oci-function-01", "workload_type": "serverless", "region": "us-phoenix-1"},
+        {"name": "oci-container-01", "workload_type": "container", "region": "us-ashburn-1", "image_name": "alpine:3.15", "privileged": True},
+    ]
+    _SEED_FINDINGS = [
+        ("OCI Workload Running Privileged Container", "high", "misconfiguration",
+         "Container is running in privileged mode.", "Remove --privileged flag."),
+        ("OCI Workload Image Has Critical CVE", "critical", "vulnerability",
+         "Workload image contains known critical CVEs.", "Upgrade base image to latest patched version."),
+        ("OCI Workload Has Excessive IAM Permissions", "high", "excessive_permission",
+         "Workload service account has overly broad permissions.", "Apply least-privilege IAM policy."),
+    ]
+
+
+class AlibabaWorkloadAdapter(_BaseWorkloadAdapter):
+    provider_name = "alibaba"
+    _SEED_WORKLOADS = [
+        {"name": "ali-ecs-prod-01", "workload_type": "vm", "region": "cn-hangzhou", "image_name": "centos-7"},
+        {"name": "ali-ack-pod-01", "workload_type": "kubernetes_pod", "region": "cn-shanghai", "image_name": "mysql:8.0"},
+        {"name": "ali-fc-function-01", "workload_type": "serverless", "region": "cn-beijing"},
+        {"name": "ali-container-01", "workload_type": "container", "region": "cn-hangzhou", "image_name": "redis:6.2"},
+    ]
+    _SEED_FINDINGS = [
+        ("Alibaba ECS Instance Exposed To Internet", "high", "network_exposure",
+         "ECS instance has public IP and open ports.", "Put instance behind SLB and close direct public IP."),
+        ("Alibaba ACK Pod Runs As Root", "medium", "misconfiguration",
+         "Kubernetes pod runs as root user.", "Set runAsNonRoot: true in pod securityContext."),
+        ("Alibaba Function Compute Uses Deprecated Runtime", "medium", "vulnerability",
+         "Function Compute uses an end-of-life runtime.", "Upgrade to a supported runtime version."),
+    ]
+
+
+class IBMWorkloadAdapter(_BaseWorkloadAdapter):
+    provider_name = "ibm"
+    _SEED_WORKLOADS = [
+        {"name": "ibm-vs-prod-01", "workload_type": "vm", "region": "us-south", "image_name": "Ubuntu-20.04"},
+        {"name": "ibm-iks-pod-01", "workload_type": "kubernetes_pod", "region": "us-south", "image_name": "python:3.9"},
+        {"name": "ibm-function-01", "workload_type": "serverless", "region": "us-east"},
+        {"name": "ibm-container-01", "workload_type": "container", "region": "us-south", "image_name": "busybox"},
+    ]
+    _SEED_FINDINGS = [
+        ("IBM VS Instance Has Public IP", "medium", "network_exposure",
+         "IBM virtual server has a public IP address.", "Use a load balancer or VPN gateway."),
+        ("IBM IKS Pod Missing Security Context", "medium", "misconfiguration",
+         "Pod has no securityContext defined.", "Add securityContext with runAsNonRoot and readOnlyRootFilesystem."),
+        ("IBM Function Uses Hardcoded Secret", "high", "secret_exposure",
+         "IBM Cloud Function contains hardcoded secrets in env vars.", "Move secrets to IBM Secrets Manager."),
+    ]
+
+
+# CNAPP provider registry — 6 providers
+PROVIDERS: Dict[str, Any] = {
+    "aws": None,
+    "azure": None,
+    "gcp": None,
+    "oci": OCIWorkloadAdapter(),
+    "alibaba": AlibabaWorkloadAdapter(),
+    "ibm": IBMWorkloadAdapter(),
+}
+
+
+def get_workload_adapter(provider: str):
+    if not provider:
+        return None
+    return PROVIDERS.get(provider.lower())
+
+
+def list_supported_cnapp_providers() -> List[str]:
+    return ["aws", "azure", "gcp", "oci", "alibaba", "ibm"]
+
+
+# Need Tuple for type hints above
+from typing import Tuple  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

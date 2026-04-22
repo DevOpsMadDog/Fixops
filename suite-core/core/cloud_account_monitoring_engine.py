@@ -34,7 +34,7 @@ _logger = logging.getLogger(__name__)
 _DEFAULT_DB_DIR = str(Path(__file__).resolve().parents[2] / ".fixops_data")
 
 _VALID_PROVIDERS = {
-    "aws", "azure", "gcp", "alibaba", "oracle", "ibm", "digitalocean",
+    "aws", "azure", "gcp", "alibaba", "oracle", "oci", "ibm", "digitalocean",
 }
 _VALID_EVENT_TYPES = {
     "config-change", "login-anomaly", "resource-creation", "policy-violation",

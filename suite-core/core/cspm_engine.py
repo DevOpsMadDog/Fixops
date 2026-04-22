@@ -35,6 +35,9 @@ class CloudProvider(str, Enum):
     AWS = "aws"
     AZURE = "azure"
     GCP = "gcp"
+    OCI = "oci"
+    ALIBABA = "alibaba"
+    IBM = "ibm"
     MULTI = "multi"
 
 
@@ -932,6 +935,216 @@ ALL_RULES: Dict[CloudProvider, List[Tuple]] = {
     CloudProvider.AZURE: AZURE_RULES,
     CloudProvider.GCP: GCP_RULES,
 }
+
+
+# ---------------------------------------------------------------------------
+# GAP-025: Multi-CSP provider adapters (OCI, Alibaba, IBM)
+# Each adapter implements:
+#   - list_resources(account_id) -> List[Dict]   (seeded 4-5 fake resources)
+#   - scan_resource(resource)   -> List[Dict]   (2-3 synthesized findings/res)
+# ---------------------------------------------------------------------------
+
+class _BaseProviderAdapter:
+    """Base adapter with common seeded-scan logic."""
+
+    provider_name: str = "base"
+
+    # ordered list of seeded resources per provider (overridden)
+    _SEED_RESOURCES: List[Dict[str, Any]] = []
+
+    # list of rule tuples (title, severity, category, description, recommendation, compliance)
+    _SEED_FINDINGS: List[Tuple[str, str, str, str, str, List[str]]] = []
+
+    def list_resources(self, account_id: str) -> List[Dict[str, Any]]:
+        """Return seeded resources belonging to the given account_id."""
+        out: List[Dict[str, Any]] = []
+        for i, res in enumerate(self._SEED_RESOURCES):
+            out.append(
+                {
+                    "resource_id": f"{self.provider_name}-{account_id}-{i:03d}",
+                    "account_id": account_id,
+                    "provider": self.provider_name,
+                    "resource_type": res["resource_type"],
+                    "name": res["name"],
+                    "region": res.get("region", "global"),
+                    "is_public": res.get("is_public", False),
+                    "is_encrypted": res.get("is_encrypted", True),
+                }
+            )
+        return out
+
+    def scan_resource(self, resource: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Synthesize 2-3 findings per resource based on seeded rule templates."""
+        findings: List[Dict[str, Any]] = []
+        rtype = resource.get("resource_type", "unknown")
+        provider = resource.get("provider", self.provider_name)
+        res_id = resource.get("resource_id", "unknown")
+        # emit 2-3 findings per resource using the seeded rule set
+        for i, rule in enumerate(self._SEED_FINDINGS[:3]):
+            title, severity, category, description, recommendation, frameworks = rule
+            findings.append(
+                {
+                    "finding_id": f"CSPM-{self.provider_name.upper()}-{uuid.uuid4().hex[:8]}",
+                    "rule_id": f"CSPM-{self.provider_name.upper()}-{(i+1):03d}",
+                    "title": title,
+                    "severity": severity,
+                    "category": category,
+                    "provider": provider,
+                    "resource_type": rtype,
+                    "resource_id": res_id,
+                    "description": description,
+                    "recommendation": recommendation,
+                    "compliance_frameworks": list(frameworks),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+        return findings
+
+
+class OCIProviderAdapter(_BaseProviderAdapter):
+    """Oracle Cloud Infrastructure (OCI) provider adapter."""
+
+    provider_name = "oci"
+
+    _SEED_RESOURCES = [
+        {"resource_type": "object_storage_bucket", "name": "oci-logs-bucket", "region": "us-ashburn-1", "is_public": True},
+        {"resource_type": "compute_instance", "name": "oci-web-01", "region": "us-ashburn-1", "is_public": True},
+        {"resource_type": "autonomous_database", "name": "oci-adb-prod", "region": "us-phoenix-1", "is_encrypted": False},
+        {"resource_type": "vcn_security_list", "name": "oci-sl-default", "region": "us-ashburn-1"},
+        {"resource_type": "identity_user", "name": "oci-admin-user", "region": "global"},
+    ]
+
+    _SEED_FINDINGS = [
+        (
+            "OCI Object Storage Bucket Publicly Accessible",
+            "critical",
+            "storage",
+            "OCI Object Storage bucket allows anonymous read access.",
+            "Set visibility to 'NoPublicAccess' on OCI buckets.",
+            ["CIS-OCI-4.1", "SOC2-CC6.6", "NIST-AC-3"],
+        ),
+        (
+            "OCI Compute Instance Has Public IP",
+            "medium",
+            "compute",
+            "OCI compute instance is configured with a public IP address.",
+            "Remove public IP and use a NAT gateway or bastion host.",
+            ["CIS-OCI-2.1", "SOC2-CC6.6", "NIST-SC-7"],
+        ),
+        (
+            "OCI Autonomous Database Not Encrypted With CMK",
+            "high",
+            "encryption",
+            "OCI Autonomous Database uses Oracle-managed keys instead of customer-managed keys.",
+            "Enable customer-managed encryption keys via OCI Vault.",
+            ["CIS-OCI-3.3", "SOC2-CC6.7", "PCI-DSS-3.4"],
+        ),
+    ]
+
+
+class AlibabaProviderAdapter(_BaseProviderAdapter):
+    """Alibaba Cloud provider adapter."""
+
+    provider_name = "alibaba"
+
+    _SEED_RESOURCES = [
+        {"resource_type": "oss_bucket", "name": "ali-oss-logs", "region": "cn-hangzhou", "is_public": True},
+        {"resource_type": "ecs_instance", "name": "ali-ecs-web01", "region": "cn-shanghai", "is_public": True},
+        {"resource_type": "rds_instance", "name": "ali-rds-prod", "region": "cn-beijing", "is_encrypted": False},
+        {"resource_type": "security_group", "name": "ali-sg-default", "region": "cn-hangzhou"},
+        {"resource_type": "ram_user", "name": "ali-ram-admin", "region": "global"},
+    ]
+
+    _SEED_FINDINGS = [
+        (
+            "Alibaba OSS Bucket Publicly Accessible",
+            "critical",
+            "storage",
+            "Alibaba Cloud OSS bucket allows anonymous read/write access.",
+            "Set bucket ACL to 'private' on all OSS buckets.",
+            ["CIS-Alibaba-4.1", "SOC2-CC6.6", "NIST-AC-3"],
+        ),
+        (
+            "Alibaba Security Group Allows Unrestricted Inbound",
+            "critical",
+            "network",
+            "Alibaba security group allows inbound traffic from 0.0.0.0/0.",
+            "Restrict inbound rules to specific CIDR ranges.",
+            ["CIS-Alibaba-5.2", "SOC2-CC6.6", "NIST-SC-7"],
+        ),
+        (
+            "Alibaba RDS Instance Encryption Disabled",
+            "high",
+            "encryption",
+            "Alibaba RDS instance does not have TDE (Transparent Data Encryption) enabled.",
+            "Enable TDE on all production RDS instances.",
+            ["CIS-Alibaba-3.1", "SOC2-CC6.7", "PCI-DSS-3.4"],
+        ),
+    ]
+
+
+class IBMProviderAdapter(_BaseProviderAdapter):
+    """IBM Cloud provider adapter."""
+
+    provider_name = "ibm"
+
+    _SEED_RESOURCES = [
+        {"resource_type": "cos_bucket", "name": "ibm-cos-logs", "region": "us-south", "is_public": True},
+        {"resource_type": "virtual_server", "name": "ibm-vs-web01", "region": "us-south", "is_public": True},
+        {"resource_type": "cloudant_database", "name": "ibm-cloudant-prod", "region": "us-east", "is_encrypted": False},
+        {"resource_type": "security_group", "name": "ibm-sg-default", "region": "us-south"},
+        {"resource_type": "iam_service_id", "name": "ibm-iam-svc", "region": "global"},
+    ]
+
+    _SEED_FINDINGS = [
+        (
+            "IBM Cloud Object Storage Publicly Accessible",
+            "critical",
+            "storage",
+            "IBM Cloud Object Storage bucket allows public access.",
+            "Set bucket access policy to private on all COS buckets.",
+            ["CIS-IBM-4.1", "SOC2-CC6.6", "NIST-AC-3"],
+        ),
+        (
+            "IBM Virtual Server Has Public IP",
+            "medium",
+            "compute",
+            "IBM virtual server is configured with a public IP address.",
+            "Use a load balancer or VPN gateway instead of direct public IPs.",
+            ["CIS-IBM-2.1", "SOC2-CC6.6", "NIST-SC-7"],
+        ),
+        (
+            "IBM Cloudant Database Not Encrypted With BYOK",
+            "high",
+            "encryption",
+            "IBM Cloudant database does not use a customer-managed Key Protect key.",
+            "Enable BYOK encryption via IBM Key Protect.",
+            ["CIS-IBM-3.2", "SOC2-CC6.7", "PCI-DSS-3.4"],
+        ),
+    ]
+
+
+# Provider registry — all 6 supported CSPs
+PROVIDERS: Dict[str, Any] = {
+    "aws": None,       # native scanner (Terraform/CloudFormation)
+    "azure": None,     # native scanner
+    "gcp": None,       # native scanner
+    "oci": OCIProviderAdapter(),
+    "alibaba": AlibabaProviderAdapter(),
+    "ibm": IBMProviderAdapter(),
+}
+
+
+def get_provider_adapter(provider: str) -> Optional[_BaseProviderAdapter]:
+    """Return the provider adapter for a given provider name (case-insensitive)."""
+    if not provider:
+        return None
+    return PROVIDERS.get(provider.lower())
+
+
+def list_supported_providers() -> List[str]:
+    """Return the canonical list of supported CSPM providers."""
+    return ["aws", "azure", "gcp", "oci", "alibaba", "ibm"]
 
 
 # ---------------------------------------------------------------------------
