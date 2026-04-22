@@ -30,7 +30,13 @@ Snapshot of the session's task tracker at pause. Session-scoped TaskList IDs are
 
 ## Open threads to continue next session
 
-1. **Live TrustGraph injection** — `python3 scripts/inject_gap_intelligence_to_trustgraph.py` (310 events into Core 5 "Competitive Intelligence")
+1. **DEFERRED: graphify visual correlation** — the ORIGINAL user ask. Existing `graphify-out/graph.json` is UI-only (2258 nodes, 442 files). Research docs in `raw/competitive/` (9 files, 18K words) are staged with YAML frontmatter but were NEVER semantically extracted into the graph. **To do:**
+   1. Run graphify semantic extraction on `raw/competitive/` — spawn 1 general-purpose agent following the graphify SKILL's Part B prompt (~18K words → 1 agent chunk). Outputs graph JSON fragment.
+   2. Merge with existing `graphify-out/graph.json` via `graphify.build.build_from_json` — produces combined graph with research-concept nodes linked to code modules via `references`, `competes_with`, `cited_by_gap` edges.
+   3. Re-run Leiden community detection + regenerate `graph.html` with communities labeled.
+   4. Open `graphify-out/graph.html` — interactive view showing: code modules ↔ research concepts ↔ 332 engines ↔ 42 gaps ↔ competitor products.
+   5. Separately: run TrustGraph injection (next bullet) so the business graph also has the correlations.
+2. **Live TrustGraph injection** — `python3 scripts/inject_gap_intelligence_to_trustgraph.py` (310 events into Core 5 "Competitive Intelligence")
 2. **SwarmClaw API token** — user creates in UI → paste into .env → I can queue 10 P0/P1 tasks for overnight agents
 3. **Reconcile 42 gap PRDs against 8 native engines** (per `docs/CTEM_PLUS_IDENTITY.md`) — many proposed "new engines" may duplicate SAST/DAST/Secrets/Container/CSPM/APIFuzzer/Malware/LLMSecurity or overlap with 332 existing
 4. **Pre-crash UI overhaul plan** at `~/.claude/plans/swirling-shimmying-karp.md` (22 work units, 372 pages) — independent thread, separate from competitive gap analysis
