@@ -12,6 +12,13 @@
       "output_tokens": 0,
       "files": 9,
       "note": "competitive research ingest (semantic via in-session extraction, no external LLM calls)"
+    },
+    {
+      "date": "2026-04-22T14:17:32.494037+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 1400,
+      "note": "densify: suite-core/core + suite-api/apps/api AST merge (0 LLM tokens, tree-sitter only)"
     }
   ],
   "total_input_tokens": 0,
