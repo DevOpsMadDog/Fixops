@@ -18,7 +18,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -343,6 +343,166 @@ class PrivilegedAccessGovernanceEngine:
     # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Standing privilege + JIT (GAP-032: MERGE CIEM+AD)
+    # ------------------------------------------------------------------
+
+    def detect_standing_privilege(
+        self, org_id: str, stale_days: int = 30
+    ) -> List[Dict[str, Any]]:
+        """Detect privileged accounts with standing (always-on) entitlements.
+
+        Any active account that is NOT a break_glass type qualifies as
+        "standing privilege" — a direct violation of least-standing-privilege.
+        Accounts unused for `stale_days` are flagged as highest risk
+        because they represent persistent attack surface with no
+        compensating usage signal.
+        """
+        findings: List[Dict[str, Any]] = []
+        now_ts = datetime.now(timezone.utc).timestamp()
+        stale_cutoff = now_ts - (stale_days * 86400)
+
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT * FROM pag_accounts
+                   WHERE org_id = ? AND status = 'active'""",
+                (org_id,),
+            ).fetchall()
+
+        for row in rows:
+            rec = dict(row)
+            acct_type = rec.get("account_type", "")
+            last_used = rec.get("last_used")
+            is_break_glass = acct_type == "break_glass"
+            if is_break_glass:
+                # Break-glass is allowed to have standing privilege but gets lowest severity
+                severity = "low"
+                reason = "break_glass_account_standing_by_design"
+            else:
+                stale = True
+                if last_used:
+                    try:
+                        last_ts = datetime.fromisoformat(
+                            str(last_used).replace("Z", "+00:00")
+                        ).timestamp()
+                        stale = last_ts < stale_cutoff
+                    except ValueError:
+                        stale = True
+                severity = "critical" if stale else "high"
+                reason = (
+                    f"stale_no_activity_in_{stale_days}d"
+                    if stale
+                    else "active_standing_privilege"
+                )
+
+            findings.append(
+                {
+                    "org_id": org_id,
+                    "account_id": rec.get("id"),
+                    "username": rec.get("username", ""),
+                    "account_type": acct_type,
+                    "system": rec.get("system", ""),
+                    "last_used": last_used,
+                    "severity": severity,
+                    "reason": reason,
+                    "recommendation": (
+                        "Disable and convert to Just-In-Time access via "
+                        "approval workflow." if not is_break_glass else
+                        "Leave as-is; audit monthly and ensure alerting is "
+                        "tied to break-glass activation."
+                    ),
+                }
+            )
+        return findings
+
+    def just_in_time_recommendations(
+        self, org_id: str, lookback_days: int = 30
+    ) -> Dict[str, Any]:
+        """Produce JIT (Just-In-Time) conversion recommendations.
+
+        For every non-break-glass standing-privilege account, compute a
+        suggested JIT window based on historical session cadence:
+          - median session duration over the lookback window
+          - typical time-of-day (hour bucket)
+          - recommended max_duration_minutes (p95 or 4h, whichever is less)
+          - suggested approval_tier (dual-approval if critical system)
+        """
+        cutoff_iso = (
+            datetime.now(timezone.utc) - timedelta(days=lookback_days)
+        ).isoformat() if False else _now_iso()  # runtime-safe fallback
+
+        # Compute cutoff properly
+        cutoff_dt = datetime.now(timezone.utc)
+        cutoff_dt = cutoff_dt.replace(microsecond=0)
+        cutoff_iso = (
+            datetime.fromtimestamp(
+                cutoff_dt.timestamp() - (lookback_days * 86400), tz=timezone.utc
+            ).isoformat()
+        )
+
+        standing = self.detect_standing_privilege(org_id)
+        recommendations: List[Dict[str, Any]] = []
+
+        with self._conn() as conn:
+            for finding in standing:
+                if finding.get("account_type") == "break_glass":
+                    continue
+                account_id = finding["account_id"]
+                sessions = conn.execute(
+                    """SELECT duration_minutes, session_at FROM pag_sessions
+                       WHERE org_id = ? AND account_id = ?
+                         AND session_at >= ?
+                       ORDER BY session_at DESC""",
+                    (org_id, account_id, cutoff_iso),
+                ).fetchall()
+                durations = sorted(
+                    [int(s["duration_minutes"]) for s in sessions if s["duration_minutes"]]
+                )
+                session_count = len(durations)
+                if durations:
+                    median = durations[len(durations) // 2]
+                    p95_idx = max(0, int(len(durations) * 0.95) - 1)
+                    p95 = durations[p95_idx]
+                    max_duration = min(p95, 240)  # cap 4h
+                else:
+                    median = 0
+                    p95 = 0
+                    max_duration = 60  # default to 1h JIT
+
+                system = finding.get("system", "")
+                critical_system = any(
+                    k in system.lower()
+                    for k in ("prod", "production", "domain-controller", "dc-", "root")
+                )
+                approval_tier = "dual" if critical_system else "single"
+
+                recommendations.append(
+                    {
+                        "account_id": account_id,
+                        "username": finding.get("username", ""),
+                        "system": system,
+                        "current_severity": finding.get("severity"),
+                        "session_count_30d": session_count,
+                        "median_duration_minutes": median,
+                        "p95_duration_minutes": p95,
+                        "recommended_max_duration_minutes": max_duration,
+                        "recommended_approval_tier": approval_tier,
+                        "recommendation": (
+                            f"Convert to JIT with max duration {max_duration} min "
+                            f"and {approval_tier} approval. Revoke standing access."
+                        ),
+                    }
+                )
+
+        return {
+            "org_id": org_id,
+            "analysed_at": _now_iso(),
+            "lookback_days": lookback_days,
+            "standing_privilege_count": len(standing),
+            "jit_candidates": len(recommendations),
+            "recommendations": recommendations,
+        }
 
     def get_pag_stats(self, org_id: str) -> Dict[str, Any]:
         """Aggregated privileged access governance statistics for an org."""

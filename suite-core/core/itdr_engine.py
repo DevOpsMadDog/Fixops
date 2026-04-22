@@ -457,6 +457,323 @@ class ITDREngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # AD attack detection (GAP-033 MERGE) — ADCS ESC + ticket attacks
+    # ------------------------------------------------------------------
+
+    # Dangerous AD CS template flags / EKUs
+    _ADCS_ANY_PURPOSE_EKU = "2.5.29.37.0"
+    _ADCS_CLIENT_AUTH_EKU = "1.3.6.1.5.5.7.3.2"
+    _ADCS_SMART_CARD_LOGON_EKU = "1.3.6.1.4.1.311.20.2.2"
+    # msPKI-Certificate-Name-Flag bit: ENROLLEE_SUPPLIES_SUBJECT = 1
+    _ADCS_ENROLLEE_SUPPLIES_SUBJECT = 0x00000001
+
+    def esc1_template_misconfig(
+        self, org_id: str, templates: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Detect AD CS ESC1 — templates that allow enrollee-supplied subject + client auth.
+
+        ESC1 conditions (all must hold):
+          1. manager_approval = False
+          2. EKU permits client auth (Client Auth, Smart Card Logon, or Any Purpose)
+          3. msPKI-Certificate-Name-Flag has ENROLLEE_SUPPLIES_SUBJECT (bit 0x1)
+          4. Low-priv principal has 'Enroll' extended right
+        """
+        findings: List[Dict[str, Any]] = []
+        client_auth_ekus = {
+            self._ADCS_ANY_PURPOSE_EKU,
+            self._ADCS_CLIENT_AUTH_EKU,
+            self._ADCS_SMART_CARD_LOGON_EKU,
+        }
+        for tpl in templates or []:
+            if not isinstance(tpl, dict):
+                continue
+            manager_approval = bool(tpl.get("manager_approval", False))
+            if manager_approval:
+                continue
+            ekus = {str(e) for e in tpl.get("ekus", [])}
+            # Some callers pass friendly names too
+            friendly = {str(e).lower() for e in tpl.get("ekus", [])}
+            has_client_auth = bool(ekus & client_auth_ekus) or (
+                "client authentication" in friendly
+                or "smart card logon" in friendly
+                or "any purpose" in friendly
+            )
+            if not has_client_auth:
+                continue
+            name_flag = tpl.get("msPKI_Certificate_Name_Flag") or tpl.get(
+                "name_flag", 0
+            )
+            try:
+                name_flag_int = int(name_flag)
+            except (TypeError, ValueError):
+                name_flag_int = 0
+            enrollee_subject = bool(
+                name_flag_int & self._ADCS_ENROLLEE_SUPPLIES_SUBJECT
+            ) or bool(tpl.get("enrollee_supplies_subject"))
+            if not enrollee_subject:
+                continue
+            low_priv_enroll = bool(tpl.get("low_priv_enroll_allowed", True))
+            if not low_priv_enroll:
+                continue
+            findings.append(
+                {
+                    "org_id": org_id,
+                    "rule": "esc1_template_misconfig",
+                    "template_name": tpl.get("name", ""),
+                    "template_oid": tpl.get("oid", ""),
+                    "severity": "critical",
+                    "mitre_technique": "T1649",
+                    "explanation": (
+                        "ADCS ESC1: template allows enrollee-supplied subject "
+                        "+ client auth EKU + no manager approval + low-priv "
+                        "enrollment. Any authenticated user can request a "
+                        "certificate impersonating Domain Admin."
+                    ),
+                    "remediation": (
+                        "Disable ENROLLEE_SUPPLIES_SUBJECT on the template OR "
+                        "require manager approval OR restrict Enroll permission."
+                    ),
+                }
+            )
+        return findings
+
+    def esc4_vulnerable_acl(
+        self, org_id: str, templates: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Detect AD CS ESC4 — low-priv principals with write ACLs on certificate templates.
+
+        If a non-admin has Write, WriteDACL, WriteOwner, or FullControl on a
+        template they can re-configure it to be ESC1-exploitable.
+        """
+        dangerous_rights = {
+            "write", "writedacl", "writeowner", "fullcontrol", "genericall",
+            "generic_write",
+        }
+        findings: List[Dict[str, Any]] = []
+        for tpl in templates or []:
+            if not isinstance(tpl, dict):
+                continue
+            acl_entries = tpl.get("acl") or tpl.get("dacl") or []
+            if not isinstance(acl_entries, list):
+                continue
+            for ace in acl_entries:
+                if not isinstance(ace, dict):
+                    continue
+                principal = (
+                    ace.get("principal")
+                    or ace.get("sid")
+                    or ace.get("trustee", "")
+                )
+                principal_lc = str(principal).lower()
+                if any(
+                    p in principal_lc
+                    for p in (
+                        "domain admins",
+                        "enterprise admins",
+                        "administrators",
+                        "s-1-5-18",  # LocalSystem
+                        "s-1-5-32-544",  # BUILTIN\Administrators
+                    )
+                ):
+                    continue
+                rights = {
+                    str(r).lower().strip() for r in ace.get("rights", [])
+                }
+                if rights & dangerous_rights:
+                    findings.append(
+                        {
+                            "org_id": org_id,
+                            "rule": "esc4_vulnerable_acl",
+                            "template_name": tpl.get("name", ""),
+                            "principal": principal,
+                            "dangerous_rights": sorted(rights & dangerous_rights),
+                            "severity": "high",
+                            "mitre_technique": "T1484.001",
+                            "explanation": (
+                                "Low-privilege principal has write-level ACL "
+                                "on an ADCS template. They can rewrite the "
+                                "template into an ESC1 configuration and "
+                                "impersonate any user."
+                            ),
+                            "remediation": (
+                                "Remove Write/WriteDACL/WriteOwner/FullControl "
+                                "from non-administrative principals on this "
+                                "template."
+                            ),
+                        }
+                    )
+        return findings
+
+    def golden_ticket_heuristic(
+        self, org_id: str, auth_events: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Heuristic detector for Golden Ticket (forged Kerberos TGT) usage.
+
+        Signals (any two = flag):
+          - Event 4624 with logon type 3 but no preceding 4768 TGT request
+          - TGT lifetime > domain policy (default 10h) — e.g. 10 years
+          - Anomalous account (e.g. krbtgt, SYSTEM, or non-existent SID)
+          - Ticket encryption type RC4 (0x17) when AES-only is enforced
+        """
+        findings: List[Dict[str, Any]] = []
+        for event in auth_events or []:
+            if not isinstance(event, dict):
+                continue
+            signals: List[str] = []
+            # 1. Network logon (type 3) without a prior TGT request
+            if (
+                int(event.get("event_id", 0) or 0) == 4624
+                and int(event.get("logon_type", 0) or 0) == 3
+                and not event.get("had_prior_tgt_request", True)
+            ):
+                signals.append("network_logon_without_tgt_request")
+            # 2. TGT lifetime > policy
+            lifetime = event.get("tgt_lifetime_hours")
+            policy_max = int(event.get("policy_max_tgt_hours", 10) or 10)
+            if lifetime is not None:
+                try:
+                    if float(lifetime) > policy_max:
+                        signals.append(f"tgt_lifetime_{int(float(lifetime))}h_exceeds_policy")
+                except (TypeError, ValueError):
+                    pass
+            # 3. Nonexistent / suspicious account
+            if event.get("account_exists") is False:
+                signals.append("nonexistent_account_in_ticket")
+            if str(event.get("account_name", "")).lower() == "krbtgt":
+                signals.append("krbtgt_account_usage")
+            # 4. RC4 when AES-only
+            enc = str(event.get("encryption_type", "")).lower()
+            if enc in ("rc4", "0x17", "rc4_hmac") and event.get(
+                "aes_only_required"
+            ):
+                signals.append("rc4_ticket_when_aes_required")
+
+            if len(signals) >= 2:
+                findings.append(
+                    {
+                        "org_id": org_id,
+                        "rule": "golden_ticket_heuristic",
+                        "event_id": event.get("event_id"),
+                        "account_name": event.get("account_name", ""),
+                        "signals": signals,
+                        "severity": "critical",
+                        "mitre_technique": "T1558.001",
+                        "explanation": (
+                            "Multiple Kerberos anomalies consistent with a "
+                            "forged TGT (Golden Ticket). Attackers use this to "
+                            "maintain persistent domain dominance."
+                        ),
+                        "remediation": (
+                            "Rotate the krbtgt password TWICE (at least 10h "
+                            "apart). Investigate all authentications from the "
+                            "affected account. Force AES-only Kerberos."
+                        ),
+                    }
+                )
+        return findings
+
+    def skeleton_key_heuristic(
+        self, org_id: str, auth_events: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Heuristic detector for Skeleton Key malware implant on a DC.
+
+        Signals:
+          - Successful logon using a password that was never reset in AD
+            (password-hash mismatch flag from DC audit)
+          - Kerberos downgrade to RC4_HMAC_MD5 for accounts whose
+            msDS-SupportedEncryptionTypes excludes RC4
+          - lsass.exe handle modification event (4673) by non-SYSTEM
+          - WMI call to inject into lsass
+        """
+        findings: List[Dict[str, Any]] = []
+        for event in auth_events or []:
+            if not isinstance(event, dict):
+                continue
+            signals: List[str] = []
+            if event.get("password_hash_mismatch"):
+                signals.append("password_hash_mismatch_on_successful_auth")
+            enc = str(event.get("encryption_type", "")).lower()
+            if enc in ("rc4", "rc4_hmac", "0x17") and bool(
+                event.get("account_disallows_rc4")
+            ):
+                signals.append("rc4_downgrade_on_aes_only_account")
+            if (
+                int(event.get("event_id", 0) or 0) == 4673
+                and str(event.get("target_process", "")).lower() == "lsass.exe"
+                and str(event.get("subject_sid", "")) not in ("S-1-5-18", "")
+            ):
+                signals.append("non_system_handle_to_lsass")
+            if event.get("wmi_injection_lsass"):
+                signals.append("wmi_injection_into_lsass")
+
+            if signals:
+                # Require ≥1 DC-specific signal (mismatch, rc4 downgrade) OR
+                # lsass injection to avoid noise
+                dc_signal = any(
+                    s in signals
+                    for s in (
+                        "password_hash_mismatch_on_successful_auth",
+                        "rc4_downgrade_on_aes_only_account",
+                        "non_system_handle_to_lsass",
+                        "wmi_injection_into_lsass",
+                    )
+                )
+                if not dc_signal:
+                    continue
+                findings.append(
+                    {
+                        "org_id": org_id,
+                        "rule": "skeleton_key_heuristic",
+                        "event_id": event.get("event_id"),
+                        "host": event.get("host", ""),
+                        "signals": signals,
+                        "severity": "critical",
+                        "mitre_technique": "T1556.001",
+                        "explanation": (
+                            "Indicators consistent with a Skeleton Key implant "
+                            "on a domain controller — attacker can authenticate "
+                            "as any domain user with a master password."
+                        ),
+                        "remediation": (
+                            "Isolate the DC. Reboot (Skeleton Key is memory-only "
+                            "and does not survive reboot). Reset krbtgt twice. "
+                            "Audit for persistence mechanisms."
+                        ),
+                    }
+                )
+        return findings
+
+    def detect_ad_attacks(
+        self,
+        org_id: str,
+        templates: Optional[List[Dict[str, Any]]] = None,
+        auth_events: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """Run all AD attack rules and return aggregated findings."""
+        templates = templates or []
+        auth_events = auth_events or []
+        esc1 = self.esc1_template_misconfig(org_id, templates)
+        esc4 = self.esc4_vulnerable_acl(org_id, templates)
+        golden = self.golden_ticket_heuristic(org_id, auth_events)
+        skeleton = self.skeleton_key_heuristic(org_id, auth_events)
+        all_findings = esc1 + esc4 + golden + skeleton
+        sev_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for f in all_findings:
+            sev = f.get("severity", "medium")
+            sev_counts[sev] = sev_counts.get(sev, 0) + 1
+        return {
+            "org_id": org_id,
+            "analysed_at": _now_iso(),
+            "esc1_count": len(esc1),
+            "esc4_count": len(esc4),
+            "golden_ticket_count": len(golden),
+            "skeleton_key_count": len(skeleton),
+            "total_findings": len(all_findings),
+            "severity_breakdown": sev_counts,
+            "findings": all_findings,
+        }
+
     def get_itdr_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated ITDR statistics for an org."""
         with self._conn() as conn:

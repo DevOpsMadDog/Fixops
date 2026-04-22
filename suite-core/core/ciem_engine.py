@@ -647,6 +647,125 @@ class CIEMEngine:
     # Least-privilege suggestion
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Identity-scoped least privilege (GAP-032: MERGE CIEM+AD)
+    # ------------------------------------------------------------------
+
+    def recommend_least_privilege(
+        self,
+        org_id: str,
+        identity_id: str,
+        current_permissions: Optional[List[str]] = None,
+        used_permissions: Optional[List[str]] = None,
+        usage_log: Optional[List[Dict[str, Any]]] = None,
+        window_days: int = 90,
+    ) -> Dict[str, Any]:
+        """Identity-scoped least-privilege recommendation.
+
+        Returns a dict with:
+          - identity_id, org_id, analysed_at, window_days
+          - current_permissions:  full set declared on the identity
+          - used_permissions:     set exercised within the window
+          - unused_permissions:   declared but never used (revoke)
+          - right_sized_policy:   AWS IAM-style policy JSON limited to used
+          - reduction_pct:        percentage of permissions removed
+
+        Inputs accept either explicit used_permissions OR a usage_log
+        of {"action": ..., "timestamp": ...} rows from which actions in
+        the last `window_days` are extracted.
+        """
+        if not identity_id:
+            raise ValueError("identity_id is required")
+        if not org_id:
+            raise ValueError("org_id is required")
+
+        current = set(current_permissions or [])
+
+        used: Set[str] = set()
+        if used_permissions:
+            used.update(used_permissions)
+
+        # Derive used permissions from a usage log (if provided)
+        if usage_log:
+            cutoff = datetime.now(timezone.utc).timestamp() - (
+                window_days * 86400
+            )
+            for entry in usage_log:
+                action = entry.get("action") or entry.get("permission")
+                ts_str = entry.get("timestamp") or entry.get("ts")
+                if not action:
+                    continue
+                if ts_str:
+                    try:
+                        ts = datetime.fromisoformat(
+                            str(ts_str).replace("Z", "+00:00")
+                        ).timestamp()
+                        if ts < cutoff:
+                            continue
+                    except ValueError:
+                        # Unparseable timestamp — keep the action rather than drop silently
+                        pass
+                used.add(action)
+
+        # Trim used to actions the identity actually holds (no grants-by-inference)
+        used_scoped = {a for a in used if a in current} if current else used
+        unused = sorted(current - used_scoped)
+
+        # Right-sized policy document — one Allow statement per action
+        right_sized_policy = {
+            "Version": "2012-10-17",
+            "Statement": (
+                [
+                    {
+                        "Sid": "LeastPrivilegeRecommended",
+                        "Effect": "Allow",
+                        "Action": sorted(used_scoped),
+                        "Resource": "*",
+                        "_ciem_note": (
+                            "Scope Resource=* to specific ARNs before deploying."
+                        ),
+                    }
+                ]
+                if used_scoped
+                else []
+            ),
+        }
+
+        total = len(current) if current else max(len(used_scoped), 1)
+        reduction_pct = (
+            round(((total - len(used_scoped)) / total) * 100, 1) if total else 0.0
+        )
+
+        result = {
+            "identity_id": identity_id,
+            "org_id": org_id,
+            "analysed_at": datetime.now(timezone.utc).isoformat(),
+            "window_days": window_days,
+            "current_permissions": sorted(current),
+            "used_permissions": sorted(used_scoped),
+            "unused_permissions": unused,
+            "right_sized_policy": right_sized_policy,
+            "reduction_pct": reduction_pct,
+        }
+
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit(
+                        "IDENTITY_UPDATED",
+                        {
+                            "entity_type": "ciem_least_privilege",
+                            "entity_id": identity_id,
+                            "org_id": org_id,
+                            "source_engine": "ciem_engine",
+                        },
+                    )
+            except Exception:
+                pass
+
+        return result
+
     def suggest_least_privilege(
         self, policy_json: dict, used_permissions: List[str]
     ) -> dict:

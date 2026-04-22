@@ -7949,6 +7949,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-032/033 CIEM+AD Attack Paths — least-privilege + Kerberoast/DCSync/ESC
+    try:
+        from apps.api.ciem_ad_router import router as ciem_ad_router
+        app.include_router(ciem_ad_router)
+        _logger.info("Mounted CIEM+AD router at /api/v1/ciem-ad")
+    except ImportError:
+        pass
+
     try:
         from apps.api.security_gap_analysis_router import router as security_gap_analysis_router
         app.include_router(security_gap_analysis_router)

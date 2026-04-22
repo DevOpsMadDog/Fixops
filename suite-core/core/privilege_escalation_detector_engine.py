@@ -476,6 +476,207 @@ class PrivilegeEscalationDetectorEngine:
             "events_by_hour": [{"hour": h, "count": c} for h, c in sorted(hour_counts.items())],
         }
 
+    # ------------------------------------------------------------------
+    # AD attack-chain detector (GAP-033 MERGE)
+    # ------------------------------------------------------------------
+
+    # Edge types we know how to chain together, in canonical order
+    _AD_EDGE_PRIORITY: Dict[str, int] = {
+        "kerberoastable": 10,
+        "cracked_password": 20,
+        "memberof_admincount": 30,
+        "dcsync": 40,
+        "unconstrained_delegation": 45,
+        "esc1_enroll": 50,
+        "domain_admin": 100,
+    }
+
+    def build_ad_attack_path(
+        self,
+        org_id: str,
+        start_identity: str,
+        target: str = "domain_admin",
+        graph: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+        max_hops: int = 8,
+    ) -> Dict[str, Any]:
+        """Build an Active Directory attack path from start_identity to a target.
+
+        Accepts an optional `graph` adjacency dict where:
+          graph[node] = [ { "to": <node>, "edge": <edge_type>,
+                            "weight": <int>, "technique": <mitre> }, ... ]
+
+        If no graph is supplied, a canonical template chain is emitted:
+          kerberoastable → cracked_password → memberof_admincount → domain_admin
+
+        Uses BFS (shortest path). Returns the chosen path, edge types,
+        MITRE techniques, total weight, and a narrative.
+        """
+        if not start_identity or not target:
+            raise ValueError("start_identity and target are required")
+
+        if graph is None:
+            # Canonical kill-chain if caller didn't give us a real graph
+            graph = {
+                start_identity: [
+                    {
+                        "to": f"{start_identity}_tgs_ticket",
+                        "edge": "kerberoastable",
+                        "weight": 10,
+                        "technique": "T1558.003",
+                        "note": "Request TGS for SPN and crack offline",
+                    }
+                ],
+                f"{start_identity}_tgs_ticket": [
+                    {
+                        "to": f"{start_identity}_plaintext",
+                        "edge": "cracked_password",
+                        "weight": 15,
+                        "technique": "T1110.002",
+                        "note": "Offline crack of RC4 TGS hash",
+                    }
+                ],
+                f"{start_identity}_plaintext": [
+                    {
+                        "to": "shadow_admin",
+                        "edge": "memberof_admincount",
+                        "weight": 20,
+                        "technique": "T1078.002",
+                        "note": "Account has stale adminCount=1 with retained ACLs",
+                    }
+                ],
+                "shadow_admin": [
+                    {
+                        "to": "domain_admin",
+                        "edge": "dcsync",
+                        "weight": 40,
+                        "technique": "T1003.006",
+                        "note": "DCSync to dump krbtgt hash",
+                    }
+                ],
+            }
+
+        # BFS shortest path
+        from collections import deque
+
+        q = deque([(start_identity, [start_identity], [])])
+        visited = {start_identity}
+        best: Optional[Dict[str, Any]] = None
+
+        hops = 0
+        while q and hops <= max_hops * len(graph):
+            hops += 1
+            node, path, edges = q.popleft()
+            if node == target:
+                best = {"path": path, "edges": edges}
+                break
+            for edge in graph.get(node, []):
+                nxt = edge.get("to")
+                if not nxt or nxt in visited:
+                    continue
+                if len(path) > max_hops:
+                    continue
+                visited.add(nxt)
+                q.append(
+                    (
+                        nxt,
+                        path + [nxt],
+                        edges
+                        + [
+                            {
+                                "from": node,
+                                "to": nxt,
+                                "edge": edge.get("edge", "unknown"),
+                                "weight": int(edge.get("weight", 1)),
+                                "technique": edge.get("technique", ""),
+                                "note": edge.get("note", ""),
+                            }
+                        ],
+                    )
+                )
+
+        if not best:
+            # Emit a "no path" result but still record the analysis
+            result = {
+                "org_id": org_id,
+                "start_identity": start_identity,
+                "target": target,
+                "path_found": False,
+                "path": [],
+                "edges": [],
+                "hop_count": 0,
+                "total_weight": 0,
+                "mitre_techniques": [],
+                "risk_level": "low",
+                "narrative": (
+                    f"No attack path discovered from '{start_identity}' to "
+                    f"'{target}' within {max_hops} hops."
+                ),
+                "analysed_at": datetime.now(timezone.utc).isoformat(),
+            }
+            return result
+
+        edges = best["edges"]
+        total_weight = sum(e["weight"] for e in edges)
+        techniques = sorted({e["technique"] for e in edges if e.get("technique")})
+        hop_count = len(edges)
+
+        # Risk level based on total path "difficulty" and presence of DCSync
+        has_dcsync = any(e.get("edge") == "dcsync" for e in edges)
+        if has_dcsync or total_weight >= 60:
+            risk_level = "critical"
+        elif total_weight >= 30:
+            risk_level = "high"
+        elif total_weight >= 15:
+            risk_level = "medium"
+        else:
+            risk_level = "low"
+
+        narrative_parts: List[str] = []
+        for e in edges:
+            narrative_parts.append(
+                f"{e['from']} --[{e['edge']}]--> {e['to']}"
+                + (f" ({e['technique']})" if e["technique"] else "")
+            )
+        narrative = (
+            f"{start_identity} → {target} in {hop_count} hops: "
+            + " ; ".join(narrative_parts)
+        )
+
+        result = {
+            "org_id": org_id,
+            "start_identity": start_identity,
+            "target": target,
+            "path_found": True,
+            "path": best["path"],
+            "edges": edges,
+            "hop_count": hop_count,
+            "total_weight": total_weight,
+            "mitre_techniques": techniques,
+            "risk_level": risk_level,
+            "narrative": narrative,
+            "analysed_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        # Optional: persist to TrustGraph for cross-engine visibility
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "FINDING_CREATED",
+                        {
+                            "entity_type": "ad_attack_path",
+                            "entity_id": f"{start_identity}->{target}",
+                            "org_id": org_id,
+                            "source_engine": "privilege_escalation_detector",
+                            "risk_level": risk_level,
+                        },
+                    )
+            except Exception:
+                pass
+
+        return result
+
     def get_detection_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate detection statistics for an org."""
         with self._lock:

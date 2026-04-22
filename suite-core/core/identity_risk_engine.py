@@ -450,6 +450,299 @@ class IdentityRiskEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Active Directory / Entra ID risk predicates (GAP-033)
+    # ------------------------------------------------------------------
+
+    _AD_HIGH_PRIV_GROUPS = {
+        "domain admins",
+        "enterprise admins",
+        "schema admins",
+        "administrators",
+        "account operators",
+        "backup operators",
+        "server operators",
+        "print operators",
+        "dnsadmins",
+        "group policy creator owners",
+    }
+
+    @staticmethod
+    def _coerce_list(value: Any) -> List[Any]:
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple, set)):
+            return list(value)
+        return [value]
+
+    def kerberoastable_service_accounts(
+        self, org_id: str, ad_objects: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Detect Kerberoastable service accounts.
+
+        An object is flagged if it has a non-empty servicePrincipalName (SPN)
+        AND its account is enabled AND the account is not a machine account.
+        Optionally flags stronger risk when tied to a high-privilege group
+        or uses a weak RC4_HMAC-only encryption type (msDS-SupportedEncryptionTypes).
+        """
+        if not isinstance(ad_objects, list):
+            return []
+        findings: List[Dict[str, Any]] = []
+        for obj in ad_objects:
+            if not isinstance(obj, dict):
+                continue
+            if obj.get("org_id") and obj.get("org_id") != org_id:
+                continue
+            spns = self._coerce_list(
+                obj.get("servicePrincipalName") or obj.get("spn")
+            )
+            if not spns:
+                continue
+            enabled = bool(obj.get("enabled", True))
+            if not enabled:
+                continue
+            is_machine = bool(obj.get("is_machine_account"))
+            if is_machine:
+                continue
+            groups = [
+                str(g).lower()
+                for g in self._coerce_list(obj.get("memberOf") or obj.get("groups"))
+            ]
+            in_privileged = any(
+                any(h in g for h in self._AD_HIGH_PRIV_GROUPS) for g in groups
+            )
+            enc_types = obj.get("msDS-SupportedEncryptionTypes")
+            rc4_only = False
+            try:
+                if enc_types is not None:
+                    enc_int = int(enc_types)
+                    # 0x04 = RC4_HMAC ; anything else (AES128=0x08, AES256=0x10) is stronger
+                    rc4_only = (enc_int & 0x18) == 0
+            except (TypeError, ValueError):
+                rc4_only = False
+
+            severity = "high" if in_privileged or rc4_only else "medium"
+            findings.append(
+                {
+                    "org_id": org_id,
+                    "risk_type": "kerberoastable_service_account",
+                    "sam_account_name": obj.get("sAMAccountName")
+                    or obj.get("account_name", ""),
+                    "spn_count": len(spns),
+                    "spns": spns,
+                    "in_privileged_group": in_privileged,
+                    "rc4_only_encryption": rc4_only,
+                    "severity": severity,
+                    "mitre_technique": "T1558.003",
+                    "explanation": (
+                        "Service account has registered SPNs and is enabled — "
+                        "an attacker can request a Kerberos TGS ticket and crack "
+                        "the service account password offline."
+                    ),
+                    "remediation": (
+                        "Rotate to a 25+ char random password, enforce AES-only "
+                        "encryption, and consider gMSA where possible."
+                    ),
+                }
+            )
+        return findings
+
+    def dcsync_privileges(
+        self, org_id: str, ad_objects: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Detect identities that hold DCSync rights.
+
+        Flags principals whose DACL on the domain object grants any of:
+          - Replicating Directory Changes (DS-Replication-Get-Changes)
+          - Replicating Directory Changes All
+          - Replicating Directory Changes In Filtered Set
+        Accepts either a pre-computed list of rights (field: 'extended_rights')
+        or explicit booleans.
+        """
+        dcsync_rights = {
+            "ds-replication-get-changes",
+            "ds-replication-get-changes-all",
+            "ds-replication-get-changes-in-filtered-set",
+        }
+        findings: List[Dict[str, Any]] = []
+        for obj in ad_objects or []:
+            if not isinstance(obj, dict):
+                continue
+            rights = {
+                str(r).lower().strip()
+                for r in self._coerce_list(obj.get("extended_rights"))
+            }
+            has_get = "ds-replication-get-changes" in rights or bool(
+                obj.get("has_replicating_directory_changes")
+            )
+            has_all = "ds-replication-get-changes-all" in rights or bool(
+                obj.get("has_replicating_directory_changes_all")
+            )
+            if not (has_get or has_all or (rights & dcsync_rights)):
+                continue
+            # DCSync requires BOTH rights — GetChanges-All alone still very high
+            can_dcsync = has_get and has_all
+            severity = "critical" if can_dcsync else "high"
+            findings.append(
+                {
+                    "org_id": org_id,
+                    "risk_type": "dcsync_privileges",
+                    "principal": obj.get("sAMAccountName")
+                    or obj.get("principal")
+                    or obj.get("distinguishedName", ""),
+                    "has_get_changes": has_get,
+                    "has_get_changes_all": has_all,
+                    "can_dcsync": can_dcsync,
+                    "severity": severity,
+                    "mitre_technique": "T1003.006",
+                    "explanation": (
+                        "Principal holds directory replication rights — can "
+                        "dump NTDS.dit (krbtgt, all password hashes) from any "
+                        "domain controller without interactive login."
+                    ),
+                    "remediation": (
+                        "Remove GetChanges / GetChangesAll from non-tier-0 "
+                        "principals. Audit with Repadmin /showobjmeta. Only "
+                        "Domain Admins and AAD Connect should have this."
+                    ),
+                }
+            )
+        return findings
+
+    def admin_count_attribute_mismatch(
+        self, org_id: str, ad_objects: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Find stale adminCount=1 objects that are no longer protected.
+
+        adminCount=1 is set when an object is a member of a protected group,
+        but AD does NOT clear it when the object is removed. Result: stale
+        ACLs + inheritance disabled on an ordinary account = privilege
+        carry-over risk (shadow admin).
+        """
+        findings: List[Dict[str, Any]] = []
+        for obj in ad_objects or []:
+            if not isinstance(obj, dict):
+                continue
+            admin_count = obj.get("adminCount") or obj.get("admin_count")
+            try:
+                admin_count_val = int(admin_count) if admin_count is not None else 0
+            except (TypeError, ValueError):
+                admin_count_val = 0
+            if admin_count_val != 1:
+                continue
+            groups = [
+                str(g).lower()
+                for g in self._coerce_list(obj.get("memberOf") or obj.get("groups"))
+            ]
+            in_protected = any(
+                any(h in g for h in self._AD_HIGH_PRIV_GROUPS) for g in groups
+            )
+            # Mismatch = adminCount=1 but NOT currently in a protected group
+            if in_protected:
+                continue
+            findings.append(
+                {
+                    "org_id": org_id,
+                    "risk_type": "admin_count_attribute_mismatch",
+                    "principal": obj.get("sAMAccountName")
+                    or obj.get("distinguishedName", ""),
+                    "admin_count": admin_count_val,
+                    "currently_protected": False,
+                    "severity": "high",
+                    "mitre_technique": "T1078.002",
+                    "explanation": (
+                        "Object has adminCount=1 but is no longer a member "
+                        "of any protected group. Legacy ACLs and disabled "
+                        "inheritance may still grant elevated privileges."
+                    ),
+                    "remediation": (
+                        "Reset adminCount to 0, re-enable ACL inheritance "
+                        "with dsacls, and re-validate effective permissions."
+                    ),
+                }
+            )
+        return findings
+
+    def unconstrained_delegation(
+        self, org_id: str, ad_objects: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Detect accounts trusted for unconstrained Kerberos delegation.
+
+        userAccountControl bit TRUSTED_FOR_DELEGATION (0x80000 / 524288)
+        allows the account's host to impersonate any user that authenticates
+        to it — a direct path to Domain Admin compromise.
+        """
+        UAC_TRUSTED_FOR_DELEGATION = 0x80000  # 524288
+        UAC_NOT_DELEGATED = 0x100000  # 1048576 — sensitive accounts should set this
+        findings: List[Dict[str, Any]] = []
+        for obj in ad_objects or []:
+            if not isinstance(obj, dict):
+                continue
+            uac = obj.get("userAccountControl") or obj.get("uac") or 0
+            try:
+                uac_int = int(uac)
+            except (TypeError, ValueError):
+                continue
+            if not (uac_int & UAC_TRUSTED_FOR_DELEGATION):
+                continue
+            is_dc = bool(obj.get("is_domain_controller"))
+            if is_dc:
+                # DCs legitimately have this flag — skip unless caller forces
+                continue
+            findings.append(
+                {
+                    "org_id": org_id,
+                    "risk_type": "unconstrained_delegation",
+                    "principal": obj.get("sAMAccountName")
+                    or obj.get("dnsHostName")
+                    or obj.get("distinguishedName", ""),
+                    "uac_value": uac_int,
+                    "trusted_for_delegation": True,
+                    "sensitive_protected": bool(uac_int & UAC_NOT_DELEGATED),
+                    "severity": "critical",
+                    "mitre_technique": "T1558.001",
+                    "explanation": (
+                        "Account has TRUSTED_FOR_DELEGATION (0x80000) set. "
+                        "Any user authenticating to this host has their TGT "
+                        "cached and can be extracted to impersonate Domain "
+                        "Admins when they connect (Printer Bug / SpoolSample)."
+                    ),
+                    "remediation": (
+                        "Replace with constrained or resource-based constrained "
+                        "delegation. Add high-privilege accounts to 'Protected "
+                        "Users' group and set 'Account is sensitive and cannot "
+                        "be delegated' (UAC 0x100000)."
+                    ),
+                }
+            )
+        return findings
+
+    def evaluate_ad_risks(
+        self, org_id: str, ad_objects: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Run all AD predicates against a snapshot and return a combined report."""
+        kerb = self.kerberoastable_service_accounts(org_id, ad_objects)
+        dcsync = self.dcsync_privileges(org_id, ad_objects)
+        admin_mis = self.admin_count_attribute_mismatch(org_id, ad_objects)
+        uncon = self.unconstrained_delegation(org_id, ad_objects)
+        all_findings = kerb + dcsync + admin_mis + uncon
+        severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for f in all_findings:
+            sev = f.get("severity", "medium")
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+        return {
+            "org_id": org_id,
+            "analysed_at": _now_iso(),
+            "objects_evaluated": len(ad_objects or []),
+            "kerberoastable_count": len(kerb),
+            "dcsync_count": len(dcsync),
+            "admin_count_mismatch_count": len(admin_mis),
+            "unconstrained_delegation_count": len(uncon),
+            "total_findings": len(all_findings),
+            "severity_breakdown": severity_counts,
+            "findings": all_findings,
+        }
+
     def get_identity_risk_stats(self, org_id: str) -> Dict[str, Any]:
         """Aggregated identity risk statistics for an org."""
         with self._conn() as conn:
