@@ -128,6 +128,18 @@ class AssetCriticalityEngine:
 
                     CREATE INDEX IF NOT EXISTS idx_ac_deps_asset
                         ON dependency_map (asset_id, org_id);
+
+                    CREATE TABLE IF NOT EXISTS crown_jewel_tags (
+                        id          TEXT PRIMARY KEY,
+                        org_id      TEXT NOT NULL,
+                        asset_ref   TEXT NOT NULL,
+                        reason      TEXT NOT NULL DEFAULT '',
+                        tagged_at   TEXT NOT NULL DEFAULT '',
+                        UNIQUE(org_id, asset_ref)
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_ac_crown_jewel_org
+                        ON crown_jewel_tags (org_id);
                     """
                 )
                 conn.commit()
@@ -422,6 +434,177 @@ class AssetCriticalityEngine:
         finally:
             conn.close()
         return result
+
+    # ------------------------------------------------------------------
+    # Crown Jewel Tagging (GAP-046)
+    # ------------------------------------------------------------------
+
+    def tag_crown_jewel(
+        self, org_id: str, asset_ref: str, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Idempotently tag an asset as a crown jewel.
+
+        UNIQUE(org_id, asset_ref) — re-tagging with the same asset_ref updates reason.
+        Returns the persisted record.
+        """
+        if not org_id or not asset_ref:
+            raise ValueError("org_id and asset_ref are required")
+
+        now = _now_iso()
+        record_id = str(uuid.uuid4())
+        with self._lock:
+            conn = self._conn()
+            try:
+                existing = conn.execute(
+                    "SELECT id FROM crown_jewel_tags WHERE org_id = ? AND asset_ref = ?",
+                    (org_id, asset_ref),
+                ).fetchone()
+                if existing:
+                    conn.execute(
+                        """UPDATE crown_jewel_tags
+                           SET reason = ?, tagged_at = ?
+                           WHERE id = ?""",
+                        (reason, now, existing["id"]),
+                    )
+                    record_id = existing["id"]
+                else:
+                    conn.execute(
+                        """INSERT INTO crown_jewel_tags
+                           (id, org_id, asset_ref, reason, tagged_at)
+                           VALUES (?, ?, ?, ?, ?)""",
+                        (record_id, org_id, asset_ref, reason, now),
+                    )
+                conn.commit()
+                row = conn.execute(
+                    "SELECT * FROM crown_jewel_tags WHERE id = ?",
+                    (record_id,),
+                ).fetchone()
+            finally:
+                conn.close()
+        return self._row(row) if row else {}
+
+    def list_crown_jewels(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return all crown-jewel tags for an org."""
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM crown_jewel_tags WHERE org_id = ? ORDER BY tagged_at DESC",
+                (org_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+        return [self._row(r) for r in rows]
+
+    def is_crown_jewel(self, org_id: str, asset_ref: str) -> bool:
+        """Convenience helper for scoring engines."""
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT 1 FROM crown_jewel_tags WHERE org_id = ? AND asset_ref = ?",
+                (org_id, asset_ref),
+            ).fetchone()
+        finally:
+            conn.close()
+        return row is not None
+
+    # ------------------------------------------------------------------
+    # Blast Radius (GAP-027)
+    # ------------------------------------------------------------------
+
+    def compute_blast_radius_score(
+        self, org_id: str, asset_ref: str, max_hops: int = 3
+    ) -> Dict[str, Any]:
+        """Walk asset dependency graph up to ``max_hops`` and compute 0-100 blast radius.
+
+        Scoring:
+          - Seed asset tier contributes a tier-weighted base (tier-1=40, tier-2=25, tier-3=15, tier-4=5).
+          - Each transitively-reachable asset contributes (tier_weight * hop_decay) where
+            hop_decay = 1.0, 0.6, 0.3 for hops 1, 2, 3.
+          - Crown-jewel tags on ANY reachable asset add a +15 bonus (once per asset).
+          - Final score is clamped to [0, 100].
+
+        Returns dict with:
+          score                  — 0-100
+          hops_walked            — number of hops actually walked
+          reachable_asset_count  — distinct downstream assets
+          contributing_factors   — list[{asset_ref, tier, hop, weight, crown_jewel}]
+        """
+        tier_weight = {
+            "tier-1-critical": 40.0,
+            "tier-2-high": 25.0,
+            "tier-3-medium": 15.0,
+            "tier-4-low": 5.0,
+            "unassessed": 5.0,
+        }
+        hop_decay = {0: 1.0, 1: 1.0, 2: 0.6, 3: 0.3}
+
+        contributors: List[Dict[str, Any]] = []
+        visited: set = {asset_ref}
+        queue: deque = deque([(asset_ref, 0)])
+        score = 0.0
+        max_hop_seen = 0
+
+        conn = self._conn()
+        try:
+            crown_rows = conn.execute(
+                "SELECT asset_ref FROM crown_jewel_tags WHERE org_id = ?",
+                (org_id,),
+            ).fetchall()
+            crown_set = {r["asset_ref"] for r in crown_rows}
+
+            while queue:
+                current, hop = queue.popleft()
+                max_hop_seen = max(max_hop_seen, hop)
+                asset_row = conn.execute(
+                    "SELECT id, criticality_tier FROM assets WHERE id = ? AND org_id = ?",
+                    (current, org_id),
+                ).fetchone()
+                if not asset_row:
+                    # Allow asset_ref to be a raw reference even if not registered.
+                    tier = "unassessed"
+                else:
+                    tier = asset_row["criticality_tier"] or "unassessed"
+
+                weight = tier_weight.get(tier, 5.0) * hop_decay.get(hop, 0.0)
+                is_crown = current in crown_set
+                if is_crown:
+                    weight += 15.0
+                score += weight
+
+                contributors.append({
+                    "asset_ref": current,
+                    "tier": tier,
+                    "hop": hop,
+                    "weight": round(weight, 2),
+                    "crown_jewel": is_crown,
+                })
+
+                if hop >= max_hops:
+                    continue
+
+                dep_rows = conn.execute(
+                    """SELECT depends_on_asset_id FROM dependency_map
+                       WHERE asset_id = ? AND org_id = ?""",
+                    (current, org_id),
+                ).fetchall()
+                for dep_row in dep_rows:
+                    dep_id = dep_row["depends_on_asset_id"]
+                    if dep_id in visited:
+                        continue
+                    visited.add(dep_id)
+                    queue.append((dep_id, hop + 1))
+        finally:
+            conn.close()
+
+        score = max(0.0, min(100.0, round(score, 2)))
+        return {
+            "org_id": org_id,
+            "asset_ref": asset_ref,
+            "score": score,
+            "hops_walked": max_hop_seen,
+            "reachable_asset_count": max(0, len(visited) - 1),
+            "contributing_factors": contributors,
+        }
 
     def get_criticality_summary(self, org_id: str) -> Dict[str, Any]:
         """Return count by tier, avg score, unassessed count, top 5 most critical."""

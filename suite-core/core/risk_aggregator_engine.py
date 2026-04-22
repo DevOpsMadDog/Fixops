@@ -586,6 +586,92 @@ class RiskAggregatorEngine:
             "brain_db": brain_db_path,
         }
 
+    # ------------------------------------------------------------------
+    # Score Breakdown (GAP-027)
+    # ------------------------------------------------------------------
+
+    def get_score_breakdown(
+        self, org_id: str, entity_ref: str
+    ) -> Dict[str, Any]:
+        """Return all score contributors for an entity.
+
+        Aggregates:
+          - Latest risk_score + risk_factors from risk_scores (this engine)
+          - Any vulnerability scoring breakdown (cvss/epss/kev/blast_radius/crown_jewel)
+            from VulnerabilityScoringEngine for matching asset_id
+        Returns dict with contributors list + composite snapshot.
+        """
+        contributors: List[Dict[str, Any]] = []
+        base_score: Optional[float] = None
+        severity: Optional[str] = None
+
+        with self._lock, self._conn() as conn:
+            latest = conn.execute(
+                """SELECT * FROM risk_scores
+                   WHERE org_id = ? AND entity_id = ?
+                   ORDER BY recorded_at DESC LIMIT 1""",
+                (org_id, entity_ref),
+            ).fetchone()
+
+        if latest:
+            latest_dict = self._row_to_dict(latest)
+            base_score = latest_dict.get("risk_score")
+            severity = latest_dict.get("severity")
+            for factor in latest_dict.get("risk_factors", []) or []:
+                if isinstance(factor, str) and ":" in factor:
+                    name, value = factor.split(":", 1)
+                    contributors.append({
+                        "source": "risk_aggregator",
+                        "name": name,
+                        "value": value,
+                    })
+                else:
+                    contributors.append({
+                        "source": "risk_aggregator",
+                        "name": str(factor),
+                        "value": None,
+                    })
+
+        # Pull from VulnerabilityScoringEngine if importable
+        vuln_contributors: List[Dict[str, Any]] = []
+        try:
+            from core.vulnerability_scoring_engine import VulnerabilityScoringEngine
+
+            vse = VulnerabilityScoringEngine()
+            vuln_scores = vse.list_scores(org_id, asset_id=entity_ref)
+            for vs in vuln_scores[:5]:  # cap
+                vuln_contributors.append({
+                    "source": "vulnerability_scoring_engine",
+                    "vuln_score_id": vs.get("id"),
+                    "composite_score": vs.get("composite_score"),
+                    "cvss": vs.get("cvss_score"),
+                    "epss": vs.get("epss_score"),
+                    "kev_listed": bool(vs.get("kev_listed")),
+                    "priority_tier": vs.get("priority_tier"),
+                })
+                breakdown = vse.get_score_breakdown(org_id, vs.get("id"))
+                for b in breakdown:
+                    vuln_contributors.append({
+                        "source": "vulnerability_scoring_engine",
+                        "name": b.get("factor_name"),
+                        "value": b.get("factor_value"),
+                        "weight": b.get("factor_weight"),
+                        "contribution": b.get("contribution"),
+                    })
+        except Exception as exc:  # noqa: BLE001 — optional enrichment
+            _logger.debug("get_score_breakdown: vuln scoring unavailable: %s", exc)
+
+        contributors.extend(vuln_contributors)
+
+        return {
+            "org_id": org_id,
+            "entity_ref": entity_ref,
+            "base_risk_score": base_score,
+            "severity": severity,
+            "contributor_count": len(contributors),
+            "contributors": contributors,
+        }
+
     def get_aggregator_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated risk statistics."""
         with self._lock, self._conn() as conn:
