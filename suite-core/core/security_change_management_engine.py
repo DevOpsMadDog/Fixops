@@ -4,11 +4,15 @@ Manages security change requests with full approval workflow:
   - Change lifecycle from draft through completion or rollback
   - Approver decision tracking (approved/rejected/pending)
   - Aggregated stats with daily completion counts and type/status breakdowns
+  - GAP-011 material change diff: computes new/unchanged/resolved bucket deltas
+    across prior vs current scan runs via correlation_key JOIN (builds on GAP-063
+    findings lifecycle columns). Emits PR-webhook friendly JSON shape.
 
 Compliance: ITIL v4, ISO 20000, SOC2 CC8.1, NIST SP 800-128
 """
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 import threading
@@ -106,6 +110,23 @@ class SecurityChangeManagementEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_scm_approvals_org
                     ON scm_approvals (org_id, change_id);
+
+                -- GAP-011 material change events (scan-pair deltas)
+                CREATE TABLE IF NOT EXISTS material_change_events (
+                    id               TEXT PRIMARY KEY,
+                    org_id           TEXT NOT NULL,
+                    prior_scan_id    TEXT NOT NULL,
+                    current_scan_id  TEXT NOT NULL,
+                    delta_json       TEXT NOT NULL DEFAULT '{}',
+                    computed_at      TEXT NOT NULL DEFAULT '',
+                    pr_ref           TEXT NOT NULL DEFAULT ''
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ux_material_change_events_org_pair
+                    ON material_change_events (org_id, prior_scan_id, current_scan_id);
+
+                CREATE INDEX IF NOT EXISTS idx_material_change_events_pr
+                    ON material_change_events (org_id, pr_ref);
                 """
             )
 
@@ -370,4 +391,372 @@ class SecurityChangeManagementEngine:
             "emergency_changes": emergency_changes,
             "by_type": by_type,
             "by_status": by_status,
+        }
+
+    # ------------------------------------------------------------------
+    # GAP-011 — Material Change Diff (builds on GAP-063 findings lifecycle)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _findings_db_path() -> str:
+        """Path to the security_findings_engine SQLite DB."""
+        return str(
+            Path(__file__).resolve().parents[2]
+            / ".fixops_data"
+            / "security_findings_engine.db"
+        )
+
+    def _load_scan_findings(
+        self,
+        org_id: str,
+        scan_id: str,
+    ) -> List[Dict[str, Any]]:
+        """Load findings for a given (org_id, scan_id) from the findings DB.
+
+        Returns an empty list if the findings DB or scan doesn't exist.
+        Uses the GAP-063 columns: correlation_key, first_seen_at, resolved_at,
+        previous_violation_id.
+        """
+        findings_db = self._findings_db_path()
+        if not Path(findings_db).exists():
+            return []
+        try:
+            conn = sqlite3.connect(findings_db, timeout=10)
+            conn.row_factory = sqlite3.Row
+            try:
+                rows = conn.execute(
+                    """SELECT id, title, severity, cvss_score, asset_id, asset_type,
+                              source_tool, status, correlation_key, scan_id,
+                              first_seen_at, resolved_at, previous_violation_id
+                       FROM security_findings
+                       WHERE org_id = ? AND scan_id = ?""",
+                    (org_id, scan_id),
+                ).fetchall()
+                return [dict(r) for r in rows]
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            _logger.warning("load_scan_findings failed: %s", exc)
+            return []
+
+    @staticmethod
+    def _risk_weight(severity: str) -> float:
+        """Risk-surface weight for a given severity (aligned with CVSS tiers)."""
+        return {
+            "critical": 10.0,
+            "high": 7.5,
+            "medium": 5.0,
+            "low": 2.5,
+            "informational": 0.5,
+            "info": 0.5,
+        }.get((severity or "medium").lower(), 5.0)
+
+    def compute_material_change_diff(
+        self,
+        org_id: str,
+        prior_scan_id: str,
+        current_scan_id: str,
+        pr_ref: str = "",
+    ) -> Dict[str, Any]:
+        """Compute a PR-webhook friendly risk-surface diff between two scans.
+
+        Joins findings by ``correlation_key`` (GAP-063) and buckets each finding
+        into: ``new`` (in current only), ``unchanged`` (in both, still open),
+        ``resolved`` (in prior but not current, or resolved_at set in current).
+
+        Per-component (asset_id) risk deltas are emitted. The full event is
+        persisted idempotently via INSERT OR IGNORE on
+        ``(org_id, prior_scan_id, current_scan_id)``.
+
+        Returns the persisted event dict (with ``delta`` field decoded).
+        """
+        if not prior_scan_id or not current_scan_id:
+            raise ValueError("prior_scan_id and current_scan_id are required")
+        if prior_scan_id == current_scan_id:
+            raise ValueError("prior_scan_id and current_scan_id must differ")
+
+        prior = self._load_scan_findings(org_id, prior_scan_id)
+        current = self._load_scan_findings(org_id, current_scan_id)
+
+        # Index by correlation_key; fall back to composite when empty
+        def _key(f: Dict[str, Any]) -> str:
+            return (
+                f.get("correlation_key")
+                or f"{f.get('source_tool', '')}|{f.get('title', '')}|{f.get('asset_id', '')}"
+            )
+
+        prior_map: Dict[str, Dict[str, Any]] = {_key(f): f for f in prior}
+        current_map: Dict[str, Dict[str, Any]] = {_key(f): f for f in current}
+
+        new_keys = set(current_map) - set(prior_map)
+        common_keys = set(current_map) & set(prior_map)
+        resolved_keys = set(prior_map) - set(current_map)
+
+        new_bucket: List[Dict[str, Any]] = []
+        unchanged_bucket: List[Dict[str, Any]] = []
+        resolved_bucket: List[Dict[str, Any]] = []
+
+        # Per-component (asset) risk surface
+        component_prior: Dict[str, float] = {}
+        component_current: Dict[str, float] = {}
+
+        for k in new_keys:
+            f = current_map[k]
+            if (f.get("status") or "").lower() == "resolved":
+                # Already-resolved finding in current scan — treat as resolved
+                resolved_bucket.append(f)
+            else:
+                new_bucket.append(f)
+                asset = f.get("asset_id") or ""
+                component_current[asset] = (
+                    component_current.get(asset, 0.0) + self._risk_weight(f.get("severity", ""))
+                )
+
+        for k in common_keys:
+            cur_f = current_map[k]
+            pr_f = prior_map[k]
+            # If current row is resolved or has resolved_at, count as resolved
+            if (cur_f.get("status") or "").lower() == "resolved" or cur_f.get("resolved_at"):
+                resolved_bucket.append(cur_f)
+            else:
+                unchanged_bucket.append(cur_f)
+                asset = cur_f.get("asset_id") or ""
+                component_current[asset] = (
+                    component_current.get(asset, 0.0) + self._risk_weight(cur_f.get("severity", ""))
+                )
+            # Prior-side component weight
+            asset_p = pr_f.get("asset_id") or ""
+            component_prior[asset_p] = (
+                component_prior.get(asset_p, 0.0) + self._risk_weight(pr_f.get("severity", ""))
+            )
+
+        for k in resolved_keys:
+            f = prior_map[k]
+            resolved_bucket.append(f)
+            asset = f.get("asset_id") or ""
+            component_prior[asset] = (
+                component_prior.get(asset, 0.0) + self._risk_weight(f.get("severity", ""))
+            )
+
+        # Build per-component deltas (risk-surface delta = current - prior)
+        components: List[Dict[str, Any]] = []
+        all_assets = set(component_prior) | set(component_current)
+        for asset in sorted(all_assets):
+            prior_w = component_prior.get(asset, 0.0)
+            curr_w = component_current.get(asset, 0.0)
+            components.append({
+                "asset_id": asset,
+                "prior_risk": round(prior_w, 2),
+                "current_risk": round(curr_w, 2),
+                "delta": round(curr_w - prior_w, 2),
+            })
+
+        total_prior = round(sum(component_prior.values()), 2)
+        total_current = round(sum(component_current.values()), 2)
+
+        def _summarize(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            return [
+                {
+                    "id": r.get("id"),
+                    "correlation_key": r.get("correlation_key"),
+                    "title": r.get("title"),
+                    "severity": r.get("severity"),
+                    "asset_id": r.get("asset_id"),
+                    "source_tool": r.get("source_tool"),
+                }
+                for r in rows
+            ]
+
+        delta: Dict[str, Any] = {
+            "prior_scan_id": prior_scan_id,
+            "current_scan_id": current_scan_id,
+            "counts": {
+                "new": len(new_bucket),
+                "unchanged": len(unchanged_bucket),
+                "resolved": len(resolved_bucket),
+            },
+            "risk_surface": {
+                "prior_total": total_prior,
+                "current_total": total_current,
+                "delta": round(total_current - total_prior, 2),
+            },
+            "components": components,
+            "findings": {
+                "new": _summarize(new_bucket),
+                "unchanged": _summarize(unchanged_bucket),
+                "resolved": _summarize(resolved_bucket),
+            },
+            "pr_ref": pr_ref,
+        }
+
+        event_id = str(uuid.uuid4())
+        now = _now_iso()
+        with self._lock:
+            with self._conn() as conn:
+                # INSERT OR IGNORE — idempotent on (org_id, prior_scan_id, current_scan_id)
+                conn.execute(
+                    """INSERT OR IGNORE INTO material_change_events
+                       (id, org_id, prior_scan_id, current_scan_id, delta_json, computed_at, pr_ref)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        event_id,
+                        org_id,
+                        prior_scan_id,
+                        current_scan_id,
+                        json.dumps(delta),
+                        now,
+                        pr_ref or "",
+                    ),
+                )
+                # If caller provided a pr_ref and the existing row had none, update it.
+                if pr_ref:
+                    conn.execute(
+                        """UPDATE material_change_events
+                           SET pr_ref = ?
+                           WHERE org_id = ? AND prior_scan_id = ? AND current_scan_id = ?
+                             AND (pr_ref IS NULL OR pr_ref = '')""",
+                        (pr_ref, org_id, prior_scan_id, current_scan_id),
+                    )
+                row = conn.execute(
+                    """SELECT * FROM material_change_events
+                       WHERE org_id = ? AND prior_scan_id = ? AND current_scan_id = ?""",
+                    (org_id, prior_scan_id, current_scan_id),
+                ).fetchone()
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "ENTITY_UPDATED",
+                        {
+                            "entity_type": "material_change_event",
+                            "org_id": org_id,
+                            "source_engine": "security_change_management",
+                            "prior_scan_id": prior_scan_id,
+                            "current_scan_id": current_scan_id,
+                            "pr_ref": pr_ref,
+                            "counts": delta["counts"],
+                        },
+                    )
+            except Exception:
+                pass
+
+        result = dict(row) if row else {
+            "id": event_id,
+            "org_id": org_id,
+            "prior_scan_id": prior_scan_id,
+            "current_scan_id": current_scan_id,
+            "delta_json": json.dumps(delta),
+            "computed_at": now,
+            "pr_ref": pr_ref or "",
+        }
+        # Decode delta_json into structured delta for consumer convenience.
+        try:
+            result["delta"] = json.loads(result.get("delta_json") or "{}")
+        except (TypeError, ValueError):
+            result["delta"] = delta
+        return result
+
+    def list_material_events(
+        self,
+        org_id: str,
+        pr_ref: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List material-change events for an org, optionally filtered by pr_ref."""
+        sql = "SELECT * FROM material_change_events WHERE org_id = ?"
+        params: List[Any] = [org_id]
+        if pr_ref:
+            sql += " AND pr_ref = ?"
+            params.append(pr_ref)
+        sql += " ORDER BY computed_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        results: List[Dict[str, Any]] = []
+        for r in rows:
+            rec = dict(r)
+            try:
+                rec["delta"] = json.loads(rec.get("delta_json") or "{}")
+            except (TypeError, ValueError):
+                rec["delta"] = {}
+            results.append(rec)
+        return results
+
+    def get_material_event(self, event_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a single material-change event by id (org-agnostic lookup by PK)."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM material_change_events WHERE id = ?",
+                (event_id,),
+            ).fetchone()
+        if not row:
+            return None
+        rec = dict(row)
+        try:
+            rec["delta"] = json.loads(rec.get("delta_json") or "{}")
+        except (TypeError, ValueError):
+            rec["delta"] = {}
+        return rec
+
+    def record_pr_webhook(
+        self,
+        org_id: str,
+        pr_ref: str,
+        event_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Associate a PR ref with an existing material-change event.
+
+        Returns the updated event, or None if not found / org mismatch.
+        """
+        if not pr_ref:
+            raise ValueError("pr_ref is required")
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    "SELECT * FROM material_change_events WHERE id = ? AND org_id = ?",
+                    (event_id, org_id),
+                ).fetchone()
+                if not existing:
+                    return None
+                conn.execute(
+                    "UPDATE material_change_events SET pr_ref = ? WHERE id = ? AND org_id = ?",
+                    (pr_ref, event_id, org_id),
+                )
+        return self.get_material_event(event_id)
+
+    def get_material_change_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return aggregated material-change-event stats for an org."""
+        with self._conn() as conn:
+            total = conn.execute(
+                "SELECT COUNT(*) FROM material_change_events WHERE org_id = ?",
+                (org_id,),
+            ).fetchone()[0]
+            with_pr = conn.execute(
+                "SELECT COUNT(*) FROM material_change_events "
+                "WHERE org_id = ? AND pr_ref != ''",
+                (org_id,),
+            ).fetchone()[0]
+            rows = conn.execute(
+                "SELECT delta_json FROM material_change_events WHERE org_id = ?",
+                (org_id,),
+            ).fetchall()
+        total_new = total_unchanged = total_resolved = 0
+        total_risk_delta = 0.0
+        for r in rows:
+            try:
+                d = json.loads(r["delta_json"] or "{}")
+            except (TypeError, ValueError):
+                continue
+            counts = d.get("counts") or {}
+            total_new += int(counts.get("new", 0) or 0)
+            total_unchanged += int(counts.get("unchanged", 0) or 0)
+            total_resolved += int(counts.get("resolved", 0) or 0)
+            total_risk_delta += float((d.get("risk_surface") or {}).get("delta", 0.0) or 0.0)
+        return {
+            "total_events": total,
+            "events_with_pr_ref": with_pr,
+            "total_findings_new": total_new,
+            "total_findings_unchanged": total_unchanged,
+            "total_findings_resolved": total_resolved,
+            "aggregate_risk_delta": round(total_risk_delta, 2),
         }
