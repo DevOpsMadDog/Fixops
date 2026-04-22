@@ -313,7 +313,7 @@ class SecurityEventCorrelationEngine:
 
             # Fetch events matching any event_type in the pattern within the time window
             placeholders = ",".join("?" * len(pattern))
-            sql = f"""SELECT * FROM security_eventsWHERE org_id = ?
+            sql = f"""SELECT * FROM security_events WHERE org_id = ?
                   AND event_type IN ({placeholders})
                   AND timestamp >= datetime('now', ? || ' seconds')
                 ORDER BY timestamp ASC
@@ -424,4 +424,127 @@ class SecurityEventCorrelationEngine:
             "incidents_created": incidents_created,
             "open_incidents": open_incidents,
             "correlation_rate": correlation_rate,
+        }
+
+    # ------------------------------------------------------------------
+    # Toxic-combo subscriber (GAP-021)
+    # ------------------------------------------------------------------
+
+    def on_toxic_combo_matched(
+        self, org_id: str, match: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Subscriber hook: when a toxic-combo match is written upstream,
+        emit a correlated security event so existing SOC pipelines see it.
+
+        - Writes a synthetic event into ``security_events`` with
+          ``event_type="toxic_combo_matched"``.
+        - Creates a ``correlated_incidents`` row pointing at it so analysts
+          have a tracked incident to triage.
+
+        Idempotency: per-(org_id, match.id) — repeat calls produce a single
+        event and single incident.
+        """
+        if not isinstance(match, dict):
+            raise TypeError("match must be a dict")
+        match_id = str(match.get("id") or "").strip()
+        if not match_id:
+            raise ValueError("match.id is required")
+
+        self._ensure_db(org_id)
+
+        combo_id = str(match.get("combo_id") or "")
+        entity_ref = str(match.get("entity_ref") or "")
+        severity = str(match.get("severity") or "high")
+        if severity not in _VALID_SEVERITIES:
+            severity = "high"
+        satisfied = match.get("matched_attributes") or []
+
+        # Dedup: does an event already exist for this match?
+        now = _now_iso()
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                existing_event = conn.execute(
+                    """SELECT id FROM security_events
+                       WHERE org_id = ? AND event_type = 'toxic_combo_matched'
+                       AND entity_id = ?""",
+                    (org_id, match_id),
+                ).fetchone()
+
+        if existing_event:
+            event_id = existing_event["id"]
+            created_event = False
+        else:
+            event_id = str(uuid.uuid4())
+            created_event = True
+            raw_data = {
+                "toxic_combo_match_id": match_id,
+                "combo_id": combo_id,
+                "entity_ref": entity_ref,
+                "matched_attributes": satisfied,
+            }
+            with self._get_lock(org_id):
+                with self._conn(org_id) as conn:
+                    conn.execute(
+                        """INSERT INTO security_events
+                           (id, org_id, source_system, event_type, severity,
+                            entity_id, entity_type, raw_data, timestamp, created_at)
+                           VALUES (?, ?, 'threat_correlation_engine', 'toxic_combo_matched',
+                                   ?, ?, 'toxic_combo_match', ?, ?, ?)""",
+                        (
+                            event_id,
+                            org_id,
+                            severity,
+                            match_id,
+                            json.dumps(raw_data),
+                            now,
+                            now,
+                        ),
+                    )
+
+        # Create a correlated incident (dedup on matched_event_ids containing event_id).
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                rows = conn.execute(
+                    """SELECT id, matched_event_ids FROM correlated_incidents
+                       WHERE org_id = ? AND rule_id = 'toxic_combo'""",
+                    (org_id,),
+                ).fetchall()
+
+        incident_id: Optional[str] = None
+        for row in rows:
+            try:
+                ids = json.loads(row["matched_event_ids"] or "[]")
+            except Exception:
+                ids = []
+            if match_id in ids or event_id in ids:
+                incident_id = row["id"]
+                break
+
+        created_incident = False
+        if incident_id is None:
+            incident_id = str(uuid.uuid4())
+            created_incident = True
+            title = f"Toxic combo: {combo_id} on {entity_ref}"
+            with self._get_lock(org_id):
+                with self._conn(org_id) as conn:
+                    conn.execute(
+                        """INSERT INTO correlated_incidents
+                           (id, org_id, rule_id, matched_event_ids, title, severity, status, created_at)
+                           VALUES (?, ?, 'toxic_combo', ?, ?, ?, 'open', ?)""",
+                        (
+                            incident_id,
+                            org_id,
+                            json.dumps([event_id, match_id]),
+                            title,
+                            severity,
+                            now,
+                        ),
+                    )
+
+        return {
+            "event_id": event_id,
+            "incident_id": incident_id,
+            "created_event": created_event,
+            "created_incident": created_incident,
+            "severity": severity,
         }

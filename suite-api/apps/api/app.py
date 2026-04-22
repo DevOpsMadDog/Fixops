@@ -5516,6 +5516,16 @@ def create_app() -> FastAPI:
         _logger.warning("Self-Scan router not available: %s", _self_scan_err)
 
     # -----------------------------------------------------------------------
+    # GAP-020 — Agentless Snapshot Scanning (Wiz/Orca moat, P0)
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.agentless_snapshot_router import router as agentless_snapshot_router
+        app.include_router(agentless_snapshot_router)
+        _logger.info("Mounted Agentless Snapshot Scan router at /api/v1/agentless-snapshot")
+    except ImportError as _agentless_err:
+        _logger.warning("Agentless Snapshot router not available: %s", _agentless_err)
+
+    # -----------------------------------------------------------------------
     # Threat Hunting — proactive threat detection with MITRE ATT&CK
     # -----------------------------------------------------------------------
     try:
@@ -5985,6 +5995,14 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Threat Correlation router at /api/v1/threat-correlation")
     except Exception as e:
         _logger.warning(f"Threat Correlation router not loaded: {e}")
+
+    # Toxic-Combo (GAP-021) — Wiz-parity toxic-combination correlation
+    try:
+        from apps.api.toxic_combo_router import router as toxic_combo_router
+        app.include_router(toxic_combo_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Toxic-Combo router at /api/v1/toxic-combo")
+    except Exception as e:
+        _logger.warning(f"Toxic-Combo router not loaded: {e}")
 
     # Password Policy Engine — policies, evaluation, violations, audits
     try:
@@ -7859,6 +7877,22 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-017 Pipeline BOM (PBOM) — captures how the binary was built, not what's in it
+    try:
+        from apps.api.pipeline_bom_router import router as pipeline_bom_router
+        app.include_router(pipeline_bom_router)
+        _logger.info("Mounted Pipeline BOM (PBOM) router at /api/v1/pbom")
+    except ImportError:
+        pass
+
+    # GAP-007: upgrade_path_resolver_engine (CVE-aware version walker)
+    try:
+        from apps.api.upgrade_path_router import router as upgrade_path_router
+        app.include_router(upgrade_path_router)
+        _logger.info("Mounted Upgrade Path Resolver router at /api/v1/upgrade-path")
+    except ImportError:
+        pass
+
     try:
         from apps.api.security_gap_analysis_router import router as security_gap_analysis_router
         app.include_router(security_gap_analysis_router)
@@ -8020,6 +8054,14 @@ def create_app() -> FastAPI:
         from apps.api.security_dependency_mapping_router import router as security_dependency_mapping_router
         app.include_router(security_dependency_mapping_router)
         _logger.info("Mounted Security Dependency Mapping router at /api/v1/dependency-mapping")
+    except ImportError:
+        pass
+
+    # GAP-010 — function-level reachability (Endor Labs moat)
+    try:
+        from apps.api.function_reachability_router import router as function_reachability_router
+        app.include_router(function_reachability_router)
+        _logger.info("Mounted Function Reachability router at /api/v1/reachability")
     except ImportError:
         pass
 
@@ -8412,6 +8454,14 @@ def create_app() -> FastAPI:
         from apps.api.prowler_router import router as prowler_router
         app.include_router(prowler_router)
         _logger.info("Mounted Prowler CSPM router at /api/v1/prowler")
+    except ImportError:
+        pass
+
+    # GAP-008: Binary Fingerprint Engine (Sonatype ABF-style)
+    try:
+        from apps.api.binary_fingerprint_router import router as binary_fingerprint_router
+        app.include_router(binary_fingerprint_router)
+        _logger.info("Mounted Binary Fingerprint router at /api/v1/binary-fp")
     except ImportError:
         pass
 

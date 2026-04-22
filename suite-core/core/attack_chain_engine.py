@@ -461,3 +461,105 @@ class AttackChainEngine:
             "total_steps": total_steps,
             "avg_steps_per_chain": avg_steps,
         }
+
+    # ------------------------------------------------------------------
+    # Toxic-combo upgrade path (GAP-021)
+    # ------------------------------------------------------------------
+
+    def build_chain_from_toxic_combo(
+        self,
+        org_id: str,
+        combo_match_id: str,
+        threat_correlation_engine: Any = None,
+    ) -> Dict[str, Any]:
+        """Turn a toxic-combo match into a formal attack_chain with steps.
+
+        This is the upgrade path when operators decide a toxic combo is an
+        active attack worth investigating. Creates:
+
+          1. A new ``attack_chains`` row (phase = exploitation, status = active).
+          2. One ``chain_steps`` row per satisfied predicate (tactic=initial_access).
+          3. Writes the new chain_id back onto the toxic-combo match so the
+             relationship is traceable.
+
+        ``threat_correlation_engine`` is injected for testability. If omitted,
+        a lazy import resolves the default singleton-style instance.
+        """
+        if not combo_match_id:
+            raise ValueError("combo_match_id is required.")
+
+        if threat_correlation_engine is None:
+            try:
+                from core.threat_correlation_engine import ThreatCorrelationEngine
+                threat_correlation_engine = ThreatCorrelationEngine.for_org(org_id)
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Could not resolve ThreatCorrelationEngine: {exc}"
+                ) from exc
+
+        match = threat_correlation_engine.get_toxic_combo_match(org_id, combo_match_id)
+        if not match:
+            raise KeyError(
+                f"Toxic-combo match '{combo_match_id}' not found for org '{org_id}'."
+            )
+
+        combo_id = match.get("combo_id", "unknown")
+        entity_ref = match.get("entity_ref", "unknown")
+        satisfied = match.get("matched_attributes") or []
+        severity = match.get("severity", "high")
+
+        chain = self.create_chain(
+            org_id,
+            {
+                "chain_name": f"Toxic Combo: {combo_id} on {entity_ref}",
+                "threat_actor": "unknown",
+                "kill_chain_phase": "exploitation",
+                "confidence": 75.0 if severity == "critical" else 60.0,
+                "iocs": [entity_ref],
+            },
+        )
+        chain_id = chain["id"]
+
+        # One step per satisfied predicate describing the toxic combination.
+        if not satisfied:
+            satisfied = [f"toxic combo {combo_id} matched"]
+        for idx, description in enumerate(satisfied, start=1):
+            self.add_chain_step(
+                org_id,
+                chain_id,
+                {
+                    "step_number": idx,
+                    "technique_id": "T1190",
+                    "technique_name": f"Toxic predicate: {description}",
+                    "tactic": "initial_access",
+                    "asset_targeted": entity_ref,
+                    "outcome": "unknown",
+                    "evidence": [
+                        {
+                            "toxic_combo_match_id": combo_match_id,
+                            "combo_id": combo_id,
+                            "predicate": description,
+                        }
+                    ],
+                },
+            )
+
+        # Write the chain_id back onto the toxic-combo match.
+        try:
+            threat_correlation_engine.set_match_attack_chain(
+                org_id, combo_match_id, chain_id
+            )
+        except Exception as exc:
+            _logger.warning(
+                "set_match_attack_chain failed for match=%s chain=%s: %s",
+                combo_match_id,
+                chain_id,
+                exc,
+            )
+
+        return {
+            "chain_id": chain_id,
+            "chain": chain,
+            "toxic_combo_match_id": combo_match_id,
+            "steps_added": len(satisfied),
+        }

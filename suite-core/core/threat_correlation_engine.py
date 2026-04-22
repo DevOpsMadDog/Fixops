@@ -161,6 +161,37 @@ class ThreatCorrelationEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_ct_org_incident
                     ON correlation_timeline (org_id, incident_id, timestamp DESC);
+
+                CREATE TABLE IF NOT EXISTS toxic_combo_matches (
+                    id                       TEXT PRIMARY KEY,
+                    org_id                   TEXT NOT NULL,
+                    combo_id                 TEXT NOT NULL,
+                    entity_ref               TEXT NOT NULL,
+                    matched_attributes_json  TEXT NOT NULL DEFAULT '[]',
+                    severity                 TEXT NOT NULL DEFAULT 'medium',
+                    attack_chain_id          TEXT,
+                    created_at               TEXT NOT NULL,
+                    UNIQUE(org_id, combo_id, entity_ref)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_tcm_org_combo
+                    ON toxic_combo_matches (org_id, combo_id, created_at DESC);
+
+                CREATE INDEX IF NOT EXISTS idx_tcm_org_entity
+                    ON toxic_combo_matches (org_id, entity_ref);
+
+                CREATE TABLE IF NOT EXISTS toxic_combo_entities (
+                    id                 TEXT PRIMARY KEY,
+                    org_id             TEXT NOT NULL,
+                    entity_ref         TEXT NOT NULL,
+                    attributes_json    TEXT NOT NULL DEFAULT '{}',
+                    created_at         TEXT NOT NULL,
+                    updated_at         TEXT NOT NULL,
+                    UNIQUE(org_id, entity_ref)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_tce_org
+                    ON toxic_combo_entities (org_id, entity_ref);
                 """
             )
 
@@ -649,3 +680,251 @@ class ThreatCorrelationEngine:
             "top_entities": top_entities,
             "correlation_rate": correlation_rate,
         }
+
+    # ------------------------------------------------------------------
+    # Toxic-combo correlation (GAP-021 — Wiz parity)
+    # ------------------------------------------------------------------
+
+    def upsert_entity_attributes(
+        self,
+        org_id: str,
+        entity_ref: str,
+        attributes: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Idempotent upsert of an entity + its attributes used by toxic-combo eval.
+
+        ``entity_ref`` must be globally-unique-per-org (e.g. ``asset:ec2-123``,
+        ``identity:alice``). ``attributes`` is a flat dict consumed by
+        ``toxic_combo_rules.evaluate_combo``.
+        """
+        if not entity_ref or not entity_ref.strip():
+            raise ValueError("entity_ref is required.")
+        if not isinstance(attributes, dict):
+            raise TypeError("attributes must be a dict.")
+        now = _now_iso()
+        attrs_json = json.dumps(attributes, sort_keys=True, default=str)
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    "SELECT id FROM toxic_combo_entities WHERE org_id = ? AND entity_ref = ?",
+                    (org_id, entity_ref),
+                ).fetchone()
+                if existing:
+                    conn.execute(
+                        """UPDATE toxic_combo_entities
+                           SET attributes_json = ?, updated_at = ?
+                           WHERE org_id = ? AND entity_ref = ?""",
+                        (attrs_json, now, org_id, entity_ref),
+                    )
+                    record_id = existing["id"]
+                else:
+                    record_id = str(uuid.uuid4())
+                    conn.execute(
+                        """INSERT INTO toxic_combo_entities
+                           (id, org_id, entity_ref, attributes_json, created_at, updated_at)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        (record_id, org_id, entity_ref, attrs_json, now, now),
+                    )
+        return {
+            "id": record_id,
+            "org_id": org_id,
+            "entity_ref": entity_ref,
+            "attributes": attributes,
+            "updated_at": now,
+        }
+
+    def list_entities(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return all entities registered for toxic-combo evaluation."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM toxic_combo_entities WHERE org_id = ? ORDER BY updated_at DESC",
+                (org_id,),
+            ).fetchall()
+        result: List[Dict[str, Any]] = []
+        for row in rows:
+            d = self._row(row)
+            try:
+                d["attributes"] = json.loads(d.get("attributes_json") or "{}")
+            except Exception:
+                d["attributes"] = {}
+            d.pop("attributes_json", None)
+            result.append(d)
+        return result
+
+    def correlate_toxic_combos(
+        self,
+        org_id: str,
+        rules: Optional[List[Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Evaluate every registered entity against every toxic-combo rule.
+
+        Returns a list of match records. Matches are persisted idempotently via
+        the ``UNIQUE(org_id, combo_id, entity_ref)`` constraint — re-running on
+        the same data produces the same rows.
+        """
+        from core.toxic_combo_rules import (
+            BUILTIN_RULES,
+            evaluate_combo,
+        )
+
+        rule_set = list(rules) if rules is not None else list(BUILTIN_RULES)
+        now = _now_iso()
+        matches: List[Dict[str, Any]] = []
+
+        entities = self.list_entities(org_id)
+        if not entities:
+            return matches
+
+        with self._lock:
+            with self._conn() as conn:
+                for entity in entities:
+                    attrs = entity.get("attributes") or {}
+                    entity_ref = entity["entity_ref"]
+                    for rule in rule_set:
+                        matched, satisfied = evaluate_combo(rule, attrs)
+                        if not matched:
+                            continue
+                        existing = conn.execute(
+                            """SELECT id, matched_attributes_json FROM toxic_combo_matches
+                               WHERE org_id = ? AND combo_id = ? AND entity_ref = ?""",
+                            (org_id, rule.id, entity_ref),
+                        ).fetchone()
+                        matched_json = json.dumps(satisfied)
+                        if existing:
+                            match_id = existing["id"]
+                            conn.execute(
+                                """UPDATE toxic_combo_matches
+                                   SET matched_attributes_json = ?, severity = ?
+                                   WHERE org_id = ? AND id = ?""",
+                                (matched_json, rule.severity, org_id, match_id),
+                            )
+                        else:
+                            match_id = str(uuid.uuid4())
+                            conn.execute(
+                                """INSERT INTO toxic_combo_matches
+                                   (id, org_id, combo_id, entity_ref, matched_attributes_json,
+                                    severity, attack_chain_id, created_at)
+                                   VALUES (?, ?, ?, ?, ?, ?, NULL, ?)""",
+                                (
+                                    match_id,
+                                    org_id,
+                                    rule.id,
+                                    entity_ref,
+                                    matched_json,
+                                    rule.severity,
+                                    now,
+                                ),
+                            )
+                        matches.append(
+                            {
+                                "id": match_id,
+                                "org_id": org_id,
+                                "combo_id": rule.id,
+                                "combo_name": rule.name,
+                                "entity_ref": entity_ref,
+                                "severity": rule.severity,
+                                "matched_attributes": satisfied,
+                            }
+                        )
+
+        # Best-effort: notify event bus
+        if _get_tg_bus and matches:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit(
+                        "TOXIC_COMBO_MATCHED",
+                        {
+                            "entity_type": "toxic_combo",
+                            "org_id": org_id,
+                            "match_count": len(matches),
+                            "source_engine": "threat_correlation_engine",
+                        },
+                    )
+            except Exception:
+                pass
+
+        # Best-effort: mirror into security event correlation stream.
+        try:
+            from core.security_event_correlation_engine import (
+                SecurityEventCorrelationEngine,
+            )
+            sec_engine = SecurityEventCorrelationEngine()
+            for m in matches:
+                try:
+                    sec_engine.on_toxic_combo_matched(org_id, m)
+                except Exception as exc:
+                    _logger.warning(
+                        "security_event_correlation on_toxic_combo_matched failed: %s",
+                        exc,
+                    )
+        except Exception:
+            pass
+
+        return matches
+
+    def list_toxic_combo_matches(
+        self,
+        org_id: str,
+        combo_id: Optional[str] = None,
+        entity_ref: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """List toxic-combo matches, optionally filtered by combo_id/entity_ref."""
+        sql = "SELECT * FROM toxic_combo_matches WHERE org_id = ?"
+        params: list = [org_id]
+        if combo_id:
+            sql += " AND combo_id = ?"
+            params.append(combo_id)
+        if entity_ref:
+            sql += " AND entity_ref = ?"
+            params.append(entity_ref)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(int(limit))
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        result: List[Dict[str, Any]] = []
+        for row in rows:
+            d = self._row(row)
+            try:
+                d["matched_attributes"] = json.loads(
+                    d.get("matched_attributes_json") or "[]"
+                )
+            except Exception:
+                d["matched_attributes"] = []
+            d.pop("matched_attributes_json", None)
+            result.append(d)
+        return result
+
+    def get_toxic_combo_match(
+        self, org_id: str, match_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Return a single toxic-combo match by id."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM toxic_combo_matches WHERE org_id = ? AND id = ?",
+                (org_id, match_id),
+            ).fetchone()
+            if not row:
+                return None
+            d = self._row(row)
+        try:
+            d["matched_attributes"] = json.loads(d.get("matched_attributes_json") or "[]")
+        except Exception:
+            d["matched_attributes"] = []
+        d.pop("matched_attributes_json", None)
+        return d
+
+    def set_match_attack_chain(
+        self, org_id: str, match_id: str, chain_id: str
+    ) -> bool:
+        """Attach an attack_chain id to a toxic-combo match. Returns True on update."""
+        with self._lock:
+            with self._conn() as conn:
+                cur = conn.execute(
+                    """UPDATE toxic_combo_matches
+                       SET attack_chain_id = ?
+                       WHERE org_id = ? AND id = ?""",
+                    (chain_id, org_id, match_id),
+                )
+                return cur.rowcount > 0
