@@ -1272,6 +1272,31 @@ class IntelligentSecurityEngine:
         # Feed execution results back to improve predictions
         logger.info("ml.models_updated", findings=len(result.findings))
 
+    # ------------------------------------------------------------------
+    # GAP-029: NL graph assistant convenience method
+    # ------------------------------------------------------------------
+
+    def nl_graph_assistant(
+        self, org_id: str, question: str
+    ) -> Dict[str, Any]:
+        """Convenience method that chains into AISecurityAdvisorEngine.answer_graph_question.
+
+        Returns the same payload as answer_graph_question — a natural-language
+        graph answer with traversal_trace, answer_summary, and explanation.
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("question must be a non-empty string")
+
+        try:
+            from core.ai_security_advisor_engine import AISecurityAdvisorEngine
+        except ImportError:
+            from ai_security_advisor_engine import AISecurityAdvisorEngine  # type: ignore
+
+        advisor = AISecurityAdvisorEngine()
+        return advisor.answer_graph_question(org_id, question)
+
 
 # Singleton instance
 _engine: Optional[IntelligentSecurityEngine] = None

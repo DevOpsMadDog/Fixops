@@ -1111,6 +1111,65 @@ class AISecurityAdvisorEngine:
             "cached": bool(sast_result.get("cached", False)),
         }
 
+    # ------------------------------------------------------------------
+    # GAP-029: NL graph question wrapper
+    # ------------------------------------------------------------------
+
+    def answer_graph_question(
+        self, org_id: str, question: str
+    ) -> Dict[str, Any]:
+        """Answer a natural-language graph question by delegating to GraphRAG.
+
+        Wraps `GraphRAGEngine.query_with_trace(...)` and adds a template-based
+        LLM-style explanation (no real LLM call — deterministic string).
+
+        Returns:
+            {
+              "question": str,
+              "parsed_entities": [...],
+              "parsed_edges": [...],
+              "traversal_trace": [...],
+              "answer_summary": str,
+              "explanation": str,   # template-based
+              "cached": bool,
+            }
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("question must be a non-empty string")
+
+        try:
+            from core.graphrag_engine import GraphRAGEngine as _GRE
+        except ImportError:
+            from graphrag_engine import GraphRAGEngine as _GRE  # type: ignore
+
+        engine = _GRE()
+        traced = engine.query_with_trace(org_id, question)
+
+        trace = traced.get("traversal_trace", []) or []
+        entities = traced.get("parsed_entities", []) or []
+        seed_entity = entities[0] if entities else "<no entity>"
+        summary = traced.get("answer_summary", "")
+
+        if trace:
+            key_path = " -> ".join(
+                f"{h['source']} -[{h['edge']}]-> {h['target']}" for h in trace[:3]
+            )
+            explanation = (
+                f"Based on {len(trace)} hop(s) from '{seed_entity}', "
+                f"the answer is: {summary} "
+                f"Key path: {key_path}."
+            )
+        else:
+            explanation = (
+                f"Based on 0 hops from '{seed_entity}', "
+                f"the answer is: {summary} "
+                "No path could be constructed from the current graph."
+            )
+
+        return {**traced, "explanation": explanation}
+
     def get_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated advisor statistics for an org."""
         from datetime import timedelta

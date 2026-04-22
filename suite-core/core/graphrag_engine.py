@@ -40,10 +40,17 @@ The TrustGraphQueryBuilder provides a fluent API for structured queries:
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import os
+import re as _re
+import sqlite3
+import threading
 import time
+import uuid
 from dataclasses import dataclass, asdict, field
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import json
@@ -405,6 +412,455 @@ class GraphRAGEngine:
         """Clear query cache."""
         self._query_cache.clear()
         logger.info("Cleared GraphRAG query cache")
+
+    # ------------------------------------------------------------------
+    # GAP-029: Natural-language query with traversal trace
+    # ------------------------------------------------------------------
+
+    # Naive NL-to-edge keyword map (lower-cased stems). If the question
+    # mentions any token from the left column, we treat the corresponding
+    # relationship type on the right as the edge we want to walk.
+    _NL_EDGE_KEYWORDS: Dict[str, str] = {
+        "reach": "connected_to",
+        "connect": "connected_to",
+        "talk": "connected_to",
+        "depend": "depends_on",
+        "depends on": "depends_on",
+        "requires": "depends_on",
+        "uses": "depends_on",
+        "own": "owned_by",
+        "owner": "owned_by",
+        "belongs": "owned_by",
+        "run on": "deployed_on",
+        "runs on": "deployed_on",
+        "deploy": "deployed_on",
+        "host": "deployed_on",
+        "affect": "affects",
+        "impact": "affects",
+        "expose": "exposes",
+    }
+
+    # Lightweight entity-keyword sniffer. We tokenize the question and pick
+    # out words that look like entity-ish nouns (capitalized, dotted, or
+    # all-caps identifiers) plus a small hand-picked set of generic nouns.
+    _GENERIC_ENTITY_KEYWORDS = (
+        "service",
+        "database",
+        "server",
+        "host",
+        "cluster",
+        "namespace",
+        "team",
+        "repository",
+        "repo",
+        "cve",
+        "vulnerability",
+        "component",
+        "container",
+        "pod",
+        "asset",
+        "user",
+        "api",
+        "endpoint",
+        "bucket",
+    )
+
+    def _traced_db_path(self) -> str:
+        """DB path for graphrag_traced_queries."""
+        base_dir = Path(
+            os.environ.get(
+                "ALDECI_DATA_DIR",
+                str(Path(__file__).resolve().parents[2] / ".fixops_data"),
+            )
+        )
+        base_dir.mkdir(parents=True, exist_ok=True)
+        return str(base_dir / "graphrag_traced.db")
+
+    def _traced_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._traced_db_path(), check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS graphrag_traced_queries (
+                id TEXT PRIMARY KEY,
+                org_id TEXT NOT NULL,
+                question_sha256 TEXT NOT NULL,
+                trace_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(org_id, question_sha256)
+            )"""
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_traced_org ON graphrag_traced_queries(org_id)"
+        )
+        return conn
+
+    @staticmethod
+    def _sha256(text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def _parse_nl_question(self, nl_question: str) -> Tuple[List[str], List[str]]:
+        """Extract entity keywords and edge types from a natural-language question.
+
+        Returns:
+            (parsed_entities, parsed_edges) — both lists of strings.
+        """
+        q_lower = nl_question.lower()
+
+        # Edges — match multi-word keys first (greedy), then singles.
+        parsed_edges: List[str] = []
+        seen_edges: set[str] = set()
+        # Sort keys by length desc so "depends on" beats "depend" etc.
+        for key in sorted(self._NL_EDGE_KEYWORDS.keys(), key=len, reverse=True):
+            if key in q_lower:
+                edge = self._NL_EDGE_KEYWORDS[key]
+                if edge not in seen_edges:
+                    parsed_edges.append(edge)
+                    seen_edges.add(edge)
+
+        # Entities — capitalized tokens, dotted identifiers (payments.db),
+        # CVE IDs, and generic nouns.
+        tokens = _re.findall(r"[A-Za-z][A-Za-z0-9_\-\.]+", nl_question)
+        parsed_entities: List[str] = []
+        seen_entities: set[str] = set()
+        for tok in tokens:
+            tl = tok.lower()
+            # Stop words and edge-keyword tokens should not count as entities.
+            if tl in {
+                "what",
+                "which",
+                "who",
+                "where",
+                "how",
+                "does",
+                "do",
+                "is",
+                "are",
+                "the",
+                "a",
+                "an",
+                "to",
+                "from",
+                "on",
+                "of",
+                "in",
+                "and",
+                "or",
+                "reach",
+                "reaches",
+                "connect",
+                "connects",
+                "depend",
+                "depends",
+                "own",
+                "owns",
+                "run",
+                "runs",
+                "deploy",
+                "deploys",
+                "affect",
+                "affects",
+                "impact",
+                "impacts",
+                "expose",
+                "exposes",
+            }:
+                continue
+            # Keep if looks like identifier (has digit, dot, dash, or is >=3 chars)
+            if (
+                any(ch.isdigit() for ch in tok)
+                or "." in tok
+                or "-" in tok
+                or tok[0].isupper()
+                or tl in self._GENERIC_ENTITY_KEYWORDS
+            ):
+                if tl not in seen_entities:
+                    parsed_entities.append(tok)
+                    seen_entities.add(tl)
+        return parsed_entities, parsed_edges
+
+    def _find_seed_entity(
+        self, org_id: str, parsed_entities: List[str]
+    ) -> Optional[Any]:
+        """Try to resolve the first parsed entity to a KnowledgeEntity.
+
+        Returns the KnowledgeEntity or None if none found / KnowledgeStore unavailable.
+        """
+        try:
+            from trustgraph.knowledge_store import KnowledgeStore
+        except Exception:
+            return None
+
+        try:
+            store = KnowledgeStore()
+        except Exception:
+            return None
+
+        for ent_text in parsed_entities:
+            for core_id in (1, 2, 3, 4, 5):
+                try:
+                    hits = store.search(
+                        core_id=core_id,
+                        query_text=ent_text,
+                        filters={"org_id": org_id},
+                        limit=1,
+                    )
+                except Exception:
+                    hits = []
+                if hits:
+                    return hits[0]
+        return None
+
+    def _walk_graph_trace(
+        self,
+        seed: Any,
+        parsed_edges: List[str],
+        max_depth: int = 4,
+    ) -> List[Dict[str, Any]]:
+        """BFS walk from seed up to max_depth, collecting hop records.
+
+        Each hop record:
+          {hop, source, edge, target, why}
+
+        If parsed_edges is non-empty we filter to those edge types;
+        otherwise we walk all relationships.
+        """
+        if seed is None:
+            return []
+
+        try:
+            from trustgraph.knowledge_store import KnowledgeStore
+        except Exception:
+            return []
+
+        try:
+            store = KnowledgeStore()
+        except Exception:
+            return []
+
+        trace: List[Dict[str, Any]] = []
+        visited: set[str] = {seed.entity_id}
+        frontier: List[Tuple[Any, int]] = [(seed, 0)]
+        edge_filter = set(parsed_edges) if parsed_edges else None
+
+        while frontier:
+            current, depth = frontier.pop(0)
+            if depth >= max_depth:
+                continue
+            try:
+                rels = store.get_relationships(current.entity_id)
+            except Exception:
+                rels = []
+            for rel in rels:
+                if edge_filter is not None and rel.rel_type not in edge_filter:
+                    continue
+                # Determine the "other" side
+                other_id = (
+                    rel.target_id
+                    if rel.source_id == current.entity_id
+                    else rel.source_id
+                )
+                if other_id in visited:
+                    continue
+                try:
+                    other = store.get_entity(other_id)
+                except Exception:
+                    other = None
+                other_name = other.name if other else other_id
+                trace.append(
+                    {
+                        "hop": depth + 1,
+                        "source": current.name if hasattr(current, "name") else current.entity_id,
+                        "edge": rel.rel_type,
+                        "target": other_name,
+                        "why": (
+                            f"Edge '{rel.rel_type}' matched parsed edges "
+                            f"{sorted(edge_filter)}"
+                            if edge_filter
+                            else f"Edge '{rel.rel_type}' (no edge filter)"
+                        ),
+                    }
+                )
+                visited.add(other_id)
+                if other is not None:
+                    frontier.append((other, depth + 1))
+                if len(trace) >= 64:  # hard cap to protect large graphs
+                    return trace
+        return trace
+
+    @staticmethod
+    def _summarize_trace(
+        question: str,
+        parsed_entities: List[str],
+        parsed_edges: List[str],
+        trace: List[Dict[str, Any]],
+    ) -> str:
+        if not trace:
+            if not parsed_entities:
+                return (
+                    f"Question '{question}' did not reference any recognizable entity; "
+                    "no graph traversal was performed."
+                )
+            return (
+                f"No graph edges matched for question '{question}' "
+                f"(entities={parsed_entities}, edges={parsed_edges})."
+            )
+        unique_targets = {hop["target"] for hop in trace}
+        sample = trace[0]
+        return (
+            f"Traversed {len(trace)} hop(s) from '{sample['source']}' "
+            f"across edges {parsed_edges or ['<any>']}; "
+            f"reached {len(unique_targets)} unique target(s). "
+            f"First hop: {sample['source']} -[{sample['edge']}]-> {sample['target']}."
+        )
+
+    def query_with_trace(
+        self, org_id: str, nl_question: str
+    ) -> Dict[str, Any]:
+        """Natural-language graph query returning a hop-level traversal trace.
+
+        Idempotent by sha256(question) within an org via the
+        `graphrag_traced_queries` cache table.
+
+        Returns:
+            {
+              "question": str,
+              "parsed_entities": [str, ...],
+              "parsed_edges": [str, ...],
+              "traversal_trace": [{hop, source, edge, target, why}, ...],
+              "answer_summary": str,
+              "cached": bool,
+            }
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(nl_question, str):
+            raise ValueError("nl_question must be a string")
+
+        question = nl_question.strip()
+        q_hash = self._sha256(question)
+
+        # Cache lookup
+        try:
+            conn = self._traced_conn()
+            row = conn.execute(
+                "SELECT trace_json FROM graphrag_traced_queries WHERE org_id=? AND question_sha256=?",
+                (org_id, q_hash),
+            ).fetchone()
+            if row:
+                try:
+                    cached = json.loads(row["trace_json"])
+                    cached["cached"] = True
+                    return cached
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        except sqlite3.Error as exc:
+            logger.warning(f"graphrag_traced cache lookup failed: {exc}")
+
+        parsed_entities, parsed_edges = self._parse_nl_question(question)
+        seed = self._find_seed_entity(org_id, parsed_entities)
+        traversal_trace = self._walk_graph_trace(seed, parsed_edges, max_depth=4)
+        answer_summary = self._summarize_trace(
+            question, parsed_entities, parsed_edges, traversal_trace
+        )
+
+        result = {
+            "question": question,
+            "parsed_entities": parsed_entities,
+            "parsed_edges": parsed_edges,
+            "traversal_trace": traversal_trace,
+            "answer_summary": answer_summary,
+            "cached": False,
+        }
+
+        # Persist for idempotency
+        try:
+            conn = self._traced_conn()
+            conn.execute(
+                """INSERT OR IGNORE INTO graphrag_traced_queries
+                   (id, org_id, question_sha256, trace_json, created_at)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (
+                    str(uuid.uuid4()),
+                    org_id,
+                    q_hash,
+                    json.dumps(result),
+                    datetime.utcnow().isoformat(),
+                ),
+            )
+            conn.commit()
+        except sqlite3.Error as exc:
+            logger.warning(f"graphrag_traced cache write failed: {exc}")
+
+        return result
+
+    def list_traced_history(
+        self, org_id: str, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Return cached NL queries for an org, newest first."""
+        try:
+            conn = self._traced_conn()
+            rows = conn.execute(
+                """SELECT id, question_sha256, trace_json, created_at
+                   FROM graphrag_traced_queries WHERE org_id=?
+                   ORDER BY created_at DESC LIMIT ?""",
+                (org_id, int(limit)),
+            ).fetchall()
+        except sqlite3.Error as exc:
+            logger.warning(f"traced history query failed: {exc}")
+            return []
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            try:
+                payload = json.loads(row["trace_json"])
+            except (json.JSONDecodeError, TypeError):
+                payload = {}
+            out.append(
+                {
+                    "id": row["id"],
+                    "question_sha256": row["question_sha256"],
+                    "created_at": row["created_at"],
+                    "question": payload.get("question", ""),
+                    "parsed_entities": payload.get("parsed_entities", []),
+                    "parsed_edges": payload.get("parsed_edges", []),
+                    "trace_length": len(payload.get("traversal_trace", [])),
+                }
+            )
+        return out
+
+    def traced_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return aggregate stats for NL traced queries."""
+        try:
+            conn = self._traced_conn()
+            total = conn.execute(
+                "SELECT COUNT(*) FROM graphrag_traced_queries WHERE org_id=?",
+                (org_id,),
+            ).fetchone()[0]
+            rows = conn.execute(
+                "SELECT trace_json FROM graphrag_traced_queries WHERE org_id=?",
+                (org_id,),
+            ).fetchall()
+        except sqlite3.Error:
+            return {
+                "org_id": org_id,
+                "total_queries": 0,
+                "total_hops": 0,
+                "avg_hops_per_query": 0.0,
+            }
+        total_hops = 0
+        for r in rows:
+            try:
+                payload = json.loads(r["trace_json"])
+                total_hops += len(payload.get("traversal_trace", []))
+            except (json.JSONDecodeError, TypeError):
+                continue
+        avg = (total_hops / total) if total else 0.0
+        return {
+            "org_id": org_id,
+            "total_queries": int(total),
+            "total_hops": int(total_hops),
+            "avg_hops_per_query": round(avg, 2),
+        }
 
 
 # ============================================================================
