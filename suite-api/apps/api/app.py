@@ -7053,6 +7053,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.export_coverage_router import router as export_coverage_router
+        app.include_router(export_coverage_router)
+        _logger.info("Mounted Export Coverage router at /api/v1/export-coverage")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.supply_chain_monitoring_router import router as supply_chain_monitoring_router
         app.include_router(supply_chain_monitoring_router)
         _logger.info("Mounted Supply Chain Monitoring router at /api/v1/supply-chain-monitoring")

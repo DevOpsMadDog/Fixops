@@ -15,6 +15,7 @@ Compliance: ISO 27001 A.18, SOC 2, PCI-DSS Req 12, NIST SP 800-53 CA-2
 
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 import threading
@@ -94,6 +95,18 @@ class AuditManagementEngine:
     def _init_db(self) -> None:
         with self._connect() as conn:
             conn.executescript("""
+                CREATE TABLE IF NOT EXISTS audit_exports (
+                    id                TEXT PRIMARY KEY,
+                    org_id            TEXT NOT NULL,
+                    framework         TEXT NOT NULL DEFAULT '',
+                    export_filter     TEXT NOT NULL DEFAULT '{}',
+                    verification_id   TEXT NOT NULL DEFAULT '',
+                    recorded_at       TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_audit_exports_org
+                    ON audit_exports(org_id, framework, recorded_at);
+
                 CREATE TABLE IF NOT EXISTS audits (
                     id              TEXT PRIMARY KEY,
                     org_id          TEXT NOT NULL,
@@ -351,3 +364,86 @@ class AuditManagementEngine:
             "critical_findings": critical_findings,
             "resolution_rate": resolution_rate,
         }
+
+    # ------------------------------------------------------------------
+    # AUDIT EXPORT LINKAGE (GAP-040)
+    # ------------------------------------------------------------------
+
+    def record_audit_export(
+        self,
+        org_id: str,
+        framework: str,
+        export_filter: Dict[str, Any],
+        verification_id: str,
+    ) -> Dict[str, Any]:
+        """Link an audit event (export) to a coverage verification record."""
+        if not framework:
+            raise ValueError("framework is required")
+        if not verification_id:
+            raise ValueError("verification_id is required")
+        export_filter = export_filter or {}
+
+        export_id = str(uuid.uuid4())
+        now = self._now()
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                """INSERT INTO audit_exports
+                   (id, org_id, framework, export_filter,
+                    verification_id, recorded_at)
+                   VALUES (?,?,?,?,?,?)""",
+                (
+                    export_id, org_id, framework,
+                    json.dumps(export_filter, sort_keys=True, default=str),
+                    verification_id, now,
+                ),
+            )
+        _logger.info(
+            "audit.export_recorded org=%s framework=%s verification=%s",
+            org_id, framework, verification_id,
+        )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "CONTROL_ASSESSED",
+                        {
+                            "entity_type": "audit_export",
+                            "org_id": org_id,
+                            "source_engine": "audit_management",
+                            "framework": framework,
+                            "verification_id": verification_id,
+                        },
+                    )
+            except Exception:
+                pass
+        return {
+            "id": export_id,
+            "org_id": org_id,
+            "framework": framework,
+            "export_filter": export_filter,
+            "verification_id": verification_id,
+            "recorded_at": now,
+        }
+
+    def audit_export_history(
+        self, org_id: str, framework: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Return audit-export history for org, optionally filtered by framework."""
+        query = "SELECT * FROM audit_exports WHERE org_id=?"
+        params: List[Any] = [org_id]
+        if framework:
+            query += " AND framework=?"
+            params.append(framework)
+        query += " ORDER BY recorded_at DESC"
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["export_filter"] = json.loads(d.get("export_filter") or "{}")
+            except (ValueError, TypeError):
+                d["export_filter"] = {}
+            out.append(d)
+        return out

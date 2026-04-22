@@ -113,6 +113,21 @@ class EvidenceChainEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_ct_evidence
                     ON custody_transfers (org_id, evidence_id, transferred_at);
+
+                CREATE TABLE IF NOT EXISTS export_coverage_verifications (
+                    id                       TEXT PRIMARY KEY,
+                    org_id                   TEXT NOT NULL,
+                    export_filter_json       TEXT NOT NULL DEFAULT '{}',
+                    total_matched            INTEGER NOT NULL DEFAULT 0,
+                    total_excluded           INTEGER NOT NULL DEFAULT 0,
+                    coverage_pct             REAL NOT NULL DEFAULT 0.0,
+                    gaps_count               INTEGER NOT NULL DEFAULT 0,
+                    over_collection_count    INTEGER NOT NULL DEFAULT 0,
+                    verified_at              TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ecv_org
+                    ON export_coverage_verifications (org_id, verified_at);
                 """
             )
 
@@ -422,6 +437,199 @@ class EvidenceChainEngine:
     # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Export Coverage Verification (GAP-040)
+    # ------------------------------------------------------------------
+
+    _FRAMEWORK_REQUIRED_TYPES: Dict[str, set] = {
+        "NIST CSF": {"log", "file", "image"},
+        "ISO 27001": {"file", "log"},
+        "SOC 2": {"file", "log", "database"},
+        "PCI-DSS": {"log", "database", "network_capture"},
+        "HIPAA": {"log", "database", "file"},
+        "GDPR": {"file", "log", "database"},
+    }
+
+    _SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+
+    def _evidence_matches_filter(
+        self, ev: Dict[str, Any], export_filter: Dict[str, Any]
+    ) -> bool:
+        """Return True if evidence item matches export filter predicates."""
+        ev_type = ev.get("evidence_type", "")
+        framework = export_filter.get("framework")
+        if framework:
+            required = self._FRAMEWORK_REQUIRED_TYPES.get(framework)
+            if required is not None and ev_type not in required:
+                return False
+
+        sev_min = export_filter.get("severity_min")
+        if sev_min:
+            ev_sev = ev.get("severity") or ev.get("severity_level") or "low"
+            if (
+                self._SEVERITY_ORDER.get(str(ev_sev).lower(), 0)
+                < self._SEVERITY_ORDER.get(str(sev_min).lower(), 0)
+            ):
+                return False
+
+        created_at = ev.get("created_at", "")
+        date_from = export_filter.get("date_from")
+        date_to = export_filter.get("date_to")
+        if date_from and created_at and created_at < date_from:
+            return False
+        if date_to and created_at and created_at > date_to:
+            return False
+
+        ev_types = export_filter.get("evidence_types")
+        if ev_types and ev_type not in ev_types:
+            return False
+
+        case_id = export_filter.get("case_id")
+        if case_id and ev.get("case_id") != case_id:
+            return False
+
+        return True
+
+    def verify_export_coverage(
+        self, org_id: str, export_filter: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Given an export filter, compute coverage metrics and persist verification.
+
+        Returns dict with: verification_id, total_matched, total_excluded,
+        coverage_pct, gaps (evidence NOT in export but required by compliance
+        framework), over_collection (items in export that don't match required
+        control types), verified_at.
+        """
+        export_filter = export_filter or {}
+
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    "SELECT * FROM evidence_items WHERE org_id=?", (org_id,)
+                ).fetchall()
+        all_evidence = [self._row_to_dict(r) for r in rows]
+        total_org_evidence = len(all_evidence)
+
+        matched: List[Dict[str, Any]] = []
+        excluded: List[Dict[str, Any]] = []
+        for ev in all_evidence:
+            (matched if self._evidence_matches_filter(ev, export_filter) else excluded).append(ev)
+
+        total_matched = len(matched)
+        total_excluded = len(excluded)
+        coverage_pct = (
+            round(total_matched / total_org_evidence * 100, 2)
+            if total_org_evidence > 0
+            else 0.0
+        )
+
+        framework = export_filter.get("framework")
+        required_types = (
+            self._FRAMEWORK_REQUIRED_TYPES.get(framework, set()) if framework else set()
+        )
+
+        # Gaps: evidence that is excluded but whose type IS required by the
+        # compliance framework (i.e., evidence that SHOULD be in the export
+        # based on framework requirements, but was excluded by other filters
+        # such as severity_min / date range).
+        gaps = [
+            ev for ev in excluded
+            if required_types and ev.get("evidence_type") in required_types
+        ]
+        gaps_count = len(gaps)
+
+        # Over-collection: items in export whose type is NOT in the required
+        # control set for the framework. Only meaningful when framework and
+        # required_types are specified.
+        over_collection = [
+            ev for ev in matched
+            if required_types and ev.get("evidence_type") not in required_types
+        ]
+        over_collection_count = len(over_collection)
+
+        verification_id = str(uuid.uuid4())
+        now = _now()
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO export_coverage_verifications
+                       (id, org_id, export_filter_json, total_matched,
+                        total_excluded, coverage_pct, gaps_count,
+                        over_collection_count, verified_at)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (
+                        verification_id, org_id,
+                        json.dumps(export_filter, sort_keys=True, default=str),
+                        total_matched, total_excluded, coverage_pct,
+                        gaps_count, over_collection_count, now,
+                    ),
+                )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "CONTROL_ASSESSED",
+                        {
+                            "entity_type": "export_coverage_verification",
+                            "org_id": org_id,
+                            "source_engine": "evidence_chain",
+                            "coverage_pct": coverage_pct,
+                            "gaps_count": gaps_count,
+                        },
+                    )
+            except Exception:
+                pass
+
+        return {
+            "verification_id": verification_id,
+            "org_id": org_id,
+            "export_filter": export_filter,
+            "total_org_evidence": total_org_evidence,
+            "total_matched": total_matched,
+            "total_excluded": total_excluded,
+            "coverage_pct": coverage_pct,
+            "gaps_count": gaps_count,
+            "gaps": [
+                {"evidence_id": e.get("evidence_id"), "evidence_type": e.get("evidence_type")}
+                for e in gaps
+            ],
+            "over_collection_count": over_collection_count,
+            "over_collection": [
+                {"evidence_id": e.get("evidence_id"), "evidence_type": e.get("evidence_type")}
+                for e in over_collection
+            ],
+            "verified_at": now,
+        }
+
+    def list_verifications(
+        self, org_id: str, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """List recent export-coverage verifications for org (most recent first)."""
+        try:
+            lim = max(1, min(int(limit), 500))
+        except (TypeError, ValueError):
+            lim = 50
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """SELECT * FROM export_coverage_verifications
+                       WHERE org_id=? ORDER BY verified_at DESC LIMIT ?""",
+                    (org_id, lim),
+                ).fetchall()
+
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["export_filter"] = json.loads(d.pop("export_filter_json") or "{}")
+            except (ValueError, TypeError):
+                d["export_filter"] = {}
+                d.pop("export_filter_json", None)
+            out.append(d)
+        return out
 
     def get_evidence_stats(self, org_id: str) -> Dict[str, Any]:
         """Return evidence statistics for an org."""
