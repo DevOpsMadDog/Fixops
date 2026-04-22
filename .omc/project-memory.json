@@ -506,14 +506,14 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 693,
-      "lastAccessed": 1776807917928,
+      "accessCount": 711,
+      "lastAccessed": 1776813409687,
       "type": "directory"
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 60,
-      "lastAccessed": 1776777611842,
+      "accessCount": 61,
+      "lastAccessed": 1776813120436,
       "type": "file"
     },
     {
@@ -667,6 +667,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/apikey_router.py",
+      "accessCount": 4,
+      "lastAccessed": 1776813628900,
+      "type": "file"
+    },
+    {
       "path": "suite-core/core/api_fuzzer.py",
       "accessCount": 3,
       "lastAccessed": 1776078220355,
@@ -688,12 +694,6 @@
       "path": "suite-api/apps/api/compliance_automation_router.py",
       "accessCount": 3,
       "lastAccessed": 1776263701270,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/apikey_router.py",
-      "accessCount": 3,
-      "lastAccessed": 1776335220114,
       "type": "file"
     },
     {
