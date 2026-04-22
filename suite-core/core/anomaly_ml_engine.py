@@ -375,6 +375,28 @@ class AnomalyMLEngine:
                 );
                 CREATE INDEX IF NOT EXISTS idx_fb_org_label
                     ON feedback_history (org_id, label, metric_name);
+
+                CREATE TABLE IF NOT EXISTS composite_alert_groups (
+                    id                 TEXT PRIMARY KEY,
+                    org_id             TEXT NOT NULL,
+                    group_name         TEXT NOT NULL,
+                    signal_count       INTEGER NOT NULL DEFAULT 0,
+                    correlation_score  REAL NOT NULL DEFAULT 0.0,
+                    created_at         DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_cag_org
+                    ON composite_alert_groups (org_id, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS composite_group_members (
+                    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    group_id  TEXT NOT NULL,
+                    signal_id TEXT NOT NULL,
+                    UNIQUE(group_id, signal_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_cgm_group
+                    ON composite_group_members (group_id);
+                CREATE INDEX IF NOT EXISTS idx_cgm_signal
+                    ON composite_group_members (signal_id);
                 """
             )
 
@@ -1022,6 +1044,204 @@ class AnomalyMLEngine:
             )
 
         return groups
+
+    # ------------------------------------------------------------------
+    # 7b. Composite Alert Grouping (GAP-052)
+    # ------------------------------------------------------------------
+
+    def group_signals_into_composite(
+        self,
+        org_id: str,
+        signal_ids: List[str],
+        group_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Manually group ≥1 anomaly signals (ml_anomalies rows) into a
+        composite_alert_groups row with dedup on (group_id, signal_id).
+
+        Only signals existing in ml_anomalies for this org are linked.
+        Returns the created group dict including resolved members + score.
+        """
+        if not isinstance(signal_ids, list):
+            raise TypeError("signal_ids must be a list of strings")
+        cleaned_ids: List[str] = [str(s).strip() for s in signal_ids if str(s).strip()]
+        if not cleaned_ids:
+            raise ValueError("signal_ids must contain at least one signal id")
+
+        group_id = str(uuid.uuid4())
+        label = group_name or f"Composite group {group_id[:8]}"
+        now = datetime.now(timezone.utc).isoformat()
+
+        with self._lock:
+            with self._conn() as conn:
+                # Validate signals belong to org — only keep known ones.
+                placeholders = ",".join("?" * len(cleaned_ids))
+                rows = conn.execute(
+                    f"SELECT id, risk_level FROM ml_anomalies "  # nosec B608
+                    f"WHERE org_id=? AND id IN ({placeholders})",
+                    (org_id, *cleaned_ids),
+                ).fetchall()
+                valid_ids = [r["id"] for r in rows]
+                risk_levels = [r["risk_level"] for r in rows]
+
+                # Correlation score: share of critical/high + density factor.
+                high_crit = sum(
+                    1 for rl in risk_levels if rl in ("critical", "high")
+                )
+                base = len(valid_ids) / max(1, len(cleaned_ids))
+                severity_boost = high_crit / max(1, len(valid_ids)) if valid_ids else 0.0
+                correlation_score = round(
+                    min(1.0, 0.5 * base + 0.5 * severity_boost), 4
+                )
+
+                conn.execute(
+                    """
+                    INSERT INTO composite_alert_groups
+                        (id, org_id, group_name, signal_count, correlation_score, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (group_id, org_id, label, len(valid_ids), correlation_score, now),
+                )
+
+                inserted: List[str] = []
+                for sid in valid_ids:
+                    try:
+                        cur = conn.execute(
+                            "INSERT OR IGNORE INTO composite_group_members "
+                            "(group_id, signal_id) VALUES (?, ?)",
+                            (group_id, sid),
+                        )
+                        if cur.rowcount:
+                            inserted.append(sid)
+                    except sqlite3.IntegrityError:
+                        continue
+                conn.commit()
+
+        return {
+            "id": group_id,
+            "org_id": org_id,
+            "group_name": label,
+            "signal_count": len(valid_ids),
+            "correlation_score": correlation_score,
+            "created_at": now,
+            "member_ids": inserted,
+            "skipped_unknown": [sid for sid in cleaned_ids if sid not in valid_ids],
+        }
+
+    def auto_group_by_time_window(
+        self,
+        org_id: str,
+        window_seconds: int = 300,
+    ) -> List[Dict[str, Any]]:
+        """Cluster recent ml_anomalies (anomaly signals) by
+        (entity_id, time-bucket of window_seconds) and create a composite
+        group for any cluster with ≥3 signals. Returns list of new groups.
+        """
+        if window_seconds <= 0:
+            raise ValueError("window_seconds must be positive")
+
+        cutoff = (
+            datetime.now(timezone.utc) - timedelta(seconds=window_seconds * 2)
+        ).isoformat()
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT id, entity_id, detected_at
+                    FROM ml_anomalies
+                    WHERE org_id=? AND detected_at >= ?
+                    ORDER BY detected_at ASC
+                    """,
+                    (org_id, cutoff),
+                ).fetchall()
+
+        if not rows:
+            return []
+
+        clusters: Dict[Tuple[str, int], List[str]] = {}
+        for r in rows:
+            try:
+                ts = datetime.fromisoformat(r["detected_at"])
+            except (ValueError, TypeError):
+                continue
+            bucket = int(ts.timestamp() // window_seconds)
+            key = (r["entity_id"], bucket)
+            clusters.setdefault(key, []).append(r["id"])
+
+        new_groups: List[Dict[str, Any]] = []
+        for (entity_id, bucket), ids in clusters.items():
+            if len(ids) < 3:
+                continue
+            group = self.group_signals_into_composite(
+                org_id=org_id,
+                signal_ids=ids,
+                group_name=f"Auto: {entity_id} @ bucket {bucket}",
+            )
+            new_groups.append(group)
+
+        return new_groups
+
+    def list_composite_groups(
+        self,
+        org_id: str,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """Return recent composite_alert_groups for an org."""
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT id, org_id, group_name, signal_count,
+                           correlation_score, created_at
+                    FROM composite_alert_groups
+                    WHERE org_id=?
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                    """,
+                    (org_id, int(limit)),
+                ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_composite_group(
+        self,
+        group_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Return a composite group with its member signal ids, or None."""
+        with self._lock:
+            with self._conn() as conn:
+                row = conn.execute(
+                    """
+                    SELECT id, org_id, group_name, signal_count,
+                           correlation_score, created_at
+                    FROM composite_alert_groups
+                    WHERE id=?
+                    """,
+                    (group_id,),
+                ).fetchone()
+                if row is None:
+                    return None
+                members = conn.execute(
+                    "SELECT signal_id FROM composite_group_members WHERE group_id=?",
+                    (group_id,),
+                ).fetchall()
+        out = dict(row)
+        out["member_ids"] = [m["signal_id"] for m in members]
+        return out
+
+    def get_composite_signal_ids(self, org_id: str) -> set:
+        """Return set of signal_ids that are members of any composite group
+        for this org (used by security_event_correlation to dedup)."""
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT m.signal_id
+                    FROM composite_group_members m
+                    JOIN composite_alert_groups g ON g.id = m.group_id
+                    WHERE g.org_id=?
+                    """,
+                    (org_id,),
+                ).fetchall()
+        return {r["signal_id"] for r in rows}
 
     # ------------------------------------------------------------------
     # 8. Feedback Loop

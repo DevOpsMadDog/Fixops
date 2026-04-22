@@ -290,9 +290,24 @@ class SecurityEventCorrelationEngine:
     # ------------------------------------------------------------------
 
     def run_correlation(self, org_id: str) -> List[Dict[str, Any]]:
-        """Run all enabled rules against recent events, return matched incidents."""
+        """Run all enabled rules against recent events, return matched incidents.
+
+        De-dup: signals that are already members of a composite group (via
+        ``anomaly_ml_engine``) are filtered out of the match set so the
+        composite group is the single source of truth for SOC triage.
+        """
         self._ensure_db(org_id)
         matched: List[Dict[str, Any]] = []
+
+        # Collect composite member signal_ids to filter (best-effort; no-op
+        # if the anomaly engine is unavailable).
+        composite_signal_ids: set = set()
+        try:
+            from core.anomaly_ml_engine import AnomalyMLEngine  # local import
+            _ml = AnomalyMLEngine()
+            composite_signal_ids = _ml.get_composite_signal_ids(org_id)
+        except Exception:
+            composite_signal_ids = set()
 
         with self._conn(org_id) as conn:
             rules = [
@@ -323,6 +338,14 @@ class SecurityEventCorrelationEngine:
             with self._conn(org_id) as conn:
                 events = [self._row(r) for r in conn.execute(sql, params).fetchall()]
 
+            # Filter out events whose entity_id is a composite-grouped signal.
+            if composite_signal_ids:
+                events = [
+                    e for e in events
+                    if str(e.get("entity_id") or "") not in composite_signal_ids
+                    and str(e.get("id") or "") not in composite_signal_ids
+                ]
+
             if len(events) >= min_count:
                 matched.append({
                     "rule_id": rule["id"],
@@ -334,6 +357,100 @@ class SecurityEventCorrelationEngine:
                 })
 
         return matched
+
+    # ------------------------------------------------------------------
+    # Composite-alert ingest (GAP-052)
+    # ------------------------------------------------------------------
+
+    def ingest_composite_group(
+        self, group_id: str, org_id: str
+    ) -> Dict[str, Any]:
+        """Write a single ``security_events`` row of type ``composite`` that
+        references a composite_alert_groups row.
+
+        Idempotent: if an event already exists for (org_id, composite, group_id)
+        it is returned unchanged.
+
+        Returns a dict with keys: event_id, created, group_id, signal_count,
+        correlation_score.
+        """
+        if not group_id:
+            raise ValueError("group_id is required")
+        if not org_id:
+            raise ValueError("org_id is required")
+
+        self._ensure_db(org_id)
+
+        # Resolve composite group via anomaly_ml_engine. We do not raise if the
+        # engine is unavailable — we still record a minimal event so the SOC
+        # pipeline is not silently broken.
+        group: Optional[Dict[str, Any]] = None
+        try:
+            from core.anomaly_ml_engine import AnomalyMLEngine
+            _ml = AnomalyMLEngine()
+            group = _ml.get_composite_group(group_id)
+        except Exception:
+            group = None
+
+        if group is not None and str(group.get("org_id")) != str(org_id):
+            raise ValueError("composite group does not belong to this org")
+
+        signal_count = int(group["signal_count"]) if group else 0
+        correlation_score = float(group["correlation_score"]) if group else 0.0
+        member_ids = list(group.get("member_ids", [])) if group else []
+        group_name = group.get("group_name", "composite") if group else "composite"
+
+        now = _now_iso()
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                existing = conn.execute(
+                    """SELECT id FROM security_events
+                       WHERE org_id = ? AND event_type = 'composite'
+                       AND entity_id = ?""",
+                    (org_id, group_id),
+                ).fetchone()
+                if existing:
+                    return {
+                        "event_id": existing["id"],
+                        "created": False,
+                        "group_id": group_id,
+                        "signal_count": signal_count,
+                        "correlation_score": correlation_score,
+                    }
+
+                event_id = str(uuid.uuid4())
+                raw = {
+                    "composite_group_id": group_id,
+                    "group_name": group_name,
+                    "signal_count": signal_count,
+                    "correlation_score": correlation_score,
+                    "member_ids": member_ids,
+                }
+                severity = "critical" if correlation_score >= 0.8 else "high"
+                conn.execute(
+                    """INSERT INTO security_events
+                       (id, org_id, source_system, event_type, severity,
+                        entity_id, entity_type, raw_data, timestamp, created_at)
+                       VALUES (?, ?, 'anomaly_ml_engine', 'composite',
+                               ?, ?, 'composite_alert_group', ?, ?, ?)""",
+                    (
+                        event_id,
+                        org_id,
+                        severity,
+                        group_id,
+                        json.dumps(raw),
+                        now,
+                        now,
+                    ),
+                )
+
+        return {
+            "event_id": event_id,
+            "created": True,
+            "group_id": group_id,
+            "signal_count": signal_count,
+            "correlation_score": correlation_score,
+        }
 
     # ------------------------------------------------------------------
     # Correlated Incidents
