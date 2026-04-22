@@ -7618,6 +7618,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-005 — Sonatype-parity org hierarchy (tree + policy/waiver inheritance)
+    try:
+        from apps.api.org_hierarchy_router import router as org_hierarchy_router
+        app.include_router(org_hierarchy_router)
+        _logger.info("Mounted Org Hierarchy router at /api/v1/orgs")
+    except ImportError:
+        pass
+
     # Wave 31 routers
     try:
         from apps.api.user_access_review_router import router as user_access_review_router
@@ -7933,6 +7941,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-064 Local File Store — .fixops/ zero-infra store for npx fixops analyze
+    try:
+        from apps.api.local_file_store_router import router as local_file_store_router
+        app.include_router(local_file_store_router)
+        _logger.info("Mounted Local File Store router")
+    except ImportError:
+        pass
+
     try:
         from apps.api.security_gap_analysis_router import router as security_gap_analysis_router
         app.include_router(security_gap_analysis_router)
@@ -8139,6 +8155,14 @@ def create_app() -> FastAPI:
         from apps.api.access_anomaly_router import router as access_anomaly_router
         app.include_router(access_anomaly_router)
         _logger.info("Mounted Access Anomaly router at /api/v1/access-anomaly")
+    except ImportError:
+        pass
+
+    # GAP-042 FIPS 140-3 compliance mode + PQC inventory (ML-KEM / ML-DSA / SPHINCS+)
+    try:
+        from apps.api.fips_router import router as fips_router
+        app.include_router(fips_router)
+        _logger.info("Mounted FIPS Compliance router at /api/v1/fips")
     except ImportError:
         pass
 
