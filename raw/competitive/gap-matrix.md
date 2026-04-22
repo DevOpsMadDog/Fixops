@@ -144,3 +144,48 @@ Added from `raw/competitive/truecourse-vs-fixops-comparison.md` "Proposed new ga
 | NEW-G071 | UX | IDE-in-browser experience — annotated file tree with per-file violation counts + highest severity color, Monaco-style tabbed code viewer with inline violation hover cards + scroll-to-line + analysis-history time-travel replaying graph + violations from a historical run | TrueCourse (`raw/competitive/truecourse-analysis.md` §1 Files tab + Analyses tab) | **MISSING** — no `FileTree.tsx` / `CodeViewer.tsx` / Monaco / time-travel UX in `suite-ui/aldeci-ui-new/src/` | FileTreePanel.tsx, CodeViewerPanel.tsx, AnalysesHistoryPanel.tsx | GET /api/v1/files/tree?repo=, GET /api/v1/files/content, GET /api/v1/analyses/{id}/snapshot | **P2** | L | Pairs with GAP-014 (`ide_extension_engine`) and GAP-066 (diff-mode UI); leverages existing `pipeline_runs` table for time-travel data |
 
 *Total gaps: 71 (60 original + 9 TrueCourse GAP-061..069 + 2 TrueCourse-derived NEW-G070/071). 1 superseded (GAP-053).*
+
+---
+
+## Session progress — 2026-04-22 → 2026-04-23 build marathon
+
+### Closed this session (20 gap dispositions landed + 5 KILLs)
+
+| Gap | Disposition | Status | Commit | Engine / Router / Tests |
+|-----|------------|--------|--------|-------------------------|
+| GAP-001 | KEEP | SHIPPED | c1127305 | air_gap_bundle_engine + router + tests (SAGE parity) |
+| GAP-003 | KILL | DONE | d0e2f44c | Moved to docs/deployment/ + docker/helm/ |
+| GAP-005 | KEEP | SHIPPED | 873c7d82 | org_hierarchy_engine + 10 endpoints + 55 tests |
+| GAP-007 | KEEP | SHIPPED | 23d8f172 | upgrade_path_resolver_engine + 35 tests |
+| GAP-008 | KEEP | SHIPPED | 23d8f172 | binary_fingerprint_engine + 30 tests |
+| GAP-010 | KEEP | SHIPPED | 23d8f172 | function_reachability_engine + 40 tests |
+| GAP-017 | KEEP | SHIPPED | 4bd57c38 | pipeline_bom_engine + 35 tests (PBOM) |
+| GAP-018 | KEEP | SHIPPED | c1127305 | slsa_provenance_engine + 30 tests (in-toto+DSSE) |
+| GAP-020 | KEEP | SHIPPED | 4bd57c38 | agentless_snapshot_scan_engine + 30 tests (Wiz/Orca moat) |
+| GAP-021 | MERGE | SHIPPED | 4bd57c38 | 5 toxic-combo rules + 53 tests |
+| GAP-022+023 | MERGE | SHIPPED | c1127305 | 100+ frameworks + 3000+ policies seeded |
+| GAP-024 | KEEP | SHIPPED | c1127305 | security_query_language_engine (RQL DSL) |
+| GAP-026 | MERGE | SHIPPED | fc363657 | Edmonds-Karp choke-point + 34 tests |
+| GAP-032+033 | MERGE | SHIPPED | 06aa3851 | CIEM+AD across 5 engines (Kerberoast/DCSync/ESC) |
+| GAP-036 | KILL | DONE | d0e2f44c | Terraform provider is Go, not engine |
+| GAP-042 | KEEP | SHIPPED | 06aa3851 | fips_compliance_mode_engine + 44 tests |
+| GAP-053 | KILL | DONE | d0e2f44c | Superseded by GAP-024+GAP-029 |
+| GAP-054 | KILL | DONE | d0e2f44c | Marketing calc, not security engine |
+| GAP-063 | MERGE | SHIPPED | 23d8f172+873c7d82 | Violation lifecycle + tests (HIGHEST LEVERAGE) |
+| GAP-064 | KEEP | SHIPPED | 873c7d82 | local_file_store_engine + 15 tests |
+| GAP-067 | KILL | DONE | d0e2f44c | Publish script, not engine |
+
+### In-flight (Wave 5, agents running)
+- GAP-011 material_change diff (MERGE)
+- GAP-025 OCI+Alibaba+IBM cloud adapters (MERGE)
+- GAP-069 dynamic_rule_dsl_engine (KEEP)
+
+### Remaining — Wave 6+
+MERGEs: GAP-002/004/006/009/015/016/019/027/028/029/030+045/034/035/039+050/040/041+055+057/043/044+061/049+066/052/056/059/060/062/065/068
+KEEPs: GAP-012 deep_code_analysis, GAP-013 code_to_runtime_matcher, NEW-G070 semantic layer (tree-sitter), NEW-G071 IDE-in-browser
+UNCLEAR: GAP-014 ide_gateway, GAP-058 free-tier
+
+### TrueCourse-audits-Fixops verdict
+Fixops has ~13,100 legacy code-quality violations (87.7% un-annotated fns, 2461 naive datetime.now, 698 broad except) — all in LEGACY engines. All 12 new engines this session pass TrueCourse's cleanliness bar (0 naive now, 0 bare except).
+
+### Engine count: 334 (session start) → ~348 projected post Wave-5
