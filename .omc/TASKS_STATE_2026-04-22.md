@@ -2,6 +2,27 @@
 
 Snapshot of the session's task tracker at pause. Session-scoped TaskList IDs are lost on `/quit`, but their outputs and continuations are captured here.
 
+---
+
+## READ FIRST — honest state of graphify + TrueCourse (don't repeat my prior session's mistake)
+
+The previous session (mine, before this handoff) produced a **text-level** comparison of TrueCourse vs Fixops. It did **NOT** produce a graphify visual comparison. Specifically:
+
+| What exists | What does NOT exist |
+|------------|---------------------|
+| `raw/competitive/truecourse-analysis.md` — markdown deep-dive of TrueCourse repo (1083 deterministic + 101 LLM rules, tiered LLM router, violation lifecycle, `.truecourse/` JSON store, architecture graph, diff-mode UI, YAML hook policy, 4 Claude Code skills) | TrueCourse concepts as nodes in `graphify-out/graph.json` |
+| `raw/competitive/gap-matrix.md` — GAP-061..069 rows inferred by an agent reading the markdown | Visual graph showing `truecourse.violation_lifecycle → fixops.findings_router` |
+| 9 v2 PRDs citing TrueCourse (at `.omc/prds/v2/`) | Anything TrueCourse in `graphify-out/graph.html` |
+| TrustGraph `cited_in` edges in dry-run snapshot | A re-built, re-clustered graph visual |
+
+**The current `graphify-out/graph.html` is 25+ hours old. It contains ONLY `suite-ui/aldeci-ui-new/src/` (442 files, 2258 nodes, 409 communities). No backend code, no research docs, no TrueCourse, no competitive intelligence, no gap tasks.**
+
+**Your FIRST job in this session** is open thread #1 below — run graphify semantic extraction on `raw/competitive/` (9 docs), merge with existing graph (or expand scope to include `suite-api` + `suite-core` for a real full-repo view), re-cluster, regenerate `graph.html`. Only after that can any actual visual/graph-based TrueCourse↔Fixops comparison happen. Thread #7 (exhaustive side-by-side table) can be done in parallel since it needs only the markdown files, but the *graph* comparison depends on #1.
+
+Don't claim "graphify comparison done" until `graph.html` actually shows TrueCourse nodes linked to Fixops code nodes. My prior session conflated the text comparison with a graph comparison and the user (rightly) called it out.
+
+---
+
 ## Task table
 
 | # | Subject | Status | Output / continuation |
