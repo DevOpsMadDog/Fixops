@@ -6395,6 +6395,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.ai_code_scanner_router import router as ai_code_scanner_router
+        app.include_router(ai_code_scanner_router)
+        _logger.info("Mounted AI Code Scanner router at /api/v1/ai-scan")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.vuln_prioritization_router import router as vuln_prioritization_router
         app.include_router(vuln_prioritization_router)
         _logger.info("Mounted Vuln Prioritization router at /api/v1/vuln-prioritization")
@@ -6405,6 +6412,13 @@ def create_app() -> FastAPI:
         from apps.api.asset_criticality_router import router as asset_criticality_router
         app.include_router(asset_criticality_router)
         _logger.info("Mounted Asset Criticality router at /api/v1/asset-criticality")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.blast_radius_router import router as blast_radius_router
+        app.include_router(blast_radius_router)
+        _logger.info("Mounted Blast Radius router at /api/v1/blast-radius")
     except ImportError:
         pass
 
@@ -7454,6 +7468,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-034 + GAP-035 — Universal ingest (field mapping + SIEM forwarding)
+    try:
+        from apps.api.universal_ingest_router import router as universal_ingest_router
+        app.include_router(universal_ingest_router)
+        _logger.info("Mounted Universal Ingest router at /api/v1/ingest")
+    except ImportError:
+        pass
+
     # Wave 27 routers
     try:
         from apps.api.alert_triage_router import router as alert_triage_router
@@ -7882,6 +7904,14 @@ def create_app() -> FastAPI:
         from apps.api.security_dependency_risk_router import router as security_dependency_risk_router
         app.include_router(security_dependency_risk_router)
         _logger.info("Mounted Security Dependency Risk router at /api/v1/dependency-risk")
+    except ImportError:
+        pass
+
+    # GAP-055 + GAP-057: SBOM re-eval schedule + component claim
+    try:
+        from apps.api.sbom_reeval_router import router as sbom_reeval_router
+        app.include_router(sbom_reeval_router)
+        _logger.info("Mounted SBOM Re-Eval router at /api/v1/sbom-reeval")
     except ImportError:
         pass
 

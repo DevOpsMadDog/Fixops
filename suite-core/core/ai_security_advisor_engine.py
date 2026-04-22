@@ -915,6 +915,202 @@ class AISecurityAdvisorEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # GAP-019: AI-generated code analysis (SAST + AI-specific risk signals)
+    # ------------------------------------------------------------------
+
+    # Language-scoped AI-specific risk patterns. Each entry:
+    # (risk_id, title, severity, regex_pattern, languages, message)
+    _AI_RISK_PATTERNS: List[Any] = [
+        (
+            "AI-RISK-001",
+            "Hardcoded secret in AI-generated code",
+            "high",
+            r"""(password|secret|api[_-]?key|token|private[_-]?key|aws[_-]?access[_-]?key|bearer)\s*[:=]\s*["'][A-Za-z0-9+/=_\-]{8,}["']""",
+            {"python", "javascript", "typescript", "java", "go", "ruby", "php"},
+            "AI code generators frequently produce placeholder credentials; replace with env var or secret manager.",
+        ),
+        (
+            "AI-RISK-002",
+            "eval() on untrusted input",
+            "critical",
+            r"""\beval\s*\(""",
+            {"python", "javascript", "typescript", "ruby", "php"},
+            "eval() enables arbitrary code execution; refuse AI-suggested eval and use a safe parser.",
+        ),
+        (
+            "AI-RISK-003",
+            "os.system() shell call",
+            "critical",
+            r"""\bos\.system\s*\(""",
+            {"python"},
+            "os.system passes raw shell strings; use subprocess with a list argument and shell=False.",
+        ),
+        (
+            "AI-RISK-004",
+            "subprocess with shell=True",
+            "high",
+            r"""subprocess\.(run|call|Popen|check_call|check_output)\s*\([^)]*shell\s*=\s*True""",
+            {"python"},
+            "shell=True enables injection via interpolated args; build argv list and omit shell=True.",
+        ),
+        (
+            "AI-RISK-005",
+            "exec() dynamic execution",
+            "critical",
+            r"""\bexec\s*\(""",
+            {"python", "javascript"},
+            "exec() executes arbitrary strings as code; refuse AI-generated exec and use explicit control flow.",
+        ),
+        (
+            "AI-RISK-006",
+            "child_process.exec with interpolation",
+            "critical",
+            r"""child_process\.(exec|execSync)\s*\(\s*[`"']?[^)]*\$\{""",
+            {"javascript", "typescript"},
+            "Use child_process.execFile with an argv array; never interpolate user input into exec strings.",
+        ),
+        (
+            "AI-RISK-007",
+            "Dangerous Function() constructor",
+            "high",
+            r"""\bnew\s+Function\s*\(""",
+            {"javascript", "typescript"},
+            "Function() constructs code from strings at runtime; refuse AI-suggested use.",
+        ),
+    ]
+
+    @staticmethod
+    def _ai_risk_score(sast_findings: List[Dict[str, Any]], ai_risks: List[Dict[str, Any]]) -> float:
+        """Combine SAST + AI-risk severities into a 0-100 risk score."""
+        sev_weights = {"critical": 10.0, "high": 6.0, "medium": 3.0, "low": 1.0, "info": 0.5}
+        score = 0.0
+        for item in list(sast_findings) + list(ai_risks):
+            sev = str(item.get("severity", "medium")).lower()
+            score += sev_weights.get(sev, 3.0)
+        # Saturate at 100
+        return float(min(100.0, round(score, 2)))
+
+    def analyze_ai_generated(
+        self,
+        org_id: str,
+        code: str,
+        language: str,
+    ) -> Dict[str, Any]:
+        """Full analysis of AI-generated code: SAST findings + AI-specific risk signals.
+
+        Returns:
+            {
+              "org_id": str,
+              "language": str,
+              "snippet_sha256": str,
+              "sast_findings": [...],
+              "ai_risks": [...],
+              "combined_score": float,   # 0-100, higher = riskier
+              "risk_level": "critical|high|medium|low|minimal",
+              "scanned_at": iso8601,
+              "cached": bool,            # True if SAST cache was hit
+            }
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(code, str):
+            raise ValueError("code must be a string")
+        if not isinstance(language, str) or not language:
+            raise ValueError("language must be a non-empty string")
+
+        # 1) SAST via sast_engine.scan_snippet
+        try:
+            from core.sast_engine import scan_snippet as _scan_snippet
+        except ImportError:
+            from sast_engine import scan_snippet as _scan_snippet  # type: ignore
+
+        sast_result = _scan_snippet(
+            org_id=org_id,
+            code=code,
+            language=language,
+            source_hint="ai_generated",
+        )
+        sast_findings = list(sast_result.get("findings", []))
+
+        # 2) AI-specific risk signals (compiled lazily, once per call — simple + safe)
+        import re as _re
+        lang_lc = language.lower()
+        ai_risks: List[Dict[str, Any]] = []
+        lines = code.split("\n")
+        for risk_id, title, severity, pattern, langs, message in self._AI_RISK_PATTERNS:
+            if lang_lc not in langs:
+                continue
+            try:
+                compiled = _re.compile(pattern)
+            except _re.error:
+                continue
+            for idx, line in enumerate(lines, 1):
+                # Skip empty lines and obvious comments to reduce noise
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#") or stripped.startswith("//"):
+                    continue
+                # Avoid pathological long lines (guard against minified/huge inputs)
+                if len(line) > 10_000:
+                    continue
+                if compiled.search(line):
+                    ai_risks.append(
+                        {
+                            "risk_id": risk_id,
+                            "title": title,
+                            "severity": severity,
+                            "language": language,
+                            "line_number": idx,
+                            "snippet": stripped[:200],
+                            "message": message,
+                            "source": "ai_generated_heuristic",
+                        }
+                    )
+
+        combined_score = self._ai_risk_score(sast_findings, ai_risks)
+        if combined_score >= 60:
+            risk_level = "critical"
+        elif combined_score >= 30:
+            risk_level = "high"
+        elif combined_score >= 15:
+            risk_level = "medium"
+        elif combined_score > 0:
+            risk_level = "low"
+        else:
+            risk_level = "minimal"
+
+        # Emit TrustGraph event (best-effort)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit(
+                        "FINDING_CREATED",
+                        {
+                            "entity_type": "ai_code_scanner",
+                            "org_id": org_id,
+                            "source_engine": "ai_security_advisor_engine",
+                            "risk_level": risk_level,
+                            "score": combined_score,
+                        },
+                    )
+            except Exception:
+                pass
+
+        return {
+            "org_id": org_id,
+            "language": language,
+            "snippet_sha256": sast_result.get("snippet_sha256"),
+            "sast_findings": sast_findings,
+            "sast_findings_count": len(sast_findings),
+            "ai_risks": ai_risks,
+            "ai_risks_count": len(ai_risks),
+            "combined_score": combined_score,
+            "risk_level": risk_level,
+            "scanned_at": sast_result.get("scanned_at"),
+            "cached": bool(sast_result.get("cached", False)),
+        }
+
     def get_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated advisor statistics for an org."""
         from datetime import timedelta

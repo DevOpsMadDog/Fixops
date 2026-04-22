@@ -2225,3 +2225,279 @@ def get_sast_engine() -> SASTEngine:
     if _engine is None:
         _engine = SASTEngine()
     return _engine
+
+
+# ---------------------------------------------------------------------------
+# GAP-019: Snippet scanner (AI-generated code / keystroke-time scanning)
+# ---------------------------------------------------------------------------
+
+import json as _snippet_json
+import os as _snippet_os
+import sqlite3 as _snippet_sqlite3
+import threading as _snippet_threading
+
+_SNIPPET_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
+_SNIPPET_DB_LOCK = _snippet_threading.RLock()
+_SNIPPET_DB_PATH: Optional[str] = None
+
+_SNIPPET_DDL = """
+PRAGMA journal_mode=WAL;
+
+CREATE TABLE IF NOT EXISTS snippet_scans (
+    id               TEXT PRIMARY KEY,
+    org_id           TEXT NOT NULL,
+    snippet_sha256   TEXT NOT NULL,
+    language         TEXT NOT NULL,
+    source_hint      TEXT NOT NULL DEFAULT 'ai_generated',
+    findings_json    TEXT NOT NULL DEFAULT '[]',
+    scanned_at       TEXT NOT NULL,
+    UNIQUE(org_id, snippet_sha256)
+);
+
+CREATE INDEX IF NOT EXISTS idx_snippet_scans_org ON snippet_scans(org_id);
+CREATE INDEX IF NOT EXISTS idx_snippet_scans_lang ON snippet_scans(org_id, language);
+CREATE INDEX IF NOT EXISTS idx_snippet_scans_date ON snippet_scans(org_id, scanned_at);
+"""
+
+
+def _snippet_db_path() -> str:
+    global _SNIPPET_DB_PATH
+    if _SNIPPET_DB_PATH is None:
+        _SNIPPET_DB_DIR.mkdir(parents=True, exist_ok=True)
+        _SNIPPET_DB_PATH = str(_SNIPPET_DB_DIR / "snippet_scans.db")
+    return _SNIPPET_DB_PATH
+
+
+def _snippet_conn() -> _snippet_sqlite3.Connection:
+    conn = _snippet_sqlite3.connect(_snippet_db_path(), check_same_thread=False)
+    conn.row_factory = _snippet_sqlite3.Row
+    return conn
+
+
+def _snippet_init_db() -> None:
+    with _SNIPPET_DB_LOCK:
+        with _snippet_conn() as conn:
+            conn.executescript(_SNIPPET_DDL)
+
+
+def _language_to_extension(language: str) -> str:
+    """Map a language name to a representative filename extension."""
+    mapping = {
+        "python": "py",
+        "py": "py",
+        "javascript": "js",
+        "js": "js",
+        "typescript": "ts",
+        "ts": "ts",
+        "java": "java",
+        "go": "go",
+        "ruby": "rb",
+        "rb": "rb",
+        "php": "php",
+        "c": "c",
+        "cpp": "cpp",
+        "c++": "cpp",
+        "rust": "rs",
+        "rs": "rs",
+        "csharp": "cs",
+        "cs": "cs",
+    }
+    return mapping.get(language.lower(), "txt")
+
+
+# Reset DB path helper (used by tests)
+def _snippet_set_db_path(path: str) -> None:
+    global _SNIPPET_DB_PATH
+    _SNIPPET_DB_PATH = path
+    _snippet_init_db()
+
+
+def scan_snippet(
+    org_id: str,
+    code: str,
+    language: str,
+    source_hint: str = "ai_generated",
+) -> Dict[str, Any]:
+    """Scan a single code snippet (not a full repo) — e.g. AI-generated code at keystroke time.
+
+    Applies the existing SAST ruleset to a single snippet and persists an audit record.
+    Idempotent: if the same (org_id, sha256) was scanned before, cached findings are returned.
+
+    Args:
+        org_id: Organization identifier (tenant isolation).
+        code: Raw source code snippet (string).
+        language: Language name (python/javascript/go/java/ruby/php/typescript/c/cpp/rust/csharp).
+        source_hint: Provenance tag (default 'ai_generated'). Examples: 'copilot', 'claude', 'manual'.
+
+    Returns:
+        {
+          "snippet_sha256": str,
+          "org_id": str,
+          "language": str,
+          "source_hint": str,
+          "findings": [finding_dict, ...],
+          "findings_count": int,
+          "cached": bool,          # True if re-served from audit cache
+          "scanned_at": iso8601,
+        }
+    """
+    if not isinstance(org_id, str) or not org_id:
+        raise ValueError("org_id must be a non-empty string")
+    if not isinstance(code, str):
+        raise ValueError("code must be a string")
+    if not isinstance(language, str) or not language:
+        raise ValueError("language must be a non-empty string")
+
+    snippet_sha256 = hashlib.sha256(code.encode("utf-8", errors="replace")).hexdigest()
+    _snippet_init_db()
+
+    # Idempotency cache — reuse prior scan for identical snippet
+    with _SNIPPET_DB_LOCK:
+        with _snippet_conn() as conn:
+            cached_row = conn.execute(
+                "SELECT findings_json, scanned_at, language, source_hint "
+                "FROM snippet_scans WHERE org_id=? AND snippet_sha256=?",
+                (org_id, snippet_sha256),
+            ).fetchone()
+
+    if cached_row is not None:
+        try:
+            cached_findings = _snippet_json.loads(cached_row["findings_json"])
+        except (_snippet_json.JSONDecodeError, TypeError, ValueError):
+            cached_findings = []
+        return {
+            "snippet_sha256": snippet_sha256,
+            "org_id": org_id,
+            "language": cached_row["language"],
+            "source_hint": cached_row["source_hint"],
+            "findings": cached_findings,
+            "findings_count": len(cached_findings),
+            "cached": True,
+            "scanned_at": cached_row["scanned_at"],
+        }
+
+    # Run SAST: build a pseudo-filename so detect_language picks up the extension
+    ext = _language_to_extension(language)
+    filename = f"snippet.{ext}"
+
+    engine = get_sast_engine()
+    try:
+        result = engine.scan_code(code=code, filename=filename, incremental=False)
+        findings = [f.to_dict() for f in result.findings]
+    except ValueError:
+        # Oversized / invalid input — surface zero findings (no crash)
+        findings = []
+
+    scanned_at = datetime.now(timezone.utc).isoformat()
+
+    # Persist audit row (idempotent via UNIQUE constraint)
+    with _SNIPPET_DB_LOCK:
+        with _snippet_conn() as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO snippet_scans "
+                "(id, org_id, snippet_sha256, language, source_hint, findings_json, scanned_at) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (
+                    f"snip-{uuid.uuid4().hex[:12]}",
+                    org_id,
+                    snippet_sha256,
+                    language,
+                    source_hint,
+                    _snippet_json.dumps(findings),
+                    scanned_at,
+                ),
+            )
+
+    return {
+        "snippet_sha256": snippet_sha256,
+        "org_id": org_id,
+        "language": language,
+        "source_hint": source_hint,
+        "findings": findings,
+        "findings_count": len(findings),
+        "cached": False,
+        "scanned_at": scanned_at,
+    }
+
+
+def list_snippet_scans(
+    org_id: str,
+    language: Optional[str] = None,
+    limit: int = 100,
+) -> List[Dict[str, Any]]:
+    """Return snippet scan history for an org, optionally filtered by language."""
+    if not isinstance(org_id, str) or not org_id:
+        raise ValueError("org_id must be a non-empty string")
+    limit = max(1, min(int(limit), 1000))
+    _snippet_init_db()
+    with _SNIPPET_DB_LOCK:
+        with _snippet_conn() as conn:
+            if language:
+                rows = conn.execute(
+                    "SELECT * FROM snippet_scans WHERE org_id=? AND language=? "
+                    "ORDER BY scanned_at DESC LIMIT ?",
+                    (org_id, language, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM snippet_scans WHERE org_id=? "
+                    "ORDER BY scanned_at DESC LIMIT ?",
+                    (org_id, limit),
+                ).fetchall()
+    out: List[Dict[str, Any]] = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["findings"] = _snippet_json.loads(d.pop("findings_json", "[]"))
+        except (_snippet_json.JSONDecodeError, TypeError, ValueError):
+            d["findings"] = []
+            d.pop("findings_json", None)
+        d["findings_count"] = len(d["findings"])
+        out.append(d)
+    return out
+
+
+def snippet_scan_stats(org_id: str) -> Dict[str, Any]:
+    """Return aggregated snippet-scan stats for an org."""
+    if not isinstance(org_id, str) or not org_id:
+        raise ValueError("org_id must be a non-empty string")
+    _snippet_init_db()
+    with _SNIPPET_DB_LOCK:
+        with _snippet_conn() as conn:
+            total_scans = conn.execute(
+                "SELECT COUNT(*) FROM snippet_scans WHERE org_id=?",
+                (org_id,),
+            ).fetchone()[0]
+            by_lang_rows = conn.execute(
+                "SELECT language, COUNT(*) AS cnt FROM snippet_scans WHERE org_id=? GROUP BY language",
+                (org_id,),
+            ).fetchall()
+            by_source_rows = conn.execute(
+                "SELECT source_hint, COUNT(*) AS cnt FROM snippet_scans WHERE org_id=? GROUP BY source_hint",
+                (org_id,),
+            ).fetchall()
+            all_findings_rows = conn.execute(
+                "SELECT findings_json FROM snippet_scans WHERE org_id=?",
+                (org_id,),
+            ).fetchall()
+
+    total_findings = 0
+    scans_with_findings = 0
+    for row in all_findings_rows:
+        try:
+            fs = _snippet_json.loads(row["findings_json"])
+        except (_snippet_json.JSONDecodeError, TypeError, ValueError):
+            fs = []
+        if fs:
+            scans_with_findings += 1
+        total_findings += len(fs)
+
+    return {
+        "org_id": org_id,
+        "total_scans": total_scans,
+        "scans_with_findings": scans_with_findings,
+        "clean_scans": max(0, total_scans - scans_with_findings),
+        "total_findings": total_findings,
+        "by_language": {row["language"]: row["cnt"] for row in by_lang_rows},
+        "by_source_hint": {row["source_hint"]: row["cnt"] for row in by_source_rows},
+    }
