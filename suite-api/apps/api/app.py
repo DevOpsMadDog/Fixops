@@ -5700,6 +5700,17 @@ def create_app() -> FastAPI:
     except ImportError as _crs_err:
         _logger.warning("Composite Risk Scorer router not available: %s", _crs_err)
 
+    # Composite Alerts (GAP-052) — group anomaly_ml signals into composite groups
+    try:
+        from apps.api.composite_alert_router import router as composite_alert_router
+        app.include_router(
+            composite_alert_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Composite Alert router at /api/v1/composite-alerts")
+    except ImportError as _cal_err:
+        _logger.warning("Composite Alert router not available: %s", _cal_err)
+
     # Digital Risk Protection — external exposure monitoring
     try:
         from apps.api.drp_router import router as drp_router
@@ -7007,6 +7018,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.auto_waiver_router import router as auto_waiver_router
+        app.include_router(auto_waiver_router)
+        _logger.info("Mounted Auto-Waiver router at /api/v1/auto-waiver")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.breach_detection_router import router as breach_detection_router
         app.include_router(breach_detection_router)
         _logger.info("Mounted Breach Detection router at /api/v1/breach-detection")
@@ -7101,6 +7119,14 @@ def create_app() -> FastAPI:
         from apps.api.ai_governance_router import router as ai_governance_router
         app.include_router(ai_governance_router)
         _logger.info("Mounted AI Governance router at /api/v1/ai-governance")
+    except ImportError:
+        pass
+
+    # GAP-059: Shadow-AI inventory (ai_governance + cmdb composite)
+    try:
+        from apps.api.shadow_ai_router import router as shadow_ai_router
+        app.include_router(shadow_ai_router)
+        _logger.info("Mounted Shadow AI router at /api/v1/shadow-ai")
     except ImportError:
         pass
 
@@ -7675,6 +7701,13 @@ def create_app() -> FastAPI:
         from apps.api.security_posture_history_router import router as security_posture_history_router
         app.include_router(security_posture_history_router)
         _logger.info("Mounted Security Posture History router at /api/v1/posture-history")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.metrics_timeseries_router import router as metrics_timeseries_router
+        app.include_router(metrics_timeseries_router)
+        _logger.info("Mounted Metrics Timeseries router at /api/v1/metrics-ts (GAP-060)")
     except ImportError:
         pass
 

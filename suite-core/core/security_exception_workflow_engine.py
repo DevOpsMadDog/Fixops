@@ -268,6 +268,47 @@ class SecurityExceptionWorkflowEngine:
             ).fetchone()
         return self._row_to_dict(row)
 
+    def record_auto_waiver(
+        self,
+        org_id: str,
+        finding_id: str,
+        rule_key: str,
+        approvers: List[str],
+        expires_at: str,
+    ) -> Dict[str, Any]:
+        """Record an auto-waiver referencing a rule; creates a pending-approval exception.
+
+        The business_justification field encodes the rule linkage as JSON.
+        """
+        rid = str(uuid.uuid4())
+        now = _now()
+        payload = {
+            "auto_waiver": True,
+            "rule_key": rule_key,
+            "finding_id": finding_id,
+            "approvers": list(approvers or []),
+        }
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                """INSERT INTO exception_requests
+                   (id, org_id, policy_name, exception_type, requestor,
+                    business_justification, risk_description, compensating_controls,
+                    status, priority, expires_at, approved_until, created_at, reviewed_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,NULL,?,NULL)""",
+                (
+                    rid, org_id, f"auto-waiver:{rule_key}",
+                    "policy-waiver", "auto-waiver",
+                    json.dumps(payload),
+                    f"auto-waiver for finding {finding_id} via rule {rule_key}",
+                    "",
+                    "pending", "medium", expires_at, now,
+                ),
+            )
+            row = conn.execute(
+                "SELECT * FROM exception_requests WHERE id=?", (rid,)
+            ).fetchone()
+        return self._row_to_dict(row)
+
     def revoke_exception(self, request_id: str, org_id: str) -> Dict[str, Any]:
         """Revoke an approved exception."""
         with self._lock, self._conn() as conn:

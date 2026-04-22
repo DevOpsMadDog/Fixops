@@ -11,11 +11,12 @@ Compliance: NIST SP 800-53 RA-5, PCI-DSS 6.3.3 (risk acceptance).
 
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -97,6 +98,22 @@ class VulnExceptionEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_vexc_org_type
                     ON vuln_exceptions (org_id, exception_type);
+
+                CREATE TABLE IF NOT EXISTS auto_waiver_rules (
+                    id                TEXT PRIMARY KEY,
+                    org_id            TEXT NOT NULL,
+                    rule_key          TEXT NOT NULL,
+                    conditions_json   TEXT NOT NULL DEFAULT '{}',
+                    max_active_count  INTEGER NOT NULL DEFAULT 100,
+                    approvers_json    TEXT NOT NULL DEFAULT '[]',
+                    expires_days      INTEGER NOT NULL DEFAULT 30,
+                    enabled           INTEGER NOT NULL DEFAULT 1,
+                    created_at        TEXT NOT NULL,
+                    UNIQUE(org_id, rule_key)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_awr_org_enabled
+                    ON auto_waiver_rules (org_id, enabled);
                 """
             )
 
@@ -387,4 +404,299 @@ class VulnExceptionEngine:
             "approved_count": approved_count,
             "expired_count": expired_count,
             "acceptance_rate": round(acceptance_rate, 2),
+        }
+
+    # ------------------------------------------------------------------
+    # Auto-Waiver Rules (GAP-006)
+    # ------------------------------------------------------------------
+
+    _SEVERITY_ORDER = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0, "none": 0}
+
+    def register_auto_waiver_rule(
+        self,
+        org_id: str,
+        rule_key: str,
+        conditions: Dict[str, Any],
+        max_active_count: int = 100,
+        approvers: Optional[List[str]] = None,
+        expires_days: int = 30,
+    ) -> Dict[str, Any]:
+        """Register (or replace) an auto-waiver rule for an org.
+
+        Conditions supported: reachable (bool), severity_max (str: critical/high/medium/low),
+        cve_age_days_min (int), kev (bool). UNIQUE(org_id, rule_key).
+        """
+        if not rule_key or not rule_key.strip():
+            raise ValueError("rule_key is required")
+        if not isinstance(conditions, dict):
+            raise ValueError("conditions must be a dict")
+        if max_active_count < 0:
+            raise ValueError("max_active_count must be >= 0")
+        if expires_days < 0:
+            raise ValueError("expires_days must be >= 0")
+
+        approvers = approvers or []
+        now = datetime.now(timezone.utc).isoformat()
+        rid = str(uuid.uuid4())
+
+        with self._lock:
+            with self._get_conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO auto_waiver_rules
+                        (id, org_id, rule_key, conditions_json, max_active_count,
+                         approvers_json, expires_days, enabled, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+                    ON CONFLICT(org_id, rule_key) DO UPDATE SET
+                        conditions_json  = excluded.conditions_json,
+                        max_active_count = excluded.max_active_count,
+                        approvers_json   = excluded.approvers_json,
+                        expires_days     = excluded.expires_days,
+                        enabled          = 1
+                    """,
+                    (
+                        rid, org_id, rule_key.strip(),
+                        json.dumps(conditions),
+                        int(max_active_count),
+                        json.dumps(approvers),
+                        int(expires_days),
+                        now,
+                    ),
+                )
+                row = conn.execute(
+                    "SELECT * FROM auto_waiver_rules WHERE org_id = ? AND rule_key = ?",
+                    (org_id, rule_key.strip()),
+                ).fetchone()
+
+        return self._rule_row_to_dict(row)
+
+    def list_auto_waiver_rules(
+        self,
+        org_id: str,
+        enabled: Optional[bool] = None,
+    ) -> List[Dict[str, Any]]:
+        """List auto-waiver rules for an org, optionally filtered by enabled flag."""
+        query = "SELECT * FROM auto_waiver_rules WHERE org_id = ?"
+        params: List[Any] = [org_id]
+        if enabled is not None:
+            query += " AND enabled = ?"
+            params.append(1 if enabled else 0)
+        query += " ORDER BY created_at ASC"
+
+        with self._lock:
+            with self._get_conn() as conn:
+                rows = conn.execute(query, params).fetchall()
+
+        return [self._rule_row_to_dict(r) for r in rows]
+
+    def delete_auto_waiver_rule(self, org_id: str, rule_key: str) -> Dict[str, Any]:
+        """Delete (disable) an auto-waiver rule."""
+        with self._lock:
+            with self._get_conn() as conn:
+                result = conn.execute(
+                    "DELETE FROM auto_waiver_rules WHERE org_id = ? AND rule_key = ?",
+                    (org_id, rule_key),
+                )
+                deleted = result.rowcount
+        return {"deleted": deleted, "rule_key": rule_key, "org_id": org_id}
+
+    def _rule_row_to_dict(self, row: Optional[sqlite3.Row]) -> Dict[str, Any]:
+        if not row:
+            return {}
+        try:
+            conditions = json.loads(row["conditions_json"] or "{}")
+        except (ValueError, TypeError):
+            conditions = {}
+        try:
+            approvers = json.loads(row["approvers_json"] or "[]")
+        except (ValueError, TypeError):
+            approvers = []
+        return {
+            "id": row["id"],
+            "org_id": row["org_id"],
+            "rule_key": row["rule_key"],
+            "conditions": conditions,
+            "max_active_count": row["max_active_count"],
+            "approvers": approvers,
+            "expires_days": row["expires_days"],
+            "enabled": bool(row["enabled"]),
+            "created_at": row["created_at"],
+        }
+
+    def _finding_matches_conditions(
+        self, finding: Dict[str, Any], conditions: Dict[str, Any]
+    ) -> bool:
+        """Evaluate whether a finding matches a rule's conditions.
+
+        All specified conditions must match. Missing finding fields treated
+        conservatively (fail-closed when condition asserts a value).
+        """
+        # reachable: bool — if condition sets reachable=False, finding.reachable must be False.
+        if "reachable" in conditions:
+            want = bool(conditions["reachable"])
+            got = finding.get("reachable")
+            if got is None or bool(got) != want:
+                return False
+
+        # severity_max: finding severity must be <= specified level
+        if "severity_max" in conditions:
+            max_sev = str(conditions["severity_max"]).lower()
+            finding_sev = str(finding.get("severity", "")).lower()
+            if max_sev not in self._SEVERITY_ORDER:
+                return False
+            if finding_sev not in self._SEVERITY_ORDER:
+                return False
+            if self._SEVERITY_ORDER[finding_sev] > self._SEVERITY_ORDER[max_sev]:
+                return False
+
+        # cve_age_days_min: finding cve_age_days must be >= specified
+        if "cve_age_days_min" in conditions:
+            min_age = int(conditions["cve_age_days_min"])
+            got_age = finding.get("cve_age_days")
+            if got_age is None or int(got_age) < min_age:
+                return False
+
+        # kev: finding must match kev flag exactly
+        if "kev" in conditions:
+            want = bool(conditions["kev"])
+            got = bool(finding.get("kev", False))
+            if got != want:
+                return False
+
+        return True
+
+    def apply_auto_waivers(
+        self, org_id: str, finding: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Evaluate all enabled rules against finding; create exception on first match.
+
+        Returns the created exception dict, or None if no rule matched.
+        Deterministic: rules are evaluated in created_at order.
+        """
+        if not isinstance(finding, dict):
+            return None
+
+        rules = self.list_auto_waiver_rules(org_id, enabled=True)
+        if not rules:
+            return None
+
+        for rule in rules:
+            # Respect max_active_count: count pending+approved autowaiver exceptions for this rule.
+            if not self._finding_matches_conditions(finding, rule["conditions"]):
+                continue
+
+            # enforce cap
+            active = self._count_active_for_rule(org_id, rule["rule_key"])
+            if active >= rule["max_active_count"]:
+                continue
+
+            # Create the exception
+            cve_id = str(finding.get("cve_id") or finding.get("id") or "UNKNOWN-CVE")
+            asset_id = str(finding.get("asset_id") or finding.get("asset") or "unknown")
+            reason = f"auto-waiver:{rule['rule_key']}"
+
+            expiry_date = (
+                datetime.now(timezone.utc) + timedelta(days=rule["expires_days"])
+            ).isoformat()
+
+            exc_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+
+            with self._lock:
+                with self._get_conn() as conn:
+                    conn.execute(
+                        """
+                        INSERT INTO vuln_exceptions
+                            (id, org_id, cve_id, asset_id, reason, exception_type,
+                             requested_by, status, expiry_date, approved_by, approved_at,
+                             approval_notes, rejected_by, rejected_at, rejection_reason,
+                             created_at)
+                        VALUES (?, ?, ?, ?, ?, 'accepted_risk', 'auto-waiver', 'pending',
+                                ?, '', NULL, ?, '', NULL, '', ?)
+                        """,
+                        (
+                            exc_id, org_id, cve_id, asset_id, reason,
+                            expiry_date,
+                            json.dumps({"rule_key": rule["rule_key"], "approvers": rule["approvers"]}),
+                            now,
+                        ),
+                    )
+
+            return {
+                "id": exc_id,
+                "org_id": org_id,
+                "cve_id": cve_id,
+                "asset_id": asset_id,
+                "reason": reason,
+                "exception_type": "accepted_risk",
+                "requested_by": "auto-waiver",
+                "status": "pending",
+                "expiry_date": expiry_date,
+                "approved_by": "",
+                "approved_at": None,
+                "approval_notes": json.dumps(
+                    {"rule_key": rule["rule_key"], "approvers": rule["approvers"]}
+                ),
+                "rejected_by": "",
+                "rejected_at": None,
+                "rejection_reason": "",
+                "created_at": now,
+                "rule_key": rule["rule_key"],
+                "approvers": rule["approvers"],
+            }
+
+        return None
+
+    def _count_active_for_rule(self, org_id: str, rule_key: str) -> int:
+        """Count pending+approved auto-waiver exceptions whose reason tags this rule."""
+        pattern = f"auto-waiver:{rule_key}"
+        with self._lock:
+            with self._get_conn() as conn:
+                row = conn.execute(
+                    """
+                    SELECT COUNT(*) AS cnt FROM vuln_exceptions
+                    WHERE org_id = ?
+                      AND reason = ?
+                      AND status IN ('pending', 'approved')
+                    """,
+                    (org_id, pattern),
+                ).fetchone()
+        return int(row["cnt"]) if row else 0
+
+    def auto_waiver_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return stats on auto-waiver rules and generated exceptions for the org."""
+        with self._lock:
+            with self._get_conn() as conn:
+                total_rules = conn.execute(
+                    "SELECT COUNT(*) AS cnt FROM auto_waiver_rules WHERE org_id = ?",
+                    (org_id,),
+                ).fetchone()["cnt"]
+
+                enabled_rules = conn.execute(
+                    "SELECT COUNT(*) AS cnt FROM auto_waiver_rules WHERE org_id = ? AND enabled = 1",
+                    (org_id,),
+                ).fetchone()["cnt"]
+
+                auto_waived = conn.execute(
+                    """
+                    SELECT COUNT(*) AS cnt FROM vuln_exceptions
+                    WHERE org_id = ? AND requested_by = 'auto-waiver'
+                    """,
+                    (org_id,),
+                ).fetchone()["cnt"]
+
+                pending_approval = conn.execute(
+                    """
+                    SELECT COUNT(*) AS cnt FROM vuln_exceptions
+                    WHERE org_id = ? AND requested_by = 'auto-waiver' AND status = 'pending'
+                    """,
+                    (org_id,),
+                ).fetchone()["cnt"]
+
+        return {
+            "org_id": org_id,
+            "total_rules": int(total_rules),
+            "enabled_rules": int(enabled_rules),
+            "auto_waived_findings": int(auto_waived),
+            "pending_approval": int(pending_approval),
         }

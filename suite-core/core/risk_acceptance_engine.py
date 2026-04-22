@@ -52,7 +52,8 @@ class RiskAcceptanceEngine:
                     reject_reason TEXT,
                     revoke_reason TEXT,
                     revoker TEXT,
-                    resolved_at TEXT
+                    resolved_at TEXT,
+                    auto_waiver_exception_id TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS risk_acceptance_audit (
@@ -72,6 +73,16 @@ class RiskAcceptanceEngine:
                 CREATE INDEX IF NOT EXISTS idx_raa_acceptance ON risk_acceptance_audit(acceptance_id);
                 """
             )
+            # Additive migration for legacy DBs lacking auto_waiver_exception_id column
+            cols = conn.execute("PRAGMA table_info(risk_acceptances)").fetchall()
+            col_names = {c["name"] if isinstance(c, sqlite3.Row) else c[1] for c in cols}
+            if "auto_waiver_exception_id" not in col_names:
+                try:
+                    conn.execute(
+                        "ALTER TABLE risk_acceptances ADD COLUMN auto_waiver_exception_id TEXT"
+                    )
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
         finally:
             conn.close()
@@ -359,6 +370,39 @@ class RiskAcceptanceEngine:
             return metrics
         finally:
             conn.close()
+
+    def link_auto_waiver(
+        self,
+        org_id: str,
+        acceptance_id: str,
+        auto_waiver_exception_id: str,
+    ) -> dict:
+        """Link a risk acceptance record to its source auto-waiver exception for traceability."""
+        conn = self._get_connection()
+        try:
+            row = conn.execute(
+                "SELECT * FROM risk_acceptances WHERE acceptance_id = ? AND org_id = ?",
+                (acceptance_id, org_id),
+            ).fetchone()
+            if row is None:
+                raise ValueError(
+                    f"Acceptance '{acceptance_id}' not found for org '{org_id}'"
+                )
+            conn.execute(
+                "UPDATE risk_acceptances SET auto_waiver_exception_id = ? WHERE acceptance_id = ? AND org_id = ?",
+                (auto_waiver_exception_id, acceptance_id, org_id),
+            )
+            self._append_audit(
+                conn,
+                acceptance_id,
+                "auto_waiver_linked",
+                "system",
+                f"linked to auto_waiver_exception_id={auto_waiver_exception_id}",
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return self.get_acceptance(acceptance_id)  # type: ignore[return-value]
 
     def is_accepted(self, finding_id: str, org_id: str = "default") -> bool:
         """Check if finding currently has an active approval."""
