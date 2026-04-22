@@ -6,6 +6,8 @@ Multi-tenant via org_id. SQLite WAL + threading.RLock for concurrency safety.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
 import random
@@ -15,6 +17,11 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+try:
+    import yaml as _yaml  # type: ignore
+except ImportError:  # pragma: no cover - fallback when PyYAML missing
+    _yaml = None
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
@@ -139,6 +146,37 @@ class DevSecOpsEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_policies_org
                     ON gate_policies (org_id);
+
+                CREATE TABLE IF NOT EXISTS github_app_installations (
+                    id                   TEXT PRIMARY KEY,
+                    org_id               TEXT NOT NULL,
+                    app_id               TEXT NOT NULL,
+                    installation_id      TEXT NOT NULL,
+                    webhook_secret_hash  TEXT NOT NULL,
+                    app_slug             TEXT NOT NULL DEFAULT '',
+                    installed_at         DATETIME NOT NULL,
+                    UNIQUE (org_id, installation_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ghapp_org
+                    ON github_app_installations (org_id);
+
+                CREATE INDEX IF NOT EXISTS idx_ghapp_installation
+                    ON github_app_installations (installation_id);
+
+                CREATE TABLE IF NOT EXISTS hook_policies (
+                    id           TEXT PRIMARY KEY,
+                    org_id       TEXT NOT NULL,
+                    policy_json  TEXT NOT NULL,
+                    hash         TEXT NOT NULL,
+                    created_at   DATETIME NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_hookpolicy_org
+                    ON hook_policies (org_id, created_at DESC);
+
+                CREATE INDEX IF NOT EXISTS idx_hookpolicy_hash
+                    ON hook_policies (org_id, hash);
                 """
             )
 
@@ -631,6 +669,391 @@ class DevSecOpsEngine:
             "high_findings": high_findings,
             "secret_findings": secret_findings,
             "by_platform": by_platform,
+        }
+
+
+    # ------------------------------------------------------------------
+    # GAP-015 — GitHub App registration + HMAC webhook verification
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _hash_secret(secret: str) -> str:
+        """SHA-256 hex digest of a webhook secret (never store raw secret)."""
+        if not isinstance(secret, str):
+            raise ValueError("secret must be a string")
+        return hashlib.sha256(secret.encode("utf-8")).hexdigest()
+
+    def register_github_app(
+        self,
+        org_id: str,
+        app_id: str,
+        installation_id: str,
+        webhook_secret_hash: str,
+        app_slug: str = "",
+    ) -> Dict[str, Any]:
+        """Register a GitHub App installation. Idempotent on (org_id, installation_id).
+
+        `webhook_secret_hash` MUST be the SHA-256 hex digest of the raw secret.
+        Callers may pass a raw secret (len != 64, non-hex) — it will be hashed here
+        as a safety net; but the contract is to pre-hash.
+        """
+        if not org_id or not app_id or not installation_id:
+            raise ValueError("org_id, app_id, installation_id are required")
+        if not isinstance(webhook_secret_hash, str) or not webhook_secret_hash:
+            raise ValueError("webhook_secret_hash is required")
+
+        # Safety net: if a raw secret was passed, hash it.
+        looks_hashed = (
+            len(webhook_secret_hash) == 64
+            and all(c in "0123456789abcdef" for c in webhook_secret_hash.lower())
+        )
+        stored_hash = webhook_secret_hash if looks_hashed else self._hash_secret(
+            webhook_secret_hash
+        )
+
+        now = datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    """
+                    SELECT * FROM github_app_installations
+                    WHERE org_id=? AND installation_id=?
+                    """,
+                    (org_id, installation_id),
+                ).fetchone()
+                if existing is not None:
+                    # Idempotent — refresh secret hash + app metadata.
+                    conn.execute(
+                        """
+                        UPDATE github_app_installations
+                        SET app_id=?, webhook_secret_hash=?, app_slug=?
+                        WHERE org_id=? AND installation_id=?
+                        """,
+                        (
+                            app_id,
+                            stored_hash,
+                            app_slug or existing["app_slug"],
+                            org_id,
+                            installation_id,
+                        ),
+                    )
+                    row = conn.execute(
+                        """
+                        SELECT * FROM github_app_installations
+                        WHERE org_id=? AND installation_id=?
+                        """,
+                        (org_id, installation_id),
+                    ).fetchone()
+                    return self._row(row)
+
+                record_id = str(uuid.uuid4())
+                conn.execute(
+                    """
+                    INSERT INTO github_app_installations
+                        (id, org_id, app_id, installation_id, webhook_secret_hash,
+                         app_slug, installed_at)
+                    VALUES (?,?,?,?,?,?,?)
+                    """,
+                    (
+                        record_id,
+                        org_id,
+                        app_id,
+                        installation_id,
+                        stored_hash,
+                        app_slug,
+                        now,
+                    ),
+                )
+                row = conn.execute(
+                    "SELECT * FROM github_app_installations WHERE id=?",
+                    (record_id,),
+                ).fetchone()
+        return self._row(row)
+
+    def list_github_app_installations(self, org_id: str) -> List[Dict[str, Any]]:
+        """List all GitHub App installations for an org."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM github_app_installations
+                WHERE org_id=?
+                ORDER BY installed_at DESC
+                """,
+                (org_id,),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
+    def verify_webhook(
+        self,
+        payload_bytes: bytes,
+        signature_header: str,
+        installation_id: str,
+    ) -> bool:
+        """Verify a GitHub webhook HMAC-SHA256 signature.
+
+        GitHub sends the X-Hub-Signature-256 header as `sha256=<hex>`. We stored
+        only the SHA-256 hash of the raw secret (never the secret itself), so we
+        cannot re-HMAC with the raw secret. Instead, we treat the stored hex
+        digest as the HMAC key — registration MUST have stored the HMAC key (i.e.
+        the raw webhook secret's hex representation) accordingly. Callers that
+        want the classic GitHub HMAC semantics should register the raw secret
+        directly (the method hashes it once for at-rest storage); the caller's
+        job is to compute the expected digest the same way.
+        """
+        if not isinstance(payload_bytes, (bytes, bytearray)):
+            return False
+        if not signature_header or not installation_id:
+            return False
+
+        with self._conn() as conn:
+            row = conn.execute(
+                """
+                SELECT webhook_secret_hash FROM github_app_installations
+                WHERE installation_id=?
+                """,
+                (installation_id,),
+            ).fetchone()
+        if row is None:
+            return False
+        stored_hash = row["webhook_secret_hash"]
+
+        # Expected signature computed using the stored hash as HMAC key so the
+        # raw secret never leaves the provisioning step.
+        expected = hmac.new(
+            stored_hash.encode("utf-8"),
+            bytes(payload_bytes),
+            hashlib.sha256,
+        ).hexdigest()
+
+        provided = signature_header.strip()
+        if provided.lower().startswith("sha256="):
+            provided = provided.split("=", 1)[1]
+
+        try:
+            return hmac.compare_digest(expected, provided)
+        except Exception:
+            return False
+
+    # ------------------------------------------------------------------
+    # GAP-068 — .fixops/hooks.yaml policy parsing + persistence
+    # ------------------------------------------------------------------
+
+    _HOOK_ALLOWED_KEYS = {"pre-commit", "pre_commit", "pr-gate", "pr_gate"}
+    _HOOK_PRECOMMIT_KEYS = {"block-on", "block_on", "llm"}
+    _HOOK_PRGATE_KEYS = {"block-on", "block_on"}
+    _HOOK_BLOCK_VOCAB = {
+        "critical", "high", "medium", "low", "info",
+        "secrets", "secret_scan", "sast", "dast", "sca", "container",
+        "license", "malware",
+    }
+
+    @classmethod
+    def _normalize_hook_section(
+        cls, section: Any, allowed: set, errors: List[str], section_name: str
+    ) -> Dict[str, Any]:
+        if not isinstance(section, dict):
+            errors.append(f"{section_name}: must be a mapping/object")
+            return {}
+        normalized: Dict[str, Any] = {}
+        for raw_key, raw_val in section.items():
+            if raw_key not in allowed:
+                errors.append(f"{section_name}: unknown key '{raw_key}'")
+                continue
+            key = raw_key.replace("_", "-")
+            if key == "block-on":
+                if not isinstance(raw_val, list):
+                    errors.append(f"{section_name}.block-on: must be a list")
+                    continue
+                cleaned: List[str] = []
+                for item in raw_val:
+                    if not isinstance(item, str):
+                        errors.append(
+                            f"{section_name}.block-on: non-string entry {item!r}"
+                        )
+                        continue
+                    token = item.strip().lower()
+                    if not token:
+                        continue
+                    if token not in cls._HOOK_BLOCK_VOCAB:
+                        errors.append(
+                            f"{section_name}.block-on: unsupported value '{item}'"
+                        )
+                        continue
+                    cleaned.append(token)
+                normalized["block-on"] = cleaned
+            elif key == "llm":
+                if not isinstance(raw_val, bool):
+                    errors.append(f"{section_name}.llm: must be boolean")
+                    continue
+                normalized["llm"] = raw_val
+        return normalized
+
+    @classmethod
+    def parse_hooks_yaml(cls, yaml_text: str) -> Dict[str, Any]:
+        """Parse .fixops/hooks.yaml. YAML first, JSON fallback.
+
+        Returns: {valid: bool, policy: {pre-commit: {...}, pr-gate: {...}},
+                  errors: [...], source: 'yaml'|'json'}.
+        """
+        if not isinstance(yaml_text, str):
+            return {
+                "valid": False,
+                "policy": {},
+                "errors": ["yaml_text must be a string"],
+                "source": "none",
+            }
+        text = yaml_text.strip()
+        if not text:
+            return {
+                "valid": False,
+                "policy": {},
+                "errors": ["empty document"],
+                "source": "none",
+            }
+
+        parsed: Any = None
+        source = "none"
+        errors: List[str] = []
+
+        if _yaml is not None:
+            try:
+                parsed = _yaml.safe_load(text)
+                source = "yaml"
+            except Exception as exc:  # noqa: BLE001 — parser-specific errors vary
+                errors.append(f"yaml parse error: {exc}")
+                parsed = None
+
+        if parsed is None and not errors:
+            # yaml unavailable — try JSON directly
+            try:
+                parsed = json.loads(text)
+                source = "json"
+            except json.JSONDecodeError as exc:
+                errors.append(f"json parse error: {exc}")
+        elif parsed is None and errors:
+            # yaml failed — attempt JSON fallback and clear yaml error if JSON succeeds
+            try:
+                parsed = json.loads(text)
+                source = "json"
+                errors = []
+            except json.JSONDecodeError:
+                pass
+
+        if parsed is None:
+            return {"valid": False, "policy": {}, "errors": errors or ["unparseable"], "source": source}
+        if not isinstance(parsed, dict):
+            return {
+                "valid": False,
+                "policy": {},
+                "errors": ["root must be a mapping/object"],
+                "source": source,
+            }
+
+        # Validate top-level keys
+        for key in parsed.keys():
+            if key not in cls._HOOK_ALLOWED_KEYS:
+                errors.append(f"unknown top-level key '{key}'")
+
+        pre_commit_raw = parsed.get("pre-commit", parsed.get("pre_commit"))
+        pr_gate_raw = parsed.get("pr-gate", parsed.get("pr_gate"))
+
+        policy: Dict[str, Any] = {}
+        if pre_commit_raw is not None:
+            policy["pre-commit"] = cls._normalize_hook_section(
+                pre_commit_raw, cls._HOOK_PRECOMMIT_KEYS, errors, "pre-commit"
+            )
+        if pr_gate_raw is not None:
+            policy["pr-gate"] = cls._normalize_hook_section(
+                pr_gate_raw, cls._HOOK_PRGATE_KEYS, errors, "pr-gate"
+            )
+
+        if not policy:
+            errors.append("must define at least one of: pre-commit, pr-gate")
+
+        return {
+            "valid": len(errors) == 0,
+            "policy": policy,
+            "errors": errors,
+            "source": source,
+        }
+
+    @staticmethod
+    def _hash_policy(policy: Dict[str, Any]) -> str:
+        canonical = json.dumps(policy, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def apply_hook_policy(
+        self, org_id: str, hooks_dict: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Persist a validated hook policy. Idempotent on (org_id, hash)."""
+        if not org_id:
+            raise ValueError("org_id is required")
+        if not isinstance(hooks_dict, dict) or not hooks_dict:
+            raise ValueError("hooks_dict must be a non-empty mapping")
+
+        policy_hash = self._hash_policy(hooks_dict)
+        policy_json = json.dumps(hooks_dict, sort_keys=True, separators=(",", ":"))
+        now = datetime.now(timezone.utc).isoformat()
+
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    """
+                    SELECT * FROM hook_policies
+                    WHERE org_id=? AND hash=?
+                    ORDER BY created_at DESC LIMIT 1
+                    """,
+                    (org_id, policy_hash),
+                ).fetchone()
+                if existing is not None:
+                    return {
+                        "id": existing["id"],
+                        "org_id": existing["org_id"],
+                        "hash": existing["hash"],
+                        "policy": json.loads(existing["policy_json"]),
+                        "created_at": existing["created_at"],
+                        "deduplicated": True,
+                    }
+
+                record_id = str(uuid.uuid4())
+                conn.execute(
+                    """
+                    INSERT INTO hook_policies
+                        (id, org_id, policy_json, hash, created_at)
+                    VALUES (?,?,?,?,?)
+                    """,
+                    (record_id, org_id, policy_json, policy_hash, now),
+                )
+        return {
+            "id": record_id,
+            "org_id": org_id,
+            "hash": policy_hash,
+            "policy": hooks_dict,
+            "created_at": now,
+            "deduplicated": False,
+        }
+
+    def get_active_hook_policy(self, org_id: str) -> Optional[Dict[str, Any]]:
+        """Return the most recently applied hook policy for an org, or None."""
+        if not org_id:
+            return None
+        with self._conn() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM hook_policies
+                WHERE org_id=?
+                ORDER BY created_at DESC LIMIT 1
+                """,
+                (org_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "id": row["id"],
+            "org_id": row["org_id"],
+            "hash": row["hash"],
+            "policy": json.loads(row["policy_json"]),
+            "created_at": row["created_at"],
         }
 
 
