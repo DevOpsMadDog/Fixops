@@ -199,6 +199,7 @@ def _base_gap_payload(task: Dict[str, Any]) -> Dict[str, Any]:
         "id": _gap_node_id(gap_id),
         "type": "competitive_gap",
         "title": task["title"],
+        "name": task["title"],
         "description": task.get("description", ""),
         "source": "multica_gap_analysis",
         # Domain-specific
@@ -260,6 +261,7 @@ def build_injection_plan(tasks: List[Dict[str, Any]]) -> InjectionPlan:
                         "id": engine_node,
                         "type": "engine_proposal",
                         "title": f"New engine proposal: {engine_name}",
+                        "name": f"New engine proposal: {engine_name}",
                         "description": (
                             f"Engine proposed by gap {gap_id}: {task['title']}"
                         ),
@@ -284,6 +286,7 @@ def build_injection_plan(tasks: List[Dict[str, Any]]) -> InjectionPlan:
                         "id": cap_node,
                         "type": "capability_required",
                         "title": f"API capability: {api}",
+                        "name": f"API capability: {api}",
                         "description": (
                             f"{api} required by {gap_id} ({engine_name})"
                         ),
@@ -315,6 +318,7 @@ def build_injection_plan(tasks: List[Dict[str, Any]]) -> InjectionPlan:
                         "id": cap_node,
                         "type": "capability_required",
                         "title": f"UI capability: {screen}",
+                        "name": f"UI capability: {screen}",
                         "description": (
                             f"{screen} required by {gap_id} ({engine_name})"
                         ),
