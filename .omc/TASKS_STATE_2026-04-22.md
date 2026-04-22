@@ -51,21 +51,31 @@ Don't claim "graphify comparison done" until `graph.html` actually shows TrueCou
 
 ## Open threads to continue next session
 
-1. **DEFERRED: graphify visual correlation** — the ORIGINAL user ask. Existing `graphify-out/graph.json` is UI-only (2258 nodes, 442 files). Research docs in `raw/competitive/` (9 files, 18K words) are staged with YAML frontmatter but were NEVER semantically extracted into the graph. **To do:**
-   1. Run graphify semantic extraction on `raw/competitive/` — spawn 1 general-purpose agent following the graphify SKILL's Part B prompt (~18K words → 1 agent chunk). Outputs graph JSON fragment.
-   2. Merge with existing `graphify-out/graph.json` via `graphify.build.build_from_json` — produces combined graph with research-concept nodes linked to code modules via `references`, `competes_with`, `cited_by_gap` edges.
-   3. Re-run Leiden community detection + regenerate `graph.html` with communities labeled.
-   4. Open `graphify-out/graph.html` — interactive view showing: code modules ↔ research concepts ↔ 332 engines ↔ 42 gaps ↔ competitor products.
-   5. Separately: run TrustGraph injection (next bullet) so the business graph also has the correlations.
-2. **Live TrustGraph injection** — `python3 scripts/inject_gap_intelligence_to_trustgraph.py` (310 events into Core 5 "Competitive Intelligence")
-2. **SwarmClaw API token** — user creates in UI → paste into .env → I can queue 10 P0/P1 tasks for overnight agents
-3. **Reconcile 42 gap PRDs against 8 native engines** (per `docs/CTEM_PLUS_IDENTITY.md`) — many proposed "new engines" may duplicate SAST/DAST/Secrets/Container/CSPM/APIFuzzer/Malware/LLMSecurity or overlap with 332 existing
-4. **Pre-crash UI overhaul plan** at `~/.claude/plans/swirling-shimmying-karp.md` (22 work units, 372 pages) — independent thread, separate from competitive gap analysis
-5. **Sprint 2 demo** — `DEMO-001..DEMO-005` P0 items per `scrum-master` agent brief
-6. **Rotate leaked GitHub PAT** embedded in git remote URL (user deferred)
-7. **DEFERRED: Full TrueCourse ↔ Fixops side-by-side comparison.** What exists now: 9 top gaps integrated into matrix + PRDs + TrustGraph edges (`cited_in` → `competitor-truecourse.md`), raw structural analysis at `raw/competitive/truecourse-analysis.md`. What's missing: (a) exhaustive comparison table for all ~40 TrueCourse capabilities vs Fixops equivalents, (b) code-level architecture diff (TrueCourse services→layers→modules→methods vs Fixops Brain Pipeline + 8 native engines + 332 engine PRDs), (c) visual cross-graph showing TrueCourse concepts as nodes connected to Fixops code modules (blocked on graphify extraction in open thread #1). **Next session recipe:**
-   - Spawn `Explore`-type agent: "Read `raw/competitive/truecourse-analysis.md` and `docs/CTEM_PLUS_IDENTITY.md` in full. Produce `raw/competitive/truecourse-vs-fixops-comparison.md` as a table: for each of TrueCourse's ~40 capabilities (from sections 1–8), list (i) TrueCourse path/file/snippet, (ii) equivalent Fixops engine/router (grep the 332 PRDs in `.omc/prds/v2/` + 345 engines), (iii) status: PARITY / FIXOPS_WINS / TRUECOURSE_WINS / GAP_EXISTS, (iv) which GAP-### in `gap-matrix.md` already covers it (if any). Flag any TrueCourse capability not already in our gap matrix — these are NEW gaps."
-   - Once the graphify visual is built (thread #1), run `graphify path "truecourse" "fixops.findings_router"` and similar to trace architectural connections; inject comparison edges back into TrustGraph via the existing inject script.
+1. **✅ DONE: graphify visual correlation** — commit `7386db5d` *beast-mode(graphify): rebuild graph with competitive research — TrueCourse now visible*. Rebuilt `graphify-out/graph.html` (1.97 MB, 2620 nodes, 2433 links, 454 Leiden communities, 4 TrueCourse references). Apiiro/Endor/Cycode + Fixops competitive-gap community mapped. **Deferred sub-item now promoted to a NEW open thread below:** semantic ingest of `suite-core/core/*.py` (345 engines) + `suite-api/apps/api/*_router.py` (573 routers) — they are NOT in today's graph; graph contains research docs + `suite-ui/aldeci-ui-new/src/` (442 files) only.
+2. **✅ DONE: Live TrustGraph injection** — `python3 scripts/inject_gap_intelligence_to_trustgraph.py` ran live, 310 events + 371 edges landed in Core 5 "Competitive Intelligence". No flags needed on re-run (idempotent via dedupe). Verify via `/api/v1/brain/stats` — should reflect the Core 5 node-count bump.
+3. **SwarmClaw API token** — user creates in UI → paste into `layer2-swarmclaw-autonomous/.env` as `SWARMCLAW_API_TOKEN=...` → I can queue 10 P0/P1 tasks for overnight agents. Probing rate-limited (15min lockout); user action blocker.
+4. **Reconcile 42 gap PRDs against 8 native engines** (per `docs/CTEM_PLUS_IDENTITY.md`) — many proposed "new engines" may duplicate SAST/DAST/Secrets/Container/CSPM/APIFuzzer/Malware/LLMSecurity or overlap with 332 existing engine PRDs. **IN FLIGHT NOW:** enterprise-architect agent running; outcome = MERGE / KEEP / KILL per PRD. May retire some of the 42 gap PRDs. Will land after scrum-master's backlog — patch DEMO-004 page copy when complete.
+5. **Pre-crash UI overhaul plan** at `~/.claude/plans/swirling-shimmying-karp.md` (22 work units, 372 pages) — **IN FLIGHT NOW:** ux-architect agent dispatching UI work. Will unblock frontend-craftsman allocation for DEMO-001/DEMO-002.
+6. **Sprint 2 demo backlog** — `docs/SPRINT_2_DEMO_BACKLOG_2026-04-22.md` committed by scrum-master (same commit as this thread-state refresh). DEMO-001..005 P0 items with owners, acceptance criteria, 44h total effort across 3 owners.
+7. **Rotate leaked GitHub PAT** embedded in git remote URL (user deferred).
+8. **✅ DONE: Full TrueCourse ↔ Fixops side-by-side comparison** — commit `0639bb39` *beast-mode(competitive): exhaustive TrueCourse↔Fixops side-by-side comparison*. Produced `raw/competitive/truecourse-vs-fixops-comparison.md` — 40 rows covering all TrueCourse capabilities from sections 1–10 of the structural analysis. Tallies: 17 FIXOPS_WINS, 4 PARITY, 13 TRUECOURSE_WINS, 6 GAP_EXISTS. **Two new gaps proposed:** `NEW-G070` (LSP-backed semantic layer — tree-sitter + TS Compiler API + Pyright + ORM schema parsers) and `NEW-G071` (IDE-style file tree + Monaco code viewer with violation gutter + analysis-history time-travel). Formal promotion into `gap-matrix.md` is **OPEN THREAD #9** below.
+9. **NEW: Promote NEW-G070 + NEW-G071 to `gap-matrix.md` + write PRDs** — both proposed in `truecourse-vs-fixops-comparison.md` (proposed new-gap section). Action: (a) append rows to `raw/competitive/gap-matrix.md` in the existing GAP-### format, (b) generate two new PRDs in `.omc/prds/v2/` (format matches existing 42 PRDs: problem / solution / engine contract / acceptance criteria / effort), (c) push as new Multica stories via existing push workflow. Pairs with DEMO-004 on the Sprint 2 backlog.
+10. **NEW: Backend-code graphify ingest (deferred from thread #1 above)** — today's `graphify-out/graph.html` has research docs + UI code only. Missing: (i) `suite-core/core/*.py` (345 engine files, ~180K LOC), (ii) `suite-api/apps/api/*_router.py` (573 routers, ~58K LOC). **To do:** run graphify semantic extraction in chunks (graphify SKILL Part B prompt, ~40K LOC per chunk = ~6 chunks), merge JSON fragments via `graphify.build.build_from_json`, re-run Leiden community detection, regenerate `graph.html`. Output: full-repo interactive graph showing code modules ↔ research concepts ↔ 332 engines ↔ 69 gaps ↔ competitor products. Estimated: 2–3 hrs wall-time + 6 agent-chunks. Demo-blocker? **NO** — current graph is compelling for DEMO-001; backend ingest is Sprint 3 polish.
+
+---
+
+## Task table — Sprint 2 / 2026-04-22 session additions
+
+(Historical rows 1–12 above are immutable — those were executed in the previous session.)
+
+| # | Subject | Status | Output / continuation |
+|---|---------|--------|----------------------|
+| 13 | Rebuild graphify visual with TrueCourse + competitive research (thread #1 closure) | ✅ completed | `graphify-out/graph.html` 1.97 MB, 2620 nodes, 2433 links, 454 communities; commit `7386db5d`. Backend-code ingest deferred to thread #10. |
+| 14 | TrueCourse ↔ Fixops exhaustive side-by-side comparison (thread #7 closure) | ✅ completed | `raw/competitive/truecourse-vs-fixops-comparison.md` 40 rows; NEW-G070 + NEW-G071 proposed; commit `0639bb39`. Formal gap-matrix promotion = thread #9. |
+| 15 | Sprint 2 demo backlog — DEMO-001..DEMO-005 | ✅ completed | `docs/SPRINT_2_DEMO_BACKLOG_2026-04-22.md` — P0 items, owners, acceptance criteria, 44h effort, risk register. |
+| 16 | Refresh TASKS_STATE open-threads section | ✅ completed | This commit. Threads #1 + #7 closed; threads #9 + #10 added. |
+| 17 | Reconcile 42 gap PRDs vs 8 native engines + 332 PRDs | 🟡 in_progress | enterprise-architect agent running in parallel to this commit; reconcile outcome pending. Will MERGE / KEEP / KILL and patch DEMO-004 page copy afterwards. |
+| 18 | UI overhaul dispatch | 🟡 in_progress | ux-architect agent running in parallel; UI dispatch pending. Will finalize frontend-craftsman allocation for DEMO-001 + DEMO-002. |
 
 ## Background agents launched this session — all COMPLETED
 
