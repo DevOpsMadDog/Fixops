@@ -337,8 +337,8 @@ class AttackPathEngine:
                 bus = _get_tg_bus()
                 if bus and getattr(bus, "enabled", False):
                     bus.emit("FINDING_CREATED", {"entity_type": "attack_path_engine", "org_id": "unknown", "source_engine": "attack_path_engine"})
-            except Exception:
-                pass
+            except Exception as exc:
+                _logger.warning("FINDING_CREATED emit failed: %s", exc)
         return {r["node_id"]: r for r in rows}
 
     # ------------------------------------------------------------------
@@ -446,8 +446,8 @@ class AttackPathEngine:
                             (p["risk_score"] + path_score.risk_score) / 2.0, 2
                         )
                         p["gnn_risk_score"] = round(path_score.risk_score, 2)
-            except Exception:
-                pass
+            except Exception as exc:
+                _logger.warning("GNN path scoring failed: %s", exc)
 
         # Sort by hops then risk
         paths.sort(key=lambda p: (p["hops"], -p["risk_score"]))

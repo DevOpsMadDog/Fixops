@@ -193,8 +193,8 @@ class RiskAggregatorEngine:
                 _bus = _get_tg_bus()
                 if _bus:
                     _bus.emit("RISK_ASSESSED", {"entity_type": "risk_aggregator", "org_id": org_id, "source_engine": "risk_aggregator"})
-            except Exception:
-                pass
+            except Exception as exc:
+                _logger.warning("RISK_ASSESSED emit failed: %s", exc)
 
         return result
 
