@@ -13,7 +13,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -28,6 +28,21 @@ _logger = logging.getLogger(__name__)
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "uba.db"
 )
+
+# Shared DB path for commit_signals table (owned by behavioral_analytics_engine)
+# We read-only query this via direct sqlite3 — do NOT import the engine (per GAP-016 spec).
+_BEHAVIORAL_DB = str(
+    Path(__file__).resolve().parents[2] / ".fixops_data" / "behavioral_analytics.db"
+)
+
+# Developer behavioral signal weights (0-100 scale)
+_DEV_SIGNAL_WEIGHTS = {
+    "off_hours": 5.0,
+    "privilege_escalation": 15.0,
+    "secret_file": 25.0,
+    "bulk_rename": 10.0,
+    "force_push": 20.0,
+}
 
 _VALID_EVENT_TYPES = {
     "login", "file_access", "email_send", "data_download",
@@ -512,6 +527,104 @@ class UBAEngine:
                     (status, now, alert_id, org_id),
                 )
         return cur.rowcount > 0
+
+    # ------------------------------------------------------------------
+    # Developer Behavior Scoring (GAP-016: reads commit_signals via shared DB)
+    # ------------------------------------------------------------------
+
+    def score_developer_behavior(
+        self,
+        org_id: str,
+        author_email: str,
+        lookback_days: int = 30,
+        behavioral_db_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Query commit_signals directly (no import of behavioral_analytics_engine).
+
+        Weighted aggregate of last `lookback_days` signals. Returns:
+          {
+            author_email, window_days,
+            signal_counts: {type: count},
+            risk_score: 0-100,
+            risk_level: low|medium|high|critical,
+          }
+
+        Args:
+            org_id: tenant isolation.
+            author_email: developer identity.
+            lookback_days: backward window (filter on created_at).
+            behavioral_db_path: override (for tests / alt deploys). Default: shared
+                behavioral_analytics.db under .fixops_data.
+
+        If the commit_signals table / DB does not exist yet (engine never initialised),
+        returns zeroed counts and risk_level='low' — degrades gracefully.
+        """
+        if not author_email:
+            raise ValueError("author_email is required")
+
+        db_path = behavioral_db_path or _BEHAVIORAL_DB
+
+        # Default empty response (graceful degradation)
+        signal_counts: Dict[str, int] = {
+            k: 0 for k in _DEV_SIGNAL_WEIGHTS
+        }
+
+        since_iso = (
+            datetime.now(timezone.utc) - timedelta(days=lookback_days)
+        ).isoformat()
+
+        if Path(db_path).exists():
+            try:
+                conn = sqlite3.connect(db_path, timeout=10)
+                conn.row_factory = sqlite3.Row
+                try:
+                    rows = conn.execute(
+                        """SELECT signal_type, COUNT(*) AS cnt
+                           FROM commit_signals
+                           WHERE org_id = ? AND author_email = ? AND created_at >= ?
+                           GROUP BY signal_type""",
+                        (org_id, author_email, since_iso),
+                    ).fetchall()
+                    for r in rows:
+                        stype = r["signal_type"]
+                        if stype in signal_counts:
+                            signal_counts[stype] = int(r["cnt"])
+                        else:
+                            signal_counts[stype] = int(r["cnt"])
+                finally:
+                    conn.close()
+            except sqlite3.OperationalError:
+                # Table missing — commit_signals not yet materialized
+                pass
+            except sqlite3.DatabaseError:
+                pass
+
+        # Weighted aggregate risk score (cap 100)
+        raw_score = 0.0
+        for stype, cnt in signal_counts.items():
+            w = _DEV_SIGNAL_WEIGHTS.get(stype, 0.0)
+            raw_score += w * cnt
+        risk_score = round(min(raw_score, 100.0), 2)
+
+        # Map to risk level
+        if risk_score < 20:
+            risk_level = "low"
+        elif risk_score < 50:
+            risk_level = "medium"
+        elif risk_score < 80:
+            risk_level = "high"
+        else:
+            risk_level = "critical"
+
+        return {
+            "author_email": author_email,
+            "org_id": org_id,
+            "window_days": lookback_days,
+            "signal_counts": signal_counts,
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "computed_at": datetime.now(timezone.utc).isoformat(),
+        }
 
     # ------------------------------------------------------------------
     # Stats

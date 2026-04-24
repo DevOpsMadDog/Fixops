@@ -7509,6 +7509,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.dev_identity_router import router as dev_identity_router
+        app.include_router(dev_identity_router)
+        _logger.info("Mounted Dev Identity router at /api/v1/dev-identity")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.vulnerability_workflow_router import router as vulnerability_workflow_router
         app.include_router(vulnerability_workflow_router)
         _logger.info("Mounted Vulnerability Workflow router at /api/v1/vuln-workflow")
@@ -7836,6 +7843,13 @@ def create_app() -> FastAPI:
         from apps.api.security_findings_router import router as security_findings_router
         app.include_router(security_findings_router)
         _logger.info("Mounted Security Findings router at /api/v1/security-findings")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.unified_issues_router import router as unified_issues_router
+        app.include_router(unified_issues_router)
+        _logger.info("Mounted Unified Issues router at /api/v1/issues (GAP-049+066)")
     except ImportError:
         pass
 

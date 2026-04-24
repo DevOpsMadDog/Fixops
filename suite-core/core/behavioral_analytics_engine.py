@@ -86,7 +86,34 @@ CREATE TABLE IF NOT EXISTS ba_anomalies (
     detected_at     DATETIME,
     resolved_at     DATETIME
 );
+
+CREATE TABLE IF NOT EXISTS commit_signals (
+    id            TEXT PRIMARY KEY,
+    org_id        TEXT NOT NULL,
+    author_email  TEXT NOT NULL,
+    signal_type   TEXT NOT NULL,
+    evidence      TEXT NOT NULL DEFAULT '{}',
+    commit_sha    TEXT NOT NULL DEFAULT '',
+    created_at    DATETIME NOT NULL,
+    UNIQUE(org_id, author_email, signal_type, commit_sha)
+);
+
+CREATE INDEX IF NOT EXISTS idx_commit_signals_org_author
+    ON commit_signals (org_id, author_email, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_commit_signals_type
+    ON commit_signals (org_id, signal_type, created_at DESC);
 """
+
+# SCM signal detection patterns
+_IAM_PRIV_PATTERN = re.compile(r"(_iam_|rbac|permissions)", re.IGNORECASE)
+_SECRET_FILE_PATTERN = re.compile(
+    r"(\.env$|\.env\.|\.pem$|\.key$|credentials\.|\.secrets\.|secrets\.)",
+    re.IGNORECASE,
+)
+_BULK_RENAME_THRESHOLD = 50
+_OFF_HOURS_START = 9  # inclusive
+_OFF_HOURS_END = 18   # exclusive — on-hours is [9, 18)
 
 
 def _now_iso() -> str:
@@ -400,6 +427,211 @@ class BehavioralAnalyticsEngine:
             "open_anomalies": open_anomalies,
             "risk_score": risk_score,
             "last_anomaly_at": last_anomaly_at,
+        }
+
+    # ------------------------------------------------------------------
+    # SCM Commit Signals (GAP-016: dev-identity behavioral)
+    # ------------------------------------------------------------------
+
+    def analyze_commit_signals(
+        self,
+        org_id: str,
+        author_email: str,
+        commits: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Detect 5 SCM commit signal types for a developer.
+
+        Signals detected:
+          1. off_hours: commit timestamp local-hour NOT in [9,18)
+          2. privilege_escalation: files match IAM/RBAC/permissions regex
+          3. secret_file: files match .env/.pem/.key/credentials/*.secrets.* regex
+          4. bulk_rename: >50 files changed per commit
+          5. force_push: commit flagged with `force_push: true`
+
+        Persists detected signals to commit_signals table (INSERT OR IGNORE on UNIQUE).
+
+        Args:
+            org_id: Tenant id.
+            author_email: Developer identity.
+            commits: List of commit dicts with keys:
+                sha, timestamp (ISO), files (List[str]), force_push (bool, optional).
+                `timestamp` may include tz offset; local-hour is derived from the
+                supplied ISO string's hour component when tz is present, else UTC.
+
+        Returns:
+            {
+              author_email, total_commits,
+              signals: [{type, count, examples: [...]}],
+              risk_score_delta: float
+            }
+        """
+        import os as _os_mod  # local import, unused globally
+        _ = _os_mod  # no-op to silence unused-import checkers
+
+        if not author_email:
+            raise ValueError("author_email is required")
+        if commits is None:
+            commits = []
+
+        total_commits = len(commits)
+
+        # Accumulator: type -> {count, examples}
+        signal_acc: Dict[str, Dict[str, Any]] = {
+            "off_hours": {"count": 0, "examples": []},
+            "privilege_escalation": {"count": 0, "examples": []},
+            "secret_file": {"count": 0, "examples": []},
+            "bulk_rename": {"count": 0, "examples": []},
+            "force_push": {"count": 0, "examples": []},
+        }
+
+        # Weights per signal type (for risk_score_delta)
+        _weights = {
+            "off_hours": 5.0,
+            "privilege_escalation": 15.0,
+            "secret_file": 25.0,
+            "bulk_rename": 10.0,
+            "force_push": 20.0,
+        }
+
+        now = _now_iso()
+        detected_rows: List[Tuple[str, str, str, str, str, str, str]] = []
+
+        for commit in commits:
+            sha = str(commit.get("sha") or commit.get("commit_sha") or "")
+            timestamp = commit.get("timestamp") or commit.get("committed_at") or ""
+            files = commit.get("files") or commit.get("changed_files") or []
+            if isinstance(files, str):
+                files = [files]
+            force_push = bool(commit.get("force_push", False))
+
+            # ---- Signal 1: off_hours ----
+            local_hour: Optional[int] = None
+            if timestamp:
+                try:
+                    # Accept 'Z' as UTC indicator
+                    ts_norm = str(timestamp).replace("Z", "+00:00")
+                    dt = datetime.fromisoformat(ts_norm)
+                    # If tz-aware, datetime.hour already reflects the local tz of
+                    # the supplied offset (e.g. -07:00 => local hour).
+                    local_hour = dt.hour
+                except (ValueError, TypeError):
+                    local_hour = None
+            if local_hour is not None and not (
+                _OFF_HOURS_START <= local_hour < _OFF_HOURS_END
+            ):
+                acc = signal_acc["off_hours"]
+                acc["count"] += 1
+                if len(acc["examples"]) < 3:
+                    acc["examples"].append({
+                        "sha": sha, "timestamp": timestamp, "hour": local_hour,
+                    })
+                import json as _j
+                detected_rows.append((
+                    str(uuid.uuid4()), org_id, author_email, "off_hours",
+                    _j.dumps({"sha": sha, "timestamp": timestamp, "hour": local_hour}),
+                    sha, now,
+                ))
+
+            # ---- Signal 2: privilege_escalation ----
+            priv_matches = [f for f in files if _IAM_PRIV_PATTERN.search(str(f))]
+            if priv_matches:
+                acc = signal_acc["privilege_escalation"]
+                acc["count"] += 1
+                if len(acc["examples"]) < 3:
+                    acc["examples"].append({"sha": sha, "files": priv_matches[:5]})
+                import json as _j
+                detected_rows.append((
+                    str(uuid.uuid4()), org_id, author_email, "privilege_escalation",
+                    _j.dumps({"sha": sha, "files": priv_matches}),
+                    sha, now,
+                ))
+
+            # ---- Signal 3: secret_file ----
+            secret_matches = [f for f in files if _SECRET_FILE_PATTERN.search(str(f))]
+            if secret_matches:
+                acc = signal_acc["secret_file"]
+                acc["count"] += 1
+                if len(acc["examples"]) < 3:
+                    acc["examples"].append({"sha": sha, "files": secret_matches[:5]})
+                import json as _j
+                detected_rows.append((
+                    str(uuid.uuid4()), org_id, author_email, "secret_file",
+                    _j.dumps({"sha": sha, "files": secret_matches}),
+                    sha, now,
+                ))
+
+            # ---- Signal 4: bulk_rename (>50 files) ----
+            if len(files) > _BULK_RENAME_THRESHOLD:
+                acc = signal_acc["bulk_rename"]
+                acc["count"] += 1
+                if len(acc["examples"]) < 3:
+                    acc["examples"].append({"sha": sha, "file_count": len(files)})
+                import json as _j
+                detected_rows.append((
+                    str(uuid.uuid4()), org_id, author_email, "bulk_rename",
+                    _j.dumps({"sha": sha, "file_count": len(files)}),
+                    sha, now,
+                ))
+
+            # ---- Signal 5: force_push ----
+            if force_push:
+                acc = signal_acc["force_push"]
+                acc["count"] += 1
+                if len(acc["examples"]) < 3:
+                    acc["examples"].append({"sha": sha})
+                import json as _j
+                detected_rows.append((
+                    str(uuid.uuid4()), org_id, author_email, "force_push",
+                    _j.dumps({"sha": sha}),
+                    sha, now,
+                ))
+
+        # Persist rows (INSERT OR IGNORE on UNIQUE)
+        if detected_rows:
+            with self._lock:
+                with self._conn() as conn:
+                    conn.executemany(
+                        """INSERT OR IGNORE INTO commit_signals
+                           (id, org_id, author_email, signal_type, evidence, commit_sha, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        detected_rows,
+                    )
+
+        # Build signals list (only non-zero)
+        signals_out: List[Dict[str, Any]] = []
+        risk_delta = 0.0
+        for sig_type, acc in signal_acc.items():
+            if acc["count"] > 0:
+                signals_out.append({
+                    "type": sig_type,
+                    "count": acc["count"],
+                    "examples": acc["examples"],
+                })
+                risk_delta += _weights[sig_type] * acc["count"]
+
+        # Cap risk_score_delta at 100
+        risk_delta = min(risk_delta, 100.0)
+
+        # Emit TG event if any signals fired
+        if signals_out and _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("ANOMALY_DETECTED", {
+                        "entity_type": "scm_commit_signals",
+                        "entity_id": author_email,
+                        "org_id": org_id,
+                        "source_engine": "behavioral_analytics_engine",
+                        "signal_count": sum(s["count"] for s in signals_out),
+                    })
+            except Exception:
+                pass
+
+        return {
+            "author_email": author_email,
+            "total_commits": total_commits,
+            "signals": signals_out,
+            "risk_score_delta": round(risk_delta, 2),
         }
 
     # ------------------------------------------------------------------

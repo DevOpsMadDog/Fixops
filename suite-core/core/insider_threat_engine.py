@@ -112,6 +112,24 @@ class InsiderThreatEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_ta_status
                     ON threat_alerts (org_id, status, severity);
+
+                CREATE TABLE IF NOT EXISTS watched_developers (
+                    id            TEXT PRIMARY KEY,
+                    org_id        TEXT NOT NULL,
+                    author_email  TEXT NOT NULL,
+                    reason        TEXT NOT NULL DEFAULT '',
+                    watched_by    TEXT NOT NULL DEFAULT '',
+                    watched_at    DATETIME NOT NULL,
+                    unwatched_at  DATETIME,
+                    unwatched_by  TEXT
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_watched_dev_active
+                    ON watched_developers (org_id, author_email)
+                    WHERE unwatched_at IS NULL;
+
+                CREATE INDEX IF NOT EXISTS idx_watched_dev_org
+                    ON watched_developers (org_id, author_email, watched_at DESC);
                 """
             )
 
@@ -582,3 +600,121 @@ class InsiderThreatEngine:
             "top_indicators": top_indicators,
             "avg_risk_score": round(avg_risk_score, 2),
         }
+
+    # ------------------------------------------------------------------
+    # Watchlist for developer identities (GAP-016)
+    # ------------------------------------------------------------------
+
+    def watch_developer(
+        self,
+        org_id: str,
+        author_email: str,
+        reason: str = "",
+        watched_by: str = "",
+    ) -> Dict[str, Any]:
+        """Add a developer to the active watchlist.
+
+        Uses partial unique index UNIQUE(org_id, author_email) WHERE unwatched_at IS NULL,
+        so re-watching an already-active developer raises IntegrityError.
+        After an unwatch, the developer can be re-watched (creates a new active row).
+        """
+        if not author_email:
+            raise ValueError("author_email is required")
+
+        rec_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        with self._lock:
+            with self._get_conn() as conn:
+                try:
+                    conn.execute(
+                        """INSERT INTO watched_developers
+                           (id, org_id, author_email, reason, watched_by,
+                            watched_at, unwatched_at, unwatched_by)
+                           VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)""",
+                        (rec_id, org_id, author_email, reason, watched_by, now),
+                    )
+                except sqlite3.IntegrityError as exc:
+                    raise ValueError(
+                        f"Developer {author_email} is already on the active watchlist"
+                    ) from exc
+
+        return {
+            "id": rec_id,
+            "org_id": org_id,
+            "author_email": author_email,
+            "reason": reason,
+            "watched_by": watched_by,
+            "watched_at": now,
+            "unwatched_at": None,
+            "unwatched_by": None,
+        }
+
+    def unwatch_developer(
+        self,
+        org_id: str,
+        author_email: str,
+        unwatched_by: str = "",
+    ) -> Dict[str, Any]:
+        """Mark the active watch record as unwatched.
+
+        Returns the updated row. Raises ValueError if no active watch exists.
+        """
+        if not author_email:
+            raise ValueError("author_email is required")
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        with self._lock:
+            with self._get_conn() as conn:
+                cur = conn.execute(
+                    """UPDATE watched_developers
+                       SET unwatched_at = ?, unwatched_by = ?
+                       WHERE org_id = ? AND author_email = ?
+                         AND unwatched_at IS NULL""",
+                    (now, unwatched_by, org_id, author_email),
+                )
+                if cur.rowcount == 0:
+                    raise ValueError(
+                        f"No active watch found for {author_email} in org {org_id}"
+                    )
+                row = conn.execute(
+                    """SELECT * FROM watched_developers
+                       WHERE org_id = ? AND author_email = ?
+                         AND unwatched_at = ?""",
+                    (org_id, author_email, now),
+                ).fetchone()
+
+        return dict(row) if row else {
+            "org_id": org_id,
+            "author_email": author_email,
+            "unwatched_at": now,
+            "unwatched_by": unwatched_by,
+        }
+
+    def list_watched_developers(
+        self,
+        org_id: str,
+        include_inactive: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """List watched developers for an org.
+
+        By default returns only active (unwatched_at IS NULL) entries.
+        Set include_inactive=True to include the history.
+        """
+        if include_inactive:
+            query = """SELECT * FROM watched_developers
+                       WHERE org_id = ?
+                       ORDER BY watched_at DESC"""
+            params: list = [org_id]
+        else:
+            query = """SELECT * FROM watched_developers
+                       WHERE org_id = ? AND unwatched_at IS NULL
+                       ORDER BY watched_at DESC"""
+            params = [org_id]
+
+        with self._lock:
+            with self._get_conn() as conn:
+                rows = conn.execute(query, params).fetchall()
+
+        return [dict(r) for r in rows]

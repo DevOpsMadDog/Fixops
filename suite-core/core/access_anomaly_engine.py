@@ -138,6 +138,18 @@ class AccessAnomalyEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_aa_org
                     ON access_anomalies (org_id, username, status, anomaly_type, detected_at DESC);
+
+                CREATE TABLE IF NOT EXISTS scm_anomaly_signals (
+                    id            TEXT PRIMARY KEY,
+                    org_id        TEXT NOT NULL,
+                    author_email  TEXT NOT NULL,
+                    anomaly_type  TEXT NOT NULL,
+                    evidence_json TEXT NOT NULL DEFAULT '{}',
+                    detected_at   TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_scm_anom_org_author
+                    ON scm_anomaly_signals (org_id, author_email, detected_at DESC);
                 """
             )
 
@@ -535,6 +547,119 @@ class AccessAnomalyEngine:
                     (org_id, min_anomaly_count),
                 ).fetchall()
         return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # SCM Anomaly Signals (GAP-016: dev-identity behavioral MERGE)
+    # ------------------------------------------------------------------
+
+    def record_scm_anomaly(
+        self,
+        org_id: str,
+        author_email: str,
+        anomaly_type: str,
+        evidence_json: Any = None,
+    ) -> Dict[str, Any]:
+        """Record an SCM commit-derived anomaly for a developer identity.
+
+        Writes to scm_anomaly_signals. Accepts dict or string for evidence_json;
+        always persists as JSON string.
+
+        Args:
+            org_id: tenant id
+            author_email: developer identity
+            anomaly_type: e.g. 'off_hours','privilege_escalation','secret_file',
+                'bulk_rename','force_push', or 'scm_commit_anomaly' (generic).
+            evidence_json: dict or JSON string. Coerced to string for storage.
+
+        Returns:
+            Full inserted row dict (evidence decoded back to dict).
+        """
+        if not author_email:
+            raise ValueError("author_email is required")
+        if not anomaly_type:
+            raise ValueError("anomaly_type is required")
+
+        # Normalize evidence
+        if evidence_json is None:
+            evidence_str = "{}"
+        elif isinstance(evidence_json, str):
+            # Accept pre-serialized JSON string
+            evidence_str = evidence_json
+        else:
+            try:
+                evidence_str = json.dumps(evidence_json)
+            except (TypeError, ValueError):
+                evidence_str = json.dumps({"raw": str(evidence_json)})
+
+        rec_id = str(uuid.uuid4())
+        now = _now_iso()
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO scm_anomaly_signals
+                       (id, org_id, author_email, anomaly_type, evidence_json, detected_at)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (rec_id, org_id, author_email, anomaly_type, evidence_str, now),
+                )
+
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("ANOMALY_DETECTED", {
+                        "entity_type": "scm_commit_anomaly",
+                        "entity_id": rec_id,
+                        "org_id": org_id,
+                        "source_engine": "access_anomaly_engine",
+                        "anomaly_type": anomaly_type,
+                        "author_email": author_email,
+                    })
+            except Exception:
+                pass
+
+        try:
+            evidence_decoded = json.loads(evidence_str) if evidence_str else {}
+        except (TypeError, ValueError):
+            evidence_decoded = {}
+
+        return {
+            "id": rec_id,
+            "org_id": org_id,
+            "author_email": author_email,
+            "anomaly_type": anomaly_type,
+            "evidence_json": evidence_decoded,
+            "detected_at": now,
+        }
+
+    def list_scm_anomalies(
+        self,
+        org_id: str,
+        author_email: Optional[str] = None,
+        anomaly_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List SCM anomaly signals with optional filters."""
+        sql = "SELECT * FROM scm_anomaly_signals WHERE org_id=?"
+        params: List[Any] = [org_id]
+        if author_email:
+            sql += " AND author_email=?"
+            params.append(author_email)
+        if anomaly_type:
+            sql += " AND anomaly_type=?"
+            params.append(anomaly_type)
+        sql += " ORDER BY detected_at DESC"
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(sql, params).fetchall()
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["evidence_json"] = json.loads(d.get("evidence_json") or "{}")
+            except (TypeError, ValueError):
+                d["evidence_json"] = {}
+            out.append(d)
+        return out
 
     def get_summary(self, org_id: str) -> Dict[str, Any]:
         """Aggregate summary of events and anomalies."""
