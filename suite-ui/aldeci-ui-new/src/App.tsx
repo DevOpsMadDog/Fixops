@@ -402,6 +402,16 @@ const ViolationLifecycleDashboard = lazy(() => import("@/pages/ViolationLifecycl
 const ArchAwareGraphDashboard = lazy(() => import("@/pages/ArchAwareGraphDashboard"));
 const IDEBackendDashboard = lazy(() => import("@/pages/IDEBackendDashboard"));
 
+// Strategic engine dashboards — batch 2 (2026-04-25)
+const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
+const BinaryFingerprintDashboard = lazy(() => import("@/pages/BinaryFingerprintDashboard"));
+const CodeToRuntimeDashboard = lazy(() => import("@/pages/CodeToRuntimeDashboard"));
+const PipelineBomDashboard = lazy(() => import("@/pages/PipelineBomDashboard"));
+const SlsaProvenanceDashboard = lazy(() => import("@/pages/SlsaProvenanceDashboard"));
+const FipsComplianceDashboard = lazy(() => import("@/pages/FipsComplianceDashboard"));
+const LocalFileStoreDashboard = lazy(() => import("@/pages/LocalFileStoreDashboard"));
+const DynamicRuleDSLDashboard = lazy(() => import("@/pages/DynamicRuleDSLDashboard"));
+
 // Wave 35 domain dashboards
 const ExceptionWorkflowDashboard = lazy(() => import("@/pages/ExceptionWorkflowDashboard"));
 const ActorTrackingDashboard = lazy(() => import("@/pages/ActorTrackingDashboard"));
@@ -1012,6 +1022,16 @@ export default function App() {
             <Route path="/violation-lifecycle" element={<ViolationLifecycleDashboard />} />
             <Route path="/arch-graph" element={<ArchAwareGraphDashboard />} />
             <Route path="/ide-backend" element={<IDEBackendDashboard />} />
+
+            {/* Strategic engine dashboards — batch 2 (2026-04-25) */}
+            <Route path="/upgrade-path" element={<UpgradePathDashboard />} />
+            <Route path="/binary-fingerprint" element={<BinaryFingerprintDashboard />} />
+            <Route path="/code-to-runtime" element={<CodeToRuntimeDashboard />} />
+            <Route path="/pipeline-bom" element={<PipelineBomDashboard />} />
+            <Route path="/slsa-provenance" element={<SlsaProvenanceDashboard />} />
+            <Route path="/fips-compliance" element={<FipsComplianceDashboard />} />
+            <Route path="/local-file-store" element={<LocalFileStoreDashboard />} />
+            <Route path="/dynamic-rule-dsl" element={<DynamicRuleDSLDashboard />} />
 
             {/* Neural Brain Visualization */}
             <Route path="/brain" element={<BrainVisualization />} />
