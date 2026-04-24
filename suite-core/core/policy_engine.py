@@ -239,10 +239,39 @@ CREATE TABLE IF NOT EXISTS evaluations (
     org_id      TEXT NOT NULL DEFAULT 'default'
 );
 
+-- GAP-062 (Sprint 3): canonical unified rule taxonomy shared by 5+ engines
+CREATE TABLE IF NOT EXISTS unified_rule_registry (
+    id            TEXT PRIMARY KEY,
+    org_id        TEXT NOT NULL DEFAULT 'default',
+    rule_key      TEXT NOT NULL,
+    domain        TEXT NOT NULL,
+    category      TEXT NOT NULL,
+    severity      TEXT NOT NULL,
+    rule_type     TEXT NOT NULL,
+    enabled       INTEGER NOT NULL DEFAULT 1,
+    source_engine TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL,
+    UNIQUE(org_id, rule_key)
+);
+
 CREATE INDEX IF NOT EXISTS idx_policies_org_scope ON policies(org_id, scope);
 CREATE INDEX IF NOT EXISTS idx_evaluations_org    ON evaluations(org_id);
 CREATE INDEX IF NOT EXISTS idx_evaluations_policy ON evaluations(policy_id);
+CREATE INDEX IF NOT EXISTS idx_urr_org_domain     ON unified_rule_registry(org_id, domain);
+CREATE INDEX IF NOT EXISTS idx_urr_org_source     ON unified_rule_registry(org_id, source_engine);
+CREATE INDEX IF NOT EXISTS idx_urr_org_enabled    ON unified_rule_registry(org_id, enabled);
 """
+
+
+# GAP-062 — canonical taxonomy vocabularies
+_URR_VALID_DOMAINS = {
+    "sast", "dast", "secrets", "iac", "container", "cspm",
+    "api_security", "supply_chain", "network", "identity",
+    "data", "endpoint", "cloud", "application", "generic",
+}
+_URR_VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
+_URR_VALID_RULE_TYPES = {"detection", "validation", "compliance", "posture", "hardening"}
 
 
 class PolicyEngine:
@@ -878,6 +907,204 @@ class PolicyEngine:
 
 _engine_instance: Optional[PolicyEngine] = None
 _engine_lock = threading.Lock()
+
+
+# ---------------------------------------------------------------------------
+# GAP-062 — Unified Rule Registry (cross-engine canonical taxonomy)
+# ---------------------------------------------------------------------------
+
+def _register_unified_rule_impl(
+    engine: "PolicyEngine",
+    org_id: str,
+    rule_key: str,
+    domain: str,
+    category: str,
+    severity: str,
+    rule_type: str,
+    source_engine: str,
+) -> Dict[str, Any]:
+    """UPSERT a rule into the canonical registry. Idempotent on (org_id, rule_key)."""
+    if not rule_key or not isinstance(rule_key, str):
+        raise ValueError("rule_key is required")
+    if domain not in _URR_VALID_DOMAINS:
+        raise ValueError(
+            f"Invalid domain {domain!r}. Valid: {sorted(_URR_VALID_DOMAINS)}"
+        )
+    sev = severity.lower() if isinstance(severity, str) else severity
+    if sev not in _URR_VALID_SEVERITIES:
+        raise ValueError(
+            f"Invalid severity {severity!r}. Valid: {sorted(_URR_VALID_SEVERITIES)}"
+        )
+    rt = rule_type.lower() if isinstance(rule_type, str) else rule_type
+    if rt not in _URR_VALID_RULE_TYPES:
+        raise ValueError(
+            f"Invalid rule_type {rule_type!r}. Valid: {sorted(_URR_VALID_RULE_TYPES)}"
+        )
+    if not source_engine or not isinstance(source_engine, str):
+        raise ValueError("source_engine is required")
+    if not category or not isinstance(category, str):
+        raise ValueError("category is required")
+
+    now = datetime.now(timezone.utc).isoformat()
+    new_id = str(uuid.uuid4())
+    with engine._lock:
+        existing = engine._db.execute(
+            "SELECT id, created_at, enabled FROM unified_rule_registry "
+            "WHERE org_id=? AND rule_key=?",
+            (org_id, rule_key),
+        ).fetchone()
+        if existing:
+            engine._db.execute(
+                """UPDATE unified_rule_registry
+                   SET domain=?, category=?, severity=?, rule_type=?,
+                       source_engine=?, updated_at=?
+                 WHERE org_id=? AND rule_key=?""",
+                (domain, category, sev, rt, source_engine, now, org_id, rule_key),
+            )
+            engine._db.commit()
+            row = engine._db.execute(
+                "SELECT * FROM unified_rule_registry WHERE org_id=? AND rule_key=?",
+                (org_id, rule_key),
+            ).fetchone()
+            return _urr_row_to_dict(row)
+        engine._db.execute(
+            """INSERT INTO unified_rule_registry
+               (id, org_id, rule_key, domain, category, severity, rule_type,
+                enabled, source_engine, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (new_id, org_id, rule_key, domain, category, sev, rt,
+             1, source_engine, now, now),
+        )
+        engine._db.commit()
+        row = engine._db.execute(
+            "SELECT * FROM unified_rule_registry WHERE id=?", (new_id,)
+        ).fetchone()
+        return _urr_row_to_dict(row)
+
+
+def _urr_row_to_dict(row: Any) -> Dict[str, Any]:
+    if row is None:
+        return {}
+    d = dict(row)
+    d["enabled"] = bool(d.get("enabled", 1))
+    return d
+
+
+def _list_unified_rules_impl(
+    engine: "PolicyEngine",
+    org_id: str,
+    domain: Optional[str] = None,
+    source_engine: Optional[str] = None,
+    enabled: Optional[bool] = None,
+) -> List[Dict[str, Any]]:
+    query = "SELECT * FROM unified_rule_registry WHERE org_id=?"
+    params: List[Any] = [org_id]
+    if domain:
+        query += " AND domain=?"
+        params.append(domain)
+    if source_engine:
+        query += " AND source_engine=?"
+        params.append(source_engine)
+    if enabled is not None:
+        query += " AND enabled=?"
+        params.append(1 if enabled else 0)
+    query += " ORDER BY created_at DESC"
+    with engine._lock:
+        rows = engine._db.execute(query, params).fetchall()
+    return [_urr_row_to_dict(r) for r in rows]
+
+
+def _toggle_unified_rule_impl(
+    engine: "PolicyEngine",
+    org_id: str,
+    rule_key: str,
+    enabled: bool,
+) -> Optional[Dict[str, Any]]:
+    now = datetime.now(timezone.utc).isoformat()
+    with engine._lock:
+        cursor = engine._db.execute(
+            "UPDATE unified_rule_registry SET enabled=?, updated_at=? "
+            "WHERE org_id=? AND rule_key=?",
+            (1 if enabled else 0, now, org_id, rule_key),
+        )
+        engine._db.commit()
+        if cursor.rowcount == 0:
+            return None
+        row = engine._db.execute(
+            "SELECT * FROM unified_rule_registry WHERE org_id=? AND rule_key=?",
+            (org_id, rule_key),
+        ).fetchone()
+    return _urr_row_to_dict(row)
+
+
+def _get_rule_taxonomy_impl() -> Dict[str, Any]:
+    """Return canonical taxonomy shape (static vocabularies) for UI/API consumers."""
+    return {
+        "schema_version": "1.0",
+        "gap_reference": "GAP-062",
+        "fields": {
+            "rule_key":      {"type": "string", "required": True, "description": "Canonical cross-engine key"},
+            "domain":        {"type": "enum",   "required": True, "values": sorted(_URR_VALID_DOMAINS)},
+            "category":      {"type": "string", "required": True, "description": "Subcategory within domain (free-form)"},
+            "severity":      {"type": "enum",   "required": True, "values": sorted(_URR_VALID_SEVERITIES)},
+            "rule_type":     {"type": "enum",   "required": True, "values": sorted(_URR_VALID_RULE_TYPES)},
+            "enabled":       {"type": "boolean", "required": False, "default": True},
+            "source_engine": {"type": "string", "required": True, "description": "Originating scanner engine (sast/secrets/...)"},
+        },
+    }
+
+
+# Attach methods to PolicyEngine via monkey-patch (keeps class body unchanged size)
+def _pe_register_unified_rule(
+    self: "PolicyEngine",
+    org_id: str,
+    rule_key: str,
+    domain: str,
+    category: str,
+    severity: str,
+    rule_type: str,
+    source_engine: str,
+) -> Dict[str, Any]:
+    return _register_unified_rule_impl(
+        self, org_id, rule_key, domain, category, severity, rule_type, source_engine
+    )
+
+
+def _pe_list_unified_rules(
+    self: "PolicyEngine",
+    org_id: str,
+    domain: Optional[str] = None,
+    source_engine: Optional[str] = None,
+    enabled: Optional[bool] = None,
+) -> List[Dict[str, Any]]:
+    return _list_unified_rules_impl(self, org_id, domain, source_engine, enabled)
+
+
+def _pe_disable_rule(
+    self: "PolicyEngine",
+    org_id: str,
+    rule_key: str,
+) -> Optional[Dict[str, Any]]:
+    return _toggle_unified_rule_impl(self, org_id, rule_key, False)
+
+
+def _pe_enable_rule(
+    self: "PolicyEngine",
+    org_id: str,
+    rule_key: str,
+) -> Optional[Dict[str, Any]]:
+    return _toggle_unified_rule_impl(self, org_id, rule_key, True)
+
+
+def _pe_get_rule_taxonomy(self: "PolicyEngine") -> Dict[str, Any]:
+    return _get_rule_taxonomy_impl()
+
+
+PolicyEngine.register_unified_rule = _pe_register_unified_rule  # type: ignore[attr-defined]
+PolicyEngine.list_unified_rules = _pe_list_unified_rules  # type: ignore[attr-defined]
+PolicyEngine.disable_rule = _pe_disable_rule  # type: ignore[attr-defined]
+PolicyEngine.enable_rule = _pe_enable_rule  # type: ignore[attr-defined]
+PolicyEngine.get_rule_taxonomy = _pe_get_rule_taxonomy  # type: ignore[attr-defined]
 
 
 def get_policy_engine(db_path: Optional[str] = None) -> PolicyEngine:

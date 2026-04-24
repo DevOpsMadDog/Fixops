@@ -493,6 +493,128 @@ class PolicyEnforcementEngine:
         return [dict(r) for r in rows]
 
     # ------------------------------------------------------------------
+    # GAP-062 — Unified Rule Registry sync shim (Sprint 3)
+    # ------------------------------------------------------------------
+
+    def sync_from_unified_registry(
+        self,
+        org_id: str,
+        source_engine: str,
+    ) -> Dict[str, Any]:
+        """Import enabled rules from the canonical unified_rule_registry
+        (policy_engine.py) into this enforcement engine's policies table.
+
+        Mapping (no ALTER TABLE — field shim only):
+          rule_key   -> name (prefixed with "[<source_engine>] ")
+          domain     -> policy_domain  (fallback to 'application' if unmapped)
+          severity   -> policy_type    ('critical'/'high' -> 'mandatory',
+                                         'medium' -> 'recommended',
+                                         'low'/'info' -> 'recommended')
+          rule_type  -> enforcement_mechanism
+                        ('detection' -> 'automated', else 'manual')
+
+        Returns: {"synced": N, "skipped": M, "total_rules": T, "source_engine": ...}
+        """
+        try:
+            from core.policy_engine import get_policy_engine
+        except ImportError:
+            return {"synced": 0, "skipped": 0, "total_rules": 0,
+                    "source_engine": source_engine,
+                    "error": "policy_engine unavailable"}
+
+        pe = get_policy_engine()
+        try:
+            rules = pe.list_unified_rules(
+                org_id, source_engine=source_engine, enabled=True
+            )
+        except Exception as exc:  # noqa: BLE001 — defensive shim
+            _logger.warning("unified_rule_registry list failed: %s", exc)
+            return {"synced": 0, "skipped": 0, "total_rules": 0,
+                    "source_engine": source_engine, "error": str(exc)}
+
+        domain_map = {
+            "sast": "application",
+            "dast": "application",
+            "secrets": "application",
+            "iac": "cloud",
+            "container": "cloud",
+            "cspm": "cloud",
+            "api_security": "application",
+            "supply_chain": "application",
+            "network": "network",
+            "identity": "identity",
+            "data": "data",
+            "endpoint": "endpoint",
+            "cloud": "cloud",
+            "application": "application",
+            "generic": "application",
+        }
+
+        synced = 0
+        skipped = 0
+        with self._lock:
+            with self._conn() as conn:
+                for rule in rules:
+                    rule_key = rule.get("rule_key", "")
+                    policy_domain = domain_map.get(rule.get("domain", ""), "application")
+                    sev = rule.get("severity", "medium")
+                    if sev in ("critical", "high"):
+                        policy_type = "mandatory"
+                    elif sev == "medium":
+                        policy_type = "recommended"
+                    else:
+                        policy_type = "recommended"
+                    rt = rule.get("rule_type", "detection")
+                    enforcement = "automated" if rt == "detection" else "manual"
+                    policy_name = f"[{source_engine}] {rule_key}"
+
+                    # Idempotent: skip if a synced policy with same name already exists
+                    existing = conn.execute(
+                        "SELECT id FROM enforcement_policies WHERE org_id=? AND name=?",
+                        (org_id, policy_name),
+                    ).fetchone()
+                    if existing:
+                        skipped += 1
+                        continue
+
+                    now = datetime.now(timezone.utc).isoformat()
+                    history = json.dumps([{
+                        "version": "1.0",
+                        "content": f"Synced from unified_rule_registry "
+                                   f"(rule_key={rule_key}, severity={sev}, type={rt})",
+                        "change_summary": f"Initial sync from {source_engine}",
+                        "created_at": now,
+                    }])
+                    conn.execute(
+                        """INSERT INTO enforcement_policies
+                           (id, org_id, name, policy_domain, policy_type,
+                            enforcement_mechanism, content, version,
+                            version_history, status, created_at)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                        (
+                            str(uuid.uuid4()),
+                            org_id,
+                            policy_name,
+                            policy_domain,
+                            policy_type,
+                            enforcement,
+                            f"category={rule.get('category','')}; "
+                            f"severity={sev}; rule_type={rt}",
+                            "1.0",
+                            history,
+                            "active",
+                            now,
+                        ),
+                    )
+                    synced += 1
+        return {
+            "synced": synced,
+            "skipped": skipped,
+            "total_rules": len(rules),
+            "source_engine": source_engine,
+        }
+
+    # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
 

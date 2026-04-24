@@ -2808,6 +2808,22 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted AI Orchestrator router")
 
+    # GAP-044: AI Teammates router (suggest-fix, draft-exception, auto-triage)
+    try:
+        from apps.api.ai_orchestrator_router import teammates_router as _teammates_router
+        app.include_router(_teammates_router)
+        _logger.info("Mounted AI Teammates router at /api/v1/teammates (GAP-044)")
+    except ImportError as _exc:
+        _logger.warning("AI Teammates router not available: %s", _exc)
+
+    # GAP-043: Formula Transparency router (scoring breakdown + change history)
+    try:
+        from apps.api.formula_transparency_router import router as _formula_router
+        app.include_router(_formula_router)
+        _logger.info("Mounted Formula Transparency router at /api/v1/formula (GAP-043)")
+    except ImportError as _exc:
+        _logger.warning("Formula Transparency router not available: %s", _exc)
+
     # ── Real-Time Streaming / WebSocket / EventBus ─────────────────────────────
     # Phase 10: New E2E pipeline routers
     # WebSocket router for real-time event streaming (EventBus, pipeline events)
@@ -7101,6 +7117,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-062 (Sprint 3): Unified rule taxonomy registry + sync shim
+    try:
+        from apps.api.unified_rules_router import router as unified_rules_router
+        app.include_router(unified_rules_router)
+        _logger.info("Mounted Unified Rules router at /api/v1/rules/unified")
+    except ImportError:
+        pass
+
     try:
         from apps.api.mfa_management_router import router as mfa_management_router
         app.include_router(mfa_management_router)
@@ -7939,6 +7963,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-056: Design-doc ingest + STRIDE extraction (spans 3 threat-modeling engines)
+    try:
+        from apps.api.design_doc_router import router as design_doc_router
+        app.include_router(design_doc_router)
+        _logger.info("Mounted Design Doc Ingest router at /api/v1/design-doc")
+    except ImportError:
+        pass
+
     # Wave 36 pre-wiring (engines pending creation)
     try:
         from apps.api.security_posture_maturity_router import router as security_posture_maturity_router
@@ -8262,6 +8294,14 @@ def create_app() -> FastAPI:
         from apps.api.security_dependency_mapping_router import router as security_dependency_mapping_router
         app.include_router(security_dependency_mapping_router)
         _logger.info("Mounted Security Dependency Mapping router at /api/v1/dependency-mapping")
+    except ImportError:
+        pass
+
+    # GAP-065 — architecture-aware graph (layer classifier + flow tracer)
+    try:
+        from apps.api.arch_graph_router import router as arch_graph_router
+        app.include_router(arch_graph_router)
+        _logger.info("Mounted Architecture-Aware Graph router at /api/v1/arch-graph")
     except ImportError:
         pass
 
