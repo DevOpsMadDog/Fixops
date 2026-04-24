@@ -474,3 +474,52 @@ class DataDiscoveryEngine:
             "by_datastore_type": by_datastore_type,
             "by_data_type": by_data_type,
         }
+
+    # ------------------------------------------------------------------
+    # GAP-065 — Architecture-aware graph: link datastore to layer
+    # ------------------------------------------------------------------
+
+    def link_to_layer(
+        self,
+        org_id: str,
+        datastore_ref: str,
+        layer: str = "data",
+    ) -> Dict[str, Any]:
+        """Associate a datastore node with its architecture layer.
+
+        Delegates the write to SecurityDependencyMappingEngine's
+        layer_classifications table — no schema change on this engine.
+
+        Fails gracefully if the dependency mapping engine is unavailable.
+        """
+        if not datastore_ref:
+            raise ValueError("datastore_ref is required")
+        try:
+            from core.security_dependency_mapping_engine import SecurityDependencyMappingEngine
+        except ImportError:
+            _logger.warning(
+                "data_discovery.link_to_layer.dep_map_missing org=%s datastore=%s",
+                org_id, datastore_ref,
+            )
+            return {
+                "node_ref": datastore_ref,
+                "layer": layer,
+                "confidence": 0.0,
+                "signals": ["dep_map_unavailable"],
+                "linked": False,
+            }
+
+        dep = SecurityDependencyMappingEngine()
+        record = dep.upsert_layer(
+            org_id=org_id,
+            node_ref=datastore_ref,
+            layer=layer,
+            confidence=0.95,
+            signals=["data_discovery_link"],
+        )
+        record["linked"] = True
+        _logger.info(
+            "data_discovery.linked org=%s datastore=%s layer=%s",
+            org_id, datastore_ref, layer,
+        )
+        return record

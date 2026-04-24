@@ -468,3 +468,51 @@ class APIDiscoveryEngine:
             "total_scans": total_scans,
             "recent_changes": recent_changes,
         }
+
+    # ------------------------------------------------------------------
+    # GAP-065 — Architecture-aware graph: link API endpoint to layer
+    # ------------------------------------------------------------------
+
+    def link_to_layer(
+        self,
+        org_id: str,
+        endpoint_path: str,
+        layer: str = "api",
+    ) -> Dict[str, Any]:
+        """Associate an API endpoint with its architecture layer.
+
+        Delegates the write to SecurityDependencyMappingEngine's
+        layer_classifications table — no schema change on this engine.
+
+        Fails gracefully if the dependency mapping engine is unavailable.
+        """
+        if not endpoint_path:
+            raise ValueError("endpoint_path is required")
+        try:
+            from core.security_dependency_mapping_engine import SecurityDependencyMappingEngine
+        except ImportError:
+            _logger.warning(
+                "api_discovery.link_to_layer.dep_map_missing org=%s endpoint=%s",
+                org_id, endpoint_path,
+            )
+            return {
+                "node_ref": endpoint_path,
+                "layer": layer,
+                "confidence": 0.0,
+                "signals": ["dep_map_unavailable"],
+                "linked": False,
+            }
+
+        dep = SecurityDependencyMappingEngine()
+        record = dep.upsert_layer(
+            org_id=org_id,
+            node_ref=endpoint_path,
+            layer=layer,
+            confidence=0.95,
+            signals=["api_discovery_link"],
+        )
+        record["linked"] = True
+        _logger.info(
+            "api_discovery.linked org=%s endpoint=%s layer=%s", org_id, endpoint_path, layer,
+        )
+        return record

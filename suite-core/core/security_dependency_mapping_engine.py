@@ -67,6 +67,20 @@ class SecurityDependencyMappingEngine:
         with self._conn() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript("""
+                CREATE TABLE IF NOT EXISTS layer_classifications (
+                    id               TEXT PRIMARY KEY,
+                    org_id           TEXT NOT NULL,
+                    node_ref         TEXT NOT NULL,
+                    layer            TEXT NOT NULL,
+                    confidence       REAL NOT NULL DEFAULT 0.0,
+                    signals_json     TEXT NOT NULL DEFAULT '[]',
+                    classified_at    TEXT NOT NULL,
+                    UNIQUE(org_id, node_ref)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_lc_org   ON layer_classifications(org_id);
+                CREATE INDEX IF NOT EXISTS idx_lc_layer ON layer_classifications(org_id, layer);
+
                 CREATE TABLE IF NOT EXISTS services (
                     id                  TEXT PRIMARY KEY,
                     org_id              TEXT NOT NULL,
@@ -594,6 +608,222 @@ class SecurityDependencyMappingEngine:
             org_id, finding_id, verdict, len(callers),
         )
         return record
+
+    # ------------------------------------------------------------------
+    # GAP-065 — Architecture-aware graph: layer classification
+    # ------------------------------------------------------------------
+
+    _DATA_KEYWORDS = ("db", "database", "migrations", "orm", "models", "schema")
+    _API_KEYWORDS = ("api", "router", "controller", "endpoint", "handler")
+    _UI_KEYWORDS = ("ui", "components", "pages", "views", "frontend")
+
+    def classify_layer(
+        self,
+        node_ref: str,
+        context: Optional[Dict[str, Any]] = None,
+        org_id: str = "default",
+    ) -> Dict[str, Any]:
+        """Classify a node into one of: data | api | ui | service | standalone.
+
+        Heuristics (in priority order):
+          - path contains "db|database|migrations|orm" → "data"
+          - path contains "api|router|controller"     → "api"
+          - path contains "ui|components|pages|views" → "ui"
+          - has imports but no importers (from context) → "standalone"
+          - has both imports and importers            → "service"
+
+        Args:
+            node_ref: The node reference (usually file path or FQN).
+            context: Optional dict with "imports" (list) and "importers" (list).
+            org_id:  Organisation identifier for upsert into DB.
+
+        Returns:
+            {layer, confidence, signals: [...]}
+        """
+        if not node_ref:
+            raise ValueError("node_ref is required")
+
+        ctx = context or {}
+        imports = ctx.get("imports") or []
+        importers = ctx.get("importers") or []
+
+        ref_lower = str(node_ref).lower()
+        signals: List[str] = []
+        layer: Optional[str] = None
+        confidence: float = 0.0
+
+        # Priority 1: data layer
+        for kw in self._DATA_KEYWORDS:
+            if kw in ref_lower:
+                signals.append(f"path_keyword:{kw}")
+                layer = "data"
+                confidence = 0.85
+                break
+
+        # Priority 2: api layer
+        if layer is None:
+            for kw in self._API_KEYWORDS:
+                if kw in ref_lower:
+                    signals.append(f"path_keyword:{kw}")
+                    layer = "api"
+                    confidence = 0.80
+                    break
+
+        # Priority 3: ui layer
+        if layer is None:
+            for kw in self._UI_KEYWORDS:
+                if kw in ref_lower:
+                    signals.append(f"path_keyword:{kw}")
+                    layer = "ui"
+                    confidence = 0.80
+                    break
+
+        # Priority 4/5: import topology
+        if layer is None:
+            has_imports = bool(imports)
+            has_importers = bool(importers)
+            if has_imports and not has_importers:
+                signals.append("topology:imports_no_importers")
+                layer = "standalone"
+                confidence = 0.60
+            elif has_imports and has_importers:
+                signals.append("topology:imports_and_importers")
+                layer = "service"
+                confidence = 0.70
+            elif has_importers and not has_imports:
+                signals.append("topology:importers_no_imports")
+                layer = "service"
+                confidence = 0.50
+            else:
+                signals.append("topology:isolated")
+                layer = "standalone"
+                confidence = 0.40
+
+        # Boost confidence when both path keyword AND topology agree
+        if imports or importers:
+            if layer == "api" and importers:
+                signals.append("topology_boost:has_importers")
+                confidence = min(1.0, confidence + 0.10)
+            if layer == "data" and importers:
+                signals.append("topology_boost:has_importers")
+                confidence = min(1.0, confidence + 0.10)
+
+        # Clamp 0..1
+        confidence = max(0.0, min(1.0, float(confidence)))
+
+        now = self._now()
+        record_id = str(uuid.uuid4())
+        signals_json = json.dumps(signals)
+
+        # Upsert on (org_id, node_ref)
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                """INSERT INTO layer_classifications
+                   (id, org_id, node_ref, layer, confidence, signals_json, classified_at)
+                   VALUES (?,?,?,?,?,?,?)
+                   ON CONFLICT(org_id, node_ref) DO UPDATE SET
+                       layer=excluded.layer,
+                       confidence=excluded.confidence,
+                       signals_json=excluded.signals_json,
+                       classified_at=excluded.classified_at""",
+                (record_id, org_id, node_ref, layer, confidence, signals_json, now),
+            )
+
+        _logger.info(
+            "dep_map.classify_layer org=%s node=%s layer=%s confidence=%.2f",
+            org_id, node_ref, layer, confidence,
+        )
+
+        return {
+            "node_ref": node_ref,
+            "layer": layer,
+            "confidence": confidence,
+            "signals": signals,
+            "classified_at": now,
+        }
+
+    def get_layer(self, org_id: str, node_ref: str) -> Optional[Dict[str, Any]]:
+        """Fetch a classification by (org_id, node_ref). Returns None if missing."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM layer_classifications WHERE org_id=? AND node_ref=?",
+                (org_id, node_ref),
+            ).fetchone()
+        if row is None:
+            return None
+        rec = dict(row)
+        try:
+            rec["signals"] = json.loads(rec.get("signals_json") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            rec["signals"] = []
+        return rec
+
+    def list_classifications(
+        self,
+        org_id: str,
+        layer: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List layer classifications for an org, optionally filtered by layer."""
+        query = "SELECT * FROM layer_classifications WHERE org_id=?"
+        params: List[Any] = [org_id]
+        if layer:
+            query += " AND layer=?"
+            params.append(layer)
+        query += " ORDER BY classified_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            rec = dict(row)
+            try:
+                rec["signals"] = json.loads(rec.get("signals_json") or "[]")
+            except (json.JSONDecodeError, TypeError):
+                rec["signals"] = []
+            out.append(rec)
+        return out
+
+    def upsert_layer(
+        self,
+        org_id: str,
+        node_ref: str,
+        layer: str,
+        confidence: float = 0.95,
+        signals: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Directly write a layer classification (used by link_to_layer helpers).
+
+        Bypasses heuristics — caller has explicit knowledge (e.g. API endpoint
+        is known to be an 'api' layer node).
+        """
+        if not node_ref:
+            raise ValueError("node_ref is required")
+        if layer not in {"data", "api", "ui", "service", "standalone"}:
+            raise ValueError(
+                f"Invalid layer '{layer}'. Must be one of data|api|ui|service|standalone"
+            )
+        confidence = max(0.0, min(1.0, float(confidence)))
+        sig = signals or ["explicit_link"]
+        now = self._now()
+        record_id = str(uuid.uuid4())
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                """INSERT INTO layer_classifications
+                   (id, org_id, node_ref, layer, confidence, signals_json, classified_at)
+                   VALUES (?,?,?,?,?,?,?)
+                   ON CONFLICT(org_id, node_ref) DO UPDATE SET
+                       layer=excluded.layer,
+                       confidence=excluded.confidence,
+                       signals_json=excluded.signals_json,
+                       classified_at=excluded.classified_at""",
+                (record_id, org_id, node_ref, layer, confidence, json.dumps(sig), now),
+            )
+        return {
+            "node_ref": node_ref,
+            "layer": layer,
+            "confidence": confidence,
+            "signals": sig,
+            "classified_at": now,
+        }
 
     def get_summary(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate summary for org's dependency map."""
