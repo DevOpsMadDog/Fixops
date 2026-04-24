@@ -189,3 +189,33 @@ UNCLEAR: GAP-014 ide_gateway, GAP-058 free-tier
 Fixops has ~13,100 legacy code-quality violations (87.7% un-annotated fns, 2461 naive datetime.now, 698 broad except) — all in LEGACY engines. All 12 new engines this session pass TrueCourse's cleanliness bar (0 naive now, 0 bare except).
 
 ### Engine count: 334 (session start) → ~348 projected post Wave-5
+
+---
+
+## SESSION CLOSE — 2026-04-23 / 2026-04-24 build marathon
+
+**46 commits shipped on `features/intermediate-stage`.** Final status below.
+
+### All KEEPs shipped (14)
+GAP-001 (air_gap_bundle), GAP-005 (org_hierarchy), GAP-007 (upgrade_path_resolver), GAP-008 (binary_fingerprint), GAP-010 (function_reachability), GAP-012 (deep_code_analysis), GAP-013 (code_to_runtime_matcher), GAP-017 (pipeline_bom/PBOM), GAP-018 (slsa_provenance), GAP-020 (agentless_snapshot_scan), GAP-024 (security_query_language/RQL), GAP-042 (fips_compliance_mode), GAP-064 (local_file_store), GAP-069 (dynamic_rule_dsl). **+ NEW-G070 (semantic_analyzer) + NEW-G071 (ide_backend).**
+
+### All MERGEs shipped (30+)
+Violation lifecycle (063), toxic-combo (021), choke-point (026), CIEM+AD (032+033), 6-CSP (025), material change (011), compliance content (022+023), blast-radius (027+046), universal ingest (034+035), SBOM (041+055+057), AI-gen scanner (019), GitHub App+hooks (015+068), FAIR per-BU (028+051), NL graph (029), tiered LLM (061), auto-waivers (006), composite alerts (052), timeseries (060), shadow-AI (059), offline feed (002+004), malicious pkg (009), dev-identity (016), subsidiary (030+045), tokens+roles (039+050), export coverage (040), unified /issues (049+066), formula+teammates (043+044), design-doc (056), unified rule taxonomy (062), arch-aware graph (065).
+
+### KILLs executed (5)
+GAP-003, GAP-036, GAP-053, GAP-054, GAP-067 — all re-located out of `.omc/prds/v2/`.
+
+### Remaining — UNCLEAR (product decision, NOT engineering)
+- **GAP-014** — IDE extension: one gateway engine or zero engines? 
+- **GAP-058** — free-tier strategy: enabled or disabled?
+
+### Engine count trajectory
+- Session start: 334 engines
+- Session close: ~360 engines (+14 new KEEPs + 2 NEW-G + inline utilities)
+- ~30 existing engines extended with new methods / schemas
+
+### Test count (estimated)
+- ~1200 new tests shipped this session across 50+ test files
+
+### TrueCourse-audits-Fixops legacy cleanup (still pending, not this session)
+~13,100 legacy code-quality violations (87.7% un-annotated fns, 2461 naive datetime.now, 698 broad except) remain in the PRE-session engines. All 14 KEEP engines + 2 NEW-G engines shipped this session pass TrueCourse's bar. Follow-up sprint.
