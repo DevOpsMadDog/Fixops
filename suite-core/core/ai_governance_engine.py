@@ -187,6 +187,21 @@ class AIGovernanceEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_ai_services_registry_org
                     ON ai_services_registry (org_id, service_name);
+
+                -- GAP-043: Scoring formula change history (governance audit)
+                CREATE TABLE IF NOT EXISTS scoring_formula_history (
+                    id              TEXT PRIMARY KEY,
+                    org_id          TEXT NOT NULL,
+                    formula_version TEXT NOT NULL,
+                    change_summary  TEXT NOT NULL DEFAULT '',
+                    approver        TEXT NOT NULL DEFAULT '',
+                    approved_at     TEXT NOT NULL,
+                    created_at      TEXT NOT NULL,
+                    UNIQUE(org_id, formula_version)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_scoring_formula_history_org
+                    ON scoring_formula_history (org_id, approved_at DESC);
                 """
             )
 
@@ -1216,3 +1231,79 @@ class AIGovernanceEngine:
             "path_count": len(paths),
             "paths": paths,
         }
+
+    # ------------------------------------------------------------------
+    # GAP-043: Formula change audit history
+    # ------------------------------------------------------------------
+
+    def register_formula_change(
+        self,
+        org_id: str,
+        formula_version: str,
+        change_summary: str,
+        approver: str,
+        approved_at: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Persist a scoring-formula change record for governance audit.
+
+        UNIQUE(org_id, formula_version) — re-submitting the same version is a
+        no-op that returns the stored row.
+        """
+        if not org_id:
+            raise ValueError("org_id is required.")
+        formula_version = (formula_version or "").strip()
+        if not formula_version:
+            raise ValueError("formula_version is required.")
+        change_summary = change_summary or ""
+        approver = approver or ""
+        now = _now_iso()
+        approved_at = (approved_at or now).strip() or now
+        record_id = str(uuid.uuid4())
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT OR IGNORE INTO scoring_formula_history
+                       (id, org_id, formula_version, change_summary,
+                        approver, approved_at, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        record_id, org_id, formula_version, change_summary,
+                        approver, approved_at, now,
+                    ),
+                )
+                row = conn.execute(
+                    "SELECT * FROM scoring_formula_history "
+                    "WHERE org_id = ? AND formula_version = ?",
+                    (org_id, formula_version),
+                ).fetchone()
+
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit(
+                        "CONTROL_ASSESSED",
+                        {
+                            "entity_type": "scoring_formula_change",
+                            "org_id": org_id,
+                            "formula_version": formula_version,
+                            "source_engine": "ai_governance",
+                        },
+                    )
+            except Exception:
+                pass
+
+        return dict(row) if row else {}
+
+    def list_formula_history(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return scoring-formula history for an org, newest first."""
+        if not org_id:
+            raise ValueError("org_id is required.")
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM scoring_formula_history "
+                "WHERE org_id = ? ORDER BY approved_at DESC, created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]

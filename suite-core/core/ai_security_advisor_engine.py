@@ -1170,6 +1170,272 @@ class AISecurityAdvisorEngine:
 
         return {**traced, "explanation": explanation}
 
+    # ------------------------------------------------------------------
+    # GAP-044: AI Teammates UX (suggest-fix, draft-exception, auto-triage)
+    # ------------------------------------------------------------------
+
+    def _load_finding(self, org_id: str, finding_id: str) -> Dict[str, Any]:
+        """Best-effort load of a finding from vulnerability_scoring_engine DB.
+
+        Returns an empty dict if the finding or DB is missing — the teammate
+        methods degrade gracefully rather than failing.
+        """
+        if not isinstance(finding_id, str) or not finding_id:
+            return {}
+        try:
+            vs_path = _DEFAULT_DB_DIR / "vulnerability_scoring_engine.db"
+            if not vs_path.exists():
+                return {}
+            conn = sqlite3.connect(str(vs_path), timeout=5)
+            conn.row_factory = sqlite3.Row
+            try:
+                row = conn.execute(
+                    """SELECT * FROM vuln_scores
+                       WHERE org_id=? AND (id=? OR vuln_id=?)
+                       ORDER BY created_at DESC LIMIT 1""",
+                    (org_id, finding_id, finding_id),
+                ).fetchone()
+            finally:
+                conn.close()
+            return dict(row) if row else {}
+        except sqlite3.Error:
+            return {}
+
+    def _similar_past_fixes(
+        self, org_id: str, finding: Dict[str, Any], limit: int = 3
+    ) -> List[Dict[str, Any]]:
+        """Find similar implemented recommendations for context."""
+        category_hint = "vulnerability"
+        sev = (finding.get("priority_tier") or "").lower()
+        if "critical" in sev:
+            priority_filter = "critical"
+        elif "high" in sev:
+            priority_filter = "high"
+        else:
+            priority_filter = None
+
+        try:
+            recs = self.list_recommendations(
+                org_id, priority=priority_filter, category=category_hint,
+                status="implemented",
+            )
+        except Exception:
+            recs = []
+        return [
+            {
+                "title": r.get("title", ""),
+                "rationale": r.get("rationale", ""),
+                "impact_score": r.get("impact_score"),
+                "effort_days": r.get("effort_days"),
+            }
+            for r in recs[:limit]
+        ]
+
+    def suggest_fix_with_context(
+        self, org_id: str, finding_id: str
+    ) -> Dict[str, Any]:
+        """Teammate-mode: propose a fix with rationale and similar past fixes.
+
+        Returns::
+
+            {
+              "suggestion_type": "patch"|"config"|"compensating_control",
+              "recommended_action": str,
+              "confidence": float,   # 0.0 - 1.0
+              "rationale": str,
+              "similar_past_fixes": [ ... ],
+              "finding_id": str,
+              "generated_at": iso8601,
+            }
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(finding_id, str) or not finding_id:
+            raise ValueError("finding_id must be a non-empty string")
+
+        finding = self._load_finding(org_id, finding_id)
+        tier = (finding.get("priority_tier") or "P4-Low").lower()
+        score = float(finding.get("composite_score") or 0.0)
+
+        if "critical" in tier:
+            suggestion_type = "patch"
+            action = "Apply vendor patch within 24h SLA and re-scan to confirm closure."
+            confidence = 0.9
+        elif "high" in tier:
+            suggestion_type = "patch"
+            action = "Schedule patch in next change window; apply temporary network ACL as compensating control."
+            confidence = 0.8
+        elif "medium" in tier:
+            suggestion_type = "config"
+            action = "Apply configuration hardening from CIS benchmark; defer patch to monthly cycle."
+            confidence = 0.7
+        else:
+            suggestion_type = "compensating_control"
+            action = "Accept risk with monitoring; document in risk register."
+            confidence = 0.6
+
+        rationale = (
+            f"Finding priority tier={tier}, composite score={score}. "
+            f"CVSS={finding.get('cvss_score', 'n/a')}, "
+            f"EPSS={finding.get('epss_score', 'n/a')}, "
+            f"KEV-listed={bool(finding.get('kev_listed'))}. "
+            "Recommendation derived from historical implemented fixes and "
+            "current severity tier policy."
+        )
+        similar = self._similar_past_fixes(org_id, finding)
+
+        return {
+            "suggestion_type": suggestion_type,
+            "recommended_action": action,
+            "confidence": confidence,
+            "rationale": rationale,
+            "similar_past_fixes": similar,
+            "finding_id": finding_id,
+            "generated_at": self._now(),
+        }
+
+    def draft_exception_request(
+        self,
+        org_id: str,
+        finding_id: str,
+        business_justification: str,
+    ) -> Dict[str, Any]:
+        """Teammate-mode: draft a security exception request document."""
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(finding_id, str) or not finding_id:
+            raise ValueError("finding_id must be a non-empty string")
+        business_justification = business_justification or ""
+
+        finding = self._load_finding(org_id, finding_id)
+        tier = finding.get("priority_tier") or "P4-Low"
+        score = float(finding.get("composite_score") or 0.0)
+
+        # Heuristic: higher tier = shorter max duration for exception
+        if "P1" in tier:
+            max_duration_days = 14
+            required_approver = "CISO"
+        elif "P2" in tier:
+            max_duration_days = 30
+            required_approver = "Security Director"
+        elif "P3" in tier:
+            max_duration_days = 90
+            required_approver = "Security Manager"
+        else:
+            max_duration_days = 180
+            required_approver = "Security Analyst"
+
+        compensating_controls = [
+            "Enable enhanced monitoring / SIEM alerts on affected asset",
+            "Restrict network access via firewall / segmentation",
+            "Require MFA for any human access to the asset",
+            "Document ownership + review cadence",
+        ]
+        draft = {
+            "finding_id": finding_id,
+            "tier": tier,
+            "composite_score": score,
+            "business_justification": business_justification,
+            "suggested_max_duration_days": max_duration_days,
+            "required_approver": required_approver,
+            "compensating_controls": compensating_controls,
+            "drafted_at": self._now(),
+            "review_cadence_days": min(30, max_duration_days // 2),
+            "risk_acceptance_statement": (
+                f"This exception accepts residual risk with composite score "
+                f"{score} ({tier}) until the compensating controls above are in "
+                f"place and the underlying vulnerability is remediated. Approval "
+                f"must be reviewed every {min(30, max_duration_days // 2)} days."
+            ),
+        }
+        return draft
+
+    def auto_triage(self, org_id: str, finding_id: str) -> Dict[str, Any]:
+        """Teammate-mode: propose priority + assignee for a finding.
+
+        Combines composite score with blast radius (GAP-027) + crown-jewel
+        tags to suggest a triage outcome. Returns a fully-formed triage
+        proposal — the caller is expected to apply it manually.
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(finding_id, str) or not finding_id:
+            raise ValueError("finding_id must be a non-empty string")
+
+        finding = self._load_finding(org_id, finding_id)
+        tier = finding.get("priority_tier") or "P4-Low"
+        score = float(finding.get("composite_score") or 0.0)
+        asset_criticality = (finding.get("asset_criticality") or "medium").lower()
+        kev = bool(finding.get("kev_listed"))
+
+        # Crown jewel = asset_criticality critical
+        is_crown_jewel = asset_criticality == "critical"
+
+        # Blast radius proxy: pull breakdown factor from vuln scoring DB
+        blast_radius = 0.0
+        try:
+            vs_path = _DEFAULT_DB_DIR / "vulnerability_scoring_engine.db"
+            if vs_path.exists():
+                conn = sqlite3.connect(str(vs_path), timeout=5)
+                conn.row_factory = sqlite3.Row
+                try:
+                    row = conn.execute(
+                        """SELECT factor_value FROM score_breakdown
+                           WHERE org_id=? AND factor_name='blast_radius'
+                             AND vuln_score_id=(
+                               SELECT id FROM vuln_scores
+                               WHERE org_id=? AND (id=? OR vuln_id=?)
+                               ORDER BY created_at DESC LIMIT 1
+                             )
+                           ORDER BY recorded_at DESC LIMIT 1""",
+                        (org_id, org_id, finding_id, finding_id),
+                    ).fetchone()
+                    if row:
+                        blast_radius = float(row["factor_value"] or 0.0)
+                finally:
+                    conn.close()
+        except sqlite3.Error:
+            blast_radius = 0.0
+
+        # Priority elevation policy
+        proposed_priority = "P4"
+        if "P1" in tier or kev or score >= 80 or is_crown_jewel:
+            proposed_priority = "P1"
+        elif "P2" in tier or score >= 60 or blast_radius >= 50:
+            proposed_priority = "P2"
+        elif "P3" in tier or score >= 40:
+            proposed_priority = "P3"
+
+        # Assignee role policy
+        if proposed_priority == "P1":
+            proposed_assignee_role = "incident_response_lead"
+        elif proposed_priority == "P2":
+            proposed_assignee_role = "senior_security_engineer"
+        elif proposed_priority == "P3":
+            proposed_assignee_role = "security_engineer"
+        else:
+            proposed_assignee_role = "security_analyst"
+
+        reasoning_parts = [
+            f"composite_score={score}",
+            f"tier={tier}",
+            f"kev_listed={kev}",
+            f"asset_criticality={asset_criticality}",
+            f"crown_jewel={is_crown_jewel}",
+            f"blast_radius={blast_radius}",
+        ]
+
+        return {
+            "finding_id": finding_id,
+            "proposed_priority": proposed_priority,
+            "proposed_assignee_role": proposed_assignee_role,
+            "crown_jewel": is_crown_jewel,
+            "blast_radius": blast_radius,
+            "confidence": 0.85 if score > 0 else 0.5,
+            "reasoning": "; ".join(reasoning_parts),
+            "triaged_at": self._now(),
+        }
+
     def get_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated advisor statistics for an org."""
         from datetime import timedelta

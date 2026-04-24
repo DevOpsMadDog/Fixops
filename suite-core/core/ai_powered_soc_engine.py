@@ -462,6 +462,109 @@ class AIPoweredSOCEngine:
     # Statistics
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # GAP-044: Teammate-mode playbook drafter
+    # ------------------------------------------------------------------
+
+    _PLAYBOOK_TEMPLATES: Dict[str, List[str]] = {
+        "ransomware": [
+            "Isolate affected endpoints at network layer",
+            "Disable lateral movement via domain credential reset",
+            "Snapshot forensic disk images",
+            "Activate crisis communications (legal, exec, PR)",
+            "Engage backup recovery workflow",
+            "Contact law enforcement if required",
+        ],
+        "phishing": [
+            "Pull email from all inboxes via O365/Gmail admin",
+            "Block sender domain at email gateway",
+            "Reset credentials for any recipient who clicked",
+            "Run endpoint scan on affected users' laptops",
+            "Deliver targeted awareness training",
+        ],
+        "data_breach": [
+            "Confirm exfiltration scope via DLP/network logs",
+            "Freeze impacted accounts and rotate API keys",
+            "Engage legal + privacy counsel for notification obligations",
+            "Preserve forensic evidence (memory, disk, logs)",
+            "Prepare regulatory notification (GDPR 72h, CCPA, etc)",
+            "Internal and external comms after scope confirmed",
+        ],
+        "credential_theft": [
+            "Revoke affected sessions/tokens immediately",
+            "Force password reset on impacted identities",
+            "Require MFA re-enrollment",
+            "Review IAM entitlements for privilege escalation indicators",
+            "Scan SIEM for anomalous logins (geolocation, impossible travel)",
+        ],
+        "insider_threat": [
+            "Pause insider access pending investigation",
+            "Preserve user activity audit logs (UEBA)",
+            "Engage HR + legal in parallel",
+            "Review data access history over last 90 days",
+            "Plan controlled exit if employee separation is warranted",
+        ],
+    }
+
+    def teammate_draft_playbook(
+        self,
+        org_id: str,
+        incident_type: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Teammate-mode: return a draft playbook outline for an incident type.
+
+        If ``incident_type`` matches a known template, returns that template
+        enriched with context-aware notes. Otherwise returns a generic
+        skeleton so the analyst can edit and save.
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        incident_type = (incident_type or "").strip().lower().replace(" ", "_")
+        if not incident_type:
+            raise ValueError("incident_type is required")
+        context = context or {}
+
+        template_steps = self._PLAYBOOK_TEMPLATES.get(incident_type)
+        if template_steps is None:
+            steps = [
+                "Detect & validate the alert",
+                "Contain the affected scope",
+                "Eradicate the root cause",
+                "Recover systems to baseline",
+                "Conduct post-incident review",
+            ]
+            source = "generic_ir_skeleton"
+            matched = False
+        else:
+            steps = list(template_steps)
+            source = "template"
+            matched = True
+
+        severity_hint = context.get("severity", "medium")
+        affected_assets = context.get("affected_assets", [])
+
+        return {
+            "incident_type": incident_type,
+            "matched_template": matched,
+            "source": source,
+            "severity_hint": severity_hint,
+            "affected_asset_count": len(affected_assets) if isinstance(affected_assets, list) else 0,
+            "steps": [
+                {"order": idx + 1, "action": step, "status": "pending"}
+                for idx, step in enumerate(steps)
+            ],
+            "estimated_runtime_hours": max(2, len(steps)),
+            "required_roles": [
+                "ir_lead",
+                "soc_analyst",
+                "comms_lead",
+                "exec_sponsor",
+            ],
+            "drafted_at": self._now(),
+            "org_id": org_id,
+        }
+
     def get_soc_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated SOC statistics for an org."""
         with self._lock, self._conn() as conn:

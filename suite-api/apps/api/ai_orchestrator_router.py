@@ -358,3 +358,110 @@ def preflight_estimate(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# GAP-044: AI Teammates UX
+# ---------------------------------------------------------------------------
+
+try:
+    from apps.api.auth_deps import api_key_auth as _teammates_auth
+except ImportError:  # pragma: no cover - safety net for test harnesses
+    async def _teammates_auth() -> None:  # type: ignore
+        return None
+
+
+class SuggestFixBody(BaseModel):
+    finding_id: str = Field(..., min_length=1, max_length=256)
+
+
+class DraftExceptionBody(BaseModel):
+    finding_id: str = Field(..., min_length=1, max_length=256)
+    business_justification: str = Field(default="", max_length=10_000)
+
+
+class AutoTriageBody(BaseModel):
+    finding_id: str = Field(..., min_length=1, max_length=256)
+
+
+_AI_ADVISOR_SINGLETON: Optional[Any] = None
+
+
+def _require_ai_advisor() -> Any:
+    global _AI_ADVISOR_SINGLETON
+    if _AI_ADVISOR_SINGLETON is not None:
+        return _AI_ADVISOR_SINGLETON
+    try:
+        from core.ai_security_advisor_engine import AISecurityAdvisorEngine
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AISecurityAdvisorEngine not available: {exc}",
+        )
+    _AI_ADVISOR_SINGLETON = AISecurityAdvisorEngine()
+    return _AI_ADVISOR_SINGLETON
+
+
+teammates_router = APIRouter(
+    prefix="/api/v1/teammates",
+    tags=["ai-teammates"],
+    dependencies=[Depends(_teammates_auth)],
+)
+
+
+@teammates_router.post(
+    "/suggest-fix",
+    summary="GAP-044: AI teammate suggests a fix with context",
+)
+def teammates_suggest_fix(
+    body: SuggestFixBody,
+    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    dep_org_id: Optional[str] = Depends(get_org_id),
+) -> Dict[str, Any]:
+    engine = _require_ai_advisor()
+    effective_org = _resolve_org_id(dep_org_id, org_id)
+    try:
+        return engine.suggest_fix_with_context(effective_org, body.finding_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@teammates_router.post(
+    "/draft-exception",
+    summary="GAP-044: AI teammate drafts a security exception request",
+)
+def teammates_draft_exception(
+    body: DraftExceptionBody,
+    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    dep_org_id: Optional[str] = Depends(get_org_id),
+) -> Dict[str, Any]:
+    engine = _require_ai_advisor()
+    effective_org = _resolve_org_id(dep_org_id, org_id)
+    try:
+        return engine.draft_exception_request(
+            effective_org, body.finding_id, body.business_justification
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@teammates_router.post(
+    "/auto-triage",
+    summary="GAP-044: AI teammate auto-triages a finding",
+)
+def teammates_auto_triage(
+    body: AutoTriageBody,
+    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    dep_org_id: Optional[str] = Depends(get_org_id),
+) -> Dict[str, Any]:
+    engine = _require_ai_advisor()
+    effective_org = _resolve_org_id(dep_org_id, org_id)
+    try:
+        return engine.auto_triage(effective_org, body.finding_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+# teammates_router is exported separately — app.py mounts it directly at
+# /api/v1/teammates so the paths remain clean (not nested under
+# /api/v1/ai-orchestrator).

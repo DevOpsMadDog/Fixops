@@ -2211,6 +2211,95 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             results = [f for f in results if f.fix_type == fix_type]
         return results[:limit]
 
+    # ------------------------------------------------------------------
+    # GAP-044: Teammate-mode fix explanation
+    # ------------------------------------------------------------------
+
+    def teammate_explain_fix(
+        self, org_id: str, fix_id: str
+    ) -> Dict[str, Any]:
+        """Plain-language explanation of why a fix works.
+
+        Pulls the AutoFixSuggestion by fix_id and assembles a non-technical
+        summary suitable for exec/approver audiences. The org_id is retained
+        for future multi-tenant isolation when autofix stores migrate to a
+        scoped backend — callers should still pass it explicitly.
+        """
+        if not isinstance(org_id, str) or not org_id:
+            raise ValueError("org_id must be a non-empty string")
+        if not isinstance(fix_id, str) or not fix_id:
+            raise ValueError("fix_id must be a non-empty string")
+
+        suggestion = self.get_fix(fix_id)
+        if suggestion is None:
+            return {
+                "org_id": org_id,
+                "fix_id": fix_id,
+                "found": False,
+                "explanation": (
+                    f"No fix with id={fix_id!r} is stored. The suggestion may "
+                    "have expired or never been generated; re-run autofix on "
+                    "the originating finding."
+                ),
+            }
+
+        fix_type = getattr(suggestion.fix_type, "value", str(suggestion.fix_type))
+        confidence = getattr(suggestion.confidence, "value", str(suggestion.confidence))
+        patches = len(suggestion.code_patches or [])
+        dep_fixes = len(suggestion.dependency_fixes or [])
+        config_keys = list((suggestion.config_changes or {}).keys())
+
+        # Build plain-language paragraphs
+        narrative_parts: List[str] = []
+        narrative_parts.append(
+            f"This fix addresses the finding '{suggestion.finding_title}' "
+            f"(id={suggestion.finding_id}) using a {fix_type} strategy."
+        )
+        if suggestion.description:
+            narrative_parts.append(suggestion.description)
+        if patches:
+            narrative_parts.append(
+                f"It modifies {patches} code location(s) with reviewed patches."
+            )
+        if dep_fixes:
+            narrative_parts.append(
+                f"It upgrades {dep_fixes} vulnerable dependency version(s) to a "
+                "patched release."
+            )
+        if config_keys:
+            narrative_parts.append(
+                f"It adjusts configuration keys: {', '.join(sorted(config_keys))}."
+            )
+        if suggestion.testing_guidance:
+            narrative_parts.append(
+                f"Recommended verification: {suggestion.testing_guidance}"
+            )
+        if suggestion.rollback_steps:
+            narrative_parts.append(
+                f"Rollback plan: {suggestion.rollback_steps}"
+            )
+
+        return {
+            "org_id": org_id,
+            "fix_id": fix_id,
+            "finding_id": suggestion.finding_id,
+            "found": True,
+            "fix_type": fix_type,
+            "confidence": confidence,
+            "confidence_score": suggestion.confidence_score,
+            "effort_minutes": suggestion.effort_minutes,
+            "risk_assessment": suggestion.risk_assessment,
+            "compliance_frameworks": list(suggestion.compliance_frameworks or []),
+            "mitre_techniques": list(suggestion.mitre_techniques or []),
+            "explanation": " ".join(part.strip() for part in narrative_parts if part),
+            "summary_bullets": [
+                f"Fix strategy: {fix_type}",
+                f"Confidence: {confidence} ({suggestion.confidence_score:.2f})",
+                f"Patches: {patches}, Dependency fixes: {dep_fixes}, Config keys: {len(config_keys)}",
+                f"Estimated effort: {suggestion.effort_minutes} minute(s)",
+            ],
+        }
+
     def get_stats(self) -> Dict[str, Any]:
         """Get autofix engine statistics."""
         return {**self._stats, "total_fixes_stored": len(self._fixes)}
