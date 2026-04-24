@@ -516,3 +516,136 @@ class ThreatModelingPipelineEngine:
                     (org_id,),
                 ).fetchall()
                 return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # GAP-056: Auto-threat-model from design doc ingest
+    # ------------------------------------------------------------------
+
+    # Map STRIDE heuristic threat-types (from ThreatModelingEngine) to the
+    # pipeline's stride_category taxonomy.
+    _STRIDE_CATEGORY_MAP = {
+        "spoofing": "S-Spoofing",
+        "tampering": "T-Tampering",
+        "repudiation": "R-Repudiation",
+        "information_disclosure": "I-InfoDisclosure",
+        "denial_of_service": "D-DenialOfService",
+        "elevation_of_privilege": "E-ElevationOfPrivilege",
+    }
+
+    _SEV_TO_LIKELIHOOD_IMPACT = {
+        "critical": ("high", "critical"),
+        "high": ("medium", "high"),
+        "medium": ("medium", "medium"),
+        "low": ("low", "low"),
+    }
+
+    def auto_threat_model_from_doc(
+        self,
+        org_id: str,
+        doc_ingest_id: str,
+        model_name: Optional[str] = None,
+        created_by: str = "auto-ingest",
+    ) -> Dict[str, Any]:
+        """Chain ingest -> extract -> draft threat model in the pipeline.
+
+        1. Ensure STRIDE elements are extracted for the referenced design-doc ingest
+           (re-runs extraction for idempotency).
+        2. Create a new draft threat model in this pipeline engine.
+        3. Register each unique parsed component as a model_component.
+        4. Register each extracted STRIDE threat as a model_threat with mapped
+           stride_category + likelihood/impact derived from severity.
+        Returns the draft model record with counts and traceability ids.
+        """
+        if not org_id:
+            raise ValueError("org_id is required")
+        if not doc_ingest_id:
+            raise ValueError("doc_ingest_id is required")
+
+        # Lazy import to avoid circular imports at module load
+        from core.threat_modeling_engine import ThreatModelingEngine  # noqa: WPS433
+
+        tme = ThreatModelingEngine()
+        ingest = tme._get_ingest(org_id, doc_ingest_id)  # noqa: SLF001
+        if not ingest:
+            raise ValueError(
+                f"doc_ingest_id '{doc_ingest_id}' not found for org '{org_id}'"
+            )
+        extracted = tme.extract_stride_elements(org_id, doc_ingest_id)
+
+        try:
+            components = json.loads(ingest.get("parsed_components_json") or "[]")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            components = []
+
+        effective_name = (
+            model_name
+            or f"Auto model from {ingest.get('doc_source', 'design-doc')}"
+        )
+        model = self.create_model(
+            org_id=org_id,
+            model_name=effective_name,
+            system_description=(
+                f"Draft model auto-generated from design doc ingest "
+                f"{doc_ingest_id}"
+            ),
+            methodology="STRIDE",
+            created_by=created_by,
+        )
+        model_id = model["id"]
+
+        components_added = 0
+        for comp_name in components:
+            if not isinstance(comp_name, str) or not comp_name.strip():
+                continue
+            try:
+                self.add_component(
+                    model_id=model_id,
+                    org_id=org_id,
+                    component_name=comp_name.strip(),
+                    component_type="process",
+                    trust_boundary="",
+                    data_flows=[],
+                )
+                components_added += 1
+            except ValueError:
+                # Skip invalid component rows but keep the pipeline going.
+                continue
+
+        threats_added = 0
+        for threat in extracted:
+            stride_cat = self._STRIDE_CATEGORY_MAP.get(
+                threat.get("threat_type", ""),
+                "I-InfoDisclosure",
+            )
+            sev = (threat.get("severity") or "medium").lower()
+            likelihood, impact = self._SEV_TO_LIKELIHOOD_IMPACT.get(
+                sev, ("medium", "medium")
+            )
+            try:
+                self.add_threat(
+                    model_id=model_id,
+                    org_id=org_id,
+                    threat_name=(
+                        f"{threat.get('threat_type', 'threat')} on "
+                        f"{threat.get('component', 'component')}"
+                    ),
+                    stride_category=stride_cat,
+                    description=threat.get("description", ""),
+                    affected_component=threat.get("component", ""),
+                    likelihood=likelihood,
+                    impact=impact,
+                )
+                threats_added += 1
+            except ValueError:
+                continue
+
+        return {
+            "model_id": model_id,
+            "model_name": effective_name,
+            "org_id": org_id,
+            "doc_ingest_id": doc_ingest_id,
+            "components_added": components_added,
+            "threats_added": threats_added,
+            "status": "draft",
+            "source": "design-doc-ingest",
+        }

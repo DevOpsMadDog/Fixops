@@ -150,6 +150,17 @@ class CyberThreatModelingEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_ctm_actors_model
                     ON threat_actors (model_id, org_id);
+
+                CREATE TABLE IF NOT EXISTS design_doc_links (
+                    id             TEXT PRIMARY KEY,
+                    org_id         TEXT NOT NULL,
+                    doc_ingest_id  TEXT NOT NULL,
+                    model_id       TEXT NOT NULL,
+                    linked_at      TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ctm_doc_links_org
+                    ON design_doc_links (org_id, model_id);
                 """
             )
 
@@ -460,6 +471,86 @@ class CyberThreatModelingEngine:
                 d["path_steps"] = []
             results.append(d)
         return results
+
+    # ------------------------------------------------------------------
+    # GAP-056: Design-doc traceability link
+    # ------------------------------------------------------------------
+
+    def link_design_doc_to_model(
+        self,
+        org_id: str,
+        doc_ingest_id: str,
+        model_id: str,
+    ) -> Dict[str, Any]:
+        """Link a design-doc ingest to an existing cyber threat model.
+
+        Idempotent: repeated calls with the same (org_id, doc_ingest_id, model_id)
+        return the existing link unchanged.  Validates that the target model
+        exists and belongs to the org before writing.
+        """
+        if not org_id:
+            raise ValueError("org_id is required")
+        if not doc_ingest_id:
+            raise ValueError("doc_ingest_id is required")
+        if not model_id:
+            raise ValueError("model_id is required")
+
+        with self._lock:
+            with self._conn() as conn:
+                model_row = conn.execute(
+                    "SELECT id FROM threat_models WHERE id = ? AND org_id = ?",
+                    (model_id, org_id),
+                ).fetchone()
+                if not model_row:
+                    raise ValueError(
+                        f"Model '{model_id}' not found for org '{org_id}'"
+                    )
+
+                existing = conn.execute(
+                    "SELECT * FROM design_doc_links "
+                    "WHERE org_id = ? AND doc_ingest_id = ? AND model_id = ?",
+                    (org_id, doc_ingest_id, model_id),
+                ).fetchone()
+                if existing:
+                    return self._row(existing)
+
+                link_id = str(uuid.uuid4())
+                now = _now_iso()
+                conn.execute(
+                    """INSERT INTO design_doc_links
+                       (id, org_id, doc_ingest_id, model_id, linked_at)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (link_id, org_id, doc_ingest_id, model_id, now),
+                )
+                conn.commit()
+        return {
+            "id": link_id,
+            "org_id": org_id,
+            "doc_ingest_id": doc_ingest_id,
+            "model_id": model_id,
+            "linked_at": now,
+        }
+
+    def list_doc_links(
+        self, org_id: str, model_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Return design-doc links for traceability queries."""
+        if not org_id:
+            raise ValueError("org_id is required")
+        with self._conn() as conn:
+            if model_id:
+                rows = conn.execute(
+                    "SELECT * FROM design_doc_links "
+                    "WHERE org_id = ? AND model_id = ? ORDER BY linked_at DESC",
+                    (org_id, model_id),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM design_doc_links "
+                    "WHERE org_id = ? ORDER BY linked_at DESC",
+                    (org_id,),
+                ).fetchall()
+        return [self._row(r) for r in rows]
 
     def get_model_summary(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate summary across all models for the org."""

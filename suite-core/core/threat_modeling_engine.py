@@ -87,6 +87,30 @@ class ThreatModelingEngine:
         with self._conn() as conn:
             conn.executescript(
                 """
+                CREATE TABLE IF NOT EXISTS design_doc_ingests (
+                    id TEXT PRIMARY KEY,
+                    org_id TEXT NOT NULL,
+                    doc_source TEXT NOT NULL,
+                    doc_format TEXT NOT NULL DEFAULT 'markdown',
+                    parsed_components_json TEXT NOT NULL DEFAULT '[]',
+                    parsed_flows_json TEXT NOT NULL DEFAULT '[]',
+                    parsed_boundaries_json TEXT NOT NULL DEFAULT '[]',
+                    ingested_at REAL NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_ddi_org
+                    ON design_doc_ingests(org_id);
+                CREATE TABLE IF NOT EXISTS extracted_stride_threats (
+                    id TEXT PRIMARY KEY,
+                    org_id TEXT NOT NULL,
+                    doc_ingest_id TEXT NOT NULL,
+                    component TEXT NOT NULL,
+                    threat_type TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    created_at REAL NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_est_doc
+                    ON extracted_stride_threats(org_id, doc_ingest_id);
                 CREATE TABLE IF NOT EXISTS models (
                     model_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -688,3 +712,359 @@ class ThreatModelingEngine:
         if component_type in high_types:
             return "medium"
         return "low"
+
+    # ------------------------------------------------------------------
+    # GAP-056: Design-doc ingest + STRIDE extraction
+    # ------------------------------------------------------------------
+
+    # STRIDE heuristics per component category (keyword-match on component text)
+    _STRIDE_HEURISTICS: Dict[str, Dict[str, List[str]]] = {
+        "web": {
+            "keywords": ["web", "frontend", "ui", "portal", "gateway", "public"],
+            "threats": [
+                ("spoofing", "high",
+                 "Web-facing component may be impersonated without strong authentication"),
+                ("tampering", "high",
+                 "Web-facing component is exposed to request tampering / XSS payloads"),
+            ],
+        },
+        "api": {
+            "keywords": ["api", "rest", "graphql", "rpc", "endpoint", "service"],
+            "threats": [
+                ("spoofing", "high",
+                 "API may be accessed without authentication or with forged tokens"),
+                ("elevation_of_privilege", "high",
+                 "API authorization checks may be bypassed to reach privileged routes"),
+            ],
+        },
+        "database": {
+            "keywords": ["database", "db", "postgres", "mysql", "sql", "datastore",
+                         "sqlite", "mongo", "cassandra"],
+            "threats": [
+                ("information_disclosure", "critical",
+                 "Database may leak sensitive data via SQL injection / misconfig"),
+                ("denial_of_service", "high",
+                 "Database saturation attacks may exhaust connections or storage"),
+            ],
+        },
+        "queue": {
+            "keywords": ["queue", "kafka", "rabbitmq", "sqs", "message", "bus", "stream"],
+            "threats": [
+                ("tampering", "high",
+                 "Queue messages may be tampered with in-transit without integrity checks"),
+                ("denial_of_service", "medium",
+                 "Queue flooding may starve downstream consumers"),
+            ],
+        },
+        "storage": {
+            "keywords": ["s3", "bucket", "blob", "storage", "cdn", "filesystem", "nfs"],
+            "threats": [
+                ("information_disclosure", "high",
+                 "Object storage may be left publicly readable leaking sensitive assets"),
+                ("tampering", "medium",
+                 "Object storage writes without signing may allow malicious overwrites"),
+            ],
+        },
+        "external": {
+            "keywords": ["external", "third-party", "3rd-party", "vendor", "partner",
+                         "saas", "integration"],
+            "threats": [
+                ("spoofing", "high",
+                 "External service endpoint may be spoofed or swapped via DNS hijack"),
+                ("information_disclosure", "medium",
+                 "Data shared with third-parties may exfiltrate PII if contract is broad"),
+            ],
+        },
+    }
+
+    @staticmethod
+    def _parse_design_doc(
+        doc_content: str, doc_format: str
+    ) -> Dict[str, List[str]]:
+        """Parse a design doc and return dict with components, flows, boundaries lists.
+
+        Naive markdown section parser — looks for headings like:
+          # Components:, ## Data Flow:, ### Trust Boundaries:
+        and collects subsequent bullet/line items until the next heading or a blank
+        separator. Works for markdown and plain text alike.
+        """
+        format_ok = (doc_format or "markdown").lower()
+        if format_ok not in {"markdown", "md", "text", "txt", "rst"}:
+            # Still try to parse — we don't hard-fail unknown formats.
+            format_ok = "markdown"
+
+        section_aliases = {
+            "components": "components",
+            "component": "components",
+            "services": "components",
+            "entities": "components",
+            "data flow": "flows",
+            "data flows": "flows",
+            "dataflow": "flows",
+            "flows": "flows",
+            "trust boundaries": "boundaries",
+            "trust boundary": "boundaries",
+            "boundaries": "boundaries",
+        }
+
+        buckets: Dict[str, List[str]] = {
+            "components": [],
+            "flows": [],
+            "boundaries": [],
+        }
+        current: Optional[str] = None
+
+        if not isinstance(doc_content, str):
+            return buckets
+
+        for raw_line in doc_content.splitlines():
+            line = raw_line.strip()
+            if not line:
+                # Blank lines end a section only if a heading hasn't been introduced
+                # recently.  We keep `current` sticky so list continues across blanks.
+                continue
+
+            # Heading detection: md "# Components:" / plain "Components:" / "Data Flow:"
+            heading_text: Optional[str] = None
+            stripped = line.lstrip("#").strip()
+            if stripped.endswith(":"):
+                heading_text = stripped[:-1].strip().lower()
+            elif line.startswith("#"):
+                heading_text = stripped.lower()
+
+            if heading_text is not None and heading_text in section_aliases:
+                current = section_aliases[heading_text]
+                continue
+
+            if current is None:
+                continue
+
+            # Otherwise this line belongs to the current section.  Accept bullet,
+            # numbered list, or raw item.
+            item = line
+            for bullet in ("- ", "* ", "+ "):
+                if item.startswith(bullet):
+                    item = item[len(bullet):].strip()
+                    break
+            if len(item) >= 3 and item[0].isdigit() and item[1:3] in (". ", ") "):
+                item = item[3:].strip()
+
+            # Skip meta/heading-like residual lines
+            if not item or item.endswith(":"):
+                continue
+            buckets[current].append(item)
+
+        return buckets
+
+    def ingest_design_doc(
+        self,
+        org_id: str,
+        doc_source: str,
+        doc_content: str,
+        doc_format: str = "markdown",
+    ) -> Dict[str, object]:
+        """Ingest a design document, parse it, and persist structured sections.
+
+        Returns the ingest record with parsed_components/flows/boundaries lists.
+        """
+        if not org_id:
+            raise ValueError("org_id is required")
+        if not doc_source:
+            raise ValueError("doc_source is required")
+        if doc_content is None:
+            raise ValueError("doc_content is required")
+
+        parsed = self._parse_design_doc(doc_content, doc_format)
+        ingest_id = str(uuid.uuid4())
+        now = _now()
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT INTO design_doc_ingests VALUES (?,?,?,?,?,?,?,?)",
+                (
+                    ingest_id,
+                    org_id,
+                    doc_source,
+                    doc_format,
+                    json.dumps(parsed["components"]),
+                    json.dumps(parsed["flows"]),
+                    json.dumps(parsed["boundaries"]),
+                    now,
+                ),
+            )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit(
+                        "FINDING_CREATED",
+                        {
+                            "entity_type": "design_doc_ingest",
+                            "org_id": org_id,
+                            "source_engine": "threat_modeling_engine",
+                        },
+                    )
+            except Exception:
+                pass
+        return {
+            "id": ingest_id,
+            "org_id": org_id,
+            "doc_source": doc_source,
+            "doc_format": doc_format,
+            "parsed_components": parsed["components"],
+            "parsed_flows": parsed["flows"],
+            "parsed_boundaries": parsed["boundaries"],
+            "ingested_at": now,
+        }
+
+    def list_ingested_docs(self, org_id: str) -> List[dict]:
+        """Return all design-doc ingests for an org, newest first."""
+        if not org_id:
+            raise ValueError("org_id is required")
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM design_doc_ingests WHERE org_id=? "
+                "ORDER BY ingested_at DESC",
+                (org_id,),
+            ).fetchall()
+        results: List[dict] = []
+        for r in rows:
+            d = dict(r)
+            for key_json, key_out in (
+                ("parsed_components_json", "parsed_components"),
+                ("parsed_flows_json", "parsed_flows"),
+                ("parsed_boundaries_json", "parsed_boundaries"),
+            ):
+                try:
+                    d[key_out] = json.loads(d.get(key_json) or "[]")
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    d[key_out] = []
+                d.pop(key_json, None)
+            results.append(d)
+        return results
+
+    def _get_ingest(self, org_id: str, doc_ingest_id: str) -> Optional[dict]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM design_doc_ingests WHERE id=? AND org_id=?",
+                (doc_ingest_id, org_id),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def _classify_component(self, component_text: str) -> Optional[str]:
+        """Match component text to a STRIDE heuristic category (web/api/db/queue/...)."""
+        if not component_text:
+            return None
+        text = component_text.lower()
+        for category, spec in self._STRIDE_HEURISTICS.items():
+            for kw in spec["keywords"]:
+                if kw in text:
+                    return category
+        return None
+
+    def extract_stride_elements(
+        self, org_id: str, doc_ingest_id: str
+    ) -> List[dict]:
+        """Apply STRIDE heuristics to components parsed from the design doc.
+
+        Persists threats into extracted_stride_threats and returns list of records.
+        Idempotent: clears prior extractions for the same (org_id, doc_ingest_id)
+        before re-populating.
+        """
+        if not org_id:
+            raise ValueError("org_id is required")
+        ingest = self._get_ingest(org_id, doc_ingest_id)
+        if not ingest:
+            raise ValueError(
+                f"doc_ingest_id '{doc_ingest_id}' not found for org '{org_id}'"
+            )
+        try:
+            components = json.loads(ingest.get("parsed_components_json") or "[]")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            components = []
+
+        now = _now()
+        generated: List[dict] = []
+        rows_to_insert: List[tuple] = []
+        for comp_text in components:
+            if not isinstance(comp_text, str) or not comp_text.strip():
+                continue
+            category = self._classify_component(comp_text)
+            if category is None:
+                continue
+            for threat_type, severity, description in (
+                self._STRIDE_HEURISTICS[category]["threats"]
+            ):
+                threat_id = str(uuid.uuid4())
+                record = {
+                    "id": threat_id,
+                    "org_id": org_id,
+                    "doc_ingest_id": doc_ingest_id,
+                    "component": comp_text,
+                    "threat_type": threat_type,
+                    "severity": severity,
+                    "description": description,
+                    "created_at": now,
+                }
+                generated.append(record)
+                rows_to_insert.append(
+                    (
+                        threat_id,
+                        org_id,
+                        doc_ingest_id,
+                        comp_text,
+                        threat_type,
+                        severity,
+                        description,
+                        now,
+                    )
+                )
+
+        with self._conn() as conn:
+            conn.execute(
+                "DELETE FROM extracted_stride_threats "
+                "WHERE org_id=? AND doc_ingest_id=?",
+                (org_id, doc_ingest_id),
+            )
+            if rows_to_insert:
+                conn.executemany(
+                    "INSERT INTO extracted_stride_threats VALUES (?,?,?,?,?,?,?,?)",
+                    rows_to_insert,
+                )
+
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit(
+                        "FINDING_CREATED",
+                        {
+                            "entity_type": "stride_extraction",
+                            "org_id": org_id,
+                            "source_engine": "threat_modeling_engine",
+                            "count": len(generated),
+                        },
+                    )
+            except Exception:
+                pass
+        return generated
+
+    def list_extracted_stride_threats(
+        self, org_id: str, doc_ingest_id: Optional[str] = None
+    ) -> List[dict]:
+        """Return STRIDE threats extracted from design-doc ingests for this org."""
+        if not org_id:
+            raise ValueError("org_id is required")
+        with self._conn() as conn:
+            if doc_ingest_id:
+                rows = conn.execute(
+                    "SELECT * FROM extracted_stride_threats "
+                    "WHERE org_id=? AND doc_ingest_id=? ORDER BY created_at DESC",
+                    (org_id, doc_ingest_id),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM extracted_stride_threats "
+                    "WHERE org_id=? ORDER BY created_at DESC",
+                    (org_id,),
+                ).fetchall()
+        return [dict(r) for r in rows]
