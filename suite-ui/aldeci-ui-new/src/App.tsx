@@ -392,6 +392,16 @@ const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard
 const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
 const SecurityRegistryDashboard = lazy(() => import("@/pages/SecurityRegistryDashboard"));
 
+// Strategic engine dashboards (2026-04-25)
+const AirGapBundleDashboard = lazy(() => import("@/pages/AirGapBundleDashboard"));
+const OrgHierarchyDashboard = lazy(() => import("@/pages/OrgHierarchyDashboard"));
+const DeepCodeAnalysisDashboard = lazy(() => import("@/pages/DeepCodeAnalysisDashboard"));
+const AgentlessSnapshotDashboard = lazy(() => import("@/pages/AgentlessSnapshotDashboard"));
+const SecurityQueryLanguageDashboard = lazy(() => import("@/pages/SecurityQueryLanguageDashboard"));
+const ViolationLifecycleDashboard = lazy(() => import("@/pages/ViolationLifecycleDashboard"));
+const ArchAwareGraphDashboard = lazy(() => import("@/pages/ArchAwareGraphDashboard"));
+const IDEBackendDashboard = lazy(() => import("@/pages/IDEBackendDashboard"));
+
 // Wave 35 domain dashboards
 const ExceptionWorkflowDashboard = lazy(() => import("@/pages/ExceptionWorkflowDashboard"));
 const ActorTrackingDashboard = lazy(() => import("@/pages/ActorTrackingDashboard"));
@@ -992,6 +1002,16 @@ export default function App() {
             <Route path="/prowler" element={<ProwlerDashboard />} />
             <Route path="/servicenow" element={<ServiceNowDashboard />} />
             <Route path="/siem-output" element={<SIEMOutputDashboard />} />
+
+            {/* Strategic engine dashboards (2026-04-25) */}
+            <Route path="/air-gap-bundle" element={<AirGapBundleDashboard />} />
+            <Route path="/org-hierarchy" element={<OrgHierarchyDashboard />} />
+            <Route path="/deep-code-analysis" element={<DeepCodeAnalysisDashboard />} />
+            <Route path="/agentless-snapshot" element={<AgentlessSnapshotDashboard />} />
+            <Route path="/security-query" element={<SecurityQueryLanguageDashboard />} />
+            <Route path="/violation-lifecycle" element={<ViolationLifecycleDashboard />} />
+            <Route path="/arch-graph" element={<ArchAwareGraphDashboard />} />
+            <Route path="/ide-backend" element={<IDEBackendDashboard />} />
 
             {/* Neural Brain Visualization */}
             <Route path="/brain" element={<BrainVisualization />} />
