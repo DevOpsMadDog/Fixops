@@ -8350,6 +8350,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # GAP-013 code-to-runtime matcher (3-strategy runtime→code mapping)
+    try:
+        from apps.api.code_to_runtime_router import router as code_to_runtime_router
+        app.include_router(code_to_runtime_router)
+        _logger.info("Mounted Code-to-Runtime router at /api/v1/code-to-runtime")
+    except ImportError:
+        pass
+
     # GAP-042 FIPS 140-3 compliance mode + PQC inventory (ML-KEM / ML-DSA / SPHINCS+)
     try:
         from apps.api.fips_router import router as fips_router
@@ -8750,6 +8758,14 @@ def create_app() -> FastAPI:
         from apps.api.stage_matrix_router import router as stage_matrix_router
         app.include_router(stage_matrix_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Stage Matrix router at /api/v1/stage-matrix")
+    except ImportError:
+        pass
+
+    # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
+    try:
+        from apps.api.ide_backend_router import router as ide_backend_router
+        app.include_router(ide_backend_router)
+        _logger.info("Mounted IDE Backend router at /api/v1/ide")
     except ImportError:
         pass
 
