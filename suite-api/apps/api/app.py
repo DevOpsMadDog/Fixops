@@ -8354,6 +8354,23 @@ def create_app() -> FastAPI:
     try:
         from apps.api.code_to_runtime_router import router as code_to_runtime_router
         app.include_router(code_to_runtime_router)
+        _logger.info("Mounted Code→Runtime Matcher router at /api/v1/code-to-runtime")
+    except ImportError:
+        pass
+
+    # GAP-012 Deep Code Analysis — Apiiro DCA parity
+    try:
+        from apps.api.deep_code_analysis_router import router as deep_code_analysis_router
+        app.include_router(deep_code_analysis_router)
+        _logger.info("Mounted DCA router at /api/v1/dca")
+    except ImportError:
+        pass
+
+    # NEW-G070 Semantic Analyzer — tree-sitter + LSP + ORM schema readers
+    try:
+        from apps.api.semantic_analyzer_router import router as semantic_analyzer_router
+        app.include_router(semantic_analyzer_router)
+        _logger.info("Mounted Semantic Analyzer router at /api/v1/semantic")
         _logger.info("Mounted Code-to-Runtime router at /api/v1/code-to-runtime")
     except ImportError:
         pass
