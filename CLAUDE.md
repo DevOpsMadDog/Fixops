@@ -58,6 +58,43 @@ If a task takes longer than 20 minutes, commit the partial progress anyway.
 
 ---
 
+## NO MOCKS RULE — UI TASK COMPLETION CRITERIA (MANDATORY)
+
+**Every UI task — new page, edit, bug fix, demo prep — has the same completion gate:**
+
+1. **Open the page in a real browser** via the Playwright MCP server installed at `playwright` (`mcp__playwright__browser_navigate`, `_screenshot`, `_snapshot`).
+   - Dev server runs on `http://localhost:5173` (Vite 6 default). If you hit `:3000` and it 404s, switch to `:5173`.
+2. **Take a screenshot** of the rendered page. Save it under `docs/ui-snapshots/<page>-<iso8601>.png` if it's worth keeping for diff history; otherwise inline-inspect.
+3. **Inspect the DOM** for tell-tale mock signatures:
+   - String literals like `MOCK_`, `mock`, `lorem ipsum`, `sample-`, `demo-org`, `Acme Corp`, `John Doe`, hardcoded UUIDs that never change between reloads
+   - Numbers that look like obvious magic constants (42, 1337, 999999, perfectly round counts)
+   - Arrays from JSON files in `src/data/` or `src/fixtures/` instead of an `apiFetch()` call
+   - Identical data on every reload (no `useEffect` / `useQuery` triggering a network call)
+4. **Check the network tab** (MCP `_network_requests`) — at least one real `/api/v1/...` call MUST fire on page mount. If zero API calls, you're looking at a static page = task fails.
+5. **If mock data is present, the task is NOT done.** Fix the API integration:
+   - Replace `import { MOCK_X }` with `const { data } = useQuery(...)` against the real endpoint
+   - If the endpoint returns empty, that's an *onboarding* problem (see "REAL CUSTOMERS, NOT SEEDED DATA" below) — do not paper over with a mock
+   - If the endpoint doesn't exist, build it (or wire to the closest existing one) — do not stub it client-side
+6. **Re-screenshot** after the fix. The page must show real-tenant data or a real, branded EmptyState (not a hardcoded `[]`).
+
+**Skipping any of steps 1–5 = the task is not done.** Don't claim a UI fix is complete based on TypeScript compiling — types pass on mock pages too.
+
+### Tooling — Playwright MCP
+
+Installed via `claude mcp add playwright -- npx -y @playwright/mcp@latest` (see `~/.claude.json`). Available tools start with `mcp__playwright__`. Common ones:
+- `mcp__playwright__browser_navigate({url})` — open page
+- `mcp__playwright__browser_snapshot()` — DOM accessibility tree
+- `mcp__playwright__browser_take_screenshot({filename})` — visual capture
+- `mcp__playwright__browser_evaluate({function})` — run arbitrary JS in the page (use to grep DOM text for mock signatures)
+- `mcp__playwright__browser_network_requests()` — confirm real API calls fire
+- `mcp__playwright__browser_console_messages()` — surface React errors / failed fetches
+
+### REAL CUSTOMERS, NOT SEEDED DATA
+
+When the user says "test with real apps", that means **onboard them as real tenants through the actual customer flow** (org creation → connector → repo enrollment → sync → Brain Pipeline). It does NOT mean writing seed scripts that INSERT directly into DBs. Direct seed = the same as a mock — bypasses ingestion APIs, connector framework, pipeline, and tenant isolation. See `docs/multi_tenant_onboarding_results_2026-04-24.md` for the canonical onboarding flow.
+
+---
+
 ## YOU CONTROL SWARMCLAW (Orchestrator API)
 
 SwarmClaw is your nighttime workforce. You (Claude Code) queue tasks, agents execute overnight.
