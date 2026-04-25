@@ -1,208 +1,112 @@
 /**
- * Container Posture Dashboard
- *
- * Kubernetes cluster security posture with findings tracking.
- *   1. KPIs: Clusters, Avg Posture Score, Open Findings, Clusters at Risk
- *   2. Findings table (cluster_id truncated, namespace, finding_type, severity, title, status)
- *
- * Route: /container-posture
- * API: GET /api/v1/container-posture
+ * Container Posture - Live API
+ * API: GET /api/v1/container-posture/clusters
  */
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Box, RefreshCw, AlertTriangle, ShieldAlert, Server, BarChart2 } from "lucide-react";
+import { RefreshCw, Box } from "lucide-react";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/components/shared/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
-import { cn } from "@/lib/utils";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+async function apiFetch<T>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, { headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId } });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_FINDINGS = [
-  { id: "fin-001", cluster_id: "cluster-prod-us-east-1a2b3c4d", namespace: "kube-system",   finding_type: "RBAC Misconfiguration",     severity: "critical", title: "Cluster-admin binding to service account", status: "open"        },
-  { id: "fin-002", cluster_id: "cluster-prod-us-east-1a2b3c4d", namespace: "default",       finding_type: "Privileged Container",       severity: "high",     title: "Container running as root",                status: "in_progress" },
-  { id: "fin-003", cluster_id: "cluster-prod-eu-west-9f8e7d6c", namespace: "monitoring",    finding_type: "Image Vulnerability",        severity: "critical", title: "Log4Shell in prometheus-jmx:v1.2",         status: "open"        },
-  { id: "fin-004", cluster_id: "cluster-staging-3c4d5e6f7a8b",  namespace: "ingress-nginx", finding_type: "Network Policy Gap",         severity: "high",     title: "No egress policy on ingress namespace",    status: "open"        },
-  { id: "fin-005", cluster_id: "cluster-prod-eu-west-9f8e7d6c", namespace: "payment-svc",   finding_type: "Secret in ENV",              severity: "critical", title: "DB_PASSWORD exposed in pod spec",          status: "open"        },
-  { id: "fin-006", cluster_id: "cluster-prod-us-east-1a2b3c4d", namespace: "api-gateway",   finding_type: "Resource Limit Missing",     severity: "medium",   title: "No CPU/memory limits on api-gateway pods", status: "resolved"    },
-  { id: "fin-007", cluster_id: "cluster-dev-1a2b3c4d5e6f7a8b",  namespace: "test",          finding_type: "Image Pull Policy",          severity: "low",      title: "imagePullPolicy: Never in test namespace", status: "resolved"    },
-  { id: "fin-008", cluster_id: "cluster-prod-us-east-1a2b3c4d", namespace: "data-pipeline", finding_type: "Host Path Mount",            severity: "high",     title: "hostPath volume mount to /etc",            status: "in_progress" },
-  { id: "fin-009", cluster_id: "cluster-prod-eu-west-9f8e7d6c", namespace: "auth-service",  finding_type: "Pod Security Policy",        severity: "medium",   title: "PSP not enforced for auth namespace",      status: "open"        },
-  { id: "fin-010", cluster_id: "cluster-staging-3c4d5e6f7a8b",  namespace: "ci-runners",    finding_type: "Writable Filesystem",        severity: "medium",   title: "readOnlyRootFilesystem not set",           status: "open"        },
-];
-
-const MOCK_STATS = {
-  clusters: 8,
-  avg_posture_score: 67.4,
-  open_findings: 143,
-  clusters_at_risk: 3,
-};
-
-// ── Badge helpers ──────────────────────────────────────────────
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const map: Record<string, string> = {
-    critical: "border-red-500/30 text-red-400 bg-red-500/10",
-    high:     "border-orange-500/30 text-orange-400 bg-orange-500/10",
-    medium:   "border-yellow-500/30 text-yellow-400 bg-yellow-500/10",
-    low:      "border-zinc-500/30 text-zinc-400 bg-zinc-500/10",
-  };
-  return (
-    <Badge className={cn("text-[10px] border capitalize", map[severity] ?? "border-border")}>
-      {severity}
-    </Badge>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    open:        "border-purple-500/30 text-purple-400 bg-purple-500/10",
-    in_progress: "border-yellow-500/30 text-yellow-400 bg-yellow-500/10",
-    resolved:    "border-green-500/30 text-green-400 bg-green-500/10",
-  };
-  const label = status.replace(/_/g, " ");
-  return (
-    <Badge className={cn("text-[10px] border capitalize", map[status] ?? "border-border")}>
-      {label}
-    </Badge>
-  );
-}
-
-function truncateId(id: string) {
-  return id.length > 20 ? `${id.slice(0, 18)}…` : id;
-}
-
-// ── Component ──────────────────────────────────────────────────
 
 export default function ContainerPostureDashboard() {
-  const [refreshing, setRefreshing] = useState(false);
+  const [clusters, setClusters] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [liveFindings, setLiveFindings] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats]       = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.allSettled([
-      apiFetch(`/api/v1/container-posture/findings?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/container-posture/stats?org_id=${ORG_ID}`),
-    ]).then(([findRes, statsRes]) => {
-      if (findRes.status === "fulfilled")  setLiveFindings(findRes.value?.findings ?? findRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
-
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
-
-  const findings = liveFindings ?? MOCK_FINDINGS;
-  const stats    = liveStats    ?? MOCK_STATS;
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const [itemsRes, statsRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/container-posture/clusters"),
+        apiFetch<any>("/api/v1/container-posture/stats"),
+      ]);
+      if (itemsRes.status === "fulfilled") {
+        const v = itemsRes.value as any;
+        setClusters(Array.isArray(v) ? v : (v.clusters ?? v.items ?? v.data ?? []));
+      }
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value);
+      }
+    } catch (e) { setError((e as Error).message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6"
-    >
-      <PageHeader
-        title="Container Posture"
-        description="Kubernetes cluster security posture — RBAC misconfigs, image vulnerabilities, network policy gaps, and runtime findings"
-        actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-          </Button>
-        }
-      />
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Clusters"          value={stats.clusters}                        icon={Server}      trend="flat" className="border-purple-500/20" />
-        <KpiCard title="Avg Posture Score" value={`${stats.avg_posture_score}/100`}      icon={ShieldAlert} trend="up"   className="border-violet-500/20" />
-        <KpiCard title="Open Findings"     value={stats.open_findings}                   icon={AlertTriangle} trend="down" className="border-purple-500/20" />
-        <KpiCard title="Clusters at Risk"  value={stats.clusters_at_risk}                icon={Box}         trend="down" className="border-violet-500/20" />
+    <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Box className="w-6 h-6 text-indigo-400" /> Container Posture
+          </h1>
+          <p className="text-gray-400 mt-1">Live data — /api/v1/container-posture</p>
+        </div>
+        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </button>
       </div>
 
-      {/* Findings Table */}
-      <Card className="border-purple-500/20">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-purple-400">
-              <BarChart2 className="h-4 w-4" />
-              Cluster Findings
-            </CardTitle>
-            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {findings.filter((f: any) => f.severity === "critical").length} critical
-            </Badge>
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+        </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={load} />
+      ) : clusters.length === 0 ? (
+        <EmptyState icon={Box} title="No clusters found" description="Data will appear here once the backend has records." />
+      ) : (
+        <>
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(Object.entries(stats) as [string, unknown][]).filter(([, v]) => typeof v === "number").slice(0, 4).map(([k, v]) => (
+                <div key={k} className="bg-gray-800 rounded-lg p-5">
+                  <p className="text-gray-400 text-sm capitalize">{k.replace(/_/g, " ")}</p>
+                  <p className="text-3xl font-bold mt-1 text-indigo-400">{String(v)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-700">
+              <h2 className="text-lg font-semibold text-white">Container Posture ({clusters.length})</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    {Object.keys(clusters[0] || {}).slice(0, 6).map(col => (
+                      <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        {col.replace(/_/g, " ")}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {clusters.slice(0, 50).map((row, i) => (
+                    <tr key={row.id ?? i} className="hover:bg-gray-750">
+                      {(Object.values(row as Record<string, unknown>)).slice(0, 6).map((cell, j) => (
+                        <td key={j} className="px-4 py-3 text-sm text-gray-300 max-w-xs truncate">
+                          {typeof cell === "boolean" ? (cell ? "Yes" : "No") : String(cell ?? "—")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <CardDescription className="text-xs">
-            Security findings across Kubernetes clusters with namespace, finding type, severity, and remediation status
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Cluster ID</TableHead>
-                  <TableHead className="text-[11px] h-8">Namespace</TableHead>
-                  <TableHead className="text-[11px] h-8">Finding Type</TableHead>
-                  <TableHead className="text-[11px] h-8">Severity</TableHead>
-                  <TableHead className="text-[11px] h-8">Title</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {findings.map((finding: any, i: number) => (
-                  <TableRow key={finding.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-mono text-[10px] text-purple-300">
-                      {truncateId(finding.cluster_id ?? "—")}
-                    </TableCell>
-                    <TableCell className="py-2 font-mono text-[11px] text-violet-300">
-                      {finding.namespace ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {finding.finding_type ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <SeverityBadge severity={finding.severity ?? "low"} />
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-foreground max-w-[200px] truncate">
-                      {finding.title ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-right">
-                      <StatusBadge status={finding.status ?? "open"} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </>
+      )}
+    </div>
   );
 }

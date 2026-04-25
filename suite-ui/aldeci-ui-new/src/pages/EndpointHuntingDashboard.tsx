@@ -1,179 +1,112 @@
 /**
- * Endpoint Threat Hunting Dashboard
- *
- * Active hunt campaigns, IOC matches, and endpoint coverage.
- *   1. KPIs: Hunts Active, Endpoints Covered, Threats Found, IOCs Matched
- *   2. Hunt campaigns table (name, query, endpoints_scanned, hits, status)
- *
- * Route: /endpoint-hunting
+ * Endpoint Hunting - Live API
  * API: GET /api/v1/endpoint-hunting/hunts
  */
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Search, RefreshCw, Target, Shield, AlertTriangle, Crosshair } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/components/shared/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
-import { cn } from "@/lib/utils";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "juice-shop-corp";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+async function apiFetch<T>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, { headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId } });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_HUNTS = [
-  { id: "HNT-001", name: "LOLBAS Execution Hunt",          query: "process.name IN ('regsvr32','mshta','wscript')",  endpoints_scanned: 1240, hits: 7,  status: "active" },
-  { id: "HNT-002", name: "Lateral Movement via PsExec",    query: "parent.name='psexec.exe' AND remote=true",        endpoints_scanned: 1240, hits: 2,  status: "active" },
-  { id: "HNT-003", name: "Credential Dumping Detection",   query: "proc.name='lsass.exe' AND memory_access=true",    endpoints_scanned: 890,  hits: 1,  status: "active" },
-  { id: "HNT-004", name: "Cobalt Strike Beacon Hunt",      query: "network.port=4444 AND proc.injected=true",        endpoints_scanned: 1240, hits: 0,  status: "completed" },
-  { id: "HNT-005", name: "Ransomware Precursor Activity",  query: "file.ext IN ('.bat','.vbs') AND bulk_rename=true", endpoints_scanned: 620,  hits: 3,  status: "active" },
-  { id: "HNT-006", name: "DNS Tunneling IOC Sweep",        query: "dns.query.length > 60 AND ttl < 30",              endpoints_scanned: 1240, hits: 4,  status: "active" },
-  { id: "HNT-007", name: "Scheduled Task Persistence",     query: "schtasks.exe AND /create AND user=SYSTEM",        endpoints_scanned: 740,  hits: 6,  status: "active" },
-  { id: "HNT-008", name: "Shadow Copy Deletion Hunt",      query: "vssadmin delete shadows",                         endpoints_scanned: 1240, hits: 0,  status: "completed" },
-];
-
-const MOCK_STATS = { hunts_active: 6, endpoints_covered: 1240, threats_found: 23, iocs_matched: 47 };
-
-// ── Badge helpers ──────────────────────────────────────────────
-
-function HuntStatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    active:    "border-orange-500/30 text-orange-400 bg-orange-500/10",
-    completed: "border-green-500/30 text-green-400 bg-green-500/10",
-    planned:   "border-slate-500/30 text-slate-400 bg-slate-500/10",
-    paused:    "border-amber-500/30 text-amber-400 bg-amber-500/10",
-  };
-  return <Badge className={cn("text-[10px] border capitalize", map[status] ?? "border-border")}>{status}</Badge>;
-}
-
-function HitsBadge({ hits }: { hits: number }) {
-  const cls = hits === 0
-    ? "border-slate-500/30 text-slate-400 bg-slate-500/10"
-    : hits >= 5
-    ? "border-red-500/30 text-red-400 bg-red-500/10"
-    : "border-amber-500/30 text-amber-400 bg-amber-500/10";
-  return <Badge className={cn("text-[10px] border tabular-nums font-mono", cls)}>{hits} hits</Badge>;
-}
-
-// ── Component ──────────────────────────────────────────────────
 
 export default function EndpointHuntingDashboard() {
-  const [refreshing, setRefreshing] = useState(false);
+  const [hunts, setHunts] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [liveHunts, setLiveHunts]   = useState<any[] | null>(null);
-  const [liveStats, setLiveStats]   = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.allSettled([
-      apiFetch(`/api/v1/endpoint-hunting/hunts?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/endpoint-hunting/stats?org_id=${ORG_ID}`),
-    ]).then(([huntsRes, statsRes]) => {
-      if (huntsRes.status === "fulfilled") setLiveHunts(huntsRes.value?.hunts ?? huntsRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
-
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
-
-  const hunts = liveHunts ?? ([] as any);
-  const stats = liveStats  ?? ({} as any);
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const [itemsRes, statsRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/endpoint-hunting/hunts"),
+        apiFetch<any>("/api/v1/endpoint-hunting/stats"),
+      ]);
+      if (itemsRes.status === "fulfilled") {
+        const v = itemsRes.value as any;
+        setHunts(Array.isArray(v) ? v : (v.hunts ?? v.items ?? v.data ?? []));
+      }
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value);
+      }
+    } catch (e) { setError((e as Error).message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6"
-    >
-      <PageHeader
-        title="Endpoint Threat Hunting"
-        description="Proactive hunt campaigns across managed endpoints — IOC sweeps and behavioral queries"
-        actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-          </Button>
-        }
-      />
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Hunts Active"       value={stats.hunts_active}      icon={Crosshair}      trend="flat" className="border-orange-500/20" />
-        <KpiCard title="Endpoints Covered"  value={stats.endpoints_covered}  icon={Shield}         trend="up" />
-        <KpiCard title="Threats Found"      value={stats.threats_found}      icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
-        <KpiCard title="IOCs Matched"       value={stats.iocs_matched}       icon={Target}         trend="up"   className="border-amber-500/20" />
+    <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Search className="w-6 h-6 text-indigo-400" /> Endpoint Hunting
+          </h1>
+          <p className="text-gray-400 mt-1">Live data — /api/v1/endpoint-hunting</p>
+        </div>
+        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </button>
       </div>
 
-      {/* Hunt Campaigns Table */}
-      <Card className="border-orange-500/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-orange-400">
-            <Search className="h-4 w-4" />
-            Hunt Campaigns
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Active and completed threat hunt campaigns with hit counts
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">ID</TableHead>
-                  <TableHead className="text-[11px] h-8">Hunt Name</TableHead>
-                  <TableHead className="text-[11px] h-8 min-w-[240px]">Query</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Endpoints</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Hits</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {hunts.map((hunt: any, i: number) => (
-                  <TableRow key={hunt.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{hunt.id}</TableCell>
-                    <TableCell className="py-2 text-xs font-medium max-w-[180px] truncate">{hunt.name}</TableCell>
-                    <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[240px] truncate">
-                      {hunt.query ?? hunt.hunt_query ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-right font-mono text-xs tabular-nums">
-                      {(hunt.endpoints_scanned ?? hunt.endpoints ?? 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="py-2 text-right">
-                      <HitsBadge hits={hunt.hits ?? hunt.findings_count ?? 0} />
-                    </TableCell>
-                    <TableCell className="py-2 text-right">
-                      <HuntStatusBadge status={hunt.status ?? "active"} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+        </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={load} />
+      ) : hunts.length === 0 ? (
+        <EmptyState icon={Search} title="No hunts found" description="Data will appear here once the backend has records." />
+      ) : (
+        <>
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(Object.entries(stats) as [string, unknown][]).filter(([, v]) => typeof v === "number").slice(0, 4).map(([k, v]) => (
+                <div key={k} className="bg-gray-800 rounded-lg p-5">
+                  <p className="text-gray-400 text-sm capitalize">{k.replace(/_/g, " ")}</p>
+                  <p className="text-3xl font-bold mt-1 text-indigo-400">{String(v)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-700">
+              <h2 className="text-lg font-semibold text-white">Endpoint Hunting ({hunts.length})</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    {Object.keys(hunts[0] || {}).slice(0, 6).map(col => (
+                      <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        {col.replace(/_/g, " ")}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {hunts.slice(0, 50).map((row, i) => (
+                    <tr key={row.id ?? i} className="hover:bg-gray-750">
+                      {(Object.values(row as Record<string, unknown>)).slice(0, 6).map((cell, j) => (
+                        <td key={j} className="px-4 py-3 text-sm text-gray-300 max-w-xs truncate">
+                          {typeof cell === "boolean" ? (cell ? "Yes" : "No") : String(cell ?? "—")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </>
+      )}
+    </div>
   );
 }
