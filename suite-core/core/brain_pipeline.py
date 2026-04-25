@@ -517,6 +517,18 @@ class BrainPipeline:
         enrichment_stats = self._enrich_post_pipeline(ctx)
         result.enrichment_stats = enrichment_stats
 
+        # ── Mirror to SecurityFindingsEngine (customer-facing dashboard) ──
+        # Bug surfaced by 15-tenant onboarding 2026-04-24: pipeline reports
+        # `completed` but findings never reach /api/v1/security-findings/
+        # because brain_pipeline persists to ctx + analytics.db only.
+        # This mirror is fire-and-forget — pipeline success not gated on it.
+        try:
+            mirrored = self._mirror_to_security_findings_engine(ctx)
+            result.findings_mirrored_to_dashboard = mirrored
+        except Exception as exc:  # noqa: BLE001 — never block pipeline on mirror
+            logger.warning("Mirror to SecurityFindingsEngine failed: %s", exc)
+            result.findings_mirrored_to_dashboard = 0
+
         # ── Data Quality Assessment ──────────────────────────────
         # Tell the customer EXACTLY which steps did real work vs fell back.
         data_quality = self._compute_data_quality(ctx, result)
@@ -887,6 +899,92 @@ class BrainPipeline:
         stats["frameworks_affected"] = sorted(stats["frameworks_affected"])
         ctx["_post_pipeline_enriched"] = True
         return stats
+
+    # Severity → CVSS estimate (used by mirror when CVSS not present)
+    _SEVERITY_TO_CVSS = {
+        "critical": 9.0, "high": 7.5, "medium": 5.0, "low": 3.0, "info": 1.0,
+    }
+
+    def _mirror_to_security_findings_engine(self, ctx: Dict[str, Any]) -> int:
+        """Write every pipeline-finished finding into SecurityFindingsEngine.
+
+        Required because the customer-facing dashboard at
+        ``/api/v1/security-findings/findings`` reads from
+        ``SecurityFindingsEngine``, NOT from ctx or analytics.db. Without this
+        mirror, a successful pipeline run produces an empty dashboard — the
+        bug surfaced by the 15-tenant onboarding 2026-04-24.
+
+        Idempotent: ``SecurityFindingsEngine.record_finding`` dedups on
+        ``(org_id, source_tool, title, asset_id)`` when ``correlation_key``
+        is provided. Re-running the same scan does not duplicate rows.
+
+        Returns the count of findings successfully mirrored. Errors per
+        finding are logged and skipped — one bad finding does not break the
+        rest of the mirror.
+        """
+        findings = ctx.get("findings", []) or []
+        if not findings:
+            return 0
+        org_id = ctx.get("org_id") or "default"
+        scan_id = ctx.get("scan_id") or ctx.get("run_id")
+
+        try:
+            from core.security_findings_engine import (  # noqa: PLC0415
+                SecurityFindingsEngine,
+            )
+        except ImportError:
+            logger.warning("SecurityFindingsEngine unavailable; skipping mirror")
+            return 0
+
+        sfe = SecurityFindingsEngine()
+        mirrored = 0
+        for f in findings:
+            try:
+                sev = (f.get("severity") or "medium").lower()
+                cvss = (
+                    float(f.get("cvss_score"))
+                    if f.get("cvss_score") is not None
+                    else self._SEVERITY_TO_CVSS.get(sev, 5.0)
+                )
+                asset_id = (
+                    f.get("asset_id")
+                    or f.get("file_path")
+                    or f.get("resource_ref")
+                    or "unknown_asset"
+                )
+                source_tool = f.get("source_tool") or f.get("source") or "brain_pipeline"
+                # Stable correlation = source|rule_or_cve|asset → enables lifecycle
+                rule_or_cve = (
+                    f.get("rule_id") or f.get("cve_id") or f.get("title") or "unknown"
+                )
+                corr_key = f.get("correlation_key") or f"{source_tool}|{rule_or_cve}|{asset_id}"
+                sfe.record_finding(
+                    org_id=org_id,
+                    title=f.get("title") or rule_or_cve or "Pipeline Finding",
+                    finding_type=f.get("finding_type") or f.get("type") or "vulnerability",
+                    source_tool=source_tool,
+                    severity=sev,
+                    cvss_score=cvss,
+                    asset_id=asset_id,
+                    asset_type=f.get("asset_type") or "unknown",
+                    description=f.get("description") or f.get("message") or "",
+                    remediation=f.get("remediation") or f.get("fix_suggestion") or "",
+                    correlation_key=corr_key,
+                    scan_id=scan_id,
+                )
+                mirrored += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(
+                    "Mirror skipped one finding (id=%s): %s",
+                    f.get("id", "?"), exc,
+                )
+        if mirrored:
+            logger.info(
+                "Brain pipeline mirrored %d/%d findings to SecurityFindingsEngine "
+                "for org_id=%s",
+                mirrored, len(findings), org_id,
+            )
+        return mirrored
 
     def _enrich_compliance(
         self,
