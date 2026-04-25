@@ -122,6 +122,30 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Connectors router not available: %s", e)
 
+# IAM/SSO Connector — REAL Keycloak-backed replacement for
+# Okta / Auth0 / Microsoft Entra / OneLogin / Google Workspace stubs.
+iam_sso_router: Optional[APIRouter] = None
+try:
+    from apps.api.iam_sso_router import router as iam_sso_router
+
+    logging.getLogger(__name__).info("Loaded IAM/SSO Connector router (Keycloak)")
+except ImportError as e:
+    logging.getLogger(__name__).warning("IAM/SSO Connector router not available: %s", e)
+
+# Container Security Connector — REAL OSS replacements for Aqua/Twistlock/Snyk
+# Container/Sysdig/NeuVector via Trivy + Grype + Dockle + kube-bench.
+container_security_connector_router: Optional[APIRouter] = None
+try:
+    from apps.api.container_security_connector_router import (
+        router as container_security_connector_router,
+    )
+
+    logging.getLogger(__name__).info("Loaded Container Security Connector router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        "Container Security Connector router not available: %s", e
+    )
+
 # Org Management router (multi-tenancy CRUD)
 org_router: Optional[APIRouter] = None
 try:
@@ -424,6 +448,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Snyk Scanner router not available: %s", e)
 
+# Snyk-OSS connector — REAL Snyk family via Trivy + OSV-Scanner + Semgrep CE
+snyk_oss_router: Optional[APIRouter] = None
+try:
+    from apps.api.snyk_oss_router import router as snyk_oss_router
+    logging.getLogger(__name__).info("Loaded Snyk-OSS (Trivy+OSV) connector router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Snyk-OSS connector router not available: %s", e)
+
 # AWS Security Hub — pull findings from AWS Security Hub (ASFF normalization)
 aws_security_hub_router: Optional[APIRouter] = None
 try:
@@ -553,6 +585,13 @@ try:
     logging.getLogger(__name__).info("Loaded CSPM Deep Scan router")
 except ImportError as e:
     logging.getLogger(__name__).warning("CSPM Deep Scan router not available: %s", e)
+
+cspm_connector_router: Optional[APIRouter] = None
+try:
+    from apps.api.cspm_connector_router import router as cspm_connector_router
+    logging.getLogger(__name__).info("Loaded CSPM Connector (OSS family) router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("CSPM Connector router not available: %s", e)
 
 dashboard_builder_router: Optional[APIRouter] = None
 try:
@@ -3078,6 +3117,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Snyk Scanner router")
 
+    # Snyk-OSS connector — REAL Snyk family via Trivy + OSV-Scanner + Semgrep CE
+    if snyk_oss_router:
+        app.include_router(
+            snyk_oss_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Snyk-OSS (Trivy+OSV) connector router")
+
     # AWS Security Hub — pull findings from AWS Security Hub (ASFF normalization)
     if aws_security_hub_router:
         app.include_router(
@@ -3100,6 +3147,11 @@ def create_app() -> FastAPI:
 
     # FAIL Engine — expanded fault injection, drill grading, neglect zones (Pillar V2)
     app.include_router(fail_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+
+    # IAM/SSO Connector — Keycloak-backed; replaces Okta/Auth0/Entra/OneLogin/Google stubs
+    if iam_sso_router:
+        app.include_router(iam_sso_router)
+        _logger.info("Mounted IAM/SSO Connector router (Keycloak)")
 
     # PR Gate & CI/CD Gate — evaluate findings, post to GitHub PRs, CI exit-code gating
     if pr_gate_router:
@@ -3126,6 +3178,14 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Material Change Detection router")
 
     # ── Connectors / Integrations / Webhooks ───────────────────────────────────
+    # Container Security Connector (Trivy + Grype + Dockle + kube-bench) — REAL
+    if container_security_connector_router:
+        app.include_router(
+            container_security_connector_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
+        )
+        _logger.info("Mounted Container Security Connector router")
+
     # Universal Connectors — Jira + GitHub + Slack fan-out (Pillar V1)
     if connectors_router:
         app.include_router(
@@ -3525,6 +3585,7 @@ def create_app() -> FastAPI:
         (container_scanner_router, "Container Scanner", "read:findings"),
         (cspm_engine_router, "CSPM Engine", "read:findings"),
         (cspm_deep_router, "CSPM Deep Scan", "read:findings"),
+        (cspm_connector_router, "CSPM Connector (OSS family)", "read:findings"),
         (dashboard_builder_router, "Dashboard Builder", "read:findings"),
         (developer_portal_router, "Developer Portal", "read:findings"),
         (api_docs_router, "API Docs", "read:findings"),
@@ -6120,6 +6181,15 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Security Training router not loaded: {e}")
 
+    # Threat Intel Connector — MISP / CIRCL CVE / PhishTank / OTX adapters
+    # OSS replacements for Recorded Future / Anomali / Mandiant / X-Force / Proofpoint
+    try:
+        from apps.api.threat_intel_connector_router import router as threat_intel_connector_router
+        app.include_router(threat_intel_connector_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Intel Connector router at /api/v1/connectors/ti")
+    except Exception as e:
+        _logger.warning(f"Threat Intel Connector router not loaded: {e}")
+
     # Security Posture Score — weighted component scoring, history, benchmarks
     try:
         from apps.api.posture_score_router import router as posture_score_router
@@ -6690,6 +6760,15 @@ def create_app() -> FastAPI:
         from apps.api.siem_output_router import router as siem_output_router
         app.include_router(siem_output_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted SIEM Output router at /api/v1/siem-output")
+    except ImportError:
+        pass
+
+    # SIEM universal multi-format ingest connector (Wazuh / ELK / Splunk HEC /
+    # Datadog / Sentinel KQL / QRadar CEF / Suricata / syslog / JSON-Lines).
+    try:
+        from apps.api.siem_connector_router import router as siem_connector_router
+        app.include_router(siem_connector_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted SIEM Connector router at /api/v1/connectors/siem")
     except ImportError:
         pass
 
