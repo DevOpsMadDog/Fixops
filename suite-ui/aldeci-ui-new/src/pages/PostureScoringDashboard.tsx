@@ -1,187 +1,94 @@
 /**
- * Posture Scoring Dashboard
- *
- * Security posture scoring with control implementation tracking.
- *   1. KPIs: Overall Score, Implemented Controls, Gap Controls, Score Level
- *   2. Controls table (name, domain, weight, control_status, last_assessed)
- *
+ * Posture Scoring Dashboard - Live API
  * Route: /posture-scoring
- * API: GET /api/v1/posture-scoring
+ * API: GET /api/v1/posture-scoring/{score,controls,snapshots}
  */
-
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ShieldCheck, RefreshCw, CheckCircle, XCircle, BarChart2 } from "lucide-react";
+import { ShieldCheck, RefreshCw } from "lucide-react";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/components/shared/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
-import { cn } from "@/lib/utils";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+async function apiFetch<T>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, { headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId } });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_CONTROLS = [
-  { id: "ctrl-001", name: "MFA Enforcement",          domain: "Identity",    weight: 10, control_status: "implemented",     last_assessed: "2026-04-15" },
-  { id: "ctrl-002", name: "Data Encryption at Rest",  domain: "Data",        weight: 9,  control_status: "implemented",     last_assessed: "2026-04-14" },
-  { id: "ctrl-003", name: "Patch Management",         domain: "Endpoint",    weight: 8,  control_status: "partial",         last_assessed: "2026-04-13" },
-  { id: "ctrl-004", name: "Network Segmentation",     domain: "Network",     weight: 8,  control_status: "implemented",     last_assessed: "2026-04-12" },
-  { id: "ctrl-005", name: "SIEM Deployment",          domain: "Detection",   weight: 7,  control_status: "implemented",     last_assessed: "2026-04-10" },
-  { id: "ctrl-006", name: "Privileged Access Mgmt",   domain: "Identity",    weight: 9,  control_status: "partial",         last_assessed: "2026-04-09" },
-  { id: "ctrl-007", name: "Incident Response Plan",   domain: "Response",    weight: 7,  control_status: "implemented",     last_assessed: "2026-04-08" },
-  { id: "ctrl-008", name: "Vendor Risk Assessment",   domain: "Supply Chain",weight: 6,  control_status: "not_implemented", last_assessed: "2026-03-30" },
-  { id: "ctrl-009", name: "Secure SDLC",              domain: "AppSec",      weight: 8,  control_status: "compensating",    last_assessed: "2026-04-05" },
-  { id: "ctrl-010", name: "Zero Trust Architecture",  domain: "Network",     weight: 9,  control_status: "not_implemented", last_assessed: "2026-03-20" },
-];
-
-const MOCK_STATS = { overall_score: 74, implemented_controls: 5, gap_controls: 2, score_level: "Good" };
-
-// ── Badge helpers ──────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    implemented:     "border-green-500/30 text-green-400 bg-green-500/10",
-    partial:         "border-yellow-500/30 text-yellow-400 bg-yellow-500/10",
-    not_implemented: "border-red-500/30 text-red-400 bg-red-500/10",
-    compensating:    "border-blue-500/30 text-blue-400 bg-blue-500/10",
-  };
-  const label: Record<string, string> = {
-    implemented:     "Implemented",
-    partial:         "Partial",
-    not_implemented: "Not Implemented",
-    compensating:    "Compensating",
-  };
-  return (
-    <Badge className={cn("text-[10px] border", map[status] ?? "border-border")}>
-      {label[status] ?? status}
-    </Badge>
-  );
-}
-
-// ── Component ──────────────────────────────────────────────────
 
 export default function PostureScoringDashboard() {
-  const [refreshing, setRefreshing] = useState(false);
+  const [score, setScore] = useState<any | null>(null);
+  const [controls, setControls] = useState<any[]>([]);
+  const [snapshots, setSnapshots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [liveControls, setLiveControls] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.allSettled([
-      apiFetch(`/api/v1/posture-scoring/controls?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/posture-scoring/stats?org_id=${ORG_ID}`),
-    ]).then(([controlsRes, statsRes]) => {
-      if (controlsRes.status === "fulfilled") setLiveControls(controlsRes.value?.controls ?? controlsRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const [s, c, sn] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/posture-scoring/score"),
+        apiFetch<any>("/api/v1/posture-scoring/controls"),
+        apiFetch<any>("/api/v1/posture-scoring/snapshots"),
+      ]);
+      if (s.status === "fulfilled") { setScore(s.value); }
+      if (c.status === "fulfilled") { const v = c.value as any; setControls(Array.isArray(v) ? v : (v.controls ?? v.items ?? [])); }
+      if (sn.status === "fulfilled") { const v = sn.value as any; setSnapshots(Array.isArray(v) ? v : (v.snapshots ?? v.items ?? [])); }
+    } catch (e) { setError((e as Error).message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
-
-  const controls = liveControls ?? MOCK_CONTROLS;
-  const stats    = liveStats    ?? MOCK_STATS;
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  const overall = score?.overall_score ?? score?.score ?? 0;
+  const implemented = controls.filter(c => c.status === "implemented" || c.implemented).length;
+  const gaps = controls.filter(c => c.status === "gap" || !c.implemented).length;
+  const level = overall >= 80 ? "Excellent" : overall >= 60 ? "Good" : overall >= 40 ? "Fair" : "Poor";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6"
-    >
-      <PageHeader
-        title="Posture Scoring"
-        description="Security posture score tracking, control implementation status, and gap analysis across all domains"
-        actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-          </Button>
-        }
-      />
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Overall Score"        value={`${stats.overall_score}%`}      icon={BarChart2}   trend="up"   className="border-green-500/20" />
-        <KpiCard title="Implemented Controls" value={stats.implemented_controls}     icon={CheckCircle} trend="up"   className="border-teal-500/20" />
-        <KpiCard title="Gap Controls"         value={stats.gap_controls}             icon={XCircle}     trend="down" className="border-red-500/20" />
-        <KpiCard title="Score Level"          value={stats.score_level}             icon={ShieldCheck}  trend="flat" className="border-emerald-500/20" />
+    <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2"><ShieldCheck className="w-6 h-6 text-blue-400" /> Posture Scoring</h1>
+          <p className="text-gray-400 text-sm mt-1">Weighted control implementation scoring</p>
+        </div>
+        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm"><RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh</button>
       </div>
-
-      {/* Controls Table */}
-      <Card className="border-green-500/20">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-green-400">
-              <ShieldCheck className="h-4 w-4" />
-              Security Controls
-            </CardTitle>
-            <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">
-              {controls.filter((c: any) => c.control_status === "implemented").length} implemented
-            </Badge>
+      {loading ? <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>
+        : error ? <ErrorState message={error} onRetry={load} />
+        : !score && controls.length === 0 ? <EmptyState icon={ShieldCheck} title="No posture data" description="Configure controls to start scoring." />
+        : <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">Overall Score</p><p className={`text-3xl font-bold mt-1 ${overall >= 80 ? "text-green-400" : overall >= 60 ? "text-amber-400" : "text-red-400"}`}>{overall}</p></div>
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">Implemented</p><p className="text-3xl font-bold text-green-400 mt-1">{implemented}</p></div>
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">Gaps</p><p className="text-3xl font-bold text-red-400 mt-1">{gaps}</p></div>
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">Level</p><p className="text-3xl font-bold text-purple-400 mt-1">{level}</p></div>
           </div>
-          <CardDescription className="text-xs">
-            Control implementation status, domain coverage, and last assessment dates
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Control Name</TableHead>
-                  <TableHead className="text-[11px] h-8">Domain</TableHead>
-                  <TableHead className="text-[11px] h-8">Weight</TableHead>
-                  <TableHead className="text-[11px] h-8">Status</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Last Assessed</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {controls.map((ctrl: any, i: number) => (
-                  <TableRow key={ctrl.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-semibold text-[11px] text-green-300">
-                      {ctrl.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {ctrl.domain ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 font-mono text-[11px] text-teal-300">
-                      {ctrl.weight ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <StatusBadge status={ctrl.control_status ?? "not_implemented"} />
-                    </TableCell>
-                    <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {ctrl.last_assessed ?? "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Controls</h2>
+            <div className="overflow-x-auto"><table className="w-full text-sm">
+              <thead><tr className="text-gray-500 text-xs uppercase border-b border-gray-700"><th className="text-left pb-2 pr-4">Control</th><th className="text-left pb-2 pr-4">Category</th><th className="text-left pb-2 pr-4">Weight</th><th className="text-left pb-2 pr-4">Status</th><th className="text-left pb-2">Score</th></tr></thead>
+              <tbody className="divide-y divide-gray-700/50">{controls.map(c => (
+                <tr key={c.id ?? c.control_id} className="hover:bg-gray-700/30">
+                  <td className="py-3 pr-4 text-gray-200">{c.name ?? c.control_name}</td>
+                  <td className="py-3 pr-4 text-gray-400 text-xs">{c.category ?? "—"}</td>
+                  <td className="py-3 pr-4 text-gray-300">{c.weight ?? 1}</td>
+                  <td className="py-3 pr-4"><span className={`px-2 py-0.5 rounded text-xs ${c.status === "implemented" || c.implemented ? "bg-green-700 text-green-100" : "bg-red-700 text-red-100"}`}>{c.status ?? (c.implemented ? "implemented" : "gap")}</span></td>
+                  <td className="py-3 text-gray-300">{c.score ?? "—"}</td>
+                </tr>
+              ))}</tbody>
+            </table></div>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+          {snapshots.length > 0 && <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Recent Snapshots</h2>
+            <div className="space-y-2">{snapshots.slice(0, 10).map((s, i) => (
+              <div key={s.id ?? i} className="flex items-center justify-between p-2 bg-gray-700/30 rounded text-sm">
+                <span className="text-gray-300">{s.date ?? s.created_at}</span>
+                <span className={`font-bold ${(s.score ?? 0) >= 80 ? "text-green-400" : (s.score ?? 0) >= 60 ? "text-amber-400" : "text-red-400"}`}>{s.score}</span>
+              </div>
+            ))}</div>
+          </div>}
+        </>}
+    </div>
   );
 }

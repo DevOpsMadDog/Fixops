@@ -1,213 +1,107 @@
 /**
- * SCA Dashboard — Software Composition Analysis
- *
- * Open-source dependency scanning — vulnerable libs, license violations.
- *   1. KPIs: Projects, Scans, Vulnerable Dependencies, License Violations
- *   2. Projects table (language, last scan date, vuln count, risk level)
- *
+ * SCA Dashboard - Live API
  * Route: /sca
- * API: GET /api/v1/sca/stats
+ * API: GET /api/v1/sca/{projects,scans,vulns,licenses,stats}
  */
-
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Package, AlertTriangle, FileWarning, RefreshCw, Scale } from "lucide-react";
+import { Layers, RefreshCw } from "lucide-react";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+async function apiFetch<T>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, { headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId } });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/components/shared/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
-import { cn } from "@/lib/utils";
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_PROJECTS = [
-  { id: "PRJ-001", name: "api-gateway",      language: "Go",         last_scan: "2026-04-16", vuln_count: 3,  risk_level: "medium" },
-  { id: "PRJ-002", name: "auth-service",     language: "Python",     last_scan: "2026-04-16", vuln_count: 17, risk_level: "critical" },
-  { id: "PRJ-003", name: "frontend-app",     language: "TypeScript", last_scan: "2026-04-15", vuln_count: 8,  risk_level: "high" },
-  { id: "PRJ-004", name: "data-pipeline",    language: "Python",     last_scan: "2026-04-15", vuln_count: 0,  risk_level: "low" },
-  { id: "PRJ-005", name: "ml-inference",     language: "Python",     last_scan: "2026-04-14", vuln_count: 24, risk_level: "critical" },
-  { id: "PRJ-006", name: "notification-svc", language: "Node.js",    last_scan: "2026-04-14", vuln_count: 5,  risk_level: "medium" },
-  { id: "PRJ-007", name: "reporting-engine", language: "Java",       last_scan: "2026-04-13", vuln_count: 11, risk_level: "high" },
-  { id: "PRJ-008", name: "mobile-backend",   language: "Kotlin",     last_scan: "2026-04-12", vuln_count: 2,  risk_level: "low" },
-];
-
-const MOCK_STATS = {
-  projects: 8,
-  scans: 142,
-  vulnerable_dependencies: 70,
-  license_violations: 9,
+const sevColor: Record<string, string> = {
+  critical: "bg-red-700 text-red-100",
+  high: "bg-orange-700 text-orange-100",
+  medium: "bg-amber-700 text-amber-100",
+  low: "bg-blue-700 text-blue-100",
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
-
-function RiskBadge({ level }: { level: string }) {
-  const map: Record<string, string> = {
-    critical: "border-red-500/30 text-red-400 bg-red-500/10",
-    high:     "border-amber-500/30 text-amber-400 bg-amber-500/10",
-    medium:   "border-yellow-500/30 text-yellow-400 bg-yellow-500/10",
-    low:      "border-green-500/30 text-green-400 bg-green-500/10",
-  };
-  return (
-    <Badge className={cn("text-[10px] border capitalize", map[level] ?? "border-border")}>
-    {error && (
-      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-        <p className="text-red-400 text-sm">{error}</p>
-        <button
-          onClick={() => { setError(null); window.location.reload(); }}
-          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-        >
-          Retry
-        </button>
-      </div>
-    )}
-      {level}
-    </Badge>
-  );
-}
-
-function LangBadge({ lang }: { lang: string }) {
-  const map: Record<string, string> = {
-    Go:         "border-cyan-500/30 text-cyan-400 bg-cyan-500/10",
-    Python:     "border-blue-500/30 text-blue-400 bg-blue-500/10",
-    TypeScript: "border-indigo-500/30 text-indigo-400 bg-indigo-500/10",
-    "Node.js":  "border-green-500/30 text-green-400 bg-green-500/10",
-    Java:       "border-orange-500/30 text-orange-400 bg-orange-500/10",
-    Kotlin:     "border-purple-500/30 text-purple-400 bg-purple-500/10",
-  };
-  return (
-    <Badge className={cn("text-[10px] border font-mono", map[lang] ?? "border-slate-500/30 text-slate-400 bg-slate-500/10")}>
-      {lang}
-    </Badge>
-  );
-}
-
-// ── Component ──────────────────────────────────────────────────
-
 export default function SCADashboard() {
-  const [refreshing, setRefreshing] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [scans, setScans] = useState<any[]>([]);
+  const [vulns, setVulns] = useState<any[]>([]);
+  const [licenses, setLicenses] = useState<any[]>([]);
+  const [stats, setStats] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [liveData, setLiveData] = useState<any>(null);
 
-  useEffect(() => {
-    apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
-      .then((d) => setLiveData(d))
-      .catch(() => { setError('Failed to load data'); });
-  }, []);
-
-  const stats    = liveData ?? MOCK_STATS;
-  const projects = liveData?.projects ?? MOCK_PROJECTS;
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
-      .then((d) => setLiveData(d))
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setRefreshing(false));
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const [p, s, v, l, st] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/sca/projects"),
+        apiFetch<any>("/api/v1/sca/scans"),
+        apiFetch<any>("/api/v1/sca/vulns"),
+        apiFetch<any>("/api/v1/sca/licenses"),
+        apiFetch<any>("/api/v1/sca/stats"),
+      ]);
+      if (p.status === "fulfilled") { const x = p.value as any; setProjects(Array.isArray(x) ? x : (x.projects ?? x.items ?? [])); }
+      if (s.status === "fulfilled") { const x = s.value as any; setScans(Array.isArray(x) ? x : (x.scans ?? x.items ?? [])); }
+      if (v.status === "fulfilled") { const x = v.value as any; setVulns(Array.isArray(x) ? x : (x.vulns ?? x.items ?? [])); }
+      if (l.status === "fulfilled") { const x = l.value as any; setLicenses(Array.isArray(x) ? x : (x.licenses ?? x.items ?? [])); }
+      if (st.status === "fulfilled") { setStats(st.value); }
+    } catch (e) { setError((e as Error).message); }
+    finally { setLoading(false); }
   };
+  useEffect(() => { load(); }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6"
-    >
-      <PageHeader
-        title="Software Composition Analysis"
-        description="Open-source dependency scanning for vulnerabilities and license compliance"
-        actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-          </Button>
-        }
-      />
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Projects"                value={stats.projects ?? 8}                icon={Package}      trend="flat" />
-        <KpiCard title="Total Scans"             value={stats.scans ?? 142}                 icon={FileWarning}  trend="up" />
-        <KpiCard title="Vulnerable Dependencies" value={stats.vulnerable_dependencies ?? 70} icon={AlertTriangle} trend="up" className="border-red-500/20" />
-        <KpiCard title="License Violations"      value={stats.license_violations ?? 9}      icon={Scale}        trend="up" className="border-amber-500/20" />
+    <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2"><Layers className="w-6 h-6 text-cyan-400" /> Software Composition Analysis</h1>
+          <p className="text-gray-400 text-sm mt-1">Open-source dependency scanning, license compliance</p>
+        </div>
+        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm"><RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh</button>
       </div>
-
-      {/* Projects Table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Package className="h-4 w-4 text-blue-400" />
-            Projects
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Scanned projects with dependency vulnerability counts and risk classification
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Project</TableHead>
-                  <TableHead className="text-[11px] h-8">Language</TableHead>
-                  <TableHead className="text-[11px] h-8">Last Scan</TableHead>
-                  <TableHead className="text-[11px] h-8 text-center">Vulns</TableHead>
-                  <TableHead className="text-[11px] h-8">Risk Level</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {projects.map((proj: any) => (
-                  <TableRow key={proj.id} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-mono text-xs text-foreground">{proj.name}</TableCell>
-                    <TableCell className="py-2">
-                      <LangBadge lang={proj.language} />
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">
-                      {proj.last_scan}
-                    </TableCell>
-                    <TableCell className="py-2 text-center">
-                      <span
-                        className={cn(
-                          "text-xs font-bold tabular-nums",
-                          proj.vuln_count === 0
-                            ? "text-green-400"
-                            : proj.vuln_count >= 15
-                            ? "text-red-400"
-                            : proj.vuln_count >= 5
-                            ? "text-amber-400"
-                            : "text-yellow-400"
-                        )}
-                      >
-                        {proj.vuln_count}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <RiskBadge level={proj.risk_level} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+      {loading ? <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div></div>
+        : error ? <ErrorState message={error} onRetry={load} />
+        : projects.length === 0 && scans.length === 0 && vulns.length === 0 ? <EmptyState icon={Layers} title="No SCA data" description="Run an SCA scan to populate dependency analysis." />
+        : <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">Projects</p><p className="text-3xl font-bold text-blue-400 mt-1">{stats?.projects ?? projects.length}</p></div>
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">Scans</p><p className="text-3xl font-bold text-cyan-400 mt-1">{stats?.scans ?? scans.length}</p></div>
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">Vulnerable Deps</p><p className="text-3xl font-bold text-red-400 mt-1">{stats?.vulnerable_dependencies ?? vulns.length}</p></div>
+            <div className="bg-gray-800 rounded-lg p-5"><p className="text-gray-400 text-sm">License Violations</p><p className="text-3xl font-bold text-amber-400 mt-1">{stats?.license_violations ?? licenses.filter(l => l.violation).length}</p></div>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+          {vulns.length > 0 && <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Vulnerable Dependencies</h2>
+            <div className="overflow-x-auto"><table className="w-full text-sm">
+              <thead><tr className="text-gray-500 text-xs uppercase border-b border-gray-700"><th className="text-left pb-2 pr-4">Package</th><th className="text-left pb-2 pr-4">Version</th><th className="text-left pb-2 pr-4">CVE</th><th className="text-left pb-2 pr-4">Severity</th><th className="text-left pb-2">Fixed In</th></tr></thead>
+              <tbody className="divide-y divide-gray-700/50">{vulns.slice(0, 100).map(v => (
+                <tr key={v.id ?? v.cve_id} className="hover:bg-gray-700/30">
+                  <td className="py-3 pr-4 text-gray-200 font-mono">{v.package ?? v.package_name}</td>
+                  <td className="py-3 pr-4 text-gray-300">{v.version}</td>
+                  <td className="py-3 pr-4 font-mono text-cyan-300 text-xs">{v.cve_id ?? v.cve}</td>
+                  <td className="py-3 pr-4"><span className={`px-2 py-0.5 rounded text-xs font-bold ${sevColor[v.severity] ?? "bg-gray-700 text-gray-200"}`}>{v.severity}</span></td>
+                  <td className="py-3 text-gray-400 text-xs">{v.fixed_in ?? "—"}</td>
+                </tr>
+              ))}</tbody>
+            </table></div>
+          </div>}
+          {licenses.length > 0 && <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">License Compliance</h2>
+            <div className="overflow-x-auto"><table className="w-full text-sm">
+              <thead><tr className="text-gray-500 text-xs uppercase border-b border-gray-700"><th className="text-left pb-2 pr-4">Package</th><th className="text-left pb-2 pr-4">License</th><th className="text-left pb-2 pr-4">Risk</th><th className="text-left pb-2">Violation</th></tr></thead>
+              <tbody className="divide-y divide-gray-700/50">{licenses.slice(0, 100).map(l => (
+                <tr key={l.id ?? `${l.package}-${l.license}`} className="hover:bg-gray-700/30">
+                  <td className="py-3 pr-4 text-gray-200 font-mono">{l.package ?? l.package_name}</td>
+                  <td className="py-3 pr-4 text-gray-300">{l.license}</td>
+                  <td className={`py-3 pr-4 font-bold ${l.risk === "high" ? "text-red-400" : l.risk === "medium" ? "text-amber-400" : "text-green-400"}`}>{l.risk ?? "low"}</td>
+                  <td className="py-3">{l.violation ? <span className="text-red-400 text-xs">Yes</span> : <span className="text-green-400 text-xs">No</span>}</td>
+                </tr>
+              ))}</tbody>
+            </table></div>
+          </div>}
+        </>}
+    </div>
   );
 }

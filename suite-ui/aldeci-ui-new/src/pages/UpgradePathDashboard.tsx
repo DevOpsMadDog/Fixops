@@ -1,199 +1,93 @@
 /**
- * Upgrade Path Dashboard
- *
- * Package version upgrade resolver — given a pURL and CVE IDs, compute
- * the minimal safe upgrade path.
+ * Upgrade Path Dashboard - Live API
  * Route: /upgrade-path
- * API: GET /api/v1/upgrade-path/stats; POST /api/v1/upgrade-path/resolve
+ * API: GET /api/v1/upgrade-path/recent, POST /api/v1/upgrade-path/resolve
  */
-
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowUpCircle, RefreshCw, Package, ShieldCheck, GitBranch, Search } from "lucide-react";
-
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { PageHeader } from "@/components/shared/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
+import { useState, useEffect } from "react";
+import { GitBranch, RefreshCw, Search } from "lucide-react";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
-interface Stats {
-  total_resolutions?: number;
-  resolved_today?: number;
-  avg_jump?: number;
-  total_cves_fixed?: number;
-}
-
-interface UpgradeStep {
-  from_version?: string;
-  to_version?: string;
-  cves_fixed?: string[];
-  breaking?: boolean;
-  notes?: string;
-}
-
-interface ResolveResult {
-  purl?: string;
-  current_version?: string;
-  target_version?: string;
-  path?: UpgradeStep[];
-  total_hops?: number;
-  breaking_changes?: number;
-  fixes_cves?: string[];
-  error?: string;
-}
-
-async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  const res = await fetch(buildApiUrl(path), {
-    ...opts,
-    headers: {
-      "X-API-Key": getStoredAuthToken(),
-      "X-Org-ID": getStoredOrgId(),
-      "Content-Type": "application/json",
-      ...(opts.headers ?? {}),
-    },
-  });
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, { ...init, headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json", ...(init?.headers ?? {}) } });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
 }
 
 export default function UpgradePathDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [recent, setRecent] = useState<any[]>([]);
+  const [purl, setPurl] = useState("");
+  const [cves, setCves] = useState("");
+  const [resolution, setResolution] = useState<any | null>(null);
   const [resolving, setResolving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [purl, setPurl] = useState("pkg:npm/lodash@4.17.10");
-  const [cves, setCves] = useState("CVE-2019-10744\nCVE-2020-8203");
-  const [result, setResult] = useState<ResolveResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    setErr(null);
-    setRefreshing(true);
+    setLoading(true); setError(null);
     try {
-      const s = await apiFetch<Stats>("/api/v1/upgrade-path/stats");
-      setStats(s);
-    } catch (e) { setErr((e as Error).message); }
-    finally { setLoading(false); setRefreshing(false); }
+      const v = await apiFetch<any>("/api/v1/upgrade-path/recent");
+      setRecent(Array.isArray(v) ? v : (v.recent ?? v.items ?? []));
+    } catch (e) { setError((e as Error).message); }
+    finally { setLoading(false); }
   };
-
   useEffect(() => { load(); }, []);
 
-  const handleResolve = async () => {
+  const resolve = async () => {
     if (!purl.trim()) return;
-    setResolving(true);
-    setResult(null);
+    setResolving(true); setResolution(null);
     try {
-      const cve_ids = cves.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
-      const r = await apiFetch<ResolveResult>("/api/v1/upgrade-path/resolve", {
-        method: "POST",
-        body: JSON.stringify({ purl: purl.trim(), cve_ids }),
-      });
-      setResult(r);
-    } catch (e) {
-      setResult({ error: (e as Error).message });
-    } finally { setResolving(false); }
+      const cveList = cves.split(",").map(s => s.trim()).filter(Boolean);
+      const v = await apiFetch<any>("/api/v1/upgrade-path/resolve", { method: "POST", body: JSON.stringify({ purl, cves: cveList }) });
+      setResolution(v);
+      load();
+    } catch (e) { setError((e as Error).message); }
+    finally { setResolving(false); }
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
-      <PageHeader
-        title="Upgrade Path Resolver"
-        description="Compute the minimal safe upgrade path for vulnerable packages — fewest hops, fewest breaking changes"
-        actions={
-          <Button variant="outline" size="sm" onClick={load} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-          </Button>
-        }
-      />
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Resolutions" value={stats?.total_resolutions ?? 0} icon={Package} />
-        <KpiCard title="Resolved Today" value={stats?.resolved_today ?? 0} icon={ArrowUpCircle} trend="up" />
-        <KpiCard title="CVEs Fixed" value={stats?.total_cves_fixed ?? 0} icon={ShieldCheck} trend="up" />
-        <KpiCard title="Avg Hops" value={stats?.avg_jump?.toFixed?.(1) ?? "—"} icon={GitBranch} />
+    <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2"><GitBranch className="w-6 h-6 text-emerald-400" /> Upgrade Path Resolver</h1>
+          <p className="text-gray-400 text-sm mt-1">Compute minimal safe upgrade for vulnerable packages</p>
+        </div>
+        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm"><RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh</button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2"><Search className="h-4 w-4" /> Resolve Upgrade</CardTitle>
-          <CardDescription className="text-xs">Provide a package pURL and one or more CVE IDs to compute the upgrade path</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Package pURL</label>
-            <Input value={purl} onChange={e => setPurl(e.target.value)} placeholder="pkg:npm/lodash@4.17.10" className="h-9 text-xs font-mono" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">CVE IDs (one per line)</label>
-            <Textarea value={cves} onChange={e => setCves(e.target.value)} rows={3} className="font-mono text-xs" spellCheck={false} />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handleResolve} disabled={resolving || !purl.trim()}>
-              <ArrowUpCircle className={cn("h-4 w-4 mr-2", resolving && "animate-pulse")} />
-              Resolve Path
-            </Button>
-            {result && !result.error && (
-              <span className="text-xs text-muted-foreground">
-                {result.total_hops ?? result.path?.length ?? 0} hops · {result.breaking_changes ?? 0} breaking
-              </span>
-            )}
-          </div>
+      <div className="bg-gray-800 rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Search className="w-4 h-4 text-emerald-400" /> Resolve Upgrade</h2>
+        <div className="space-y-3">
+          <input value={purl} onChange={e => setPurl(e.target.value)} placeholder="pkg:npm/lodash@4.17.20" className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm" />
+          <input value={cves} onChange={e => setCves(e.target.value)} placeholder="CVE-2021-23337, CVE-2020-8203" className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm" />
+          <button onClick={resolve} disabled={!purl.trim() || resolving} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 rounded text-sm font-medium">{resolving ? "Resolving..." : "Resolve Upgrade"}</button>
+        </div>
+        {resolution && <div className="mt-4 p-4 bg-gray-900 rounded">
+          <pre className="text-xs text-gray-300 overflow-x-auto">{JSON.stringify(resolution, null, 2)}</pre>
+        </div>}
+      </div>
 
-          {result?.error && (
-            <div className="rounded border border-red-500/30 bg-red-500/10 p-3 text-xs font-mono text-red-400">{result.error}</div>
-          )}
-
-          {result && !result.error && (
-            <div className="rounded border border-border/50 bg-muted/20 p-3">
-              <div className="flex items-center justify-between text-xs mb-3">
-                <span className="font-mono">{result.current_version ?? "?"} → {result.target_version ?? "?"}</span>
-                <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">
-                  {(result.fixes_cves ?? []).length} CVEs fixed
-                </Badge>
-              </div>
-              <div className="space-y-1.5">
-                {(result.path ?? []).map((step, i) => (
-                  <div key={i} className="flex items-center justify-between rounded bg-muted/30 px-2 py-1.5">
-                    <div className="flex items-center gap-2 text-[11px] font-mono">
-                      <span className="text-muted-foreground">{step.from_version ?? "?"}</span>
-                      <ArrowUpCircle className="h-3 w-3 text-green-400" />
-                      <span>{step.to_version ?? "?"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(step.cves_fixed ?? []).length > 0 && (
-                        <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">
-                          {(step.cves_fixed ?? []).length} fixes
-                        </Badge>
-                      )}
-                      {step.breaking && (
-                        <Badge className="text-[10px] border border-orange-500/30 text-orange-400 bg-orange-500/10">Breaking</Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {(result.path ?? []).length === 0 && (
-                  <EmptyState icon={Package} title="No path found" description="No upgrade path resolves the given CVEs." />
-                )}
-              </div>
-            </div>
-          )}
-
-          {!result && !loading && (
-            <div className="rounded border border-dashed border-border/50 p-4 text-xs text-muted-foreground text-center">
-              Enter a pURL and CVE IDs, then click Resolve Path.
-            </div>
-          )}
-
-          {err && <ErrorState message={err} onRetry={load} />}
-        </CardContent>
-      </Card>
-    </motion.div>
+      {loading ? <div className="flex items-center justify-center h-32"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>
+        : error ? <ErrorState message={error} onRetry={load} />
+        : recent.length === 0 ? <EmptyState icon={GitBranch} title="No recent upgrades" description="Upgrade paths you resolve will appear here." />
+        : <div className="bg-gray-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Recent Resolutions</h2>
+          <div className="overflow-x-auto"><table className="w-full text-sm">
+            <thead><tr className="text-gray-500 text-xs uppercase border-b border-gray-700"><th className="text-left pb-2 pr-4">Package</th><th className="text-left pb-2 pr-4">From</th><th className="text-left pb-2 pr-4">To</th><th className="text-left pb-2 pr-4">CVEs Fixed</th><th className="text-left pb-2">Date</th></tr></thead>
+            <tbody className="divide-y divide-gray-700/50">{recent.map(r => (
+              <tr key={r.id ?? r.purl} className="hover:bg-gray-700/30">
+                <td className="py-3 pr-4 text-gray-200 font-mono text-xs">{r.package ?? r.purl}</td>
+                <td className="py-3 pr-4 text-gray-400 text-xs">{r.from_version ?? r.current_version}</td>
+                <td className="py-3 pr-4 text-emerald-400 font-bold text-xs">{r.to_version ?? r.target_version}</td>
+                <td className="py-3 pr-4 text-gray-300 text-xs">{Array.isArray(r.cves_fixed) ? r.cves_fixed.length : (r.cves_fixed_count ?? "—")}</td>
+                <td className="py-3 text-gray-400 text-xs">{r.resolved_at ?? r.created_at}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        </div>}
+    </div>
   );
 }
