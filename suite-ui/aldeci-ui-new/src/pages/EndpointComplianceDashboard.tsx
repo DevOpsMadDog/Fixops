@@ -34,57 +34,22 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API helper ──────────────────────────────────────────────────────────────
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+const ORG_ID = "juice-shop-corp";
+
 const apiFetch = async (path: string) => {
-  const key =
-    localStorage.getItem("aldeci_api_key") ||
-    import.meta.env.VITE_API_KEY ||
-    "dev-key";
-  const res = await fetch(`/api/v1${path}`, { headers: { "X-API-Key": key } });
+  const sep = path.includes("?") ? "&" : "?";
+  const res = await fetch(buildApiUrl(`/api/v1${path}${sep}org_id=${ORG_ID}`), {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": getStoredOrgId() },
+  });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 };
 
-// ── Mock data ───────────────────────────────────────────────────────────────
-
-const MOCK_STATS = {
-  total_endpoints: 347,
-  by_compliance_level: { compliant: 198, partial: 89, non_compliant: 60 },
-  by_os_type: { windows: 180, linux: 112, macos: 55 },
-  avg_compliance_score: 76.4,
-  endpoints_below_target: 149,
-  critical_failures_total: 42,
-  compliant_rate: 57.1,
-};
-
-const MOCK_ENDPOINTS = [
-  { id: "ep1",  hostname: "win-dc-01.corp",    os_type: "windows", os_version: "Server 2022", department: "Infrastructure", compliance_score: 94.2, compliance_level: "compliant",    critical_failures: 0, high_failures: 1, last_scan: "2026-04-16T06:00:00Z" },
-  { id: "ep2",  hostname: "lin-web-02.prod",   os_type: "linux",   os_version: "Ubuntu 22.04", department: "Engineering",   compliance_score: 88.7, compliance_level: "compliant",    critical_failures: 0, high_failures: 2, last_scan: "2026-04-16T05:30:00Z" },
-  { id: "ep3",  hostname: "mac-dev-07.local",  os_type: "macos",   os_version: "Sonoma 14.4", department: "Engineering",   compliance_score: 72.1, compliance_level: "partial",      critical_failures: 1, high_failures: 4, last_scan: "2026-04-15T22:00:00Z" },
-  { id: "ep4",  hostname: "win-ws-142.corp",   os_type: "windows", os_version: "11 Pro",       department: "Finance",       compliance_score: 65.3, compliance_level: "partial",      critical_failures: 2, high_failures: 6, last_scan: "2026-04-15T18:00:00Z" },
-  { id: "ep5",  hostname: "lin-db-04.prod",    os_type: "linux",   os_version: "RHEL 9.2",     department: "Database",      compliance_score: 91.0, compliance_level: "compliant",    critical_failures: 0, high_failures: 0, last_scan: "2026-04-16T04:00:00Z" },
-  { id: "ep6",  hostname: "win-legacy-03.corp",os_type: "windows", os_version: "Server 2012 R2", department: "IT",         compliance_score: 38.4, compliance_level: "non_compliant", critical_failures: 5, high_failures: 9, last_scan: "2026-04-14T08:00:00Z" },
-  { id: "ep7",  hostname: "mac-hr-12.local",   os_type: "macos",   os_version: "Ventura 13.6", department: "HR",           compliance_score: 59.7, compliance_level: "partial",      critical_failures: 2, high_failures: 5, last_scan: "2026-04-15T14:00:00Z" },
-  { id: "ep8",  hostname: "lin-build-01.ci",   os_type: "linux",   os_version: "Ubuntu 20.04", department: "Engineering",  compliance_score: 44.2, compliance_level: "non_compliant", critical_failures: 4, high_failures: 7, last_scan: "2026-04-15T10:00:00Z" },
-];
-
-const MOCK_FAILED_CHECKS = [
-  { id: "chk1", endpoint_id: "ep6", check_id: "CIS-1.1.1", check_name: "Password must meet complexity",    benchmark: "cis_windows_l1", category: "account_policy", severity: "critical", status: "failed", remediation: "Enable Windows Password Complexity policy" },
-  { id: "chk2", endpoint_id: "ep8", check_id: "CIS-4.2.1", check_name: "SSH Protocol version 2 enforced", benchmark: "cis_ubuntu",     category: "network",        severity: "critical", status: "failed", remediation: "Set Protocol 2 in /etc/ssh/sshd_config" },
-  { id: "chk3", endpoint_id: "ep3", check_id: "CIS-2.3.1", check_name: "Bluetooth disabled",               benchmark: "cis_macos",      category: "service",        severity: "high",    status: "failed", remediation: "Disable Bluetooth via MDM profile" },
-  { id: "chk4", endpoint_id: "ep4", check_id: "CIS-1.2.3", check_name: "Account lockout threshold 5",     benchmark: "cis_windows_l1", category: "account_policy", severity: "high",    status: "failed", remediation: "Set lockout threshold to 5 failed attempts" },
-  { id: "chk5", endpoint_id: "ep6", check_id: "CIS-9.1.1", check_name: "Windows Firewall enabled",        benchmark: "cis_windows_l1", category: "firewall",       severity: "critical", status: "failed", remediation: "Enable Windows Defender Firewall on all profiles" },
-  { id: "chk6", endpoint_id: "ep8", check_id: "CIS-3.1.1", check_name: "IPv6 disabled if not required",  benchmark: "cis_ubuntu",     category: "network",        severity: "medium",  status: "failed", remediation: "Disable IPv6 in /etc/sysctl.conf if unused" },
-  { id: "chk7", endpoint_id: "ep7", check_id: "CIS-2.1.2", check_name: "FTP service disabled",           benchmark: "cis_macos",      category: "service",        severity: "high",    status: "failed", remediation: "Disable FTP service via macOS Sharing settings" },
-];
-
-const MOCK_DEPT_COMPLIANCE = [
-  { department: "Infrastructure", total_endpoints: 45, compliant: 38, partial: 5,  non_compliant: 2,  avg_compliance_score: 92.1, compliant_rate: 84.4, critical_failures: 2 },
-  { department: "Engineering",    total_endpoints: 112, compliant: 67, partial: 31, non_compliant: 14, avg_compliance_score: 78.3, compliant_rate: 59.8, critical_failures: 8 },
-  { department: "Finance",        total_endpoints: 38, compliant: 19, partial: 12, non_compliant: 7,  avg_compliance_score: 69.2, compliant_rate: 50.0, critical_failures: 7 },
-  { department: "HR",             total_endpoints: 29, compliant: 14, partial: 11, non_compliant: 4,  avg_compliance_score: 71.5, compliant_rate: 48.3, critical_failures: 5 },
-  { department: "Database",       total_endpoints: 22, compliant: 20, partial: 2,  non_compliant: 0,  avg_compliance_score: 93.8, compliant_rate: 90.9, critical_failures: 0 },
-  { department: "IT",             total_endpoints: 61, compliant: 18, partial: 21, non_compliant: 22, avg_compliance_score: 58.6, compliant_rate: 29.5, critical_failures: 14 },
-];
+// Mock data removed — page renders live data from /api/v1/endpoint-compliance/*
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -146,10 +111,10 @@ function benchmarkLabel(b: string) {
 // ── Component ─────────────────────────────────────────────────────────────
 
 export default function EndpointComplianceDashboard() {
-  const [stats, setStats] = useState<typeof MOCK_STATS | null>(null);
-  const [endpoints, setEndpoints] = useState<typeof MOCK_ENDPOINTS>([]);
-  const [failedChecks, setFailedChecks] = useState<typeof MOCK_FAILED_CHECKS>([]);
-  const [deptCompliance, setDeptCompliance] = useState<typeof MOCK_DEPT_COMPLIANCE>([]);
+  const [stats, setStats] = useState<any | null>(null);
+  const [endpoints, setEndpoints] = useState<any[]>([]);
+  const [failedChecks, setFailedChecks] = useState<any[]>([]);
+  const [deptCompliance, setDeptCompliance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
@@ -161,23 +126,22 @@ export default function EndpointComplianceDashboard() {
       apiFetch("/endpoint-compliance/checks?status=failed"),
       apiFetch("/endpoint-compliance/department-compliance"),
     ]);
-    if (statsRes.status === "fulfilled") setStats(statsRes.value);
-    else setStats(MOCK_STATS);
-    if (epRes.status === "fulfilled" && Array.isArray(epRes.value)) setEndpoints(epRes.value);
-    else setEndpoints(MOCK_ENDPOINTS);
-    if (chkRes.status === "fulfilled" && Array.isArray(chkRes.value)) setFailedChecks(chkRes.value);
-    else setFailedChecks(MOCK_FAILED_CHECKS);
-    if (deptRes.status === "fulfilled" && Array.isArray(deptRes.value)) setDeptCompliance(deptRes.value);
-    else setDeptCompliance(MOCK_DEPT_COMPLIANCE);
+    const norm = (v: any) => Array.isArray(v) ? v : (v?.items ?? []);
+    if (statsRes.status === "fulfilled") setStats(statsRes.value); else setStats(null);
+    setEndpoints(epRes.status === "fulfilled" ? norm(epRes.value) : []);
+    setFailedChecks(chkRes.status === "fulfilled" ? norm(chkRes.value) : []);
+    setDeptCompliance(deptRes.status === "fulfilled" ? norm(deptRes.value) : []);
     setLoading(false);
     setLastRefresh(new Date());
   };
 
   useEffect(() => { fetchAll(); }, []);
 
-  const liveStats = stats ?? MOCK_STATS;
-  const compliantCount = liveStats.by_compliance_level?.compliant ?? MOCK_STATS.by_compliance_level.compliant;
-  const nonCompliantCount = liveStats.by_compliance_level?.non_compliant ?? MOCK_STATS.by_compliance_level.non_compliant;
+  if (loading && !stats) return <PageSkeleton />;
+
+  const liveStats = stats ?? { total_endpoints: 0, by_compliance_level: { compliant: 0, partial: 0, non_compliant: 0 }, by_os_type: {}, avg_compliance_score: 0, endpoints_below_target: 0, critical_failures_total: 0, compliant_rate: 0 };
+  const compliantCount = liveStats.by_compliance_level?.compliant ?? 0;
+  const nonCompliantCount = liveStats.by_compliance_level?.non_compliant ?? 0;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -203,9 +167,9 @@ export default function EndpointComplianceDashboard() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <KpiCard
             title="Total Endpoints"
-            value={liveStats.total_endpoints ?? MOCK_STATS.total_endpoints}
+            value={liveStats.total_endpoints ?? 0}
             icon={<Monitor className="h-4 w-4 text-purple-400" />}
-            description={`${Object.values(liveStats.by_os_type ?? MOCK_STATS.by_os_type).length} OS types`}
+            description={`${Object.values(liveStats.by_os_type ?? {}).length} OS types`}
           />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -222,16 +186,16 @@ export default function EndpointComplianceDashboard() {
             title="Non-Compliant"
             value={nonCompliantCount}
             icon={<XCircle className="h-4 w-4 text-red-400" />}
-            description={`${liveStats.critical_failures_total ?? MOCK_STATS.critical_failures_total} critical failures`}
+            description={`${liveStats.critical_failures_total ?? 0} critical failures`}
             trend="down"
           />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <KpiCard
             title="Compliance Rate"
-            value={`${(liveStats.compliant_rate ?? MOCK_STATS.compliant_rate).toFixed(1)}%`}
+            value={`${(liveStats.compliant_rate ?? 0).toFixed(1)}%`}
             icon={<ShieldCheck className="h-4 w-4 text-amber-400" />}
-            description={`Avg score: ${(liveStats.avg_compliance_score ?? MOCK_STATS.avg_compliance_score).toFixed(1)}%`}
+            description={`Avg score: ${(liveStats.avg_compliance_score ?? 0).toFixed(1)}%`}
           />
         </motion.div>
       </div>
@@ -247,8 +211,8 @@ export default function EndpointComplianceDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
-              {Object.entries(liveStats.by_os_type ?? MOCK_STATS.by_os_type).map(([os, count]) => {
-                const total = liveStats.total_endpoints ?? MOCK_STATS.total_endpoints;
+              {Object.entries(liveStats.by_os_type ?? {}).map(([os, count]) => {
+                const total = liveStats.total_endpoints ?? 0;
                 const pct = total > 0 ? Math.round(((count as number) / total) * 100) : 0;
                 return (
                   <div key={os} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2">
@@ -264,7 +228,7 @@ export default function EndpointComplianceDashboard() {
                 <AlertTriangle className="h-4 w-4 text-amber-400" />
                 <div>
                   <div className="text-xs font-medium text-amber-300">Below Target</div>
-                  <div className="text-xs text-slate-500">{liveStats.endpoints_below_target ?? MOCK_STATS.endpoints_below_target} endpoints &lt; 80%</div>
+                  <div className="text-xs text-slate-500">{liveStats.endpoints_below_target ?? 0} endpoints &lt; 80%</div>
                 </div>
               </div>
             </div>
@@ -298,7 +262,7 @@ export default function EndpointComplianceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(endpoints.length > 0 ? endpoints : MOCK_ENDPOINTS)
+                {endpoints
                   .slice()
                   .sort((a, b) => a.compliance_score - b.compliance_score)
                   .map((ep) => (
@@ -360,7 +324,7 @@ export default function EndpointComplianceDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {(failedChecks.length > 0 ? failedChecks : MOCK_FAILED_CHECKS).map((chk) => (
+                {failedChecks.map((chk) => (
                   <div
                     key={chk.id}
                     className={cn(
@@ -406,7 +370,7 @@ export default function EndpointComplianceDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(deptCompliance.length > 0 ? deptCompliance : MOCK_DEPT_COMPLIANCE)
+                {deptCompliance
                   .slice()
                   .sort((a, b) => a.avg_compliance_score - b.avg_compliance_score)
                   .map((dept) => (

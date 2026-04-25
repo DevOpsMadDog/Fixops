@@ -2,60 +2,39 @@
  * Firewall Policy Dashboard
  *
  * Firewall rule analysis — unused rules, conflicts, coverage.
- *   1. KPIs: Firewalls, Total Rules, Unused Rules, Conflicting Rules
- *   2. Firewalls table (name, type, rule count, last analyzed)
- *
  * Route: /firewall-policy
- * API: GET /api/v1/firewall-policy/stats
+ * API: GET /api/v1/firewall-policy/{firewalls,stats}
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Flame, Shield, AlertTriangle, GitMerge, RefreshCw } from "lucide-react";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+const ORG_ID = "juice-shop-corp";
 
-const MOCK_FIREWALLS = [
-  { id: "FW-001", name: "edge-fw-01",       type: "perimeter",  rule_count: 284, unused_rules: 42, conflicts: 3,  last_analyzed: "2026-04-16 08:15" },
-  { id: "FW-002", name: "datacenter-fw-02", type: "internal",   rule_count: 156, unused_rules: 18, conflicts: 1,  last_analyzed: "2026-04-16 07:30" },
-  { id: "FW-003", name: "cloud-fw-aws-01",  type: "cloud",      rule_count: 93,  unused_rules: 7,  conflicts: 0,  last_analyzed: "2026-04-15 22:00" },
-  { id: "FW-004", name: "dmz-fw-03",        type: "dmz",        rule_count: 47,  unused_rules: 12, conflicts: 5,  last_analyzed: "2026-04-15 18:45" },
-  { id: "FW-005", name: "cloud-fw-azure-01",type: "cloud",      rule_count: 68,  unused_rules: 4,  conflicts: 0,  last_analyzed: "2026-04-15 16:00" },
-  { id: "FW-006", name: "branch-fw-04",     type: "branch",     rule_count: 31,  unused_rules: 8,  conflicts: 2,  last_analyzed: "2026-04-14 12:30" },
-];
-
-const MOCK_STATS = {
-  firewalls: 6,
-  total_rules: 679,
-  unused_rules: 91,
-  conflicting_rules: 11,
-};
-
-// ── Badge helpers ──────────────────────────────────────────────
+async function apiFetch(path: string, opts?: RequestInit) {
+  const res = await fetch(buildApiUrl(path), {
+    ...opts,
+    headers: {
+      "X-API-Key": getStoredAuthToken(),
+      "X-Org-ID": getStoredOrgId(),
+      "Content-Type": "application/json",
+      ...(opts?.headers ?? {}),
+    },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -72,43 +51,39 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
-
 export default function FirewallPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [firewalls, setFirewalls] = useState<any[]>([]);
 
-  useEffect(() => {
-    apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
-      .then((d) => setLiveData(d))
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const stats     = liveData ?? MOCK_STATS;
-  const firewalls = liveData?.firewalls ?? MOCK_FIREWALLS;
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
-      .then((d) => setLiveData(d))
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setRefreshing(false));
+  const load = () => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/firewall-policy/firewalls?org_id=${ORG_ID}`),
+    ]).then(([statsRes, fwRes]) => {
+      if (statsRes.status === "fulfilled") setStats(statsRes.value);
+      if (fwRes.status === "fulfilled") {
+        const v = fwRes.value;
+        setFirewalls(Array.isArray(v) ? v : (v?.items ?? v?.firewalls ?? []));
+      } else {
+        setFirewalls([]);
+      }
+      setLoading(false);
+      setRefreshing(false);
+    });
   };
 
+  useEffect(() => { load(); }, []);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+  const handleRefresh = () => { setRefreshing(true); load(); };
 
+  if (loading) return <PageSkeleton />;
+
+  const s = stats ?? { firewalls: 0, total_rules: 0, unused_rules: 0, conflicting_rules: 0 };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       <PageHeader
         title="Firewall Policy"
         description="Firewall rule analysis — unused rules, conflicts, and policy coverage"
@@ -119,15 +94,13 @@ export default function FirewallPolicyDashboard() {
         }
       />
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Firewalls"         value={stats.firewalls ?? 6}          icon={Flame}         trend="flat" />
-        <KpiCard title="Total Rules"       value={stats.total_rules ?? 679}      icon={Shield}        trend="flat" />
-        <KpiCard title="Unused Rules"      value={stats.unused_rules ?? 91}      icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Conflicting Rules" value={stats.conflicting_rules ?? 11} icon={GitMerge}      trend="up"   className="border-red-500/20" />
+        <KpiCard title="Firewalls"         value={s.firewalls ?? firewalls.length}        icon={Flame}         trend="flat" />
+        <KpiCard title="Total Rules"       value={s.total_rules ?? 0}                      icon={Shield}        trend="flat" />
+        <KpiCard title="Unused Rules"      value={s.unused_rules ?? 0}                     icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Conflicting Rules" value={s.conflicting_rules ?? 0}                icon={GitMerge}      trend="up"   className="border-red-500/20" />
       </div>
 
-      {/* Firewalls Table */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -139,54 +112,46 @@ export default function FirewallPolicyDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Name</TableHead>
-                  <TableHead className="text-[11px] h-8">Type</TableHead>
-                  <TableHead className="text-[11px] h-8 text-center">Rules</TableHead>
-                  <TableHead className="text-[11px] h-8 text-center">Unused</TableHead>
-                  <TableHead className="text-[11px] h-8 text-center">Conflicts</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Last Analyzed</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {firewalls.map((fw: any) => (
-                  <TableRow key={fw.id} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-mono text-xs text-foreground">{fw.name}</TableCell>
-                    <TableCell className="py-2">
-                      <TypeBadge type={fw.type} />
-                    </TableCell>
-                    <TableCell className="py-2 text-center text-xs tabular-nums">{fw.rule_count}</TableCell>
-                    <TableCell className="py-2 text-center">
-                      <span
-                        className={cn(
-                          "text-xs font-semibold tabular-nums",
-                          fw.unused_rules > 20 ? "text-amber-400" : "text-muted-foreground"
-                        )}
-                      >
-                        {fw.unused_rules}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-2 text-center">
-                      <span
-                        className={cn(
-                          "text-xs font-bold tabular-nums",
-                          fw.conflicts > 0 ? "text-red-400" : "text-green-400"
-                        )}
-                      >
-                        {fw.conflicts}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">
-                      {fw.last_analyzed}
-                    </TableCell>
+          {firewalls.length === 0 ? (
+            <EmptyState icon={Flame} title="No firewalls registered" description="Add a firewall integration to begin policy analysis." />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Name</TableHead>
+                    <TableHead className="text-[11px] h-8">Type</TableHead>
+                    <TableHead className="text-[11px] h-8 text-center">Rules</TableHead>
+                    <TableHead className="text-[11px] h-8 text-center">Unused</TableHead>
+                    <TableHead className="text-[11px] h-8 text-center">Conflicts</TableHead>
+                    <TableHead className="text-[11px] h-8 text-right">Last Analyzed</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {firewalls.map((fw: any) => (
+                    <TableRow key={fw.id} className="hover:bg-muted/30">
+                      <TableCell className="py-2 font-mono text-xs text-foreground">{fw.name}</TableCell>
+                      <TableCell className="py-2"><TypeBadge type={fw.type} /></TableCell>
+                      <TableCell className="py-2 text-center text-xs tabular-nums">{fw.rule_count}</TableCell>
+                      <TableCell className="py-2 text-center">
+                        <span className={cn("text-xs font-semibold tabular-nums", fw.unused_rules > 20 ? "text-amber-400" : "text-muted-foreground")}>
+                          {fw.unused_rules}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-2 text-center">
+                        <span className={cn("text-xs font-bold tabular-nums", fw.conflicts > 0 ? "text-red-400" : "text-green-400")}>
+                          {fw.conflicts}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">
+                        {fw.last_analyzed}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

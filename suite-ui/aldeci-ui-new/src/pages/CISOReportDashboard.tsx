@@ -45,15 +45,16 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ──────────────────────────────────────────────────────────────
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
 const API_BASE = import.meta.env.VITE_API_URL || "";
-const apiKey =
-  (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
+const ORG_ID = "juice-shop-corp";
+const getApiKey = () => getStoredAuthToken();
 
 const apiFetch = (path: string) =>
-  fetch(`${API_BASE}/api/v1${path}?org_id=default`, {
-    headers: { "X-API-Key": apiKey },
+  fetch(buildApiUrl(`/api/v1${path}`), {
+    headers: { "X-API-Key": getApiKey(), "X-Org-ID": getStoredOrgId() },
   }).then((r) => {
     if (!r.ok) throw new Error(`API error: ${r.status}`);
     return r.json();
@@ -222,24 +223,43 @@ function sectionHighlight(name: string, data: SectionSummary): { label: string; 
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
+const EMPTY_BRIEF: WeeklyBrief = {
+  report_date: new Date().toISOString().slice(0, 10),
+  risk_posture_score: 0,
+  exec_summary: [],
+  sections: {
+    vulnerabilities: {},
+    threats: {},
+    compliance: {},
+    incidents: {},
+    operations: {},
+  },
+  top_risks: [],
+};
+
+const EMPTY_EXEC: ExecSummary = {
+  summary_bullets: [],
+  key_metrics: { risk_score: 0, open_criticals: 0, compliance_rate: 0, mttr_hours: 0 },
+};
+
 export default function CISOReportDashboard() {
-  const [brief, setBrief]           = useState<WeeklyBrief>(MOCK_BRIEF);
-  const [execSummary, setExecSummary] = useState<ExecSummary>(MOCK_EXEC_SUMMARY);
-  const [topRisks, setTopRisks]     = useState<TopRisk[]>(MOCK_TOP_RISKS.top_risks);
+  const [brief, setBrief]           = useState<WeeklyBrief>(EMPTY_BRIEF);
+  const [execSummary, setExecSummary] = useState<ExecSummary>(EMPTY_EXEC);
+  const [topRisks, setTopRisks]     = useState<TopRisk[]>([]);
   const [loading, setLoading]       = useState(true);
   const [exporting, setExporting]   = useState(false);
 
   const load = async () => {
     setLoading(true);
     const [briefRes, execRes, risksRes] = await Promise.allSettled([
-      apiFetch("/ciso-report/weekly-brief?org_id=default"),
-      apiFetch("/ciso-report/executive-summary?org_id=default"),
-      apiFetch("/ciso-report/top-risks?org_id=default"),
+      apiFetch(`/ciso-report/weekly-brief?org_id=${ORG_ID}`),
+      apiFetch(`/ciso-report/executive-summary?org_id=${ORG_ID}`),
+      apiFetch(`/ciso-report/top-risks?org_id=${ORG_ID}`),
     ]);
 
-    if (briefRes.status === "fulfilled")  setBrief(briefRes.value);
-    if (execRes.status === "fulfilled")   setExecSummary(execRes.value);
-    if (risksRes.status === "fulfilled")  setTopRisks(risksRes.value.top_risks ?? []);
+    if (briefRes.status === "fulfilled" && briefRes.value)  setBrief(briefRes.value);
+    if (execRes.status === "fulfilled" && execRes.value)   setExecSummary(execRes.value);
+    if (risksRes.status === "fulfilled")  setTopRisks(risksRes.value?.top_risks ?? []);
 
     setLoading(false);
   };
@@ -250,8 +270,8 @@ export default function CISOReportDashboard() {
     setExporting(true);
     try {
       const res = await fetch(
-        `${API_BASE}/api/v1/ciso-report/export/markdown?org_id=default`,
-        { headers: { "X-API-Key": apiKey } }
+        buildApiUrl(`/api/v1/ciso-report/export/markdown?org_id=${ORG_ID}`),
+        { headers: { "X-API-Key": getApiKey(), "X-Org-ID": getStoredOrgId() } }
       );
       if (res.ok) {
         const blob = await res.blob();
@@ -268,6 +288,8 @@ export default function CISOReportDashboard() {
       setExporting(false);
     }
   };
+
+  if (loading) return <PageSkeleton />;
 
   const metrics = execSummary.key_metrics;
   const bullets = execSummary.summary_bullets.length

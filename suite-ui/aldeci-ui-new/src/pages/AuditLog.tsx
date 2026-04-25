@@ -719,23 +719,20 @@ export default function AuditLogPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch events
-  const { data: events = MOCK_EVENTS } = useQuery<AuditEvent[]>({
+  const { data: events = [] } = useQuery<AuditEvent[]>({
     queryKey: ["audit-events", dateRange, eventTypeFilter, severityFilter],
     queryFn: async () => {
-      try {
-        const params = new URLSearchParams({ limit: "100" });
-        if (eventTypeFilter !== "all") params.set("event_type", eventTypeFilter);
-        const res = await fetch(
-          `${API_BASE}/api/v1/audit/logs?${params.toString()}`,
-          { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "dev-key" } }
-        );
-        if (!res.ok) throw new Error("API unavailable");
-        const data = await res.json();
-        // Router returns { items: [...], total, limit, offset }
-        return Array.isArray(data) ? data : (data.items ?? MOCK_EVENTS);
-      } catch {
-        return MOCK_EVENTS;
-      }
+      const params = new URLSearchParams({ limit: "100", org_id: "juice-shop-corp" });
+      if (eventTypeFilter !== "all") params.set("event_type", eventTypeFilter);
+      const token = (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) || import.meta.env.VITE_API_KEY || "";
+      const res = await fetch(
+        `${API_BASE}/api/v1/audit/logs?${params.toString()}`,
+        { headers: { "X-API-Key": token, "X-Org-ID": "juice-shop-corp" } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      // Router returns { items: [...], total, limit, offset }
+      return Array.isArray(data) ? data : (data.items ?? []);
     },
   });
 

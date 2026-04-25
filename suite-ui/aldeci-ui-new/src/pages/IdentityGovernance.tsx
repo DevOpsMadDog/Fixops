@@ -367,46 +367,42 @@ function _igaHeaders() {
 
 async function fetchReviews(): Promise<Campaign[]> {
   const res = await fetch(
-    `${API_BASE}/api/v1/identity-governance/reviews?org_id=${ORG_ID}`,
+    `${API_BASE}/api/v1/identity-governance/reviews?org_id=juice-shop-corp`,
     { headers: _igaHeaders() },
   );
-  if (!res.ok) throw new Error(`${res.status}`);
+  if (!res.ok) return [];
   const data = await res.json();
-  return Array.isArray(data) ? data : data.reviews ?? MOCK_CAMPAIGNS;
+  return Array.isArray(data) ? data : (data.reviews ?? data.items ?? []);
 }
 
 async function fetchOrphanedAccounts(): Promise<OrphanedAccount[]> {
   const res = await fetch(
-    `${API_BASE}/api/v1/identity-governance/entitlements?org_id=${ORG_ID}&is_orphaned=true`,
+    `${API_BASE}/api/v1/identity-governance/entitlements?org_id=juice-shop-corp&is_orphaned=true`,
     { headers: _igaHeaders() },
   );
-  if (!res.ok) throw new Error(`${res.status}`);
+  if (!res.ok) return [];
   const data = await res.json();
-  // Engine returns a list of entitlements; map to OrphanedAccount shape
-  const items: any[] = Array.isArray(data) ? data : data.entitlements ?? [];
-  return items.length > 0
-    ? items.map((e: any) => ({
-        id: e.id ?? e.identity_id,
-        username: e.identity_name ?? e.identity_id ?? "unknown",
-        system: e.system ?? "unknown",
-        last_login: e.last_used ?? "",
-      }))
-    : MOCK_ORPHANED;
+  const items: any[] = Array.isArray(data) ? data : (data.entitlements ?? data.items ?? []);
+  return items.map((e: any) => ({
+    id: e.id ?? e.identity_id,
+    username: e.identity_name ?? e.identity_id ?? "unknown",
+    system: e.system ?? "unknown",
+    last_login: e.last_used ?? "",
+  }));
 }
 
 async function fetchIgaStats(): Promise<any> {
   const res = await fetch(
-    `${API_BASE}/api/v1/identity-governance/stats?org_id=${ORG_ID}`,
+    `${API_BASE}/api/v1/identity-governance/stats?org_id=juice-shop-corp`,
     { headers: _igaHeaders() },
   );
-  if (!res.ok) throw new Error(`${res.status}`);
+  if (!res.ok) return null;
   return res.json();
 }
 
 async function fetchSoDViolations(): Promise<SoDViolation[]> {
-  // No dedicated SoD endpoint yet in the engine — use mock fallback
-  // TODO: wire when /api/v1/identity-governance/sod-violations is deployed
-  return MOCK_SOD_VIOLATIONS;
+  // No dedicated SoD endpoint yet — return empty until /api/v1/identity-governance/sod-violations exists
+  return [];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -466,13 +462,11 @@ export default function IdentityGovernance() {
     staleTime: 60000,
   });
 
-  // Use live reviews as campaigns if available, fallback to mock
-  const liveCampaigns: Campaign[] = reviewsQuery.data
-    ? (reviewsQuery.data as unknown as Campaign[])
-    : MOCK_CAMPAIGNS;
-  const reviewQueue = MOCK_REVIEW_QUEUE;
-  const orphanedAccounts = orphanedQuery.data ?? MOCK_ORPHANED;
-  const sodViolations = sodQuery.data ?? MOCK_SOD_VIOLATIONS;
+  // Live data only — empty array shows empty state
+  const liveCampaigns: Campaign[] = (reviewsQuery.data as unknown as Campaign[]) ?? [];
+  const reviewQueue: AccessReviewItem[] = [];
+  const orphanedAccounts = orphanedQuery.data ?? [];
+  const sodViolations = sodQuery.data ?? [];
 
   const totalCertified = liveCampaigns.reduce(
     (sum, c) => sum + (c.certified_count ?? 0),

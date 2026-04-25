@@ -40,19 +40,19 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string, options?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(buildApiUrl(path), {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-API-Key": API_KEY,
+      "X-API-Key": getStoredAuthToken(),
+      "X-Org-ID": getStoredOrgId(),
       ...(options?.headers ?? {}),
     },
   });
@@ -228,10 +228,10 @@ function RiskTimeline({ data }: { data: RiskDataPoint[] }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function AISecurityAdvisorDashboard() {
-  const [recs, setRecs] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
-  const [stats, setStats] = useState<any[]>([]);
-  const [threatBriefing, setThreatBriefing] = useState<any[]>([]);
-  const [riskTimeline] = useState<RiskDataPoint[]>(MOCK_RISK_TIMELINE);
+  const [recs, setRecs] = useState<Recommendation[]>([]);
+  const [stats, setStats] = useState<any>({ total_recommendations: 0, critical_alerts: 0, risk_score_reduced: 0, insights_applied: 0 });
+  const [threatBriefing, setThreatBriefing] = useState<any>({ top_threats: [], recommended_actions: [], industry: "" });
+  const [riskTimeline] = useState<RiskDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -259,10 +259,11 @@ export default function AISecurityAdvisorDashboard() {
         apiFetch(`/api/v1/ai-advisor/recommendations?org_id=${ORG_ID}`),
         apiFetch(`/api/v1/ai-advisor/stats?org_id=${ORG_ID}`),
       ]);
-      if (Array.isArray(recsData)) setRecs(recsData);
-      if (statsData && typeof statsData === "object") setStats({ ...MOCK_STATS, ...statsData });
+      const items = Array.isArray(recsData) ? recsData : (recsData?.items ?? recsData?.recommendations ?? []);
+      setRecs(items);
+      if (statsData && typeof statsData === "object") setStats({ total_recommendations: items.length, critical_alerts: 0, risk_score_reduced: 0, insights_applied: 0, ...statsData });
     } catch {
-      // backend offline — mock data already shown
+      // backend offline — empty state will render
     } finally {
       setLoading(false);
     }
@@ -312,6 +313,8 @@ export default function AISecurityAdvisorDashboard() {
       setRecs(prev => prev.map(r => r.id === recId ? { ...r, status: status as RecStatus } : r));
     }
   }
+
+  if (loading && recs.length === 0) return <PageSkeleton />;
 
   const filteredRecs = recs.filter(r =>
     (priorityFilter === "all" || r.priority === priorityFilter) &&

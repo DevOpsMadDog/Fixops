@@ -421,16 +421,17 @@ export default function PostureAdvisor() {
   );
 
   // Fetch posture data
-  const { data: postureData, isLoading } = useQuery<PostureData>({
+  const { data: postureData, isLoading } = useQuery<PostureData | null>({
     queryKey: ["posture-advisor"],
     queryFn: async () => {
-      try {
-        const response = await fetch(`${API_BASE}/api/v1/posture-advisor/analyze?org_id=default`);
-        if (!response.ok) throw new Error("Failed to fetch");
-        return await response.json();
-      } catch {
-        return MOCK_POSTURE_DATA;
-      }
+      const response = await fetch(`${API_BASE}/api/v1/posture-advisor/analyze?org_id=juice-shop-corp`, {
+        headers: {
+          "X-API-Key": (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) || "",
+          "X-Org-ID": "juice-shop-corp",
+        },
+      });
+      if (!response.ok) return null;
+      return await response.json();
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -445,7 +446,31 @@ export default function PostureAdvisor() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const data: PostureData = postureData || MOCK_POSTURE_DATA;
+  if (!postureData) {
+    return (
+      <div className="space-y-8 p-6">
+        <PageHeader
+          title="Security Posture Advisor"
+          description="AI-powered improvement recommendations from your virtual CISO"
+        />
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-slate-700/50">
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center justify-center gap-4 text-center">
+              <ShieldCheck className="h-12 w-12 text-slate-500" />
+              <div>
+                <h3 className="text-lg font-semibold text-white">No posture analysis available</h3>
+                <p className="text-sm text-slate-400 max-w-md mt-1">
+                  Run a posture analysis from the Discover space, or wire a security source to populate recommendations.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const data: PostureData = postureData;
   const activeRecommendations = data.recommendations.filter(
     (r: Recommendation) => !dismissedRecommendations.has(r.id) && !acceptedRecommendations.has(r.id)
   );

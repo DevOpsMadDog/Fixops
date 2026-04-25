@@ -21,38 +21,25 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(buildApiUrl(path), {
     ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
+    headers: {
+      "X-API-Key": getStoredAuthToken(),
+      "X-Org-ID": getStoredOrgId(),
+      "Content-Type": "application/json",
+      ...(opts?.headers ?? {}),
+    },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_SEGMENTS = [
-  { id: "seg-001", name: "prod-web-tier",         segment_type: "application", enforcement_mode: "enforcing",  policy_count: 12, violation_count: 0 },
-  { id: "seg-002", name: "prod-db-tier",          segment_type: "database",    enforcement_mode: "enforcing",  policy_count: 8,  violation_count: 1 },
-  { id: "seg-003", name: "dev-workloads",         segment_type: "workload",    enforcement_mode: "monitoring", policy_count: 5,  violation_count: 3 },
-  { id: "seg-004", name: "iot-devices",           segment_type: "iot",         enforcement_mode: "enforcing",  policy_count: 15, violation_count: 7 },
-  { id: "seg-005", name: "corp-endpoints",        segment_type: "endpoint",    enforcement_mode: "monitoring", policy_count: 9,  violation_count: 2 },
-  { id: "seg-006", name: "payment-processing",    segment_type: "pci",         enforcement_mode: "enforcing",  policy_count: 22, violation_count: 0 },
-  { id: "seg-007", name: "dmz-external",          segment_type: "network",     enforcement_mode: "enforcing",  policy_count: 18, violation_count: 4 },
-  { id: "seg-008", name: "ml-training-cluster",   segment_type: "workload",    enforcement_mode: "disabled",   policy_count: 3,  violation_count: 9 },
-  { id: "seg-009", name: "backup-infra",          segment_type: "storage",     enforcement_mode: "monitoring", policy_count: 6,  violation_count: 0 },
-  { id: "seg-010", name: "mgmt-plane",            segment_type: "management",  enforcement_mode: "enforcing",  policy_count: 20, violation_count: 1 },
-];
-
-const MOCK_STATS = { total_segments: 87, policies: 342, open_violations: 27, high_violation_segments: 4 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -96,19 +83,23 @@ export default function MicrosegmentationPolicyDashboard() {
       apiFetch(`/api/v1/microsegmentation/segments?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/microsegmentation/stats?org_id=${ORG_ID}`),
     ]).then(([segRes, statsRes]) => {
-      if (segRes.status === "fulfilled") setLiveSegments(segRes.value?.segments ?? segRes.value ?? null);
+      if (segRes.status === "fulfilled") {
+        const v = segRes.value;
+        setLiveSegments(Array.isArray(v) ? v : (v?.segments ?? v?.items ?? []));
+      } else {
+        setLiveSegments([]);
+      }
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
+      setLoading(false);
     });
-    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
-  const segments = liveSegments ?? MOCK_SEGMENTS;
-  const stats    = liveStats    ?? MOCK_STATS;
+  const segments = liveSegments ?? [];
+  const stats    = liveStats    ?? { total_segments: 0, policies: 0, open_violations: 0, high_violation_segments: 0 };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+  if (loading) return <PageSkeleton />;
 
 
   return (
@@ -158,6 +149,9 @@ export default function MicrosegmentationPolicyDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {segments.length === 0 ? (
+            <EmptyState icon={Network} title="No segments registered" description="Configure microsegmentation policies to populate the segment registry." />
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -192,6 +186,7 @@ export default function MicrosegmentationPolicyDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

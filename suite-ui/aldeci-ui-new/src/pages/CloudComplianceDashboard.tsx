@@ -34,12 +34,17 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API helper ──────────────────────────────────────────────────────────────
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+const ORG_ID = "juice-shop-corp";
+
 const apiFetch = async (path: string) => {
-  const key =
-    localStorage.getItem("aldeci_api_key") ||
-    import.meta.env.VITE_API_KEY ||
-    "dev-key";
-  const res = await fetch(`/api/v1${path}`, { headers: { "X-API-Key": key } });
+  const sep = path.includes("?") ? "&" : "?";
+  const res = await fetch(buildApiUrl(`/api/v1${path}${sep}org_id=${ORG_ID}`), {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": getStoredOrgId() },
+  });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 };
@@ -162,10 +167,10 @@ function statusBadge(s: string) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function CloudComplianceDashboard() {
-  const [stats, setStats] = useState<typeof MOCK_STATS | null>(null);
-  const [assessments, setAssessments] = useState<typeof MOCK_ASSESSMENTS>([]);
-  const [failedControls, setFailedControls] = useState<typeof MOCK_FAILED_CONTROLS>([]);
-  const [remPlans, setRemPlans] = useState<typeof MOCK_REMEDIATION_PLANS>([]);
+  const [stats, setStats] = useState<any | null>(null);
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [failedControls, setFailedControls] = useState<any[]>([]);
+  const [remPlans, setRemPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
@@ -177,26 +182,25 @@ export default function CloudComplianceDashboard() {
       apiFetch("/cloud-compliance/controls?status=failed"),
       apiFetch("/cloud-compliance/remediation-plans"),
     ]);
-    if (statsRes.status === "fulfilled") setStats(statsRes.value);
-    else setStats(MOCK_STATS);
-    if (assRes.status === "fulfilled" && Array.isArray(assRes.value)) setAssessments(assRes.value);
-    else setAssessments(MOCK_ASSESSMENTS);
-    if (ctrlRes.status === "fulfilled" && Array.isArray(ctrlRes.value)) setFailedControls(ctrlRes.value);
-    else setFailedControls(MOCK_FAILED_CONTROLS);
-    if (remRes.status === "fulfilled" && Array.isArray(remRes.value)) setRemPlans(remRes.value);
-    else setRemPlans(MOCK_REMEDIATION_PLANS);
+    const norm = (v: any) => Array.isArray(v) ? v : (v?.items ?? []);
+    if (statsRes.status === "fulfilled") setStats(statsRes.value); else setStats(null);
+    setAssessments(assRes.status === "fulfilled" ? norm(assRes.value) : []);
+    setFailedControls(ctrlRes.status === "fulfilled" ? norm(ctrlRes.value) : []);
+    setRemPlans(remRes.status === "fulfilled" ? norm(remRes.value) : []);
     setLoading(false);
     setLastRefresh(new Date());
   };
 
   useEffect(() => { fetchAll(); }, []);
 
-  const liveStats = stats ?? MOCK_STATS;
-  const totalPassed = assessments.reduce((s, a) => s + (a.passed ?? 0), 0) || 375;
-  const totalFailed = assessments.reduce((s, a) => s + (a.failed ?? 0), 0) || 105;
+  if (loading && !stats) return <PageSkeleton />;
+
+  const liveStats = stats ?? { assessments_run: 0, frameworks_assessed: 0, total_controls: 0, pass_rate: 0, critical_failures: 0, remediation_plans_active: 0, avg_score_by_framework: {} };
+  const totalPassed = assessments.reduce((s, a) => s + (a.passed ?? 0), 0);
+  const totalFailed = assessments.reduce((s, a) => s + (a.failed ?? 0), 0);
   const overallScore = assessments.length > 0
     ? Math.round(assessments.reduce((s, a) => s + (a.score ?? 0), 0) / assessments.length * 10) / 10
-    : liveStats.pass_rate;
+    : (liveStats.pass_rate ?? 0);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -222,7 +226,7 @@ export default function CloudComplianceDashboard() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <KpiCard
             title="Frameworks Assessed"
-            value={liveStats.frameworks_assessed ?? MOCK_STATS.frameworks_assessed}
+            value={liveStats.frameworks_assessed ?? 0}
             icon={<BarChart3 className="h-4 w-4 text-blue-400" />}
             description="Unique frameworks scanned"
           />
@@ -241,7 +245,7 @@ export default function CloudComplianceDashboard() {
             title="Controls Failed"
             value={totalFailed}
             icon={<XCircle className="h-4 w-4 text-red-400" />}
-            description={`${liveStats.critical_failures ?? MOCK_STATS.critical_failures} critical`}
+            description={`${liveStats.critical_failures ?? 0} critical`}
             trend="down"
           />
         </motion.div>
@@ -266,7 +270,7 @@ export default function CloudComplianceDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(liveStats.avg_score_by_framework ?? MOCK_STATS.avg_score_by_framework).map(([fw, score]) => (
+              {Object.entries(liveStats.avg_score_by_framework ?? {}).map(([fw, score]) => (
                 <div key={fw} className="flex items-center gap-3">
                   <span className="w-32 shrink-0 text-xs text-slate-400">{fmLabel(fw)}</span>
                   <div className="flex-1 rounded-full bg-slate-800 h-2 overflow-hidden">
@@ -314,7 +318,7 @@ export default function CloudComplianceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(assessments.length > 0 ? assessments : MOCK_ASSESSMENTS).map((a) => (
+                {assessments.map((a) => (
                   <TableRow key={a.id} className="border-slate-800 hover:bg-slate-800/40">
                     <TableCell className="text-xs font-medium text-slate-300">
                       {PROVIDER_LABELS[a.cloud_provider] ?? a.cloud_provider.toUpperCase()}
@@ -354,12 +358,12 @@ export default function CloudComplianceDashboard() {
                 Failed Controls
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                {failedControls.length} failures — {liveStats.critical_failures ?? MOCK_STATS.critical_failures} critical
+                {failedControls.length} failures — {liveStats.critical_failures ?? 0} critical
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {(failedControls.length > 0 ? failedControls : MOCK_FAILED_CONTROLS).map((c) => (
+                {failedControls.map((c) => (
                   <div
                     key={c.id}
                     className={cn(
@@ -398,7 +402,7 @@ export default function CloudComplianceDashboard() {
                 Active Remediation Plans
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                {liveStats.remediation_plans_active ?? MOCK_STATS.remediation_plans_active} plans in progress or planned
+                {liveStats.remediation_plans_active ?? 0} plans in progress or planned
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -413,7 +417,7 @@ export default function CloudComplianceDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(remPlans.length > 0 ? remPlans : MOCK_REMEDIATION_PLANS).map((r) => (
+                  {remPlans.map((r) => (
                     <TableRow key={r.id} className="border-slate-800 hover:bg-slate-800/40">
                       <TableCell className="font-mono text-xs text-slate-300">{r.control_id}</TableCell>
                       <TableCell>

@@ -19,38 +19,23 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY } });
+  const res = await fetch(buildApiUrl(path), {
+    headers: {
+      "X-API-Key": getStoredAuthToken(),
+      "X-Org-ID": getStoredOrgId(),
+      "Content-Type": "application/json",
+    },
+  });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_ACCOUNTS = [
-  { id: "SA-001", name: "svc-deploy-prod",    system: "Kubernetes",  risk_score: 92, last_rotation: "182d ago", unused: false, action: "rotate_now"  },
-  { id: "SA-002", name: "svc-ci-runner",      system: "GitHub CI",   risk_score: 78, last_rotation: "96d ago",  unused: false, action: "rotate_soon" },
-  { id: "SA-003", name: "svc-db-backup",      system: "PostgreSQL",  risk_score: 85, last_rotation: "211d ago", unused: true,  action: "disable"     },
-  { id: "SA-004", name: "svc-monitoring",     system: "Prometheus",  risk_score: 31, last_rotation: "44d ago",  unused: false, action: "none"        },
-  { id: "SA-005", name: "svc-legacy-etl",     system: "Internal",    risk_score: 74, last_rotation: "365d ago", unused: true,  action: "review"      },
-  { id: "SA-006", name: "svc-s3-exporter",    system: "AWS",         risk_score: 88, last_rotation: "127d ago", unused: false, action: "rotate_now"  },
-  { id: "SA-007", name: "svc-ldap-sync",      system: "AD",          risk_score: 55, last_rotation: "61d ago",  unused: false, action: "rotate_soon" },
-  { id: "SA-008", name: "svc-k8s-autoscaler", system: "Kubernetes",  risk_score: 44, last_rotation: "38d ago",  unused: false, action: "none"        },
-];
-
-const MOCK_STATS = {
-  total_service_accounts: 47,
-  high_risk: 8,
-  unused_90d: 12,
-  overdue_rotations: 15,
-};
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -90,15 +75,18 @@ export default function ServiceAccountAuditDashboard() {
       apiFetch(`/api/v1/service-account-auditor/accounts?org_id=${ORG_ID}&limit=50`),
     ]).then(([statsR, accountsR]) => {
       const stats    = statsR.status    === "fulfilled" ? statsR.value    : null;
-      const accounts = accountsR.status === "fulfilled" ? accountsR.value : null;
-      if (stats || accounts) setLiveData({ stats, accounts });
+      const accountsRaw = accountsR.status === "fulfilled" ? accountsR.value : null;
+      const accounts = Array.isArray(accountsRaw) ? accountsRaw : (accountsRaw?.items ?? accountsRaw?.accounts ?? []);
+      setLiveData({ stats, accounts });
     }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
-  const stats    = liveData?.stats ?? MOCK_STATS;
-  const accounts = liveData?.accounts?.items ?? liveData?.accounts ?? MOCK_ACCOUNTS;
+  if (dataLoading && !liveData) return <PageSkeleton />;
+
+  const stats    = liveData?.stats ?? { total_service_accounts: 0, high_risk: 0, unused_90d: 0, overdue_rotations: 0 };
+  const accounts = liveData?.accounts ?? [];
 
   return (
     <motion.div
@@ -135,6 +123,9 @@ export default function ServiceAccountAuditDashboard() {
           <CardDescription className="text-xs">Risk-sorted service accounts with rotation status and recommended action</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {accounts.length === 0 ? (
+            <EmptyState icon={Users} title="No service accounts" description="Connect an IAM source to enumerate service accounts." />
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -184,6 +175,7 @@ export default function ServiceAccountAuditDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
