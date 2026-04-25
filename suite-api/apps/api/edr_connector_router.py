@@ -31,7 +31,7 @@ router = APIRouter(
 
 
 def _conn():
-    from core.connectors.edr_connector import get_edr_connector
+    from connectors.edr_connector import get_edr_connector
     return get_edr_connector()
 
 

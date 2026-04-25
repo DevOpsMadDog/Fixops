@@ -6412,6 +6412,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"EDR Engine router not loaded: {e}")
 
+    # EDR/XDR Connector — Falco + osquery + Wazuh ingest, mirror to findings + correlation
+    try:
+        from apps.api.edr_connector_router import router as edr_connector_router
+        app.include_router(edr_connector_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted EDR/XDR Connector router at /api/v1/connectors/edr")
+    except Exception as e:
+        _logger.warning(f"EDR/XDR Connector router not loaded: {e}")
+
     # Supply Chain Intelligence — package tracking, vuln/malicious flags, SBOM snapshots
     try:
         from apps.api.supply_chain_intel_router import router as supply_chain_intel_router
