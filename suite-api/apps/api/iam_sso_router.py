@@ -67,6 +67,17 @@ class SyncRequest(BaseModel):
                                   description="Skip Keycloak entirely; emit synthetic events")
 
 
+class IngestVendorRequest(BaseModel):
+    """Ingest already-collected events from a third-party IdP."""
+    vendor: str = Field(..., pattern=r"^(keycloak|okta|auth0|entra|azure_ad)$",
+                        description="IdP vendor whose raw event format to parse")
+    realm: str = Field(..., min_length=1, max_length=64,
+                       pattern=r"^[a-z0-9][a-z0-9_-]*$",
+                       description="Target realm / org_id for the events")
+    events: List[Dict[str, Any]] = Field(..., max_length=1000,
+                                         description="Raw vendor events (max 1000)")
+
+
 class ProviderEntry(BaseModel):
     alias: str
     implementation: str
@@ -129,3 +140,76 @@ def status() -> Dict[str, Any]:
 
 # Alias `/health` <=> `/status` is intentionally NOT collapsed:
 # /health includes a live Keycloak probe; /status is cache-only and cheap.
+
+
+@router.post("/ingest-vendor")
+def ingest_vendor(req: IngestVendorRequest) -> Dict[str, Any]:
+    """Ingest already-collected raw events from Okta / Auth0 / Entra / Keycloak.
+
+    Each event is normalized via the vendor adapter, then mirrored to the same
+    SecurityFindingsEngine + AccessAnomalyEngine path used by ``/sync``.
+    """
+    from connectors.iam_sso_connector import (  # local import keeps cold start cheap
+        normalize_vendor_event,
+        _login_to_finding_payload,
+        _admin_to_finding_payload,
+        _login_to_anomaly_event,
+        _safe_import_findings_engine,
+        _safe_import_anomaly_engine,
+        KC_LOGIN_EVENTS_HIGH,
+        KC_ADMIN_EVENTS_HIGH,
+    )
+
+    findings_engine = _safe_import_findings_engine()
+    anomaly_engine = _safe_import_anomaly_engine()
+
+    accepted = 0
+    skipped = 0
+    findings_emitted = 0
+    anomaly_emitted = 0
+    errors: List[str] = []
+
+    for raw in req.events:
+        try:
+            kc_ev = normalize_vendor_event(req.vendor, raw, req.realm)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if kc_ev is None:
+            skipped += 1
+            continue
+        accepted += 1
+        # Login-shape events have a top-level 'type'; admin-shape have 'operationType'.
+        if "type" in kc_ev:
+            payload = _login_to_finding_payload(kc_ev)
+            if payload and findings_engine is not None:
+                try:
+                    findings_engine.record_finding(org_id=req.realm, **payload)
+                    findings_emitted += 1
+                except Exception as exc:
+                    errors.append(f"finding: {exc}")
+            anom = _login_to_anomaly_event(kc_ev)
+            if anom and anomaly_engine is not None:
+                try:
+                    anomaly_engine.record_event(org_id=req.realm, **anom)
+                    anomaly_emitted += 1
+                except Exception as exc:
+                    errors.append(f"anomaly: {exc}")
+        elif "operationType" in kc_ev:
+            payload = _admin_to_finding_payload(kc_ev)
+            if payload and findings_engine is not None:
+                try:
+                    findings_engine.record_finding(org_id=req.realm, **payload)
+                    findings_emitted += 1
+                except Exception as exc:
+                    errors.append(f"finding: {exc}")
+
+    return {
+        "vendor": req.vendor,
+        "realm": req.realm,
+        "events_received": len(req.events),
+        "events_accepted": accepted,
+        "events_skipped_irrelevant": skipped,
+        "findings_emitted": findings_emitted,
+        "anomaly_events_emitted": anomaly_emitted,
+        "errors": errors,
+    }
