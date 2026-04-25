@@ -48,6 +48,85 @@ def _get_engine(org_id: str):
 
 
 # ---------------------------------------------------------------------------
+# SecurityFindingsEngine mirror — mirrors the SAST router's `_persist_sast_findings`
+# pattern in suite-api/apps/api/sast_router.py. Without this the customer-facing
+# dashboard (/api/v1/security-findings/findings?source_tool=secret_scanner) shows
+# empty even though the engine recorded findings.
+# ---------------------------------------------------------------------------
+
+_SEVERITY_TO_CVSS = {
+    "critical": 9.5,
+    "high": 7.5,
+    "medium": 5.0,
+    "low": 3.0,
+    "info": 1.0,
+}
+
+
+def _mirror_secret_findings_to_dashboard(
+    org_id: str,
+    job_id: str,
+    findings: List[Dict[str, Any]],
+) -> int:
+    """Mirror secret-scanner findings to SecurityFindingsEngine.
+
+    Stable ``correlation_key = secret_scanner|<secret_type>|<file_path>:<line>``
+    so re-scans dedup and lifecycle works. Returns count successfully mirrored.
+    """
+    if not findings or not org_id:
+        return 0
+    try:
+        from core.security_findings_engine import SecurityFindingsEngine
+    except ImportError:
+        _logger.exception("SecurityFindingsEngine import failed; cannot mirror")
+        return 0
+
+    sfe = SecurityFindingsEngine()
+    mirrored = 0
+    for f in findings:
+        try:
+            severity = (f.get("severity") or "medium").lower()
+            cvss = _SEVERITY_TO_CVSS.get(severity, 5.0)
+            file_path = f.get("file_path") or "unknown"
+            line = f.get("line_number") or 0
+            secret_type = f.get("secret_type") or "generic"
+            corr_key = f"secret_scanner|{secret_type}|{file_path}:{line}"
+            title = f"Secret leaked: {secret_type} in {file_path}"
+            description = (
+                f"Secret of type '{secret_type}' detected in {file_path}:{line}. "
+                f"Masked value: {f.get('value_masked', 'N/A')}, "
+                f"entropy: {f.get('entropy', 'N/A')}."
+            )
+            remediation = (
+                "Rotate the credential immediately, remove from the file, "
+                "and scrub from git history."
+            )
+            sfe.record_finding(
+                org_id=org_id,
+                title=title,
+                finding_type="secret",
+                source_tool="secret_scanner",
+                severity=severity,
+                cvss_score=cvss,
+                asset_id=file_path,
+                asset_type="source_file",
+                description=description,
+                remediation=remediation,
+                correlation_key=corr_key,
+                scan_id=job_id,
+            )
+            mirrored += 1
+        except (OSError, ValueError, KeyError, RuntimeError, TypeError):
+            _logger.exception(
+                "Failed to mirror secret finding to SecurityFindingsEngine "
+                "(org_id=%s, finding_id=%s)",
+                org_id,
+                f.get("id"),
+            )
+    return mirrored
+
+
+# ---------------------------------------------------------------------------
 # Request models
 # ---------------------------------------------------------------------------
 
@@ -128,12 +207,28 @@ def start_scan(
     job_id: str,
     org_id: str = Query(..., description="Organization ID"),
 ) -> Dict[str, Any]:
-    """Start a pending scan job (runs simulation synchronously)."""
+    """Start a pending scan job (runs simulation synchronously).
+
+    Findings are mirrored to ``SecurityFindingsEngine`` so the customer-facing
+    dashboard at ``/api/v1/security-findings/findings?source_tool=secret_scanner``
+    is populated. Mirror count is returned in the ``mirrored_count`` field.
+    """
     engine = _get_engine(org_id)
     try:
-        return engine.start_scan(org_id, job_id)
+        result = engine.start_scan(org_id, job_id)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+    # Mirror findings to SecurityFindingsEngine (mirrors SAST router pattern).
+    try:
+        job_with_findings = engine.get_scan_job(org_id, job_id) or {}
+        findings = job_with_findings.get("findings", []) or []
+        mirrored = _mirror_secret_findings_to_dashboard(org_id, job_id, findings)
+        result["mirrored_count"] = mirrored
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:
+        _logger.exception("Mirror to SecurityFindingsEngine failed: %s", exc)
+        result["mirrored_count"] = 0
+    return result
 
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])

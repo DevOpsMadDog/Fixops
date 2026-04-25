@@ -129,7 +129,7 @@ import { Button } from "@/components/ui/button";
 import { CopilotSidebar } from "./CopilotSidebar";
 import { NotificationBell } from "./NotificationBell";
 import { GlobalSearch } from "./GlobalSearch";
-import { useAuth } from "@/lib/auth";
+import { useAuth, isDevBypassActive } from "@/lib/auth";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -1090,6 +1090,16 @@ export function WorkspaceLayout() {
               <Breadcrumbs navGroups={filteredNavGroups} pathname={location.pathname} />
 
               <div className="flex items-center gap-1.5 shrink-0">
+                {/* Dev-bypass badge — visible only when auth has been bypassed */}
+                {isDevBypassActive() && (
+                  <span
+                    data-testid="dev-bypass-badge"
+                    title="Auth bypass active — Vite dev mode or FIXOPS_VISUAL_VERIFY=1"
+                    className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400"
+                  >
+                    DEV MODE
+                  </span>
+                )}
                 {/* Global search — also triggered by Cmd+K  */}
                 {searchOpen && (
                   <div className="contents">

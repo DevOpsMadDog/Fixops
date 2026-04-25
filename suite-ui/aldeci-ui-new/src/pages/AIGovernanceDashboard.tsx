@@ -201,6 +201,7 @@ export default function AIGovernanceDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -219,6 +220,9 @@ export default function AIGovernanceDashboard() {
           <CardDescription className="text-xs">Model incidents including hallucinations, bias, data leaks, and adversarial events</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {incidents.length === 0 ? (
+            <EmptyState icon={AlertTriangle} title="No AI incidents" description="No model incidents reported." />
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -245,6 +249,7 @@ export default function AIGovernanceDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

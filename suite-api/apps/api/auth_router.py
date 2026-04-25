@@ -1,16 +1,215 @@
 """
 SSO/SAML authentication API endpoints.
 """
+import logging
+import os
+import sqlite3
+import uuid
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import jwt
 from apps.api.auth_deps import api_key_auth
 from core.auth_db import AuthDB
 from core.auth_models import AuthProvider, SSOConfig, SSOStatus
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+_logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 db = AuthDB()
+
+# ---------------------------------------------------------------------------
+# Dev-token endpoint — gated by FIXOPS_DEV_MODE=true
+# ---------------------------------------------------------------------------
+
+_DEV_TOKEN_JWT_ALG = "HS256"
+_DEV_TOKEN_TTL_SECONDS = 3600
+_DEV_TOKEN_AUDIT_DB = Path(os.getenv("FIXOPS_DEV_TOKEN_AUDIT_DB", "data/dev_token_audit.db"))
+
+
+def _is_dev_mode_enabled() -> bool:
+    """Return True if FIXOPS_DEV_MODE env var is truthy ('true', '1', 'yes')."""
+    val = os.getenv("FIXOPS_DEV_MODE", "").strip().lower()
+    return val in ("true", "1", "yes", "on")
+
+
+def _get_dev_jwt_secret() -> str:
+    """Return the JWT secret used by the production auth flow.
+
+    Falls back to a dev-only secret when FIXOPS_JWT_SECRET is not set, mirroring
+    auth_middleware.py default. The minted JWT is validated by auth_deps which
+    requires FIXOPS_JWT_SECRET >= 32 chars in production.
+    """
+    secret = os.getenv("FIXOPS_JWT_SECRET", "").strip()
+    if not secret:
+        # Dev-mode default — matches auth_middleware.py's dev fallback.
+        secret = "fixops-dev-secret-change-in-production-min-32-chars"
+    return secret
+
+
+def _ensure_dev_token_audit_table() -> None:
+    """Create the dev_token_audit table if absent (idempotent)."""
+    _DEV_TOKEN_AUDIT_DB.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(_DEV_TOKEN_AUDIT_DB))
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dev_token_audit (
+                id TEXT PRIMARY KEY,
+                org_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                email TEXT NOT NULL,
+                minted_at TEXT NOT NULL,
+                ip TEXT NOT NULL DEFAULT 'unknown'
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_dev_token_audit_org ON dev_token_audit(org_id)"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _record_dev_token_audit(org_id: str, role: str, email: str, ip: str) -> str:
+    """Insert an audit row for a dev-token mint. Returns the audit row ID."""
+    _ensure_dev_token_audit_table()
+    audit_id = str(uuid.uuid4())
+    conn = sqlite3.connect(str(_DEV_TOKEN_AUDIT_DB))
+    try:
+        conn.execute(
+            "INSERT INTO dev_token_audit (id, org_id, role, email, minted_at, ip) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                audit_id,
+                org_id,
+                role,
+                email,
+                datetime.now(timezone.utc).isoformat(),
+                ip,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return audit_id
+
+
+_ROLE_DEFAULT_SCOPES = {
+    "admin": ["admin:all"],
+    "analyst": [
+        "read:findings",
+        "write:findings",
+        "read:graph",
+        "read:sbom",
+        "read:feeds",
+        "read:evidence",
+        "write:evidence",
+    ],
+    "viewer": [
+        "read:findings",
+        "read:graph",
+        "read:sbom",
+        "read:feeds",
+        "read:evidence",
+    ],
+}
+
+
+class DevTokenRequest(BaseModel):
+    """Request body for /api/v1/auth/dev-token."""
+
+    org_id: str = Field(default="default", min_length=1, max_length=128)
+    role: str = Field(default="admin", min_length=1, max_length=64)
+    email: str = Field(default="dev@verify", min_length=1, max_length=255)
+
+
+class DevTokenUser(BaseModel):
+    """User identity bundled with dev-minted token."""
+
+    sub: str
+    email: str
+    role: str
+    org_id: str
+    scopes: List[str]
+
+
+class DevTokenResponse(BaseModel):
+    """Response from /api/v1/auth/dev-token."""
+
+    access_token: str
+    token_type: str = "Bearer"
+    expires_in: int = _DEV_TOKEN_TTL_SECONDS
+    user: DevTokenUser
+
+
+@router.post(
+    "/dev-token",
+    response_model=DevTokenResponse,
+    status_code=200,
+    summary="Mint a short-lived JWT for local dev / Playwright (FIXOPS_DEV_MODE=true required)",
+)
+async def mint_dev_token(req: DevTokenRequest, request: Request) -> DevTokenResponse:
+    """Mint a short-lived JWT for dev/Playwright workflows.
+
+    Gated by FIXOPS_DEV_MODE=true. In production this returns 403.
+    Every successful mint is audit-logged with org_id, role, email, IP.
+    """
+    if not _is_dev_mode_enabled():
+        raise HTTPException(status_code=403, detail="dev mode disabled")
+
+    org_id = req.org_id
+    role = req.role
+    email = req.email
+    sub = f"dev-{email}"
+    scopes = _ROLE_DEFAULT_SCOPES.get(role, ["read:findings"])
+
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": sub,
+        "email": email,
+        "role": role,
+        "org_id": org_id,
+        "scopes": scopes,
+        "iat": now,
+        "exp": now + timedelta(seconds=_DEV_TOKEN_TTL_SECONDS),
+        "dev_token": True,
+    }
+    secret = _get_dev_jwt_secret()
+    access_token = jwt.encode(payload, secret, algorithm=_DEV_TOKEN_JWT_ALG)
+
+    client_ip = "unknown"
+    if request.client and request.client.host:
+        client_ip = request.client.host
+
+    try:
+        _record_dev_token_audit(org_id=org_id, role=role, email=email, ip=client_ip)
+    except (sqlite3.Error, OSError) as exc:
+        # Audit failure should not block dev-token issuance, but log loudly.
+        _logger.warning("DEV-TOKEN audit insert failed: %s", exc)
+
+    _logger.warning(
+        "DEV-TOKEN MINTED for org_id=%s role=%s — DO NOT USE IN PROD",
+        org_id,
+        role,
+    )
+
+    return DevTokenResponse(
+        access_token=access_token,
+        token_type="Bearer",
+        expires_in=_DEV_TOKEN_TTL_SECONDS,
+        user=DevTokenUser(
+            sub=sub,
+            email=email,
+            role=role,
+            org_id=org_id,
+            scopes=scopes,
+        ),
+    )
 
 
 class SSOConfigCreate(BaseModel):
