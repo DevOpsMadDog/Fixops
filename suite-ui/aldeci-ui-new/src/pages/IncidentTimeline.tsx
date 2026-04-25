@@ -567,7 +567,7 @@ export default function IncidentTimeline() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const data = incidentsData ?? ({} as any);
+  const data = (incidentsData ?? ({} as any)) as IncidentsData;
   const detail = incidentDetail ?? ({} as any)[selectedId];
 
   return (

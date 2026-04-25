@@ -505,7 +505,7 @@ export default function ExecutiveRiskReport() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const d = report ?? ({} as any);
+  const d = (report ?? ({} as any)) as ExecutiveReportData;
 
   // Overlay live data onto the report where available
   const liveScore: number =
