@@ -12,11 +12,11 @@ import {
   BarChart2, Send, PlusCircle, Lock, Globe, Users, CheckCircle2, Clock, XCircle,
 } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
@@ -84,7 +84,7 @@ const MOCK_REPORTS = [
       { section_name: "Security Culture", type: "culture", score: 81, status: "green", content: "Training completion 97%, phishing resilience score +15 pts YoY." },
     ],
     metrics: [
-      { metric_name: "Incidents Resolved", value: 1247, unit: "", previous_value: 1089, trend: "flat", benchmark_value: 1200 },
+      { metric_name: "Incidents Resolved", value: 1247, unit: "", previous_value: 1089, trend: "stable", benchmark_value: 1200 },
       { metric_name: "Awareness Score", value: 87.3, unit: "%", previous_value: 79.1, trend: "improving", benchmark_value: 80.0 },
     ],
     trend_history: {
@@ -149,6 +149,17 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
   const barColor = pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-yellow-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2 w-full">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
         <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
       </div>
@@ -161,14 +172,12 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
 
 export default function PostureReportingDashboard() {
   const [selectedReport, setSelectedReport] = useState(MOCK_REPORTS[0]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [metricFilter, setMetricFilter] = useState(selectedReport.metrics[0].metric_name);
 
   useEffect(() => {
-    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newReport, setNewReport] = useState({ name: "", type: "monthly", audience: "ciso", period_start: "", period_end: "" });
@@ -180,10 +189,6 @@ export default function PostureReportingDashboard() {
   const published = MOCK_REPORTS.filter(r => r.status === "published").length;
   const avgScore = Math.round(MOCK_REPORTS.reduce((a, r) => a + r.overall_score, 0) / MOCK_REPORTS.length);
   const drafts = MOCK_REPORTS.filter(r => r.status === "draft").length;
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

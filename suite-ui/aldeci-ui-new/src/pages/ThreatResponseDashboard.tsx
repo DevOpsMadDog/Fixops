@@ -111,6 +111,17 @@ function ActionStatusBadge({ s }: { s: ActionStatus }) {
 function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.ElementType; label: string; value: string | number; sub?: string; color: string }) {
   return (
     <div className="bg-gray-800 rounded-lg p-6 flex items-start gap-4">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className={cn("p-3 rounded-lg", color)}><Icon className="w-5 h-5" /></div>
       <div>
         <p className="text-gray-400 text-sm">{label}</p>
@@ -125,17 +136,15 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function ThreatResponseDashboard() {
   const [selectedIncident, setSelectedIncident] = useState(MOCK_INCIDENTS[0]);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch(`${_API_BASE}/incidents/active?org_id=default`, { headers: _getHeaders() })
+    fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedIncident(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [resolveMsg, setResolveMsg] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const actions = MOCK_ACTIONS[selectedIncident.id] ?? [];
   const activeIncidents = MOCK_INCIDENTS.filter(i => !resolved.has(i.id));
@@ -166,10 +175,10 @@ export default function ThreatResponseDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Play}         title="Total Playbooks"      value={MOCK_PLAYBOOKS.length}  color="bg-blue-500/20 text-blue-400" />
-        <KpiCard icon={AlertTriangle} title="Active Incidents"    value={activeIncidents.length} color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={CheckCircle}  title="Resolved"             value={resolved.size}           sub="this session"                 color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={Clock}        title="Avg Resolution"       value="47m"                     sub="last 30 days"                 color="bg-yellow-500/20 text-yellow-400" />
+        <KpiCard icon={Play}         label="Total Playbooks"      value={MOCK_PLAYBOOKS.length}  color="bg-blue-500/20 text-blue-400" />
+        <KpiCard icon={AlertTriangle} label="Active Incidents"    value={activeIncidents.length} color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={CheckCircle}  label="Resolved"             value={resolved.size}           sub="this session"                 color="bg-emerald-500/20 text-emerald-400" />
+        <KpiCard icon={Clock}        label="Avg Resolution"       value="47m"                     sub="last 30 days"                 color="bg-yellow-500/20 text-yellow-400" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -180,9 +189,6 @@ export default function ThreatResponseDashboard() {
             <div className="space-y-3">
               {MOCK_INCIDENTS.map(inc => {
                 const isResolved = resolved.has(inc.id);
-
-                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
                 return (
                   <button key={inc.id} onClick={() => !isResolved && setSelectedIncident(inc)}
                     className={cn("w-full bg-gray-900 rounded-lg px-4 py-3 text-left transition-all border",

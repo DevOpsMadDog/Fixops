@@ -17,11 +17,11 @@ import { motion } from "framer-motion";
 import { BarChart2, AlertTriangle, CheckCircle, Clock, Shield, FileSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
@@ -120,19 +120,18 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 
 export default function GapAnalysisDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadData = () => {
     setFetchError(null);
-    return apiFetch(`/api/v1/gap-analysis/assessments?org_id=${ORG_ID}`).catch((err) => {
+    apiFetch(`/api/v1/gap-analysis/assessments?org_id=${ORG_ID}`).catch((err) => {
       setFetchError(err instanceof Error ? err.message : "Failed to load gap analysis data");
     });
   };
 
   useEffect(() => {
-    loadData().finally(() => setLoading(false));
+    loadData();
   }, []);
 
   const today = new Date("2026-04-16");
@@ -174,9 +173,9 @@ export default function GapAnalysisDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <KpiCard icon={BarChart2}    title="Total Gaps"        value={MOCK_GAPS.length} color="bg-purple-500/20 text-purple-400" />
-        <KpiCard icon={AlertTriangle} title="Open Gaps"        value={openGaps.length}  color="bg-orange-500/20 text-orange-400" />
-        <KpiCard icon={Shield}       title="Critical Open"     value={critOpen.length}  color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={BarChart2}    label="Total Gaps"        value={MOCK_GAPS.length} color="bg-purple-500/20 text-purple-400" />
+        <KpiCard icon={AlertTriangle} label="Open Gaps"        value={openGaps.length}  color="bg-orange-500/20 text-orange-400" />
+        <KpiCard icon={Shield}       label="Critical Open"     value={critOpen.length}  color="bg-red-500/20 text-red-400" />
       </div>
 
       {/* Framework Coverage Grid */}
@@ -254,9 +253,6 @@ export default function GapAnalysisDashboard() {
           <div className="space-y-2">
             {displayedGaps.map(g => {
               const overdue = g.status === "open" && new Date(g.due_date) < today;
-
-              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
               return (
                 <div key={g.id} className={cn("bg-gray-900 rounded-lg px-4 py-3 flex items-center gap-3", overdue && "border border-red-500/30")}>
                   <code className="text-xs text-cyan-300 font-mono w-28 flex-shrink-0">{g.control_id}</code>

@@ -12,11 +12,11 @@ import {
   RefreshCw, UserCheck, Activity, Key, Eye, Users,
 } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
@@ -94,6 +94,17 @@ function AnomalyBar({ score }: { score: number }) {
   const color = score >= 70 ? "bg-red-500" : score >= 40 ? "bg-yellow-500" : "bg-green-500";
   return (
     <div className="flex items-center gap-2">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="w-20 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
         <div className={cn("h-full rounded-full", color)} style={{ width: `${score}%` }} />
       </div>
@@ -106,7 +117,6 @@ function AnomalyBar({ score }: { score: number }) {
 
 export default function PrivilegedIdentityDashboard() {
   const [certifyTarget, setCertifyTarget] = useState("");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [certifiedSet, setCertifiedSet] = useState<Set<string>>(
     new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id))
@@ -114,8 +124,7 @@ export default function PrivilegedIdentityDashboard() {
   const [rotatedSet, setRotatedSet] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    apiFetch(`/api/v1/privileged-identity/summary?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/privileged-identity/accounts?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const highRisk = MOCK_ACCOUNTS.filter(a => ["critical","high"].includes(a.risk_level)).length;
@@ -174,9 +183,6 @@ export default function PrivilegedIdentityDashboard() {
                   const { days, needsRotation: needs } = rotationAge(a.password_last_rotated);
                   const isRotated = rotatedSet.has(a.id);
                   const isCertified = certifiedSet.has(a.id);
-
-                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
                   return (
                     <tr key={a.id} className="border-b border-zinc-700/50 hover:bg-zinc-700/20">
                       <td className="py-2 px-2 font-mono text-zinc-200">{a.username}</td>

@@ -107,30 +107,22 @@ function krProgress(kr: KeyResult) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecurityOKRDashboard() {
-  const [objectives, setObjectives] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [objectives, setObjectives] = useState(MOCK_OBJECTIVES);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/objectives?org_id=default`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const [period, setPeriod] = useState<Period>("Q2 2026");
   const [selectedObjective, setSelectedObjective] = useState<string>(MOCK_OBJECTIVES[0].id);
   const [updateKR, setUpdateKR] = useState<string | null>(null);
   const [updateValue, setUpdateValue] = useState("");
-  useEffect(() => {
-    fetch(`${_API_BASE}/objectives?org_id=default`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
-  }, []);
   const [updateNotes, setUpdateNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const filteredObjectives = MOCK_OBJECTIVES.filter(o => o.period === period);
 
@@ -153,6 +145,17 @@ export default function SecurityOKRDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -314,9 +317,6 @@ export default function SecurityOKRDashboard() {
           {teams.map(team => {
             const teamObjs = filteredObjectives.filter(o => o.team === team);
             const avg = Math.round(teamObjs.reduce((s, o) => s + o.overall_progress, 0) / (teamObjs.length || 1));
-
-            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
             return (
               <div key={team} className="bg-gray-700/50 rounded-lg p-4 text-center">
                 <p className="text-gray-300 text-xs font-medium mb-2">{team}</p>

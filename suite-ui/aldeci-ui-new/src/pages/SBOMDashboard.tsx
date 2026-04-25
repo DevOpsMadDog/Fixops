@@ -21,14 +21,14 @@ import {
 } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -110,6 +110,17 @@ function AssetTypeBadge({ type }: { type: string }) {
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[type] ?? "border-border")}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {type}
     </Badge>
   );
@@ -140,13 +151,13 @@ function VulnCount({ count }: { count: number }) {
 
 export default function SBOMDashboard() {
   const [sboms, setSboms] = useState<any[]>(MOCK_SBOMS);
-  const [stats, setStats] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState(MOCK_STATS);
   const [selectedSbom, setSelectedSbom] = useState<any | null>(null);
   const [components, setComponents] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const ORG_ID = "aldeci-demo";
 
@@ -184,7 +195,7 @@ export default function SBOMDashboard() {
     apiFetch(`/api/v1/sbom/assets/${sbom.id}/components?org_id=${ORG_ID}`).then((data) => {
       if (Array.isArray(data) && data.length > 0) setComponents(data);
       else if (Array.isArray(data?.components) && data.components.length > 0) setComponents(data.components);
-    }).catch((e) => setError(e?.message || 'Failed to load data'));
+    }).catch(() => { setError('Failed to load data'); });
   };
 
   const handleExport = async (sbomId: string, format: string) => {

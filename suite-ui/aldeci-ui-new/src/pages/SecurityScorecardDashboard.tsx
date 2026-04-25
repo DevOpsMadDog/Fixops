@@ -133,6 +133,17 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
   const colors = gradeColor(grade);
   return (
     <div className="flex flex-col items-center gap-3">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div
         className={cn(
           "w-36 h-36 rounded-full border-8 flex flex-col items-center justify-center shadow-lg transition-all",
@@ -162,18 +173,16 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
 
 export default function SecurityScorecardDashboard() {
   const [scorecard, setScorecard] = useState<ScorecardData>(MOCK_SCORECARD);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     apiFetch(`/api/v1/security-scorecard/?org_id=${ORG_ID}`).then((d) => {
       if (d?.overall_score !== undefined) setScorecard(d);
-    }).catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+    }).catch(() => { setError('Failed to load data'); });
   }, []);
   const [generated, setGenerated] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -333,9 +342,6 @@ export default function SecurityScorecardDashboard() {
               {TREND_DATA.map((pt, i) => {
                 const pct = scoreToPercent(pt.score);
                 const isLatest = i === TREND_DATA.length - 1;
-
-                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
                 return (
                   <div key={pt.day} className="flex-1 flex flex-col items-center gap-0.5">
                     <span className="text-[9px] text-muted-foreground tabular-nums">{pt.score}</span>

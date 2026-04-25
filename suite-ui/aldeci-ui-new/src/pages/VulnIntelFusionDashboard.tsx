@@ -26,7 +26,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
@@ -34,7 +34,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
     ...opts,
   });
@@ -133,6 +133,17 @@ function FusionBar({ score }: { score: number }) {
   const color = score >= 90 ? "bg-red-500" : score >= 70 ? "bg-orange-500" : score >= 50 ? "bg-yellow-500" : "bg-green-500";
   return (
     <div className="flex items-center gap-2">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
         <div className={cn("h-full rounded-full", color)} style={{ width: `${score}%` }} />
       </div>
@@ -145,14 +156,12 @@ function FusionBar({ score }: { score: number }) {
 
 export default function VulnIntelFusionDashboard() {
   const [selectedCve, setSelectedCve] = useState<string>("CVE-2024-3400");
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/vuln-intel-fusion/summary?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [form, setForm] = useState({
     cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "",
@@ -172,10 +181,6 @@ export default function VulnIntelFusionDashboard() {
 
   const sources = MOCK_SOURCES[selectedCve] ?? [];
   const assets  = MOCK_ASSETS[selectedCve] ?? [];
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">

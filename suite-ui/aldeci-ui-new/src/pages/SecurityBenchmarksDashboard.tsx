@@ -97,6 +97,17 @@ function Sparkline({ values }: { values: number[] }) {
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
   return (
     <svg width="60" height={SPARKLINE_HEIGHT} className="flex-shrink-0">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <path d={path} fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -117,14 +128,12 @@ const SECTORS: Sector[] = ["all", "financial", "technology", "healthcare", "manu
 
 export default function SecurityBenchmarksDashboard() {
   const [sectorFilter, setSectorFilter] = useState<Sector>("all");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/security-benchmarks", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const filtered = sectorFilter === "all"
@@ -204,9 +213,6 @@ export default function SecurityBenchmarksDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map(metric => {
           const pct = percentilePosition(metric);
-
-          if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
           return (
             <div key={metric.id} className="bg-gray-800 rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">

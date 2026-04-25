@@ -12,11 +12,11 @@ import { useState, useEffect, type ReactNode } from "react";
 import { Eye, Search, Zap, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
@@ -58,6 +58,17 @@ function ConfidenceBar({ score }: { score: number }) {
   const color = confidenceColor(score);
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="flex-1 bg-gray-700 rounded-full h-2">
         <div className="h-2 rounded-full transition-all" style={{ width: `${score * 100}%`, backgroundColor: color }} />
       </div>
@@ -151,18 +162,16 @@ function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ThreatIntelConfidenceDashboard() {
-  const [iocs, setIocs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [iocs, setIocs] = useState(MOCK_IOCS);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v1/ti-confidence/summary?org_id=${ORG_ID}`).then((d) => {
+    apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`).then((d) => {
       if (Array.isArray(d?.iocs)) setIocs(d.iocs);
       else if (Array.isArray(d)) setIocs(d);
-    }).catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+    }).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const filtered = search
@@ -184,10 +193,6 @@ export default function ThreatIntelConfidenceDashboard() {
       setExpiring(false);
     }, 1000);
   }
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

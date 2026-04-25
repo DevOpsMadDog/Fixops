@@ -56,11 +56,11 @@ export default function RansomwareProtectionDashboard() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`${API_BASE}/detections?org_id=default`, { headers: getHeaders() })
+      fetch(`${API_BASE}/patterns`, { headers: getHeaders() })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => { if (Array.isArray(d)) setPatterns(d); })
         .catch(() => { setError('Failed to load data'); }),
-      fetch(`${API_BASE}/backups?org_id=default`, { headers: getHeaders() })
+      fetch(`${API_BASE}/backup-status`, { headers: getHeaders() })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => { if (d && typeof d === "object") setBackup(d); })
         .catch(() => { setError('Failed to load data'); }),
@@ -73,17 +73,17 @@ export default function RansomwareProtectionDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">

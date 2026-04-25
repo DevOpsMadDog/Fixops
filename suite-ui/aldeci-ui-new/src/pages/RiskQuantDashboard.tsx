@@ -26,15 +26,15 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "juice-shop-corp";
+const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
     ...opts,
   });
@@ -93,6 +93,17 @@ function RiskBadge({ level }: { level: string }) {
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[level] ?? "border-border text-muted-foreground")}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {level}
     </Badge>
   );
@@ -134,14 +145,12 @@ function PctBar({ pct, color = "bg-blue-500" }: { pct: number; color?: string })
 
 export default function RiskQuantDashboard() {
   const [scenarioFilter, setScenarioFilter] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/risk-quant/summary?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [form, setForm] = useState({
     scenario_name: "", asset_name: "", threat_actor: "", threat_type: "ransomware",
@@ -364,9 +373,6 @@ export default function RiskQuantDashboard() {
             {MOCK_SNAPSHOTS.map((snap, i) => {
               const maxAle = Math.max(...MOCK_SNAPSHOTS.map(s => s.total_ale));
               const pct = (snap.total_ale / maxAle) * 100;
-
-              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
               return (
                 <div key={i} className="flex items-center gap-3">
                   <span className="text-[11px] text-muted-foreground w-24 shrink-0">{snap.snapshot_date}</span>

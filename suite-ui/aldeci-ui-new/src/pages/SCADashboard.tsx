@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Package, AlertTriangle, FileWarning, RefreshCw, Scale } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
   import.meta.env.VITE_API_KEY ||
@@ -21,7 +21,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });
@@ -68,6 +68,17 @@ function RiskBadge({ level }: { level: string }) {
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[level] ?? "border-border")}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {level}
     </Badge>
   );
@@ -93,15 +104,13 @@ function LangBadge({ lang }: { lang: string }) {
 
 export default function SCADashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const stats    = liveData ?? MOCK_STATS;
@@ -111,13 +120,9 @@ export default function SCADashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .catch(() => { setError('Failed to load data'); })
       .finally(() => setRefreshing(false));
   };
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <motion.div
@@ -126,17 +131,6 @@ export default function SCADashboard() {
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
     >
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); handleRefresh(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
       <PageHeader
         title="Software Composition Analysis"
         description="Open-source dependency scanning for vulnerabilities and license compliance"

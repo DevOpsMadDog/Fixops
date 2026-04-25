@@ -42,11 +42,11 @@ const DOMAIN_SCORES: DomainScore[] = [
   { domain: "network",     label: "Network",     latest_score: 78, baseline_score: 70, trend: "improving", change: +8  },
   { domain: "endpoint",    label: "Endpoint",    latest_score: 65, baseline_score: 72, trend: "declining", change: -7  },
   { domain: "cloud",       label: "Cloud",       latest_score: 82, baseline_score: 80, trend: "improving", change: +2  },
-  { domain: "identity",    label: "Identity",    latest_score: 71, baseline_score: 71, trend: "flat",    change:  0  },
+  { domain: "identity",    label: "Identity",    latest_score: 71, baseline_score: 71, trend: "stable",    change:  0  },
   { domain: "application", label: "Application", latest_score: 58, baseline_score: 65, trend: "declining", change: -7  },
   { domain: "data",        label: "Data",        latest_score: 84, baseline_score: 75, trend: "improving", change: +9  },
   { domain: "compliance",  label: "Compliance",  latest_score: 91, baseline_score: 88, trend: "improving", change: +3  },
-  { domain: "physical",    label: "Physical",    latest_score: 76, baseline_score: 76, trend: "flat",    change:  0  },
+  { domain: "physical",    label: "Physical",    latest_score: 76, baseline_score: 76, trend: "stable",    change:  0  },
 ];
 
 const SNAPSHOTS: Snapshot[] = [
@@ -100,17 +100,15 @@ function scoreBarColor(score: number) {
 
 export default function PostureHistoryDashboard() {
   const [period, setPeriod] = useState<Period>("weekly");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch(`${_API_BASE}/snapshots?org_id=default`, { headers: _getHeaders() })
+    fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const [selectedDomain, setSelectedDomain] = useState<Domain>("network");
@@ -122,17 +120,17 @@ export default function PostureHistoryDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -195,9 +193,6 @@ export default function PostureHistoryDashboard() {
         <div className="flex items-end gap-2 h-40">
           {trendPoints.map((val, i) => {
             const heightPct = range === 0 ? 50 : ((val - minVal) / range) * 80 + 10;
-
-            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-xs text-gray-400">{val}</span>

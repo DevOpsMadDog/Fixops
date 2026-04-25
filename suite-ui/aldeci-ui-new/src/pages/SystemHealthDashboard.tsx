@@ -14,11 +14,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
@@ -174,6 +174,17 @@ function ScoreGauge({ score }: { score: number }) {
 
   return (
     <div className="flex flex-col items-center gap-2">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <svg width="180" height="100" viewBox="0 0 180 100" className="overflow-visible">
         {/* Track */}
         <path
@@ -218,16 +229,14 @@ function ScoreGauge({ score }: { score: number }) {
 
 export default function SystemHealthDashboard() {
   const [health, setHealth] = useState<HealthData>(MOCK_HEALTH);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "healthy" | "degraded" | "unavailable">("all");
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/system-health/?org_id=${ORG_ID}`).then((d) => {
       if (d?.score !== undefined) setHealth(d);
-    }).catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+    }).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const handleRefresh = () => {
@@ -249,10 +258,6 @@ export default function SystemHealthDashboard() {
       return (a.last_updated ?? "").localeCompare(b.last_updated ?? "");
     })
     .slice(0, 8);
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <motion.div

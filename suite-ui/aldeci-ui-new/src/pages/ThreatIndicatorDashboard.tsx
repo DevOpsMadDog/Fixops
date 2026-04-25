@@ -37,16 +37,16 @@ const typeColor: Record<string, string> = {
 
 export default function ThreatIndicatorDashboard() {
   const [indicators, setIndicators] = useState<Indicator[]>(MOCK_INDICATORS);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/indicators?org_id=default`, { headers: getHeaders() })
+    fetch(`${API_BASE}/indicators`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setIndicators(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
+      .catch(() => { setError('Failed to load data'); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -57,17 +57,17 @@ export default function ThreatIndicatorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">

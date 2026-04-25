@@ -108,6 +108,17 @@ function MetricGauge({ label, value, max, unit, color }: {
 
   return (
     <div className="flex flex-col items-center">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <svg viewBox="0 0 180 140" className="w-44 h-32">
         <path
           d={`M ${arcX(startAngle)} ${arcY(startAngle)} A ${r} ${r} 0 1 1 ${arcX(trackEnd)} ${arcY(trackEnd)}`}
@@ -163,15 +174,13 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function SecurityOperationsMetricsDashboard() {
-  const [queue, setQueue] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [queue, setQueue] = useState(MOCK_QUEUE);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch(`${_API_BASE}/summary?org_id=default`, { headers: _getHeaders() })
+    fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   function ackAlert(id: string) {
@@ -180,10 +189,6 @@ export default function SecurityOperationsMetricsDashboard() {
   function resolveAlert(id: string) {
     setQueue(prev => prev.map(a => a.id === id ? { ...a, status: "resolved" } : a));
   }
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -219,8 +224,8 @@ export default function SecurityOperationsMetricsDashboard() {
       {/* Gauges + trend */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-gray-800 rounded-lg p-6 flex items-center justify-around">
-          <MetricGauge title="MTTD" value={MOCK_STATS.mttd_minutes} max={120} unit="minutes" color="#14b8a6" />
-          <MetricGauge title="MTTR" value={MOCK_STATS.mttr_minutes} max={480} unit="minutes" color="#f97316" />
+          <MetricGauge label="MTTD" value={MOCK_STATS.mttd_minutes} max={120} unit="minutes" color="#14b8a6" />
+          <MetricGauge label="MTTR" value={MOCK_STATS.mttr_minutes} max={480} unit="minutes" color="#f97316" />
         </div>
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">7-Day Snapshot Trend</h2>

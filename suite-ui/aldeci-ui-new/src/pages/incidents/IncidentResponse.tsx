@@ -8,7 +8,7 @@
  * Route: /incidents
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Siren,
@@ -1001,19 +1001,141 @@ function IncidentRow({
 // Main page
 // ═══════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════
+// API → frontend mapping
+// ═══════════════════════════════════════════════════════════
+
+const STATUS_TO_STATE: Record<string, IRState> = {
+  detected: "DETECTED",
+  triaging: "TRIAGING",
+  investigating: "TRIAGING",
+  containing: "CONTAINING",
+  contained: "CONTAINING",
+  eradicating: "ERADICATING",
+  eradicated: "ERADICATING",
+  recovering: "RECOVERING",
+  recovered: "RECOVERING",
+  closed: "CLOSED",
+  resolved: "CLOSED",
+};
+
+function mapApiIncident(raw: Record<string, unknown>): Incident | null {
+  try {
+    const state = STATUS_TO_STATE[(String(raw.status ?? "detected")).toLowerCase()] ?? "DETECTED";
+    const severity = (["critical", "high", "medium", "low"].includes(String(raw.severity ?? "").toLowerCase())
+      ? String(raw.severity).toLowerCase()
+      : "medium") as Severity;
+    const type = (Object.keys(TYPE_META).includes(String(raw.type ?? ""))
+      ? String(raw.type)
+      : "zero_day") as IncidentType;
+    const detectedAt = raw.created_at ? new Date(String(raw.created_at)) : new Date();
+    const updatedAt = raw.updated_at ? new Date(String(raw.updated_at)) : detectedAt;
+    const slaHours = severity === "critical" ? 4 : severity === "high" ? 12 : severity === "medium" ? 48 : 168;
+    const sla_breach_at = new Date(detectedAt.getTime() + slaHours * 3_600_000);
+
+    const steps = Array.isArray(raw.steps) ? raw.steps : [];
+    const checklist: ChecklistItem[] = steps.map((s: Record<string, unknown>, idx: number) => ({
+      id: String(s.id ?? `step-${idx}`),
+      label: String(s.description ?? s.title ?? `Step ${idx + 1}`),
+      assignee: s.assignee ? String(s.assignee) : undefined,
+      done: s.status === "completed" || s.completed === true,
+      phase: STATUS_TO_STATE[String(s.phase ?? "detected").toLowerCase()] ?? state,
+    }));
+
+    const timelineRaw = Array.isArray(raw.timeline) ? raw.timeline : [];
+    const timeline: TimelineEvent[] = timelineRaw.map((t: Record<string, unknown>, idx: number) => ({
+      id: String(t.id ?? `tl-${idx}`),
+      ts: t.timestamp ? new Date(String(t.timestamp)) : detectedAt,
+      actor: String(t.author ?? t.actor ?? "System"),
+      action: String(t.event_description ?? t.action ?? ""),
+      detail: t.detail ? String(t.detail) : undefined,
+      type: (["detection", "action", "escalation", "update", "resolution"].includes(String(t.type ?? ""))
+        ? String(t.type)
+        : "update") as TimelineEvent["type"],
+    }));
+
+    const findingsRaw = Array.isArray(raw.findings) ? raw.findings : [];
+    const findings: LinkedFinding[] = findingsRaw.map((f: Record<string, unknown>, idx: number) => ({
+      id: String(f.id ?? f.finding_id ?? `f-${idx}`),
+      title: String(f.title ?? f.description ?? "Finding"),
+      severity: (["critical", "high", "medium", "low"].includes(String(f.severity ?? "").toLowerCase())
+        ? String(f.severity).toLowerCase()
+        : "medium") as Severity,
+      source: String(f.source ?? "API"),
+      cve: f.cve ? String(f.cve) : undefined,
+    }));
+
+    return {
+      id: String(raw.id ?? raw.incident_id ?? `INC-${Date.now()}`),
+      title: String(raw.title ?? "Untitled Incident"),
+      type,
+      severity,
+      state,
+      summary: String(raw.description ?? raw.summary ?? ""),
+      affectedAssets: Array.isArray(raw.affected_assets) ? raw.affected_assets.map(String) : [],
+      owner: String(raw.reported_by ?? raw.owner ?? "unassigned"),
+      team: Array.isArray(raw.team) ? raw.team.map(String) : [String(raw.reported_by ?? "unassigned")],
+      detectedAt,
+      updatedAt,
+      sla_breach_at,
+      checklist,
+      timeline,
+      findings,
+      mttr_est_hours: Number(raw.mttr_est_hours ?? slaHours),
+      tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [type],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function IncidentResponse() {
+  const [incidents, setIncidents] = useState<Incident[]>(MOCK_INCIDENTS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(MOCK_INCIDENTS[0].id);
   const [search, setSearch] = useState("");
   const [filterState, setFilterState] = useState<IRState | "ALL">("ALL");
   const [filterSeverity, setFilterSeverity] = useState<Severity | "ALL">("ALL");
 
+  // Fetch incidents from real API, fall back to MOCK_INCIDENTS
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchIncidents() {
+      try {
+        setLoading(true);
+        setError(null);
+        const resp = await fetch("/api/v1/incidents?org_id=default");
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const rawList: Record<string, unknown>[] = Array.isArray(data) ? data : (data.incidents ?? []);
+        if (!cancelled && rawList.length > 0) {
+          const mapped = rawList.map(mapApiIncident).filter(Boolean) as Incident[];
+          if (mapped.length > 0) {
+            setIncidents(mapped);
+            setSelectedId(mapped[0].id);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load incidents");
+          // Keep MOCK_INCIDENTS as fallback — already set as initial state
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchIncidents();
+    return () => { cancelled = true; };
+  }, []);
+
   const selectedIncident = useMemo(
-    () => MOCK_INCIDENTS.find((i) => i.id === selectedId) ?? null,
-    [selectedId]
+    () => incidents.find((i) => i.id === selectedId) ?? null,
+    [selectedId, incidents]
   );
 
   const filtered = useMemo(() => {
-    return MOCK_INCIDENTS.filter((inc) => {
+    return incidents.filter((inc) => {
       if (filterState !== "ALL" && inc.state !== filterState) return false;
       if (filterSeverity !== "ALL" && inc.severity !== filterSeverity) return false;
       if (search) {
@@ -1027,18 +1149,18 @@ export default function IncidentResponse() {
       }
       return true;
     });
-  }, [search, filterState, filterSeverity]);
+  }, [search, filterState, filterSeverity, incidents]);
 
   // KPI counts
   const kpis = useMemo(() => ({
-    active: MOCK_INCIDENTS.filter((i) => i.state !== "CLOSED").length,
-    critical: MOCK_INCIDENTS.filter((i) => i.severity === "critical" && i.state !== "CLOSED").length,
-    slaBreached: MOCK_INCIDENTS.filter((i) => i.sla_breach_at.getTime() < now.getTime() && i.state !== "CLOSED").length,
+    active: incidents.filter((i) => i.state !== "CLOSED").length,
+    critical: incidents.filter((i) => i.severity === "critical" && i.state !== "CLOSED").length,
+    slaBreached: incidents.filter((i) => i.sla_breach_at.getTime() < now.getTime() && i.state !== "CLOSED").length,
     avgMttr: Math.round(
-      MOCK_INCIDENTS.filter((i) => i.state === "CLOSED").reduce((acc, i) => acc + i.mttr_est_hours, 0) /
-        Math.max(MOCK_INCIDENTS.filter((i) => i.state === "CLOSED").length, 1)
+      incidents.filter((i) => i.state === "CLOSED").reduce((acc, i) => acc + i.mttr_est_hours, 0) /
+        Math.max(incidents.filter((i) => i.state === "CLOSED").length, 1)
     ),
-  }), []);
+  }), [incidents]);
 
   return (
     <TooltipProvider>
@@ -1089,6 +1211,20 @@ export default function IncidentResponse() {
             description="Mean time to resolve (closed)"
           />
         </div>
+
+        {/* Loading / Error banners */}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse shrink-0">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading incidents from API...
+          </div>
+        )}
+        {error && !loading && (
+          <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded-lg px-3 py-2 shrink-0">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>API unavailable ({error}) — showing cached demo data</span>
+          </div>
+        )}
 
         {/* Main split layout */}
         <div className="flex gap-4 flex-1 min-h-0">
@@ -1144,7 +1280,7 @@ export default function IncidentResponse() {
                 </button>
               ))}
               <span className="ml-auto text-[10px] text-muted-foreground/50">
-                {filtered.length} of {MOCK_INCIDENTS.length}
+                {filtered.length} of {incidents.length}
               </span>
             </div>
 

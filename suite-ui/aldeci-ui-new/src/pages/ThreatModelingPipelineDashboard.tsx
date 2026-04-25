@@ -129,6 +129,17 @@ function RiskGauge({ score }: { score: 1 | 2 | 3 | 4 }) {
   const cfg = RISK_SCORE_CONFIG[score];
   return (
     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold ${cfg.bg} ${cfg.color}`}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {Array.from({ length: 4 }, (_, i) => (
         <span key={i} className={`w-2 h-2 rounded-sm ${i < score ? "" : "opacity-20"}`}
           style={{ backgroundColor: i < score ? (score === 4 ? "#ef4444" : score === 3 ? "#f97316" : score === 2 ? "#eab308" : "#6b7280") : "#374151" }} />
@@ -154,19 +165,17 @@ function MatrixCell({ likelihood, impact }: { likelihood: number; impact: number
 
 export default function ThreatModelingPipelineDashboard() {
   const [showAddPanel, setShowAddPanel] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch(`${_API_BASE}/models?org_id=default`, { headers: _getHeaders() })
+    fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [mitigating, setMitigating] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);
   const [mitigatedIds, setMitigatedIds] = useState<Set<string>>(new Set());
   const [newThreat, setNewThreat] = useState({ name: "", stride: "Spoofing", likelihood: "3", impact: "3" });
-  const [error, setError] = useState<string | null>(null);
 
   function handleMitigate(id: string) {
     setMitigating(id);
@@ -292,9 +301,6 @@ export default function ThreatModelingPipelineDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {STRIDE_STATS.map((s) => {
             const pct = Math.round((s.mitigated / s.count) * 100);
-
-            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
             return (
               <div key={s.category} className="bg-gray-700/50 rounded-lg p-3 text-center">
                 <div className={`text-xs font-bold mb-1 px-1 py-0.5 rounded ${RISK_LEVEL_COLOR[s.risk_level]}`}>

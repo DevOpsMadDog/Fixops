@@ -108,6 +108,17 @@ function FormatBadge({ fmt: f }: { fmt: string }) {
 function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.ElementType; label: string; value: string | number; sub?: string; color: string }) {
   return (
     <div className="bg-gray-800 rounded-lg p-6 flex items-start gap-4">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className={cn("p-3 rounded-lg", color)}>
         <Icon className="w-5 h-5" />
       </div>
@@ -124,18 +135,16 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function SBOMExportDashboard() {
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch(`${_API_BASE}/projects?org_id=default`, { headers: _getHeaders() })
+    fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);
   const [exportMsg, setExportMsg] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const filteredComponents = MOCK_COMPONENTS.filter(c =>
     c.component_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -150,10 +159,6 @@ export default function SBOMExportDashboard() {
     setExportMsg(`Generating ${format} export for "${selectedProject.project_name}"…`);
     setTimeout(() => setExportMsg(`${format} export ready — ${selectedProject.component_count} components`), 1500);
   }
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -183,10 +188,10 @@ export default function SBOMExportDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Package}       title="Total Projects"    value={MOCK_PROJECTS.length} sub="active repositories"        color="bg-cyan-500/20 text-cyan-400" />
-        <KpiCard icon={FileText}      title="Total Components"  value={totalComponents.toLocaleString()} sub="unique packages"  color="bg-blue-500/20 text-blue-400" />
-        <KpiCard icon={AlertTriangle} title="Open Vulns"        value={totalVulns}            sub="across all projects"        color="bg-orange-500/20 text-orange-400" />
-        <KpiCard icon={Shield}        title="Critical Vulns"    value={totalCritical}          sub="require immediate action"   color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={Package}       label="Total Projects"    value={MOCK_PROJECTS.length} sub="active repositories"        color="bg-cyan-500/20 text-cyan-400" />
+        <KpiCard icon={FileText}      label="Total Components"  value={totalComponents.toLocaleString()} sub="unique packages"  color="bg-blue-500/20 text-blue-400" />
+        <KpiCard icon={AlertTriangle} label="Open Vulns"        value={totalVulns}            sub="across all projects"        color="bg-orange-500/20 text-orange-400" />
+        <KpiCard icon={Shield}        label="Critical Vulns"    value={totalCritical}          sub="require immediate action"   color="bg-red-500/20 text-red-400" />
       </div>
 
       {/* Project Cards */}

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
@@ -45,14 +45,12 @@ const priorityBadge = (p: string) => {
 
 export default function ProgramMaturityDashboard() {
   const [activeTab, setActiveTab] = useState<"domains" | "assessments" | "roadmap">("domains");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterDomain, setFilterDomain] = useState("all");
   const [showAddDomain, setShowAddDomain] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [showAddImprovement, setShowAddImprovement] = useState(false);
   const [newDomain, setNewDomain] = useState({ domain_name: "", domain_type: "identity", current_level: 1, target_level: 3 });
@@ -68,17 +66,17 @@ export default function ProgramMaturityDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Security Program Maturity</h1>
@@ -258,9 +256,6 @@ export default function ProgramMaturityDashboard() {
               {filteredImprovements.map(i => {
                 const domain = domains.find(d => d.id === i.domain_id);
                 const overdue = i.status !== "completed" && i.due_date < today;
-
-                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
                 return (
                   <div key={i.id} className="p-4 flex items-center gap-4">
                     <div className="flex-1">

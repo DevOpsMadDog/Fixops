@@ -176,18 +176,16 @@ const ALL_TOOLS = ["all", ...Array.from(new Set(FINDINGS.map(f => f.source_tool)
 
 export default function SecurityFindingsDashboard() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState("all");
   useEffect(() => {
-    fetch(`${_API_BASE}/findings?org_id=default`, { headers: _getHeaders() })
+    fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTool, setFilterTool] = useState("all");
-  const [error, setError] = useState<string | null>(null);
 
   const filtered = FINDINGS.filter(f =>
     (filterSeverity === "all" || f.severity === filterSeverity) &&
@@ -211,6 +209,17 @@ export default function SecurityFindingsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -249,9 +258,6 @@ export default function SecurityFindingsDashboard() {
           </div>
           {(["critical","high","medium","low"] as const).map(sev => {
             const pct = Math.round((bySeverity[sev] / FINDINGS.length) * 100);
-
-            if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
             return (
               <div key={sev} className="mb-3">
                 <div className="flex justify-between text-xs mb-1">

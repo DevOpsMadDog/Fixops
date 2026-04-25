@@ -157,14 +157,12 @@ function cellColor(l: number, i: number): string {
 
 export default function RiskScenarioDashboard() {
   const [selectedScenario, setSelectedScenario] = useState<RiskScenario | null>(SCENARIOS[0]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/v1/risk-scenarios", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [sortField, setSortField] = useState<"residual_risk" | "inherent_risk">("residual_risk");
 
@@ -181,17 +179,17 @@ export default function RiskScenarioDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -326,9 +324,6 @@ export default function RiskScenarioDashboard() {
             <div className="text-xs text-gray-400 font-medium mb-2">Distribution by Level</div>
             {(["critical","high","medium","low"] as const).map(lvl => {
               const pct = Math.round((byLevel[lvl] / SCENARIOS.length) * 100);
-
-              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
               return (
                 <div key={lvl}>
                   <div className="flex justify-between text-xs mb-1">
