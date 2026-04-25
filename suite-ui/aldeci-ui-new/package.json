@@ -23,6 +23,7 @@
     "test:e2e:5space": "playwright test e2e/ctem-5-space-ui.spec.ts"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-checkbox": "^1.1.3",
