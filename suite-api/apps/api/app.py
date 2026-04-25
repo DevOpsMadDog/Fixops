@@ -8822,9 +8822,18 @@ def create_app() -> FastAPI:
 
         # Onboarding bug #5 (2026-04-24): /openapi.json (and /docs, /redoc)
         # used to fall through to index.html so the marketing landing page
-        # was returned to anyone hitting the standard FastAPI URLs. Block
-        # those passthroughs so developers evaluating ALDECI can discover
-        # the API spec at the canonical location.
+        # was returned to anyone hitting the standard FastAPI URLs. Two-part
+        # fix:
+        #   (a) explicit alias registered BEFORE the catch-all (route order
+        #       matters in FastAPI — first match wins)
+        #   (b) catch-all gates a hardcoded set of API-doc paths so future
+        #       additions / typos still 404 cleanly
+        from fastapi.responses import RedirectResponse as _SpaRedirect
+
+        @app.get("/openapi.json", include_in_schema=False)
+        async def _openapi_alias():
+            return _SpaRedirect(url="/api/v1/openapi.json", status_code=307)
+
         _API_DOC_PATHS = {"openapi.json", "docs", "redoc", "docs/oauth2-redirect"}
 
         @app.get("/{full_path:path}", include_in_schema=False)
@@ -8838,15 +8847,6 @@ def create_app() -> FastAPI:
             if full_path and os.path.isfile(candidate):
                 return FileResponse(candidate)
             return FileResponse(os.path.join(_ui_dist, "index.html"))
-
-        # Alias: /openapi.json → /api/v1/openapi.json (the actual schema URL).
-        # Customers + tooling like Postman/openapi-typescript expect this to
-        # exist at the canonical root URL.
-        from fastapi.responses import RedirectResponse as _SpaRedirect
-
-        @app.get("/openapi.json", include_in_schema=False)
-        async def _openapi_alias():
-            return _SpaRedirect(url="/api/v1/openapi.json", status_code=307)
 
         _logger.info("Mounted React SPA from %s (last — after all %d routers)", _ui_dist, len(app.routes))
     else:
