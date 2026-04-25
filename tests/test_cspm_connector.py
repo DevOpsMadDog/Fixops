@@ -230,3 +230,191 @@ resource "aws_s3_bucket_public_access_block" "bad" {
     # Either CLI succeeded OR sample fallback fired; both must produce ingestion.
     assert r["trivy"]["findings_count"] >= 1
     assert r["trivy"]["ingested_count"] >= 1
+
+
+# ---------------------------------------------------------------------------
+# Bulk + multi-tenant attribution
+# ---------------------------------------------------------------------------
+
+
+def test_bulk_15_tenants_no_cross_pollination(connector, isolated_engines):
+    """Scan 15 tenants — every finding tagged with the correct org_id."""
+    tenants = [f"tenant-{i:02d}-corp" for i in range(15)]
+    for t in tenants:
+        connector.scan_tenant(org_id=t, provider="aws", run_agentless=False)
+    db_path = isolated_engines / "security_findings_engine.db"
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT org_id, COUNT(*) FROM security_findings GROUP BY org_id"
+        ).fetchall()
+    counts = dict(rows)
+    for t in tenants:
+        assert counts.get(t, 0) >= 12, f"tenant {t} undercount: {counts.get(t)}"
+
+
+def test_disabled_tools_skip_in_results(connector):
+    r = connector.scan_tenant(
+        org_id="disabled-corp",
+        provider="aws",
+        run_prowler=False,
+        run_checkov=False,
+        run_trivy=False,
+        run_cloudsploit=False,
+        run_agentless=False,
+    )
+    assert "prowler" not in r
+    assert "checkov" not in r
+    assert "trivy" not in r
+    assert "cloudsploit" not in r
+    assert "agentless" not in r
+    assert r["_summary"]["ingested_total"] == 0
+
+
+def test_correlation_keys_dedupe_across_repeated_scans(connector, isolated_engines):
+    """Two consecutive scans for same tenant must NOT duplicate rows."""
+    connector.scan_tenant(org_id="dedup-corp", provider="aws", run_agentless=False)
+    connector.scan_tenant(org_id="dedup-corp", provider="aws", run_agentless=False)
+    db_path = isolated_engines / "security_findings_engine.db"
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT correlation_key, COUNT(*) FROM security_findings "
+            "WHERE org_id = ? GROUP BY correlation_key",
+            ("dedup-corp",),
+        ).fetchall()
+    # Each correlation_key recorded exactly once (occurrence_count handles repeat).
+    multiples = [r for r in rows if r[1] > 1]
+    assert multiples == [], f"Unexpected duplicates: {multiples}"
+
+
+def test_provider_azure_accepted(connector):
+    r = connector.scan_tenant(org_id="azure-corp", provider="azure", run_agentless=False)
+    assert r["_summary"]["provider"] == "azure"
+
+
+def test_provider_gcp_accepted(connector):
+    r = connector.scan_tenant(org_id="gcp-corp", provider="gcp", run_agentless=False)
+    assert r["_summary"]["provider"] == "gcp"
+
+
+def test_endpoint_with_https_scheme_accepted(connector):
+    r = connector.scan_tenant(
+        org_id="https-corp",
+        provider="aws",
+        localstack_endpoint="https://localstack.example.com:4566",
+        run_agentless=False,
+    )
+    assert r["_summary"]["org_id"] == "https-corp"
+
+
+def test_empty_endpoint_allowed(connector):
+    """Empty endpoint = real-cloud mode. Scan must still succeed."""
+    r = connector.scan_tenant(
+        org_id="real-cloud",
+        provider="aws",
+        localstack_endpoint="",
+        run_agentless=False,
+    )
+    assert r["_summary"]["ingested_total"] > 0
+
+
+def test_finding_severities_normalised_to_known_set(connector, isolated_engines):
+    connector.scan_tenant(org_id="sev-corp", provider="aws", run_agentless=False)
+    db_path = isolated_engines / "security_findings_engine.db"
+    with sqlite3.connect(db_path) as conn:
+        sevs = {row[0] for row in conn.execute(
+            "SELECT DISTINCT severity FROM security_findings WHERE org_id = ?",
+            ("sev-corp",),
+        )}
+    assert sevs.issubset({"critical", "high", "medium", "low", "info"})
+
+
+def test_cvss_score_clamped_0_10(connector, isolated_engines):
+    connector.scan_tenant(org_id="cvss-corp", provider="aws", run_agentless=False)
+    db_path = isolated_engines / "security_findings_engine.db"
+    with sqlite3.connect(db_path) as conn:
+        scores = [row[0] for row in conn.execute(
+            "SELECT cvss_score FROM security_findings WHERE org_id = ?",
+            ("cvss-corp",),
+        )]
+    assert scores, "no findings recorded"
+    for s in scores:
+        assert 0.0 <= float(s) <= 10.0
+
+
+def test_finding_types_categorised(connector, isolated_engines):
+    """Cloud-misconfig vs IaC-misconfig must be tagged correctly."""
+    connector.scan_tenant(org_id="type-corp", provider="aws", run_agentless=False)
+    db_path = isolated_engines / "security_findings_engine.db"
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT source_tool, finding_type FROM security_findings WHERE org_id = ?",
+            ("type-corp",),
+        ).fetchall()
+    cloud_tools = {r[0] for r in rows if r[1] == "cloud_misconfig"}
+    iac_tools = {r[0] for r in rows if r[1] == "iac_misconfig"}
+    assert "cspm_via_prowler" in cloud_tools
+    assert "cspm_via_cloudsploit" in cloud_tools
+    assert "cspm_via_checkov" in iac_tools
+    assert "cspm_via_trivy" in iac_tools
+
+
+def test_long_org_id_at_max_boundary(connector):
+    """org_id of 128 chars is the upper boundary — must be accepted."""
+    boundary = "a" * 128
+    r = connector.scan_tenant(org_id=boundary, provider="aws", run_agentless=False)
+    assert r["_summary"]["org_id"] == boundary
+
+
+def test_org_id_too_long_rejected(connector):
+    with pytest.raises(ValueError):
+        connector.scan_tenant(org_id="a" * 129, provider="aws", run_agentless=False)
+
+
+def test_org_id_with_dots_dashes_underscores_accepted(connector):
+    r = connector.scan_tenant(org_id="acme.corp_2026-prod", provider="aws", run_agentless=False)
+    assert r["_summary"]["org_id"] == "acme.corp_2026-prod"
+
+
+def test_status_endpoint_via_router(monkeypatch):
+    """The CSPM connector router exposes /status for ops dashboards."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from apps.api.cspm_connector_router import router
+
+    # Bypass api_key_auth in the test app instance.
+    app = FastAPI()
+    app.include_router(router)
+    # Replace the auth dependency to a no-op for the test client.
+    from apps.api import cspm_connector_router as mod
+
+    mod._connector = CSPMConnector(prowler_path=None, checkov_path=None, trivy_path=None)
+    try:
+        from apps.api.auth_deps import api_key_auth as real_auth
+        app.dependency_overrides[real_auth] = lambda: None
+    except Exception:
+        pass
+    client = TestClient(app)
+    r = client.get("/api/v1/connectors/cspm/status")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["connector"] == "cspm_oss"
+    assert "tools" in body
+    assert "prowler_cli" in body["tools"]
+
+
+def test_health_endpoint_via_router():
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from apps.api.cspm_connector_router import router
+
+    app = FastAPI()
+    app.include_router(router)
+    try:
+        from apps.api.auth_deps import api_key_auth as real_auth
+        app.dependency_overrides[real_auth] = lambda: None
+    except Exception:
+        pass
+    client = TestClient(app)
+    r = client.get("/api/v1/connectors/cspm/health")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
