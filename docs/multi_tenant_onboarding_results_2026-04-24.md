@@ -200,3 +200,90 @@ PYTHONPATH=$(pwd):$(pwd)/suite-api:$(pwd)/suite-core:$(pwd)/suite-attack:$(pwd)/
 ---
 
 **Beast Mode test status**: 716 / 716 passing (zero regressions confirmed).
+
+---
+
+## POST-SBOM (2026-04-25)
+
+> **Mission**: Generate real SBOMs for each of the 15 tenants by parsing their
+> dependency manifests (`package.json`, `package-lock.json`, `pyproject.toml`,
+> `requirements.txt`, `pom.xml`, `build.gradle`) and POSTing every component
+> through the **real** `/api/v1/sbom-export/components` ingestion endpoint —
+> no direct DB writes, no `engine.bulk_*` shortcuts.
+>
+> **Outcome**: 2,782 components ingested across 15 tenants. Every tenant
+> returns a real, populated CycloneDX 1.6 SBOM via
+> `GET /api/v1/sbom-export/cyclonedx?org_id=<slug>&project_name=<repo>`.
+
+### Real ingestion path (per tenant)
+
+```
+1. parse manifest(s) in /tmp/fixops-fleet/<repo>/
+   → npm:    package-lock.json (preferred) + package.json
+   → pypi:   pyproject.toml + requirements*.txt
+   → maven:  pom.xml
+   → gradle: build.gradle
+2. for each (name, version, ecosystem, license):
+     POST /api/v1/sbom-export/components
+       body: {org_id, project_name, component_name, component_version,
+              component_type=library, ecosystem, license, purl}
+3. GET  /api/v1/sbom-export/cyclonedx?org_id=...&project_name=...
+   → verify components.length > 0 in returned CycloneDX 1.6 BOM
+```
+
+### POST-SBOM Component Counts (verified via real CycloneDX endpoint)
+
+| # | Org slug | Repo | Manifests | Components |
+|---|---|---|---|---|
+| 1 | `juice-shop-corp` | juice-shop | package.json | **140** |
+| 2 | `node-goat-inc` | NodeGoat | package-lock.json + package.json | **1,110** |
+| 3 | `webgoat-llc` | WebGoat | pom.xml | **63** |
+| 4 | `vulnado-co` | vulnado | build.gradle | **3** |
+| 5 | `dvna-systems` | dvna | package.json | **19** |
+| 6 | `express-corp` | express | package.json | **44** |
+| 7 | `fastify-inc` | fastify | package.json | **50** |
+| 8 | `axios-llc` | axios | package-lock.json + package.json | **686** |
+| 9 | `lodash-co` | lodash | package-lock.json + package.json | **610** |
+| 10 | `requests-corp` | requests | pyproject.toml + requirements-dev.txt + setup.py | **10** |
+| 11 | `fastapi-inc` | fastapi | pyproject.toml | **5** |
+| 12 | `flask-llc` | flask | pyproject.toml | **6** |
+| 13 | `django-corp` | django | pyproject.toml | **9** |
+| 14 | `httpx-co` | httpx | pyproject.toml + requirements.txt | **19** |
+| 15 | `anthropic-sdk-corp` | anthropic-sdk-python | pyproject.toml | **8** |
+|   | **TOTAL** |   |   | **2,782** |
+
+### Sample verification (juice-shop-corp)
+
+```bash
+$ curl -s -H "X-API-Key: $FIXOPS_API_KEY" \
+    "http://127.0.0.1:8000/api/v1/sbom-export/cyclonedx?org_id=juice-shop-corp&project_name=juice-shop" \
+    | jq '{bomFormat, specVersion, components: (.components | length)}'
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "components": 140
+}
+```
+
+### Engine state after POST-SBOM
+
+| Engine | Tenants with data | Total rows |
+|---|---|---|
+| `fixops_brain.db`            | 15 / 15 | (unchanged from pre-SBOM)        |
+| `activity_feed.db`           | 15 / 15 | (unchanged from pre-SBOM)        |
+| `onboarding.db`              | 15 / 15 | (unchanged from pre-SBOM)        |
+| **`sbom_export_engine.db`**  | **15 / 15** | **2,782 components**         |
+
+### Multi-tenant isolation re-verified
+
+`GET /api/v1/sbom-export/cyclonedx?org_id=juice-shop-corp&project_name=lodash`
+returns `components: 0` — no cross-tenant bleed. Each tenant's CycloneDX BOM
+contains only its own components.
+
+### Ingestion path artifacts
+
+- Parser + ingester: `/tmp/sbom_ingest.py` (urllib only, no extra deps,
+  retry-with-backoff for 429/5xx)
+- Result manifest: `/tmp/sbom_ingest_results.json`
+- Per-tenant verification: `/tmp/sbom_final_verify.json`
+- Run log: `/tmp/sbom_ingest.log` (and `_retry.log` for backfill run)
