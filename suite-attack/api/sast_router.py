@@ -106,26 +106,44 @@ def _sanitize_filename(filename: str) -> str:
     return safe or "input.txt"
 
 
-def _persist_sast_findings(findings: list, app_id: str | None = None) -> int:
-    """Persist SAST findings to AnalyticsDB so they appear in triage/risk.
+_SEVERITY_TO_CVSS = {"critical": 9.0, "high": 7.5, "medium": 5.0, "low": 3.0, "info": 1.0}
 
-    Returns the number of findings successfully persisted.
+
+def _persist_sast_findings(
+    findings: list,
+    app_id: str | None = None,
+    org_id: str | None = None,
+    scan_id: str | None = None,
+) -> int:
+    """Persist SAST findings to BOTH stores so the customer dashboard populates.
+
+    Writes to:
+    1. ``AnalyticsDB`` (existing) — feeds the analytics/triage pipeline.
+    2. ``SecurityFindingsEngine.record_finding`` (NEW, GAP from onboarding bug #4)
+       — populates the primary customer-facing dashboard at
+       ``/api/v1/security-findings/findings``.
+
+    Without (2) the Brain Pipeline reports `completed` but the UI shows empty.
+    Returns the number of findings successfully written to BOTH stores.
     """
     if not findings:
         return 0
+
+    persisted_analytics = 0
+    persisted_findings_engine = 0
+
+    # 1. AnalyticsDB write (existing path)
     try:
         from core.analytics_db import AnalyticsDB
         from core.analytics_models import Finding, FindingSeverity, FindingStatus
 
         db = AnalyticsDB()
-        persisted = 0
         for f in findings:
             sev_val = f.get("severity", "medium").lower()
             try:
                 severity = FindingSeverity(sev_val)
             except ValueError:
                 severity = FindingSeverity.MEDIUM
-
             finding = Finding(
                 id=f.get("finding_id", str(uuid.uuid4())),
                 application_id=app_id,
@@ -153,15 +171,52 @@ def _persist_sast_findings(findings: list, app_id: str | None = None) -> int:
                 updated_at=datetime.now(timezone.utc),
             )
             db.create_finding(finding)
-            persisted += 1
-        return persisted
-    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            persisted_analytics += 1
+    except (OSError, ValueError, KeyError, RuntimeError):
         logger.exception("Failed to persist SAST findings to analytics DB")
+        # fall through to SecurityFindingsEngine — partial persistence > nothing
+
+    # 2. SecurityFindingsEngine write (NEW — primary customer dashboard)
+    if org_id:
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+            sfe = SecurityFindingsEngine()
+            for f in findings:
+                sev = (f.get("severity") or "medium").lower()
+                cvss = _SEVERITY_TO_CVSS.get(sev, 5.0)
+                file_path = f.get("file_path") or "unknown"
+                line = f.get("line_number") or 0
+                # Stable correlation key so re-scans dedup + lifecycle works
+                corr_key = f"sast|{f.get('rule_id', 'SAST-UNKNOWN')}|{file_path}:{line}"
+                sfe.record_finding(
+                    org_id=org_id,
+                    title=f.get("title") or f.get("message") or "SAST Finding",
+                    finding_type="sast",
+                    source_tool="sast_scanner",
+                    severity=sev,
+                    cvss_score=cvss,
+                    asset_id=file_path,
+                    asset_type="source_file",
+                    description=f.get("message", f.get("title", "")),
+                    remediation=f.get("fix_suggestion", ""),
+                    correlation_key=corr_key,
+                    scan_id=scan_id,
+                )
+                persisted_findings_engine += 1
+        except (OSError, ValueError, KeyError, RuntimeError):
+            logger.exception(
+                "Failed to mirror SAST findings to SecurityFindingsEngine "
+                "(dashboard will show empty for org_id=%s)",
+                org_id,
+            )
+
+    if persisted_analytics == 0 and persisted_findings_engine == 0:
         return -1  # Distinguish error from zero findings
+    return max(persisted_analytics, persisted_findings_engine)
 
 
 @router.post("/scan")
-async def trigger_scan(req: ScanRequest) -> Dict[str, Any]:
+async def trigger_scan(req: ScanRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Trigger a SAST scan by repo path or explicit file list.
 
     - Supply ``repo_path`` to scan all supported files under that directory.
@@ -199,7 +254,11 @@ async def trigger_scan(req: ScanRequest) -> Dict[str, Any]:
         result = engine.scan_files(file_contents, incremental=req.incremental)
 
     result_dict = result.to_dict()
-    persisted = _persist_sast_findings(result_dict.get("findings", []))
+    persisted = _persist_sast_findings(
+        result_dict.get("findings", []),
+        org_id=org_id,
+        scan_id=result_dict.get("scan_id"),
+    )
     result_dict["persisted_count"] = persisted
     # TrustGraph explicit indexing (fire-and-forget)
     try:
@@ -253,7 +312,7 @@ async def add_custom_rule(req: CustomRuleRequest) -> Dict[str, Any]:
 
 
 @router.post("/scan/code")
-async def scan_code(req: ScanCodeRequest) -> Dict[str, Any]:
+async def scan_code(req: ScanCodeRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Scan a single code snippet for vulnerabilities."""
     if not req.code.strip():
         raise HTTPException(400, "Empty code provided")
@@ -261,8 +320,13 @@ async def scan_code(req: ScanCodeRequest) -> Dict[str, Any]:
     engine = get_sast_engine()
     result = engine.scan_code(req.code, safe_filename)
     result_dict = result.to_dict()
-    # Persist findings to analytics DB for triage/risk pipeline
-    persisted = _persist_sast_findings(result_dict.get("findings", []), app_id=req.app_id)
+    # Persist findings to analytics DB for triage/risk pipeline + customer dashboard
+    persisted = _persist_sast_findings(
+        result_dict.get("findings", []),
+        app_id=req.app_id,
+        org_id=org_id,
+        scan_id=result_dict.get("scan_id"),
+    )
     result_dict["persisted_count"] = persisted
     # TrustGraph explicit indexing (fire-and-forget)
     try:
@@ -281,7 +345,7 @@ async def scan_code(req: ScanCodeRequest) -> Dict[str, Any]:
 
 
 @router.post("/scan/files")
-async def scan_files(req: ScanFilesRequest) -> Dict[str, Any]:
+async def scan_files(req: ScanFilesRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Scan multiple files for vulnerabilities."""
     if not req.files:
         raise HTTPException(400, "No files provided")
@@ -301,8 +365,12 @@ async def scan_files(req: ScanFilesRequest) -> Dict[str, Any]:
     engine = get_sast_engine()
     result = engine.scan_files(sanitized)
     result_dict = result.to_dict()
-    # Persist findings to analytics DB for triage/risk pipeline
-    persisted = _persist_sast_findings(result_dict.get("findings", []))
+    # Persist findings to analytics DB for triage/risk pipeline + customer dashboard
+    persisted = _persist_sast_findings(
+        result_dict.get("findings", []),
+        org_id=org_id,
+        scan_id=result_dict.get("scan_id"),
+    )
     result_dict["persisted_count"] = persisted
     # TrustGraph explicit indexing (fire-and-forget)
     try:

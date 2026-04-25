@@ -27,7 +27,7 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}?org_id=default`, {
@@ -126,8 +126,8 @@ export default function IncidentMetricsDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats     = liveData.stats     ?? MOCK_STATS;
-  const incidents = liveData.incidents ?? MOCK_INCIDENTS;
+  const stats     = liveData.stats     ?? ({} as any);
+  const incidents = liveData.incidents ?? ([] as any);
 
   return (
     <motion.div

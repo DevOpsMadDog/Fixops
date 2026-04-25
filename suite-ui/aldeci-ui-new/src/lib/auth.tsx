@@ -8,14 +8,65 @@
  * Scopes: derived from role (admin gets everything).
  */
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import {
   usersApi,
   setStoredAuthToken,
   setStoredAuthStrategy,
   getStoredAuthToken,
   getStoredAuthStrategy,
+  setStoredOrgId,
+  getStoredOrgId,
 } from "@/lib/api";
+
+// ── Dev-bypass helpers ──
+//
+// When running under Vite dev (`import.meta.env.DEV`) OR when the operator
+// flips the `FIXOPS_VISUAL_VERIFY` localStorage flag, we treat the session as
+// authenticated with a sensible default org so deep-link visual verification
+// (Playwright, manual browsing, screenshot scripts) does not get bounced to
+// `/login` for every protected route. This NEVER fires in a production build
+// unless the operator deliberately sets the localStorage key — `import.meta.env.DEV`
+// is replaced with `false` by Vite at build time.
+
+const VISUAL_VERIFY_KEY = "FIXOPS_VISUAL_VERIFY";
+const DEV_BYPASS_ORG_ID = "juice-shop-corp";
+
+const DEV_BYPASS_USER: AuthUser = {
+  id: "dev-user",
+  email: "dev@verify",
+  first_name: "Dev",
+  last_name: "Verify",
+  role: "admin",
+  department: "platform",
+};
+
+export function isDevBypassActive(): boolean {
+  if (typeof window === "undefined") return false;
+  // Production guard — only Vite-dev builds OR explicit localStorage opt-in.
+  const visualVerify = (() => {
+    try {
+      return window.localStorage.getItem(VISUAL_VERIFY_KEY) === "1";
+    } catch {
+      return false;
+    }
+  })();
+  return Boolean((import.meta as any).env?.DEV) || visualVerify;
+}
+
+function ensureDevBypassOrg() {
+  // Pin org_id to a populated tenant so dashboards see real data
+  // when the bypass is active. We only set it if the operator has
+  // not already chosen one explicitly.
+  try {
+    const current = getStoredOrgId();
+    if (!current || current === "default") {
+      setStoredOrgId(DEV_BYPASS_ORG_ID);
+    }
+  } catch {
+    /* no-op */
+  }
+}
 
 // ── Types ──
 
@@ -98,6 +149,11 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
+    // Dev-bypass short-circuit — see isDevBypassActive() docstring above.
+    if (isDevBypassActive()) {
+      ensureDevBypassOrg();
+      return userFromStorage() ?? DEV_BYPASS_USER;
+    }
     // Restore session from localStorage if the token is valid
     const strategy = getStoredAuthStrategy();
     if (strategy === "jwt") {
@@ -195,8 +251,17 @@ export function useAuth(): AuthState {
 /** Route guard component — renders children only if authenticated, else redirects to /login. */
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Bypass for dev / visual-verify mode — these flows want every protected
+    // route reachable without a real backend session.
+    if (isDevBypassActive()) {
+      return <>{children}</>;
+    }
+    // Preserve the deep link so the LoginPage can bounce the user back
+    // after a successful login (rather than dumping them on the dashboard).
+    const from = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
+    return <Navigate to={`/login?from=${from}`} replace />;
   }
   return <>{children}</>;
 }

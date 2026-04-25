@@ -21,38 +21,25 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(buildApiUrl(path), {
     ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
+    headers: {
+      "X-API-Key": getStoredAuthToken(),
+      "X-Org-ID": getStoredOrgId(),
+      "Content-Type": "application/json",
+      ...(opts?.headers ?? {}),
+    },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_JOBS = [
-  { id: "job-001", framework: "SOC 2",       automation_type: "evidence_collection", status: "completed", started_at: "2026-04-16T08:00:00Z", completed_at: "2026-04-16T08:14:00Z" },
-  { id: "job-002", framework: "PCI-DSS",     automation_type: "control_testing",     status: "completed", started_at: "2026-04-16T08:15:00Z", completed_at: "2026-04-16T08:29:00Z" },
-  { id: "job-003", framework: "ISO 27001",   automation_type: "gap_analysis",        status: "running",   started_at: "2026-04-16T09:00:00Z", completed_at: null },
-  { id: "job-004", framework: "NIST CSF",    automation_type: "evidence_collection", status: "queued",    started_at: null,                   completed_at: null },
-  { id: "job-005", framework: "HIPAA",       automation_type: "control_testing",     status: "completed", started_at: "2026-04-15T14:00:00Z", completed_at: "2026-04-15T14:22:00Z" },
-  { id: "job-006", framework: "GDPR",        automation_type: "risk_assessment",     status: "failed",    started_at: "2026-04-15T16:00:00Z", completed_at: "2026-04-15T16:05:00Z" },
-  { id: "job-007", framework: "CIS Benchmark",automation_type: "control_testing",    status: "completed", started_at: "2026-04-16T07:30:00Z", completed_at: "2026-04-16T07:48:00Z" },
-  { id: "job-008", framework: "FedRAMP",     automation_type: "gap_analysis",        status: "queued",    started_at: null,                   completed_at: null },
-  { id: "job-009", framework: "SOC 2",       automation_type: "continuous_monitoring",status: "running",  started_at: "2026-04-16T09:30:00Z", completed_at: null },
-  { id: "job-010", framework: "CMMC",        automation_type: "evidence_collection", status: "completed", started_at: "2026-04-15T11:00:00Z", completed_at: "2026-04-15T11:19:00Z" },
-];
-
-const MOCK_STATS = { total_jobs: 142, completed_jobs: 117, controls_tested: 892, pass_rate: 94.3 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -93,10 +80,9 @@ export default function ComplianceAutomationDashboard() {
     Promise.allSettled([
       apiFetch(`/api/v1/compliance/status?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/compliance/gaps?org_id=${ORG_ID}`),
-    ]).then(([statusRes, gapsRes]) => {
+    ]).then(([statusRes]) => {
       if (statusRes.status === "fulfilled") {
         const d = statusRes.value;
-        // Map status response to jobs-like list from frameworks
         const fwJobs = (d?.frameworks ?? []).map((fw: any, i: number) => ({
           id: `fw-${i}`,
           framework: fw.name ?? fw.id,
@@ -105,25 +91,27 @@ export default function ComplianceAutomationDashboard() {
           started_at: null,
           completed_at: null,
         }));
-        if (fwJobs.length) setLiveJobs(fwJobs);
+        setLiveJobs(fwJobs);
         setLiveStats({
-          total_jobs: d?.frameworks?.length ?? MOCK_STATS.total_jobs,
+          total_jobs: d?.frameworks?.length ?? 0,
           completed_jobs: (d?.frameworks ?? []).filter((f: any) => f.score >= 80).length,
           controls_tested: (d?.frameworks ?? []).reduce((s: number, f: any) => s + (f.controls_total ?? 0), 0),
-          pass_rate: d?.overall_score ?? MOCK_STATS.pass_rate,
+          pass_rate: d?.overall_score ?? 0,
         });
+      } else {
+        setLiveJobs([]);
+        setLiveStats({ total_jobs: 0, completed_jobs: 0, controls_tested: 0, pass_rate: 0 });
       }
+      setLoading(false);
     });
-    setLoading(false);
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
-  const jobs  = liveJobs  ?? MOCK_JOBS;
-  const stats = liveStats ?? MOCK_STATS;
+  const jobs  = liveJobs  ?? [];
+  const stats = liveStats ?? { total_jobs: 0, completed_jobs: 0, controls_tested: 0, pass_rate: 0 };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+  if (loading) return <PageSkeleton />;
 
 
   return (
@@ -168,6 +156,9 @@ export default function ComplianceAutomationDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {jobs.length === 0 ? (
+            <EmptyState title="No automation jobs" description="No compliance automation jobs have run yet." />
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -202,6 +193,7 @@ export default function ComplianceAutomationDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

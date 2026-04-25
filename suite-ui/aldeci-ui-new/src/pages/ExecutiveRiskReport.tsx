@@ -47,7 +47,7 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "dev-key";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}?org_id=default`, {
@@ -462,20 +462,20 @@ export default function ExecutiveRiskReport() {
         // Map engine fields → UI shape (fall back to mock for any missing fields)
         return {
           ...MOCK_DATA,
-          current_month: raw.current_month ?? MOCK_DATA.current_month,
-          year: raw.year ?? MOCK_DATA.year,
-          overall_grade: raw.overall_grade ?? MOCK_DATA.overall_grade,
-          overall_grade_plus: raw.overall_grade_plus ?? raw.overall_grade ?? MOCK_DATA.overall_grade_plus,
-          overall_score: raw.overall_score ?? MOCK_DATA.overall_score,
-          previous_grade: raw.previous_grade ?? MOCK_DATA.previous_grade,
-          score_change: raw.score_change ?? MOCK_DATA.score_change,
-          summary_sentence: raw.summary_sentence ?? raw.executive_summary ?? MOCK_DATA.summary_sentence,
-          pillars: raw.pillars ?? MOCK_DATA.pillars,
-          business_risks: raw.business_risks ?? raw.top_risks ?? MOCK_DATA.business_risks,
-          quarterly_wins: raw.quarterly_wins ?? raw.wins ?? MOCK_DATA.quarterly_wins,
-          investment_recommendations: raw.investment_recommendations ?? raw.recommendations ?? MOCK_DATA.investment_recommendations,
-          quarterly_trend: raw.quarterly_trend ?? raw.trend ?? MOCK_DATA.quarterly_trend,
-          last_updated: raw.last_updated ?? raw.generated_at ?? MOCK_DATA.last_updated,
+          current_month: raw.current_month ?? null,
+          year: raw.year ?? null,
+          overall_grade: raw.overall_grade ?? null,
+          overall_grade_plus: raw.overall_grade_plus ?? raw.overall_grade ?? null,
+          overall_score: raw.overall_score ?? null,
+          previous_grade: raw.previous_grade ?? null,
+          score_change: raw.score_change ?? null,
+          summary_sentence: raw.summary_sentence ?? raw.executive_summary ?? null,
+          pillars: raw.pillars ?? ([] as any),
+          business_risks: raw.business_risks ?? raw.top_risks ?? ([] as any),
+          quarterly_wins: raw.quarterly_wins ?? raw.wins ?? null,
+          investment_recommendations: raw.investment_recommendations ?? raw.recommendations ?? null,
+          quarterly_trend: raw.quarterly_trend ?? raw.trend ?? null,
+          last_updated: raw.last_updated ?? raw.generated_at ?? null,
         } as ExecutiveReportData;
       } catch {
         return MOCK_DATA;
@@ -505,7 +505,7 @@ export default function ExecutiveRiskReport() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const d = report ?? MOCK_DATA;
+  const d = report ?? ({} as any);
 
   // Overlay live data onto the report where available
   const liveScore: number =

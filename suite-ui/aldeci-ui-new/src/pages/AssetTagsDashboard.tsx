@@ -45,7 +45,7 @@ interface CategoryInfo {
 }
 
 // ── API helpers ────────────────────────────────────────────────
-const ORG_ID = "default";
+const ORG_ID = "juice-shop-corp";
 function getApiKey() {
   return (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "dev-key";
 }

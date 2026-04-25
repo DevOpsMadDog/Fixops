@@ -20,40 +20,23 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY } });
+  const res = await fetch(buildApiUrl(path), {
+    headers: {
+      "X-API-Key": getStoredAuthToken(),
+      "X-Org-ID": getStoredOrgId(),
+      "Content-Type": "application/json",
+    },
+  });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-const MOCK_STATS = {
-  total_models: 18,
-  production_models: 9,
-  open_incidents: 5,
-  critical_risk_models: 2,
-};
-
-const MOCK_MODELS = [
-  { id: "mdl-001", name: "FraudDetector-v3",       type: "classification", vendor: "Internal",  deployment_status: "production",  risk_level: "high",     data_classification: "PII" },
-  { id: "mdl-002", name: "ThreatPredictor-v2",      type: "regression",     vendor: "OpenAI",    deployment_status: "production",  risk_level: "critical", data_classification: "Confidential" },
-  { id: "mdl-003", name: "AnomalyDetector-v1",      type: "clustering",     vendor: "Internal",  deployment_status: "staging",     risk_level: "medium",   data_classification: "Internal" },
-  { id: "mdl-004", name: "NLPParser-v4",            type: "nlp",            vendor: "Anthropic", deployment_status: "production",  risk_level: "low",      data_classification: "Public" },
-  { id: "mdl-005", name: "ImageClassifier-v1",      type: "vision",         vendor: "Google",    deployment_status: "development", risk_level: "medium",   data_classification: "Internal" },
-];
-
-const MOCK_INCIDENTS = [
-  { id: "inc-001", model_name: "ThreatPredictor-v2", incident_type: "hallucination",     severity: "critical", status: "open" },
-  { id: "inc-002", model_name: "FraudDetector-v3",   incident_type: "bias",              severity: "high",     status: "investigating" },
-  { id: "inc-003", model_name: "NLPParser-v4",       incident_type: "data_leak",         severity: "high",     status: "open" },
-  { id: "inc-004", model_name: "AnomalyDetector-v1", incident_type: "drift",             severity: "medium",   status: "resolved" },
-];
 
 function DeploymentBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -126,8 +109,8 @@ export default function AIGovernanceDashboard() {
     ]).then(([statsRes, modelsRes, incidentsRes]) => {
       setLiveData({
         stats:     statsRes.status     === "fulfilled" ? statsRes.value     : null,
-        models:    modelsRes.status    === "fulfilled" ? modelsRes.value    : null,
-        incidents: incidentsRes.status === "fulfilled" ? incidentsRes.value : null,
+        models:    modelsRes.status    === "fulfilled" ? (Array.isArray(modelsRes.value) ? modelsRes.value : (modelsRes.value?.items ?? modelsRes.value?.models ?? [])) : [],
+        incidents: incidentsRes.status === "fulfilled" ? (Array.isArray(incidentsRes.value) ? incidentsRes.value : (incidentsRes.value?.items ?? incidentsRes.value?.incidents ?? [])) : [],
       });
     }).finally(() => setDataLoading(false));
   };
@@ -140,9 +123,11 @@ export default function AIGovernanceDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats     = liveData.stats     ?? MOCK_STATS;
-  const models    = liveData.models    ?? MOCK_MODELS;
-  const incidents = liveData.incidents ?? MOCK_INCIDENTS;
+  if (dataLoading && !liveData.stats && !liveData.models && !liveData.incidents) return <PageSkeleton />;
+
+  const stats     = liveData.stats     ?? { total_models: 0, production_models: 0, open_incidents: 0, critical_risk_models: 0 };
+  const models    = liveData.models    ?? [];
+  const incidents = liveData.incidents ?? [];
 
   return (
     <motion.div
@@ -183,6 +168,9 @@ export default function AIGovernanceDashboard() {
           <CardDescription className="text-xs">Registered AI/ML models, deployment status, and risk classification</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {models.length === 0 ? (
+            <EmptyState title="No AI models registered" description="Register an AI/ML model to begin governance tracking." />
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -213,6 +201,7 @@ export default function AIGovernanceDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -231,6 +220,9 @@ export default function AIGovernanceDashboard() {
           <CardDescription className="text-xs">Model incidents including hallucinations, bias, data leaks, and adversarial events</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {incidents.length === 0 ? (
+            <EmptyState icon={AlertTriangle} title="No AI incidents" description="No model incidents reported." />
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -257,6 +249,7 @@ export default function AIGovernanceDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
