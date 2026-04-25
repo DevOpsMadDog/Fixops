@@ -1,0 +1,332 @@
+[
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/security-findings",
+    "headings": [
+      "Security Findings"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/violation-lifecycle",
+    "headings": [
+      "Violation Lifecycle",
+      "No violations",
+      "No transitions"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/agentless-snapshot",
+    "headings": [
+      "Agentless Snapshot",
+      "No snapshots",
+      "No findings"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/dca",
+    "headings": [
+      "Page not found"
+    ],
+    "apiCalls": 1,
+    "realCall": false,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/dynamic-rule-dsl",
+    "headings": [
+      "Dynamic Rule DSL",
+      "No rules"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/upgrade-path",
+    "headings": [
+      "Upgrade Path Resolver"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/binary-fingerprint",
+    "headings": [
+      "Binary Fingerprint",
+      "Failed to load data"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/code-to-runtime",
+    "headings": [
+      "Code → Runtime Lineage",
+      "No matches yet",
+      "No events"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/pipeline-bom",
+    "headings": [
+      "Pipeline BOM",
+      "Failed to load data"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "juice-shop-corp",
+    "route": "/slsa-provenance",
+    "headings": [
+      "SLSA Provenance",
+      "No attestations"
+    ],
+    "apiCalls": 5,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/security-findings",
+    "headings": [
+      "Security Findings"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/violation-lifecycle",
+    "headings": [
+      "Violation Lifecycle",
+      "No violations",
+      "No transitions"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/agentless-snapshot",
+    "headings": [
+      "Agentless Snapshot",
+      "No snapshots",
+      "No findings"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/dca",
+    "headings": [
+      "Page not found"
+    ],
+    "apiCalls": 1,
+    "realCall": false,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/dynamic-rule-dsl",
+    "headings": [
+      "Dynamic Rule DSL",
+      "No rules"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/upgrade-path",
+    "headings": [
+      "Upgrade Path Resolver"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/binary-fingerprint",
+    "headings": [
+      "Binary Fingerprint",
+      "Failed to load data"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/code-to-runtime",
+    "headings": [
+      "Code → Runtime Lineage",
+      "No matches yet",
+      "No events"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/pipeline-bom",
+    "headings": [
+      "Pipeline BOM",
+      "Failed to load data"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "webgoat-llc",
+    "route": "/slsa-provenance",
+    "headings": [
+      "SLSA Provenance",
+      "No attestations"
+    ],
+    "apiCalls": 5,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/security-findings",
+    "headings": [
+      "Security Findings"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/violation-lifecycle",
+    "headings": [
+      "Violation Lifecycle",
+      "No violations",
+      "No transitions"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/agentless-snapshot",
+    "headings": [
+      "Agentless Snapshot",
+      "No snapshots",
+      "No findings"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/dca",
+    "headings": [
+      "Page not found"
+    ],
+    "apiCalls": 1,
+    "realCall": false,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/dynamic-rule-dsl",
+    "headings": [
+      "Dynamic Rule DSL",
+      "No rules"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/upgrade-path",
+    "headings": [
+      "Upgrade Path Resolver"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/binary-fingerprint",
+    "headings": [
+      "Binary Fingerprint",
+      "Failed to load data"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/code-to-runtime",
+    "headings": [
+      "Code → Runtime Lineage",
+      "No matches yet",
+      "No events"
+    ],
+    "apiCalls": 7,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/pipeline-bom",
+    "headings": [
+      "Pipeline BOM",
+      "Failed to load data"
+    ],
+    "apiCalls": 3,
+    "realCall": true,
+    "bytes": 200
+  },
+  {
+    "tenant": "vulnado-co",
+    "route": "/slsa-provenance",
+    "headings": [
+      "SLSA Provenance",
+      "No attestations"
+    ],
+    "apiCalls": 5,
+    "realCall": true,
+    "bytes": 200
+  }
+]
