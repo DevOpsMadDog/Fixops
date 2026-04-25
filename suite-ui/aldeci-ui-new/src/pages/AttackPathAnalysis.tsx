@@ -34,7 +34,7 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "dev-key";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API}${path}?org_id=default`, {
@@ -430,11 +430,11 @@ export default function AttackPathAnalysis() {
   // Build stats shape from live data or fall back to mock
   const stats: AttackPathsStats = liveData?.stats
     ? {
-        total_paths:    liveData.stats.total_paths    ?? liveData.stats.path_count   ?? MOCK_PATHS.length,
-        critical_paths: liveData.stats.critical_paths ?? liveData.stats.crown_jewels ?? MOCK_PATHS.length,
+        total_paths:    liveData.stats.total_paths    ?? liveData.stats.path_count   ?? ([] as any).length,
+        critical_paths: liveData.stats.critical_paths ?? liveData.stats.crown_jewels ?? ([] as any).length,
         avg_path_length: liveData.stats.avg_hops      ?? 2.5,
-        nodes_at_risk:  liveData.stats.total_nodes    ?? MOCK_GRAPH_NODES.length,
-        graph: { nodes: liveData.nodes ?? MOCK_GRAPH_NODES, edges: MOCK_GRAPH_EDGES },
+        nodes_at_risk:  liveData.stats.total_nodes    ?? ([] as any).length,
+        graph: { nodes: liveData.nodes ?? ([] as any), edges: MOCK_GRAPH_EDGES },
         paths: MOCK_PATHS,
       }
     : {
@@ -446,7 +446,7 @@ export default function AttackPathAnalysis() {
         paths: MOCK_PATHS,
       };
 
-  const crownJewels: CrownJewel[] = liveData?.crown ?? MOCK_CROWN_JEWELS;
+  const crownJewels: CrownJewel[] = liveData?.crown ?? ([] as any);
 
   const nodeMap = useMemo(() => {
     const map: Record<string, GraphNode> = {};

@@ -26,7 +26,7 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}?org_id=default`, {
@@ -109,8 +109,8 @@ export default function AwarenessCampaignDashboard() {
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
-  const campaigns = liveCampaigns ?? MOCK_CAMPAIGNS;
-  const stats     = liveStats     ?? MOCK_STATS;
+  const campaigns = liveCampaigns ?? ([] as any);
+  const stats     = liveStats     ?? ({} as any);
 
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;

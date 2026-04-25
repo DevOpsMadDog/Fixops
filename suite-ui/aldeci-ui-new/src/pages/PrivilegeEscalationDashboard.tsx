@@ -25,7 +25,7 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
   import.meta.env.VITE_API_KEY ||
   "dev-key";
-const ORG_ID = "default";
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}?org_id=default`, {

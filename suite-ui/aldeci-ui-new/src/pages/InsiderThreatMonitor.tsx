@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "";
 const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "juice-shop-corp";
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API}${path}?org_id=default`, {

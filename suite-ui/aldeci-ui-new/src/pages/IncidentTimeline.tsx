@@ -567,8 +567,8 @@ export default function IncidentTimeline() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const data = incidentsData ?? MOCK_INCIDENTS_DATA;
-  const detail = incidentDetail ?? MOCK_INCIDENT_DETAILS[selectedId];
+  const data = incidentsData ?? ({} as any);
+  const detail = incidentDetail ?? ({} as any)[selectedId];
 
   return (
     <div className="space-y-8 p-6">
