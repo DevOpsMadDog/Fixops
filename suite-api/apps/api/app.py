@@ -1546,6 +1546,14 @@ try:
 except ImportError as e:
     _logger.warning("DAST router not available: %s", e)
 
+dast_pentest_router: Optional[APIRouter] = None
+try:
+    from apps.api.dast_pentest_router import router as dast_pentest_router
+
+    _logger.info("Loaded DAST/Pentest OSS connector router (ZAP+Nuclei)")
+except ImportError as e:
+    _logger.warning("DAST/Pentest connector router not available: %s", e)
+
 cspm_router: Optional[APIRouter] = None
 try:
     from api.cspm_router import router as cspm_router
@@ -3473,6 +3481,7 @@ def create_app() -> FastAPI:
         (sast_router, "SAST"),
         (container_router, "Container Security"),
         (dast_router, "DAST"),
+        (dast_pentest_router, "DAST/Pentest OSS (ZAP+Nuclei)"),
         (cspm_router, "CSPM"),
         (api_fuzzer_router, "API Fuzzer"),
         (malware_router, "Malware Analysis"),

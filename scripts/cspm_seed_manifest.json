@@ -1,0 +1,485 @@
+{
+  "endpoint": "http://localhost:4566",
+  "tenants": {
+    "juice-shop-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-juice-shop-corp-85b15d37",
+        "tenant": "juice-shop-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-juice-shop-corp-a9d990",
+        "tenant": "juice-shop-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-juice-shop-corp-611043",
+        "tenant": "juice-shop-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-juice-shop-corp-2a7178",
+        "tenant": "juice-shop-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "juice-shop-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "nodegoat-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-nodegoat-corp-793ab691",
+        "tenant": "nodegoat-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-nodegoat-corp-276166",
+        "tenant": "nodegoat-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-nodegoat-corp-56be4f",
+        "tenant": "nodegoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-nodegoat-corp-7a01f9",
+        "tenant": "nodegoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "nodegoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "webgoat-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-webgoat-corp-c99bfa72",
+        "tenant": "webgoat-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-webgoat-corp-09d354",
+        "tenant": "webgoat-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-webgoat-corp-4c3513",
+        "tenant": "webgoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-webgoat-corp-f25bf3",
+        "tenant": "webgoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "webgoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "dvwa-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-dvwa-corp-34140afb",
+        "tenant": "dvwa-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-dvwa-corp-5396b1",
+        "tenant": "dvwa-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-dvwa-corp-ae5251",
+        "tenant": "dvwa-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-dvwa-corp-ae53ba",
+        "tenant": "dvwa-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "dvwa-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "railsgoat-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-railsgoat-corp-a5a5537b",
+        "tenant": "railsgoat-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-railsgoat-corp-5a0676",
+        "tenant": "railsgoat-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-railsgoat-corp-789cb9",
+        "tenant": "railsgoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-railsgoat-corp-991d1e",
+        "tenant": "railsgoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "railsgoat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "django-vuln-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-django-vuln-corp-5dea661c",
+        "tenant": "django-vuln-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-django-vuln-corp-4c4efb",
+        "tenant": "django-vuln-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-django-vuln-corp-45e088",
+        "tenant": "django-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-django-vuln-corp-e5bbd0",
+        "tenant": "django-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "django-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "flask-vuln-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-flask-vuln-corp-d58be738",
+        "tenant": "flask-vuln-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-flask-vuln-corp-9944f2",
+        "tenant": "flask-vuln-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-flask-vuln-corp-b28c0d",
+        "tenant": "flask-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-flask-vuln-corp-0cbef8",
+        "tenant": "flask-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "flask-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "goat-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-goat-corp-0a9937ce",
+        "tenant": "goat-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-goat-corp-b2f31d",
+        "tenant": "goat-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-goat-corp-37e79b",
+        "tenant": "goat-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-goat-corp-1d3e36",
+        "tenant": "goat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "goat-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "struts-vuln-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-struts-vuln-corp-17467db2",
+        "tenant": "struts-vuln-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-struts-vuln-corp-700163",
+        "tenant": "struts-vuln-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-struts-vuln-corp-2da1f9",
+        "tenant": "struts-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-struts-vuln-corp-0bb7de",
+        "tenant": "struts-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "struts-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "ml-vuln-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-ml-vuln-corp-2a705c80",
+        "tenant": "ml-vuln-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-ml-vuln-corp-bd38dc",
+        "tenant": "ml-vuln-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-ml-vuln-corp-324c9f",
+        "tenant": "ml-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-ml-vuln-corp-e3badf",
+        "tenant": "ml-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "ml-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "graphql-vuln-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-graphql-vuln-corp-34389833",
+        "tenant": "graphql-vuln-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-graphql-vuln-corp-4c77d9",
+        "tenant": "graphql-vuln-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-graphql-vuln-corp-752cc7",
+        "tenant": "graphql-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-graphql-vuln-corp-819c29",
+        "tenant": "graphql-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "graphql-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "tprm-vuln-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-tprm-vuln-corp-86e51c67",
+        "tenant": "tprm-vuln-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-tprm-vuln-corp-7ea6aa",
+        "tenant": "tprm-vuln-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-tprm-vuln-corp-3414c9",
+        "tenant": "tprm-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-tprm-vuln-corp-cf956b",
+        "tenant": "tprm-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "tprm-vuln-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "cve-2021-44228-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-cve-2021-44228-corp-dc640f67",
+        "tenant": "cve-2021-44228-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-cve-2021-44228-corp-fdf220",
+        "tenant": "cve-2021-44228-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-cve-2021-44228-corp-c4cd5e",
+        "tenant": "cve-2021-44228-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-cve-2021-44228-corp-8ae39f",
+        "tenant": "cve-2021-44228-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "cve-2021-44228-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "secure-corp": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-secure-corp-dc8d2a72",
+        "tenant": "secure-corp",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-secure-corp-f4bdab",
+        "tenant": "secure-corp",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-secure-corp-049853",
+        "tenant": "secure-corp",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-secure-corp-327216",
+        "tenant": "secure-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "secure-corp",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ],
+    "default": [
+      {
+        "resource_type": "s3_bucket",
+        "id": "cspm-public-default-13423b55",
+        "tenant": "default",
+        "issue": "public bucket policy"
+      },
+      {
+        "resource_type": "iam_user",
+        "id": "cspm-admin-default-60c589",
+        "tenant": "default",
+        "issue": "wildcard admin policy"
+      },
+      {
+        "resource_type": "security_group",
+        "id": "cspm-open-sg-default-b85aa7",
+        "tenant": "default",
+        "error": "An error occurred (InternalFailure) when calling the DescribeVpcs operation: Service 'ec2' is not enabled. Please check your 'SERVICES' configuration variable."
+      },
+      {
+        "resource_type": "rds_instance",
+        "id": "cspm-rds-default-635e5c",
+        "tenant": "default",
+        "error": "An error occurred (InternalFailure) when calling the CreateDBInstance operation: API for service 'rds' not yet implemented or pro feature - please check https://docs.localstack.cloud/references/coverage/ for further information"
+      },
+      {
+        "resource_type": "kms_key",
+        "id": "unknown",
+        "tenant": "default",
+        "error": "An error occurred (InternalFailure) when calling the CreateKey operation: Service 'kms' is not enabled. Please check your 'SERVICES' configuration variable."
+      }
+    ]
+  }
+}
