@@ -122,6 +122,15 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Connectors router not available: %s", e)
 
+# Org Management router (multi-tenancy CRUD)
+org_router: Optional[APIRouter] = None
+try:
+    from apps.api.org_router import router as org_router
+
+    logging.getLogger(__name__).info("Loaded Org Management router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Org Management router not available: %s", e)
+
 # ServiceNow Bidirectional Sync router (SSRF-VULN-03)
 servicenow_sync_router: Optional[APIRouter] = None
 servicenow_sync_webhook_router: Optional[APIRouter] = None
@@ -3124,6 +3133,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
         )
         _logger.info("Mounted Universal Connectors router")
+
+    # Org Management — multi-tenancy CRUD (was missing — surfaced by onboarding test 2026-04-25)
+    if org_router:
+        app.include_router(
+            org_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Org Management router")
 
     # ServiceNow Bidirectional Sync router (SSRF-VULN-03)
     if servicenow_sync_router:

@@ -14,9 +14,12 @@ New in v2:
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 import time
 import uuid
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -2108,10 +2111,22 @@ class SASTEngine:
 
         Limits: MAX_FILES (500) files per call. Each file subject to
         MAX_CODE_SIZE. Aggregated findings capped at MAX_FINDINGS_PER_SCAN.
+
+        For oversized batches we now auto-cap at MAX_FILES rather than
+        raising — large repos (e.g. juice-shop @ 883 files) were causing
+        opaque 500s during onboarding; truncation + warning is more useful
+        for a customer than a stack trace they can't see.
         """
-        if len(file_contents) > self.MAX_FILES:
-            raise ValueError(
-                f"Too many files ({len(file_contents)}), maximum is {self.MAX_FILES}"
+        original_count = len(file_contents)
+        if original_count > self.MAX_FILES:
+            # Deterministic truncation: sort by path so the same files are
+            # picked across runs (avoids flaky scan-coverage drift).
+            sorted_keys = sorted(file_contents.keys())[: self.MAX_FILES]
+            file_contents = {k: file_contents[k] for k in sorted_keys}
+            logger.warning(
+                "scan_files: input had %d files, truncating to MAX_FILES=%d (capacity-limited)",
+                original_count,
+                self.MAX_FILES,
             )
 
         t0 = time.time()

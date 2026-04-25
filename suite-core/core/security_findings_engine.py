@@ -69,6 +69,9 @@ class SecurityFindingsEngine:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
+            # Step 1: Create the base table (without lifecycle indexes that
+            # reference columns added by the migration). This is the only
+            # statement needed for fresh DBs to bootstrap the schema.
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS security_findings (
@@ -98,6 +101,34 @@ class SecurityFindingsEngine:
                     unchanged_scan_count  INTEGER NOT NULL DEFAULT 0
                 );
 
+                CREATE TABLE IF NOT EXISTS finding_evidence (
+                    id            TEXT PRIMARY KEY,
+                    finding_id    TEXT NOT NULL,
+                    org_id        TEXT NOT NULL,
+                    evidence_type TEXT NOT NULL DEFAULT 'log',
+                    content       TEXT NOT NULL DEFAULT '',
+                    collected_at  TEXT NOT NULL DEFAULT ''
+                );
+
+                CREATE TABLE IF NOT EXISTS finding_suppressions (
+                    id             TEXT PRIMARY KEY,
+                    finding_id     TEXT NOT NULL,
+                    org_id         TEXT NOT NULL,
+                    reason         TEXT NOT NULL DEFAULT '',
+                    suppressed_by  TEXT NOT NULL DEFAULT '',
+                    expires_at     TEXT NOT NULL DEFAULT '',
+                    created_at     TEXT NOT NULL DEFAULT ''
+                );
+                """
+            )
+            # Step 2: Idempotent migration — adds lifecycle columns BEFORE
+            # creating any indexes that reference them. Critical: indexes
+            # were previously inside the executescript above and would FAIL
+            # on pre-existing DBs that lacked correlation_key.
+            self._ensure_lifecycle_schema(conn)
+            # Step 3: Now safe to create lifecycle indexes (columns exist)
+            conn.executescript(
+                """
                 CREATE INDEX IF NOT EXISTS idx_sf_findings_org
                     ON security_findings (org_id, status, severity, source_tool);
 
@@ -122,34 +153,13 @@ class SecurityFindingsEngine:
                 CREATE INDEX IF NOT EXISTS idx_sf_lifecycle_resolved
                     ON security_findings (org_id, resolved_at);
 
-                CREATE TABLE IF NOT EXISTS finding_evidence (
-                    id            TEXT PRIMARY KEY,
-                    finding_id    TEXT NOT NULL,
-                    org_id        TEXT NOT NULL,
-                    evidence_type TEXT NOT NULL DEFAULT 'log',
-                    content       TEXT NOT NULL DEFAULT '',
-                    collected_at  TEXT NOT NULL DEFAULT ''
-                );
-
                 CREATE INDEX IF NOT EXISTS idx_sf_evidence_finding
                     ON finding_evidence (finding_id, org_id);
-
-                CREATE TABLE IF NOT EXISTS finding_suppressions (
-                    id             TEXT PRIMARY KEY,
-                    finding_id     TEXT NOT NULL,
-                    org_id         TEXT NOT NULL,
-                    reason         TEXT NOT NULL DEFAULT '',
-                    suppressed_by  TEXT NOT NULL DEFAULT '',
-                    expires_at     TEXT NOT NULL DEFAULT '',
-                    created_at     TEXT NOT NULL DEFAULT ''
-                );
 
                 CREATE INDEX IF NOT EXISTS idx_sf_suppressions_finding
                     ON finding_suppressions (finding_id, org_id);
                 """
             )
-            # Idempotent migration for pre-existing DBs — add lifecycle columns
-            self._ensure_lifecycle_schema(conn)
 
     def _ensure_lifecycle_schema(self, conn: sqlite3.Connection) -> None:
         """Idempotent migration — add GAP-063 lifecycle columns if missing.
