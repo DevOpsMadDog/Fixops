@@ -38,22 +38,21 @@ import {
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ──────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const apiKey =
-  (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-
-const apiFetch = (path: string) =>
-  fetch(`${API_BASE}/api/v1${path}?org_id=default`, {
-    headers: { "X-API-Key": apiKey },
-  }).then((r) => {
-    if (!r.ok) throw new Error(`API error: ${r.status}`);
-    return r.json();
+async function apiFetch<T = any>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
   });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Tactic {
@@ -89,47 +88,8 @@ interface StatsData {
   techniques_covered: number;
 }
 
-// ── Mock data ────────────────────────────────────────────────────────────────
-const MOCK_COVERAGE: CoverageData = {
-  coverage_pct: 42,
-  total_techniques: 185,
-  detected_techniques: 78,
-  tactics: [
-    { tactic_id: "TA0001", tactic_name: "Initial Access",       technique_count: 12, detected_count: 5,  coverage_pct: 42 },
-    { tactic_id: "TA0002", tactic_name: "Execution",            technique_count: 14, detected_count: 8,  coverage_pct: 57 },
-    { tactic_id: "TA0003", tactic_name: "Persistence",          technique_count: 20, detected_count: 6,  coverage_pct: 30 },
-    { tactic_id: "TA0004", tactic_name: "Privilege Escalation", technique_count: 14, detected_count: 7,  coverage_pct: 50 },
-    { tactic_id: "TA0005", tactic_name: "Defense Evasion",      technique_count: 42, detected_count: 10, coverage_pct: 24 },
-    { tactic_id: "TA0006", tactic_name: "Credential Access",    technique_count: 17, detected_count: 12, coverage_pct: 71 },
-    { tactic_id: "TA0007", tactic_name: "Discovery",            technique_count: 31, detected_count: 6,  coverage_pct: 19 },
-    { tactic_id: "TA0008", tactic_name: "Lateral Movement",     technique_count: 9,  detected_count: 5,  coverage_pct: 56 },
-    { tactic_id: "TA0009", tactic_name: "Collection",           technique_count: 17, detected_count: 4,  coverage_pct: 24 },
-    { tactic_id: "TA0010", tactic_name: "Exfiltration",         technique_count: 9,  detected_count: 7,  coverage_pct: 78 },
-    { tactic_id: "TA0011", tactic_name: "Command and Control",  technique_count: 16, detected_count: 5,  coverage_pct: 31 },
-    { tactic_id: "TA0040", tactic_name: "Impact",               technique_count: 13, detected_count: 2,  coverage_pct: 15 },
-    { tactic_id: "TA0042", tactic_name: "Resource Development", technique_count: 8,  detected_count: 1,  coverage_pct: 13 },
-    { tactic_id: "TA0043", tactic_name: "Reconnaissance",       technique_count: 10, detected_count: 0,  coverage_pct: 0  },
-  ],
-};
-
-const MOCK_GAPS: GapsData = {
-  gaps: [
-    { tactic_id: "TA0005", technique_id: "T1562", technique_name: "Impair Defenses",               severity: "critical", recommendation: "Deploy EDR with tamper protection and alert on security tool process termination." },
-    { tactic_id: "TA0040", technique_id: "T1486", technique_name: "Data Encrypted for Impact",     severity: "critical", recommendation: "Enable ransomware protection on endpoints and backup validation alerts." },
-    { tactic_id: "TA0043", technique_id: "T1595", technique_name: "Active Scanning",               severity: "high",     recommendation: "Deploy honeypots and network sensors to detect external reconnaissance." },
-    { tactic_id: "TA0007", technique_id: "T1082", technique_name: "System Information Discovery",  severity: "high",     recommendation: "Baseline normal discovery behavior and alert on anomalous enumeration." },
-    { tactic_id: "TA0009", technique_id: "T1560", technique_name: "Archive Collected Data",        severity: "high",     recommendation: "Monitor for unusual compression activity and large archive creation." },
-    { tactic_id: "TA0003", technique_id: "T1547", technique_name: "Boot or Logon Autostart",       severity: "medium",   recommendation: "Audit registry run keys and startup folder changes via FIM." },
-    { tactic_id: "TA0011", technique_id: "T1071", technique_name: "Application Layer Protocol",    severity: "medium",   recommendation: "Deploy network traffic analysis for unusual protocol usage patterns." },
-    { tactic_id: "TA0042", technique_id: "T1583", technique_name: "Acquire Infrastructure",        severity: "medium",   recommendation: "Subscribe to threat intel feeds for adversary infrastructure tracking." },
-  ],
-};
-
-const MOCK_STATS: StatsData = {
-  total_mappings: 312,
-  tactics_covered: 11,
-  techniques_covered: 78,
-};
+const EMPTY_COVERAGE: CoverageData = { coverage_pct: 0, total_techniques: 0, detected_techniques: 0, tactics: [] };
+const EMPTY_STATS: StatsData = { total_mappings: 0, tactics_covered: 0, techniques_covered: 0 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function coverageColor(pct: number): string {
@@ -156,29 +116,53 @@ function severityLabel(sev: string): string {
 
 // ── Component ────────────────────────────────────────────────────────────────
 export default function MITREAttackDashboard() {
-  const [coverage, setCoverage]     = useState<CoverageData>(MOCK_COVERAGE);
-  const [gaps, setGaps]             = useState<Gap[]>(MOCK_GAPS.gaps);
-  const [stats, setStats]           = useState<StatsData>(MOCK_STATS);
+  const [coverage, setCoverage]     = useState<CoverageData>(EMPTY_COVERAGE);
+  const [gaps, setGaps]             = useState<Gap[]>([]);
+  const [stats, setStats]           = useState<StatsData>(EMPTY_STATS);
   const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const load = async () => {
     setLoading(true);
-    const [coverageRes, gapsRes, statsRes] = await Promise.allSettled([
-      apiFetch("/mitre-attack/coverage?org_id=default"),
-      apiFetch("/mitre-attack/gaps?org_id=default"),
-      apiFetch("/mitre-attack/stats?org_id=default"),
-    ]);
-
-    if (coverageRes.status === "fulfilled") setCoverage(coverageRes.value);
-    if (gapsRes.status === "fulfilled")     setGaps(gapsRes.value.gaps ?? []);
-    if (statsRes.status === "fulfilled")    setStats(statsRes.value);
-
-    setLastRefresh(new Date());
-    setLoading(false);
+    setError(null);
+    try {
+      const [coverageRes, gapsRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/mitre-attack/coverage"),
+        apiFetch<any>("/api/v1/mitre-attack/gaps"),
+      ]);
+      if (coverageRes.status === "fulfilled") {
+        const v = coverageRes.value;
+        const tactics = Array.isArray(v?.tactics) ? v.tactics : [];
+        setCoverage({
+          coverage_pct: v?.coverage_pct ?? 0,
+          total_techniques: v?.total_techniques ?? 0,
+          detected_techniques: v?.detected_techniques ?? 0,
+          tactics,
+        });
+        setStats({
+          total_mappings: v?.total_mappings ?? tactics.reduce((s: number, t: any) => s + (t.technique_count ?? 0), 0),
+          tactics_covered: tactics.filter((t: any) => (t.detected_count ?? 0) > 0).length,
+          techniques_covered: v?.detected_techniques ?? 0,
+        });
+      } else {
+        setError((coverageRes.reason as Error).message);
+      }
+      if (gapsRes.status === "fulfilled") {
+        const v = gapsRes.value;
+        setGaps(Array.isArray(v) ? v : (v?.gaps ?? v?.items ?? []));
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLastRefresh(new Date());
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
+
+  if (loading) return <PageSkeleton />;
 
   const openGaps = gaps.filter((g) =>
     g.severity === "critical" || g.severity === "high"
@@ -207,6 +191,8 @@ export default function MITREAttackDashboard() {
           </div>
         }
       />
+
+      {error && <ErrorState message={error} onRetry={load} />}
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -250,6 +236,7 @@ export default function MITREAttackDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            {coverage.tactics.length === 0 && !error ? <EmptyState icon={Shield} title="No coverage data" description="Seed MITRE ATT&CK techniques via /api/v1/mitre-attack/seed to populate this view." /> : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -304,6 +291,7 @@ export default function MITREAttackDashboard() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -325,6 +313,7 @@ export default function MITREAttackDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            {gaps.length === 0 && !error ? <EmptyState icon={AlertTriangle} title="No detection gaps" description="No high-severity coverage gaps detected." /> : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -375,6 +364,7 @@ export default function MITREAttackDashboard() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
       </motion.div>

@@ -19,38 +19,21 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
+async function apiFetch<T = any>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_ASSETS = [
-  { id: "OT-001", asset_id: "PLC-PROD-01",   type: "plc",          zone: "Level 1 — Control",    protocol: "Modbus TCP",    risk_level: "critical", last_seen: "1 min ago" },
-  { id: "OT-002", asset_id: "HMI-OPS-03",    type: "hmi",          zone: "Level 2 — SCADA",      protocol: "EtherNet/IP",   risk_level: "high",     last_seen: "2 min ago" },
-  { id: "OT-003", asset_id: "RTU-FIELD-07",  type: "rtu",          zone: "Level 0 — Field",      protocol: "DNP3",          risk_level: "high",     last_seen: "5 min ago" },
-  { id: "OT-004", asset_id: "SCADA-SRV-01",  type: "scada_server", zone: "Level 3 — Operations", protocol: "OPC-UA",        risk_level: "critical", last_seen: "3 min ago" },
-  { id: "OT-005", asset_id: "EWS-ENG-02",    type: "engineering_ws",zone: "Level 3 — Operations",protocol: "RDP/OPC",       risk_level: "medium",   last_seen: "15 min ago" },
-  { id: "OT-006", asset_id: "IED-SUBST-12",  type: "ied",          zone: "Level 0 — Field",      protocol: "IEC 61850",     risk_level: "high",     last_seen: "8 min ago" },
-  { id: "OT-007", asset_id: "HIST-DATA-01",  type: "historian",    zone: "Level 3 — Operations", protocol: "OPC-DA",        risk_level: "medium",   last_seen: "10 min ago" },
-  { id: "OT-008", asset_id: "FWALL-PURDUE",  type: "firewall",     zone: "Level 3.5 — DMZ",      protocol: "TCP/IP",        risk_level: "low",      last_seen: "1 min ago" },
-];
-
-const MOCK_STATS = { ot_assets: 248, critical_assets: 34, active_alerts: 9, protocol_violations: 16 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -95,27 +78,50 @@ function ProtocolBadge({ protocol }: { protocol: string }) {
 export default function OTSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveAssets, setLiveAssets] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats]   = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({ ot_assets: 0, critical_assets: 0, active_alerts: 0, protocol_violations: 0 });
 
-  useEffect(() => {
-    Promise.allSettled([
-      apiFetch(`/api/v1/ot-sec/assets?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ot-sec/stats?org_id=${ORG_ID}`),
-    ]).then(([assetsRes, statsRes]) => {
-      if (assetsRes.status === "fulfilled") setLiveAssets(assetsRes.value?.assets ?? assetsRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+  const load = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const [assetsRes, anomaliesRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/ot-security/assets"),
+        apiFetch<any>("/api/v1/ot-security/anomalies"),
+      ]);
+      let assetsArr: any[] = [];
+      if (assetsRes.status === "fulfilled") {
+        const v = assetsRes.value;
+        assetsArr = Array.isArray(v) ? v : (v?.assets ?? v?.items ?? []);
+        setAssets(assetsArr);
+      } else {
+        setError((assetsRes.reason as Error).message);
+      }
+      let anArr: any[] = [];
+      if (anomaliesRes.status === "fulfilled") {
+        const v = anomaliesRes.value;
+        anArr = Array.isArray(v) ? v : (v?.anomalies ?? v?.items ?? []);
+      }
+      setStats({
+        ot_assets: assetsArr.length,
+        critical_assets: assetsArr.filter((a: any) => a.risk_level === "critical").length,
+        active_alerts: anArr.filter((x: any) => x.status !== "resolved").length,
+        protocol_violations: anArr.filter((x: any) => (x.type ?? "").toLowerCase().includes("protocol")).length,
+      });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { load(); }, []);
 
-  const assets = liveAssets ?? MOCK_ASSETS;
-  const stats  = liveStats  ?? MOCK_STATS;
+  const handleRefresh = () => { load(); };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+  if (loading) return <PageSkeleton />;
 
 
   return (
@@ -134,6 +140,8 @@ export default function OTSecurityDashboard() {
           </Button>
         }
       />
+
+      {error && <ErrorState message={error} onRetry={load} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -160,6 +168,7 @@ export default function OTSecurityDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {assets.length === 0 && !error ? <EmptyState icon={Cpu} title="No OT assets" description="Register an OT/ICS/SCADA asset to populate this inventory." /> : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -198,6 +207,7 @@ export default function OTSecurityDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

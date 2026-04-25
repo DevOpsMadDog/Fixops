@@ -18,47 +18,21 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY } });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+async function apiFetch<T = any>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_ALERTS = [
-  { id: "NM-001", interface_name: "eth0",    severity: "critical", metric: "packet_loss",    value: "18.4%",  detected_at: "14:52:01" },
-  { id: "NM-002", interface_name: "bond0",   severity: "high",     metric: "utilization",    value: "94.2%",  detected_at: "14:48:33" },
-  { id: "NM-003", interface_name: "eth2",    severity: "high",     metric: "error_rate",     value: "3.1%",   detected_at: "14:41:12" },
-  { id: "NM-004", interface_name: "vlan100", severity: "medium",   metric: "latency_ms",     value: "312ms",  detected_at: "14:35:07" },
-  { id: "NM-005", interface_name: "eth1",    severity: "medium",   metric: "utilization",    value: "81.0%",  detected_at: "14:29:44" },
-  { id: "NM-006", interface_name: "tun0",    severity: "low",      metric: "throughput_drop", value: "22%",   detected_at: "14:18:55" },
-];
-
-const MOCK_INTERFACES = [
-  { name: "eth0",    status: "degraded", traffic_gb: 142.3, utilization: 94 },
-  { name: "bond0",   status: "up",       traffic_gb: 98.7,  utilization: 81 },
-  { name: "eth1",    status: "up",       traffic_gb: 76.2,  utilization: 63 },
-  { name: "eth2",    status: "error",    traffic_gb: 12.4,  utilization: 11 },
-  { name: "vlan100", status: "up",       traffic_gb: 54.1,  utilization: 47 },
-  { name: "tun0",    status: "up",       traffic_gb: 8.9,   utilization: 29 },
-];
-
-const MOCK_STATS = {
-  interfaces_monitored: 24,
-  active_alerts: 6,
-  total_traffic_gb: 392.6,
-  avg_utilization_pct: 54,
-};
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -94,26 +68,57 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function NetworkMonitoringDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [liveData, setLiveData] = useState<any>(null);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [ifaces, setIfaces] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({ interfaces_monitored: 0, active_alerts: 0, total_traffic_gb: 0, avg_utilization_pct: 0 });
 
-  useEffect(() => {
-    setDataLoading(true);
-    Promise.allSettled([
-      apiFetch(`/api/v1/network-monitoring/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/network-monitoring/alerts?org_id=${ORG_ID}&limit=20`),
-    ]).then(([statsR, alertsR]) => {
-      const stats  = statsR.status  === "fulfilled" ? statsR.value  : null;
-      const alerts = alertsR.status === "fulfilled" ? alertsR.value : null;
-      if (stats || alerts) setLiveData({ stats, alerts });
-    }).finally(() => setDataLoading(false));
-  }, []);
+  const load = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const [ifacesRes, alertRulesRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/network-monitoring/interfaces"),
+        apiFetch<any>("/api/v1/network-monitoring/alert-rules"),
+      ]);
+      let ifArr: any[] = [];
+      if (ifacesRes.status === "fulfilled") {
+        const v = ifacesRes.value;
+        ifArr = Array.isArray(v) ? v : (v?.interfaces ?? v?.items ?? []);
+        setIfaces(ifArr);
+      } else {
+        setError((ifacesRes.reason as Error).message);
+      }
+      let alertsArr: any[] = [];
+      if (alertRulesRes.status === "fulfilled") {
+        const v = alertRulesRes.value;
+        alertsArr = Array.isArray(v) ? v : (v?.alerts ?? v?.rules ?? v?.items ?? []);
+        setAlerts(alertsArr);
+      }
+      const totalTraffic = ifArr.reduce((s, i) => s + (Number(i.traffic_gb ?? i.bytes_total ?? 0) || 0), 0);
+      const avgUtil = ifArr.length > 0
+        ? Math.round(ifArr.reduce((s, i) => s + (Number(i.utilization ?? i.utilization_pct ?? 0) || 0), 0) / ifArr.length)
+        : 0;
+      setStats({
+        interfaces_monitored: ifArr.length,
+        active_alerts: alertsArr.length,
+        total_traffic_gb: Number(totalTraffic.toFixed(1)),
+        avg_utilization_pct: avgUtil,
+      });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { load(); }, []);
 
-  const stats     = liveData?.stats  ?? MOCK_STATS;
-  const alerts    = liveData?.alerts?.items ?? liveData?.alerts ?? MOCK_ALERTS;
-  const ifaces    = MOCK_INTERFACES;
+  const handleRefresh = () => { load(); };
+
+  if (loading) return <PageSkeleton />;
 
   return (
     <motion.div
@@ -126,11 +131,13 @@ export default function NetworkMonitoringDashboard() {
         title="Network Monitoring"
         description="Interface health, traffic utilization, and real-time alert feed"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
-            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }
       />
+
+      {error && <ErrorState message={error} onRetry={load} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -153,6 +160,7 @@ export default function NetworkMonitoringDashboard() {
           <CardDescription className="text-xs">Interface alerts sorted by severity</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {alerts.length === 0 && !error ? <EmptyState icon={AlertTriangle} title="No active alerts" description="No alert rules have triggered for monitored interfaces." /> : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -167,16 +175,17 @@ export default function NetworkMonitoringDashboard() {
               <TableBody>
                 {alerts.map((a: any, i: number) => (
                   <TableRow key={a.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2"><SeverityBadge sev={a.severity} /></TableCell>
-                    <TableCell className="py-2 font-mono text-[11px]">{a.interface_name}</TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{a.metric?.replace(/_/g, " ")}</TableCell>
-                    <TableCell className="py-2 text-[11px] font-medium tabular-nums">{a.value}</TableCell>
-                    <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{a.detected_at}</TableCell>
+                    <TableCell className="py-2"><SeverityBadge sev={a.severity ?? "medium"} /></TableCell>
+                    <TableCell className="py-2 font-mono text-[11px]">{a.interface_name ?? a.interface_id ?? "—"}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{(a.metric ?? a.metric_type ?? "")?.replace(/_/g, " ")}</TableCell>
+                    <TableCell className="py-2 text-[11px] font-medium tabular-nums">{a.value ?? a.threshold ?? "—"}</TableCell>
+                    <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{a.detected_at ?? a.created_at ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -190,6 +199,7 @@ export default function NetworkMonitoringDashboard() {
           <CardDescription className="text-xs">Traffic and utilization per monitored interface</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {ifaces.length === 0 && !error ? <EmptyState icon={Network} title="No interfaces" description="Register a network interface to begin monitoring." /> : (
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -200,34 +210,37 @@ export default function NetworkMonitoringDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {ifaces.map((iface: any, i: number) => (
-                <TableRow key={iface.name ?? i} className="hover:bg-muted/30">
-                  <TableCell className="py-2 font-mono text-[11px]">{iface.name}</TableCell>
-                  <TableCell className="py-2"><StatusBadge status={iface.status} /></TableCell>
-                  <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{iface.traffic_gb} GB</TableCell>
+              {ifaces.map((iface: any, i: number) => {
+                const util = Number(iface.utilization ?? iface.utilization_pct ?? 0) || 0;
+                return (
+                <TableRow key={iface.id ?? iface.name ?? i} className="hover:bg-muted/30">
+                  <TableCell className="py-2 font-mono text-[11px]">{iface.name ?? iface.id}</TableCell>
+                  <TableCell className="py-2"><StatusBadge status={iface.status ?? "up"} /></TableCell>
+                  <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{iface.traffic_gb ?? 0} GB</TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden min-w-[80px]">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${iface.utilization}%` }}
+                          animate={{ width: `${util}%` }}
                           transition={{ duration: 0.5, delay: i * 0.05 }}
                           className={cn("h-full rounded-full",
-                            iface.utilization >= 90 ? "bg-red-500" :
-                            iface.utilization >= 70 ? "bg-amber-500" : "bg-green-500"
+                            util >= 90 ? "bg-red-500" :
+                            util >= 70 ? "bg-amber-500" : "bg-green-500"
                           )}
                         />
                       </div>
                       <span className={cn("text-xs tabular-nums font-medium w-8 text-right",
-                        iface.utilization >= 90 ? "text-red-400" :
-                        iface.utilization >= 70 ? "text-amber-400" : "text-green-400"
-                      )}>{iface.utilization}%</span>
+                        util >= 90 ? "text-red-400" :
+                        util >= 70 ? "text-amber-400" : "text-green-400"
+                      )}>{util}%</span>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              );})}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
     </motion.div>

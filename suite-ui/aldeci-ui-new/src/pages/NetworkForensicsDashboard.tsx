@@ -19,38 +19,21 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
+async function apiFetch<T = any>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_CAPTURES = [
-  { id: "cap-a1b2c3d4", interface: "eth0",   filter_bpf: "tcp port 443",         duration_sec: 3600, status: "completed", started_at: "2026-04-16 08:00:00" },
-  { id: "cap-e5f6g7h8", interface: "eth1",   filter_bpf: "host 10.0.0.55",        duration_sec: 1800, status: "running",   started_at: "2026-04-16 09:30:00" },
-  { id: "cap-i9j0k1l2", interface: "eth0",   filter_bpf: "udp port 53",           duration_sec: 900,  status: "completed", started_at: "2026-04-16 07:15:00" },
-  { id: "cap-m3n4o5p6", interface: "eth2",   filter_bpf: "tcp port 22",           duration_sec: 7200, status: "running",   started_at: "2026-04-16 06:00:00" },
-  { id: "cap-q7r8s9t0", interface: "eth0",   filter_bpf: "icmp",                  duration_sec: 600,  status: "failed",    started_at: "2026-04-16 10:00:00" },
-  { id: "cap-u1v2w3x4", interface: "eth3",   filter_bpf: "net 192.168.0.0/24",    duration_sec: 5400, status: "completed", started_at: "2026-04-16 05:00:00" },
-  { id: "cap-y5z6a7b8", interface: "eth1",   filter_bpf: "tcp port 8080 or 8443", duration_sec: 2700, status: "running",   started_at: "2026-04-16 09:00:00" },
-  { id: "cap-c9d0e1f2", interface: "eth0",   filter_bpf: "host 172.16.0.10",      duration_sec: 1200, status: "completed", started_at: "2026-04-16 04:00:00" },
-];
-
-const MOCK_STATS = { active_captures: 3, total_artifacts: 214, suspicious_captures: 2, total_captures: 47 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -72,27 +55,48 @@ function StatusBadge({ status }: { status: string }) {
 export default function NetworkForensicsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveCaptures, setLiveCaptures] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [captures, setCaptures] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({ active_captures: 0, total_artifacts: 0, suspicious_captures: 0, total_captures: 0 });
 
-  useEffect(() => {
-    Promise.allSettled([
-      apiFetch(`/api/v1/network-forensics/captures?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/network-forensics/stats?org_id=${ORG_ID}`),
-    ]).then(([capturesRes, statsRes]) => {
-      if (capturesRes.status === "fulfilled") setLiveCaptures(capturesRes.value?.captures ?? capturesRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+  const load = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const [capRes, artRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/network-forensics/captures"),
+        apiFetch<any>("/api/v1/network-forensics/artifacts"),
+      ]);
+      let capArr: any[] = [];
+      if (capRes.status === "fulfilled") {
+        const v = capRes.value;
+        capArr = Array.isArray(v) ? v : (v?.captures ?? v?.items ?? []);
+        setCaptures(capArr);
+      } else {
+        setError((capRes.reason as Error).message);
+      }
+      const artCount = artRes.status === "fulfilled"
+        ? (Array.isArray(artRes.value) ? artRes.value.length : (artRes.value?.artifacts?.length ?? artRes.value?.items?.length ?? 0))
+        : 0;
+      setStats({
+        active_captures: capArr.filter((c: any) => c.status === "running").length,
+        total_artifacts: artCount,
+        suspicious_captures: capArr.filter((c: any) => c.suspicious === true).length,
+        total_captures: capArr.length,
+      });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { load(); }, []);
 
-  const captures = liveCaptures ?? MOCK_CAPTURES;
-  const stats    = liveStats    ?? MOCK_STATS;
+  const handleRefresh = () => { load(); };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+  if (loading) return <PageSkeleton />;
 
 
   return (
@@ -111,6 +115,8 @@ export default function NetworkForensicsDashboard() {
           </Button>
         }
       />
+
+      {error && <ErrorState message={error} onRetry={load} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -137,6 +143,7 @@ export default function NetworkForensicsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {captures.length === 0 && !error ? <EmptyState icon={Network} title="No packet captures" description="Start a packet capture to populate this view." /> : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -175,6 +182,7 @@ export default function NetworkForensicsDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

@@ -19,79 +19,28 @@ import {
   Shield, AlertTriangle, Target, Activity, RefreshCw,
   Play, Pause, CheckCircle, Lock, Plus, ChevronRight, X,
 } from "lucide-react";
-
-// ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-    ...opts,
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_CAMPAIGNS = [
-  { id: "OC-001", name: "Q2 Network Pentest",         campaign_type: "network_pentest",    phase: "lateral_movement",  status: "active",    operators_count: 3, findings_count: 12, risk_score: 82, authorized_by: "CISO",  started_at: "2026-04-15 09:00", authorization_token: "AUTH-7F2A" },
-  { id: "OC-002", name: "Web App Security Assessment", campaign_type: "web_app",            phase: "exploitation",      status: "active",    operators_count: 2, findings_count: 8,  risk_score: 74, authorized_by: "CTO",   started_at: "2026-04-15 14:30", authorization_token: "AUTH-3D9B" },
-  { id: "OC-003", name: "Cloud Infrastructure Audit",  campaign_type: "cloud_security",     phase: "reconnaissance",    status: "paused",    operators_count: 4, findings_count: 5,  risk_score: 61, authorized_by: "CISO",  started_at: "2026-04-14 10:00", authorization_token: "AUTH-1E5C" },
-  { id: "OC-004", name: "Social Engineering Test",     campaign_type: "social_engineering", phase: "delivery",          status: "completed", operators_count: 2, findings_count: 19, risk_score: 91, authorized_by: "Board", started_at: "2026-04-12 08:00", authorization_token: "AUTH-9A4F" },
-  { id: "OC-005", name: "Full Red Team Exercise",      campaign_type: "full_red_team",      phase: "command_control",   status: "active",    operators_count: 5, findings_count: 31, risk_score: 95, authorized_by: "CISO",  started_at: "2026-04-13 07:00", authorization_token: "AUTH-2B8D" },
-  { id: "OC-006", name: "Physical Access Test",        campaign_type: "physical_access",    phase: "initial_access",    status: "planned",   operators_count: 2, findings_count: 0,  risk_score: 0,  authorized_by: "Exec",  started_at: "2026-04-17 09:00", authorization_token: "AUTH-6G3H" },
-  { id: "OC-007", name: "Mobile App Pentest",          campaign_type: "web_app",            phase: "post_exploitation", status: "completed", operators_count: 2, findings_count: 14, risk_score: 78, authorized_by: "CTO",   started_at: "2026-04-10 11:00", authorization_token: "AUTH-4K7L" },
-  { id: "OC-008", name: "API Security Review",         campaign_type: "web_app",            phase: "exploitation",      status: "active",    operators_count: 3, findings_count: 9,  risk_score: 69, authorized_by: "CISO",  started_at: "2026-04-15 16:00", authorization_token: "AUTH-5M2N" },
-  { id: "OC-009", name: "Supply Chain Attack Sim",     campaign_type: "full_red_team",      phase: "reconnaissance",    status: "planned",   operators_count: 3, findings_count: 0,  risk_score: 0,  authorized_by: "Board", started_at: "2026-04-18 09:00", authorization_token: "AUTH-8P1Q" },
-  { id: "OC-010", name: "Insider Threat Exercise",     campaign_type: "social_engineering", phase: "data_exfiltration", status: "completed", operators_count: 2, findings_count: 22, risk_score: 88, authorized_by: "CISO",  started_at: "2026-04-08 08:00", authorization_token: "AUTH-0R6S" },
-];
-
-const MOCK_STATS = { active_campaigns: 4, total_findings: 120, critical_findings: 18, avg_risk_score: 73 };
-
-const MOCK_TASKS: Record<string, any[]> = {
-  "OC-001": [
-    { id: "T-001", name: "Network enumeration scan",      phase: "reconnaissance",   status: "completed", assigned_operator: "Op-Alpha", mitre_technique: "T1046" },
-    { id: "T-002", name: "SMB relay attack",              phase: "lateral_movement", status: "in_progress", assigned_operator: "Op-Beta",  mitre_technique: "T1557.001" },
-    { id: "T-003", name: "Kerberoasting attempt",         phase: "lateral_movement", status: "pending",   assigned_operator: "Op-Gamma", mitre_technique: "T1558.003" },
-  ],
-  "OC-002": [
-    { id: "T-004", name: "SQL injection scanning",        phase: "exploitation",     status: "completed", assigned_operator: "Op-Alpha", mitre_technique: "T1190" },
-    { id: "T-005", name: "XSS payload delivery",          phase: "exploitation",     status: "in_progress", assigned_operator: "Op-Beta",  mitre_technique: "T1059.007" },
-  ],
-  "OC-005": [
-    { id: "T-006", name: "Phishing campaign launch",      phase: "delivery",         status: "completed", assigned_operator: "Op-Alpha", mitre_technique: "T1566.001" },
-    { id: "T-007", name: "C2 beacon establishment",       phase: "command_control",  status: "in_progress", assigned_operator: "Op-Delta",  mitre_technique: "T1071.001" },
-    { id: "T-008", name: "Privilege escalation via CVE",  phase: "exploitation",     status: "completed", assigned_operator: "Op-Gamma", mitre_technique: "T1068" },
-    { id: "T-009", name: "Domain controller compromise",  phase: "lateral_movement", status: "pending",   assigned_operator: "Op-Epsilon", mitre_technique: "T1003.001" },
-  ],
-};
-
-const MOCK_FINDINGS: Record<string, any[]> = {
-  "OC-001": [
-    { id: "F-001", title: "Unpatched SMBv1 on 14 hosts",      severity: "critical", status: "open",      mitre: "T1210",     cvss: 9.8 },
-    { id: "F-002", title: "Weak Kerberos delegation policy",  severity: "high",     status: "open",      mitre: "T1558",     cvss: 7.5 },
-    { id: "F-003", title: "NTLMv1 allowed on domain",         severity: "high",     status: "accepted",  mitre: "T1557",     cvss: 7.1 },
-  ],
-  "OC-005": [
-    { id: "F-004", title: "Domain admin via phishing",         severity: "critical", status: "open",      mitre: "T1566",     cvss: 10.0 },
-    { id: "F-005", title: "C2 exfil via DNS tunneling",        severity: "critical", status: "open",      mitre: "T1071.004", cvss: 9.1 },
-    { id: "F-006", title: "No EDR on 8 servers",               severity: "high",     status: "open",      mitre: "T1562",     cvss: 8.2 },
-  ],
-};
+async function apiFetch<T = any>(path: string, opts?: RequestInit): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
+}
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -182,7 +131,7 @@ function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreate
     setSubmitting(true);
     setError("");
     try {
-      await apiFetch(`/api/v1/openclaw/campaigns?org_id=${ORG_ID}`, {
+      await apiFetch(`/api/v1/openclaw/campaigns`, {
         method: "POST",
         body: JSON.stringify({
           name: form.name,
@@ -284,54 +233,75 @@ function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreate
 // ── Component ──────────────────────────────────────────────────
 
 export default function OpenClawDashboard() {
-  const [campaigns, setCampaigns] = useState<any[]>(MOCK_CAMPAIGNS);
-  const [stats, setStats] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({ active_campaigns: 0, total_findings: 0, critical_findings: 0, avg_risk_score: 0 });
   const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [findings, setFindings] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadData = () => {
-    setDataLoading(true);
-    Promise.allSettled([
-      apiFetch(`/api/v1/openclaw/campaigns?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/openclaw/stats?org_id=${ORG_ID}`),
-    ]).then(([campsResult, statsResult]) => {
-      if (campsResult.status === "fulfilled" && Array.isArray(campsResult.value)) {
-        setCampaigns(campsResult.value);
+  const loadData = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const [campsResult, statsResult] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/openclaw/campaigns"),
+        apiFetch<any>("/api/v1/openclaw/stats"),
+      ]);
+      if (campsResult.status === "fulfilled") {
+        const v = campsResult.value;
+        const arr = Array.isArray(v) ? v : (v?.campaigns ?? v?.items ?? []);
+        setCampaigns(arr);
+      } else {
+        setError((campsResult.reason as Error).message);
       }
       if (statsResult.status === "fulfilled") {
-        setStats(statsResult.value);
+        const v = statsResult.value;
+        setStats({
+          active_campaigns: v?.active_campaigns ?? 0,
+          total_findings: v?.total_findings ?? 0,
+          critical_findings: v?.critical_findings ?? 0,
+          avg_risk_score: v?.avg_risk_score ?? 0,
+        });
       }
-    }).finally(() => setDataLoading(false));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => { loadData(); }, []);
 
-  const loadCampaignDetail = (campaign: any) => {
+  const loadCampaignDetail = async (campaign: any) => {
     setSelectedCampaign(campaign);
-    // Load tasks + findings from mock or API
-    const mockTasks = MOCK_TASKS[campaign.id] || [];
-    const mockFinds = MOCK_FINDINGS[campaign.id] || [];
-    setTasks(mockTasks);
-    setFindings(mockFinds);
-
-    Promise.allSettled([
-      apiFetch(`/api/v1/openclaw/campaigns/${campaign.id}/tasks?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/openclaw/findings?org_id=${ORG_ID}&campaign_id=${campaign.id}`),
-    ]).then(([tasksRes, findingsRes]) => {
-      if (tasksRes.status === "fulfilled" && Array.isArray(tasksRes.value) && tasksRes.value.length > 0) setTasks(tasksRes.value);
-      if (findingsRes.status === "fulfilled" && Array.isArray(findingsRes.value) && findingsRes.value.length > 0) setFindings(findingsRes.value);
-    });
+    setTasks([]);
+    setFindings([]);
+    try {
+      const [tasksRes, findingsRes] = await Promise.allSettled([
+        apiFetch<any>(`/api/v1/openclaw/campaigns/${campaign.id}/tasks`),
+        apiFetch<any>(`/api/v1/openclaw/findings?campaign_id=${encodeURIComponent(campaign.id)}`),
+      ]);
+      if (tasksRes.status === "fulfilled") {
+        const v = tasksRes.value;
+        setTasks(Array.isArray(v) ? v : (v?.tasks ?? v?.items ?? []));
+      }
+      if (findingsRes.status === "fulfilled") {
+        const v = findingsRes.value;
+        setFindings(Array.isArray(v) ? v : (v?.findings ?? v?.items ?? []));
+      }
+    } catch (e) {
+      toast.error(`Failed to load campaign detail: ${(e as Error).message}`);
+    }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadData();
-    setTimeout(() => setRefreshing(false), 800);
-  };
+  const handleRefresh = () => { loadData(); };
+
+  if (loading) return <PageSkeleton />;
 
   const authorizedCount = campaigns.filter((c) => c.authorization_token).length;
 
@@ -352,8 +322,8 @@ export default function OpenClawDashboard() {
         description="AI-driven red team campaigns — autonomous attack simulation across network, web, cloud, and social vectors"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
-              <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
             </Button>
             <Button size="sm" onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4 mr-1" />

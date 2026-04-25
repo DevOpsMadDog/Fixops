@@ -11,50 +11,26 @@ import {
   Activity, AlertTriangle, TrendingUp, TrendingDown,
   CheckCircle2, PlusCircle, Network, BarChart2, Wifi,
 } from "lucide-react";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
-const ORG_ID = "aldeci-demo";
-async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
-  if (!r.ok) throw new Error(`${r.status}`);
-  return r.json();
-}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// ── Mock Data ──────────────────────────────────────────────────
-
-const MOCK_ANOMALIES = [
-  { id: "anm-001", segment: "DMZ", protocol: "TCP", anomaly_type: "spike", severity: "critical", deviation_pct: 340, baseline: 1200, observed: 5280, detected_at: "2026-04-16T10:32:00Z", resolved: false },
-  { id: "anm-002", segment: "Corporate LAN", protocol: "UDP", anomaly_type: "spike", severity: "high", deviation_pct: 187, baseline: 3400, observed: 9758, detected_at: "2026-04-16T10:18:00Z", resolved: false },
-  { id: "anm-003", segment: "OT Network", protocol: "ICMP", anomaly_type: "drop", severity: "high", deviation_pct: -72, baseline: 820, observed: 230, detected_at: "2026-04-16T09:55:00Z", resolved: false },
-  { id: "anm-004", segment: "Cloud VPC", protocol: "HTTPS", anomaly_type: "spike", severity: "medium", deviation_pct: 95, baseline: 14200, observed: 27690, detected_at: "2026-04-16T09:40:00Z", resolved: false },
-  { id: "anm-005", segment: "Guest WiFi", protocol: "DNS", anomaly_type: "spike", severity: "medium", deviation_pct: 143, baseline: 680, observed: 1650, detected_at: "2026-04-16T09:22:00Z", resolved: false },
-  { id: "anm-006", segment: "Management", protocol: "SSH", anomaly_type: "drop", severity: "low", deviation_pct: -38, baseline: 240, observed: 149, detected_at: "2026-04-16T09:10:00Z", resolved: true },
-  { id: "anm-007", segment: "Data Center", protocol: "TCP", anomaly_type: "spike", severity: "critical", deviation_pct: 510, baseline: 8800, observed: 53688, detected_at: "2026-04-16T08:58:00Z", resolved: false },
-  { id: "anm-008", segment: "IoT Network", protocol: "MQTT", anomaly_type: "drop", severity: "medium", deviation_pct: -61, baseline: 1100, observed: 429, detected_at: "2026-04-16T08:45:00Z", resolved: false },
-];
-
-const MOCK_BASELINES = [
-  { id: "bl-001", segment: "DMZ", protocol: "TCP", avg_bytes: 1200, std_dev: 148, sample_count: 8640, baseline_date: "2026-03-16" },
-  { id: "bl-002", segment: "Corporate LAN", protocol: "UDP", avg_bytes: 3400, std_dev: 512, sample_count: 8640, baseline_date: "2026-03-16" },
-  { id: "bl-003", segment: "OT Network", protocol: "ICMP", avg_bytes: 820, std_dev: 94, sample_count: 8640, baseline_date: "2026-03-16" },
-  { id: "bl-004", segment: "Cloud VPC", protocol: "HTTPS", avg_bytes: 14200, std_dev: 2100, sample_count: 8640, baseline_date: "2026-03-16" },
-  { id: "bl-005", segment: "Guest WiFi", protocol: "DNS", avg_bytes: 680, std_dev: 87, sample_count: 8640, baseline_date: "2026-03-16" },
-  { id: "bl-006", segment: "Data Center", protocol: "TCP", avg_bytes: 8800, std_dev: 1340, sample_count: 8640, baseline_date: "2026-03-16" },
-];
-
-const MOCK_TRAFFIC = {
-  DMZ: [1100, 1250, 1180, 1300, 5280, 3100, 2400, 1600],
-  "Corporate LAN": [3200, 3500, 3400, 3800, 9758, 7200, 5100, 3900],
-  "Cloud VPC": [13800, 14100, 14200, 15100, 27690, 21000, 18500, 16200],
-  "OT Network": [800, 820, 810, 790, 230, 350, 540, 700],
-};
+async function apiFetch<T = any>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -101,31 +77,68 @@ function BytesBar({ value, max }: { value: number; max: number }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function NetworkAnomalyDashboard() {
-  const [resolvedSet, setResolvedSet] = useState<Set<string>>(new Set(["anm-006"]));
+  const [resolvedSet, setResolvedSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [segmentFilter, setSegmentFilter] = useState("DMZ");
   const [showDetectForm, setShowDetectForm] = useState(false);
-
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [anomalyList, setAnomalyList] = useState<any[]>([]);
+  const [baselines, setBaselines] = useState<any[]>([]);
+  const [trafficSeries, setTrafficSeries] = useState<Record<string, number[]>>({});
+  const [segmentFilter, setSegmentFilter] = useState("");
+  const [detectForm, setDetectForm] = useState({ segment: "", protocol: "TCP", bytes: "", packets: "" });
 
-  const loadData = () => {
+  const loadData = async () => {
     setFetchError(null);
-    return apiFetch(`/api/v1/network-anomaly/anomalies?org_id=${ORG_ID}`).catch((err) => {
-      setFetchError(err instanceof Error ? err.message : "Failed to load network anomaly data");
-    });
+    try {
+      const [sumRes, baseRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/network-anomaly/summary"),
+        apiFetch<any>("/api/v1/network-anomaly/baselines"),
+      ]);
+      let aArr: any[] = [];
+      if (sumRes.status === "fulfilled") {
+        const v = sumRes.value;
+        aArr = Array.isArray(v) ? v : (v?.anomalies ?? v?.items ?? []);
+        setAnomalyList(aArr);
+      } else {
+        setFetchError((sumRes.reason as Error).message);
+      }
+      let bArr: any[] = [];
+      if (baseRes.status === "fulfilled") {
+        const v = baseRes.value;
+        bArr = Array.isArray(v) ? v : (v?.baselines ?? v?.items ?? []);
+        setBaselines(bArr);
+      }
+      const segments = Array.from(new Set([...aArr.map((a: any) => a.segment), ...bArr.map((b: any) => b.segment)].filter(Boolean)));
+      if (segments.length && !segmentFilter) {
+        setSegmentFilter(segments[0]);
+        setDetectForm((f) => ({ ...f, segment: segments[0] }));
+      }
+      const trendsBySegment: Record<string, number[]> = {};
+      await Promise.all(segments.map(async (seg) => {
+        try {
+          const t = await apiFetch<any>(`/api/v1/network-anomaly/traffic-trend?segment=${encodeURIComponent(seg)}`);
+          trendsBySegment[seg] = Array.isArray(t) ? t : (t?.trend ?? t?.data ?? []);
+        } catch { trendsBySegment[seg] = []; }
+      }));
+      setTrafficSeries(trendsBySegment);
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : "Failed to load network anomaly data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    loadData().finally(() => setLoading(false));
-  }, []);
-  const [detectForm, setDetectForm] = useState({ segment: "DMZ", protocol: "TCP", bytes: "", packets: "" });
+  useEffect(() => { loadData(); }, []);
 
-  const anomalies = MOCK_ANOMALIES.filter(a => !resolvedSet.has(a.id));
+  if (loading) return <PageSkeleton />;
+
+  const anomalies = anomalyList.filter((a) => !resolvedSet.has(a.id));
   const activeAnomalies = anomalies.length;
   const criticalCount = anomalies.filter(a => a.severity === "critical").length;
   const highCount = anomalies.filter(a => a.severity === "high").length;
 
-  const trafficData = MOCK_TRAFFIC[segmentFilter as keyof typeof MOCK_TRAFFIC] ?? [];
+  const segmentKeys = Object.keys(trafficSeries);
+  const trafficData = trafficSeries[segmentFilter] ?? [];
   const maxTraffic = Math.max(...trafficData, 1);
 
   const sevDist = ["critical", "high", "medium", "low"].map(s => ({
@@ -141,17 +154,11 @@ export default function NetworkAnomalyDashboard() {
         description="Real-time network traffic anomaly detection and baseline deviation monitoring"
       />
 
-      {/* Fetch Error Banner */}
-      {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
-          <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
-        </div>
-      )}
+      {fetchError && <ErrorState message={fetchError} onRetry={loadData} />}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Anomalies" value={MOCK_ANOMALIES.length} icon={<Network className="h-5 w-5" />} />
+        <KpiCard title="Total Anomalies" value={anomalyList.length} icon={<Network className="h-5 w-5" />} />
         <KpiCard title="Active" value={activeAnomalies} icon={<AlertTriangle className="h-5 w-5 text-red-400" />} />
         <KpiCard title="Critical" value={criticalCount} icon={<AlertTriangle className="h-5 w-5 text-red-500" />} />
         <KpiCard title="High" value={highCount} icon={<TrendingUp className="h-5 w-5 text-orange-400" />} />
@@ -173,7 +180,7 @@ export default function NetworkAnomalyDashboard() {
                 <div>
                   <label className="text-[10px] text-zinc-500 mb-1 block">Segment</label>
                   <select className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white" value={detectForm.segment} onChange={e => setDetectForm(p => ({ ...p, segment: e.target.value }))}>
-                    {Object.keys(MOCK_TRAFFIC).map(s => <option key={s}>{s}</option>)}
+                    {segmentKeys.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
@@ -203,6 +210,7 @@ export default function NetworkAnomalyDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Active Anomalies</CardTitle></CardHeader>
             <CardContent>
+              {anomalies.length === 0 && !fetchError ? <EmptyState icon={Activity} title="No anomalies detected" description="Baselines look healthy. Run detection to scan for deviations." /> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -213,18 +221,18 @@ export default function NetworkAnomalyDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MOCK_ANOMALIES.filter(a => !resolvedSet.has(a.id)).map(a => (
+                    {anomalies.map(a => (
                       <tr key={a.id} className="border-b border-zinc-700/50 hover:bg-zinc-700/20">
-                        <td className="py-2 px-2 text-zinc-300 whitespace-nowrap">{a.segment}</td>
-                        <td className="py-2 px-2"><Badge className={cn("text-[9px] border", PROTOCOL_COLORS[a.protocol] ?? "border-zinc-600 text-zinc-400")}>{a.protocol}</Badge></td>
-                        <td className="py-2 px-2"><Badge className={cn("text-[9px] border capitalize", ANOMALY_TYPE_COLORS[a.anomaly_type])}>{a.anomaly_type}</Badge></td>
-                        <td className="py-2 px-2"><Badge className={cn("text-[9px] border capitalize", SEVERITY_COLORS[a.severity])}>{a.severity}</Badge></td>
-                        <td className={cn("py-2 px-2 font-mono font-bold", a.deviation_pct > 0 ? "text-red-400" : "text-blue-400")}>
-                          {a.deviation_pct > 0 ? "+" : ""}{a.deviation_pct}%
+                        <td className="py-2 px-2 text-zinc-300 whitespace-nowrap">{a.segment ?? "—"}</td>
+                        <td className="py-2 px-2"><Badge className={cn("text-[9px] border", PROTOCOL_COLORS[a.protocol] ?? "border-zinc-600 text-zinc-400")}>{a.protocol ?? "—"}</Badge></td>
+                        <td className="py-2 px-2"><Badge className={cn("text-[9px] border capitalize", ANOMALY_TYPE_COLORS[a.anomaly_type] ?? "border-zinc-600 text-zinc-400")}>{a.anomaly_type ?? "—"}</Badge></td>
+                        <td className="py-2 px-2"><Badge className={cn("text-[9px] border capitalize", SEVERITY_COLORS[a.severity] ?? "border-zinc-600 text-zinc-400")}>{a.severity ?? "—"}</Badge></td>
+                        <td className={cn("py-2 px-2 font-mono font-bold", (a.deviation_pct ?? 0) > 0 ? "text-red-400" : "text-blue-400")}>
+                          {(a.deviation_pct ?? 0) > 0 ? "+" : ""}{a.deviation_pct ?? 0}%
                         </td>
-                        <td className="py-2 px-2 text-zinc-400 font-mono">{a.baseline.toLocaleString()}</td>
-                        <td className="py-2 px-2 text-white font-mono">{a.observed.toLocaleString()}</td>
-                        <td className="py-2 px-2 text-zinc-500 whitespace-nowrap">{timeAgo(a.detected_at)}</td>
+                        <td className="py-2 px-2 text-zinc-400 font-mono">{(a.baseline ?? 0).toLocaleString()}</td>
+                        <td className="py-2 px-2 text-white font-mono">{(a.observed ?? 0).toLocaleString()}</td>
+                        <td className="py-2 px-2 text-zinc-500 whitespace-nowrap">{a.detected_at ? timeAgo(a.detected_at) : "—"}</td>
                         <td className="py-2 px-2">
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-green-400 hover:text-green-300"
                             onClick={() => setResolvedSet(s => new Set([...s, a.id]))}>
@@ -236,6 +244,7 @@ export default function NetworkAnomalyDashboard() {
                   </tbody>
                 </table>
               </div>
+              )}
             </CardContent>
           </Card>
 
@@ -246,18 +255,16 @@ export default function NetworkAnomalyDashboard() {
                 <CardTitle className="text-sm text-zinc-200">Traffic Trend (bytes/min)</CardTitle>
                 <select className="ml-auto bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-white"
                   value={segmentFilter} onChange={e => setSegmentFilter(e.target.value)}>
-                  {Object.keys(MOCK_TRAFFIC).map(s => <option key={s}>{s}</option>)}
+                  {segmentKeys.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
             </CardHeader>
             <CardContent>
+              {trafficData.length === 0 ? <EmptyState icon={BarChart2} title="No traffic data" description="Submit traffic samples for this segment to populate the trend chart." /> : (
               <div className="flex items-end gap-1.5 h-28">
                 {trafficData.map((v, i) => {
                   const pct = (v / maxTraffic) * 100;
                   const isSpike = v > maxTraffic * 0.6;
-
-                  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div className={cn("w-full rounded-sm", isSpike ? "bg-red-500" : "bg-blue-500")} style={{ height: `${Math.max(4, pct)}px` }} />
@@ -266,6 +273,7 @@ export default function NetworkAnomalyDashboard() {
                   );
                 })}
               </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -295,18 +303,18 @@ export default function NetworkAnomalyDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Baseline Health</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {MOCK_BASELINES.map(b => (
-                <div key={b.id} className="border border-zinc-700 rounded-lg p-3 space-y-1.5">
+              {baselines.length === 0 ? <EmptyState icon={Wifi} title="No baselines" description="Update baselines to track normal traffic patterns." /> : baselines.map((b: any) => (
+                <div key={b.id ?? `${b.segment}-${b.protocol}`} className="border border-zinc-700 rounded-lg p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-300">{b.segment}</span>
                     <Badge className={cn("text-[9px] border", PROTOCOL_COLORS[b.protocol] ?? "border-zinc-600 text-zinc-400")}>{b.protocol}</Badge>
                   </div>
-                  <BytesBar value={b.avg_bytes} max={20000} />
+                  <BytesBar value={b.avg_bytes ?? 0} max={20000} />
                   <div className="flex justify-between text-[10px] text-zinc-500">
-                    <span>σ={b.std_dev.toLocaleString()}</span>
-                    <Badge className="text-[9px] border border-zinc-600 text-zinc-400">{b.sample_count.toLocaleString()} samples</Badge>
+                    <span>σ={(b.std_dev ?? 0).toLocaleString()}</span>
+                    <Badge className="text-[9px] border border-zinc-600 text-zinc-400">{(b.sample_count ?? 0).toLocaleString()} samples</Badge>
                   </div>
-                  <p className="text-[10px] text-zinc-600">Baseline: {b.baseline_date}</p>
+                  <p className="text-[10px] text-zinc-600">Baseline: {b.baseline_date ?? "—"}</p>
                 </div>
               ))}
             </CardContent>

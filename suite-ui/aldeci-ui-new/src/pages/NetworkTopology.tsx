@@ -13,17 +13,6 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-
-async function apiFetch(path: string) {
-  const res = await fetch(path, { headers: { "X-API-Key": API_KEY } });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
 import {
   Network, Server, Shield, AlertTriangle, RefreshCw,
   Search, ChevronRight, Layers, Globe, Lock,
@@ -35,45 +24,21 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const NODES = [
-  { hostname: "web-prod-01",    ip: "10.0.1.10",  type: "server",      os: "Ubuntu 22.04", location: "us-east-1a", criticality: "Critical", segment: "DMZ",       status: "online" },
-  { hostname: "web-prod-02",    ip: "10.0.1.11",  type: "server",      os: "Ubuntu 22.04", location: "us-east-1b", criticality: "Critical", segment: "DMZ",       status: "online" },
-  { hostname: "api-gateway-01", ip: "10.0.2.5",   type: "server",      os: "Amazon Linux 2", location: "us-east-1a", criticality: "Critical", segment: "Internal", status: "online" },
-  { hostname: "db-primary",     ip: "10.0.3.10",  type: "server",      os: "RHEL 9",       location: "us-east-1a", criticality: "Critical", segment: "Restricted", status: "online" },
-  { hostname: "db-replica",     ip: "10.0.3.11",  type: "server",      os: "RHEL 9",       location: "us-east-1b", criticality: "High",     segment: "Restricted", status: "online" },
-  { hostname: "fw-edge-01",     ip: "192.168.1.1", type: "firewall",   os: "FortiOS 7.4",  location: "us-east-1a", criticality: "Critical", segment: "DMZ",       status: "online" },
-  { hostname: "core-switch-01", ip: "10.0.0.1",   type: "router",      os: "IOS-XE 17.6",  location: "DC-1",      criticality: "High",     segment: "Internal",  status: "online" },
-  { hostname: "workstation-42", ip: "10.0.4.42",  type: "workstation", os: "Windows 11",   location: "NYC-HQ",    criticality: "Medium",   segment: "Internal",  status: "online" },
-  { hostname: "workstation-71", ip: "10.0.4.71",  type: "workstation", os: "macOS 15",     location: "NYC-HQ",    criticality: "Low",      segment: "Internal",  status: "offline" },
-  { hostname: "iot-sensor-03",  ip: "10.0.5.3",   type: "IoT",         os: "Embedded 2.1", location: "Warehouse", criticality: "Medium",   segment: "DMZ",       status: "online" },
-  { hostname: "jump-host-01",   ip: "10.0.2.20",  type: "server",      os: "Ubuntu 20.04", location: "us-east-1a", criticality: "High",    segment: "Internal",  status: "online" },
-  { hostname: "backup-nas-01",  ip: "10.0.3.50",  type: "server",      os: "TrueNAS 24",   location: "DC-1",      criticality: "High",     segment: "Restricted", status: "degraded" },
-];
-
-const SEGMENTS = [
-  { name: "DMZ",              vlan: "VLAN 10", subnet: "10.0.1.0/24",  zone: "DMZ",        nodes: 47 },
-  { name: "Internal Network", vlan: "VLAN 20", subnet: "10.0.2.0/24",  zone: "Internal",   nodes: 312 },
-  { name: "Restricted Zone",  vlan: "VLAN 30", subnet: "10.0.3.0/24",  zone: "Restricted", nodes: 28 },
-  { name: "IoT Network",      vlan: "VLAN 40", subnet: "10.0.5.0/24",  zone: "DMZ",        nodes: 94 },
-  { name: "Management VLAN",  vlan: "VLAN 99", subnet: "10.0.99.0/24", zone: "Restricted", nodes: 15 },
-  { name: "Guest Wireless",   vlan: "VLAN 50", subnet: "172.16.0.0/24", zone: "DMZ",       nodes: 351 },
-];
-
-const EXPOSURES = [
-  { src: "iot-sensor-03 (10.0.5.3)",   dst: "db-primary (10.0.3.10)",    risk: "IoT device has direct route to DB — no firewall rule", proto: "TCP 5432" },
-  { src: "web-prod-01 (10.0.1.10)",    dst: "db-replica (10.0.3.11)",    risk: "HTTP server reaches replica DB without WAF interception", proto: "TCP 3306" },
-  { src: "workstation-42 (10.0.4.42)", dst: "db-primary (10.0.3.10)",    risk: "Lateral movement: workstation can reach restricted DB", proto: "TCP 5432" },
-  { src: "iot-sensor-03 (10.0.5.3)",   dst: "api-gateway-01 (10.0.2.5)", risk: "IoT device bypasses DMZ firewall to internal API", proto: "TCP 443" },
-  { src: "guest-device (172.16.0.22)", dst: "core-switch-01 (10.0.0.1)", risk: "Guest VLAN has SNMP access to core router", proto: "UDP 161" },
-  { src: "backup-nas-01 (10.0.3.50)",  dst: "db-primary (10.0.3.10)",    risk: "NAS backup traffic unencrypted on shared segment", proto: "TCP 873" },
-  { src: "workstation-71 (10.0.4.71)", dst: "jump-host-01 (10.0.2.20)", risk: "Offline workstation has persistent SSH key to jump host", proto: "TCP 22" },
-];
-
-const MOCK_PATH = ["fw-edge-01 (192.168.1.1)", "core-switch-01 (10.0.0.1)", "api-gateway-01 (10.0.2.5)", "db-primary (10.0.3.10)"];
+async function apiFetch<T = any>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -117,34 +82,71 @@ function StatusDot({ status }: { status: string }) {
 export default function NetworkTopology() {
   const [refreshing, setRefreshing]   = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [srcNode, setSrcNode]         = useState("");
   const [dstNode, setDstNode]         = useState("");
   const [pathResult, setPathResult]   = useState<string[] | null>(null);
-  const [liveData, setLiveData]       = useState<any>(null);
+  const [pathError, setPathError]     = useState<string | null>(null);
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
+  const [segments, setSegments] = useState<any[]>([]);
 
-  const fetchAll = () =>
-    Promise.allSettled([
-      apiFetch("/api/v1/asm/assets?org_id=default"),
-      apiFetch("/api/v1/asm/stats?org_id=default"),
-    ]).then(([assetsRes, statsRes]) => {
-      const assets = assetsRes.status === "fulfilled" ? assetsRes.value : null;
-      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
-      if (assets || stats) setLiveData({ assets, stats });
-    });
-
-  useEffect(() => { fetchAll().finally(() => setLoading(false)); }, []);
-
-  const handleRefresh = () => {
+  const fetchAll = async () => {
     setRefreshing(true);
-    fetchAll().finally(() => setRefreshing(false));
+    setError(null);
+    try {
+      const [nodesRes, edgesRes, segRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/network-topology/nodes"),
+        apiFetch<any>("/api/v1/network-topology/edges"),
+        apiFetch<any>("/api/v1/network-topology/segments"),
+      ]);
+      if (nodesRes.status === "fulfilled") {
+        const v = nodesRes.value;
+        setNodes(Array.isArray(v) ? v : (v?.nodes ?? v?.items ?? []));
+      } else {
+        setError((nodesRes.reason as Error).message);
+      }
+      if (edgesRes.status === "fulfilled") {
+        const v = edgesRes.value;
+        setEdges(Array.isArray(v) ? v : (v?.edges ?? v?.items ?? []));
+      }
+      if (segRes.status === "fulfilled") {
+        const v = segRes.value;
+        setSegments(Array.isArray(v) ? v : (v?.segments ?? v?.items ?? []));
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const handleFindPath = () => {
-    if (srcNode.trim() && dstNode.trim()) setPathResult(MOCK_PATH);
+  useEffect(() => { fetchAll(); }, []);
+
+  const handleRefresh = () => { fetchAll(); };
+
+  const handleFindPath = async () => {
+    if (!srcNode.trim() || !dstNode.trim()) return;
+    setPathError(null);
+    setPathResult(null);
+    try {
+      const startNode = nodes.find((n) => (n.hostname ?? n.name ?? n.id) === srcNode.trim());
+      if (!startNode?.id) {
+        setPathError("Source node not found in topology");
+        return;
+      }
+      const v = await apiFetch<any>(`/api/v1/network-topology/nodes/${encodeURIComponent(startNode.id)}/neighbors`);
+      const list = Array.isArray(v) ? v : (v?.neighbors ?? v?.path ?? []);
+      setPathResult(list.map((n: any) => `${n.hostname ?? n.name ?? n.id} (${n.ip ?? "—"})`));
+    } catch (e) {
+      setPathError((e as Error).message);
+    }
   };
 
+  if (loading) return <PageSkeleton />;
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+  const exposedAssets = nodes.filter((n: any) => (n.criticality === "Critical" || n.exposed === true)).length;
 
 
   return (
@@ -165,12 +167,14 @@ export default function NetworkTopology() {
         }
       />
 
+      {error && <ErrorState message={error} onRetry={fetchAll} />}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Nodes"       value={liveData?.stats?.total_assets ?? liveData?.assets?.length ?? 847}    icon={Server}  />
-        <KpiCard title="Network Segments"  value={liveData?.stats?.total_segments ?? 12}     icon={Layers}  />
-        <KpiCard title="Exposed Assets"    value={liveData?.stats?.exposed_assets ?? liveData?.stats?.high_risk ?? 7}      icon={Globe}   trend="up" className="border-red-500/20" />
-        <KpiCard title="Topology Edges"    value={liveData?.stats?.total_edges ?? "2,341"}  icon={Network} />
+        <KpiCard title="Total Nodes"       value={nodes.length}         icon={Server}  />
+        <KpiCard title="Network Segments"  value={segments.length}      icon={Layers}  />
+        <KpiCard title="Exposed Assets"    value={exposedAssets}        icon={Globe}   trend="up" className="border-red-500/20" />
+        <KpiCard title="Topology Edges"    value={edges.length}         icon={Network} />
       </div>
 
       {/* Node inventory table */}
@@ -183,6 +187,7 @@ export default function NetworkTopology() {
           <CardDescription className="text-xs">All network-connected assets with classification and segment assignment</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {nodes.length === 0 && !error ? <EmptyState icon={Server} title="No nodes" description="Register network nodes via /api/v1/network-topology/nodes." /> : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -198,21 +203,22 @@ export default function NetworkTopology() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {NODES.map((n) => (
-                  <TableRow key={n.hostname} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-mono py-2.5">{n.hostname}</TableCell>
-                    <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{n.ip}</TableCell>
-                    <TableCell className="py-2.5"><TypeBadge type={n.type} /></TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{n.os}</TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{n.location}</TableCell>
-                    <TableCell className="py-2.5"><CritBadge crit={n.criticality} /></TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{n.segment}</TableCell>
-                    <TableCell className="py-2.5"><StatusDot status={n.status} /></TableCell>
+                {nodes.map((n: any) => (
+                  <TableRow key={n.id ?? n.hostname} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-mono py-2.5">{n.hostname ?? n.name ?? n.id}</TableCell>
+                    <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{n.ip ?? "—"}</TableCell>
+                    <TableCell className="py-2.5"><TypeBadge type={n.type ?? "server"} /></TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{n.os ?? "—"}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{n.location ?? "—"}</TableCell>
+                    <TableCell className="py-2.5"><CritBadge crit={n.criticality ?? "Medium"} /></TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{n.segment ?? "—"}</TableCell>
+                    <TableCell className="py-2.5"><StatusDot status={n.status ?? "online"} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -222,59 +228,31 @@ export default function NetworkTopology() {
           <Layers className="h-4 w-4 text-purple-400" />
           Network Segments
         </h3>
+        {segments.length === 0 ? <EmptyState icon={Layers} title="No segments" description="Add network segments to populate this view." /> : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SEGMENTS.map((seg) => (
-            <Card key={seg.name} className="hover:border-border/80 transition-colors">
+          {segments.map((seg: any) => (
+            <Card key={seg.id ?? seg.name} className="hover:border-border/80 transition-colors">
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-sm font-semibold truncate">{seg.name}</span>
-                  <ZoneBadge zone={seg.zone} />
+                  <ZoneBadge zone={seg.zone ?? "Internal"} />
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">VLAN</span>
                   <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Subnet</span>
-                  <span className="font-mono">{seg.vlan}</span>
-                  <span className="font-mono">{seg.subnet}</span>
+                  <span className="font-mono">{seg.vlan ?? "—"}</span>
+                  <span className="font-mono">{seg.subnet ?? seg.cidr ?? "—"}</span>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-border/40">
                   <span className="text-xs text-muted-foreground">Nodes</span>
-                  <span className="text-sm font-bold tabular-nums">{seg.nodes}</span>
+                  <span className="text-sm font-bold tabular-nums">{seg.nodes ?? seg.node_count ?? 0}</span>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+        )}
       </div>
-
-      {/* Exposure alerts */}
-      <Card className="border-red-500/20">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-400">
-              <AlertTriangle className="h-4 w-4" />
-              Exposure Alerts
-            </CardTitle>
-            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {EXPOSURES.length} exposures
-            </Badge>
-          </div>
-          <CardDescription className="text-xs">Unexpected cross-segment paths connecting exposed assets to internal critical nodes</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {EXPOSURES.map((e, i) => (
-            <div key={i} className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs">
-                <Shield className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                <span className="font-mono text-red-300">{e.src}</span>
-                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                <span className="font-mono text-red-300">{e.dst}</span>
-                <Badge className="ml-auto text-[10px] border border-red-500/30 text-red-400 bg-red-500/10 shrink-0">{e.proto}</Badge>
-              </div>
-              <p className="text-[11px] text-muted-foreground pl-5">{e.risk}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
 
       {/* Path finder */}
       <Card>
@@ -305,13 +283,15 @@ export default function NetworkTopology() {
             </Button>
           </div>
 
+          {pathError && <p className="text-[11px] text-red-400">{pathError}</p>}
+
           {pathResult && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               className="rounded-md border border-indigo-500/30 bg-indigo-500/5 p-3"
             >
-              <p className="text-[10px] uppercase tracking-wide text-indigo-400 mb-2">Path discovered — {pathResult.length} hops</p>
+              <p className="text-[10px] uppercase tracking-wide text-indigo-400 mb-2">Neighbors discovered — {pathResult.length} nodes</p>
               <div className="flex items-center gap-1 flex-wrap">
                 {pathResult.map((node, i) => (
                   <span key={i} className="flex items-center gap-1">

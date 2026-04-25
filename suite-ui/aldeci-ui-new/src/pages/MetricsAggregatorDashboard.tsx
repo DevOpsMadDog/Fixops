@@ -19,38 +19,21 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
-
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
+async function apiFetch<T = any>(path: string): Promise<T> {
+  const orgId = getStoredOrgId() || "verify-test";
+  const url = buildApiUrl(path, { org_id: orgId });
+  const res = await fetch(url, {
+    headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_SOURCES = [
-  { id: "SRC-001", name: "SIEM Event Stream",       type: "siem",       last_collected: "30 sec ago",  metric_count: 14823, status: "active" },
-  { id: "SRC-002", name: "EDR Telemetry Feed",       type: "edr",        last_collected: "1 min ago",   metric_count: 9341,  status: "active" },
-  { id: "SRC-003", name: "Cloud CloudTrail Logs",    type: "cloud",      last_collected: "2 min ago",   metric_count: 6720,  status: "active" },
-  { id: "SRC-004", name: "Vulnerability Scanner",    type: "vuln",       last_collected: "10 min ago",  metric_count: 3218,  status: "active" },
-  { id: "SRC-005", name: "Network Flow Collector",   type: "network",    last_collected: "45 sec ago",  metric_count: 22401, status: "active" },
-  { id: "SRC-006", name: "IAM Access Logs",          type: "identity",   last_collected: "5 min ago",   metric_count: 4872,  status: "active" },
-  { id: "SRC-007", name: "Container Runtime Metrics",type: "container",  last_collected: "3 min ago",   metric_count: 1934,  status: "degraded" },
-  { id: "SRC-008", name: "DLP Policy Engine",        type: "dlp",        last_collected: "20 min ago",  metric_count: 871,   status: "active" },
-];
-
-const MOCK_STATS = { total_metrics: 64182, sources_active: 7, aggregations_hr: 2840, alerts_triggered: 23 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -82,27 +65,47 @@ function StatusBadge({ status }: { status: string }) {
 export default function MetricsAggregatorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveSources, setLiveSources] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats]     = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sources, setSources] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({ total_metrics: 0, sources_active: 0, aggregations_hr: 0, alerts_triggered: 0 });
 
-  useEffect(() => {
-    Promise.allSettled([
-      apiFetch(`/api/v1/metrics-aggregator/sources?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/metrics-aggregator/stats?org_id=${ORG_ID}`),
-    ]).then(([sourcesRes, statsRes]) => {
-      if (sourcesRes.status === "fulfilled") setLiveSources(sourcesRes.value?.sources ?? sourcesRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+  const load = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const [sourcesRes, statsRes] = await Promise.allSettled([
+        apiFetch<any>("/api/v1/metrics-aggregator/all"),
+        apiFetch<any>("/api/v1/metrics-aggregator/health"),
+      ]);
+      if (sourcesRes.status === "fulfilled") {
+        const v = sourcesRes.value;
+        const arr = Array.isArray(v) ? v : (v?.sources ?? v?.metrics ?? v?.items ?? []);
+        setSources(arr);
+        setStats((prev: any) => ({ ...prev, total_metrics: Array.isArray(arr) ? arr.length : 0, sources_active: arr.length }));
+      } else {
+        setError((sourcesRes.reason as Error).message);
+      }
+      if (statsRes.status === "fulfilled") {
+        const v = statsRes.value;
+        setStats((prev: any) => ({
+          ...prev,
+          aggregations_hr: v?.aggregations_per_hour ?? v?.aggregations_hr ?? prev.aggregations_hr,
+          alerts_triggered: v?.alerts_triggered ?? v?.alerts ?? prev.alerts_triggered,
+        }));
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { load(); }, []);
 
-  const sources = liveSources ?? MOCK_SOURCES;
-  const stats   = liveStats   ?? MOCK_STATS;
+  const handleRefresh = () => { load(); };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+  if (loading) return <PageSkeleton />;
 
 
   return (
@@ -122,12 +125,14 @@ export default function MetricsAggregatorDashboard() {
         }
       />
 
+      {error && <ErrorState message={error} onRetry={load} />}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Metrics"      value={stats.total_metrics.toLocaleString()}    icon={BarChart3}  trend="up" />
-        <KpiCard title="Sources Active"     value={stats.sources_active}                    icon={Database}   trend="flat" className="border-cyan-500/20" />
-        <KpiCard title="Aggregations / hr"  value={stats.aggregations_hr.toLocaleString()}  icon={Activity}   trend="up"      className="border-blue-500/20" />
-        <KpiCard title="Alerts Triggered"   value={stats.alerts_triggered}                  icon={Bell}       trend="up"      className="border-amber-500/20" />
+        <KpiCard title="Total Metrics"      value={(stats.total_metrics ?? 0).toLocaleString()}    icon={BarChart3}  trend="up" />
+        <KpiCard title="Sources Active"     value={stats.sources_active ?? 0}                      icon={Database}   trend="flat" className="border-cyan-500/20" />
+        <KpiCard title="Aggregations / hr"  value={(stats.aggregations_hr ?? 0).toLocaleString()}  icon={Activity}   trend="up"      className="border-blue-500/20" />
+        <KpiCard title="Alerts Triggered"   value={stats.alerts_triggered ?? 0}                    icon={Bell}       trend="up"      className="border-amber-500/20" />
       </div>
 
       {/* Sources Table */}
@@ -142,6 +147,7 @@ export default function MetricsAggregatorDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {sources.length === 0 && !error ? <EmptyState icon={Database} title="No metric sources" description="No telemetry sources are currently feeding the aggregation pipeline for this org." /> : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -170,6 +176,7 @@ export default function MetricsAggregatorDashboard() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
