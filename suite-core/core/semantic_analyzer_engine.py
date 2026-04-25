@@ -36,6 +36,43 @@ try:
 except ImportError:
     _get_tg_bus = None
 
+# Optional tree-sitter integration. We import lazily so this module continues
+# to work in environments where tree-sitter wheels are unavailable.
+_TS_AVAILABLE = False
+_TS_LANGS: Dict[str, Any] = {}
+_TS_PARSERS: Dict[str, Any] = {}
+
+try:  # pragma: no cover - import-only branch
+    from tree_sitter import Language as _TSLanguage, Parser as _TSParser  # type: ignore
+
+    try:
+        import tree_sitter_typescript as _ts_typescript  # type: ignore
+
+        _TS_LANGS["typescript"] = _TSLanguage(_ts_typescript.language_typescript())
+        _TS_LANGS["tsx"] = _TSLanguage(_ts_typescript.language_tsx())
+    except Exception:  # pragma: no cover
+        pass
+
+    try:
+        import tree_sitter_java as _ts_java  # type: ignore
+
+        _TS_LANGS["java"] = _TSLanguage(_ts_java.language())
+    except Exception:  # pragma: no cover
+        pass
+
+    try:
+        import tree_sitter_go as _ts_go  # type: ignore
+
+        _TS_LANGS["go"] = _TSLanguage(_ts_go.language())
+    except Exception:  # pragma: no cover
+        pass
+
+    for _name, _lang in _TS_LANGS.items():
+        _TS_PARSERS[_name] = _TSParser(_lang)
+    _TS_AVAILABLE = bool(_TS_PARSERS)
+except Exception:  # pragma: no cover
+    _TS_AVAILABLE = False
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(Path(__file__).resolve().parents[2] / ".fixops_data")
@@ -497,36 +534,822 @@ class SemanticAnalyzerEngine:
         }
 
     # ------------------------------------------------------------------
-    # Stubs for TS / Java / Go
+    # tree-sitter helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _ts_text(src: bytes, node: Any) -> str:
+        """Extract source slice for a tree-sitter node."""
+        if node is None:
+            return ""
+        try:
+            return src[node.start_byte:node.end_byte].decode("utf-8", "replace")
+        except Exception:
+            return ""
+
+    @classmethod
+    def _ts_field(cls, src: bytes, node: Any, field: str) -> str:
+        """Read a named child field via child_by_field_name and return text."""
+        if node is None:
+            return ""
+        try:
+            child = node.child_by_field_name(field)
+        except Exception:
+            child = None
+        return cls._ts_text(src, child) if child else ""
+
+    @staticmethod
+    def _ts_walk(node: Any):
+        """Recursive node iterator (depth-first, pre-order)."""
+        if node is None:
+            return
+        stack = [node]
+        while stack:
+            n = stack.pop()
+            yield n
+            # Reverse so visitation order is left-to-right
+            stack.extend(reversed(list(n.children)))
+
+    def _ts_collect_files(self, root: Path, exts: Tuple[str, ...]) -> List[Path]:
+        out: List[Path] = []
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+            for fn in filenames:
+                if fn.endswith(exts):
+                    out.append(Path(dirpath) / fn)
+        return out
+
+    def _ts_parse_file(
+        self, parser_key: str, file_path: Path
+    ) -> Optional[Tuple[bytes, Any]]:
+        parser = _TS_PARSERS.get(parser_key)
+        if parser is None:
+            return None
+        try:
+            src = file_path.read_bytes()
+        except OSError as exc:
+            _logger.debug("ts read fail %s: %s", file_path, exc)
+            return None
+        try:
+            tree = parser.parse(src)
+        except Exception as exc:  # pragma: no cover
+            _logger.debug("ts parse fail %s: %s", file_path, exc)
+            return None
+        return src, tree
+
+    # ------------------------------------------------------------------
+    # TypeScript / TSX semantic parser
     # ------------------------------------------------------------------
 
     def parse_typescript_semantic(
         self, repo_id: str, root_path: str
     ) -> Dict[str, Any]:
-        raise NotImplementedError(
-            "parse_typescript_semantic requires tree-sitter-typescript bundle"
-        )
+        """Parse TypeScript / TSX files via tree-sitter and persist symbols
+        and references (call / inherit / implement / import)."""
+        if not _TS_AVAILABLE or "typescript" not in _TS_PARSERS:
+            raise NotImplementedError(
+                "parse_typescript_semantic requires tree-sitter-typescript bundle"
+            )
+
+        root = Path(root_path)
+        if not root.exists():
+            raise ValueError(f"root_path does not exist: {root_path}")
+
+        symbols_inserted = 0
+        refs_inserted = 0
+        files_scanned = 0
+        local_fqns: Dict[str, str] = {}
+
+        files = self._ts_collect_files(root, (".ts", ".tsx", ".mts", ".cts"))
+
+        # First pass: register all top-level symbols.
+        parsed: List[Tuple[Path, str, bytes, Any]] = []
+        for fp in files:
+            parser_key = "tsx" if fp.suffix == ".tsx" else "typescript"
+            res = self._ts_parse_file(parser_key, fp)
+            if res is None:
+                continue
+            src, tree = res
+            files_scanned += 1
+            rel = str(fp.relative_to(root)) if fp.is_absolute() else str(fp)
+            module_fqn = rel.replace(os.sep, "/").rsplit(".", 1)[0]
+            parsed.append((fp, rel, src, tree))
+
+            for n in self._ts_walk(tree.root_node):
+                t = n.type
+                if t == "class_declaration":
+                    name = self._ts_field(src, n, "name")
+                    if not name:
+                        continue
+                    fqn = f"{module_fqn}::{name}"
+                    bases: List[str] = []
+                    for ch in n.children:
+                        if ch.type == "class_heritage":
+                            for sub in ch.children:
+                                if sub.type in ("extends_clause", "implements_clause"):
+                                    for id_node in sub.children:
+                                        if id_node.type in (
+                                            "identifier", "type_identifier",
+                                        ):
+                                            bases.append(self._ts_text(src, id_node))
+                    sid = self._insert_symbol(
+                        repo_id, "class", name, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="class",
+                        metadata={"bases": bases, "language": "typescript"},
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[name] = sid
+                    symbols_inserted += 1
+                elif t == "interface_declaration":
+                    name = self._ts_field(src, n, "name")
+                    if not name:
+                        continue
+                    fqn = f"{module_fqn}::{name}"
+                    sid = self._insert_symbol(
+                        repo_id, "interface", name, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="interface",
+                        metadata={"language": "typescript"},
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[name] = sid
+                    symbols_inserted += 1
+                elif t == "type_alias_declaration":
+                    name = self._ts_field(src, n, "name")
+                    if not name:
+                        continue
+                    fqn = f"{module_fqn}::{name}"
+                    sid = self._insert_symbol(
+                        repo_id, "type_alias", name, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="type_alias",
+                        metadata={"language": "typescript"},
+                    )
+                    local_fqns[fqn] = sid
+                    symbols_inserted += 1
+                elif t == "function_declaration":
+                    name = self._ts_field(src, n, "name")
+                    if not name:
+                        continue
+                    fqn = f"{module_fqn}::{name}"
+                    params: List[str] = []
+                    for ch in n.children:
+                        if ch.type == "formal_parameters":
+                            for sub in ch.children:
+                                if sub.type == "required_parameter":
+                                    params.append(
+                                        self._ts_field(src, sub, "pattern")
+                                        or self._ts_text(src, sub)
+                                    )
+                    sid = self._insert_symbol(
+                        repo_id, "function", name, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="function",
+                        metadata={"params": params, "language": "typescript"},
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[name] = sid
+                    symbols_inserted += 1
+                elif t == "variable_declarator":
+                    name = self._ts_field(src, n, "name")
+                    if not name:
+                        continue
+                    fqn = f"{module_fqn}::{name}"
+                    sid = self._insert_symbol(
+                        repo_id, "variable", name, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="variable",
+                        metadata={"language": "typescript"},
+                    )
+                    local_fqns[fqn] = sid
+                    symbols_inserted += 1
+
+        # Second pass: references (calls, imports, inheritance).
+        for _fp, rel, src, tree in parsed:
+            for n in self._ts_walk(tree.root_node):
+                t = n.type
+                if t == "call_expression":
+                    fn_node = n.child_by_field_name("function")
+                    fn_name = self._ts_text(src, fn_node) if fn_node else ""
+                    if fn_name:
+                        self._insert_reference(
+                            repo_id, "call",
+                            target_symbol_id=local_fqns.get(fn_name, ""),
+                            target_fqn=fn_name,
+                            file_ref=rel,
+                            line_number=n.start_point[0] + 1,
+                        )
+                        refs_inserted += 1
+                elif t == "new_expression":
+                    # `new Foo()` — treat as call against a class name.
+                    ident = None
+                    for ch in n.children:
+                        if ch.type in ("identifier", "type_identifier"):
+                            ident = ch
+                            break
+                    if ident is not None:
+                        cname = self._ts_text(src, ident)
+                        self._insert_reference(
+                            repo_id, "call",
+                            target_symbol_id=local_fqns.get(cname, ""),
+                            target_fqn=cname,
+                            file_ref=rel,
+                            line_number=n.start_point[0] + 1,
+                        )
+                        refs_inserted += 1
+                elif t == "extends_clause":
+                    for ch in n.children:
+                        if ch.type in ("identifier", "type_identifier"):
+                            base = self._ts_text(src, ch)
+                            self._insert_reference(
+                                repo_id, "inherit",
+                                target_symbol_id=local_fqns.get(base, ""),
+                                target_fqn=base,
+                                file_ref=rel,
+                                line_number=n.start_point[0] + 1,
+                            )
+                            refs_inserted += 1
+                elif t == "implements_clause":
+                    for ch in n.children:
+                        if ch.type in ("identifier", "type_identifier"):
+                            iface = self._ts_text(src, ch)
+                            self._insert_reference(
+                                repo_id, "implement",
+                                target_symbol_id=local_fqns.get(iface, ""),
+                                target_fqn=iface,
+                                file_ref=rel,
+                                line_number=n.start_point[0] + 1,
+                            )
+                            refs_inserted += 1
+                elif t == "import_statement":
+                    src_node = n.child_by_field_name("source")
+                    module = self._ts_text(src, src_node).strip("'\"") if src_node else ""
+                    if module:
+                        self._insert_reference(
+                            repo_id, "import",
+                            target_fqn=module,
+                            file_ref=rel,
+                            line_number=n.start_point[0] + 1,
+                        )
+                        refs_inserted += 1
+
+        self._update_repo_meta(repo_id, parser_used="tree_sitter_typescript")
+        self._emit_event(repo_id, "semantic_parsed_typescript")
+        return {
+            "repo_id": repo_id,
+            "files_scanned": files_scanned,
+            "symbols_inserted": symbols_inserted,
+            "references_inserted": refs_inserted,
+        }
+
+    # ------------------------------------------------------------------
+    # Java semantic parser
+    # ------------------------------------------------------------------
 
     def parse_java_semantic(
         self, repo_id: str, root_path: str
     ) -> Dict[str, Any]:
-        raise NotImplementedError(
-            "parse_java_semantic requires tree-sitter-java bundle"
-        )
+        """Parse Java sources via tree-sitter."""
+        if not _TS_AVAILABLE or "java" not in _TS_PARSERS:
+            raise NotImplementedError(
+                "parse_java_semantic requires tree-sitter-java bundle"
+            )
+
+        root = Path(root_path)
+        if not root.exists():
+            raise ValueError(f"root_path does not exist: {root_path}")
+
+        symbols_inserted = 0
+        refs_inserted = 0
+        files_scanned = 0
+        local_fqns: Dict[str, str] = {}
+
+        files = self._ts_collect_files(root, (".java",))
+
+        parsed: List[Tuple[Path, str, bytes, Any, str]] = []
+        for fp in files:
+            res = self._ts_parse_file("java", fp)
+            if res is None:
+                continue
+            src, tree = res
+            files_scanned += 1
+            rel = str(fp.relative_to(root)) if fp.is_absolute() else str(fp)
+            # Resolve the package declaration to use as fqn prefix.
+            package = ""
+            for n in tree.root_node.children:
+                if n.type == "package_declaration":
+                    for sub in n.children:
+                        if sub.type in ("scoped_identifier", "identifier"):
+                            package = self._ts_text(src, sub)
+                            break
+                    break
+            parsed.append((fp, rel, src, tree, package))
+
+            for n in self._ts_walk(tree.root_node):
+                t = n.type
+                if t == "class_declaration":
+                    name = self._ts_field(src, n, "name")
+                    if not name:
+                        continue
+                    fqn = f"{package}.{name}" if package else name
+                    bases: List[str] = []
+                    for ch in n.children:
+                        if ch.type == "superclass":
+                            for sub in ch.children:
+                                if sub.type in ("type_identifier", "identifier"):
+                                    bases.append(self._ts_text(src, sub))
+                        elif ch.type == "super_interfaces":
+                            for sub in ch.children:
+                                if sub.type == "type_list":
+                                    for ti in sub.children:
+                                        if ti.type == "type_identifier":
+                                            bases.append(self._ts_text(src, ti))
+                    sid = self._insert_symbol(
+                        repo_id, "class", name, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="class",
+                        metadata={"bases": bases, "package": package, "language": "java"},
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[name] = sid
+                    symbols_inserted += 1
+                elif t == "interface_declaration":
+                    name = self._ts_field(src, n, "name")
+                    if not name:
+                        continue
+                    fqn = f"{package}.{name}" if package else name
+                    sid = self._insert_symbol(
+                        repo_id, "interface", name, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="interface",
+                        metadata={"package": package, "language": "java"},
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[name] = sid
+                    symbols_inserted += 1
+                elif t == "method_declaration":
+                    mname = self._ts_field(src, n, "name")
+                    if not mname:
+                        continue
+                    # qualify method by enclosing class if any
+                    parent_class = ""
+                    cur = n.parent
+                    while cur is not None:
+                        if cur.type in (
+                            "class_declaration", "interface_declaration",
+                        ):
+                            parent_class = self._ts_field(src, cur, "name") or ""
+                            break
+                        cur = cur.parent
+                    parts = [package, parent_class, mname]
+                    fqn = ".".join([p for p in parts if p])
+                    sid = self._insert_symbol(
+                        repo_id, "function", mname, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="method",
+                        metadata={
+                            "package": package,
+                            "owner": parent_class,
+                            "language": "java",
+                        },
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[mname] = sid
+                    symbols_inserted += 1
+                elif t == "field_declaration":
+                    # field_declaration -> variable_declarator -> name
+                    for ch in n.children:
+                        if ch.type == "variable_declarator":
+                            fname = self._ts_field(src, ch, "name")
+                            if not fname:
+                                continue
+                            parent_class = ""
+                            cur = n.parent
+                            while cur is not None:
+                                if cur.type in (
+                                    "class_declaration", "interface_declaration",
+                                ):
+                                    parent_class = self._ts_field(src, cur, "name") or ""
+                                    break
+                                cur = cur.parent
+                            fqn = ".".join(
+                                [p for p in (package, parent_class, fname) if p]
+                            )
+                            sid = self._insert_symbol(
+                                repo_id, "variable", fname, fqn,
+                                file_ref=rel,
+                                start_line=n.start_point[0] + 1,
+                                end_line=n.end_point[0] + 1,
+                                semantic_type="field",
+                                metadata={
+                                    "package": package,
+                                    "owner": parent_class,
+                                    "language": "java",
+                                },
+                            )
+                            local_fqns[fqn] = sid
+                            symbols_inserted += 1
+
+        # Second pass: references.
+        for _fp, rel, src, tree, package in parsed:
+            for n in self._ts_walk(tree.root_node):
+                t = n.type
+                if t == "method_invocation":
+                    name_node = n.child_by_field_name("name")
+                    obj_node = n.child_by_field_name("object")
+                    mname = self._ts_text(src, name_node) if name_node else ""
+                    obj = self._ts_text(src, obj_node) if obj_node else ""
+                    if mname:
+                        target = f"{obj}.{mname}" if obj else mname
+                        self._insert_reference(
+                            repo_id, "call",
+                            target_symbol_id=local_fqns.get(mname, ""),
+                            target_fqn=target,
+                            file_ref=rel,
+                            line_number=n.start_point[0] + 1,
+                        )
+                        refs_inserted += 1
+                elif t == "object_creation_expression":
+                    type_node = n.child_by_field_name("type")
+                    cname = self._ts_text(src, type_node) if type_node else ""
+                    if cname:
+                        self._insert_reference(
+                            repo_id, "call",
+                            target_symbol_id=local_fqns.get(cname, ""),
+                            target_fqn=cname,
+                            file_ref=rel,
+                            line_number=n.start_point[0] + 1,
+                        )
+                        refs_inserted += 1
+                elif t == "superclass":
+                    for ch in n.children:
+                        if ch.type == "type_identifier":
+                            base = self._ts_text(src, ch)
+                            self._insert_reference(
+                                repo_id, "inherit",
+                                target_symbol_id=local_fqns.get(base, ""),
+                                target_fqn=base,
+                                file_ref=rel,
+                                line_number=n.start_point[0] + 1,
+                            )
+                            refs_inserted += 1
+                elif t == "super_interfaces":
+                    for ch in n.children:
+                        if ch.type == "type_list":
+                            for ti in ch.children:
+                                if ti.type == "type_identifier":
+                                    iface = self._ts_text(src, ti)
+                                    self._insert_reference(
+                                        repo_id, "implement",
+                                        target_symbol_id=local_fqns.get(iface, ""),
+                                        target_fqn=iface,
+                                        file_ref=rel,
+                                        line_number=n.start_point[0] + 1,
+                                    )
+                                    refs_inserted += 1
+                elif t == "import_declaration":
+                    # Whole text minus 'import' keyword and trailing ';'
+                    txt = self._ts_text(src, n)
+                    cleaned = (
+                        txt.replace("import", "", 1)
+                           .replace("static", "")
+                           .strip()
+                           .rstrip(";")
+                           .strip()
+                    )
+                    if cleaned:
+                        self._insert_reference(
+                            repo_id, "import",
+                            target_fqn=cleaned,
+                            file_ref=rel,
+                            line_number=n.start_point[0] + 1,
+                        )
+                        refs_inserted += 1
+
+        self._update_repo_meta(repo_id, parser_used="tree_sitter_java")
+        self._emit_event(repo_id, "semantic_parsed_java")
+        return {
+            "repo_id": repo_id,
+            "files_scanned": files_scanned,
+            "symbols_inserted": symbols_inserted,
+            "references_inserted": refs_inserted,
+        }
+
+    # ------------------------------------------------------------------
+    # Go semantic parser
+    # ------------------------------------------------------------------
 
     def parse_go_semantic(
         self, repo_id: str, root_path: str
     ) -> Dict[str, Any]:
-        raise NotImplementedError(
-            "parse_go_semantic requires tree-sitter-go bundle"
-        )
+        """Parse Go sources via tree-sitter."""
+        if not _TS_AVAILABLE or "go" not in _TS_PARSERS:
+            raise NotImplementedError(
+                "parse_go_semantic requires tree-sitter-go bundle"
+            )
+
+        root = Path(root_path)
+        if not root.exists():
+            raise ValueError(f"root_path does not exist: {root_path}")
+
+        symbols_inserted = 0
+        refs_inserted = 0
+        files_scanned = 0
+        local_fqns: Dict[str, str] = {}
+
+        files = self._ts_collect_files(root, (".go",))
+
+        parsed: List[Tuple[Path, str, bytes, Any, str]] = []
+        for fp in files:
+            res = self._ts_parse_file("go", fp)
+            if res is None:
+                continue
+            src, tree = res
+            files_scanned += 1
+            rel = str(fp.relative_to(root)) if fp.is_absolute() else str(fp)
+            # Find package name.
+            package = ""
+            for n in tree.root_node.children:
+                if n.type == "package_clause":
+                    for sub in n.children:
+                        if sub.type == "package_identifier":
+                            package = self._ts_text(src, sub)
+                            break
+                    break
+            parsed.append((fp, rel, src, tree, package))
+
+            for n in self._ts_walk(tree.root_node):
+                t = n.type
+                if t == "function_declaration":
+                    fname = self._ts_field(src, n, "name")
+                    if not fname:
+                        continue
+                    fqn = f"{package}.{fname}" if package else fname
+                    sid = self._insert_symbol(
+                        repo_id, "function", fname, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="function",
+                        metadata={"package": package, "language": "go"},
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[fname] = sid
+                    symbols_inserted += 1
+                elif t == "method_declaration":
+                    mname = self._ts_field(src, n, "name")
+                    if not mname:
+                        continue
+                    # Receiver type → owner
+                    owner = ""
+                    recv = n.child_by_field_name("receiver")
+                    if recv is not None:
+                        for ch in recv.children:
+                            if ch.type == "parameter_declaration":
+                                for sub in ch.children:
+                                    if sub.type == "type_identifier":
+                                        owner = self._ts_text(src, sub)
+                                    elif sub.type == "pointer_type":
+                                        for px in sub.children:
+                                            if px.type == "type_identifier":
+                                                owner = self._ts_text(src, px)
+                    parts = [package, owner, mname]
+                    fqn = ".".join([p for p in parts if p])
+                    sid = self._insert_symbol(
+                        repo_id, "function", mname, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type="method",
+                        metadata={
+                            "package": package,
+                            "owner": owner,
+                            "language": "go",
+                        },
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[mname] = sid
+                    symbols_inserted += 1
+                elif t == "type_spec":
+                    tname = self._ts_field(src, n, "name")
+                    if not tname:
+                        continue
+                    fqn = f"{package}.{tname}" if package else tname
+                    body_kind = ""
+                    for ch in n.children:
+                        if ch.type == "struct_type":
+                            body_kind = "struct"
+                            break
+                        elif ch.type == "interface_type":
+                            body_kind = "interface"
+                            break
+                    sym_kind = "interface" if body_kind == "interface" else "class"
+                    sid = self._insert_symbol(
+                        repo_id, sym_kind, tname, fqn,
+                        file_ref=rel,
+                        start_line=n.start_point[0] + 1,
+                        end_line=n.end_point[0] + 1,
+                        semantic_type=body_kind or "type",
+                        metadata={"package": package, "language": "go"},
+                    )
+                    local_fqns[fqn] = sid
+                    local_fqns[tname] = sid
+                    symbols_inserted += 1
+
+        for _fp, rel, src, tree, _pkg in parsed:
+            for n in self._ts_walk(tree.root_node):
+                t = n.type
+                if t == "call_expression":
+                    fn_node = n.child_by_field_name("function")
+                    target = self._ts_text(src, fn_node) if fn_node else ""
+                    if target:
+                        # short_name is rightmost identifier
+                        short = target.rsplit(".", 1)[-1]
+                        self._insert_reference(
+                            repo_id, "call",
+                            target_symbol_id=local_fqns.get(short, ""),
+                            target_fqn=target,
+                            file_ref=rel,
+                            line_number=n.start_point[0] + 1,
+                        )
+                        refs_inserted += 1
+                elif t == "import_spec":
+                    p_node = n.child_by_field_name("path")
+                    if p_node is None:
+                        # path is interpreted_string_literal child
+                        for ch in n.children:
+                            if ch.type == "interpreted_string_literal":
+                                p_node = ch
+                                break
+                    if p_node is not None:
+                        path = self._ts_text(src, p_node).strip('"')
+                        if path:
+                            self._insert_reference(
+                                repo_id, "import",
+                                target_fqn=path,
+                                file_ref=rel,
+                                line_number=n.start_point[0] + 1,
+                            )
+                            refs_inserted += 1
+
+        self._update_repo_meta(repo_id, parser_used="tree_sitter_go")
+        self._emit_event(repo_id, "semantic_parsed_go")
+        return {
+            "repo_id": repo_id,
+            "files_scanned": files_scanned,
+            "symbols_inserted": symbols_inserted,
+            "references_inserted": refs_inserted,
+        }
+
+    # ------------------------------------------------------------------
+    # Drizzle ORM schema parser (TypeScript files using drizzle-orm)
+    # ------------------------------------------------------------------
 
     def parse_drizzle_schema(
         self, repo_id: str, root_path: str
     ) -> Dict[str, Any]:
-        raise NotImplementedError(
-            "parse_drizzle_schema requires tree-sitter-typescript bundle"
-        )
+        """Parse Drizzle ORM TypeScript schema files. Detects pgTable/mysqlTable/
+        sqliteTable declarations and extracts model name + field list."""
+        if not _TS_AVAILABLE or "typescript" not in _TS_PARSERS:
+            raise NotImplementedError(
+                "parse_drizzle_schema requires tree-sitter-typescript bundle"
+            )
+
+        root = Path(root_path)
+        if not root.exists():
+            raise ValueError(f"root_path does not exist: {root_path}")
+
+        models_inserted = 0
+        files_scanned = 0
+        table_helpers = {"pgTable", "mysqlTable", "sqliteTable"}
+
+        # If root_path is itself a file, parse just that file.
+        if root.is_file():
+            files = [root]
+        else:
+            files = self._ts_collect_files(root, (".ts", ".tsx", ".mts", ".cts"))
+
+        for fp in files:
+            parser_key = "tsx" if fp.suffix == ".tsx" else "typescript"
+            res = self._ts_parse_file(parser_key, fp)
+            if res is None:
+                continue
+            src, tree = res
+            files_scanned += 1
+            rel = (
+                str(fp.relative_to(root))
+                if not root.is_file() and fp.is_absolute()
+                else fp.name
+            )
+
+            for n in self._ts_walk(tree.root_node):
+                if n.type != "variable_declarator":
+                    continue
+                model_name = self._ts_field(src, n, "name")
+                value = n.child_by_field_name("value")
+                if not model_name or value is None or value.type != "call_expression":
+                    continue
+                fn_node = value.child_by_field_name("function")
+                fn_text = self._ts_text(src, fn_node) if fn_node else ""
+                # Allow `pgTable(...)` or `drizzle.pgTable(...)`.
+                fn_short = fn_text.rsplit(".", 1)[-1]
+                if fn_short not in table_helpers:
+                    continue
+
+                args_node = value.child_by_field_name("arguments")
+                if args_node is None:
+                    continue
+
+                table_name = ""
+                fields_obj = None
+                non_punct = [
+                    c for c in args_node.children
+                    if c.type not in ("(", ")", ",")
+                ]
+                if non_punct:
+                    a0 = non_punct[0]
+                    if a0.type == "string":
+                        table_name = self._ts_text(src, a0).strip("'\"")
+                if len(non_punct) >= 2:
+                    fields_obj = non_punct[1]
+
+                fields: List[Dict[str, Any]] = []
+                relationships: List[Dict[str, Any]] = []
+
+                if fields_obj is not None and fields_obj.type == "object":
+                    for pair in fields_obj.children:
+                        if pair.type != "pair":
+                            continue
+                        k = pair.child_by_field_name("key")
+                        v = pair.child_by_field_name("value")
+                        if k is None or v is None:
+                            continue
+                        fname = self._ts_text(src, k).strip("'\"")
+                        vtxt = self._ts_text(src, v)
+                        # Determine column type from leftmost call's function name.
+                        ftype = ""
+                        cur = v
+                        # walk down call_expressions until we find the leftmost
+                        # call function identifier.
+                        for sub in self._ts_walk(v):
+                            if sub.type == "call_expression":
+                                fn2 = sub.child_by_field_name("function")
+                                fn2t = self._ts_text(src, fn2) if fn2 else ""
+                                if fn2t and "." not in fn2t:
+                                    ftype = fn2t
+                                    break
+                                # nested member like `x.references` - skip references markers
+                                short = fn2t.rsplit(".", 1)[-1]
+                                if short not in (
+                                    "primaryKey", "notNull", "default",
+                                    "unique", "references", "defaultNow",
+                                ):
+                                    ftype = short
+                                    break
+                        entry: Dict[str, Any] = {"name": fname, "type": ftype}
+                        if "primaryKey" in vtxt:
+                            entry["primary_key"] = True
+                        if "notNull" in vtxt:
+                            entry["not_null"] = True
+                        if ".references(" in vtxt:
+                            relationships.append(
+                                {"name": fname, "target": "", "kind": "fk"}
+                            )
+                        fields.append(entry)
+
+                self._insert_orm_model(
+                    repo_id, "drizzle", table_name or model_name,
+                    file_ref=rel,
+                    fields=fields,
+                    relationships=relationships,
+                )
+                models_inserted += 1
+
+        self._update_repo_meta(repo_id, parser_used="tree_sitter_drizzle")
+        self._emit_event(repo_id, "semantic_parsed_drizzle")
+        return {
+            "repo_id": repo_id,
+            "orm_framework": "drizzle",
+            "models_inserted": models_inserted,
+            "files_scanned": files_scanned,
+        }
 
     # ------------------------------------------------------------------
     # SQLAlchemy detector (stdlib ast)

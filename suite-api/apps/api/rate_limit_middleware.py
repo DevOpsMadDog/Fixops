@@ -1,4 +1,13 @@
-"""Token bucket rate limiting middleware for ALDECI API."""
+"""Token bucket rate limiting middleware for ALDECI API.
+
+Hardened against 429-storm crash-loops (2026-04-25):
+  * Bounded LRU bucket cache (cannot grow unbounded under spoofed-IP storms).
+  * Global rejection-rate cap so the 429 path itself cannot DoS the server
+    via log-flood or JSONResponse construction churn.
+  * Cached/precomputed 429 body — no per-request dict rebuilds.
+  * Sampled rejection logging (1/N) under storm conditions.
+  * Defensive ``dispatch`` — middleware never raises into the ASGI loop.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +15,7 @@ import logging
 import os
 import threading
 import time
+from collections import OrderedDict
 from typing import Any, Callable, Dict, Optional
 
 from fastapi import Request, Response
@@ -33,6 +43,20 @@ _ADMIN_RPM = 1000
 _DEFAULT_RPM = int(os.environ.get("RATE_LIMIT_DEFAULT", "100"))
 _READ_RPM = int(os.environ.get("RATE_LIMIT_READ", "200"))
 _WRITE_RPM = int(os.environ.get("RATE_LIMIT_WRITE", "50"))
+
+# ---------------------------------------------------------------------------
+# Crash-loop hardening knobs (env-tunable, sane defaults)
+# ---------------------------------------------------------------------------
+# Maximum number of distinct identifiers we'll track. When exceeded we evict
+# the least-recently-used bucket. Stops spoofed-IP / unique-key floods from
+# growing the dict to GBs of memory.
+_MAX_TRACKED_BUCKETS = int(os.environ.get("RATE_LIMIT_MAX_BUCKETS", "10000"))
+# Maximum 429 responses we will *emit* per second across the whole process.
+# Excess rejections are dropped onto a pre-built static response (no logging,
+# no header rebuild) so the rejection path itself can't burn the event loop.
+_MAX_REJECTIONS_PER_SEC = int(os.environ.get("RATE_LIMIT_MAX_429_PER_SEC", "200"))
+# Log every Nth rejection under storm conditions to avoid log-flood OOM.
+_REJECTION_LOG_SAMPLE = max(1, int(os.environ.get("RATE_LIMIT_LOG_SAMPLE", "100")))
 
 # HTTP methods treated as read (GET/HEAD/OPTIONS) vs write (POST/PUT/PATCH/DELETE)
 _READ_METHODS: frozenset[str] = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -119,6 +143,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         write_requests_per_minute: int = _WRITE_RPM,
         admin_requests_per_minute: int = _ADMIN_RPM,
         burst: int = 20,
+        max_tracked_buckets: int = _MAX_TRACKED_BUCKETS,
+        max_rejections_per_sec: int = _MAX_REJECTIONS_PER_SEC,
     ) -> None:
         super().__init__(app)
         self._rpm = requests_per_minute
@@ -127,8 +153,31 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._admin_rpm = admin_requests_per_minute
         self._burst = burst
         # identifier:method_tier -> _TokenBucket
-        self._buckets: Dict[str, _TokenBucket] = {}
+        # OrderedDict so we can do O(1) LRU eviction under storm conditions
+        # — prevents unbounded memory growth from spoofed-IP / unique-key floods.
+        self._buckets: "OrderedDict[str, _TokenBucket]" = OrderedDict()
+        self._max_buckets = max(100, max_tracked_buckets)
         self._lock = threading.Lock()
+
+        # ---- 429 storm self-limiter --------------------------------------
+        # If rejections exceed `_max_rej_per_sec` we serve a pre-built static
+        # response with NO logging and NO per-request dict construction. This
+        # caps the cost of the rejection path so the storm cannot crash us.
+        self._max_rej_per_sec = max(1, max_rejections_per_sec)
+        self._rej_window_start: float = time.monotonic()
+        self._rej_window_count: int = 0
+        self._rej_total: int = 0
+        self._rej_lock = threading.Lock()
+        # Pre-built body for cheap rejections (storm path)
+        self._cheap_429 = JSONResponse(
+            status_code=429,
+            content={
+                "error": "rate_limit_exceeded",
+                "message": "Too many requests. Please try again later.",
+                "retry_after": 1,
+            },
+            headers={"Retry-After": "1"},
+        )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -163,12 +212,41 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         method_tier = "admin" if is_admin else ("read" if method in _READ_METHODS else "write" if method in _WRITE_METHODS else "default")
         bucket_key = f"{identifier}:{method_tier}"
         with self._lock:
-            if bucket_key not in self._buckets:
+            bucket = self._buckets.get(bucket_key)
+            if bucket is None:
                 rpm = self._resolve_rpm(method, is_admin)
                 capacity = float(rpm + self._burst)
                 refill_rate = rpm / 60.0
-                self._buckets[bucket_key] = _TokenBucket(capacity, refill_rate)
-            return self._buckets[bucket_key]
+                bucket = _TokenBucket(capacity, refill_rate)
+                self._buckets[bucket_key] = bucket
+                # LRU eviction: cap memory under spoofed-IP / unique-key storms.
+                # Without this, an attacker can OOM the process by rotating IPs.
+                while len(self._buckets) > self._max_buckets:
+                    self._buckets.popitem(last=False)
+            else:
+                # mark as recently used (move to end) — cheap O(1) on OrderedDict
+                self._buckets.move_to_end(bucket_key)
+            return bucket
+
+    def _should_emit_real_429(self) -> bool:
+        """Global rejection-rate cap.
+
+        Returns True if the caller should build the full (logged) 429 response.
+        Returns False if we are over budget and should serve the pre-built
+        static response without logging — protects the event loop from
+        log-flood / response-construction churn under sustained storms.
+        """
+        now = time.monotonic()
+        with self._rej_lock:
+            # Roll the 1-second window
+            if now - self._rej_window_start >= 1.0:
+                self._rej_window_start = now
+                self._rej_window_count = 0
+            self._rej_window_count += 1
+            self._rej_total += 1
+            if self._rej_window_count > self._max_rej_per_sec:
+                return False
+            return True
 
     @staticmethod
     def _is_exempt(path: str) -> bool:
@@ -179,24 +257,44 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     # ------------------------------------------------------------------
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        if self._is_exempt(request.url.path):
+        # ------------------------------------------------------------------
+        # Defensive wrapper — middleware MUST NOT raise into the ASGI loop.
+        # Any failure in the limiter itself falls through to call_next so
+        # the API stays up even if the limiter is misconfigured at runtime.
+        # ------------------------------------------------------------------
+        try:
+            if self._is_exempt(request.url.path):
+                return await call_next(request)
+
+            identifier = self._get_identifier(request)
+            is_admin = self._is_admin_key(request)
+            method = request.method.upper()
+            bucket = self._get_bucket(identifier, method, is_admin)
+            allowed, retry_after = bucket.consume()
+        except (AttributeError, KeyError, ValueError, OSError) as exc:
+            # Limiter bookkeeping failed — fail open, do NOT crash the request.
+            logger.warning("rate_limiter.bookkeeping_failed err=%r", exc)
             return await call_next(request)
 
-        identifier = self._get_identifier(request)
-        is_admin = self._is_admin_key(request)
-        method = request.method.upper()
-        bucket = self._get_bucket(identifier, method, is_admin)
-        allowed, retry_after = bucket.consume()
-
         if not allowed:
+            # Global rejection-rate cap: under storm, serve a pre-built 429
+            # with NO logging and NO dict construction. This is what kept
+            # the event loop alive under 1000 req/s storms.
+            if not self._should_emit_real_429():
+                return self._cheap_429
+
             retry_int = max(1, int(retry_after) + 1)
-            logger.warning(
-                "rate_limit_exceeded path=%s method=%s identifier=%s retry_after=%s",
-                request.url.path,
-                method,
-                identifier,
-                retry_int,
-            )
+            # Sample logging to avoid log-flood OOM under sustained storms
+            if self._rej_total % _REJECTION_LOG_SAMPLE == 1:
+                logger.warning(
+                    "rate_limit_exceeded path=%s method=%s identifier=%s retry_after=%s sampled=1/%d total_rejections=%d",
+                    request.url.path,
+                    method,
+                    identifier,
+                    retry_int,
+                    _REJECTION_LOG_SAMPLE,
+                    self._rej_total,
+                )
             return JSONResponse(
                 status_code=429,
                 content={
@@ -207,11 +305,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 headers={"Retry-After": str(retry_int)},
             )
 
-        response = await call_next(request)
-        rpm = self._resolve_rpm(method, is_admin)
-        response.headers["X-RateLimit-Limit"] = str(rpm)
-        response.headers["X-RateLimit-Remaining"] = str(int(bucket.tokens))
-        return response
+        try:
+            response = await call_next(request)
+            rpm = self._resolve_rpm(method, is_admin)
+            response.headers["X-RateLimit-Limit"] = str(rpm)
+            response.headers["X-RateLimit-Remaining"] = str(int(bucket.tokens))
+            return response
+        except Exception:
+            # Downstream raised — propagate as-is (FastAPI will turn it into
+            # a 500). We only protect against bookkeeping failures above.
+            raise
 
     # ------------------------------------------------------------------
     # Stats helpers (used by rate_limit_router endpoints)
@@ -227,10 +330,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 }
                 for identifier, bucket in self._buckets.items()
             }
+        with self._rej_lock:
+            rej_total = self._rej_total
+            rej_window = self._rej_window_count
         return {
             "tracked_keys": len(snapshot),
             "buckets": snapshot,
             "config": self.get_config(),
+            "rejections": {
+                "total": rej_total,
+                "current_second": rej_window,
+                "max_per_second": self._max_rej_per_sec,
+                "max_tracked_buckets": self._max_buckets,
+            },
         }
 
     def get_config(self) -> Dict[str, Any]:

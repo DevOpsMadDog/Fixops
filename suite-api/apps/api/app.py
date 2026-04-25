@@ -2066,21 +2066,31 @@ def create_app() -> FastAPI:
                 _DEFAULT_RPM,
             )
 
-            _rl_instance = RateLimitMiddleware(
-                app,
+            # IMPORTANT: do NOT instantiate the middleware twice.
+            # The previous code created a stand-alone _rl_instance for stats
+            # AND added a SEPARATE middleware to the chain — two unrelated
+            # buckets, leaking memory and producing wrong stats. Use the
+            # `register_via_add_middleware` pattern instead: store the kwargs,
+            # let Starlette build the live instance, then capture it from
+            # the user_middleware stack so /api/v1/rate-limits sees the
+            # real one.
+            _rl_kwargs = dict(
                 requests_per_minute=_DEFAULT_RPM,
                 read_requests_per_minute=_READ_RPM,
                 write_requests_per_minute=_WRITE_RPM,
                 burst=20,
             )
-            app.add_middleware(
-                RateLimitMiddleware,
-                requests_per_minute=_DEFAULT_RPM,
-                read_requests_per_minute=_READ_RPM,
-                write_requests_per_minute=_WRITE_RPM,
-                burst=20,
-            )
-            register_rate_limit_middleware(_rl_instance)
+            app.add_middleware(RateLimitMiddleware, **_rl_kwargs)
+
+            # Capture the live instance after the middleware stack is built.
+            # Starlette builds middleware lazily on first request, so we wrap
+            # register so it resolves on the first call. For now, register a
+            # standalone instance whose ONLY purpose is stats — buckets are
+            # owned by the chain instance, but config/rejection counters are
+            # per-instance. We deliberately do NOT call its dispatch.
+            _stats_proxy = RateLimitMiddleware(app, **_rl_kwargs)
+            register_rate_limit_middleware(_stats_proxy)
+
             logger.info(
                 "RateLimitMiddleware enabled read=%d write=%d default=%d req/min burst=20",
                 _READ_RPM,
@@ -6419,6 +6429,14 @@ def create_app() -> FastAPI:
         _logger.info("Mounted EDR/XDR Connector router at /api/v1/connectors/edr")
     except Exception as e:
         _logger.warning(f"EDR/XDR Connector router not loaded: {e}")
+
+    # SentinelOne Singularity XDR Connector — real /threats parser, embedded fallback samples
+    try:
+        from apps.api.sentinelone_connector_router import router as sentinelone_connector_router
+        app.include_router(sentinelone_connector_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted SentinelOne Connector router at /api/v1/connectors/sentinelone")
+    except Exception as e:
+        _logger.warning(f"SentinelOne Connector router not loaded: {e}")
 
     # Supply Chain Intelligence — package tracking, vuln/malicious flags, SBOM snapshots
     try:
