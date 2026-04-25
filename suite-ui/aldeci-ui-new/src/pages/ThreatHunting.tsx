@@ -13,9 +13,9 @@
  */
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   Crosshair, Activity, CheckCircle2, Clock, Search, Play,
   AlertTriangle, Shield, Eye, Target, Zap, Network,
@@ -29,7 +29,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -108,14 +108,41 @@ function confidenceBadge(c: IOCEntry["confidence"]) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ThreatHuntingPage() {
+  const queryClient = useQueryClient();
   const [hypothesis, setHypothesis] = useState("");
   const [tactic, setTactic] = useState("");
   const [dataSource, setDataSource] = useState("");
 
+  const startHuntMutation = useMutation({
+    mutationFn: async (params: { name: string; tactic: string; dataSource: string }) => {
+      const res = await fetch(`${API_BASE}/api/v1/hunting/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${params.tactic}: ${params.name}`,
+          hunter_email: "analyst@aldeci.local",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to start hunt session");
+      return res.json();
+    },
+    onSuccess: (_data: unknown, vars: { name: string; tactic: string; dataSource: string }) => {
+      toast.success("Hunt session started", {
+        description: `${vars.tactic} via ${vars.dataSource}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["threat-hunting-hunts"] });
+    },
+    onError: () => {
+      toast.error("Failed to start hunt", {
+        description: "Could not reach the hunting API. Please try again.",
+      });
+    },
+  });
+
   const { data: hunts = MOCK_HUNTS, isLoading } = useQuery<Hunt[]>({
     queryKey: ["threat-hunting-hunts"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/api/v1/threat-hunting/hunts?org_id=default`);
+      const res = await fetch(`${API_BASE}/api/v1/threat-hunting/hunts`);
       if (!res.ok) throw new Error("API unavailable");
       return res.json();
     },
@@ -136,6 +163,7 @@ export default function ThreatHuntingPage() {
       <PageHeader
         title="Threat Hunting"
         description="Proactive hypothesis-driven threat detection"
+        icon={<Crosshair className="h-6 w-6 text-primary" />}
       />
 
       {/* KPI Row */}
@@ -145,10 +173,10 @@ export default function ThreatHuntingPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <KpiCard title="Active Hunts"          value="5"      icon={<Activity className="h-4 w-4" />}    trend="flat" />
+        <KpiCard title="Active Hunts"          value="5"      icon={<Activity className="h-4 w-4" />}    trend="neutral" />
         <KpiCard title="Hypotheses Validated"  value="23"     icon={<CheckCircle2 className="h-4 w-4" />} trend="up"     />
         <KpiCard title="IOCs Discovered"       value="47"     icon={<Search className="h-4 w-4" />}       trend="up"     />
-        <KpiCard title="Avg Duration"          value="3.2d"   icon={<Clock className="h-4 w-4" />}        trend="flat"/>
+        <KpiCard title="Avg Duration"          value="3.2d"   icon={<Clock className="h-4 w-4" />}        trend="neutral"/>
       </motion.div>
 
       {/* Active Hunts Table */}
@@ -237,19 +265,9 @@ export default function ThreatHuntingPage() {
             </select>
             <Button
               className="w-full gap-2"
-              disabled={!hypothesis.trim() || !tactic || !dataSource}
-              onClick={async () => {
-                try {
-                  const res = await fetch(`${API_BASE}/api/v1/threat-hunting/hunts`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ hypothesis, tactic, data_source: dataSource, org_id: "default" }),
-                  });
-                  if (!res.ok) throw new Error(`${res.status}`);
-                  toast.success(`Hunt queued: ${tactic} via ${dataSource}`);
-                } catch {
-                  toast.success(`Hunt queued: ${tactic} via ${dataSource}`);
-                }
+              disabled={!hypothesis.trim() || !tactic || !dataSource || startHuntMutation.isPending}
+              onClick={() => {
+                startHuntMutation.mutate({ name: hypothesis, tactic, dataSource });
                 setHypothesis(""); setTactic(""); setDataSource("");
               }}
             >

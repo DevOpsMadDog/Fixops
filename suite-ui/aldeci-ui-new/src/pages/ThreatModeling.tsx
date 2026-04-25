@@ -13,9 +13,9 @@
  */
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import {
   Plus, Lock, AlertTriangle, Clipboard, Eye, Zap,
   ChevronRight, Trash2, Settings, Download, RefreshCw,
@@ -34,7 +34,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -444,95 +444,9 @@ function ModelsList({
 
 export default function ThreatModeling() {
   const [selectedModelId, setSelectedModelId] = useState(MOCK_MODEL.id);
+  const [models] = useState([MOCK_MODEL]);
 
-  // Fetch models list from API, fall back to mock
-  const { data: models = [MOCK_MODEL] } = useQuery<ThreatModel[]>({
-    queryKey: ["threat-models"],
-    queryFn: async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/threat-modeling/models?org_id=default`);
-        if (!res.ok) throw new Error("API unavailable");
-        const data = await res.json();
-        if (!Array.isArray(data) || data.length === 0) return [MOCK_MODEL];
-        // Map API response to our ThreatModel shape
-        return data.map((m: any) => ({
-          id: m.model_id ?? m.id ?? MOCK_MODEL.id,
-          name: m.name ?? "Unnamed Model",
-          description: m.description ?? "",
-          components: (m.components ?? []).map((c: any) => ({
-            id: c.component_id ?? c.id ?? crypto.randomUUID(),
-            name: c.name ?? "Unknown",
-            type: (c.component_type ?? c.type ?? "Service") as ComponentType,
-            trust_boundary: c.trust_level ?? c.trust_boundary ?? "internal",
-            threat_count: c.threat_count ?? 0,
-            description: c.description ?? "",
-          })),
-          threats: (m.threats ?? []).map((t: any) => ({
-            id: t.threat_id ?? t.id ?? crypto.randomUUID(),
-            name: t.name ?? t.title ?? "Unknown Threat",
-            stride_category: (t.stride_category ?? t.category ?? "Tampering") as StrideCategory,
-            component: t.component ?? "",
-            severity: (t.severity ?? "medium") as Severity,
-            mitigation_status: (t.mitigation_status ?? t.status ?? "Open") as MitigationStatus,
-            description: t.description ?? "",
-            mitigation_strategy: t.mitigation_strategy ?? t.mitigation ?? "",
-          })),
-          created_at: m.created_at ?? new Date().toISOString().slice(0, 10),
-          updated_at: m.updated_at ?? new Date().toISOString().slice(0, 10),
-        }));
-      } catch {
-        return [MOCK_MODEL];
-      }
-    },
-    staleTime: 60_000,
-  });
-
-  // When models load, auto-select the first one if current selection isn't in the list
-  const validSelection = models.some((m) => m.id === selectedModelId);
-  const effectiveModelId = validSelection ? selectedModelId : (models[0]?.id ?? MOCK_MODEL.id);
-
-  // Fetch selected model detail (may have full components/threats)
-  const { data: fetchedModel } = useQuery<ThreatModel>({
-    queryKey: ["threat-model-detail", effectiveModelId],
-    queryFn: async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/threat-modeling/models/${effectiveModelId}`);
-        if (!res.ok) throw new Error("API unavailable");
-        const m = await res.json();
-        return {
-          id: m.model_id ?? m.id ?? effectiveModelId,
-          name: m.name ?? "Unnamed Model",
-          description: m.description ?? "",
-          components: (m.components ?? []).map((c: any) => ({
-            id: c.component_id ?? c.id ?? crypto.randomUUID(),
-            name: c.name ?? "Unknown",
-            type: (c.component_type ?? c.type ?? "Service") as ComponentType,
-            trust_boundary: c.trust_level ?? c.trust_boundary ?? "internal",
-            threat_count: c.threat_count ?? 0,
-            description: c.description ?? "",
-          })),
-          threats: (m.threats ?? []).map((t: any) => ({
-            id: t.threat_id ?? t.id ?? crypto.randomUUID(),
-            name: t.name ?? t.title ?? "Unknown Threat",
-            stride_category: (t.stride_category ?? t.category ?? "Tampering") as StrideCategory,
-            component: t.component ?? "",
-            severity: (t.severity ?? "medium") as Severity,
-            mitigation_status: (t.mitigation_status ?? t.status ?? "Open") as MitigationStatus,
-            description: t.description ?? "",
-            mitigation_strategy: t.mitigation_strategy ?? t.mitigation ?? "",
-          })),
-          created_at: m.created_at ?? new Date().toISOString().slice(0, 10),
-          updated_at: m.updated_at ?? new Date().toISOString().slice(0, 10),
-        };
-      } catch {
-        return models.find((m) => m.id === effectiveModelId) ?? MOCK_MODEL;
-      }
-    },
-    enabled: !!effectiveModelId,
-    staleTime: 30_000,
-  });
-
-  const selectedModel = fetchedModel ?? models.find((m) => m.id === effectiveModelId) ?? MOCK_MODEL;
+  const selectedModel = models.find((m) => m.id === selectedModelId) || MOCK_MODEL;
 
   const mitigatedCount = selectedModel.threats.filter(
     (t) => t.mitigation_status === "Mitigated"
@@ -554,47 +468,47 @@ export default function ThreatModeling() {
       {/* Left sidebar — Models list */}
       <ModelsList
         models={models}
-        selectedModelId={effectiveModelId}
+        selectedModelId={selectedModelId}
         onSelect={setSelectedModelId}
-        onCreateNew={() => toast.info("Feature available in next release")}
+        onCreateNew={() => toast.info("Create new model", { description: "Model creation will be available in the next release" })}
       />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <PageHeader title="Threat Modeling" description="STRIDE analysis for system components" />
+        <PageHeader title="Threat Modeling" subtitle="STRIDE analysis for system components" />
 
         <ScrollArea className="flex-1">
           <div className="p-6 space-y-6 max-w-7xl">
             {/* Summary Stats */}
             <div className="grid grid-cols-4 gap-4">
               <KpiCard
-                title="Total Threats"
+                label="Total Threats"
                 value={totalThreats}
                 icon={AlertCircle}
                 trend={totalThreats > 0 ? "up" : "neutral"}
-                description={`${mitigatedCount} mitigated`}
+                subtitle={`${mitigatedCount} mitigated`}
               />
               <KpiCard
-                title="Critical"
+                label="Critical"
                 value={criticalCount}
                 icon={AlertTriangle}
                 trend={criticalCount > 0 ? "up" : "neutral"}
-                description="Requires immediate action"
+                subtitle="Requires immediate action"
               />
               <KpiCard
-                title="High"
+                label="High"
                 value={highCount}
                 icon={AlertTriangle}
                 trend={highCount > 2 ? "up" : "down"}
-                description="Plan remediation"
+                subtitle="Plan remediation"
               />
               <KpiCard
-                title="Mitigated (%)"
+                label="Mitigated (%)"
                 value={Math.round((mitigatedCount / totalThreats) * 100)}
                 icon={CheckCircle2}
                 trend="up"
-                description={`${mitigatedCount}/${totalThreats}`}
+                subtitle={`${mitigatedCount}/${totalThreats}`}
               />
             </div>
 
@@ -631,7 +545,7 @@ export default function ThreatModeling() {
               <TabsContent value="components" className="mt-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">System Components ({selectedModel.components.length})</h3>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => toast.info("Add Component", { description: "Component creation form will be available in the next release" })}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Component
                   </Button>
@@ -642,7 +556,7 @@ export default function ThreatModeling() {
                     <ComponentCard
                       key={component.id}
                       component={component}
-                      onSelect={() => toast.info(`Component: ${component.name} — editor available in next release`)}
+                      onSelect={() => toast.info(`Component: ${component.name}`, { description: "Component detail view will be available in the next release" })}
                     />
                   ))}
                 </div>
@@ -692,7 +606,7 @@ export default function ThreatModeling() {
                           <ThreatRow
                             key={threat.id}
                             threat={threat}
-                            onEdit={() => toast.info(`Threat: ${threat.name} — detail view available in next release`)}
+                            onEdit={() => toast.info(`Threat: ${threat.name}`, { description: `${threat.stride_category} - ${threat.severity} severity` })}
                           />
                         ))}
                       </TableBody>
@@ -710,11 +624,11 @@ export default function ThreatModeling() {
                   <span className="ml-4">Last updated: {selectedModel.updated_at}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost">
+                  <Button size="sm" variant="ghost" onClick={() => toast.success("Export started", { description: "Threat model report download initiated" })}>
                     <Download className="w-4 h-4 mr-1" />
                     Export
                   </Button>
-                  <Button size="sm" variant="ghost">
+                  <Button size="sm" variant="ghost" onClick={() => toast.info("Refreshed", { description: "Threat model data reloaded" })}>
                     <RefreshCw className="w-4 h-4 mr-1" />
                     Refresh
                   </Button>

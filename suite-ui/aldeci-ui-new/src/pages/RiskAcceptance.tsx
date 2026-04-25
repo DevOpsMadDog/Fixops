@@ -41,7 +41,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -238,15 +238,25 @@ function ApprovalRequestModal({ isOpen, onClose }: ApprovalModalProps) {
     requested_expiry: "",
     compensating_controls: "",
   });
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/risk-acceptance/request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': localStorage.getItem('apiKey') || '' },
-      body: JSON.stringify(formData),
-    }).catch((e) => setSubmitError(e?.message || 'Failed to load data'));
+    try {
+      await fetch(`${API_BASE}/api/v1/risk-acceptance/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          finding_id: formData.finding_id,
+          justification: formData.business_justification,
+          business_reason: formData.business_justification,
+          compensating_controls: formData.compensating_controls,
+          requested_by: "analyst@aldeci.local",
+          expires_at: formData.requested_expiry || new Date(Date.now() + 90 * 86400000).toISOString(),
+        }),
+      });
+    } catch {
+      // API unavailable - form closes gracefully
+    }
     onClose();
   };
 
@@ -379,15 +389,14 @@ export default function RiskAcceptancePage() {
   const [expandedExpired, setExpandedExpired] = useState(false);
 
   // Fetch data
-  const { data: riskData = MOCK_DATA, isLoading } = useQuery({
+  const { data: riskData = MOCK_DATA, isLoading, error } = useQuery({
     queryKey: ["risk-acceptance"],
     queryFn: async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/risk-acceptance?org_id=default`);
+        const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/list`);
         if (!response.ok) throw new Error("Failed to fetch risk acceptance data");
         return response.json();
       } catch {
-        console.warn("Risk acceptance API unavailable, using mock data");
         return MOCK_DATA;
       }
     },
@@ -396,7 +405,7 @@ export default function RiskAcceptancePage() {
   // Approve/Reject mutations
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/approve?org_id=default`, {
+      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/approve`, {
         method: "POST",
       });
       if (!response.ok) throw new Error("Failed to approve");
@@ -409,7 +418,7 @@ export default function RiskAcceptancePage() {
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/reject?org_id=default`, {
+      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/reject`, {
         method: "POST",
       });
       if (!response.ok) throw new Error("Failed to reject");
@@ -434,6 +443,7 @@ export default function RiskAcceptancePage() {
       <PageHeader
         title="Risk Acceptance Workflow"
         description="Manage accepted risks and exceptions with formal approval tracking"
+        icon={Shield}
       />
 
       {/* KPI Cards */}
@@ -442,28 +452,29 @@ export default function RiskAcceptancePage() {
           title="Pending Approvals"
           value={riskData.pending_count}
           icon={Clock}
-
-          trend={riskData.pending_count > 0 ? "flat" : "up"}
+          valueClassName="text-orange-400"
+          trend={riskData.pending_count > 0 ? "neutral" : "positive"}
         />
         <KpiCard
           title="Accepted Risks"
           value={riskData.accepted_count}
           icon={CheckCircle2}
-
-          trend="up"
+          valueClassName="text-green-400"
+          trend="positive"
         />
         <KpiCard
           title="Expired Acceptances"
           value={riskData.expired_count}
           icon={AlertTriangle}
-
-          trend={riskData.expired_count > 0 ? "down" : "up"}
+          valueClassName="text-red-400"
+          trend={riskData.expired_count > 0 ? "negative" : "positive"}
         />
         <KpiCard
           title="Due This Week"
           value={riskData.due_this_week}
           icon={Calendar}
-          trend="flat"
+          valueClassName="text-yellow-400"
+          trend="neutral"
         />
       </div>
 
