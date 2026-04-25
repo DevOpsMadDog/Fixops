@@ -60,6 +60,7 @@ class CSPMScanRequest(BaseModel):
     run_checkov: bool = True
     run_cloudsploit: bool = True
     run_agentless: bool = True
+    run_trivy: bool = True
 
     @field_validator("provider")
     @classmethod
@@ -79,6 +80,7 @@ class CSPMBulkScanRequest(BaseModel):
     run_checkov: bool = True
     run_cloudsploit: bool = True
     run_agentless: bool = True
+    run_trivy: bool = True
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +103,7 @@ def scan(body: CSPMScanRequest) -> Dict[str, Any]:
             run_checkov=body.run_checkov,
             run_cloudsploit=body.run_cloudsploit,
             run_agentless=body.run_agentless,
+            run_trivy=body.run_trivy,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -128,6 +131,7 @@ def scan_bulk(body: CSPMBulkScanRequest) -> Dict[str, Any]:
                 run_checkov=body.run_checkov,
                 run_cloudsploit=body.run_cloudsploit,
                 run_agentless=body.run_agentless,
+                run_trivy=body.run_trivy,
             )
             results[tenant] = r
             aggregate["tenants_scanned"] += 1
@@ -151,6 +155,7 @@ def status() -> Dict[str, Any]:
             "prowler_cli": connector._prowler_path,
             "checkov_cli": connector._checkov_path,
             "cloudsploit_cli": connector._cloudsploit_path,
+            "trivy_cli": connector._trivy_path,
         },
         "fallback_available": True,
         "supported_providers": ["aws", "azure", "gcp"],

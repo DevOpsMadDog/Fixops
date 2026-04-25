@@ -206,7 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     persistUser(null);
     setUser(null);
     // Navigate to login — the router will handle the redirect
-    window.location.hash = "#/login";
+    window.location.assign("/login");
   }, []);
 
   const hasRole = useCallback((...roles: UserRole[]) => {

@@ -1,136 +1,79 @@
 {
   "baseUrl": "http://localhost:5173",
-  "generatedAt": "2026-04-25T08:56:50.363Z",
-  "passed": 0,
+  "generatedAt": "2026-04-25T11:59:01.267Z",
+  "passed": 5,
   "total": 5,
   "results": [
     {
       "path": "/security-findings",
-      "heading": null,
-      "apiFired": false,
+      "heading": "Security Findings",
+      "apiFired": true,
       "devBadgeVisible": true,
       "apiUrlsLogged": [
         "http://localhost:8000/api/v1/alert-triage/alerts?org_id=default&limit=5",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel"
+        "http://localhost:5173/api/v1/security-findings",
+        "http://localhost:5173/api/v1/security-findings"
       ],
-      "pass": false,
-      "reason": "heading \"null\" looks like CommandDashboard fallback"
+      "pass": true,
+      "reason": null
     },
     {
       "path": "/violation-lifecycle",
-      "heading": null,
-      "apiFired": false,
+      "heading": "Violation Lifecycle",
+      "apiFired": true,
       "devBadgeVisible": true,
       "apiUrlsLogged": [
         "http://localhost:8000/api/v1/alert-triage/alerts?org_id=default&limit=5",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel"
+        "http://localhost:8000/api/v1/findings/lifecycle/summary",
+        "http://localhost:8000/api/v1/findings/lifecycle/summary"
       ],
-      "pass": false,
-      "reason": "heading \"null\" looks like CommandDashboard fallback"
+      "pass": true,
+      "reason": null
     },
     {
       "path": "/dca",
-      "heading": null,
+      "heading": "Page not found",
       "apiFired": false,
       "devBadgeVisible": true,
       "apiUrlsLogged": [
-        "http://localhost:8000/api/v1/alert-triage/alerts?org_id=default&limit=5",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel"
+        "http://localhost:8000/api/v1/alert-triage/alerts?org_id=default&limit=5"
       ],
-      "pass": false,
-      "reason": "expected NotFound, heading=\"null\""
+      "pass": true,
+      "reason": null
     },
     {
       "path": "/agentless-snapshot",
-      "heading": null,
-      "apiFired": false,
+      "heading": "Agentless Snapshot",
+      "apiFired": true,
       "devBadgeVisible": true,
       "apiUrlsLogged": [
         "http://localhost:8000/api/v1/alert-triage/alerts?org_id=default&limit=5",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel",
-        "http://localhost:8000/api/v1/alert-triage/alerts?org_id=default&limit=5",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel"
+        "http://localhost:8000/api/v1/agentless-snapshot/snapshots",
+        "http://localhost:8000/api/v1/agentless-snapshot/findings",
+        "http://localhost:8000/api/v1/agentless-snapshot/stats",
+        "http://localhost:8000/api/v1/agentless-snapshot/snapshots",
+        "http://localhost:8000/api/v1/agentless-snapshot/findings",
+        "http://localhost:8000/api/v1/agentless-snapshot/stats"
       ],
-      "pass": false,
-      "reason": "heading \"null\" looks like CommandDashboard fallback"
+      "pass": true,
+      "reason": null
     },
     {
       "path": "/dynamic-rule-dsl",
-      "heading": null,
-      "apiFired": false,
+      "heading": "Dynamic Rule DSL",
+      "apiFired": true,
       "devBadgeVisible": true,
       "apiUrlsLogged": [
         "http://localhost:8000/api/v1/alert-triage/alerts?org_id=default&limit=5",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel",
-        "http://localhost:8000/api/v1/analytics/dashboard/overview",
-        "http://localhost:8000/api/v1/nerve-center/pulse",
-        "http://localhost:8000/api/v1/analytics/dashboard/trends?period=30d",
-        "http://localhost:8000/api/v1/analytics/dashboard/compliance-status",
-        "http://localhost:8000/api/v1/scanner-ingest/stats",
-        "http://localhost:8000/api/v1/analytics/triage-funnel"
+        "http://localhost:8000/api/v1/rules/dsl/stats",
+        "http://localhost:8000/api/v1/rules/dsl/rules",
+        "http://localhost:8000/api/v1/rules/dsl/schema",
+        "http://localhost:8000/api/v1/rules/dsl/stats",
+        "http://localhost:8000/api/v1/rules/dsl/rules",
+        "http://localhost:8000/api/v1/rules/dsl/schema"
       ],
-      "pass": false,
-      "reason": "heading \"null\" looks like CommandDashboard fallback"
+      "pass": true,
+      "reason": null
     }
   ]
 }
