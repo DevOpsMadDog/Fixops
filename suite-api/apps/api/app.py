@@ -6430,6 +6430,15 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"EDR/XDR Connector router not loaded: {e}")
 
+    # CrowdStrike Falcon Connector — REAL Falcon Detection.Created format parser
+    # Closes 1 of 11 substitute-only gaps from gap-matrix-2026-04-26.md
+    try:
+        from apps.api.crowdstrike_falcon_router import router as crowdstrike_falcon_router
+        app.include_router(crowdstrike_falcon_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted CrowdStrike Falcon Connector router at /api/v1/connectors/falcon")
+    except Exception as e:
+        _logger.warning(f"CrowdStrike Falcon Connector router not loaded: {e}")
+
     # SentinelOne Singularity XDR Connector — real /threats parser, embedded fallback samples
     try:
         from apps.api.sentinelone_connector_router import router as sentinelone_connector_router
