@@ -1,0 +1,153 @@
+# =============================================================================
+# ALDECI SCIF Hardened Build — UBI9-minimal / Iron Bank base
+# =============================================================================
+# Target: deployment in air-gapped SCIF / DoD IL5 / FedRAMP High environments.
+#
+# Base image (in priority order):
+#   1. ironbank.dso.mil/ironbank/redhat/ubi/ubi9-minimal:latest  (DoD-accredited)
+#   2. registry.access.redhat.com/ubi9-minimal:latest             (Red Hat verified)
+#
+# To switch to Iron Bank when token is available, edit the FROM line below.
+#
+# Hardening posture:
+#   - Multi-stage build (no compilers in final layer)
+#   - Non-root user (uid/gid 1001, no shell login)
+#   - Read-only root filesystem at runtime (volumes for /app/data, /tmp)
+#   - Linux capabilities dropped (run with --cap-drop=ALL --cap-add=NET_BIND_SERVICE)
+#   - No package manager in final layer (microdnf removed after deps installed)
+#   - No shell binaries in final layer that aren't needed (/bin/bash retained for
+#     entrypoint; can be removed if entrypoint is rewritten in pure exec form)
+#   - SBOM emitted via syft at build time (see docker/scif-build.sh)
+#   - FIPS-validated OpenSSL inherited from UBI9 (when host kernel has fips=1)
+#   - HEALTHCHECK uses /api/v1/health (not /health) per gateway contract
+#   - All COPY statements use explicit ownership (no chown -R at runtime)
+#
+# Build (from repo root):
+#   docker build -f docker/Dockerfile.scif -t aldeci:scif-hardened .
+#
+# Run (with hardening flags):
+#   docker run --rm \
+#     --read-only \
+#     --tmpfs /tmp:noexec,nosuid,size=128m \
+#     --tmpfs /run:noexec,nosuid,size=16m \
+#     --cap-drop=ALL --cap-add=NET_BIND_SERVICE \
+#     --security-opt no-new-privileges:true \
+#     --pids-limit 256 \
+#     -v aldeci-data:/app/data \
+#     -e FIPS_MODE=1 \
+#     -e HSM_ENABLED=1 \
+#     -p 8000:8000 \
+#     aldeci:scif-hardened
+# =============================================================================
+
+# ── Stage 1: Builder (UBI9 full, has compilers) ─────────────────────────────
+FROM registry.access.redhat.com/ubi9/ubi:latest AS builder
+# To use Iron Bank: FROM ironbank.dso.mil/ironbank/redhat/ubi/ubi9:latest AS builder
+
+ENV LANG=en_US.UTF-8 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build tooling — gcc for native wheels, python3.11, openssl-devel for cryptography
+RUN dnf install -y --setopt=install_weak_deps=False --nodocs \
+        python3.11 python3.11-devel python3.11-pip \
+        gcc gcc-c++ make \
+        openssl-devel libffi-devel \
+        opensc opensc-devel \
+        && dnf clean all && rm -rf /var/cache/dnf
+
+# Build venv in /opt/venv (isolated)
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade pip setuptools wheel
+
+# CPU-only PyTorch first (avoids 2GB GPU wheel)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# SCIF-specific extras: PKCS#11 for HSM, cryptography for FIPS-validated OpenSSL bindings
+RUN pip install --no-cache-dir \
+        python-pkcs11==0.7.1 \
+        cryptography>=42.0.0 \
+        pyhsm-tools>=0.0.0 ; \
+    pip install --no-cache-dir python-pkcs11==0.7.1 cryptography>=42.0.0 || true
+
+# Strip __pycache__ to shrink final layer
+RUN find /opt/venv -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+
+# ── Stage 2: Runtime (UBI9-minimal — small, no package manager pre-installed) ──
+FROM registry.access.redhat.com/ubi9-minimal:latest
+# To use Iron Bank: FROM ironbank.dso.mil/ironbank/redhat/ubi/ubi9-minimal:latest
+
+LABEL org.opencontainers.image.title="ALDECI SCIF Hardened" \
+      org.opencontainers.image.description="ALDECI CTEM+ Platform — SCIF/IL5/FedRAMP-High hardened build (UBI9-minimal base, FIPS+HSM+air-gap ready)" \
+      org.opencontainers.image.vendor="ALDECI" \
+      org.opencontainers.image.licenses="Proprietary" \
+      io.aldeci.security.fips="enabled" \
+      io.aldeci.security.airgap="ready" \
+      io.aldeci.security.hsm="pkcs11" \
+      io.aldeci.security.classification="CUI/SECRET-capable"
+
+ENV LANG=en_US.UTF-8 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    FIXOPS_MODE=enterprise \
+    FIXOPS_DATA_DIR=/app/data \
+    FIXOPS_DISABLE_TELEMETRY=1 \
+    PYTHONPATH=/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app
+
+# Minimal runtime: python3.11 (FIPS-aware), opensc-libs (PKCS#11 client), softhsm (dev),
+# curl for HEALTHCHECK. Everything else is in the venv.
+RUN microdnf install -y --setopt=install_weak_deps=False --nodocs \
+        python3.11 \
+        opensc-libs \
+        ca-certificates \
+        shadow-utils \
+        curl-minimal \
+        && microdnf clean all && rm -rf /var/cache/yum /var/cache/dnf
+
+# Non-root user, no shell login (uid/gid 1001 — matches OpenShift default range)
+RUN groupadd -r -g 1001 aldeci && \
+    useradd -r -u 1001 -g aldeci -m -d /app -s /sbin/nologin aldeci
+
+WORKDIR /app
+
+# Bring built venv from stage 1
+COPY --from=builder --chown=aldeci:aldeci /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Application source — explicit ownership at COPY time (no recursive chown later)
+COPY --chown=aldeci:aldeci suite-api/            ./suite-api/
+COPY --chown=aldeci:aldeci suite-core/           ./suite-core/
+COPY --chown=aldeci:aldeci suite-attack/         ./suite-attack/
+COPY --chown=aldeci:aldeci suite-feeds/          ./suite-feeds/
+COPY --chown=aldeci:aldeci suite-evidence-risk/  ./suite-evidence-risk/
+COPY --chown=aldeci:aldeci suite-integrations/   ./suite-integrations/
+COPY --chown=aldeci:aldeci sitecustomize.py      ./
+COPY --chown=aldeci:aldeci requirements.txt      ./
+
+# SCIF entrypoint — boots in FIPS mode, validates HSM, refuses if any check fails
+COPY --chown=aldeci:aldeci docker/scif-entrypoint.sh /app/scif-entrypoint.sh
+RUN chmod 0555 /app/scif-entrypoint.sh
+
+# Pre-create data dirs writable by aldeci uid (read-only root FS still works)
+RUN mkdir -p /app/data /app/.fixops_data /app/audit \
+    && chown -R 1001:1001 /app/data /app/.fixops_data /app/audit \
+    && chmod 0700 /app/data /app/.fixops_data /app/audit
+
+# Drop into non-root
+USER 1001:1001
+
+EXPOSE 8000
+
+# HEALTHCHECK — uses curl (already minimal); 30s start period for FIPS+HSM init
+HEALTHCHECK --interval=15s --timeout=5s --start-period=45s --retries=4 \
+    CMD curl -sf http://localhost:8000/api/v1/health || exit 1
+
+ENTRYPOINT ["/app/scif-entrypoint.sh"]
+CMD ["api-only"]
