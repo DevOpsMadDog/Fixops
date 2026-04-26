@@ -139,23 +139,11 @@ curl -s http://localhost:3456/api/schedules | python3 -m json.tool
 | Security Reviewer | Council: Qwen 3.6+ + Kimi K2 | Vulnerability scanning, OWASP |
 | Code Reviewer | Council: Qwen 3.6+ + Kimi K2 | Quality, patterns, best practices |
 
-### Nightly handoff workflow:
-1. At end of day, identify tasks you didn't finish
-2. Queue each to SwarmClaw via API (use Code Builder agent for implementation tasks)
-3. Agents pick up tasks, write code, commit to `features/intermediate-stage`
-4. Morning: you review what they did, run tests, approve or fix
-
-### Example — queue a task before signing off:
-```bash
-curl -s -X POST http://localhost:3456/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Add tests for brain_pipeline.py error handling",
-    "prompt": "Write pytest tests covering all error paths in core/brain_pipeline.py. Use code-review-graph impact to find callers. Commit with beast-mode(nightly): prefix.",
-    "status": "ready",
-    "priority": "high"
-  }'
-```
+### Nightly handoff workflow (replaces SwarmClaw):
+1. At end of day, write `docs/HANDOFF_<date>.md` summarizing: open threads, in-flight agent state, branch tip SHA, board state.
+2. Update `MEMORY.md` (auto-memory, persists across sessions) with anything surprising/non-obvious.
+3. Final commit: `beast-mode(handoff): <date> session summary` and push.
+4. Next morning: `git pull`, read HANDOFF doc, read MEMORY.md, query Multica todo count, resume.
 
 ---
 
@@ -165,37 +153,35 @@ Beast Mode is NOT custom code. It's a configuration/integration layer that wires
 
 **Rule #1: Don't build what already exists.**
 
-### The 8-Tool Stack:
+### Effective Stack v2 (current truth — verified 2026-04-26)
 
-| Tool | Purpose | Stars |
-|------|---------|-------|
-| **code-review-graph** | **AST codebase map — 46x token reduction. ALWAYS use before reading files.** | — |
-| oh-my-claudecode (OMC) | 19 agents, team pipeline, autoresearch, smart routing | 15K+ |
-| everything-claude-code | 156+ skills, 38 subagents, continuous learning | 140K+ |
-| SwarmClaw | Kanban control plane, scheduling, agent lifecycle | 21K+ |
-| TrustGraph (MCP) | Knowledge graph, GraphRAG, 5 Context Cores | — |
-| OMNI | CLI token compression (90% reduction) | — |
-| Context7 (MCP) | Live library documentation | — |
-| Ollama | Local free models (Gemma 4) | — |
+| Tool | Status | Purpose |
+|------|--------|---------|
+| **graphify** | ✅ ACTIVE | Codebase knowledge graph (`/opt/homebrew/bin/graphify`). Currently **119,351 nodes / 423,574 edges / 1520 communities**. Run `graphify update . --no-llm` to refresh; output at `graphify-out/graph.json`. **Use BEFORE reading files** for blast-radius/explain queries. |
+| **oh-my-claudecode (OMC)** | ✅ ACTIVE (plugin) | Skills registry: `/team` (N coordinated agents on shared task list), `/ultrawork` (parallel execution engine), `/ralph` (self-referential loop until done with verifier), `/autopilot` (full autonomous), `/ask codex` + `/ask gemini` (debate mode), `/verify`, `/ultraqa`. |
+| **superpowers-optimized** | ✅ ACTIVE (plugin marketplace `REPOZY/superpowers-optimized`) | 24 specialized skills + 10 OWASP-aligned safety hooks + cross-session memory + ~76% token compression. Replaces vanilla obra/superpowers. |
+| **Multica** | ✅ ACTIVE | Internal kanban: UI :3000, API :8080, Postgres :5433 (`docker exec multica-postgres-1 psql -U multica -d multica`). Currently **2573 done / 441 todo / 9 in_progress** (long-running EPICs). |
+| **TrustGraph** | ⚠️ PARTIAL | Built (`suite-core/trustgraph/`: knowledge_store, graph_rag, mcp_server, maintenance_agent). 363 emit-sites wired across `suite-core/core/` + `suite-api/apps/api/`. Brain Pipeline emits at `brain_pipeline.py:553`. **MCP server not currently running** — start as a service to make it queryable. |
+| **Claude Opus 4.7 (1M context)** | ✅ ACTIVE — primary | You are this. CTO mode: plan, review, delegate. |
+| **Codex (GPT-5.5)** | ✅ ACTIVE (key in `~/.omc/.env`) | Second opinion via `/ask codex` for HIGH-stakes only: architecture, security, code review of large diffs, confusing test failures. NOT for scaffolding/typos/board reconciliation. |
+| **Playwright MCP** | ✅ ACTIVE (npx) | Browser automation for the NO MOCKS rule (every UI task ends with navigate→screenshot→DOM-inspect→confirm-API-call). |
 
-### code-review-graph — WHY IT'S TOOL #1:
-- Parses entire codebase via Tree-sitter AST → SQLite graph (34,301 nodes, 216,476 edges for ALDECI)
-- Graph DB lives at `.code-review-graph/graph.db` (169 MB)
-- **BEFORE reading any file**, query the graph: `code-review-graph query "what calls brain_pipeline.py"`
-- **For blast radius**: `code-review-graph impact "core/connectors.py"` → shows all affected files
-- **For understanding structure**: `code-review-graph stats` → function count, class hierarchy, import map
-- **Rebuilt nightly at 6am** via SwarmClaw schedule (after agents finish, before Opus review)
-- Install: `pip install code-review-graph` → Build: `code-review-graph build` (runs in project root)
+### Retired / installed-but-unused
 
-### Two Layers:
+| Tool | Why retired |
+|------|-------------|
+| code-review-graph | Superseded by graphify (better community detection, multi-format input, HTML viz). Binary still installed but not used. |
+| SwarmClaw | Free models (Qwen 3.6+, Kimi K2) inferior to Opus 4.7 — user prefers paying for Opus quality. Container still running but inactive. |
+| Ollama | Local Gemma 4 unhealthy + same quality concern. |
+| Context7 MCP | Not actively used; WebFetch + agent's existing knowledge sufficient. |
 
-**Layer 1 — Claude Code Supercharged (Daytime):**
-Claude Code + OMC + everything-claude-code + TrustGraph + OMNI + Context7.
-You (CTO) review and approve. OMC agents do the coding.
+### How CTO operates with this stack
 
-**Layer 2 — SwarmClaw Autonomous (Nighttime, 10pm-8am):**
-SwarmClaw + OpenClaw agents (Qwen 3.6 Plus, Kimi K2, Gemma 4 local) + Hermes.
-Free models write code. Opus reviews via quality gate.
+- **Codebase questions:** `graphify query "..."` or `graphify explain "..."` — no file reads.
+- **Bulk parallel work:** `/ultrawork` or spawn N `Agent` calls in one message (verified working: 5+ agents in flight last swing).
+- **High-stakes review:** `/ask codex "..."` for second opinion before commit.
+- **Persist across sessions:** superpowers-optimized memory + `docs/HANDOFF_<date>.md` + Multica board state.
+- **Quality gate:** Beast Mode tests (`pytest tests/test_phase*.py ... -q`) MUST pass before any commit lands.
 
 ### Beast Mode Framework Repo:
 
