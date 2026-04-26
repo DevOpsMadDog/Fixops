@@ -1,0 +1,83 @@
+# Graphify exclusion list — code-only build
+# Per CTO directive 2026-04-26: graph the code, not the docs.
+
+# Documentation (the graph is for code understanding, not doc recall)
+docs/
+raw/
+**/*.md
+**/*.mdx
+**/*.rst
+**/*.txt
+LICENSE
+LICENSE.*
+CHANGELOG*
+README*
+CONTRIBUTING*
+CODE_OF_CONDUCT*
+
+# Generated outputs (already excluded from git but be explicit)
+graphify-out/
+graphify-out-*/
+**/graphify-out/
+.code-review-graph/
+
+# Caches / runtime state (never source-of-truth)
+.aldeci/
+.fixops_data/
+.omc/
+.claude/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+node_modules/
+htmlcov/
+coverage.xml
+
+# Generated test reports
+newman/
+playwright-report/
+test-results/
+allure-results/
+
+# Build artifacts
+dist/
+build/
+.next/
+.vercel/
+*.pyc
+*.pyo
+
+# Sample data fixtures and demo seeds (not architecture)
+fixtures/
+seed/
+seeds/
+data/
+**/data/archive/
+**/data/exports/
+
+# Frozen legacy UI (per CLAUDE.md — do NOT modify)
+suite-ui/aldeci/
+
+# Lockfiles (huge JSON, no architectural signal)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+poetry.lock
+
+# Images / binaries (handled by other extractors, not relevant for code graph)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Notebooks (data exploration, not application code)
+**/*.ipynb
