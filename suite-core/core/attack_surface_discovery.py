@@ -25,6 +25,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 logger = structlog.get_logger(__name__)
 
 
@@ -228,6 +233,18 @@ class AttackSurfaceEngine:
 
         logger.info("Attack surface discovery complete", report_id=report_id,
                      domain=domain, assets=all_assets, duration_ms=duration_ms)
+        self._emit_event(
+            "easm.discovery.completed",
+            {
+                "report_id": report_id,
+                "domain": domain,
+                "asset_count": all_assets,
+                "subdomain_count": len(subdomains),
+                "open_port_count": len(open_ports),
+                "exposed_service_count": len(exposed),
+                "duration_ms": duration_ms,
+            },
+        )
         return report
 
     def get_report(self, report_id: str) -> Optional[AttackSurfaceReport]:
@@ -455,6 +472,38 @@ class AttackSurfaceEngine:
         if not recs:
             recs.append("[INFO] No critical attack surface issues detected")
         return recs
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
+
 
 
 # ---------------------------------------------------------------------------

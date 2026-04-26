@@ -26,6 +26,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DATA_DIR = str(Path(__file__).resolve().parents[2] / ".fixops_data")
@@ -524,7 +529,7 @@ class DeepCodeAnalysisEngine:
 
             conn.commit()
 
-        return {
+        result = {
             "id": analysis_id,
             "org_id": org_id,
             "repo_ref": repo_ref,
@@ -536,6 +541,8 @@ class DeepCodeAnalysisEngine:
             "total_models": len(all_models),
             "sensitive_models": sum(1 for m in all_models if m["is_sensitive"]),
         }
+        self._emit_event("dca.analysis.completed", result)
+        return result
 
     def list_analyses(
         self, org_id: str, repo_ref: Optional[str] = None
@@ -816,6 +823,38 @@ class DeepCodeAnalysisEngine:
             "total_data_models": total_models_row["n"],
             "sensitive_data_models": sensitive_row["n"],
         }
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
+
 
 
 _singleton: Optional[DeepCodeAnalysisEngine] = None
