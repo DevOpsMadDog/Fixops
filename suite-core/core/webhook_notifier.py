@@ -33,6 +33,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 _logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -615,7 +620,12 @@ class WebhookNotifier:
         endpoint_id: Optional[str] = None,
     ) -> WebhookEndpoint:
         """Register a webhook endpoint."""
-        return self._log.register_endpoint(url, org_id, secret, endpoint_id)
+        ep = self._log.register_endpoint(url, org_id, secret, endpoint_id)
+        self._emit_event(
+            "webhook.endpoint.registered",
+            {"endpoint_id": ep.id, "url": ep.url, "org_id": org_id},
+        )
+        return ep
 
     def get_endpoint(self, endpoint_id: str) -> Optional[WebhookEndpoint]:
         return self._log.get_endpoint(endpoint_id)
@@ -681,7 +691,18 @@ class WebhookNotifier:
         payload["webhook_id"] = endpoint_id
         payload["delivered_at"] = datetime.now(timezone.utc).isoformat()
 
-        return self._deliver_with_retry(ep, payload, finding.event_type, finding.org_id, retry_delays)
+        record = self._deliver_with_retry(ep, payload, finding.event_type, finding.org_id, retry_delays)
+        self._emit_event(
+            "webhook.delivered",
+            {
+                "endpoint_id": endpoint_id,
+                "event_type": finding.event_type,
+                "org_id": finding.org_id,
+                "status": getattr(record, "status", "unknown") if record else "unknown",
+                "attempts": getattr(record, "attempts", 0) if record else 0,
+            },
+        )
+        return record
 
     def _deliver_with_retry(
         self,
@@ -800,6 +821,37 @@ class WebhookNotifier:
 # ---------------------------------------------------------------------------
 # NtfyNotifier — ntfy.sh push notifications (free, no account needed)
 # ---------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
 
 
 class NtfyNotifier:

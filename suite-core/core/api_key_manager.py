@@ -37,6 +37,11 @@ from pydantic import BaseModel, Field
 
 from core.rbac import RBACRole
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _KEY_PREFIX = "aldeci_"
@@ -267,6 +272,16 @@ class APIKeyManager:
         )
 
         _logger.info("Created API key %s for org=%s role=%s", key_id, org_id, role.value)  # nosemgrep: python-logger-credential-disclosure
+        self._emit_event(
+            "api_key.created",
+            {
+                "key_id": key_id,
+                "org_id": org_id,
+                "role": role.value,
+                "scopes": key_scopes,
+                "expires_at": expires_at.isoformat() if expires_at else None,
+            },
+        )
         return record, raw
 
     def validate_key(self, raw_key: str) -> Optional[APIKey]:
@@ -341,6 +356,10 @@ class APIKeyManager:
             )
 
         _logger.info("Rotated key %s → %s", key_id, new_key.id)  # nosemgrep: python-logger-credential-disclosure
+        self._emit_event(
+            "api_key.rotated",
+            {"old_key_id": key_id, "new_key_id": new_key.id, "org_id": old.org_id},
+        )
         return new_key, new_raw
 
     def revoke_key(self, key_id: str) -> None:
@@ -356,6 +375,7 @@ class APIKeyManager:
         if result.rowcount == 0:
             raise ValueError(f"Key not found: {key_id}")
         _logger.info("Revoked API key %s", key_id)  # nosemgrep: python-logger-credential-disclosure
+        self._emit_event("api_key.revoked", {"key_id": key_id})
 
     def list_keys(self, org_id: str) -> List[APIKey]:
         """List all keys for an org ordered by creation date descending.
@@ -462,6 +482,37 @@ class APIKeyManager:
 # ---------------------------------------------------------------------------
 # Module-level singleton factory
 # ---------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
 
 
 def get_api_key_manager(db_path: Optional[str] = None) -> APIKeyManager:
