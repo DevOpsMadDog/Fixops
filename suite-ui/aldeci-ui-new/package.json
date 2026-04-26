@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "e2e": "playwright test",
+    "e2e:golden": "playwright test e2e/golden-paths.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:personas": "playwright test e2e/persona-api-workflows.spec.ts e2e/persona-rbac-enforcement.spec.ts e2e/persona-cross-role-workflows.spec.ts",
     "test:e2e:allure": "playwright test && npx allure generate allure-results --clean -o allure-report && npx allure open allure-report",

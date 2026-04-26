@@ -107,10 +107,74 @@ jobs:
           name: playwright-report
           path: suite-ui/aldeci-ui-new/playwright-report/
 
+      - name: Upload Failure Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: |
+            suite-ui/aldeci-ui-new/test-results/**/*.png
+            suite-ui/aldeci-ui-new/test-results/**/trace.zip
+          if-no-files-found: ignore
+
       - name: Upload Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: suite-ui/aldeci-ui-new/allure-results/
+
+  # ─────────────────────────────────────────────
+  # Stage 3: Golden Paths (fast smoke for PRs)
+  # ─────────────────────────────────────────────
+  golden-paths:
+    name: "Playwright Golden Paths"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend deps
+        working-directory: suite-ui/aldeci-ui-new
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: suite-ui/aldeci-ui-new
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Golden Paths
+        working-directory: suite-ui/aldeci-ui-new
+        run: npm run e2e:golden -- --reporter=list,html
+        env:
+          CI: true
+
+      - name: Upload Golden Paths Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-paths-report
+          path: suite-ui/aldeci-ui-new/playwright-report/
+
+      - name: Upload Failure Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-paths-screenshots
+          path: |
+            suite-ui/aldeci-ui-new/test-results/**/*.png
+            suite-ui/aldeci-ui-new/test-results/**/trace.zip
+          if-no-files-found: ignore
 
