@@ -179,6 +179,12 @@ except ImportError as e:
     logging.getLogger(__name__).warning("PR Gate router not available: %s", e)
 from apps.api.policies_router import router as policies_router
 from apps.api.policy_engine_router import router as policy_engine_router
+# Wave D — 22 integrations/AI/policy endpoints (Multica)
+try:
+    from apps.api.wave_d_integrations_router import router as wave_d_integrations_router
+except ImportError as _wave_d_err:
+    wave_d_integrations_router = None
+    logging.getLogger(__name__).warning("Wave D integrations router not available: %s", _wave_d_err)
 from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
 # ── ADMIN / SYSTEM / USERS ────────────────────────────────────────────────────
@@ -3318,6 +3324,11 @@ def create_app() -> FastAPI:
     app.include_router(sla_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     app.include_router(policy_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
     _logger.info("Mounted Policy Engine router at /api/v1/policy-engine")
+
+    # Wave D — 22 Multica integrations/AI/policy endpoints
+    if wave_d_integrations_router:
+        app.include_router(wave_d_integrations_router)
+        _logger.info("Mounted Wave D integrations router (22 endpoints)")
 
     # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
     if scanner_ingest_router:
@@ -8281,6 +8292,17 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Backend Wave B (Multica 2026-04-26) — 15 findings/risk/scoring endpoints
+    # ce6b3221, 71432602, a3d3443d, 9fafda03, fdf4d765, bacdd8bf, 7e62f6c6,
+    # 094b9c3d, e2cf4708, 4c483284, afe86faf, 1d3a7018, 2a6a2e8a, 4b96d034,
+    # 80123d56, 06e9c24b
+    try:
+        from apps.api.findings_wave_b_router import router as _findings_wave_b_router
+        app.include_router(_findings_wave_b_router)
+        _logger.info("Mounted Wave B findings/risk/scoring router (16 routes)")
+    except ImportError as exc:
+        _logger.warning("Wave B router not loaded: %s", exc)
+
     # GAP-069 Dynamic Rule DSL — user-authored YAML/JSON detection rules
     try:
         from apps.api.dynamic_rule_dsl_router import router as dynamic_rule_dsl_router
@@ -8599,6 +8621,15 @@ def create_app() -> FastAPI:
         _logger.info("Mounted SSE event stream router at /api/v1/events/stream")
     except ImportError:
         pass
+
+    # Wave C — 21 endpoints: compliance/org/system/admin/tokens/cspm/skills/rules/llm
+    try:
+        from apps.api.wave_c_router import WAVE_C_ROUTERS as _wave_c_routers
+        for _wc_router in _wave_c_routers:
+            app.include_router(_wc_router)
+        _logger.info("Mounted Wave C routers (%d) — 21 compliance/org/system endpoints", len(_wave_c_routers))
+    except ImportError as _wc_exc:
+        _logger.warning("Wave C router not mounted: %s", _wc_exc)
 
     # Wave 42 pre-wiring
     try:
