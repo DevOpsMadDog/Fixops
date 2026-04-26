@@ -2065,6 +2065,74 @@ def create_app() -> FastAPI:
     app.state.branding = branding
     app.state.flag_provider = flag_provider
 
+    # ── SCIF / FIPS boot posture (no-op when FIPS_MODE != 1) ─────────────
+    # Runs even when FIPS_MODE is unset so /api/v1/fips/status always returns
+    # a consistent shape. Refuses to boot only when FIPS_STRICT_BOOT=1.
+    try:
+        from core.fips_boot import run_fips_boot
+        app.state.fips_report = run_fips_boot().to_dict()
+        if app.state.fips_report.get("fips_mode_active"):
+            logging.getLogger(__name__).info(
+                "FIPS boot complete: hsm=%s warnings=%d",
+                app.state.fips_report.get("hsm_backend"),
+                len(app.state.fips_report.get("warnings", [])),
+            )
+    except Exception as _fips_exc:  # pragma: no cover
+        logging.getLogger(__name__).warning("FIPS boot wiring skipped: %s", _fips_exc)
+        app.state.fips_report = {
+            "fips_mode_requested": False,
+            "fips_mode_active": False,
+            "boot_refused": False,
+            "error": str(_fips_exc),
+        }
+
+    # ── /api/v1/scif/* — ISSO-readable SCIF/FIPS-boot posture endpoints ──
+    # NOTE: prefix is /scif (not /fips) to avoid collision with the existing
+    # FIPSComplianceModeEngine router at /api/v1/fips. These endpoints expose
+    # *boot posture* (kernel FIPS, HSM, audit chain) — not FIPS algorithm state.
+    from fastapi import APIRouter as _APIRouter
+    _scif_router = _APIRouter(prefix="/api/v1/scif", tags=["compliance"])
+
+    @_scif_router.get("/boot")
+    def _scif_boot() -> Dict[str, Any]:
+        """Return SCIF boot posture (FIPS_MODE, HSM, audit chain init)."""
+        return getattr(app.state, "fips_report", {"fips_mode_active": False})
+
+    @_scif_router.get("/audit-chain/verify")
+    def _scif_audit_verify() -> Dict[str, Any]:
+        """Re-verify the tamper-evident audit chain."""
+        try:
+            from core.audit_chain import get_audit_chain
+            r = get_audit_chain().verify_full()
+            return {
+                "ok": r.ok,
+                "total_entries": r.total_entries,
+                "first_broken_seq": r.first_broken_seq,
+                "error": r.error,
+                "checkpoint_signatures_verified": r.checkpoint_signatures_verified,
+                "checkpoint_signatures_failed": r.checkpoint_signatures_failed,
+            }
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+    @_scif_router.get("/hsm/info")
+    def _scif_hsm_info() -> Dict[str, Any]:
+        """Return HSM provider backend + key list (labels only, no key material)."""
+        try:
+            from core.hsm_provider import get_hsm
+            hsm = get_hsm()
+            keys = hsm.list_keys()
+            return {
+                "backend": hsm.backend_name(),
+                "available": hsm.is_available(),
+                "key_count": len(keys),
+                "keys": [{"label": k.label, "key_type": k.key_type} for k in keys],
+            }
+        except Exception as exc:
+            return {"available": False, "error": str(exc)}
+
+    app.include_router(_scif_router)
+
     # OpenAPI size guard — the schema can exceed 196MB with 500+ routers.
     # Override app.openapi() to cap paths at 800 and strip examples/descriptions
     # from individual schemas to keep the response under ~4MB.
