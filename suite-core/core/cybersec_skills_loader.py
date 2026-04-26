@@ -18,6 +18,11 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 # Default skills directory (relative to repo root)
@@ -92,6 +97,10 @@ class CybersecSkillsLoader:
             logger.info("Cybersec skills dir not found: %s — using built-in index", self._dir)
             self._load_builtin_index()
             self._loaded = True
+            self._emit_event(
+                "skills.loaded",
+                {"source": "builtin", "count": len(self._skills), "dir": str(self._dir)},
+            )
             return len(self._skills)
 
         count = 0
@@ -120,6 +129,10 @@ class CybersecSkillsLoader:
 
         self._loaded = True
         logger.info("Loaded %d cybersec skills from %s", count, self._dir)
+        self._emit_event(
+            "skills.loaded",
+            {"source": "filesystem", "count": count, "dir": str(self._dir)},
+        )
         return count
 
     def _load_builtin_index(self) -> None:
@@ -218,6 +231,38 @@ class CybersecSkillsLoader:
             "techniques_mapped": len(self._by_technique),
             "source": str(self._dir) if self._dir.exists() else "builtin",
         }
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
+
 
 
 # ---------------------------------------------------------------------------

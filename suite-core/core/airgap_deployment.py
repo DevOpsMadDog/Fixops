@@ -41,6 +41,11 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from core.fips_encryption import AirGapMode, FIPSEncryption
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -1605,15 +1610,29 @@ class AirGapDeploymentHardening:
         self.telemetry.disable_all()
         self.trustgraph.apply_local_only()
         logger.info("airgap_hardening_enabled")
+        self._emit_event(
+            "airgap.deployment.enabled",
+            {"classification": getattr(self.classifier, "get_level", lambda: "unclassified")()},
+        )
 
     def disable(self) -> None:
         """Disable air-gap mode (for testing/maintenance only)."""
         AirGapMode.disable()
         logger.warning("airgap_hardening_disabled")
+        self._emit_event("airgap.deployment.disabled", {})
 
     def validate(self, classification: str = ClassificationLevel.UNCLASSIFIED.value) -> DeploymentValidationReport:
         """Run full deployment validation checklist."""
-        return self.validator.validate(classification=classification)
+        report = self.validator.validate(classification=classification)
+        self._emit_event(
+            "airgap.deployment.validated",
+            {
+                "classification": classification,
+                "all_passed": getattr(report, "all_passed", None),
+                "check_count": len(getattr(report, "checks", []) or []),
+            },
+        )
+        return report
 
     def network_check(self) -> NetworkCheckResult:
         """Run active network isolation verification."""
@@ -1635,3 +1654,34 @@ class AirGapDeploymentHardening:
             "cve_db_by_severity": cve_stats.get("by_severity", {}),
             "blocked_calls": AirGapMode.get_blocked_calls(),
         }
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
