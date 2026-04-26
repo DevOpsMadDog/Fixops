@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec git commit -m 'beast-mode(enterprise): HA deployment guide -- Docker Compose + Helm + monitoring\\n\\nAdds comprehensive deployment guide (docs/DEPLOYMENT_HA.md) ...",
-  "error": "Exit code 2\nsh: -c: line 0: syntax error near unexpected token `('\nsh: -c: line 0: `git commit -m beast-mode(enterprise): HA deployment guide -- Docker Compose + Helm + monitoring'",
-  "timestamp": "2026-04-21T23:25:29.777Z",
-  "retry_count": 2
-}

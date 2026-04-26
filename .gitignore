@@ -169,5 +169,41 @@ allure-results/
 playwright-report/
 verify_out.txt
 suite-api/data/
-graphify-out/cache/
-graphify-out/graph.json
+
+# ───────────────────────────────────────────────────────────────────────
+# Generated outputs (knowledge graphs, code maps, scan reports) — NOT source
+# ───────────────────────────────────────────────────────────────────────
+graphify-out/
+graphify-out-*/
+**/graphify-out/
+**/graphify-out-*/
+.code-review-graph/
+.aldeci/
+.fixops_data/
+data/*.db
+data/*.db.bak
+data/*.bak
+
+# Old / archived data dumps (rehydrate from feeds, not source)
+suite-core/data.old/
+reports/e2e_scan_output.log
+
+# Newman / Postman scan reports (generated per-run)
+newman/newman-run-report-*.json
+newman/newman-run-report-*.html
+newman/newman-run-report-*.xml
+
+# Coverage / test artifacts
+coverage.xml
+htmlcov/
+
+# Vis.js / pyvis / tom-select assets pulled by graphify
+lib/
+
+# OMC / session state caches
+.omc/sessions/
+.omc/state/agent-replay-*.jsonl
+.omc/state/idle-notif-cooldown.json
+.omc/state/last-tool-error.json
+.omc/state/subagent-tracking.json
+.claude/scheduled_tasks.lock
