@@ -518,6 +518,23 @@ const BrainVisualization = lazy(() => import("@/pages/BrainVisualization"));
 // Main Overview Dashboard
 const MainOverviewDashboard = lazy(() => import("@/pages/MainOverviewDashboard"));
 
+// Wave 3 — risk / dashboards / runtime (15 screens, 2026-04-26)
+const BRSExecutiveDashboard = lazy(() => import("@/pages/BRSExecutiveDashboard"));
+const BUDollarRiskHeatmap = lazy(() => import("@/pages/BUDollarRiskHeatmap"));
+const ChokePointDashboard = lazy(() => import("@/pages/ChokePointDashboard"));
+const AttackPathInteractiveGraph = lazy(() => import("@/pages/AttackPathInteractiveGraph"));
+const ToxicCombinationIssueView = lazy(() => import("@/pages/ToxicCombinationIssueView"));
+const IssueQueue = lazy(() => import("@/pages/IssueQueue"));
+const ScoreTransparencyPanel = lazy(() => import("@/pages/ScoreTransparencyPanel"));
+const FactorWeightsView = lazy(() => import("@/pages/FactorWeightsView"));
+const DriftTrackingPanel = lazy(() => import("@/pages/DriftTrackingPanel"));
+const MaterialChangeDashboard = lazy(() => import("@/pages/MaterialChangeDashboard"));
+const PRChangeRiskPanel = lazy(() => import("@/pages/PRChangeRiskPanel"));
+const SBOMContinuousMonitoring = lazy(() => import("@/pages/SBOMContinuousMonitoring"));
+const SnapshotFindingsView = lazy(() => import("@/pages/SnapshotFindingsView"));
+const AgentlessScanStatus = lazy(() => import("@/pages/AgentlessScanStatus"));
+const RuntimeCodeTrace = lazy(() => import("@/pages/RuntimeCodeTrace"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -525,6 +542,23 @@ const MultiLLM = lazy(() => import("@/pages/ai/MultiLLM"));
 const AlgorithmicLab = lazy(() => import("@/pages/ai/AlgorithmicLab"));
 const MLDashboard = lazy(() => import("@/pages/ai/MLDashboard"));
 const Predictions = lazy(() => import("@/pages/ai/Predictions"));
+
+// Frontend Wave 1 — AI / discovery / code-intel screens
+const CodeSemanticExplorer = lazy(() => import("@/pages/discover/CodeSemanticExplorer"));
+const CallGraphExplorer = lazy(() => import("@/pages/discover/CallGraphExplorer"));
+const ReachabilityProof = lazy(() => import("@/pages/validate/ReachabilityProof"));
+const GraphPerfDashboard = lazy(() => import("@/pages/discover/GraphPerfDashboard"));
+const ArchitectureLayerGraph = lazy(() => import("@/pages/discover/ArchitectureLayerGraph"));
+const PIIFieldInventory = lazy(() => import("@/pages/discover/PIIFieldInventory"));
+const ComponentIdentityView = lazy(() => import("@/pages/discover/ComponentIdentityView"));
+const ShadowAIInventory = lazy(() => import("@/pages/ai/ShadowAIInventory"));
+const AIAttackPathView = lazy(() => import("@/pages/ai/AIAttackPathView"));
+const MCPToolRegistry = lazy(() => import("@/pages/ai/MCPToolRegistry"));
+const AIAgentsConsole = lazy(() => import("@/pages/ai/AIAgentsConsole"));
+const AgentTaskQueue = lazy(() => import("@/pages/ai/AgentTaskQueue"));
+const Copilot = lazy(() => import("@/pages/ai/Copilot"));
+const CopilotGraphChat = lazy(() => import("@/pages/ai/CopilotGraphChat"));
+const TraversalExplanationPanel = lazy(() => import("@/pages/ai/TraversalExplanationPanel"));
 
 export default function App() {
   return (
@@ -566,6 +600,13 @@ export default function App() {
             <Route path="/discover/threats" element={<ThreatFeeds />} />
             <Route path="/discover/correlation" element={<CorrelationEngine />} />
             <Route path="/discover/data-fabric" element={<DataFabric />} />
+            {/* Wave 1 — Discover */}
+            <Route path="/discover/code-semantic" element={<CodeSemanticExplorer />} />
+            <Route path="/discover/callgraph" element={<CallGraphExplorer />} />
+            <Route path="/discover/graph-perf" element={<GraphPerfDashboard />} />
+            <Route path="/discover/arch-layers" element={<ArchitectureLayerGraph />} />
+            <Route path="/discover/pii-inventory" element={<PIIFieldInventory />} />
+            <Route path="/discover/component-identity" element={<ComponentIdentityView />} />
 
             {/* Space 3: Validate — admin + security_analyst only (except Reachability) */}
             <Route path="/validate" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MPTEConsole /></RequireRole>} />
@@ -575,6 +616,8 @@ export default function App() {
             <Route path="/validate/playbooks" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Playbooks /></RequireRole>} />
             <Route path="/validate/playbooks/editor" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><PlaybookEditor /></RequireRole>} />
             <Route path="/validate/reachability" element={<Reachability />} />
+            {/* Wave 1 — Validate */}
+            <Route path="/validate/reachability-proof" element={<ReachabilityProof />} />
 
             {/* Space 4: Remediate */}
             <Route path="/remediate" element={<RemediationCenter />} />
@@ -620,6 +663,15 @@ export default function App() {
             <Route path="/ai/algorithms" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><AlgorithmicLab /></RequireRole>} />
             <Route path="/ai/ml" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MLDashboard /></RequireRole>} />
             <Route path="/ai/predictions" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Predictions /></RequireRole>} />
+            {/* Wave 1 — AI */}
+            <Route path="/ai/shadow-inventory" element={<ShadowAIInventory />} />
+            <Route path="/ai/attack-paths" element={<AIAttackPathView />} />
+            <Route path="/ai/mcp-registry" element={<MCPToolRegistry />} />
+            <Route path="/ai/agents-console" element={<AIAgentsConsole />} />
+            <Route path="/ai/agent-tasks" element={<AgentTaskQueue />} />
+            <Route path="/ai/copilot" element={<Copilot />} />
+            <Route path="/ai/copilot-chat" element={<CopilotGraphChat />} />
+            <Route path="/ai/copilot-trace" element={<TraversalExplanationPanel />} />
 
             {/* Findings Explorer — universal, all personas */}
             <Route path="/findings" element={<FindingsExplorer />} />
@@ -1038,6 +1090,23 @@ export default function App() {
 
             {/* Main Overview Dashboard */}
             <Route path="/dashboard" element={<MainOverviewDashboard />} />
+
+            {/* Wave 3 — risk / dashboards / runtime (15 screens, 2026-04-26) */}
+            <Route path="/brs-executive" element={<BRSExecutiveDashboard />} />
+            <Route path="/bu-dollar-heatmap" element={<BUDollarRiskHeatmap />} />
+            <Route path="/choke-points" element={<ChokePointDashboard />} />
+            <Route path="/attack-paths/graph" element={<AttackPathInteractiveGraph />} />
+            <Route path="/issues/toxic" element={<ToxicCombinationIssueView />} />
+            <Route path="/issue-queue" element={<IssueQueue />} />
+            <Route path="/score-transparency" element={<ScoreTransparencyPanel />} />
+            <Route path="/factor-weights" element={<FactorWeightsView />} />
+            <Route path="/drift-tracking" element={<DriftTrackingPanel />} />
+            <Route path="/material-changes" element={<MaterialChangeDashboard />} />
+            <Route path="/pr-change-risk" element={<PRChangeRiskPanel />} />
+            <Route path="/sbom-continuous-monitoring" element={<SBOMContinuousMonitoring />} />
+            <Route path="/snapshot-findings" element={<SnapshotFindingsView />} />
+            <Route path="/agentless-scan-status" element={<AgentlessScanStatus />} />
+            <Route path="/runtime-code-trace" element={<RuntimeCodeTrace />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
