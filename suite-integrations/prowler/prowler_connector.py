@@ -52,6 +52,101 @@ class ProwlerConnector:
             self._engine = ProwlerEngine()
         return self._engine
 
+    # ------------------------------------------------------------------
+    # Bridge: mirror findings into SecurityFindingsEngine so the unified
+    # /api/v1/security-findings dashboard surfaces Prowler results.
+    # ------------------------------------------------------------------
+    _SEV_TO_CVSS = {
+        "critical": 9.5, "high": 7.5, "medium": 5.0,
+        "low": 3.0, "informational": 1.0, "info": 1.0,
+    }
+
+    @classmethod
+    def _severity_to_cvss(cls, sev: Any) -> float:
+        return cls._SEV_TO_CVSS.get(str(sev or "").lower().strip(), 5.0)
+
+    @staticmethod
+    def _safe_severity(sev: Any) -> str:
+        valid = {"critical", "high", "medium", "low", "info"}
+        raw = str(sev or "").lower().strip()
+        if raw in valid:
+            return raw
+        if raw in {"informational", "none"}:
+            return "info"
+        if raw in {"moderate", "warning"}:
+            return "medium"
+        if raw in {"error"}:
+            return "high"
+        return "medium"
+
+    def _mirror_findings_to_security_engine(
+        self,
+        findings: List[Dict[str, Any]],
+        provider: str,
+        account_id: str,
+        scan_id: str,
+    ) -> int:
+        """Mirror normalized Prowler findings into SecurityFindingsEngine.
+
+        Returns the number of findings successfully recorded. Failures are
+        swallowed (logged) so the prowler engine ingest stays the source of
+        truth — the mirror is purely additive for the dashboard view.
+        """
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+        except Exception as exc:  # pragma: no cover
+            _logger.warning("SecurityFindingsEngine import failed (mirror skipped): %s", exc)
+            return 0
+
+        try:
+            sf_engine = SecurityFindingsEngine()
+        except Exception as exc:  # pragma: no cover
+            _logger.warning("SecurityFindingsEngine init failed (mirror skipped): %s", exc)
+            return 0
+
+        recorded = 0
+        for f in findings or []:
+            try:
+                # ProwlerNormalizer emits dict-shaped findings; defensively
+                # support pydantic-model findings too.
+                d = f if isinstance(f, dict) else (
+                    f.model_dump(mode="json") if hasattr(f, "model_dump") else dict(f)
+                )
+                rule_id = (
+                    d.get("rule_id")
+                    or d.get("check_id")
+                    or d.get("source_id")
+                    or ""
+                )
+                resource_id = (
+                    d.get("cloud_resource_id")
+                    or d.get("resource_id")
+                    or d.get("asset_id")
+                    or ""
+                )
+                title = str(d.get("title") or d.get("check_title") or "Prowler Finding")[:255]
+                description = str(d.get("description") or d.get("status_extended") or "")[:2000]
+                remediation = str(d.get("recommendation") or d.get("remediation") or "")[:2000]
+                severity = self._safe_severity(d.get("severity"))
+                sf_engine.record_finding(
+                    org_id=self.org_id,
+                    title=title,
+                    finding_type="cloud_misconfig",
+                    source_tool="prowler",
+                    severity=severity,
+                    cvss_score=self._severity_to_cvss(severity),
+                    asset_id=str(resource_id or rule_id or "unknown")[:255],
+                    asset_type="cloud_resource",
+                    description=description,
+                    remediation=remediation,
+                    correlation_key=f"prowler|{rule_id}|{resource_id}",
+                    scan_id=scan_id,
+                )
+                recorded += 1
+            except Exception as exc:
+                _logger.warning("Prowler->SecurityFindingsEngine mirror failed: %s", exc)
+        return recorded
+
     @staticmethod
     def _find_prowler() -> str:
         """Locate the prowler CLI binary."""

@@ -543,17 +543,23 @@ class CSPMConnector:
         raw_json: Optional[bytes] = None
         if self._checkov_path and iac_dir and os.path.isdir(iac_dir):
             try:
+                # NOTE: do NOT pass --quiet — Checkov suppresses stdout when
+                # --quiet is combined with -o json (rc=2, empty output).
+                # --soft-fail prevents non-zero exit when violations are found.
                 proc = subprocess.run(
-                    [self._checkov_path, "-d", iac_dir, "-o", "json", "--quiet", "--soft-fail"],
+                    [self._checkov_path, "-d", iac_dir, "-o", "json", "--soft-fail"],
                     capture_output=True,
                     timeout=self._cli_timeout,
                     check=False,
                 )
-                if proc.stdout:
+                if proc.stdout and proc.stdout.strip():
                     raw_json = proc.stdout
                     result.used_real_cli = True
                 else:
-                    result.errors.append(f"checkov empty output (rc={proc.returncode})")
+                    result.errors.append(
+                        f"checkov empty output (rc={proc.returncode}, "
+                        f"stderr={proc.stderr[:120].decode(errors='replace')})"
+                    )
             except subprocess.TimeoutExpired:
                 result.errors.append(f"checkov timed out after {self._cli_timeout}s")
             except Exception as exc:
@@ -625,11 +631,14 @@ class CSPMConnector:
                     timeout=self._cli_timeout,
                     check=False,
                 )
-                if proc.stdout:
+                if proc.stdout and proc.stdout.strip():
                     raw_json = proc.stdout
                     result.used_real_cli = True
                 else:
-                    result.errors.append(f"trivy empty output (rc={proc.returncode})")
+                    result.errors.append(
+                        f"trivy empty output (rc={proc.returncode}, "
+                        f"stderr={proc.stderr[:120].decode(errors='replace')})"
+                    )
             except subprocess.TimeoutExpired:
                 result.errors.append(f"trivy timed out after {self._cli_timeout}s")
             except Exception as exc:
