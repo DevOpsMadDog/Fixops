@@ -19,10 +19,10 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from apps.api.auth_deps import api_key_auth, require_role
 
@@ -81,13 +81,83 @@ class TriageAlertRequest(BaseModel):
     )
 
 
+# Engine-level actions are these three; "acknowledge"/"ack" are accepted as
+# aliases for "resolve" and normalised in the router. Pydantic enforces the
+# enum at the request boundary so callers get a 422 with a clear error
+# instead of silently passing through to the engine.
+BulkAction = Literal["acknowledge", "ack", "resolve", "false_positive", "escalate"]
+
+
 class BulkTriageRequest(BaseModel):
-    alert_ids: Optional[List[str]] = Field(default=None, description="List of alert IDs to action")
-    alert_id: Optional[str] = Field(default=None, description="Single alert ID (convenience alias for alert_ids)")
-    action: str = Field(
-        ..., description="acknowledge | resolve | false_positive | escalate"
+    """Request body for POST /api/v1/alert-triage/bulk-triage.
+
+    Validation rules (enforced by Pydantic before reaching the route handler):
+      * ``alert_ids`` (or ``alert_id``) must be supplied and non-empty.
+      * Every ID must be a non-empty, whitespace-stripped string.
+      * Duplicates are removed while preserving caller order.
+      * ``action`` must be one of: acknowledge | ack | resolve | false_positive | escalate.
+    """
+
+    alert_ids: Optional[List[str]] = Field(
+        default=None,
+        description="List of alert IDs to action (1-500 entries)",
+        max_length=500,
     )
-    org_id: Optional[str] = Field(default=None, description="Organization ID (can also be passed as query param)")
+    alert_id: Optional[str] = Field(
+        default=None,
+        description="Single alert ID (convenience alias for alert_ids)",
+        min_length=1,
+        max_length=128,
+    )
+    action: BulkAction = Field(
+        ...,
+        description="acknowledge | ack | resolve | false_positive | escalate",
+    )
+    org_id: Optional[str] = Field(
+        default=None,
+        description="Organization ID (can also be passed as query param)",
+        min_length=1,
+        max_length=128,
+    )
+
+    @field_validator("alert_ids")
+    @classmethod
+    def _clean_alert_ids(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+        if value is None:
+            return None
+        cleaned: List[str] = []
+        seen: set[str] = set()
+        for raw in value:
+            if not isinstance(raw, str):
+                raise ValueError("alert_ids entries must be strings")
+            stripped = raw.strip()
+            if not stripped:
+                raise ValueError("alert_ids entries must be non-empty strings")
+            if len(stripped) > 128:
+                raise ValueError("alert_ids entries must be <= 128 chars")
+            if stripped in seen:
+                continue
+            seen.add(stripped)
+            cleaned.append(stripped)
+        if not cleaned:
+            raise ValueError("alert_ids must contain at least one non-empty ID")
+        return cleaned
+
+    @field_validator("alert_id")
+    @classmethod
+    def _clean_alert_id(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("alert_id must be a non-empty string")
+        return stripped
+
+    @model_validator(mode="after")
+    def _require_one_id_source(self) -> "BulkTriageRequest":
+        if not self.alert_ids and not self.alert_id:
+            raise ValueError("alert_ids or alert_id is required")
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -183,28 +253,77 @@ def bulk_triage(
 
     Accepts either ``alert_ids`` (list) or ``alert_id`` (single string).
     ``org_id`` may be provided as a query parameter or in the request body.
-    Valid actions: acknowledge, resolve, false_positive, escalate.
+    Valid actions: acknowledge, ack, resolve, false_positive, escalate.
+
+    Validation contract:
+      * 422 — request shape invalid (missing IDs, empty list, bad enum, missing org).
+      * 403 — at least one ID belongs to a different org (cross-tenant attempt).
+      * 404 — at least one ID does not exist anywhere.
+      * 200 — all IDs validated and updated atomically.
     """
     # Resolve org_id: query param takes precedence, fallback to body field
-    resolved_org_id = org_id or req.org_id
+    resolved_org_id = (org_id or req.org_id or "").strip()
     if not resolved_org_id:
-        raise HTTPException(status_code=422, detail="org_id is required (query param or body field)")
+        raise HTTPException(
+            status_code=422,
+            detail="org_id is required (query param or body field)",
+        )
 
-    # Resolve alert list: support both alert_ids (list) and alert_id (single)
-    if req.alert_ids:
-        ids = req.alert_ids
-    elif req.alert_id:
-        ids = [req.alert_id]
-    else:
+    # Pydantic guarantees alert_ids (list) is non-empty if present.
+    ids: List[str] = list(req.alert_ids) if req.alert_ids else [req.alert_id or ""]
+    # Defensive: drop any empty entries that slipped through (alert_id branch).
+    ids = [i for i in ids if i]
+    if not ids:
         raise HTTPException(status_code=422, detail="alert_ids or alert_id is required")
 
-    # Normalise action: map 'acknowledge' -> 'resolve' equivalent in engine terms
-    action = req.action
+    # Normalise action: map 'acknowledge'/'ack' -> 'resolve' for the engine.
     _action_aliases = {"acknowledge": "resolve", "ack": "resolve"}
-    action = _action_aliases.get(action, action)
+    action = _action_aliases.get(req.action, req.action)
+
+    # ── Cross-tenant + existence pre-check (atomic) ───────────────────────
+    # Iterate once over the requested IDs and classify them. We refuse to
+    # mutate ANY row unless every requested ID is present and belongs to
+    # the caller's org. This prevents:
+    #   (a) cross-org IDOR — caller passes IDs from another tenant; without
+    #       this check the engine returns updated=0 (silent success).
+    #   (b) partial success — some IDs missing, others updated, with no
+    #       way for the caller to tell which.
+    engine = _get_engine()
+    cross_org: List[str] = []
+    missing: List[str] = []
+    for aid in ids:
+        if engine.get_alert(resolved_org_id, aid) is not None:
+            continue
+        # Not found in caller's org. Determine whether it exists elsewhere.
+        if engine.alert_exists_anywhere(aid):
+            cross_org.append(aid)
+        else:
+            missing.append(aid)
+
+    if cross_org:
+        # Do not echo back the foreign IDs to avoid confirming their
+        # existence — log internally, return a generic 403.
+        _logger.warning(
+            "alert_triage.bulk_triage cross-org attempt: org=%s tried to mutate %d alert(s) outside its tenant",
+            resolved_org_id,
+            len(cross_org),
+        )
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"{len(cross_org)} alert ID(s) do not belong to org "
+                f"'{resolved_org_id}'"
+            ),
+        )
+
+    if missing:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Alert ID(s) not found: {missing}",
+        )
 
     try:
-        return _get_engine().bulk_triage(resolved_org_id, ids, action)
+        return engine.bulk_triage(resolved_org_id, ids, action)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

@@ -210,6 +210,23 @@ class AlertTriageEngine:
             ).fetchone()
         return self._row(row) if row else None
 
+    def alert_exists_anywhere(self, alert_id: str) -> bool:
+        """Return True if an alert with this ID exists in any org.
+
+        Used by the bulk-triage router to distinguish "missing entirely"
+        (404) from "exists but in a different tenant" (403). The router
+        deliberately never reveals which tenant owns the foreign ID — only
+        that it isn't in the caller's org.
+        """
+        if not alert_id:
+            return False
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM at_alerts WHERE id = ? LIMIT 1",
+                (alert_id,),
+            ).fetchone()
+        return row is not None
+
     def triage_alert(
         self, org_id: str, alert_id: str, triage_data: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -267,7 +284,20 @@ class AlertTriageEngine:
 
         action: "resolve" | "false_positive" | "escalate"
         Returns count of updated alerts.
+
+        Raises ValueError on empty alert_ids or invalid action — the router
+        layer turns these into HTTP 422.
         """
+        if not org_id or not isinstance(org_id, str):
+            raise ValueError("org_id is required and must be a non-empty string")
+        if not alert_ids:
+            raise ValueError("alert_ids must contain at least one ID")
+        # Defensive: drop empty/whitespace IDs the caller might pass directly.
+        cleaned_ids = [aid.strip() for aid in alert_ids if isinstance(aid, str) and aid.strip()]
+        if not cleaned_ids:
+            raise ValueError("alert_ids must contain at least one non-empty ID")
+        alert_ids = cleaned_ids
+
         _valid_actions = {"resolve", "false_positive", "escalate"}
         if action not in _valid_actions:
             raise ValueError(
