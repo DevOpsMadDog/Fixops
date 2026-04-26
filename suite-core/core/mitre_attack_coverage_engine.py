@@ -285,7 +285,7 @@ class MITREAttackCoverageEngine:
                         (tid, org_id, name, tactic_id, description, severity, now),
                     )
                     count += cur.rowcount
-        _logger.info("mitre_coverage.seed", org_id=org_id, seeded=count)
+        _logger.info("mitre_coverage.seed org_id=%s seeded=%d", org_id, count)
         return count
 
     def add_technique(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:

@@ -593,6 +593,55 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("CSPM Connector router not available: %s", e)
 
+privilege_escalation_detector_router: Optional[APIRouter] = None
+try:
+    from apps.api.privilege_escalation_detector_router import router as privilege_escalation_detector_router
+    logging.getLogger(__name__).info("Loaded Privilege Escalation Detector router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Privilege Escalation Detector router not available: %s", e)
+
+mitre_attack_coverage_router: Optional[APIRouter] = None
+try:
+    from apps.api.mitre_attack_coverage_router import router as mitre_attack_coverage_router
+    logging.getLogger(__name__).info("Loaded MITRE ATT&CK Coverage router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("MITRE ATT&CK Coverage router not available: %s", e)
+
+duckdb_analytics_router: Optional[APIRouter] = None
+try:
+    from apps.api.duckdb_analytics_router import router as duckdb_analytics_router
+    logging.getLogger(__name__).info("Loaded DuckDB Analytics router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("DuckDB Analytics router not available: %s", e)
+
+verification_router: Optional[APIRouter] = None
+try:
+    from apps.api.verification_router import router as verification_router
+    logging.getLogger(__name__).info("Loaded Multi-Stage Verification router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Verification router not available: %s", e)
+
+intelligent_security_router: Optional[APIRouter] = None
+try:
+    from apps.api.intelligent_security_router import router as intelligent_security_router
+    logging.getLogger(__name__).info("Loaded Intelligent Security Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Intelligent Security router not available: %s", e)
+
+graphrag_router: Optional[APIRouter] = None
+try:
+    from apps.api.graphrag_router import router as graphrag_router
+    logging.getLogger(__name__).info("Loaded GraphRAG router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("GraphRAG router not available: %s", e)
+
+context_engine_router: Optional[APIRouter] = None
+try:
+    from apps.api.context_engine_router import router as context_engine_router
+    logging.getLogger(__name__).info("Loaded Context Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Context Engine router not available: %s", e)
+
 dashboard_builder_router: Optional[APIRouter] = None
 try:
     from apps.api.dashboard_builder_router import router as dashboard_builder_router
@@ -3605,6 +3654,13 @@ def create_app() -> FastAPI:
         (cspm_engine_router, "CSPM Engine", "read:findings"),
         (cspm_deep_router, "CSPM Deep Scan", "read:findings"),
         (cspm_connector_router, "CSPM Connector (OSS family)", "read:findings"),
+        (privilege_escalation_detector_router, "Privilege Escalation Detector", "read:findings"),
+        (mitre_attack_coverage_router, "MITRE ATT&CK Coverage", "read:findings"),
+        (duckdb_analytics_router, "DuckDB Analytics", "read:findings"),
+        (verification_router, "Multi-Stage Verification", "attack:execute"),
+        (intelligent_security_router, "Intelligent Security Engine", "attack:execute"),
+        (graphrag_router, "GraphRAG", "read:findings"),
+        (context_engine_router, "Context Engine", "read:findings"),
         (dashboard_builder_router, "Dashboard Builder", "read:findings"),
         (developer_portal_router, "Developer Portal", "read:findings"),
         (api_docs_router, "API Docs", "read:findings"),

@@ -366,7 +366,8 @@ from core.brain_pipeline import BrainPipeline  # just works
 | Engine tests | ~37,000 across 350+ test files | `ls tests/test_*.py | wc -l` |
 
 ### Most recent strategic work
-- **2026-04-24** — Real-customer onboarding flow validation (15 apps). NO MOCKS rule + Playwright MCP added. Session committed 50+ improvements.
+- **2026-04-26** — Pushed 101-commit branch to GitHub (`a1c2c854..7861f9fe`). Cleaned 658 generated files from git index (graphify-out, newman, .aldeci, etc.). Bulk-triage IDOR + posture-score bugs fixed. 7 engine routers wired (graphrag, context, duckdb_analytics, verification, intelligent_security, mitre_attack_coverage, privilege_escalation_detector). Multica board reconciled: 89 stale endpoint+frontend todos verified-and-closed (board: 2475→2565 done, 539→449 todo). Dependabot triage: top HIGH/MOD bumps applied (postcss, dompurify override, path-to-regexp, picomatch, follow-redirects). Graphify rebuilt: **119,351 nodes / 423,574 edges / 1520 communities**. See `docs/board_audit_2026-04-26.md` + `docs/HANDOFF_2026-04-26.md` + `docs/dependabot_triage_2026-04-26.md`.
+- **2026-04-24/25** — Real-customer onboarding flow validation (15 apps). NO MOCKS rule + Playwright MCP added. Dashboard render bug fixed (5/5 verification routes pass). 7-of-8 commercial-vendor OSS substitutes wired (Snyk, CSPM, EDR, SIEM, Container, IAM, ThreatIntel; DAST in flight). 225 UI page conversions across ui-bulk-A1/A2/B1/B2/residual.
 - **2026-04-22/23** — Beast Mode v6 reconcile: 14 KEEP engines + 30 MERGE extensions + 5 KILLs shipped. Graphify visual rebuilt. TrueCourse-audits-Fixops report.
 - **2026-04-13 → 2026-04-22** — Wave 6 → Wave 60+ autonomous parallel build. Full per-wave detail in `docs/SESSION_HISTORY.md`.
 
