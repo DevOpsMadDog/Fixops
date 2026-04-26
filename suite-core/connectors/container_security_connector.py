@@ -48,6 +48,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -777,6 +779,19 @@ class ContainerSecurityConnector:
         result.severity_breakdown = sev_breakdown
         result.completed_at = _now_iso()
         _record_history(org_id, result.to_dict())
+        emit_connector_event(
+            connector="ContainerSecurityConnector",
+            org_id=org_id,
+            source_kind="container",
+            finding_count=recorded_total,
+            correlation_id=scan_id,
+            extra={
+                "tenant": tenant,
+                "image": image_tag,
+                "scan_id": scan_id,
+                "severity_breakdown": sev_breakdown,
+            },
+        )
         return result
 
     # -------------------------------------------------------------- scan all
@@ -796,6 +811,13 @@ class ContainerSecurityConnector:
                     completed_at=_now_iso(),
                     error=str(exc),
                 ))
+        emit_connector_event(
+            connector="ContainerSecurityConnector",
+            org_id=org_id,
+            source_kind="container",
+            finding_count=sum(getattr(r, "findings_recorded", 0) for r in out),
+            extra={"tenants_scanned": len(out)},
+        )
         return out
 
 

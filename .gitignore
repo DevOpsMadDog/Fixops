@@ -117,10 +117,10 @@ data/data/
 real_cve_*.json
 terraform.tfvars
 
-# Temporary agent/debug scripts (auto-generated)
-_*.py
-_*.txt
-_*.sh
+# Temporary agent/debug scripts (auto-generated, repo root only)
+/_*.py
+/_*.txt
+/_*.sh
 
 # Runtime data directories
 data/archive/

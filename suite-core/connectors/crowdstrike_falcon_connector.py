@@ -53,6 +53,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
+from connectors._emit import emit_connector_event
+
 _logger = logging.getLogger(__name__)
 
 
@@ -880,6 +882,19 @@ class CrowdStrikeFalconConnector:
                         _logger.warning("Correlation mirror failed for %s: %s",
                                         parsed["detection_id"], exc)
 
+        emit_connector_event(
+            connector="CrowdStrikeFalconConnector",
+            org_id=org_id,
+            source_kind="edr",
+            finding_count=findings,
+            extra={
+                "ingested": ingested,
+                "failed": failed,
+                "edr_events": edr_count,
+                "correlation_events": corr_count,
+                "detection_count": len(detection_ids),
+            },
+        )
         return {
             "mode":               "live",
             "org_id":             org_id,

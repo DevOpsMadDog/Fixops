@@ -39,6 +39,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_FLEET_ROOT = Path("/tmp/fixops-fleet")
@@ -491,6 +493,13 @@ class SnykOSSConnector:
             "Snyk-OSS scan tenant=%s findings=%d duration=%.1fs",
             tenant_path.name, result.total(), time.time() - started,
         )
+        emit_connector_event(
+            connector="SnykOSSConnector",
+            org_id=org_id,
+            source_kind="sca",
+            finding_count=result.total(),
+            extra={"tenant": tenant_path.name, "repo_path": str(tenant_path)},
+        )
         return result
 
     def scan_fleet(self, org_id: str = "default") -> Dict[str, Any]:
@@ -498,6 +507,13 @@ class SnykOSSConnector:
         for tenant_path in self.list_tenants():
             results.append(self.scan_tenant(tenant_path, org_id=org_id))
         total = sum(r.total() for r in results)
+        emit_connector_event(
+            connector="SnykOSSConnector",
+            org_id=org_id,
+            source_kind="sca",
+            finding_count=total,
+            extra={"tenants_scanned": len(results), "fleet_root": str(self.fleet_root)},
+        )
         return {
             "tool": self.NAME,
             "fleet_root": str(self.fleet_root),

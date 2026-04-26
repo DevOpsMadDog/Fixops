@@ -42,6 +42,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -424,6 +426,17 @@ class CSPMConnector:
             "account_id": account_id,
             "ingested_total": total_ingested,
         }
+        emit_connector_event(
+            connector="CSPMConnector",
+            org_id=org_id,
+            source_kind="cspm",
+            finding_count=total_ingested,
+            extra={
+                "provider": provider,
+                "account_id": account_id,
+                "tools_run": [k for k in results if k != "_summary"],
+            },
+        )
         return results
 
     # ------------------------------------------------------------------
