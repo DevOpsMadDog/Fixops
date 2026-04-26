@@ -560,6 +560,42 @@ const Copilot = lazy(() => import("@/pages/ai/Copilot"));
 const CopilotGraphChat = lazy(() => import("@/pages/ai/CopilotGraphChat"));
 const TraversalExplanationPanel = lazy(() => import("@/pages/ai/TraversalExplanationPanel"));
 
+// Frontend Wave 4 — final cleanup wave (35 screens, 2026-04-26)
+const AirGapBundleConsole = lazy(() => import("@/pages/AirGapBundleConsole"));
+const OfflineFeedRegistry = lazy(() => import("@/pages/OfflineFeedRegistry"));
+const OfflineUpdateStatus = lazy(() => import("@/pages/OfflineUpdateStatus"));
+const ClaudeSkillsRegistry = lazy(() => import("@/pages/ClaudeSkillsRegistry"));
+const SkillsInstallPrompt = lazy(() => import("@/pages/SkillsInstallPrompt"));
+const LocalStoreStatus = lazy(() => import("@/pages/LocalStoreStatus"));
+const ComponentVersionGraph = lazy(() => import("@/pages/ComponentVersionGraph"));
+const UpgradePathExplorer = lazy(() => import("@/pages/UpgradePathExplorer"));
+const DBConnectionOverlay = lazy(() => import("@/pages/DBConnectionOverlay"));
+const DiffModeGraphCanvas = lazy(() => import("@/pages/DiffModeGraphCanvas"));
+const CopilotGraphChatRoot = lazy(() => import("@/pages/CopilotGraphChat"));
+const RQLQueryBuilder = lazy(() => import("@/pages/RQLQueryBuilder"));
+const SavedInvestigations = lazy(() => import("@/pages/SavedInvestigations"));
+const ScopeManager = lazy(() => import("@/pages/ScopeManager"));
+const DomainSeedDiscoveryWizard = lazy(() => import("@/pages/DomainSeedDiscoveryWizard"));
+const SubsidiaryAttributionGraph = lazy(() => import("@/pages/SubsidiaryAttributionGraph"));
+const UserTokenManager = lazy(() => import("@/pages/UserTokenManager"));
+const LLMContextTierBadge = lazy(() => import("@/pages/LLMContextTierBadge"));
+const LLMPreFlightEstimateModal = lazy(() => import("@/pages/LLMPreFlightEstimateModal"));
+const LLMRuleContextEditor = lazy(() => import("@/pages/LLMRuleContextEditor"));
+const HooksPolicyEditor = lazy(() => import("@/pages/HooksPolicyEditor"));
+const HooksStatusPanel = lazy(() => import("@/pages/HooksStatusPanel"));
+const ConnectorMappingUI = lazy(() => import("@/pages/ConnectorMappingUI"));
+const UniversalIngestionTester = lazy(() => import("@/pages/UniversalIngestionTester"));
+const PBOMViewer = lazy(() => import("@/pages/PBOMViewer"));
+const PipelineAttestationGraph = lazy(() => import("@/pages/PipelineAttestationGraph"));
+const SLSAAttestationSigner = lazy(() => import("@/pages/SLSAAttestationSigner"));
+const WebhookEventCatalogExplorer = lazy(() => import("@/pages/WebhookEventCatalogExplorer"));
+const WebhookRetryConsole = lazy(() => import("@/pages/WebhookRetryConsole"));
+const CrownJewelConfigurator = lazy(() => import("@/pages/CrownJewelConfigurator"));
+const OrgHierarchyExplorer = lazy(() => import("@/pages/OrgHierarchyExplorer"));
+const StaleBaselineBanner = lazy(() => import("@/pages/StaleBaselineBanner"));
+const TracedFlowViewer = lazy(() => import("@/pages/TracedFlowViewer"));
+const ZeroSetupOnboarding = lazy(() => import("@/pages/ZeroSetupOnboarding"));
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -1107,6 +1143,42 @@ export default function App() {
             <Route path="/snapshot-findings" element={<SnapshotFindingsView />} />
             <Route path="/agentless-scan-status" element={<AgentlessScanStatus />} />
             <Route path="/runtime-code-trace" element={<RuntimeCodeTrace />} />
+
+            {/* Frontend Wave 4 — final cleanup wave (35 screens, 2026-04-26) */}
+            <Route path="/air-gap/feed-status" element={<AirGapBundleConsole />} />
+            <Route path="/air-gap/feeds" element={<OfflineFeedRegistry />} />
+            <Route path="/air-gap/update-status" element={<OfflineUpdateStatus />} />
+            <Route path="/skills" element={<ClaudeSkillsRegistry />} />
+            <Route path="/skills/install" element={<SkillsInstallPrompt />} />
+            <Route path="/local-store/status" element={<LocalStoreStatus />} />
+            <Route path="/local-store/init" element={<ZeroSetupOnboarding />} />
+            <Route path="/components/version-graph" element={<ComponentVersionGraph />} />
+            <Route path="/components/upgrade-path" element={<UpgradePathExplorer />} />
+            <Route path="/graph/databases" element={<DBConnectionOverlay />} />
+            <Route path="/graph/diff" element={<DiffModeGraphCanvas />} />
+            <Route path="/copilot/graph-chat" element={<CopilotGraphChatRoot />} />
+            <Route path="/copilot/traversal-trace" element={<TracedFlowViewer />} />
+            <Route path="/investigate/rql" element={<RQLQueryBuilder />} />
+            <Route path="/investigate/saved" element={<SavedInvestigations />} />
+            <Route path="/scopes" element={<ScopeManager />} />
+            <Route path="/easm/seed-domain" element={<DomainSeedDiscoveryWizard />} />
+            <Route path="/easm/subsidiaries" element={<SubsidiaryAttributionGraph />} />
+            <Route path="/users/me/tokens" element={<UserTokenManager />} />
+            <Route path="/llm/context-tier" element={<LLMContextTierBadge />} />
+            <Route path="/llm/estimate" element={<LLMPreFlightEstimateModal />} />
+            <Route path="/llm/rules/edit" element={<LLMRuleContextEditor />} />
+            <Route path="/hooks/policy" element={<HooksPolicyEditor />} />
+            <Route path="/hooks/status" element={<HooksStatusPanel />} />
+            <Route path="/connectors/mapping" element={<ConnectorMappingUI />} />
+            <Route path="/connectors/mapping/dry-run" element={<UniversalIngestionTester />} />
+            <Route path="/pbom/propagation" element={<PBOMViewer />} />
+            <Route path="/provenance/attestation" element={<PipelineAttestationGraph />} />
+            <Route path="/provenance/sign" element={<SLSAAttestationSigner />} />
+            <Route path="/webhooks/event-catalogue" element={<WebhookEventCatalogExplorer />} />
+            <Route path="/webhooks/retry-queue" element={<WebhookRetryConsole />} />
+            <Route path="/assets/crown-jewel" element={<CrownJewelConfigurator />} />
+            <Route path="/organizations" element={<OrgHierarchyExplorer />} />
+            <Route path="/findings/drift" element={<StaleBaselineBanner />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
