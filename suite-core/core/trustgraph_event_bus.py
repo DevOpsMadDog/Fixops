@@ -196,7 +196,46 @@ _RESPONSE_KEY_MAP: Dict[str, tuple[str, str]] = {
     "step_id": (EVENT_STEP_COMPLETED, "step"),
     "team_id": (EVENT_TEAM_UPDATED, "team"),
     "client_id": (EVENT_ASSET_DISCOVERED, "client"),
+
+    # Generic / cross-cutting IDs (broader coverage for wave A/B/C/D routers)
+    "correlation_id": (EVENT_EVENT_CREATED, "correlation"),
+    "tenant_id": (EVENT_ASSET_DISCOVERED, "tenant"),
+    "tenant": (EVENT_ASSET_DISCOVERED, "tenant"),
+    "org_id": (EVENT_ASSET_DISCOVERED, "org"),
+    "repo": (EVENT_ASSET_DISCOVERED, "repository"),
+    "repo_id": (EVENT_ASSET_DISCOVERED, "repository"),
+    "digest": (EVENT_EVIDENCE_COLLECTED, "digest"),
+    "q_id": (EVENT_RISK_ASSESSED, "quantification"),
+    "fair_id": (EVENT_RISK_ASSESSED, "fair_analysis"),
+    "artifact": (EVENT_EVIDENCE_COLLECTED, "artifact"),
+    "artifact_id": (EVENT_EVIDENCE_COLLECTED, "artifact"),
+    "mapping_id": (EVENT_RULE_UPDATED, "mapping"),
+    "seed_id": (EVENT_ASSET_DISCOVERED, "seed"),
+    "domain": (EVENT_ASSET_DISCOVERED, "domain"),
+    "id": (EVENT_EVENT_CREATED, "generic"),  # bare "id" — last resort, generic event
 }
+
+# Wrapper keys to recursively unwrap when looking for IDs.
+# Many routers wrap their response as {"data": {...}}, {"result": {...}},
+# {"item": {...}}, {"items": [...]}, {"results": [...]}, {"payload": {...}}.
+_WRAPPER_KEYS: Set[str] = {
+    "data",
+    "result",
+    "results",
+    "item",
+    "items",
+    "payload",
+    "response",
+    "body",
+    "record",
+    "records",
+    "entity",
+    "entities",
+    "object",
+}
+
+# Maximum recursion depth when walking nested response shapes.
+_MAX_UNWRAP_DEPTH = 3
 
 # HTTP methods whose responses may create/modify entities
 _MUTATING_METHODS: Set[str] = {"POST", "PUT", "PATCH"}
@@ -887,13 +926,18 @@ class ResponseInterceptorMiddleware(BaseHTTPMiddleware):
         except (json.JSONDecodeError, ValueError):
             return _rebuild_response(response, body)
 
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             asyncio.ensure_future(self._inspect_and_emit(request, data))
 
         return _rebuild_response(response, body)
 
-    async def _inspect_and_emit(self, request: Request, data: Dict[str, Any]) -> None:
-        """Check body for entity ID keys and emit appropriate events."""
+    async def _inspect_and_emit(self, request: Request, data: Any) -> None:
+        """Check body for entity ID keys and emit appropriate events.
+
+        Walks nested wrapper shapes recursively (max depth 3) so envelopes
+        like {"data": {"finding_id": ...}}, {"result": [...]} and
+        {"items": [{...}, {...}]} are correctly unwrapped before ID matching.
+        """
         if not self._bus.enabled:
             return
 
@@ -902,8 +946,23 @@ class ResponseInterceptorMiddleware(BaseHTTPMiddleware):
 
         emitted: Set[str] = set()
 
-        for key, (base_event_type, _label) in _RESPONSE_KEY_MAP.items():
-            if key in data:
+        # Collect all candidate dicts from the response (root + nested wrappers).
+        candidates = _collect_id_candidates(data, max_depth=_MAX_UNWRAP_DEPTH)
+
+        for candidate in candidates:
+            for key, (base_event_type, _label) in _RESPONSE_KEY_MAP.items():
+                if key not in candidate:
+                    continue
+                # The bare "id" key only fires if no specific *_id matched
+                # this candidate yet — avoids generic event spam when a
+                # specific entity ID is also present.
+                if key == "id" and any(
+                    other_key in candidate
+                    for other_key in _RESPONSE_KEY_MAP
+                    if other_key != "id"
+                ):
+                    continue
+
                 # Adjust event type for updates vs creates
                 if is_update and base_event_type == EVENT_FINDING_CREATED:
                     event_type = EVENT_FINDING_UPDATED
@@ -912,13 +971,65 @@ class ResponseInterceptorMiddleware(BaseHTTPMiddleware):
 
                 if event_type not in emitted:
                     emitted.add(event_type)
-                    await self._bus.emit(event_type, data)
+                    await self._bus.emit(event_type, candidate)
                     logger.debug(
                         "ResponseInterceptor: emitted event",
                         event_type=event_type,
                         path=request.url.path,
                         key=key,
                     )
+
+
+def _collect_id_candidates(
+    data: Any,
+    max_depth: int = _MAX_UNWRAP_DEPTH,
+    _depth: int = 0,
+    _seen_ids: Optional[Set[int]] = None,
+) -> List[Dict[str, Any]]:
+    """Recursively walk a response body to collect all dict candidates that
+    might contain an entity ID.
+
+    Handles wrapper shapes:
+      - {"data": {...}}            -> [{...}]
+      - {"result": {...}}          -> [{...}]
+      - {"items": [{...}, {...}]}  -> [{...}, {...}]
+      - {"data": {"items": [...]}} -> recurses both layers
+
+    Returns at most ~32 dicts (limit guards against pathological payloads
+    such as large lists). Aborts gracefully on non-dict/list / cycles.
+    """
+    if _seen_ids is None:
+        _seen_ids = set()
+
+    out: List[Dict[str, Any]] = []
+    if data is None or _depth > max_depth:
+        return out
+
+    # Cycle / repeated-object guard
+    obj_id = id(data)
+    if obj_id in _seen_ids:
+        return out
+    _seen_ids.add(obj_id)
+
+    if isinstance(data, dict):
+        out.append(data)
+        # Walk wrapper keys
+        for wrapper in _WRAPPER_KEYS:
+            if wrapper in data:
+                child = data[wrapper]
+                out.extend(
+                    _collect_id_candidates(child, max_depth, _depth + 1, _seen_ids)
+                )
+                if len(out) >= 32:
+                    break
+    elif isinstance(data, list):
+        # Limit list expansion — don't blow up on huge collections.
+        for item in data[:8]:
+            out.extend(_collect_id_candidates(item, max_depth, _depth + 1, _seen_ids))
+            if len(out) >= 32:
+                break
+
+    return out
 
 
 def _rebuild_response(original: Response, body: bytes) -> Response:
