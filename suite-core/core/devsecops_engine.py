@@ -1056,6 +1056,77 @@ class DevSecOpsEngine:
             "created_at": row["created_at"],
         }
 
+    def delete_hook_policy(
+        self,
+        org_id: Optional[str] = None,
+        hook_id: Optional[str] = None,
+        policy_hash: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Delete hook policy records by id, hash, or active-for-org.
+
+        Resolution order (first match wins):
+          1. ``hook_id`` — delete that exact record
+          2. ``policy_hash`` (+ ``org_id`` if provided) — delete matching content hash
+          3. ``org_id`` alone — delete the active (most recent) policy for that org
+
+        Returns: ``{deleted: int, record: Optional[dict]}``.
+        """
+        if not (hook_id or policy_hash or org_id):
+            raise ValueError(
+                "at least one of hook_id, policy_hash, or org_id is required"
+            )
+
+        with self._lock:
+            with self._conn() as conn:
+                row = None
+                if hook_id:
+                    row = conn.execute(
+                        "SELECT * FROM hook_policies WHERE id=?",
+                        (hook_id,),
+                    ).fetchone()
+                elif policy_hash and org_id:
+                    row = conn.execute(
+                        """
+                        SELECT * FROM hook_policies
+                        WHERE org_id=? AND hash=?
+                        ORDER BY created_at DESC LIMIT 1
+                        """,
+                        (org_id, policy_hash),
+                    ).fetchone()
+                elif policy_hash:
+                    row = conn.execute(
+                        """
+                        SELECT * FROM hook_policies
+                        WHERE hash=?
+                        ORDER BY created_at DESC LIMIT 1
+                        """,
+                        (policy_hash,),
+                    ).fetchone()
+                else:  # org_id alone — delete active policy
+                    row = conn.execute(
+                        """
+                        SELECT * FROM hook_policies
+                        WHERE org_id=?
+                        ORDER BY created_at DESC LIMIT 1
+                        """,
+                        (org_id,),
+                    ).fetchone()
+
+                if row is None:
+                    return {"deleted": 0, "record": None}
+
+                record = {
+                    "id": row["id"],
+                    "org_id": row["org_id"],
+                    "hash": row["hash"],
+                    "policy": json.loads(row["policy_json"]),
+                    "created_at": row["created_at"],
+                }
+                cur = conn.execute(
+                    "DELETE FROM hook_policies WHERE id=?", (row["id"],)
+                )
+                return {"deleted": int(cur.rowcount or 0), "record": record}
+
 
 # ---------------------------------------------------------------------------
 # Singleton accessor

@@ -1,13 +1,15 @@
 """Wave A — Code / Architecture Intelligence Router (Multica Wave A).
 
-Implements 17 Multica endpoints across six functional domains:
+Implements 19 Multica endpoints across six functional domains:
 
-Graph / Architecture (5)
+Graph / Architecture (7)
   POST /api/v1/graph/architecture-detect            (bbf6e567)
   GET  /api/v1/graph/flows/{serviceId}              (337d98ec)
   GET  /api/v1/graph/layers/{moduleId}              (db05c671)
   GET  /api/v1/graph/databases/{repoId}             (7bcf2f5f)
   GET  /api/v1/graph/diff?prId=                     (c740d39c)
+  GET  /api/v1/graph/affected-nodes?since=          (c7ea7cad)
+  GET  /api/v1/graph/diff/{baselineId}/{currentId}  (234238d6)
 
 DCA — Deep Code Analysis (3)
   POST /api/v1/dca/parse-repo                       (532e0e27)
@@ -127,11 +129,19 @@ def _org(org_id: Optional[str]) -> str:
     return (org_id or "default").strip() or "default"
 
 
+def _safe_table_name(name: str) -> str:
+    """Sanitize a SQLite-table-safe identifier (alnum + underscore only)."""
+    out = "".join(c if c.isalnum() or c == "_" else "_" for c in name)
+    if not out or not (out[0].isalpha() or out[0] == "_"):
+        out = "t_" + out
+    return out[:128]
+
+
 def _persistent_store(name: str):
     """Best-effort load of core.persistent_store; returns None on failure."""
     try:
         from core.persistent_store import get_persistent_store  # type: ignore
-        return get_persistent_store(name)
+        return get_persistent_store(_safe_table_name(name))
     except Exception as exc:  # noqa: BLE001
         logger.debug("wave_a: persistent_store(%s) unavailable: %s", name, exc)
         return None
@@ -303,7 +313,14 @@ def graph_architecture_detect(
     store = _persistent_store(f"architecture_reports_{org_id}")
     if store:
         try:
-            store.set(report_id, record)
+            # PersistentDict: dict-style write + persist; fall back to .set() for older backends
+            try:
+                store[report_id] = record
+                if hasattr(store, "persist"):
+                    store.persist(report_id)
+            except (TypeError, AttributeError):
+                if hasattr(store, "set"):
+                    store.set(report_id, record)
         except Exception as exc:  # noqa: BLE001
             logger.debug("wave_a: arch persist failed: %s", exc)
     return {
@@ -1368,4 +1385,339 @@ def runtime_traffic(
         "service_breakdown": services,
         "samples": matched[:25],
         "as_of": _now_iso(),
+    }
+
+
+# ===========================================================================
+# 18. GET /api/v1/graph/affected-nodes?since=    (c7ea7cad)
+# ===========================================================================
+
+_DURATION_RE = None  # lazy compile
+
+
+def _parse_since(since: str) -> Optional[datetime]:
+    """Parse `since` query into a UTC datetime.
+
+    Accepts:
+      * ISO-8601 timestamps (``2026-04-26T10:00:00Z``)
+      * Relative durations: ``5m``, ``4h``, ``2d``, ``90s`` (suffix s|m|h|d|w)
+    Returns None on parse failure.
+    """
+    if not since:
+        return None
+    s = since.strip()
+    # Try ISO first
+    try:
+        if s.endswith("Z"):
+            s_iso = s[:-1] + "+00:00"
+        else:
+            s_iso = s
+        dt = datetime.fromisoformat(s_iso)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (ValueError, TypeError):
+        pass
+    # Relative (e.g. 4h, 2d, 30m)
+    import re
+    global _DURATION_RE
+    if _DURATION_RE is None:
+        _DURATION_RE = re.compile(r"^(?P<n>\d+)(?P<u>[smhdw])$")
+    m = _DURATION_RE.match(s.lower())
+    if not m:
+        return None
+    n = int(m.group("n"))
+    unit = m.group("u")
+    seconds = {"s": 1, "m": 60, "h": 3600, "d": 86_400, "w": 604_800}[unit]
+    from datetime import timedelta
+    return datetime.now(timezone.utc) - timedelta(seconds=n * seconds)
+
+
+@graph_router.get(
+    "/affected-nodes",
+    summary="List graph nodes whose state changed since a given timestamp",
+)
+def graph_affected_nodes(
+    since: str = Query(..., min_length=1, max_length=64,
+                       description="ISO-8601 timestamp or relative duration (e.g. 4h, 2d)"),
+    node_kinds: Optional[str] = Query(
+        default=None, max_length=512,
+        description="Comma-separated kinds filter: service,layer,database,api"),
+    limit: int = Query(default=500, ge=1, le=5_000),
+    x_org_id: Optional[str] = Header(default=None, alias="X-Org-ID"),
+) -> Dict[str, Any]:
+    """Return graph nodes added/modified after the supplied threshold.
+
+    Sources, in priority:
+      1. ``core.cloud_graph.CloudGraphEngine`` (live tenant graph)
+      2. ``architecture_reports`` persistent_store snapshots (delta of new nodes)
+
+    Both sources fall through gracefully — if neither has data we return an
+    empty list with `available=False` so the UI can render an EmptyState.
+    """
+    org_id = _org(x_org_id)
+    threshold = _parse_since(since)
+    if threshold is None:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"unable to parse 'since' value {since!r}; supply an ISO-8601 "
+                "timestamp or a relative duration like 5m, 4h, 2d"
+            ),
+        )
+    kinds_filter = None
+    if node_kinds:
+        kinds_filter = {k.strip().lower() for k in node_kinds.split(",") if k.strip()}
+
+    affected: List[Dict[str, Any]] = []
+    sources_tried: List[str] = []
+    available = False
+
+    # Source 1 — live cloud graph
+    try:
+        cg_mod = _safe_import("core.cloud_graph")
+        if cg_mod is not None:
+            cls = getattr(cg_mod, "CloudGraphEngine", None)
+            if cls is not None:
+                eng = cls()
+                sources_tried.append("cloud_graph")
+                if hasattr(eng, "_db") and hasattr(eng._db, "list_nodes"):
+                    nodes = eng._db.list_nodes(org_id=org_id) or []
+                    for n in nodes:
+                        d = n.model_dump() if hasattr(n, "model_dump") else dict(n)
+                        # node may carry updated_at / created_at / last_seen
+                        ts_str = (
+                            d.get("updated_at")
+                            or d.get("last_seen")
+                            or d.get("created_at")
+                        )
+                        if not ts_str:
+                            continue
+                        try:
+                            ts = datetime.fromisoformat(
+                                str(ts_str).replace("Z", "+00:00")
+                            )
+                            if ts.tzinfo is None:
+                                ts = ts.replace(tzinfo=timezone.utc)
+                        except (ValueError, TypeError):
+                            continue
+                        if ts < threshold:
+                            continue
+                        kind = str(d.get("kind") or d.get("type") or "node").lower()
+                        if kinds_filter and kind not in kinds_filter:
+                            continue
+                        affected.append({
+                            "id": d.get("id") or d.get("node_id"),
+                            "kind": kind,
+                            "name": d.get("name"),
+                            "changed_at": ts.isoformat(timespec="seconds"),
+                            "source": "cloud_graph",
+                        })
+                    available = True
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("wave_a: affected-nodes cloud_graph fallback: %s", exc)
+
+    # Source 2 — architecture report snapshots
+    try:
+        store = _persistent_store(f"architecture_reports_{org_id}")
+        if store is not None:
+            sources_tried.append("architecture_reports")
+            # PersistentDict supports .items() (dict-like); fall back to .all() if present
+            try:
+                _iter_pairs = list(store.items())
+            except AttributeError:
+                _iter_pairs = list((store.all() or {}).items()) if hasattr(store, "all") else []
+            for rid, rec in _iter_pairs:
+                created_at = rec.get("created_at")
+                if not created_at:
+                    continue
+                try:
+                    ts = datetime.fromisoformat(
+                        str(created_at).replace("Z", "+00:00")
+                    )
+                    if ts.tzinfo is None:
+                        ts = ts.replace(tzinfo=timezone.utc)
+                except (ValueError, TypeError):
+                    continue
+                if ts < threshold:
+                    continue
+                # Each entry in layers/services/databases is a node
+                for kind, key in (
+                    ("layer", "layers"),
+                    ("service", "services"),
+                    ("database", "databases"),
+                    ("api", "apis"),
+                ):
+                    if kinds_filter and kind not in kinds_filter:
+                        continue
+                    for item in (rec.get(key) or []):
+                        if not isinstance(item, dict):
+                            continue
+                        ident = (
+                            item.get("module")
+                            or item.get("service")
+                            or item.get("engine")
+                            or item.get("layer")
+                            or hashlib.sha1(
+                                json.dumps(item, sort_keys=True).encode()
+                            ).hexdigest()[:12]
+                        )
+                        affected.append({
+                            "id": f"{rid}:{kind}:{ident}",
+                            "kind": kind,
+                            "name": ident,
+                            "changed_at": ts.isoformat(timespec="seconds"),
+                            "source": "architecture_report",
+                            "report_id": rid,
+                        })
+                available = True
+                if len(affected) >= limit * 2:
+                    break
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("wave_a: affected-nodes arch_reports fallback: %s", exc)
+
+    # Sort newest first, dedupe by id
+    seen = set()
+    unique: List[Dict[str, Any]] = []
+    for n in sorted(affected, key=lambda r: r.get("changed_at", ""), reverse=True):
+        nid = n.get("id")
+        if nid in seen:
+            continue
+        seen.add(nid)
+        unique.append(n)
+        if len(unique) >= limit:
+            break
+
+    return {
+        "org_id": org_id,
+        "since": since,
+        "since_resolved": threshold.isoformat(timespec="seconds"),
+        "node_kinds_filter": sorted(kinds_filter) if kinds_filter else None,
+        "available": available,
+        "sources": sources_tried,
+        "count": len(unique),
+        "nodes": unique,
+        "as_of": _now_iso(),
+    }
+
+
+# ===========================================================================
+# 19. GET /api/v1/graph/diff/{baseline_id}/{current_id}    (234238d6)
+# ===========================================================================
+@graph_router.get(
+    "/diff/{baseline_id}/{current_id}",
+    summary="Diff two architecture/graph snapshots by their IDs",
+)
+def graph_diff_by_ids(
+    baseline_id: str = PathParam(..., min_length=1, max_length=256),
+    current_id: str = PathParam(..., min_length=1, max_length=256),
+    x_org_id: Optional[str] = Header(default=None, alias="X-Org-ID"),
+) -> Dict[str, Any]:
+    """Diff two architecture-detect snapshots by ID.
+
+    Looks both snapshots up in the ``architecture_reports`` persistent store and
+    returns added/removed entities across layers, services, databases and APIs.
+
+    Wires to ``core.architecture_diff_engine.ArchitectureDiffEngine`` if it
+    exists; falls back to a deterministic set diff otherwise.
+    """
+    if baseline_id == current_id:
+        raise HTTPException(
+            status_code=422,
+            detail="baseline_id and current_id must differ",
+        )
+    org_id = _org(x_org_id)
+    store = _persistent_store(f"architecture_reports_{org_id}")
+    if store is None:
+        raise HTTPException(
+            status_code=501,
+            detail={"error": "architecture_reports_store_unavailable"},
+        )
+    try:
+        all_recs = dict(store.items())
+    except AttributeError:
+        all_recs = store.all() or {}
+    base_rec = all_recs.get(baseline_id)
+    head_rec = all_recs.get(current_id)
+    if base_rec is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"baseline snapshot not found: {baseline_id}",
+        )
+    if head_rec is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"current snapshot not found: {current_id}",
+        )
+
+    # Optional engine wiring
+    engine_result: Optional[Dict[str, Any]] = None
+    try:
+        adf_mod = _safe_import("core.architecture_diff_engine")
+        if adf_mod is not None:
+            cls = getattr(adf_mod, "ArchitectureDiffEngine", None)
+            if cls is not None:
+                eng = cls()
+                if hasattr(eng, "diff_snapshots"):
+                    engine_result = eng.diff_snapshots(  # type: ignore[attr-defined]
+                        org_id=org_id, baseline=base_rec, current=head_rec,
+                    )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("wave_a: architecture_diff_engine fallback: %s", exc)
+
+    def _ids(rec: Dict[str, Any], key: str) -> Dict[str, Dict[str, Any]]:
+        out: Dict[str, Dict[str, Any]] = {}
+        for item in (rec.get(key) or []):
+            if not isinstance(item, dict):
+                continue
+            ident = (
+                item.get("module")
+                or item.get("service")
+                or item.get("engine")
+                or item.get("layer")
+                or json.dumps(item, sort_keys=True)
+            )
+            out[str(ident)] = item
+        return out
+
+    summary: Dict[str, Dict[str, Any]] = {}
+    detail: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+    for key in ("layers", "services", "databases", "apis"):
+        base_map = _ids(base_rec, key)
+        head_map = _ids(head_rec, key)
+        added_keys = sorted(set(head_map) - set(base_map))
+        removed_keys = sorted(set(base_map) - set(head_map))
+        modified_keys = sorted(
+            k for k in (set(base_map) & set(head_map))
+            if base_map[k] != head_map[k]
+        )
+        detail[key] = {
+            "added":    [head_map[k] for k in added_keys],
+            "removed":  [base_map[k] for k in removed_keys],
+            "modified": [
+                {"baseline": base_map[k], "current": head_map[k]}
+                for k in modified_keys
+            ],
+        }
+        summary[key] = {
+            "added": len(added_keys),
+            "removed": len(removed_keys),
+            "modified": len(modified_keys),
+        }
+
+    total_changes = sum(
+        s["added"] + s["removed"] + s["modified"] for s in summary.values()
+    )
+
+    return {
+        "org_id": org_id,
+        "baseline_id": baseline_id,
+        "current_id": current_id,
+        "baseline_created_at": base_rec.get("created_at"),
+        "current_created_at": head_rec.get("created_at"),
+        "summary": summary,
+        "total_changes": total_changes,
+        "diff": detail,
+        "engine_result": engine_result,
+        "computed_at": _now_iso(),
     }

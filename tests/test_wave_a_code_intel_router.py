@@ -1,4 +1,4 @@
-"""Wave A — Code / Architecture Intel router smoke tests (17 endpoints).
+"""Wave A — Code / Architecture Intel router smoke tests (19 endpoints).
 
 Each endpoint gets at least one happy-path call. We accept any response code
 in {200, 201, 404, 422, 501} as "the route is wired and the validation chain
@@ -280,9 +280,13 @@ def test_runtime_traffic(client: TestClient):
 # ---------------------------------------------------------------------------
 
 def test_total_endpoint_count(app: FastAPI):
-    """Sanity: the router file should contribute exactly 17 endpoints."""
+    """Sanity: the router file should contribute exactly 19 endpoints.
+
+    17 original (Wave A) + 2 final-cleanup endpoints
+    (graph/affected-nodes, graph/diff/{baseline}/{current}).
+    """
     paths = {(getattr(r, "path", None), tuple(sorted(getattr(r, "methods", []) or [])))
              for r in app.routes
              if hasattr(r, "methods") and getattr(r, "path", "").startswith("/api/v1/")}
     # Drop non-API routes (e.g. root, docs) — already filtered above
-    assert len(paths) == 17, f"expected 17 endpoints, got {len(paths)}: {sorted(p[0] for p in paths)}"
+    assert len(paths) == 19, f"expected 19 endpoints, got {len(paths)}: {sorted(p[0] for p in paths)}"

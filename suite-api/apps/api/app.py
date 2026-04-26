@@ -186,12 +186,19 @@ except ImportError as _wave_d_err:
     wave_d_integrations_router = None
     logging.getLogger(__name__).warning("Wave D integrations router not available: %s", _wave_d_err)
 
-# Wave A — Code / Architecture intel (17 endpoints across graph/dca/reachability/components/ide/runtime)
+# Wave A — Code / Architecture intel (19 endpoints across graph/dca/reachability/components/ide/runtime)
 try:
     from apps.api.wave_a_code_intel_router import WAVE_A_ROUTERS as _wave_a_routers
 except ImportError as _wave_a_err:
     _wave_a_routers = None
     logging.getLogger(__name__).warning("Wave A code-intel routers not available: %s", _wave_a_err)
+
+# Hooks router — POST /api/v1/hooks/uninstall (Multica 5894d7d7)
+try:
+    from apps.api.hooks_router import router as hooks_router
+except ImportError as _hooks_err:
+    hooks_router = None
+    logging.getLogger(__name__).warning("Hooks router not available: %s", _hooks_err)
 from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
 # ── ADMIN / SYSTEM / USERS ────────────────────────────────────────────────────
@@ -3345,14 +3352,19 @@ def create_app() -> FastAPI:
         app.include_router(wave_d_integrations_router)
         _logger.info("Mounted Wave D integrations router (22 endpoints)")
 
-    # Wave A — 17 Multica code / architecture intel endpoints
+    # Wave A — 19 Multica code / architecture intel endpoints
     if _wave_a_routers:
         for _wa_router in _wave_a_routers:
             app.include_router(_wa_router)
         _logger.info(
-            "Mounted Wave A code-intel routers (%d) — 17 graph/dca/reachability/components/ide/runtime endpoints",
+            "Mounted Wave A code-intel routers (%d) — 19 graph/dca/reachability/components/ide/runtime endpoints",
             len(_wave_a_routers),
         )
+
+    # Hooks router — POST /api/v1/hooks/uninstall (Multica 5894d7d7)
+    if hooks_router is not None:
+        app.include_router(hooks_router)
+        _logger.info("Mounted Hooks router (POST /api/v1/hooks/uninstall)")
 
     # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
     if scanner_ingest_router:
