@@ -30,6 +30,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -589,6 +591,18 @@ def ingest_veracode_dast_dump(
         except (ValueError, TypeError, KeyError) as exc:
             result.errors.append(f"flaw {flaw.get('issue_id', '?')}: {exc}")
             logger.warning("Veracode DAST parse error: %s", exc)
+    emit_connector_event(
+        connector="CommercialDastParser",
+        org_id=org_id,
+        source_kind="dast",
+        finding_count=result.records_ingested,
+        extra={
+            "vendor": "veracode",
+            "scan_id": scan_id or "",
+            "records_seen": result.records_seen,
+            "used_fallback": result.used_fallback,
+        },
+    )
     return result
 
 
@@ -715,6 +729,18 @@ def ingest_invicti_dump(
         except (ValueError, TypeError, KeyError) as exc:
             result.errors.append(f"vuln {vuln.get('Id', '?')}: {exc}")
             logger.warning("Invicti parse error: %s", exc)
+    emit_connector_event(
+        connector="CommercialDastParser",
+        org_id=org_id,
+        source_kind="dast",
+        finding_count=result.records_ingested,
+        extra={
+            "vendor": "invicti",
+            "scan_id": scan_id or "",
+            "records_seen": result.records_seen,
+            "used_fallback": result.used_fallback,
+        },
+    )
     return result
 
 
@@ -838,6 +864,18 @@ def ingest_acunetix_dump(
         except (ValueError, TypeError, KeyError) as exc:
             result.errors.append(f"vuln {vuln.get('vuln_id', '?')}: {exc}")
             logger.warning("Acunetix parse error: %s", exc)
+    emit_connector_event(
+        connector="CommercialDastParser",
+        org_id=org_id,
+        source_kind="dast",
+        finding_count=result.records_ingested,
+        extra={
+            "vendor": "acunetix",
+            "scan_id": scan_id or "",
+            "records_seen": result.records_seen,
+            "used_fallback": result.used_fallback,
+        },
+    )
     return result
 
 

@@ -34,6 +34,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -582,6 +584,13 @@ class CommercialVendorConnector:
                 result.findings_recorded += 1
             else:
                 result.skipped += 1
+        emit_connector_event(
+            connector="CommercialVendorConnector",
+            org_id=org_id,
+            source_kind="cspm",
+            finding_count=result.findings_recorded,
+            extra={"vendor": "lacework", "skipped": result.skipped, "used_fallback": result.used_fallback},
+        )
         return result
 
     # =========================================================================
@@ -650,6 +659,13 @@ class CommercialVendorConnector:
                 result.findings_recorded += 1
             else:
                 result.skipped += 1
+        emit_connector_event(
+            connector="CommercialVendorConnector",
+            org_id=org_id,
+            source_kind="container",
+            finding_count=result.findings_recorded,
+            extra={"vendor": "sysdig", "skipped": result.skipped, "used_fallback": result.used_fallback},
+        )
         return result
 
     # =========================================================================
@@ -749,6 +765,18 @@ class CommercialVendorConnector:
                 )
                 if ok:
                     result.findings_recorded += 1
+        emit_connector_event(
+            connector="CommercialVendorConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=result.findings_recorded + result.indicators_recorded,
+            extra={
+                "vendor": "recorded_future",
+                "indicators_recorded": result.indicators_recorded,
+                "findings_recorded": result.findings_recorded,
+                "used_fallback": result.used_fallback,
+            },
+        )
         return result
 
     # =========================================================================
@@ -838,6 +866,18 @@ class CommercialVendorConnector:
             )
             if ok:
                 result.findings_recorded += 1
+        emit_connector_event(
+            connector="CommercialVendorConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=result.findings_recorded + result.indicators_recorded,
+            extra={
+                "vendor": "mandiant",
+                "indicators_recorded": result.indicators_recorded,
+                "findings_recorded": result.findings_recorded,
+                "used_fallback": result.used_fallback,
+            },
+        )
         return result
 
     # =========================================================================
