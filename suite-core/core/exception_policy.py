@@ -27,6 +27,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "exception_policy.db"
@@ -307,6 +312,10 @@ class ExceptionPolicyEngine:
             finally:
                 conn.close()
         _logger.info("Added exception rule %s (%s) for org %s", rule.id, rule.name, org_id)
+        self._emit_event(
+            "exception_policy.rule.added",
+            {"rule_id": rule.id, "name": rule.name, "org_id": org_id, "action": rule.action},
+        )
         return rule
 
     def update_rule(self, rule_id: str, updates: Dict[str, Any], org_id: str = "default") -> ExceptionRule:
@@ -715,3 +724,34 @@ class ExceptionPolicyEngine:
                 conn.commit()
             finally:
                 conn.close()
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+

@@ -28,6 +28,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -585,6 +590,17 @@ class SBOMRuntimeCorrelator:
             len(result.runtime_only_components),
             len(result.risk_adjustments),
         )
+        self._emit_event(
+            "sbom.correlated",
+            {
+                "org_id": org_id,
+                "matched_count": len(result.matched_components),
+                "sbom_only_count": len(result.sbom_only_components),
+                "runtime_only_count": len(result.runtime_only_components),
+                "risk_adjustment_count": len(result.risk_adjustments),
+                "findings_processed": len(findings),
+            },
+        )
         return result
 
     # ------------------------------------------------------------------
@@ -656,6 +672,37 @@ class SBOMRuntimeCorrelator:
 # ---------------------------------------------------------------------------
 # Inline Levenshtein — keeps the module dependency-free
 # ---------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
 
 
 def _levenshtein_similarity(s1: str, s2: str) -> float:

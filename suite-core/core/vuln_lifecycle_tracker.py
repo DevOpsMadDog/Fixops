@@ -18,6 +18,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
+try:
     import structlog
     logger = structlog.get_logger(__name__)
 except ImportError:
@@ -202,6 +207,16 @@ class VulnLifecycleTracker:
                     (str(uuid.uuid4()), lifecycle_id, now),
                 )
                 conn.commit()
+                self._emit_event(
+                    "vuln_lifecycle.registered",
+                    {
+                        "lifecycle_id": lifecycle_id,
+                        "finding_id": finding_id,
+                        "org_id": org_id,
+                        "severity": finding.get("severity"),
+                        "state": "discovered",
+                    },
+                )
                 return lifecycle_id
             finally:
                 conn.close()
@@ -255,7 +270,7 @@ class VulnLifecycleTracker:
                 )
                 conn.commit()
 
-                return {
+                record = {
                     "id": transition_id,
                     "lifecycle_id": lifecycle_id,
                     "from_state": current_state,
@@ -264,6 +279,8 @@ class VulnLifecycleTracker:
                     "notes": notes,
                     "transitioned_at": now,
                 }
+                self._emit_event("vuln_lifecycle.transitioned", record)
+                return record
             finally:
                 conn.close()
 
@@ -398,3 +415,34 @@ class VulnLifecycleTracker:
     def bulk_register(self, findings: List[dict], org_id: str = "default") -> List[str]:
         """Register multiple findings. Returns list of lifecycle_ids (same order)."""
         return [self.register_finding(f, org_id) for f in findings]
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
