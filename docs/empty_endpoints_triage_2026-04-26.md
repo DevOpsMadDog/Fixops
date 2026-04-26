@@ -1,0 +1,128 @@
+# Empty Endpoints Triage — 2026-04-26
+
+> **Mission**: Multica issue `917247e1-9713-41d2-a02a-c0b6b5c17907` ("Seed data
+> into remaining 20 empty endpoints") was triaged under the **NO MOCKS / NO
+> SEED** rule (CLAUDE.md, top of file). Instead of inserting fake rows, every
+> empty endpoint was probed against a real tenant, its root cause classified,
+> and at least one was fixed by wiring a **real public-source importer** (no
+> fakes anywhere).
+>
+> **Outcome**: 30 empty endpoints identified across the 15-tenant fleet.
+> **1 endpoint fixed end-to-end with real data** (actor-tracking, 2,805 real
+> MITRE ATT&CK records across all 15 tenants). 29 remaining endpoints
+> classified by root cause and documented as deferred (each requires a real
+> connector or external-source build that exceeds session budget).
+
+---
+
+## How endpoints were probed (no fake data inserted)
+
+```
+TOKEN  = fixops_ent_…
+ORG    = juice-shop-corp        (real tenant from /tmp/fixops-fleet/)
+SCRIPT = /tmp/probe_empty_endpoints.py + /tmp/probe_seed_endpoints.py
+```
+
+For each candidate endpoint we issued `GET …?org_id=juice-shop-corp` with the
+tenant API key. An endpoint counted as "empty" iff status was 200 AND the body
+was `[]`, `{}`, or `{"items": [], …}` etc.
+
+---
+
+## The 30 empty endpoints + classification + action
+
+Legend for **Class**:
+- **(a)** Connector exists but was not run for this tenant → **run the real connector**.
+- **(b)** Engine writes to a table no connector populates → **wire a real public-source importer** OR document deferred.
+- **(c)** Endpoint queries a side-table not in the Brain Pipeline output → empty IS the correct answer for fresh tenants; either fix the query or improve the empty response.
+
+| # | Endpoint | Class | Real-source candidate | Action this session |
+|---|---|:---:|---|---|
+| 1 | `/api/v1/actor-tracking/actors` | **b** | MITRE ATT&CK enterprise STIX bundle (groups) | **FIXED** — built `core/mitre_actor_importer.py` + `POST /actors/import-mitre`. Imported **187 real intrusion-sets × 15 tenants = 2,805 real records**. Endpoint now returns 187 actors per tenant. |
+| 2 | `/api/v1/vuln-correlation/assets` | b | CISA KEV catalog (real CVE list) | DEFERRED — KEV importer scoped (CISA endpoint reachable HTTP 200), needs router/engine inspection beyond budget. |
+| 3 | `/api/v1/asset-criticality/assets` | a | Native CMDB / inventory connector + Brain Pipeline emit | DEFERRED — engine exists (`asset_criticality_engine.py`) but no connector wires Brain Pipeline `asset.discovered` event into criticality scorer. |
+| 4 | `/api/v1/threat-vectors/vectors` | b | MITRE ATT&CK techniques → vector taxonomy mapping | DEFERRED — bundle already cached at `/tmp/mitre.json`; mapping logic not yet written. |
+| 5 | `/api/v1/ti-automation/feeds` | a | `feeds_service.py` already lists 28+ real feeds | DEFERRED — endpoint reads a per-org `feeds` table; need wiring from global feed registry → per-org enrolled-feeds table. |
+| 6 | `/api/v1/intel-enrichment/requests` | c | n/a — request log; empty IS correct for fresh tenants | Empty is correct; should return `{requests: [], hint: "submit POST /requests to enrich an IOC"}`. |
+| 7 | `/api/v1/posture-reports/reports` | c | Compliance scan output | Empty is correct until a posture scan is run. Endpoint should return `{reports: [], hint: "trigger via POST /posture/scan"}`. |
+| 8 | `/api/v1/posture-benchmarking/benchmarks` | b | CIS/NIST control catalogs (public XML/JSON) | DEFERRED — needs CIS Benchmark XML importer. |
+| 9 | `/api/v1/risk-treatment/treatments` | c | Manual/policy-driven entries | Correct empty. Improve empty response only. |
+| 10 | `/api/v1/security-benchmarks/benchmarks` | b | SANS / Verizon DBIR public stats | DEFERRED — needs DBIR PDF/CSV importer. |
+| 11 | `/api/v1/security-budget/allocations` | c | Manual finance entry; no public source | Correct empty. Improve response. |
+| 12 | `/api/v1/access-requests/requests` | c | User-driven workflow | Correct empty. |
+| 13 | `/api/v1/pag/accounts` | a | Identity provider connector (Okta/AzureAD) | DEFERRED — connector framework supports IdPs, no PAG-specific adapter. |
+| 14 | `/api/v1/session-recording/sessions` | a | PAM tool integration (CyberArk/BeyondTrust) | DEFERRED — no real PAM tenant available. |
+| 15 | `/api/v1/cloud-posture/findings` | a | Native CSPM scanner (`cspm_engine.py`) | DEFERRED — CSPM scanner needs real cloud creds for fleet tenants (none configured). |
+| 16 | `/api/v1/cloud-governance/policies` | c | Manual policy creation | Correct empty. |
+| 17 | `/api/v1/cloud-ir/incidents` | c | Triggered by detection events | Correct empty. |
+| 18 | `/api/v1/cloud-cost/snapshots` | a | Cloud billing API (AWS Cost Explorer / Azure Cost Management) | DEFERRED — needs cloud creds. |
+| 19 | `/api/v1/cwp/workloads` | a | Container runtime telemetry / k8s adapter | DEFERRED — k8s connector exists; not bound to fleet tenants. |
+| 20 | `/api/v1/sspm/apps` | a | OAuth tenant scan (Salesforce/Slack/Okta) | DEFERRED — needs SaaS OAuth flows. |
+| 21 | `/api/v1/network-forensics/captures` | c | Manual/triggered packet captures | Correct empty. |
+| 22 | `/api/v1/network-segmentation/segments` | c | Manual entry / network discovery | Correct empty. |
+| 23 | `/api/v1/microsegmentation/segments` | c | Manual policy authoring | Correct empty. |
+| 24 | `/api/v1/mdm/devices` | a | MDM connector (Jamf/Intune) | DEFERRED — connector not built. |
+| 25 | `/api/v1/mobile-app-security/apps` | a | App-store / repo connector | DEFERRED — needs MobSF / App Store integration. |
+| 26 | `/api/v1/security-chaos/experiments` | c | Manual experiment design | Correct empty. |
+| 27 | `/api/v1/ai-soc/detections` | a | XDR/SIEM connector | DEFERRED — XDR adapter not implemented. |
+| 28 | `/api/v1/hunting-playbooks/playbooks` | b | MITRE D3FEND / Sigma rule repos | DEFERRED — needs Sigma YAML importer. |
+| 29 | `/api/v1/awareness-gamification/challenges` | c | Manual content authoring | Correct empty. |
+| 30 | `/api/v1/gdpr/activities` | c | Manual data-mapping entry | Correct empty. |
+
+### Class tally
+- **(a) — connector missing**: 11 endpoints (need real adapters: PAM, MDM, SSPM, XDR, cloud creds, identity, k8s, etc.)
+- **(b) — public-source importer missing**: 7 endpoints (CISA KEV, MITRE techniques, CIS, SANS DBIR, Sigma rules, intrusion-set MITRE [DONE])
+- **(c) — empty IS correct for fresh tenant**: 12 endpoints (manual/policy-driven; only fix is structured empty-response copy)
+
+---
+
+## What was actually fixed (not seeded)
+
+### Endpoint: `/api/v1/actor-tracking/actors`
+
+**Files added/changed**:
+- `suite-core/core/mitre_actor_importer.py` (new, 217 LOC) — real STIX bundle parser pulling intrusion-set objects from `https://github.com/mitre/cti` (Apache-2.0 public data).
+- `suite-api/apps/api/threat_actor_tracking_router.py` — new endpoint `POST /api/v1/actor-tracking/actors/import-mitre` wired to the importer.
+
+**Heuristics in importer** (no fake values — derived from MITRE description text):
+- `actor_type` ∈ {nation-state, criminal, hacktivist, unknown} — inferred from STIX description signals.
+- `threat_level` ∈ {low, medium, high, critical} — inferred from APT/ransomware naming patterns.
+- `nation_state` (ISO-2 country code) — pulled from STIX description text via an explicit mapping table.
+- `mitre_groups` — extracted from `external_references[*].external_id` where `source_name="mitre-attack"`.
+
+**Idempotent**: dedupes on `actor_name.lower()` against existing actors per org.
+
+**Verification**:
+```
+$ curl -s -X POST http://localhost:8000/api/v1/actor-tracking/actors/import-mitre \
+    -H "X-API-Key: ..." -d '{"org_id":"juice-shop-corp","cached_path":"/tmp/mitre.json"}'
+{"source":"mitre-attack-enterprise","imported":187,"skipped_existing":0,"errors":0,"total_available":187,...}
+
+$ curl -s "http://localhost:8000/api/v1/actor-tracking/actors?org_id=juice-shop-corp" | jq length
+187
+```
+
+Imported across all 15 tenants → **2,805 real MITRE intrusion-set records** with no fakes anywhere.
+
+---
+
+## Open follow-ups (recommended next session)
+
+Each item below is a real-data fix, NOT a seed:
+
+1. **CISA KEV importer** (`vuln-correlation/assets`) — KEV JSON at https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json, ~1k entries, Apache-2.0.
+2. **MITRE ATT&CK techniques importer** (`threat-vectors/vectors`) — already-cached bundle, just needs technique-extraction logic.
+3. **Sigma rule importer** (`hunting-playbooks/playbooks`) — https://github.com/SigmaHQ/sigma — converts to playbook records.
+4. **CIS Benchmark importer** (`posture-benchmarking/benchmarks`) — public CIS XML.
+5. **Structured empty-response middleware** (12 (c)-class endpoints) — when `len(rows) == 0`, return `{rows: [], hint: "<endpoint-specific call to action>"}` instead of bare `[]`.
+6. **Connector-stubs documentation** (11 (a)-class endpoints) — surface "needs real connector + creds" in the API docs so customers don't assume the platform is broken.
+
+---
+
+## Multica issue handling
+
+Issue `917247e1-9713-41d2-a02a-c0b6b5c17907` is being **kept open** with a
+status update reflecting partial completion (1 of 30 fully fixed with real data;
+29 documented as deferred per the explicit no-seed rule). Closing as `done`
+would misrepresent the work — the original issue title asked for seed data
+which is forbidden.

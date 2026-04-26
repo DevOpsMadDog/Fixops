@@ -197,3 +197,47 @@ def get_ttp_summary(org_id: str = Query("default")):
 def get_summary(org_id: str = Query("default")):
     """Get threat actor tracking summary for the org."""
     return _get_engine().get_tracking_summary(org_id=org_id)
+
+
+# ---------------------------------------------------------------------------
+# MITRE ATT&CK Importer (real public-source data, no fakes)
+# ---------------------------------------------------------------------------
+
+class ImportMitreModel(BaseModel):
+    org_id: str = "default"
+    limit: Optional[int] = Field(
+        default=None,
+        description="Cap number of actors imported (None = all ~150 MITRE groups)",
+    )
+    cached_path: Optional[str] = Field(
+        default=None,
+        description="Optional local path to cached enterprise-attack.json (skips network fetch)",
+    )
+
+
+@router.post(
+    "/actors/import-mitre",
+    dependencies=[Depends(api_key_auth)],
+    summary="Import threat actors from public MITRE ATT&CK enterprise dataset",
+)
+def import_mitre_actors_endpoint(body: ImportMitreModel):
+    """Pull intrusion-set objects from MITRE ATT&CK STIX bundle and register
+    each as a tracked actor for this org. Idempotent: dedupes on actor_name.
+    Returns import summary + sample records.
+
+    Source: https://github.com/mitre/cti (Apache-2.0 licensed public data).
+    """
+    try:
+        from core.mitre_actor_importer import import_mitre_actors
+
+        engine = _get_engine()
+        result = import_mitre_actors(
+            engine=engine,
+            org_id=body.org_id,
+            limit=body.limit,
+            cached_path=body.cached_path,
+        )
+        return result
+    except Exception as exc:
+        logger.error("MITRE actor import failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail=f"MITRE import failed: {exc}")
