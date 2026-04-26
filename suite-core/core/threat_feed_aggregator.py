@@ -17,6 +17,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -170,7 +175,7 @@ class ThreatFeedAggregator:
                         now,
                     ),
                 )
-        return {
+        result = {
             "source_id": source_id,
             "org_id": org_id,
             "created_at": now,
@@ -179,6 +184,16 @@ class ThreatFeedAggregator:
             "format": fmt,
             "reliability_score": reliability,
         }
+        self._emit_event(
+            "threat_feed.source.added",
+            {
+                "source_id": source_id,
+                "org_id": org_id,
+                "feed_type": feed_type,
+                "name": data.get("name", ""),
+            },
+        )
+        return result
 
     def list_feed_sources(
         self, org_id: str, enabled: Optional[bool] = None
@@ -259,7 +274,7 @@ class ThreatFeedAggregator:
                     "UPDATE feed_sources SET item_count = item_count + 1, last_fetched=? WHERE source_id=? AND org_id=?",
                     (now, source_id, org_id),
                 )
-        return {
+        result = {
             "item_id": item_id,
             "org_id": org_id,
             "source_id": source_id,
@@ -270,6 +285,18 @@ class ThreatFeedAggregator:
             "ingested_at": now,
             **{k: v for k, v in data.items() if k not in ("iocs", "feed_type", "severity", "source_reliability")},
         }
+        self._emit_event(
+            "threat_feed.item.ingested",
+            {
+                "item_id": item_id,
+                "org_id": org_id,
+                "source_id": source_id,
+                "feed_type": feed_type,
+                "severity": severity,
+                "ioc_count": len(iocs),
+            },
+        )
+        return result
 
     def list_feed_items(
         self,
@@ -368,3 +395,34 @@ class ThreatFeedAggregator:
             "by_feed_type": by_feed_type,
             "avg_reliability": avg_reliability,
         }
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+

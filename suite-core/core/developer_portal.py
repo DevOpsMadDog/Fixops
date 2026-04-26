@@ -20,6 +20,11 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus optional
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -432,6 +437,10 @@ class DeveloperPortal:
         logger.info(
             "Registered repo owner: %s -> %s (org=%s)", developer_email, repo_name, org_id
         )
+        self._emit_event(
+            "developer_portal.repo_owner.registered",
+            {"repo_name": repo_name, "developer_email": developer_email, "org_id": org_id},
+        )
 
     def _get_owned_repos(self, developer_email: str, org_id: str) -> List[str]:
         with self._get_conn() as conn:
@@ -807,3 +816,34 @@ class DeveloperPortal:
             }
             for idx, row in enumerate(rows)
         ]
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: "dict[str, Any]") -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
