@@ -50,6 +50,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -1095,6 +1097,19 @@ def ingest(
         findings_engine=findings_engine,
         source_id=source_id,
     )
+    emit_connector_event(
+        connector="SIEMConnector",
+        org_id=org_id,
+        source_kind="siem",
+        finding_count=int(mirror.get("findings", 0)),
+        extra={
+            "parsed_count": len(parsed),
+            "siem_events": mirror.get("siem_events", 0),
+            "correlation_events": mirror.get("correlation_events", 0),
+            "format": fmt if fmt != "auto" else detect_format(payload),
+            "source_id": source_id or "",
+        },
+    )
     return {
         "format": fmt if fmt != "auto" else detect_format(payload),
         "parsed_count": len(parsed),
@@ -1279,6 +1294,18 @@ def tail_log_files(
         aggregate_ingested += ingested
 
     _save_tail_state(state_path, cursors)
+    emit_connector_event(
+        connector="SIEMConnector",
+        org_id=org_id,
+        source_kind="siem",
+        finding_count=aggregate_ingested,
+        extra={
+            "mode": "tail_log_files",
+            "files": len(file_paths),
+            "total_lines": aggregate_lines,
+            "total_parsed": aggregate_parsed,
+        },
+    )
     return {
         "org_id": org_id,
         "files": files_report,

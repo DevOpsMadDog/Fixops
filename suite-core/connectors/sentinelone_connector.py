@@ -65,6 +65,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union
 
+from connectors._emit import emit_connector_event
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -796,6 +798,13 @@ class SentinelOneConnector:
                 )
                 self._mirror_correlation(org_id=org_id, norm=norm)
 
+        emit_connector_event(
+            connector="SentinelOneConnector",
+            org_id=org_id,
+            source_kind="edr",
+            finding_count=len(recorded_ids),
+            extra={"scan_id": scan_id, "threats_seen": len(threats), "errors": len(errors)},
+        )
         return {
             "org_id":               org_id,
             "scan_id":              scan_id,

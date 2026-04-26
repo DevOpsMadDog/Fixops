@@ -41,6 +41,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from connectors._emit import emit_connector_event
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -734,6 +736,13 @@ class DefenderXDRConnector:
                     raw=raw,
                 )
 
+        emit_connector_event(
+            connector="DefenderXDRConnector",
+            org_id=org_id,
+            source_kind="edr",
+            finding_count=recorded,
+            extra={"mode": mode, "alerts_processed": len(alerts), "skipped": skipped},
+        )
         return {
             "source":            "defender_xdr",
             "source_tool":       self.SOURCE_TOOL,
@@ -779,6 +788,13 @@ class DefenderXDRConnector:
                 asset_type=norm["asset_type"],
                 raw=alert,
             )
+        emit_connector_event(
+            connector="DefenderXDRConnector",
+            org_id=org_id,
+            source_kind="edr",
+            finding_count=1 if rec else 0,
+            extra={"alert_id": alert_id, "mode": "single"},
+        )
         return rec or {}
 
 

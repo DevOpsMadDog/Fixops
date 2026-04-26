@@ -38,6 +38,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from connectors._emit import emit_connector_event
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -549,6 +551,13 @@ class EDRConnector:
                     entity_type="container" if container_id else "host",
                     raw={"rule": falco_rule, "output": falco_output, "cmdline": norm.get("cmdline")},
                 )
+        emit_connector_event(
+            connector="EDRConnector",
+            org_id=org_id,
+            source_kind="edr",
+            finding_count=findings,
+            extra={"source": "falco", "mode": mode, "endpoint_id": endpoint_id, "events_ingested": ingested},
+        )
         return {
             "source":             "falco",
             "mode":               mode,
@@ -638,6 +647,13 @@ class EDRConnector:
                     entity_type="host",
                     raw={"pack": pack, "process": norm.get("process_name"), "cmdline": norm.get("cmdline"), "user": norm.get("user")},
                 )
+        emit_connector_event(
+            connector="EDRConnector",
+            org_id=org_id,
+            source_kind="edr",
+            finding_count=findings,
+            extra={"source": "osquery", "mode": mode, "events_ingested": ingested},
+        )
         return {
             "source": "osquery",
             "mode":   mode,
@@ -726,6 +742,13 @@ class EDRConnector:
                     entity_type="host",
                     raw={"rule_id": rule_id, "description": desc, "full_log": raw.get("full_log", "")[:500]},
                 )
+        emit_connector_event(
+            connector="EDRConnector",
+            org_id=org_id,
+            source_kind="siem",
+            finding_count=findings,
+            extra={"source": "wazuh", "mode": mode, "events_ingested": ingested},
+        )
         return {
             "source": "wazuh",
             "mode":   mode,
