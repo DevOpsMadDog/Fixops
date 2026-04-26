@@ -596,6 +596,22 @@ const StaleBaselineBanner = lazy(() => import("@/pages/StaleBaselineBanner"));
 const TracedFlowViewer = lazy(() => import("@/pages/TracedFlowViewer"));
 const ZeroSetupOnboarding = lazy(() => import("@/pages/ZeroSetupOnboarding"));
 
+// Frontend Wave 2 — policy / waivers / rules / audit (14 screens, 2026-04-26)
+const StagePolicyMatrix = lazy(() => import("@/pages/StagePolicyMatrix"));
+const PolicyStageEditor = lazy(() => import("@/pages/PolicyStageEditor"));
+const WaiversExplorer = lazy(() => import("@/pages/WaiversExplorer"));
+const WaiverRequestModal = lazy(() => import("@/pages/WaiverRequestModal"));
+const AutoWaiverRules = lazy(() => import("@/pages/AutoWaiverRules"));
+const PolicyInheritanceView = lazy(() => import("@/pages/PolicyInheritanceView"));
+const PolicyLibraryBrowser = lazy(() => import("@/pages/PolicyLibraryBrowser"));
+const RuleDSLAuthoringStudio = lazy(() => import("@/pages/RuleDSLAuthoringStudio"));
+const RuleDSLValidator = lazy(() => import("@/pages/RuleDSLValidator"));
+const UnifiedRulesCatalog = lazy(() => import("@/pages/UnifiedRulesCatalog"));
+const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector"));
+const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
+const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
+const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -1179,6 +1195,22 @@ export default function App() {
             <Route path="/assets/crown-jewel" element={<CrownJewelConfigurator />} />
             <Route path="/organizations" element={<OrgHierarchyExplorer />} />
             <Route path="/findings/drift" element={<StaleBaselineBanner />} />
+
+            {/* Frontend Wave 2 — policy / waivers / rules / audit (14 screens, 2026-04-26) */}
+            <Route path="/policies/stage-matrix" element={<StagePolicyMatrix />} />
+            <Route path="/policies/stage-editor" element={<PolicyStageEditor />} />
+            <Route path="/waivers/explorer" element={<WaiversExplorer />} />
+            <Route path="/waivers/request" element={<WaiverRequestModal />} />
+            <Route path="/waivers/auto-rules" element={<AutoWaiverRules />} />
+            <Route path="/policies/inheritance" element={<PolicyInheritanceView />} />
+            <Route path="/policies/library" element={<PolicyLibraryBrowser />} />
+            <Route path="/rules/dsl/author" element={<RuleDSLAuthoringStudio />} />
+            <Route path="/rules/dsl/validate" element={<RuleDSLValidator />} />
+            <Route path="/rules/catalog" element={<UnifiedRulesCatalog />} />
+            <Route path="/rules/taxonomy" element={<RuleTaxonomyInspector />} />
+            <Route path="/audit/explorer" element={<AuditLogExplorer />} />
+            <Route path="/system/fips-status" element={<FIPSModeStatus />} />
+            <Route path="/violations/lifecycle" element={<ViolationLifecycleTimeline />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
