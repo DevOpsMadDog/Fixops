@@ -63,6 +63,8 @@ from urllib.parse import urlparse
 import requests
 from requests import RequestException
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -532,6 +534,13 @@ class ThreatIntelConnector:
                 time.sleep(0.05)
 
         logger.info("MISP: ingested %d indicators for org=%s", ingested, org_id)
+        emit_connector_event(
+            connector="ThreatIntelConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=ingested,
+            extra={"feed": "misp", "feeds_count": len(self.misp_feed_urls)},
+        )
         return ingested
 
     @staticmethod
@@ -649,6 +658,13 @@ class ThreatIntelConnector:
                 break
 
         logger.info("CIRCL: ingested %d CVEs for org=%s", ingested, org_id)
+        emit_connector_event(
+            connector="ThreatIntelConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=ingested,
+            extra={"feed": "circl_cve", "hours_back": hours_back},
+        )
         return ingested
 
     # ------------------------------------------------------------------
@@ -714,6 +730,13 @@ class ThreatIntelConnector:
                     pass
 
         logger.info("PhishTank: ingested %d indicators for org=%s", ingested, org_id)
+        emit_connector_event(
+            connector="ThreatIntelConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=ingested,
+            extra={"feed": "phishtank"},
+        )
         return ingested
 
     # ------------------------------------------------------------------
@@ -790,6 +813,13 @@ class ThreatIntelConnector:
                     ingested += 1
 
         logger.info("OTX: ingested %d indicators for org=%s", ingested, org_id)
+        emit_connector_event(
+            connector="ThreatIntelConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=ingested,
+            extra={"feed": "otx", "api_key_configured": bool(self._otx_api_key)},
+        )
         return ingested
 
     @staticmethod
@@ -983,6 +1013,13 @@ class ThreatIntelConnector:
             ingested,
             org_id,
             latest_modified or "(none)",
+        )
+        emit_connector_event(
+            connector="ThreatIntelConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=ingested,
+            extra={"feed": "ghsa", "cursor": latest_modified or ""},
         )
         return ingested
 
@@ -1210,6 +1247,21 @@ class ThreatIntelConnector:
                 result.errors.append(msg)
 
         result.completed_at = self._now_iso()
+        emit_connector_event(
+            connector="ThreatIntelConnector",
+            org_id=org_id,
+            source_kind="threat_intel",
+            finding_count=result.total(),
+            extra={
+                "misp": result.misp,
+                "circl": result.circl,
+                "phishtank": result.phishtank,
+                "otx": result.otx,
+                "ghsa": result.ghsa,
+                "correlations": result.correlations,
+                "errors": len(result.errors),
+            },
+        )
         return result
 
     # ------------------------------------------------------------------

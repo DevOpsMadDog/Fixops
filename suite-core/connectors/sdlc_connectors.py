@@ -47,6 +47,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import httpx
 
+from connectors._emit import emit_connector_event  # noqa: F401  — emit happens in PullConnector.execute_pull_cycle
 from connectors.pull_connector import (
     BidirectionalConnector,
     ConnectorMetadata,

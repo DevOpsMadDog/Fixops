@@ -28,8 +28,35 @@ from threading import Lock
 from typing import Any, Dict, List, Mapping, Optional
 
 from core.connectors import ConnectorHealth, ConnectorOutcome, _BaseConnector
+from connectors._emit import emit_connector_event
 
 logger = logging.getLogger(__name__)
+
+
+def _connector_kind_from_metadata(metadata: "ConnectorMetadata") -> str:
+    """Best-effort map ConnectorMetadata.tags/sdlc_stages -> emit source_kind."""
+    tag_set = {t.lower() for t in (metadata.tags or [])}
+    if "secret-scanning" in tag_set or "secrets" in tag_set:
+        return "secrets"
+    if "container-scanning" in tag_set or "supply-chain" in tag_set:
+        return "container"
+    if "dast" in tag_set or "web-security" in tag_set:
+        return "dast"
+    if "sast" in tag_set or "code-review" in tag_set:
+        return "sast"
+    if "compliance" in tag_set or "governance" in tag_set:
+        return "policy"
+    if "siem" in tag_set or "security-events" in tag_set:
+        return "siem"
+    if "iam" in tag_set or "sso" in tag_set:
+        return "iam"
+    if "easm" in tag_set or "external-surface" in tag_set:
+        return "asset"
+    if "kubernetes" in tag_set or "container-orchestration" in tag_set:
+        return "container"
+    if "threat" in tag_set or "vulnerability" in tag_set:
+        return "vuln_intel"
+    return "sdlc"
 
 
 # ---------------------------------------------------------------------------
@@ -340,6 +367,24 @@ class PullConnector(_BaseConnector):
                 self._metadata.name,
                 len(normalized),
             )
+
+            # TrustGraph emit — fire-and-forget, never breaks the pull cycle.
+            try:
+                org_id = str(self._settings.get("org_id") or self._settings.get("tenant") or "default")
+                emit_connector_event(
+                    connector=self._metadata.name,
+                    org_id=org_id,
+                    source_kind=_connector_kind_from_metadata(self._metadata),
+                    finding_count=len(normalized),
+                    extra={
+                        "vendor": self._metadata.vendor,
+                        "sdlc_stages": [s.value for s in self._metadata.sdlc_stages],
+                        "version": self._metadata.version,
+                        "since": since.isoformat() if since else None,
+                    },
+                )
+            except Exception:  # pragma: no cover — defensive
+                pass
 
             return ConnectorOutcome(
                 "success",

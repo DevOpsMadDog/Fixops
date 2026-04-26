@@ -12,6 +12,8 @@ from typing import Optional
 
 import structlog
 
+from connectors._emit import emit_connector_event
+
 _logger = structlog.get_logger("connectors.n8n_connector")
 
 VALID_EVENT_TYPES = frozenset({
@@ -174,6 +176,19 @@ class N8nConnector:
         if not webhooks:
             _logger.debug("trigger_no_webhooks", event_type=event_type)
 
+        sent = sum(1 for r in results if r.get("status") == "sent")
+        emit_connector_event(
+            connector="N8nConnector",
+            org_id=str(payload.get("org_id") or "default"),
+            source_kind="sync",
+            finding_count=sent,
+            extra={
+                "event_type": event_type,
+                "webhooks_targeted": len(webhooks),
+                "delivered": sent,
+                "failed": len(webhooks) - sent,
+            },
+        )
         return results
 
     def get_event_history(

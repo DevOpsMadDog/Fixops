@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -305,6 +307,18 @@ class DefectDojoParserClient:
                 for f in findings
             ]
 
+            emit_connector_event(
+                connector="DefectDojoParserClient",
+                org_id=product_name or "default",
+                source_kind="vuln_intel",
+                finding_count=len(normalized_findings),
+                extra={
+                    "scan_type": scan_type,
+                    "product_name": product_name,
+                    "engagement_name": engagement_name,
+                    "test_id": test_id,
+                },
+            )
             return normalized_findings
 
         except Exception as e:

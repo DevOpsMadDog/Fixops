@@ -50,6 +50,8 @@ from urllib.parse import urlencode
 import urllib.error
 import urllib.request
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -731,6 +733,20 @@ class IAMSSoConnector:
                         result.errors.append(f"finding[{realm}]: {exc}")
 
         result.duration_secs = time.monotonic() - t0
+        emit_connector_event(
+            connector="IAMSSoConnector",
+            org_id=org_id_prefix or "default",
+            source_kind="iam",
+            finding_count=result.findings_emitted,
+            extra={
+                "realms_provisioned": result.realms_provisioned,
+                "users_provisioned": result.users_provisioned,
+                "groups_provisioned": result.groups_provisioned,
+                "events_pulled": result.events_pulled,
+                "high_severity_events": result.high_severity_events,
+                "fallback_synthetic": result.fallback_synthetic,
+            },
+        )
         return result
 
 
