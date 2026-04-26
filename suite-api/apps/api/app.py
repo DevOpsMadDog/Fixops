@@ -3289,6 +3289,14 @@ def create_app() -> FastAPI:
     # ── Evidence / Audit / Workflows / SSO ────────────────────────────────────
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+    # Wave C: mount /api/v1/changes/material BEFORE change_management_router
+    # to avoid being shadowed by its GET /{change_id} catch-all.
+    try:
+        from apps.api.wave_c_router import changes_router as _wc_changes_router
+        app.include_router(_wc_changes_router)
+        _logger.info("Mounted Wave C changes router (precedence over change_management)")
+    except ImportError:
+        pass
     app.include_router(change_management_router, dependencies=[Depends(_verify_api_key)])
     if evidence_chain_router:
         app.include_router(evidence_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])

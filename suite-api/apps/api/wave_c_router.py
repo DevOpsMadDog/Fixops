@@ -904,12 +904,23 @@ def admin_list_tokens(
             keys = mgr.list_keys(org_id)
             rows = [k.model_dump() if hasattr(k, "model_dump") else dict(k) for k in keys]
         else:
-            # Best-effort: enumerate via DB
+            # Best-effort: enumerate via DB. Schema differs across versions —
+            # introspect columns to avoid SQL errors.
             with mgr._conn() as conn:  # type: ignore[attr-defined]
+                cols = {
+                    r[1] for r in conn.execute("PRAGMA table_info(api_keys)").fetchall()
+                }
                 sql = "SELECT * FROM api_keys"
                 if not include_revoked:
-                    sql += " WHERE (revoked = 0 OR revoked IS NULL)"
-                sql += " ORDER BY created_at DESC LIMIT ?"
+                    if "revoked" in cols:
+                        sql += " WHERE (revoked = 0 OR revoked IS NULL)"
+                    elif "revoked_at" in cols:
+                        sql += " WHERE revoked_at IS NULL"
+                    elif "status" in cols:
+                        sql += " WHERE status != 'revoked'"
+                if "created_at" in cols:
+                    sql += " ORDER BY created_at DESC"
+                sql += " LIMIT ?"
                 rs = conn.execute(sql, (limit,)).fetchall()
                 rows = [dict(r) for r in rs]
     except Exception as exc:  # noqa: BLE001
@@ -1434,12 +1445,13 @@ def llm_rule_context_requirement(
 # Wave C aggregate router list — convenience for app.py mount loop.
 # ---------------------------------------------------------------------------
 
+# Note: ``changes_router`` is intentionally excluded here — it must be mounted
+# BEFORE ``change_management_router`` to win route precedence (see app.py).
 WAVE_C_ROUTERS = [
     system_router,
     orgs_router,
     pbom_router,
     provenance_router,
-    changes_router,
     scopes_router,
     air_gap_router,
     admin_tokens_router,
