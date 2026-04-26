@@ -12,49 +12,23 @@ You do NOT write code yourself except for small config changes (<10 lines).
 
 ### How You Operate:
 
-**If OMC is installed** (check: `which omc`):
-- `/team "task description"` — delegates to cheaper models via OMC pipeline (PLAN → PRD → EXEC → VERIFY → FIX)
-- `omc autoresearch "question"` — autonomous investigation
-- `omc ask "quick question"` — routes to cheapest model
+- **`/team "task"`** — OMC pipeline (PLAN → PRD → EXEC → VERIFY → FIX)
+- **`/ultrawork`** — parallel agent execution
+- **`/ralph`** — self-referential loop until done with verifier
+- **`Agent` tool** — spawn N specialist agents in parallel via single message (verified up to 6 concurrent)
+- **`/ask codex`** — second opinion via Codex (HIGH-stakes only: architecture, security, large-diff review)
 
-**If OMC is NOT installed** (fallback):
-- Use Claude Code's built-in Task/Agent tool to spawn subagents for implementation
-- You review what they produce, run tests, commit
-- Still: delegate, don't write code yourself
-
-**Token budget**: You are Opus ($15/M tokens). Haiku is $0.25/M. That's 60x. Delegate.
+**Token budget**: Opus ($15/M) vs Haiku ($0.25/M) = 60x. Delegate everything except small config (<10 lines).
 
 ### Auto-Save Rule (CRITICAL):
 
-**Every 15-20 minutes, you MUST save your work to git:**
-```bash
-git add -A && git commit -m "beast-mode(wip): [brief description of what changed]" && git push origin features/intermediate-stage
-```
-This is non-negotiable. Work that isn't committed doesn't exist. Set a mental timer.
-If a task takes longer than 20 minutes, commit the partial progress anyway.
+**Every 15-20 min: `git add -A && git commit -m "beast-mode(wip): X" && git push origin features/intermediate-stage`.** Non-negotiable.
 
 ### Session Routine:
 
-**Start:**
-1. `git pull origin features/intermediate-stage`
-2. `code-review-graph stats` — load codebase structure into context (46x cheaper than reading files)
-3. Run Beast Mode tests only: `python -m pytest tests/test_phase*.py tests/test_connector_framework.py tests/test_trustgraph.py tests/test_pipeline_api.py tests/test_persona_workflows.py -x --tb=short --timeout=10 -q`
-4. Read "What To Build Next" below
-5. Delegate the highest priority task
+**Start:** `git pull` → `graphify update . --no-llm` (refresh codebase graph) → run Beast Mode tests → query Multica board state → resume from latest `docs/HANDOFF_<date>.md`.
 
-**Every 15-20 minutes:**
-- `git add -A && git commit -m "beast-mode(wip): progress on [task]" && git push origin features/intermediate-stage`
-
-**End of session (Nightly Handoff to SwarmClaw):**
-- Update "Recent Changes" at bottom of this file
-- Queue remaining tasks to SwarmClaw for overnight agents (see SwarmClaw API below)
-- Final commit: `beast-mode(status): summary of today's work + queued N tasks to SwarmClaw`
-
-**Morning (Pull SwarmClaw overnight results):**
-- Check what SwarmClaw agents did: `curl -s http://localhost:3456/api/tasks | python3 -m json.tool`
-- Review any PRs agents created: `gh pr list --state open`
-- Pull latest: `git pull origin features/intermediate-stage`
-- Rebuild graph if stale: `code-review-graph build`
+**End:** Write/update `docs/HANDOFF_<date>.md` (open threads, in-flight agents, branch SHA, board state) → update `MEMORY.md` with non-obvious learnings → final commit + push.
 
 ---
 
@@ -95,65 +69,9 @@ When the user says "test with real apps", that means **onboard them as real tena
 
 ---
 
-## YOU CONTROL SWARMCLAW (Orchestrator API)
+## STACK v2 — verified 2026-04-26
 
-SwarmClaw is your nighttime workforce. You (Claude Code) queue tasks, agents execute overnight.
-
-### SwarmClaw API (http://localhost:3456):
-
-**List agents:**
-```bash
-curl -s http://localhost:3456/api/agents | python3 -m json.tool
-```
-
-**Create a task for an agent:**
-```bash
-curl -s -X POST http://localhost:3456/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title": "TASK TITLE", "agent_id": "AGENT_ID", "prompt": "Detailed instructions...", "status": "ready", "priority": "high"}'
-```
-
-**Check task status:**
-```bash
-curl -s http://localhost:3456/api/tasks | python3 -m json.tool
-```
-
-**Create a schedule:**
-```bash
-swarmclaw schedules create --base-url http://localhost:3456 \
-  --name "Schedule Name" --agent-id AGENT_ID \
-  --task-prompt "What to do" --schedule-type cron --cron "0 22 * * *"
-```
-
-**Check schedules:**
-```bash
-curl -s http://localhost:3456/api/schedules | python3 -m json.tool
-```
-
-### Model routing (all FREE via OpenRouter):
-| Agent | Model | Use for |
-|-------|-------|---------|
-| Code Builder | `qwen/qwen3.6-plus:free` | Implementation, features, bug fixes |
-| Test Writer | `qwen/qwen3.6-plus:free` | Unit, integration, e2e tests |
-| Doc Generator | `gemma4` (local Ollama) | API docs, guides, changelogs |
-| Security Reviewer | Council: Qwen 3.6+ + Kimi K2 | Vulnerability scanning, OWASP |
-| Code Reviewer | Council: Qwen 3.6+ + Kimi K2 | Quality, patterns, best practices |
-
-### Nightly handoff workflow (replaces SwarmClaw):
-1. At end of day, write `docs/HANDOFF_<date>.md` summarizing: open threads, in-flight agent state, branch tip SHA, board state.
-2. Update `MEMORY.md` (auto-memory, persists across sessions) with anything surprising/non-obvious.
-3. Final commit: `beast-mode(handoff): <date> session summary` and push.
-4. Next morning: `git pull`, read HANDOFF doc, read MEMORY.md, query Multica todo count, resume.
-
----
-
-## WHAT IS BEAST MODE v6
-
-Beast Mode is NOT custom code. It's a configuration/integration layer that wires together 7 existing open-source tools to build ALDECI autonomously.
-
-**Rule #1: Don't build what already exists.**
-
-### Effective Stack v2 (current truth — verified 2026-04-26)
+**Rule #1: Don't build what already exists.** Configuration/integration layer wiring existing OSS tools.
 
 | Tool | Status | Purpose |
 |------|--------|---------|
@@ -182,25 +100,6 @@ Beast Mode is NOT custom code. It's a configuration/integration layer that wires
 - **High-stakes review:** `/ask codex "..."` for second opinion before commit.
 - **Persist across sessions:** superpowers-optimized memory + `docs/HANDOFF_<date>.md` + Multica board state.
 - **Quality gate:** Beast Mode tests (`pytest tests/test_phase*.py ... -q`) MUST pass before any commit lands.
-
-### Beast Mode Framework Repo:
-
-Location: **`../best-mode-dev-framework/`** (sibling to this Fixops repo)
-GitHub: `DevOpsMadDog/best-mode-dev-framework`
-
-```
-best-mode-dev-framework/
-├── setup.sh                          # One-command installer for all 7 tools
-├── layer1-claude-supercharged/       # OMC config, Claude settings, install script
-├── layer2-swarmclaw-autonomous/      # Docker compose, agent YAMLs, schedules
-│   ├── docker-compose.yml            # SwarmClaw + TrustGraph + Ollama + Redis + PostgreSQL
-│   ├── agents/                       # code-builder, test-writer, doc-generator, security-reviewer, code-reviewer
-│   └── schedules/                    # nightly-build (10pm), morning-review (7am), weekly-health (Sun 3am)
-├── quality-gate/                     # Opus CTO review config, checklist, escalation rules
-├── project-templates/                # python-fastapi, react-frontend, fullstack templates
-├── examples/aldeci/                  # ALDECI-specific kanban seed, trustgraph cores, nightly priorities
-└── docs/                             # architecture.md, daily-workflow.md
-```
 
 ---
 
@@ -273,22 +172,23 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
-## WHAT TO BUILD NEXT (Priority Order)
+## WHAT TO BUILD NEXT
 
-### HIGH PRIORITY
-1. ✅ **Onboard 15 famous GitHub apps as REAL customers** — multi-tenant flow validation in progress. See `docs/multi_tenant_onboarding_results_2026-04-24.md`.
-2. ✅ **All KEEP + MERGE + KILL gap dispositions shipped** — see `docs/GAP_PRD_RECONCILE_2026-04-22.md` for the full reconcile + `raw/competitive/gap-matrix.md` Session-Progress section.
-3. ✅ **Graphify visual rebuilt** — densified 448 components → 95.8% largest component. `graphify-out/graph-filtered.html` viewable in browser.
+**Strategic phase (set 2026-04-26 evening):**
 
-### REMAINING
-- **GAP-014** (IDE-gateway scope) + **GAP-058** (free-tier strategy) — UNCLEAR, need product decision (not engineering).
-- **Legacy code-quality cleanup** — TrueCourse audit identified ~13,100 violations in pre-session engines (87.7% un-annotated fns, 2461 naive `datetime.now()`). Hot-paths already cleaned (`fa0b55a1`); rest is sprint-able.
-- **Frontend mock-page conversion** — TrueCourse + UI dispatch flagged 216 no-fetch pages. 16 new dashboards (this session) are real-API; rest still need wiring per `docs/UI_OVERHAUL_DISPATCH_2026-04-22.md`.
-- **NEW-G070 / NEW-G071 follow-up** — wire real tree-sitter / LSP / Prisma + Monaco-style code viewer in UI.
-- **GAP-020 agentless_snapshot real cloud SDK** — currently mock adapter; needs boto3/Azure SDK for prod use.
+1. **Phase 1 (auto):** ~100 Multica todos cascade-close as parents ship. Mostly schema-migration kids blocked on parent USes.
+2. **Phase 2 (DONE):** Competitive validation passed — 83% WIN/MATCH across 149 capabilities × 7 competitors (Snyk, Apiiro, Aikido, Sonatype, Tenable, XM Cyber, Wiz). Six unique moats: multi-LLM consensus, 12-step Brain Pipeline, MPTE 19-phase, FAIL chaos, quantum-safe evidence, MCP 650+ tools. See `docs/competitive_validation_2026-04-26.md`.
+3. **Phase 3 (active):** UX consolidation — collapse ~370 React pages → 25-40 cohesive enterprise screens (Wiz+Apiiro hybrid pattern). NO new pages. NO functionality loss. See `docs/UX_CONSOLIDATION_PLAN_2026-04-26.md`.
 
-### Full session-by-session DONE history
-**Relocated to `docs/SESSION_HISTORY.md`** (1130 lines, ~76 KB). Includes every Wave 6 → Wave 60+ with engine list, router list, test counts, frontend pages, business artifacts, security fixes, multi-tenant findings.
+**Open product decisions (not engineering):**
+- GAP-014 (IDE-gateway scope), GAP-058 (free-tier strategy)
+
+**Open security debt:**
+- 134 dependabot vulns on default branch (top fix: delete frozen `suite-ui/aldeci/` to retire 17 in one stroke)
+- 29 deferred empty-endpoints needing real-source importers (`docs/empty_endpoints_triage_2026-04-26.md`)
+- ~13,100 legacy code-quality violations from TrueCourse audit (hot paths cleaned, rest sprint-able)
+
+**Full per-session history:** `docs/SESSION_HISTORY.md` (1130 lines, Wave 6 → Wave 60+).
 
 ## OPERATING RULES
 
@@ -322,161 +222,48 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
-## EXISTING INVENTORY (DO NOT REBUILD)
-
-| Component | Count | Location |
-|-----------|-------|----------|
-| PULL connectors | 13 | suite-core/core/security_connectors.py |
-| Bidirectional connectors | 7 | suite-core/core/connectors.py |
-| Scanner normalizers | 32 | suite-core/core/scanner_parsers.py |
-| Threat intel feeds | 28+ | suite-feeds/ |
-| Backend engines | 334 | suite-core/core/*_engine.py |
-| API router files | 568 | suite-api/apps/api/*_router.py |
-| Engine test files | 334 | tests/test_*_engine.py |
-| Frontend pages | 372 | suite-ui/aldeci-ui-new/src/pages/ |
-| Beast Mode tests | 36,838+ | tests/ |
-| PRDs | 332 | docs/prds/ |
-| Docs | 24 | docs/ |
-
----
-
 ## CURRENT STATE (rolling — updated each session)
 
-### Engine + router + test totals
-| Layer | Count | Source-of-truth |
-|-------|-------|-----------------|
-| Backend engines | ~360 | `ls suite-core/core/*_engine.py | wc -l` |
-| API routers | ~580 | `ls suite-api/apps/api/*_router.py | wc -l` |
-| Frontend pages | ~290 | `ls suite-ui/aldeci-ui-new/src/pages/*.tsx | wc -l` |
-| Beast Mode tests | 716 passing, zero regressions (last verified `5f17b5e6`) | `pytest tests/test_phase*.py ... -q` |
-| Engine tests | ~37,000 across 350+ test files | `ls tests/test_*.py | wc -l` |
+| Layer | Count | How to check |
+|-------|-------|--------------|
+| Backend engines | ~360 | `ls suite-core/core/*_engine.py \| wc -l` |
+| API routers | ~590 (post 2026-04-26 mega-wave) | `ls suite-api/apps/api/*_router.py \| wc -l` |
+| API routes mounted | **6300+** | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
+| Frontend pages | **~370** (TARGET: collapse to 25-40 in Phase 3) | `ls suite-ui/aldeci-ui-new/src/pages/*.tsx \| wc -l` |
+| Multica board | **2914 done / 100 todo** (last verified evening 2026-04-26) | `docker exec` psql query (see Stack v2 row) |
+| Beast Mode tests | **806+** passing, zero regressions | `pytest tests/test_phase*.py ... -q` |
+| Graphify graph | 119,765 nodes / 425,727 edges / 1516 communities | `graphify update . --no-llm` |
+| TrustGraph emit-sites | **378+** across engines/routers | `grep -rl trustgraph_event_bus suite-core/ \| wc -l` |
 
-### Most recent strategic work
-- **2026-04-26** — Pushed 101-commit branch to GitHub (`a1c2c854..7861f9fe`). Cleaned 658 generated files from git index (graphify-out, newman, .aldeci, etc.). Bulk-triage IDOR + posture-score bugs fixed. 7 engine routers wired (graphrag, context, duckdb_analytics, verification, intelligent_security, mitre_attack_coverage, privilege_escalation_detector). Multica board reconciled: 89 stale endpoint+frontend todos verified-and-closed (board: 2475→2565 done, 539→449 todo). Dependabot triage: top HIGH/MOD bumps applied (postcss, dompurify override, path-to-regexp, picomatch, follow-redirects). Graphify rebuilt: **119,351 nodes / 423,574 edges / 1520 communities**. See `docs/board_audit_2026-04-26.md` + `docs/HANDOFF_2026-04-26.md` + `docs/dependabot_triage_2026-04-26.md`.
-- **2026-04-24/25** — Real-customer onboarding flow validation (15 apps). NO MOCKS rule + Playwright MCP added. Dashboard render bug fixed (5/5 verification routes pass). 7-of-8 commercial-vendor OSS substitutes wired (Snyk, CSPM, EDR, SIEM, Container, IAM, ThreatIntel; DAST in flight). 225 UI page conversions across ui-bulk-A1/A2/B1/B2/residual.
-- **2026-04-22/23** — Beast Mode v6 reconcile: 14 KEEP engines + 30 MERGE extensions + 5 KILLs shipped. Graphify visual rebuilt. TrueCourse-audits-Fixops report.
-- **2026-04-13 → 2026-04-22** — Wave 6 → Wave 60+ autonomous parallel build. Full per-wave detail in `docs/SESSION_HISTORY.md`.
+### Storage tech
+DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Markdown for docs.
 
-### Storage technology
-- DuckDB analytics layer (cross-domain queries across 60+ SQLite engines)
-- SQLite: 100+ domain databases (correct for embedded CRUD per-engine)
-- Markdown: docs only
-
-### Key strategic docs (read when relevant)
+### Key strategic docs
 | Doc | Purpose |
 |-----|---------|
 | `docs/CTEM_PLUS_IDENTITY.md` | 8 native engines + 12-step Brain Pipeline + MPTE + FAIL + AI consensus |
+| `docs/competitive_validation_2026-04-26.md` | **Phase 2 — 149 capabilities × 7 competitors. 83% WIN/MATCH.** |
+| `docs/UX_CONSOLIDATION_PLAN_2026-04-26.md` | **Phase 3 — 89→30 screen merge map.** |
 | `docs/GAP_PRD_RECONCILE_2026-04-22.md` | 48-row MERGE/KEEP/KILL/UNCLEAR reconcile |
-| `docs/UI_OVERHAUL_DISPATCH_2026-04-22.md` | 22-unit UI overhaul plan + NEW-G071 |
-| `docs/SPRINT_2_DEMO_BACKLOG_2026-04-22.md` | DEMO-001..005 P0 demo items |
-| `docs/multi_tenant_onboarding_results_2026-04-24.md` | 15-tenant onboarding flow + UX bug surface |
+| `docs/multi_tenant_onboarding_results_2026-04-24.md` | 15-tenant onboarding flow |
 | `docs/persona_coverage_after_seed.md` | 30-persona × UI-page coverage map |
-| `docs/SESSION_HISTORY.md` | Full per-wave DONE history (Wave 6 → Wave 60+) |
-| `raw/competitive/gap-matrix.md` | 71-row competitive gap matrix with session-progress annotations |
-| `raw/competitive/truecourse-vs-fixops-comparison.md` | 40-row TrueCourse↔Fixops side-by-side |
-| `raw/competitive/truecourse-audits-fixops.md` | TrueCourse running on Fixops codebase, ~13,100 legacy violations |
+| `docs/HANDOFF_2026-04-26-evening.md` | Latest session handoff |
+| `docs/SESSION_HISTORY.md` | Full per-wave DONE history |
+| `raw/competitive/gap-matrix-2026-04-26.md` | 71-row competitive gap matrix (re-scored) |
 
-### Git state
-**Branch:** `features/intermediate-stage`. **Latest commits:** `git log --oneline -10`. Push only when explicitly requested.
+### Git
+**Branch:** `features/intermediate-stage`. Push freely (CTO mode). Latest: `git log --oneline -10`.
 
-
----
-
-## BEAST MODE TOOL INSTALLATION & LOCATIONS
-
-### Prerequisites
-- Docker + Docker Compose
-- Node.js (for npm)
-- Homebrew (macOS) or apt (Linux)
-
-### One-Shot Setup
-```bash
-cd ../best-mode-dev-framework
-chmod +x setup.sh && ./setup.sh
-```
-
-### Start Beast Mode (from beast-mode-dev-framework, NOT from Fixops)
-```bash
-cd ../best-mode-dev-framework
-./start.sh ../Fixops
-```
-This starts Layer 2 Docker services, rebuilds code-review-graph if stale, then launches Claude Code pointing at Fixops. Claude reads this CLAUDE.md and operates as CTO.
-
-### Setup Details
-This runs 11 steps:
-1. Checks prerequisites (docker, docker-compose)
-2. Installs Layer 1 (OMC, everything-claude-code skills, OMNI, Context7)
-3. Installs Ollama (local LLM inference)
-4. Pulls Gemma 7B model (~4GB download)
-5. Prompts for OpenRouter API key (free — for Qwen 3.6+, DeepSeek V3)
-6. Installs Layer 2 (SwarmClaw config)
-7. Starts Docker containers (SwarmClaw, TrustGraph, Ollama, Redis, PostgreSQL)
-8. Indexes codebase into TrustGraph
-9. Seeds Kanban board with tasks
-10. Prints summary with URLs
-
-### Where Tools Live After Install
-
-| Tool | Install Location | How To Access | Port |
-|------|-----------------|---------------|------|
-| **code-review-graph** | `pip install code-review-graph` | `code-review-graph stats/query/impact` — **USE FIRST** | — |
-| OMC (oh-my-claudecode) | Claude Code plugin marketplace | `/team`, `omc autoresearch`, `omc ask` | — |
-| everything-claude-code | `~/.claude-skills/ecc/` | Auto-loads based on context | — |
-| OMNI | `npm -g` or `pip` global | `omni` CLI | — |
-| Context7 MCP | Claude MCP config | Auto-available in Claude Code | — |
-| SwarmClaw | Docker: `beast-swarmclaw` | Dashboard: http://localhost:3456 | 3456 |
-| TrustGraph | `pip install trustgraph-cli` | Config: https://config-ui.demo.trustgraph.ai | 8888 |
-| Ollama | Docker: `beast-ollama` OR native install | API: http://localhost:11434 | 11434 |
-| Redis | Docker: `beast-redis` | localhost:6379 | 6379 |
-| PostgreSQL | Docker: `beast-postgres` | localhost:5432 (user: swarmclaw) | 5432 |
-
-### Docker Services (Layer 2)
-```bash
-cd ../best-mode-dev-framework/layer2-swarmclaw-autonomous
-
-# Start all services
-docker compose up -d
-
-# Check status
-docker compose ps
-
-# View logs
-docker compose logs -f
-
-# Stop
-docker compose down
-```
-
-### OpenRouter API Key (FREE models)
-Sign up at https://openrouter.ai — free tier gives access to:
-- Qwen 3.6 Plus (code-builder + test-writer agents) — qwen/qwen3.6-plus:free
-- Kimi K2 (security + code reviewer council) — moonshotai/kimi-k2:free
-- Gemma 4 (doc-generator, local via Ollama)
-- Llama 4 (general tasks)
-
-Save key in: `../best-mode-dev-framework/layer2-swarmclaw-autonomous/.env`
-```
-OPENROUTER_API_KEY=sk-or-v1-xxxxx
-```
-
-### Quick Verify Everything Works
-```bash
-# Check Layer 1
-which omc && echo "OMC: OK" || echo "OMC: NOT INSTALLED"
-ls ~/.claude-skills/ecc/ && echo "ECC: OK" || echo "ECC: NOT INSTALLED"
-ollama --version && echo "Ollama: OK" || echo "Ollama: NOT INSTALLED"
-
-# Check Layer 2 (Docker)
-docker ps --format "{{.Names}}: {{.Status}}" | grep beast
-# Should show: beast-swarmclaw, beast-ollama, beast-redis, beast-postgres
-
-# Check SwarmClaw API
-curl -s http://localhost:3456/api/healthz | head -1
-
-# Check TrustGraph CLI
-tg --version 2>/dev/null || echo "Install: pip install trustgraph-cli"
-```
 
 ---
 
-*Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md` (v2.5). Beast Mode framework: `../best-mode-dev-framework/`*
+*Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`*
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
