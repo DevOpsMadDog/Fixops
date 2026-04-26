@@ -1103,6 +1103,193 @@ def ingest(
 
 
 # ---------------------------------------------------------------------------
+# Real log-file tailer — ingests from real files on disk
+# ---------------------------------------------------------------------------
+
+
+# Per-file byte cursor (in-memory + on-disk for crash recovery).
+_TAIL_STATE_FILE_DEFAULT = ".aldeci/siem_tail_cursors.json"
+
+
+def _load_tail_state(state_path: str) -> Dict[str, int]:
+    try:
+        from pathlib import Path
+        p = Path(state_path)
+        if p.exists():
+            return json.loads(p.read_text()) or {}
+    except (OSError, ValueError):
+        pass
+    return {}
+
+
+def _save_tail_state(state_path: str, cursors: Dict[str, int]) -> None:
+    try:
+        from pathlib import Path
+        p = Path(state_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(cursors))
+    except OSError as exc:
+        logger.debug("siem_connector: tail state write failed: %s", exc)
+
+
+def tail_log_files(
+    org_id: str,
+    file_paths: List[str],
+    *,
+    fmt: str = "auto",
+    max_bytes_per_file: int = 1_048_576,  # 1 MiB per file per call
+    max_lines_per_file: int = 5000,
+    state_path: str = _TAIL_STATE_FILE_DEFAULT,
+    siem_engine: Any = None,
+    correlation_engine: Any = None,
+    findings_engine: Any = None,
+) -> Dict[str, Any]:
+    """Tail real log files on disk; ingest new bytes since last call.
+
+    Designed for /var/log/system.log, structlog JSONL output, etc.
+    Persists per-file byte cursors to ``state_path`` so subsequent calls
+    only ingest new content.
+
+    Args:
+        org_id:        Tenant identifier.
+        file_paths:    List of absolute log file paths to tail.
+        fmt:           Adapter key (auto-detect per file).
+        max_bytes_per_file: Cap reads per file per call (DoS guard).
+        max_lines_per_file: Cap parsed records per file per call.
+        state_path:    JSON file storing per-file byte cursors.
+
+    Returns:
+        Aggregate dict {files: [...], total_lines, parsed, ingested, errors}.
+    """
+    from pathlib import Path
+
+    cursors = _load_tail_state(state_path)
+    files_report: List[Dict[str, Any]] = []
+    aggregate_lines = 0
+    aggregate_parsed = 0
+    aggregate_ingested = 0
+    errors: List[str] = []
+
+    for raw_path in file_paths:
+        if not isinstance(raw_path, str) or not raw_path:
+            errors.append(f"invalid path: {raw_path!r}")
+            continue
+        try:
+            path = Path(raw_path).resolve()
+        except (OSError, ValueError) as exc:
+            errors.append(f"path resolve failed {raw_path}: {exc}")
+            continue
+        if not path.exists() or not path.is_file():
+            errors.append(f"missing file: {path}")
+            files_report.append(
+                {"path": str(path), "exists": False, "lines": 0, "parsed": 0, "ingested": 0}
+            )
+            continue
+
+        try:
+            stat = path.stat()
+        except OSError as exc:
+            errors.append(f"stat failed {path}: {exc}")
+            continue
+
+        cursor = int(cursors.get(str(path), 0))
+        # Detect log rotation (file shorter than cursor) — start over.
+        if cursor > stat.st_size:
+            cursor = 0
+
+        end = min(stat.st_size, cursor + max_bytes_per_file)
+        if end <= cursor:
+            files_report.append(
+                {"path": str(path), "exists": True, "lines": 0, "parsed": 0, "ingested": 0,
+                 "cursor": cursor}
+            )
+            continue
+
+        try:
+            with path.open("rb") as fh:
+                fh.seek(cursor)
+                chunk = fh.read(end - cursor)
+        except OSError as exc:
+            errors.append(f"read failed {path}: {exc}")
+            continue
+
+        text = chunk.decode("utf-8", errors="replace")
+        lines = [ln for ln in text.splitlines() if ln.strip()][:max_lines_per_file]
+        if not lines:
+            cursors[str(path)] = end
+            files_report.append(
+                {"path": str(path), "exists": True, "lines": 0, "parsed": 0, "ingested": 0,
+                 "cursor": end}
+            )
+            continue
+
+        # Decide adapter per file; structlog/JSON → json_lines, else syslog.
+        per_file_fmt = fmt
+        if per_file_fmt == "auto":
+            sample = lines[0].lstrip()
+            if sample.startswith("{"):
+                per_file_fmt = "json_lines"
+            else:
+                per_file_fmt = "syslog"
+
+        # Build payload (newline-joined for parsers that expect a stream).
+        payload = "\n".join(lines)
+        try:
+            parsed = parse(payload, fmt=per_file_fmt)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"parse failed {path}: {exc}")
+            parsed = []
+
+        ingested = 0
+        if parsed:
+            try:
+                mirror = mirror_to_engines(
+                    org_id,
+                    parsed,
+                    siem_engine=siem_engine,
+                    correlation_engine=correlation_engine,
+                    findings_engine=findings_engine,
+                    source_id=f"file:{path.name}",
+                )
+                ingested = mirror.get("siem_events", 0)
+                if mirror.get("errors"):
+                    errors.extend(
+                        f"mirror[{path.name}]: {e}" for e in mirror["errors"][:3]
+                    )
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"mirror failed {path}: {exc}")
+
+        # Advance cursor to end of read region (only on success — on failure
+        # we'd retry next call from the same offset).
+        cursors[str(path)] = end
+
+        files_report.append(
+            {
+                "path": str(path),
+                "exists": True,
+                "fmt": per_file_fmt,
+                "lines": len(lines),
+                "parsed": len(parsed),
+                "ingested": ingested,
+                "cursor": end,
+            }
+        )
+        aggregate_lines += len(lines)
+        aggregate_parsed += len(parsed)
+        aggregate_ingested += ingested
+
+    _save_tail_state(state_path, cursors)
+    return {
+        "org_id": org_id,
+        "files": files_report,
+        "total_lines": aggregate_lines,
+        "total_parsed": aggregate_parsed,
+        "total_ingested": aggregate_ingested,
+        "errors": errors,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Realistic event generator (15-tenant fixture)
 # ---------------------------------------------------------------------------
 

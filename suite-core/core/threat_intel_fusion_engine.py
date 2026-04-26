@@ -41,7 +41,7 @@ _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
 
 _VALID_SOURCE_TYPES = {"osint", "commercial", "isac", "internal", "government"}
 _VALID_TLP_LEVELS = {"white", "green", "amber", "red"}
-_VALID_INDICATOR_TYPES = {"ip", "domain", "hash", "url", "email"}
+_VALID_INDICATOR_TYPES = {"ip", "domain", "hash", "url", "email", "cve"}
 _VALID_STATUSES = {"active", "expired"}
 
 

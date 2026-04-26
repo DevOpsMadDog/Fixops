@@ -7,6 +7,7 @@ POST  /api/v1/connectors/ti/sync/misp     run only MISP adapter
 POST  /api/v1/connectors/ti/sync/circl    run only CIRCL CVE adapter
 POST  /api/v1/connectors/ti/sync/phishtank  run only PhishTank adapter
 POST  /api/v1/connectors/ti/sync/otx      run only OTX adapter
+POST  /api/v1/connectors/ti/sync/ghsa     run only GitHub Advisory DB adapter
 POST  /api/v1/connectors/ti/correlate     re-run cross-correlation only
 GET   /api/v1/connectors/ti/health        adapter availability + key status
 GET   /api/v1/connectors/ti/status        alias for /health (Demo-001)
@@ -63,6 +64,7 @@ class SyncRequest(BaseModel):
     run_circl: bool = Field(True, description="Pull from CIRCL CVE feed")
     run_phishtank: bool = Field(True, description="Pull from PhishTank")
     run_otx: bool = Field(True, description="Pull from AlienVault OTX")
+    run_ghsa: bool = Field(True, description="Pull from GitHub Advisory Database (GHSA)")
     run_correlation: bool = Field(
         True, description="Cross-correlate IoCs against tenant findings"
     )
@@ -129,6 +131,7 @@ async def sync_all(
             run_circl=body.run_circl,
             run_phishtank=body.run_phishtank,
             run_otx=body.run_otx,
+            run_ghsa=body.run_ghsa,
             run_correlation=body.run_correlation,
         )
         return result.to_dict()
@@ -198,6 +201,35 @@ async def sync_otx(
         return {"adapter": "otx", "ingested": n, "org_id": org_id}
     except Exception as exc:  # noqa: BLE001
         logger.exception("ti/sync/otx failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/sync/ghsa")
+async def sync_ghsa(
+    per_page: int = Query(default=100, ge=1, le=100),
+    max_pages: int = Query(default=5, ge=1, le=20),
+    org_id: str = Query(default="default", max_length=128),
+    auth=Depends(api_key_auth),
+):
+    """Pull GitHub Security Advisories from the official REST API.
+
+    Incremental: subsequent calls use a stored ``modified_since`` cursor.
+    Persists CVE / GHSA ids as ``cve``-typed indicators.
+    """
+    org_id = _validate_org(org_id)
+    try:
+        n = _get_connector().sync_ghsa(
+            org_id, per_page=per_page, max_pages=max_pages
+        )
+        return {
+            "adapter": "ghsa",
+            "ingested": n,
+            "per_page": per_page,
+            "max_pages": max_pages,
+            "org_id": org_id,
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("ti/sync/ghsa failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
 

@@ -92,6 +92,12 @@ OTX_SAMPLE_FILE = (
     Path(__file__).resolve().parents[2] / "suite-feeds" / "data" / "otx_sample.json"
 )
 
+# GitHub Advisory Database — official GHSA REST API (public, paged, optional bearer for higher rate limits).
+GHSA_API_URL = "https://api.github.com/advisories"
+GHSA_STATE_FILE = (
+    Path(__file__).resolve().parents[2] / "suite-feeds" / "data" / "ghsa_sync_state.json"
+)
+
 # IoC extraction patterns
 _IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 _DOMAIN_RE = re.compile(r"\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}\b", re.I)
@@ -112,13 +118,14 @@ class SyncResult:
     circl: int = 0
     phishtank: int = 0
     otx: int = 0
+    ghsa: int = 0
     correlations: int = 0
     errors: List[str] = field(default_factory=list)
     started_at: str = ""
     completed_at: str = ""
 
     def total(self) -> int:
-        return self.misp + self.circl + self.phishtank + self.otx
+        return self.misp + self.circl + self.phishtank + self.otx + self.ghsa
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -126,6 +133,7 @@ class SyncResult:
             "circl_ingested": self.circl,
             "phishtank_ingested": self.phishtank,
             "otx_ingested": self.otx,
+            "ghsa_ingested": self.ghsa,
             "total_ingested": self.total(),
             "correlations_created": self.correlations,
             "errors": list(self.errors),
@@ -155,6 +163,7 @@ class ThreatIntelConnector:
         misp_feed_urls: Optional[Iterable[str]] = None,
         otx_api_key: Optional[str] = None,
         misp_api_key: Optional[str] = None,
+        github_token: Optional[str] = None,
     ) -> None:
         self.request_timeout = request_timeout
         self.max_indicators_per_source = max_indicators_per_source
@@ -163,6 +172,9 @@ class ThreatIntelConnector:
         )
         self._otx_api_key = otx_api_key or os.environ.get("OTX_API_KEY", "")
         self._misp_api_key = misp_api_key or os.environ.get("MISP_API_KEY", "")
+        self._github_token = github_token or os.environ.get(
+            "GITHUB_TOKEN", os.environ.get("GH_TOKEN", "")
+        )
         self._session = requests.Session()
         self._session.headers.update(
             {
@@ -173,6 +185,7 @@ class ThreatIntelConnector:
         # Lazy fusion + correlation engine references.
         self._fusion = None
         self._correlation = None
+        self._tip = None
 
     # ------------------------------------------------------------------
     # Lazy engine init (avoids circular imports at module load)
@@ -193,6 +206,20 @@ class ThreatIntelConnector:
 
             self._correlation = SecurityEventCorrelationEngine()
         return self._correlation
+
+    def _get_tip(self):
+        """Lazy ThreatIntelPlatformEngine — mirror IoCs into TIP store too."""
+        if self._tip is None:
+            try:
+                from core.threat_intel_platform_engine import (
+                    ThreatIntelPlatformEngine,
+                )
+
+                self._tip = ThreatIntelPlatformEngine()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("TIP engine unavailable: %s", exc)
+                self._tip = False  # sentinel — never retry
+        return self._tip if self._tip is not False else None
 
     # ------------------------------------------------------------------
     # Helpers
@@ -236,8 +263,13 @@ class ThreatIntelConnector:
         return True
 
     def _ensure_source(self, org_id: str, name: str, source_type: str = "osint") -> str:
-        """Idempotently register an intel source; return its id."""
+        """Idempotently register an intel source; return its id.
+
+        Also mirrors the source registration into TIP so /api/v1/tip/sources
+        shows the real, populated feeds.
+        """
         fusion = self._get_fusion()
+        source_id = ""
         try:
             existing = fusion.list_intel_sources(org_id)
         except Exception as exc:  # noqa: BLE001
@@ -245,16 +277,85 @@ class ThreatIntelConnector:
             existing = []
         for src in existing:
             if src.get("name") == name:
-                return src["id"]
-        try:
-            rec = fusion.add_intel_source(
-                org_id,
-                {"name": name, "source_type": source_type, "tlp_level": "white"},
-            )
-            return rec["id"]
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("add_intel_source(%s) failed: %s", name, exc)
-            return ""
+                source_id = src["id"]
+                break
+        if not source_id:
+            try:
+                rec = fusion.add_intel_source(
+                    org_id,
+                    {"name": name, "source_type": source_type, "tlp_level": "white"},
+                )
+                source_id = rec["id"]
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("add_intel_source(%s) failed: %s", name, exc)
+                source_id = ""
+
+        # Best-effort TIP source mirror (idempotent: skip if already present).
+        tip = self._get_tip()
+        if tip is not None:
+            try:
+                tip_existing = tip.list_sources(org_id)
+                if not any(
+                    (s.get("source_name") or "") == name for s in tip_existing
+                ):
+                    tip.add_source(
+                        org_id,
+                        {
+                            "source_name": name,
+                            "source_type": source_type,
+                            "feed_url": "",
+                            "status": "active",
+                            "reliability_score": 0.7,
+                            "update_frequency_hours": 24,
+                        },
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("TIP add_source(%s) failed: %s", name, exc)
+
+        return source_id
+
+    # Map fusion-engine indicator types to TIP-engine indicator types.
+    _TIP_TYPE_MAP = {
+        "ip": "ip",
+        "domain": "domain",
+        "url": "url",
+        "hash": "file_hash",
+        "email": "email",
+        "cve": "cve",
+    }
+
+    # Map fusion-store confidence (0-100) → TIP severity bucket.
+    @staticmethod
+    def _confidence_to_severity(confidence: int) -> str:
+        c = max(0, min(100, int(confidence)))
+        if c >= 90:
+            return "critical"
+        if c >= 80:
+            return "high"
+        if c >= 60:
+            return "medium"
+        if c >= 40:
+            return "low"
+        return "info"
+
+    @staticmethod
+    def _category_from_tags(tags: List[str]) -> str:
+        """Classify into one of TIP's threat_category enum from tag tokens."""
+        joined = " ".join(t.lower() for t in tags or [])
+        for needle, cat in (
+            ("phishing", "phishing"),
+            ("phish", "phishing"),
+            ("ransom", "ransomware"),
+            ("apt", "apt"),
+            ("botnet", "botnet"),
+            ("c2", "c2"),
+            ("scanner", "scanner"),
+            ("exploit", "exploit"),
+            ("malware", "malware"),
+        ):
+            if needle in joined:
+                return cat
+        return "malware"
 
     def _ingest(
         self,
@@ -266,9 +367,14 @@ class ThreatIntelConnector:
         tags: List[str],
         expiry_days: int = 30,
     ) -> bool:
-        """Persist a single indicator. Returns True on success."""
+        """Persist a single indicator into BOTH the fusion store and the TIP store.
+
+        Returns True if at least the fusion-store write succeeded.
+        TIP write is best-effort (different schema, may reject some types).
+        """
         if not value:
             return False
+        ok = False
         try:
             self._get_fusion().ingest_indicator(
                 org_id,
@@ -281,10 +387,42 @@ class ThreatIntelConnector:
                     "expiry_days": expiry_days,
                 },
             )
-            return True
+            ok = True
         except Exception as exc:  # noqa: BLE001
-            logger.debug("ingest_indicator failed (%s=%s): %s", indicator_type, value[:80], exc)
-            return False
+            logger.debug(
+                "fusion ingest_indicator failed (%s=%s): %s",
+                indicator_type,
+                value[:80],
+                exc,
+            )
+
+        # Mirror to TIP (best-effort)
+        tip = self._get_tip()
+        if tip is not None:
+            tip_type = self._TIP_TYPE_MAP.get(indicator_type)
+            if tip_type:
+                try:
+                    tip.add_indicator(
+                        org_id,
+                        {
+                            "indicator_type": tip_type,
+                            "value": value[:512],
+                            "source_id": source_id,
+                            "severity": self._confidence_to_severity(confidence),
+                            "confidence": max(0.0, min(1.0, float(confidence) / 100.0)),
+                            "threat_category": self._category_from_tags(tags),
+                            "tags": list(tags or [])[:20],
+                            "tlp_level": "amber",
+                        },
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug(
+                        "tip add_indicator failed (%s=%s): %s",
+                        tip_type,
+                        value[:80],
+                        exc,
+                    )
+        return ok
 
     # ------------------------------------------------------------------
     # MISP adapter — JSON manifest + per-event JSON payload
@@ -670,6 +808,185 @@ class ThreatIntelConnector:
         return ThreatIntelConnector._classify_value(value)
 
     # ------------------------------------------------------------------
+    # GitHub Advisory Database (GHSA) — incremental sync
+    # ------------------------------------------------------------------
+
+    def sync_ghsa(
+        self,
+        org_id: str,
+        per_page: int = 100,
+        max_pages: int = 5,
+        severities: Optional[Iterable[str]] = None,
+    ) -> int:
+        """Pull GitHub Security Advisories from the official REST API.
+
+        Uses incremental sync via the ``modified_since`` cursor stored in
+        ``GHSA_STATE_FILE``. Persists each advisory's CVE id (when present)
+        as a ``cve``-typed indicator into the fusion store, plus any
+        affected package coordinates as tags.
+
+        - Public endpoint, no auth required for low-rate use.
+        - When ``GITHUB_TOKEN`` / ``GH_TOKEN`` is present, sends
+          ``Authorization: Bearer <token>`` for the higher 5000/hr rate.
+        - Bounded by ``max_pages * per_page`` advisories per run, plus
+          ``max_indicators_per_source`` for IoCs ingested.
+        """
+        source_id = self._ensure_source(org_id, "GitHub-GHSA", "osint")
+        ingested = 0
+
+        # Load incremental cursor.
+        cursor: Optional[str] = None
+        try:
+            if GHSA_STATE_FILE.exists():
+                state = json.loads(GHSA_STATE_FILE.read_text())
+                cursor = state.get("modified_since") if isinstance(state, dict) else None
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.debug("GHSA state read failed: %s", exc)
+
+        headers: Dict[str, str] = {
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        if self._github_token:
+            headers["Authorization"] = f"Bearer {self._github_token}"
+
+        sev_filter = (
+            tuple(s.lower() for s in severities)
+            if severities
+            else ("critical", "high", "medium")
+        )
+
+        latest_modified = cursor or ""
+        page = 1
+        while page <= max_pages:
+            if ingested >= self.max_indicators_per_source:
+                break
+            params: Dict[str, Any] = {
+                "per_page": max(1, min(100, int(per_page))),
+                "page": page,
+                "type": "reviewed",
+                "sort": "updated",
+                "direction": "desc",
+            }
+            if cursor:
+                params["modified"] = f">{cursor}"
+
+            try:
+                resp = self._session.get(
+                    GHSA_API_URL,
+                    headers=headers,
+                    params=params,
+                    timeout=self.request_timeout,
+                )
+                resp.raise_for_status()
+                advisories = resp.json()
+            except (RequestException, ValueError) as exc:
+                logger.warning("GHSA page %d fetch failed: %s", page, exc)
+                break
+            if not isinstance(advisories, list) or not advisories:
+                break
+
+            for adv in advisories:
+                if ingested >= self.max_indicators_per_source:
+                    break
+                if not isinstance(adv, dict):
+                    continue
+                ghsa_id = (adv.get("ghsa_id") or "").strip()
+                cve_id = (adv.get("cve_id") or "").strip()
+                severity_raw = (adv.get("severity") or "low").strip().lower()
+                if severity_raw not in sev_filter:
+                    continue
+                modified = adv.get("updated_at") or adv.get("published_at") or ""
+                if isinstance(modified, str) and modified > latest_modified:
+                    latest_modified = modified
+
+                # Map advisory severity → confidence (CVSS-aligned).
+                confidence = {
+                    "critical": 95,
+                    "high": 85,
+                    "medium": 70,
+                    "low": 50,
+                }.get(severity_raw, 60)
+
+                # Tags: ghsa, cve_id, ecosystems, packages, cwes (capped).
+                tags: List[str] = ["ghsa", severity_raw]
+                if ghsa_id:
+                    tags.append(ghsa_id)
+                vulnerabilities = adv.get("vulnerabilities") or []
+                if isinstance(vulnerabilities, list):
+                    for vuln in vulnerabilities[:5]:
+                        if not isinstance(vuln, dict):
+                            continue
+                        pkg = vuln.get("package") or {}
+                        if isinstance(pkg, dict):
+                            ecosystem = (pkg.get("ecosystem") or "").lower()[:24]
+                            name = (pkg.get("name") or "")[:96]
+                            if ecosystem and name:
+                                tags.append(f"{ecosystem}:{name}")
+                cwes = adv.get("cwes") or []
+                if isinstance(cwes, list):
+                    for cwe in cwes[:3]:
+                        if isinstance(cwe, dict):
+                            cwe_id = cwe.get("cwe_id") or ""
+                            if cwe_id:
+                                tags.append(cwe_id)
+                tags = tags[:20]
+
+                # Primary indicator: CVE id if present, else GHSA id.
+                primary_value = cve_id or ghsa_id
+                if not primary_value:
+                    continue
+                if self._ingest(
+                    org_id,
+                    source_id,
+                    "cve",
+                    primary_value,
+                    confidence,
+                    tags,
+                    expiry_days=90,
+                ):
+                    ingested += 1
+
+                # Also persist GHSA id when CVE was the primary, so both are searchable.
+                if cve_id and ghsa_id and ghsa_id != cve_id:
+                    if self._ingest(
+                        org_id,
+                        source_id,
+                        "cve",
+                        ghsa_id,
+                        confidence,
+                        tags,
+                        expiry_days=90,
+                    ):
+                        ingested += 1
+            # Polite pacing
+            time.sleep(0.10)
+            page += 1
+
+        # Persist new cursor for next incremental run.
+        if latest_modified and latest_modified != (cursor or ""):
+            try:
+                GHSA_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+                GHSA_STATE_FILE.write_text(
+                    json.dumps(
+                        {
+                            "modified_since": latest_modified,
+                            "updated_at": self._now_iso(),
+                        }
+                    )
+                )
+            except OSError as exc:
+                logger.debug("GHSA state write failed: %s", exc)
+
+        logger.info(
+            "GHSA: ingested %d advisories for org=%s (cursor→%s)",
+            ingested,
+            org_id,
+            latest_modified or "(none)",
+        )
+        return ingested
+
+    # ------------------------------------------------------------------
     # Tenant cross-correlation
     # ------------------------------------------------------------------
 
@@ -836,6 +1153,7 @@ class ThreatIntelConnector:
         run_circl: bool = True,
         run_phishtank: bool = True,
         run_otx: bool = True,
+        run_ghsa: bool = True,
         run_correlation: bool = True,
     ) -> SyncResult:
         """Run every adapter then cross-correlate. Each step is isolated."""
@@ -872,6 +1190,13 @@ class ThreatIntelConnector:
                 result.otx = self.sync_otx(org_id)
             except Exception as exc:  # noqa: BLE001
                 msg = f"otx: {exc}"
+                logger.warning(msg)
+                result.errors.append(msg)
+        if run_ghsa:
+            try:
+                result.ghsa = self.sync_ghsa(org_id)
+            except Exception as exc:  # noqa: BLE001
+                msg = f"ghsa: {exc}"
                 logger.warning(msg)
                 result.errors.append(msg)
 
@@ -916,6 +1241,16 @@ class ThreatIntelConnector:
                     None
                     if self._otx_api_key
                     else "Set OTX_API_KEY for live pulses; falling back to bundled cache"
+                ),
+            },
+            "ghsa": {
+                "endpoint": GHSA_API_URL,
+                "api_key_configured": bool(self._github_token),
+                "incremental_state_exists": GHSA_STATE_FILE.exists(),
+                "note": (
+                    "Authed GitHub requests get 5000/hr; unauthed get 60/hr"
+                    if not self._github_token
+                    else None
                 ),
             },
         }

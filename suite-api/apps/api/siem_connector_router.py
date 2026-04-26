@@ -5,6 +5,7 @@ Endpoints (all under /api/v1/connectors/siem):
   GET  /adapters                  — list supported adapter keys
   POST /detect                    — auto-detect format of a payload
   POST /ingest                    — parse + mirror to all 3 engines
+  POST /tail                      — tail real log files on disk (incremental)
   POST /generate                  — generate fixture events (no ingest)
   POST /generate-and-ingest       — generate fixture events and ingest
 
@@ -52,6 +53,24 @@ class GenerateRequest(BaseModel):
     tenants: int = Field(15, ge=1, le=100, description="Number of tenants to generate for")
     events_per_tenant: int = Field(14, ge=1, le=100, description="Events per tenant (10-20 typical)")
     seed: int = Field(1337, description="RNG seed for deterministic output")
+
+
+class TailRequest(BaseModel):
+    org_id: str = Field("default", description="Tenant identifier", max_length=128)
+    file_paths: List[str] = Field(
+        ...,
+        description="Absolute paths to log files to tail (e.g. /var/log/system.log).",
+        max_length=20,
+    )
+    format: str = Field(
+        "auto",
+        description=(
+            "Adapter key per file (auto picks json_lines for JSON-leading lines, "
+            "syslog otherwise)."
+        ),
+    )
+    max_bytes_per_file: int = Field(1_048_576, ge=1024, le=64 * 1_048_576)
+    max_lines_per_file: int = Field(5000, ge=1, le=100_000)
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +164,35 @@ def generate(body: GenerateRequest) -> Dict[str, Any]:
             for t, f, p in triples[:3]
         ],
     }
+
+
+@router.post("/tail")
+def tail_logs(body: TailRequest) -> Dict[str, Any]:
+    """Tail real log files on disk and ingest new bytes since last call.
+
+    Designed for /var/log/system.log, ALDECI's own structlog JSON output,
+    or any other newline-delimited log file. Per-file byte cursors persist
+    in ``.aldeci/siem_tail_cursors.json`` so subsequent calls only ingest
+    *new* content (real incremental log tailing, not re-ingest).
+
+    Each file's content is auto-detected (JSON-leading → json_lines,
+    else syslog), parsed by the matching adapter, and mirrored into the
+    SIEM, correlation, and findings engines.
+    """
+    try:
+        result = siem_connector.tail_log_files(
+            org_id=body.org_id,
+            file_paths=body.file_paths,
+            fmt=body.format,
+            max_bytes_per_file=body.max_bytes_per_file,
+            max_lines_per_file=body.max_lines_per_file,
+        )
+        return {"status": "tailed", **result}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("siem_connector tail failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.post("/generate-and-ingest")

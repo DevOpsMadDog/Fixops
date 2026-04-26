@@ -471,9 +471,206 @@ class CSPMConnector:
                 result.errors.append(f"prowler invocation error: {exc}")
 
         if raw_json is None:
+            # Try real LocalStack enumeration via boto3 BEFORE the sample fallback.
+            real_findings = self._enumerate_real_aws_via_boto3(
+                provider, account_id, endpoint
+            )
+            if real_findings:
+                raw_json = json.dumps(real_findings).encode("utf-8")
+                result.used_real_cli = False
+                result.errors.append(
+                    f"prowler-fallback: enumerated {len(real_findings)} real "
+                    f"resources via boto3@{endpoint}"
+                )
+        if raw_json is None:
             raw_json = self._build_prowler_sample(org_id, account_id)
 
         return self._ingest_prowler(raw_json, result, account_id)
+
+    def _enumerate_real_aws_via_boto3(
+        self,
+        provider: str,
+        account_id: str,
+        endpoint: str,
+    ) -> List[Dict[str, Any]]:
+        """Enumerate real AWS resources via boto3, emit Prowler-shaped findings.
+
+        Used as the *real* fallback when the Prowler CLI is broken. Connects to
+        the supplied endpoint (LocalStack for dev, real AWS otherwise) and emits
+        one finding per misconfigured resource — matching the Prowler JSON
+        schema so the existing ProwlerNormalizer ingests them.
+        """
+        if provider != "aws":
+            return []
+        if not endpoint:
+            return []
+        try:
+            import boto3
+            from botocore.exceptions import BotoCoreError, ClientError
+        except ImportError:
+            return []
+        findings: List[Dict[str, Any]] = []
+        common_kwargs = dict(
+            endpoint_url=endpoint,
+            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", "test"),
+            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", "test"),
+            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"),
+        )
+
+        # ---- S3 ----
+        try:
+            s3 = boto3.client("s3", **common_kwargs)
+            buckets = s3.list_buckets().get("Buckets", []) or []
+            for b in buckets:
+                name = b.get("Name") or ""
+                if not name:
+                    continue
+                # Public ACL check
+                try:
+                    acl = s3.get_bucket_acl(Bucket=name)
+                    is_public = any(
+                        (g.get("Grantee", {}).get("URI") or "").endswith("AllUsers")
+                        or (g.get("Grantee", {}).get("URI") or "").endswith(
+                            "AuthenticatedUsers"
+                        )
+                        for g in acl.get("Grants", []) or []
+                    )
+                except (BotoCoreError, ClientError):
+                    is_public = False
+                if is_public:
+                    findings.append(
+                        {
+                            "CheckID": "s3_bucket_public_access",
+                            "CheckTitle": "S3 Bucket has Public Access enabled",
+                            "Status": "FAIL",
+                            "StatusExtended": (
+                                f"S3 Bucket {name} grants AllUsers / AuthenticatedUsers via ACL."
+                            ),
+                            "Severity": "critical",
+                            "Provider": "aws",
+                            "AccountId": account_id or "000000000000",
+                            "Region": common_kwargs["region_name"],
+                            "ResourceId": name,
+                            "Compliance": {"CIS-1.5": ["2.1.5"]},
+                            "Remediation": {
+                                "Recommendation": {
+                                    "Text": "Remove public ACL grants and enable Block Public Access.",
+                                    "Url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+                                }
+                            },
+                        }
+                    )
+                # Encryption check
+                try:
+                    s3.get_bucket_encryption(Bucket=name)
+                    encrypted = True
+                except ClientError as exc:
+                    code = exc.response.get("Error", {}).get("Code", "")
+                    encrypted = code != "ServerSideEncryptionConfigurationNotFoundError"
+                except BotoCoreError:
+                    encrypted = True  # don't false-positive on transport errors
+                if not encrypted:
+                    findings.append(
+                        {
+                            "CheckID": "s3_bucket_default_encryption_disabled",
+                            "CheckTitle": "S3 Bucket has no default server-side encryption",
+                            "Status": "FAIL",
+                            "StatusExtended": f"Bucket {name} has no SSE configuration.",
+                            "Severity": "high",
+                            "Provider": "aws",
+                            "AccountId": account_id or "000000000000",
+                            "Region": common_kwargs["region_name"],
+                            "ResourceId": name,
+                            "Compliance": {
+                                "PCI-DSS-3.2.1": ["3.4"],
+                                "HIPAA": ["164.312(a)(2)(iv)"],
+                            },
+                            "Remediation": {
+                                "Recommendation": {
+                                    "Text": "Enable AES256 or KMS default encryption on the bucket.",
+                                    "Url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-encryption.html",
+                                }
+                            },
+                        }
+                    )
+        except (BotoCoreError, ClientError) as exc:
+            logger.debug("S3 boto3 enumeration failed: %s", exc)
+
+        # ---- IAM ----
+        try:
+            iam = boto3.client("iam", **common_kwargs)
+            paginator = iam.get_paginator("list_users")
+            for page in paginator.paginate():
+                for u in page.get("Users", []) or []:
+                    user_name = u.get("UserName")
+                    if not user_name:
+                        continue
+                    # Inline policies
+                    try:
+                        names = iam.list_user_policies(UserName=user_name).get(
+                            "PolicyNames", []
+                        )
+                    except (BotoCoreError, ClientError):
+                        names = []
+                    for pname in names:
+                        try:
+                            doc = iam.get_user_policy(
+                                UserName=user_name, PolicyName=pname
+                            ).get("PolicyDocument", {})
+                        except (BotoCoreError, ClientError):
+                            continue
+                        # Detect Action='*' on Resource='*'
+                        for stmt in doc.get("Statement", []) or []:
+                            if not isinstance(stmt, dict):
+                                continue
+                            action = stmt.get("Action")
+                            resource = stmt.get("Resource")
+                            actions = action if isinstance(action, list) else [action]
+                            resources = (
+                                resource if isinstance(resource, list) else [resource]
+                            )
+                            if "*" in actions and "*" in resources and (
+                                stmt.get("Effect") == "Allow"
+                            ):
+                                findings.append(
+                                    {
+                                        "CheckID": "iam_user_attached_policy_admin",
+                                        "CheckTitle": (
+                                            "IAM User has full administrator privileges via inline policy"
+                                        ),
+                                        "Status": "FAIL",
+                                        "StatusExtended": (
+                                            f"IAM User {user_name} has inline policy {pname} "
+                                            f"granting Action='*' on Resource='*'."
+                                        ),
+                                        "Severity": "high",
+                                        "Provider": "aws",
+                                        "AccountId": account_id or "000000000000",
+                                        "Region": "global",
+                                        "ResourceId": user_name,
+                                        "Compliance": {
+                                            "CIS-1.5": ["1.16"],
+                                            "NIST-800-53": ["AC-6"],
+                                        },
+                                        "Remediation": {
+                                            "Recommendation": {
+                                                "Text": (
+                                                    "Replace wildcard inline policy with "
+                                                    "least-privilege managed policies."
+                                                ),
+                                                "Url": (
+                                                    "https://docs.aws.amazon.com/IAM/latest/"
+                                                    "UserGuide/best-practices.html"
+                                                ),
+                                            }
+                                        },
+                                    }
+                                )
+                                break
+        except (BotoCoreError, ClientError) as exc:
+            logger.debug("IAM boto3 enumeration failed: %s", exc)
+
+        return findings
 
     def _build_prowler_sample(self, org_id: str, account_id: str) -> bytes:
         """Embedded fallback when Prowler CLI absent."""
