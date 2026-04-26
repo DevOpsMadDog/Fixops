@@ -29,6 +29,13 @@ _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "posture_score.db"
 )
 
+# Real-findings store — used to derive vulnerability_mgmt_score when no manual
+# component value is set for a tenant.  Same path convention as
+# ``security_findings_engine._DEFAULT_DB``.
+_FINDINGS_DB = str(
+    Path(__file__).resolve().parents[2] / ".fixops_data" / "security_findings_engine.db"
+)
+
 # Weighted components — must sum to 1.0
 _COMPONENT_WEIGHTS: Dict[str, float] = {
     "vulnerability_mgmt_score": 0.20,
@@ -40,6 +47,37 @@ _COMPONENT_WEIGHTS: Dict[str, float] = {
     "incident_response_score": 0.10,
     "training_score": 0.05,
 }
+
+# Severity → penalty contribution per open finding.  Tuned so a tenant with
+# ~100 mediums or ~25 highs lands around 50; a tenant with hundreds of
+# criticals lands near 0.  Calibrated against the 15-tenant fleet
+# (webgoat-llc 3.9k findings, axios-llc 0.7k, juice-shop-corp 163).
+# Synonyms (``informational``, ``warn``) are normalised in
+# ``_derive_vuln_mgmt_score`` so the engine survives heterogeneous scanner
+# output without falling back to BASELINE.
+_SEVERITY_PENALTY: Dict[str, float] = {
+    "critical": 4.0,
+    "high":     1.5,
+    "medium":   0.4,
+    "low":      0.05,
+    "info":     0.01,
+}
+_SEVERITY_ALIASES: Dict[str, str] = {
+    "crit": "critical",
+    "sev1": "critical",
+    "sev2": "high",
+    "sev3": "medium",
+    "sev4": "low",
+    "warn": "medium",
+    "warning": "medium",
+    "informational": "info",
+    "information": "info",
+    "none": "info",
+    "unknown": "medium",
+    "":      "medium",
+}
+# Baseline returned for the vuln-mgmt component when zero open findings exist.
+_VULN_MGMT_BASELINE = 50
 
 _GRADE_THRESHOLDS = [
     (90, "A"),
@@ -153,6 +191,59 @@ class PostureScoreEngine:
             ).fetchall()
         return {r["component"]: r["score"] for r in rows}
 
+    def _derive_vuln_mgmt_score(self, org_id: str) -> Optional[int]:
+        """Derive ``vulnerability_mgmt_score`` from real open findings.
+
+        Reads ``security_findings_engine.db`` (same path the SecurityFindings
+        engine writes to) and computes a 0-100 score using
+        ``_SEVERITY_PENALTY``.  Returns ``None`` if the findings DB is
+        unavailable so the caller can fall back to the manual value or the
+        baseline 50.
+
+        Bug history: prior to 2026-04-26 the posture score for fleet tenants
+        was always 0.0 because no manual ``score_components`` rows existed
+        AND there was no integration with the live findings table.  See
+        Multica issue ``2de77fae-bbda-483d-bd93-00abe07bbc67``.
+        """
+        findings_path = Path(_FINDINGS_DB)
+        if not findings_path.exists():
+            return None
+        try:
+            conn = sqlite3.connect(str(findings_path), timeout=5)
+            conn.row_factory = sqlite3.Row
+            try:
+                rows = conn.execute(
+                    """
+                    SELECT severity, COUNT(*) AS cnt
+                    FROM security_findings
+                    WHERE org_id = ? AND status = 'open'
+                    GROUP BY severity
+                    """,
+                    (org_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            _logger.warning(
+                "posture.vuln_mgmt.derive_failed",
+                extra={"org_id": org_id, "error": str(exc)},
+            )
+            return None
+
+        if not rows:
+            # No open findings at all → near-perfect vuln-mgmt posture.
+            return 100
+
+        penalty = 0.0
+        for row in rows:
+            raw = (row["severity"] or "medium").lower().strip()
+            sev = _SEVERITY_ALIASES.get(raw, raw)
+            penalty += _SEVERITY_PENALTY.get(sev, _SEVERITY_PENALTY["medium"]) * row["cnt"]
+
+        # Cap to 0-100 range.  100 = no findings, 0 = overwhelmed.
+        score = max(0, min(100, int(round(100.0 - penalty))))
+        return score
+
     def _compute_trend(self, org_id: str, current_score: float) -> str:
         """Compare current score to prior snapshot to determine trend."""
         with self._conn() as conn:
@@ -177,14 +268,34 @@ class PostureScoreEngine:
         """Calculate overall security posture from weighted components.
 
         Returns overall_score, grade, components, trend, computed_at.
+
+        Component-resolution order (per component):
+          1. Manual value persisted in ``score_components`` (operator-set).
+          2. Derived from live data — currently only
+             ``vulnerability_mgmt_score`` is derived (from
+             ``security_findings_engine.db``).  Other components fall through.
+          3. Baseline 50.
+
+        This change (2026-04-26) ensures fleet tenants whose only signal is
+        scanner findings get a real, non-zero posture score instead of the
+        previous 0.0 that surfaced through ``get_posture_stats``.
         """
         components_map = self._get_components_map(org_id)
 
-        # Use stored component scores; default 50 if not yet set
+        # Lazily derive live components when no manual value is stored.
+        derived_vuln_mgmt: Optional[int] = None
+        if "vulnerability_mgmt_score" not in components_map:
+            derived_vuln_mgmt = self._derive_vuln_mgmt_score(org_id)
+
         weighted_sum = 0.0
         components_out: Dict[str, int] = {}
         for component, weight in _COMPONENT_WEIGHTS.items():
-            score = components_map.get(component, 50)
+            if component in components_map:
+                score = components_map[component]
+            elif component == "vulnerability_mgmt_score" and derived_vuln_mgmt is not None:
+                score = derived_vuln_mgmt
+            else:
+                score = _VULN_MGMT_BASELINE if component == "vulnerability_mgmt_score" else 50
             weighted_sum += score * weight
             components_out[component] = score
 
@@ -373,8 +484,20 @@ class PostureScoreEngine:
     # ------------------------------------------------------------------
 
     def get_posture_stats(self, org_id: str) -> Dict[str, Any]:
-        """Return summary stats: current score, grade, 30d best/worst, trend, days_at_risk."""
+        """Return summary stats: current score, grade, 30d best/worst, trend, days_at_risk.
+
+        Behaviour change (2026-04-26): if no persisted ``posture_scores`` row
+        exists for the tenant, fall through to a fresh ``compute_posture_score``
+        call instead of returning ``current_score=0.0``.  This was the
+        customer-visible 0.0 bug for fleet tenants
+        (Multica issue 2de77fae-bbda-483d-bd93-00abe07bbc67).
+        """
         current = self.get_current_score(org_id)
+        if not current:
+            # No saved score yet — compute live so the customer never sees
+            # a deceptive 0.0 simply because the score has never been
+            # persisted.  We do NOT auto-save here to keep this read-only.
+            current = self.compute_posture_score(org_id)
         history = self.get_score_history(org_id, days=30)
 
         current_score = current.get("overall_score", 0.0)

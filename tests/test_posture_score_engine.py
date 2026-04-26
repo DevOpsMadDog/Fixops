@@ -259,3 +259,131 @@ def test_org_isolation_history(engine):
     sd = engine.compute_posture_score("org_a")
     engine.save_score("org_a", sd)
     assert engine.get_score_history("org_b") == []
+
+
+# ---------------------------------------------------------------------------
+# 11. Bug fix regression — Multica issue 2de77fae-bbda-483d-bd93-00abe07bbc67
+#     Posture score for fleet tenants returned 0.0 because the engine had
+#     no integration with the live findings table and customers had no
+#     manual score_components rows.  The fix derives
+#     vulnerability_mgmt_score from real open findings.
+# ---------------------------------------------------------------------------
+
+import sqlite3 as _sqlite3
+from unittest import mock as _mock
+
+
+def _seed_findings_db(path, org_id, severity_counts):
+    """Create a security_findings_engine.db-shaped SQLite file with N findings."""
+    conn = _sqlite3.connect(str(path))
+    conn.execute(
+        """
+        CREATE TABLE security_findings (
+            id          TEXT PRIMARY KEY,
+            org_id      TEXT NOT NULL,
+            severity    TEXT NOT NULL DEFAULT 'medium',
+            status      TEXT NOT NULL DEFAULT 'open'
+        )
+        """
+    )
+    fid = 0
+    for sev, cnt in severity_counts.items():
+        for _ in range(cnt):
+            fid += 1
+            conn.execute(
+                "INSERT INTO security_findings (id, org_id, severity, status) VALUES (?,?,?, 'open')",
+                (f"f-{fid}", org_id, sev),
+            )
+    conn.commit()
+    conn.close()
+
+
+def test_posture_stats_returns_nonzero_with_real_findings(tmp_path):
+    """REGRESSION (Multica 2de77fae): a tenant with 100+ real open findings
+    must produce a non-zero ``current_score`` from ``get_posture_stats``,
+    even when no posture_scores row has ever been persisted and no manual
+    component scores exist."""
+    findings_db = tmp_path / "security_findings_engine.db"
+    _seed_findings_db(
+        findings_db,
+        "fleet-tenant-x",
+        {"high": 30, "medium": 50, "low": 25, "critical": 2},  # 107 findings
+    )
+    posture_db = tmp_path / "posture_score.db"
+
+    with _mock.patch("core.posture_score_engine._FINDINGS_DB", str(findings_db)):
+        eng = PostureScoreEngine(db_path=str(posture_db))
+        stats = eng.get_posture_stats("fleet-tenant-x")
+
+        # Bug regression guard: must NOT be 0.0
+        assert stats["current_score"] > 0.0, (
+            "posture stats returned 0.0 for tenant with 107 real findings — "
+            "Multica bug 2de77fae has regressed"
+        )
+        # And must reflect findings — not just baseline 50.
+        # vuln_mgmt component should be derived (penalty present), so the
+        # weighted overall must be < pure-baseline 50.
+        assert stats["current_score"] < 50.0, (
+            "vulnerability_mgmt_score did not penalise real findings"
+        )
+        assert stats["grade"] in {"D", "F"}
+
+
+def test_compute_uses_real_findings_when_no_manual_components(tmp_path):
+    findings_db = tmp_path / "security_findings_engine.db"
+    _seed_findings_db(findings_db, "real-tenant", {"high": 25, "medium": 50})
+    posture_db = tmp_path / "posture_score.db"
+
+    with _mock.patch("core.posture_score_engine._FINDINGS_DB", str(findings_db)):
+        eng = PostureScoreEngine(db_path=str(posture_db))
+        result = eng.compute_posture_score("real-tenant")
+        vuln = result["components"]["vulnerability_mgmt_score"]
+        # 25*1.5 + 50*0.4 = 37.5 + 20 = 57.5 penalty → 100-58 = 42
+        assert 30 <= vuln <= 50, f"expected derived vuln_mgmt ~42, got {vuln}"
+        assert result["overall_score"] > 0.0
+
+
+def test_compute_falls_back_to_baseline_when_no_findings_db(tmp_path):
+    """When the findings DB does not exist, vuln_mgmt falls back to 50."""
+    posture_db = tmp_path / "posture_score.db"
+    with _mock.patch(
+        "core.posture_score_engine._FINDINGS_DB",
+        str(tmp_path / "nonexistent.db"),
+    ):
+        eng = PostureScoreEngine(db_path=str(posture_db))
+        result = eng.compute_posture_score("greenfield-tenant")
+        # All 8 components should be 50 → weighted sum = 50.0
+        assert result["overall_score"] == 50.0
+        assert all(v == 50 for v in result["components"].values())
+
+
+def test_manual_component_overrides_derived(tmp_path):
+    """Operator-set component scores must win over derived findings."""
+    findings_db = tmp_path / "security_findings_engine.db"
+    _seed_findings_db(findings_db, "manual-org", {"critical": 100})
+    posture_db = tmp_path / "posture_score.db"
+
+    with _mock.patch("core.posture_score_engine._FINDINGS_DB", str(findings_db)):
+        eng = PostureScoreEngine(db_path=str(posture_db))
+        eng.update_component("manual-org", "vulnerability_mgmt_score", 95, "manual")
+        r = eng.compute_posture_score("manual-org")
+        assert r["components"]["vulnerability_mgmt_score"] == 95
+
+
+def test_severity_aliases_normalised(tmp_path):
+    """``informational``, ``warning``, etc. must not silently become
+    'medium-equivalent penalty' (they were before — leading to inflated
+    scores).  After fix, they map through _SEVERITY_ALIASES."""
+    findings_db = tmp_path / "security_findings_engine.db"
+    _seed_findings_db(
+        findings_db,
+        "alias-org",
+        {"informational": 200, "warning": 5, "critical": 1},
+    )
+    posture_db = tmp_path / "posture_score.db"
+    with _mock.patch("core.posture_score_engine._FINDINGS_DB", str(findings_db)):
+        eng = PostureScoreEngine(db_path=str(posture_db))
+        r = eng.compute_posture_score("alias-org")
+        # 200*0.01 (info) + 5*0.4 (warn→medium) + 1*4 (crit) = 2 + 2 + 4 = 8
+        # vuln = 100 - 8 = 92
+        assert 88 <= r["components"]["vulnerability_mgmt_score"] <= 95
