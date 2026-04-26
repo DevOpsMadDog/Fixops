@@ -43,10 +43,15 @@ GRAPH_JSON = REPO_ROOT / "graphify-out" / "graph.json"
 OUT_HTML = REPO_ROOT / "graphify-out" / "second_brain.html"
 OUT_REPORT = REPO_ROOT / "graphify-out" / "SECOND_BRAIN_REPORT.md"
 
-# Regex used to find direct TrustGraph emit-sites in source code
+# Regex used to find direct TrustGraph emit-sites in source code.
+# Includes the new connectors._emit helper indirection (added 2026-04-26 as
+# part of the connector wave — single shared helper publishes to TrustGraph
+# event bus + legacy in-process bus, used by all 16+ connectors).
 EMIT_PATTERN = re.compile(
     r"(from\s+core\.trustgraph_event_bus|"
+    r"from\s+connectors\._emit|"
     r"_emit_event\s*\(|"
+    r"emit_connector_event\s*\(|"
     r"bus\.publish\s*\(|"
     r"bus\.emit\s*\(|"
     r"get_event_bus\s*\()"
