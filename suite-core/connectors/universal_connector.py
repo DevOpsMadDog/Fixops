@@ -30,6 +30,8 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+from connectors._emit import emit_connector_event
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -1464,6 +1466,19 @@ class UniversalConnector:
         results = await asyncio.gather(*tasks)
 
         success_count = sum(1 for r in results if r.success)
+        emit_connector_event(
+            connector="UniversalConnector",
+            org_id=str(finding.get("org_id") or finding.get("tenant") or "default"),
+            source_kind="sync",
+            finding_count=success_count,
+            extra={
+                "operation": "create_tickets",
+                "targets": list(connectors_to_use.keys()),
+                "success_count": success_count,
+                "error_count": len(results) - success_count,
+                "finding_severity": str(finding.get("severity") or ""),
+            },
+        )
         return {
             "results": [r.to_dict() for r in results],
             "total": len(results),

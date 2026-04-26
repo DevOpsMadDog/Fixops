@@ -40,6 +40,7 @@ import httpx
 import structlog
 
 from core.persistent_store import PersistentDict
+from connectors._emit import emit_connector_event
 
 logger = structlog.get_logger("connectors.bidirectional_sync")
 
@@ -1849,6 +1850,17 @@ class BidirectionalSyncEngine:
                 items_pulled=len(items),
             )
 
+            emit_connector_event(
+                connector=f"BidirectionalSyncEngine[{connector_name}]",
+                org_id="default",
+                source_kind="sync",
+                finding_count=len(items),
+                extra={
+                    "direction": "pull",
+                    "connector_name": connector_name,
+                    "incremental": incremental,
+                },
+            )
             return len(items), items
 
         except Exception as e:
@@ -1918,6 +1930,17 @@ class BidirectionalSyncEngine:
                 failed=len(result.get("failed_ids", [])),
             )
 
+            emit_connector_event(
+                connector=f"BidirectionalSyncEngine[{connector_name}]",
+                org_id="default",
+                source_kind="sync",
+                finding_count=int(result.get("items_pushed", 0)),
+                extra={
+                    "direction": "push",
+                    "connector_name": connector_name,
+                    "failed": len(result.get("failed_ids", [])),
+                },
+            )
             return result
 
         except Exception as e:
