@@ -262,7 +262,12 @@ class SecurityBaselineEngine:
             updated = conn.execute(
                 "SELECT * FROM baselines WHERE id = ?", (baseline_id,)
             ).fetchone()
-        return self._row(updated)
+        record = self._row(updated)
+        self._emit_event(
+            "baseline.published",
+            {"baseline_id": baseline_id, "org_id": org_id, "published_at": now},
+        )
+        return record
 
     def run_assessment(
         self,
@@ -347,7 +352,21 @@ class SecurityBaselineEngine:
             row = conn.execute(
                 "SELECT * FROM baseline_assessments WHERE id = ?", (assessment_id,)
             ).fetchone()
-        return self._row(row)
+        record = self._row(row)
+        self._emit_event(
+            "baseline.assessed",
+            {
+                "assessment_id": assessment_id,
+                "baseline_id": baseline_id,
+                "org_id": org_id,
+                "target_name": target_name,
+                "compliance_pct": compliance_pct,
+                "pass": pass_count,
+                "fail": fail_count,
+                "skip": skip_count,
+            },
+        )
+        return record
 
     def get_baseline_detail(self, baseline_id: str, org_id: str) -> Optional[Dict[str, Any]]:
         """Return baseline + controls + last 5 assessments."""
@@ -477,3 +496,33 @@ class SecurityBaselineEngine:
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()
         return [self._row(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            _logger.debug("baseline trustgraph emit failed: %s", event_type)

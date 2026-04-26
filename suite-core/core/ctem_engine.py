@@ -309,6 +309,10 @@ class CTEMEngine:
         cycle = CTEMCycle(name=name, org_id=org_id)
         self._db.upsert_cycle(cycle)
         logger.info("CTEM cycle started", cycle_id=cycle.id, name=name, org_id=org_id)
+        self._emit_event(
+            "ctem.cycle.started",
+            {"cycle_id": cycle.id, "name": name, "org_id": org_id, "stage": cycle.current_stage.value},
+        )
         return cycle
 
     def advance_stage(self, cycle_id: str) -> CTEMCycle:
@@ -335,6 +339,15 @@ class CTEMEngine:
             cycle_id=cycle_id,
             stage=next_stage.value,
             completion_pct=cycle.completion_pct,
+        )
+        self._emit_event(
+            "ctem.cycle.advanced",
+            {
+                "cycle_id": cycle_id,
+                "org_id": cycle.org_id,
+                "stage": next_stage.value,
+                "completion_pct": cycle.completion_pct,
+            },
         )
         return cycle
 
@@ -619,6 +632,37 @@ class CTEMEngine:
                 },
             },
         }
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            # Handle async emit signatures
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            logger.debug("ctem trustgraph emit failed", event=event_type)
 
 
 # ---------------------------------------------------------------------------
