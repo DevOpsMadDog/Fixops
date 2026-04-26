@@ -76,7 +76,7 @@ HEADERS = {"X-API-Key": "test-token-123"}
 def test_scan_snippet_detects_python_hardcoded_secret(isolated_db):
     from core.sast_engine import scan_snippet
 
-    code = 'API_KEY = "sk_live_AKIA12345678901234567890"\n'
+    code = 'API_KEY = "AKIAIOSFODNN7EXAMPLE"\n'
     out = scan_snippet(org_id="org-A", code=code, language="python")
 
     assert out["org_id"] == "org-A"
