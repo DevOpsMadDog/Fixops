@@ -3,11 +3,12 @@
  * Route: /security-findings
  * API: GET /api/v1/security-findings/findings, /summary
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ShieldAlert, RefreshCw } from "lucide-react";
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { LiveEventStream } from "@/components/shared/LiveEventStream";
 
 async function apiFetch<T>(path: string): Promise<T> {
   const orgId = getStoredOrgId() || "verify-test";
@@ -39,7 +40,7 @@ export default function SecurityFindingsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const [f, s] = await Promise.allSettled([
@@ -50,8 +51,8 @@ export default function SecurityFindingsDashboard() {
       if (s.status === "fulfilled") { setSummary(s.value); }
     } catch (e) { setError((e as Error).message); }
     finally { setLoading(false); }
-  };
-  useEffect(() => { load(); }, []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = filter === "all" ? findings : findings.filter(f => f.severity === filter || f.status === filter);
   const sevCounts: any = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -108,16 +109,25 @@ export default function SecurityFindingsDashboard() {
                 ))}</tbody>
               </table></div>
             </div>
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">Top 5 Assets (Open)</h2>
-              {top5.length === 0 ? <p className="text-gray-500 text-sm">No assets with open findings.</p>
-                : <div className="space-y-2">{top5.map(([asset, count], i) => (
-                  <div key={asset} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded">
-                    <span className="text-gray-500 w-4">{i + 1}.</span>
-                    <span className="flex-1 text-gray-200 text-sm font-mono truncate">{asset}</span>
-                    <span className="text-red-400 font-bold">{count}</span>
-                  </div>
-                ))}</div>}
+            <div className="space-y-6">
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h2 className="text-lg font-semibold mb-4">Top 5 Assets (Open)</h2>
+                {top5.length === 0 ? <p className="text-gray-500 text-sm">No assets with open findings.</p>
+                  : <div className="space-y-2">{top5.map(([asset, count], i) => (
+                    <div key={asset} className="flex items-center gap-2 p-2 bg-gray-700/30 rounded">
+                      <span className="text-gray-500 w-4">{i + 1}.</span>
+                      <span className="flex-1 text-gray-200 text-sm font-mono truncate">{asset}</span>
+                      <span className="text-red-400 font-bold">{count}</span>
+                    </div>
+                  ))}</div>}
+              </div>
+              <LiveEventStream
+                title="Live Findings"
+                eventTypes={["finding", "alert"]}
+                heightClass="h-72"
+                onEvent={() => { void load(); }}
+                emptyMessage="No real-time findings yet. Trigger a scan via /api/v1/sast/scan to populate."
+              />
             </div>
           </div>
         </>}

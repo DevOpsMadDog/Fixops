@@ -3,11 +3,12 @@
  * API: GET /api/v1/alert-triage/alerts
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Bell } from "lucide-react";
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { LiveEventStream } from "@/components/shared/LiveEventStream";
 
 async function apiFetch<T>(path: string): Promise<T> {
   const orgId = getStoredOrgId() || "verify-test";
@@ -23,7 +24,7 @@ export default function AlertTriageDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
@@ -39,8 +40,8 @@ export default function AlertTriageDashboard() {
       }
     } catch (e) { setError((e as Error).message); }
     finally { setLoading(false); }
-  };
-  useEffect(() => { load(); }, []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -76,6 +77,13 @@ export default function AlertTriageDashboard() {
               ))}
             </div>
           )}
+          <LiveEventStream
+            title="Live Alert Stream"
+            eventTypes={["alert", "incident", "threat", "anomaly"]}
+            heightClass="h-48"
+            onEvent={() => { void load(); }}
+            emptyMessage="No live alerts yet. New alerts will appear here as they fire."
+          />
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-700">
               <h2 className="text-lg font-semibold text-white">Alert Triage ({alerts.length})</h2>

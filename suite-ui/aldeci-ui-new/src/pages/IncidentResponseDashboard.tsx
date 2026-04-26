@@ -40,6 +40,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { EntityLink } from "@/components/EntityLink";
+import { LiveEventStream } from "@/components/shared/LiveEventStream";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -238,6 +239,15 @@ export default function IncidentResponseDashboard() {
         <KpiCard title="MTTR"              value={liveMttr}        icon={Clock}         trend="down" />
         <KpiCard title="SLA Compliance"    value={liveSlaComp}     icon={Activity}      trend="up"   className="border-green-500/20" />
       </div>
+
+      {/* Real-time security event stream */}
+      <LiveEventStream
+        title="Live Incident & Threat Stream"
+        eventTypes={["incident", "threat", "alert", "sla_breach"]}
+        heightClass="h-48"
+        onEvent={() => { handleRefresh(); }}
+        emptyMessage="No incidents in the live stream. New incidents from the SOC will appear here."
+      />
 
       {/* Incidents table */}
       <Card className="border-red-500/20">
