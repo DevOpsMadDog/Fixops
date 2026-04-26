@@ -5962,6 +5962,24 @@ def create_app() -> FastAPI:
     except ImportError as _eb_err:
         _logger.warning("TrustGraph Event Bus not available: %s", _eb_err)
 
+    # LLM Learning Loop — Phase 1 closed-loop trainer.
+    # Subscribes to finding.created/alert.created/threat.detected and runs each
+    # event through RAG -> Council -> learning_signals.db -> decision.made.
+    # Opt-in via FIXOPS_LLM_LEARNING_LOOP=1 so existing prod isn't surprised.
+    @app.on_event("startup")
+    async def _start_llm_learning_loop() -> None:
+        try:
+            from core.llm_learning_loop import start_llm_learning_loop
+
+            loop_handle = start_llm_learning_loop(app=app)
+            if loop_handle is not None:
+                _logger.info(
+                    "LLM Learning Loop started (signals_db=%s)",
+                    loop_handle.signals_db_path,
+                )
+        except Exception as _llm_loop_err:  # noqa: BLE001 — best-effort start
+            _logger.warning("LLM Learning Loop start failed: %s", _llm_loop_err)
+
     # CIEM — Cloud Infrastructure Entitlement Management (IAM analysis, privilege escalation)
     try:
         from apps.api.ciem_router import router as ciem_router
