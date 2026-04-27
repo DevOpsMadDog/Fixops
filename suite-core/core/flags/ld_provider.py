@@ -12,6 +12,11 @@ from typing import Any, Dict, Optional
 
 from core.flags.base import EvaluationContext, FeatureFlagProvider
 
+try:  # TrustGraph event bus — optional, never blocks on failure
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus is optional
+    _get_tg_bus = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -221,7 +226,18 @@ class LaunchDarklyProvider(FeatureFlagProvider):
 
         try:
             ld_context = self._build_ld_context(context)
-            return self.client.variation(key, ld_context, default)
+            value = self.client.variation(key, ld_context, default)
+            # A/B test variant assignments are valuable telemetry — emit on success.
+            # bool/string/number flag evals NOT wired (would flood the bus).
+            self._emit_event(
+                "flag.variant.assigned",
+                {
+                    "flag_key": key,
+                    "variant": str(value),
+                    "tenant_id": context.tenant_id if context else None,
+                },
+            )
+            return value
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "LaunchDarkly evaluation failed for %s: %s. Using default.", key, exc
@@ -235,6 +251,37 @@ class LaunchDarklyProvider(FeatureFlagProvider):
                 self.client.close()
             except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Failed to close LaunchDarkly client: %s", exc)
+        self._emit_event("flags.provider.closed", {"provider": "launchdarkly"})
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
 
 
 __all__ = ["LaunchDarklyProvider"]
