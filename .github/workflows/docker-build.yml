@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write   # required for cosign keyless OIDC signing
 
 env:
   REGISTRY: ghcr.io
@@ -58,6 +59,40 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # SCIF Stage 1 blocker #2 — cosign image signing (keyless OIDC by default,
+      # falls back to key-based when COSIGN_PRIVATE_KEY secret is set). Skips
+      # cleanly on pull_request events (no push happened, nothing to sign).
+      - name: Install Cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign pushed image with cosign
+        if: github.event_name != 'pull_request' && steps.build.outputs.digest != ''
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -e
+          if [ -z "${IMAGE_DIGEST}" ]; then
+            echo "::warning::no digest from build step, skipping cosign sign"
+            exit 0
+          fi
+          # Build the immutable digest reference for every tag and sign once.
+          IMAGE_REF="${REGISTRY}/${IMAGE_NAME}@${IMAGE_DIGEST}"
+          echo "Signing ${IMAGE_REF}"
+          if [ -n "${COSIGN_PRIVATE_KEY}" ]; then
+            printf '%s' "${COSIGN_PRIVATE_KEY}" > /tmp/cosign.key
+            cosign sign --yes --key /tmp/cosign.key "${IMAGE_REF}" \
+              || echo "::warning::cosign key-based sign failed — continuing"
+            shred -u /tmp/cosign.key 2>/dev/null || rm -f /tmp/cosign.key
+          else
+            # Keyless OIDC (Fulcio) — uses the workflow's id-token permission.
+            cosign sign --yes "${IMAGE_REF}" \
+              || echo "::warning::cosign keyless sign failed — continuing (sigstore/Fulcio reachable?)"
+          fi
 
       - name: Export image for PR testing
         if: github.event_name == 'pull_request'

@@ -254,6 +254,91 @@ if command -v gpg > /dev/null 2>&1 && gpg --list-secret-keys 2>/dev/null | grep 
     gpg --armor --detach-sign --output manifests/sha256.txt.asc manifests/sha256.txt 2>/dev/null && \
         echo "  ✓ GPG signed" || echo "  (gpg sign skipped)"
 fi
+
+# ── 6b. Cosign image + manifest signing (SCIF Stage 1 blocker #2) ─────────
+# Sign the SHA-256 manifest as a blob, and (if present) the saved docker
+# image with cosign. Honours two modes:
+#   • keyless / sigstore OIDC  — set COSIGN_EXPERIMENTAL=1 (default in cosign
+#     v2) and COSIGN_IDENTITY_TOKEN, or run on a workload that can mint OIDC
+#     (GitHub Actions, GCP, etc.). No COSIGN_KEY required.
+#   • key-based                — set COSIGN_KEY (path to cosign.key) and
+#     COSIGN_PASSWORD (password for the key).
+# When neither is configured we WARN and skip (do not fail the build).
+COSIGN_KEY="${COSIGN_KEY:-}"
+COSIGN_IDENTITY_TOKEN="${COSIGN_IDENTITY_TOKEN:-}"
+if command -v cosign > /dev/null 2>&1; then
+    SIGN_MODE=""
+    if [ -n "$COSIGN_KEY" ] && [ -f "$COSIGN_KEY" ]; then
+        SIGN_MODE="key"
+    elif [ -n "$COSIGN_IDENTITY_TOKEN" ] || [ "${COSIGN_EXPERIMENTAL:-0}" = "1" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+        SIGN_MODE="keyless"
+    fi
+
+    if [ -z "$SIGN_MODE" ]; then
+        echo "  ⚠ cosign present but no signing identity configured"
+        echo "    set COSIGN_KEY=<cosign.key> + COSIGN_PASSWORD, OR enable keyless"
+        echo "    (COSIGN_EXPERIMENTAL=1 + COSIGN_IDENTITY_TOKEN, or run in GitHub Actions)"
+        echo "    — continuing build without cosign signatures (skip, do not fail)"
+    else
+        echo "▸ Cosign signing manifest (mode=${SIGN_MODE})..."
+        if [ "$SIGN_MODE" = "key" ]; then
+            COSIGN_PASSWORD="${COSIGN_PASSWORD:-}" cosign sign-blob \
+                --yes \
+                --key "$COSIGN_KEY" \
+                --output-signature manifests/sha256.txt.cosign.sig \
+                --output-certificate manifests/sha256.txt.cosign.cert \
+                manifests/sha256.txt 2>&1 | tail -5 || \
+                echo "    (cosign sign-blob warned — continuing)"
+        else
+            COSIGN_EXPERIMENTAL=1 cosign sign-blob \
+                --yes \
+                --output-signature manifests/sha256.txt.cosign.sig \
+                --output-certificate manifests/sha256.txt.cosign.cert \
+                manifests/sha256.txt 2>&1 | tail -5 || \
+                echo "    (cosign keyless sign-blob warned — continuing)"
+        fi
+        [ -f manifests/sha256.txt.cosign.sig ] && echo "  ✓ cosign manifest signature: manifests/sha256.txt.cosign.sig"
+
+        # Sign the saved docker image archive (if present)
+        IMAGE_ARCHIVE="images/aldeci-scif-hardened.tar.gz"
+        if [ -f "$IMAGE_ARCHIVE" ]; then
+            echo "▸ Cosign signing image archive..."
+            if [ "$SIGN_MODE" = "key" ]; then
+                COSIGN_PASSWORD="${COSIGN_PASSWORD:-}" cosign sign-blob \
+                    --yes \
+                    --key "$COSIGN_KEY" \
+                    --output-signature "${IMAGE_ARCHIVE}.cosign.sig" \
+                    --output-certificate "${IMAGE_ARCHIVE}.cosign.cert" \
+                    "$IMAGE_ARCHIVE" 2>&1 | tail -5 || true
+            else
+                COSIGN_EXPERIMENTAL=1 cosign sign-blob \
+                    --yes \
+                    --output-signature "${IMAGE_ARCHIVE}.cosign.sig" \
+                    --output-certificate "${IMAGE_ARCHIVE}.cosign.cert" \
+                    "$IMAGE_ARCHIVE" 2>&1 | tail -5 || true
+            fi
+            [ -f "${IMAGE_ARCHIVE}.cosign.sig" ] && echo "  ✓ cosign image signature: ${IMAGE_ARCHIVE}.cosign.sig"
+        fi
+
+        # Emit a small attestation pointer so the air-gap installer can verify
+        cat > manifests/cosign-attestation.json <<COSIGN_ATTEST
+{
+  "subject": "sha256.txt",
+  "signature": "manifests/sha256.txt.cosign.sig",
+  "certificate": "manifests/sha256.txt.cosign.cert",
+  "mode": "${SIGN_MODE}",
+  "signer": "${SIGN_MODE}",
+  "git_sha": "${GIT_SHA}",
+  "build_utc": "${UTC_DATE}",
+  "verify": "cosign verify-blob --signature manifests/sha256.txt.cosign.sig --certificate manifests/sha256.txt.cosign.cert manifests/sha256.txt"
+}
+COSIGN_ATTEST
+        echo "  ✓ cosign attestation pointer: manifests/cosign-attestation.json"
+    fi
+else
+    echo "  (cosign binary not installed — skipping image/manifest signing)"
+    echo "  install: https://docs.sigstore.dev/cosign/installation/"
+fi
 popd > /dev/null
 
 # ── 7. Tarball ────────────────────────────────────────────────────────────
