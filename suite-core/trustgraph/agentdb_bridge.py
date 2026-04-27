@@ -712,6 +712,98 @@ class AgentDBBridge:
         return f"{event_type}:{digest}"
 
     # ------------------------------------------------------------------
+    # Bulk reindex
+    # ------------------------------------------------------------------
+
+    def reindex_all(
+        self,
+        *,
+        target_model: Optional[str] = None,
+        dry_run: bool = False,
+    ) -> Dict[str, Any]:
+        """Recompute embeddings for all active rows not yet on the current embedder.
+
+        Walks every row in ``memory_entries`` where ``embedding_model`` differs
+        from the current embedder name and rewrites ``embedding``,
+        ``embedding_model``, and ``embedding_dimensions`` in-place.
+
+        Args:
+            target_model: if given, only reindex rows whose ``embedding_model``
+                matches this value (e.g. ``"hash-blake2b"``).  Default: reindex
+                any row that isn't already on the current embedder.
+            dry_run: if True, count candidates without writing.
+
+        Returns:
+            dict with keys ``reindexed``, ``skipped``, ``failed``, ``embedder``.
+        """
+        if not self.enabled or not self._ensure_initialised():
+            return {"reindexed": 0, "skipped": 0, "failed": 0, "embedder": "disabled"}
+
+        current_name = self._effective_embedder_name()
+        conn = self._get_conn()
+
+        # Fetch candidates: rows not already on the current embedder.
+        sql = (
+            "SELECT id, namespace, content, embedding_model"
+            " FROM memory_entries"
+            " WHERE status='active' AND embedding_model != ?"
+        )
+        params: List[Any] = [current_name]
+        if target_model:
+            sql += " AND embedding_model = ?"
+            params.append(target_model)
+
+        rows = conn.execute(sql, params).fetchall()
+        reindexed = 0
+        skipped = 0
+        failed = 0
+        now_ms = int(time.time() * 1000)
+
+        for row in rows:
+            if dry_run:
+                skipped += 1
+                continue
+            try:
+                new_emb = self.embedder.embed(row["content"] or "")
+                if not new_emb:
+                    skipped += 1
+                    continue
+                conn.execute(
+                    """UPDATE memory_entries
+                       SET embedding=?, embedding_model=?, embedding_dimensions=?,
+                           updated_at=?
+                       WHERE id=?""",
+                    (
+                        json.dumps(new_emb),
+                        current_name,
+                        self.embedder.dim,
+                        now_ms,
+                        row["id"],
+                    ),
+                )
+                reindexed += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("agentdb_bridge.reindex_all row=%s failed: %s", row["id"], exc)
+                failed += 1
+
+        if not dry_run and reindexed:
+            logger.info(
+                "agentdb_bridge.reindex_all: reindexed %d rows to %s (%d failed, %d skipped)",
+                reindexed,
+                current_name,
+                failed,
+                skipped,
+            )
+
+        return {
+            "reindexed": reindexed,
+            "skipped": skipped,
+            "failed": failed,
+            "embedder": current_name,
+            "dry_run": dry_run,
+        }
+
+    # ------------------------------------------------------------------
     # Health / metrics
     # ------------------------------------------------------------------
 
