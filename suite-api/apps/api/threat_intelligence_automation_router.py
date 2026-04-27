@@ -104,9 +104,30 @@ def list_feeds(
     org_id: str = Query("default"),
     feed_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """List registered feeds."""
-    return _get_engine().list_feeds(org_id, feed_type=feed_type, status=status)
+    rows = _get_engine().list_feeds(org_id, feed_type=feed_type, status=status)
+    if not rows:
+        return {
+            "feeds": [],
+            "total": 0,
+            "hint": "Wire global feed registry to per-org feeds via POST /api/v1/ti-automation/feeds/import-global, or register a feed manually via POST /api/v1/ti-automation/feeds.",
+        }
+    return {"feeds": rows, "total": len(rows)}
+
+
+@router.post("/feeds/import-global", dependencies=[Depends(api_key_auth)])
+def import_global_feeds(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Import feeds from the global feed registry into per-org enrolled-feeds table (NOT YET IMPLEMENTED)."""
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error": "not_implemented",
+            "endpoint": "POST /api/v1/ti-automation/feeds/import-global",
+            "reason": "feeds_service.py lists 28+ real global feeds but no wiring from global feed registry to per-org enrolled-feeds table exists yet.",
+            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#5",
+        },
+    )
 
 
 @router.put("/feeds/{feed_id}/stats", dependencies=[Depends(api_key_auth)])

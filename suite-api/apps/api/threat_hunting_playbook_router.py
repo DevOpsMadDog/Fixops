@@ -124,10 +124,31 @@ def list_playbooks(
     org_id: str = Query(default="default"),
     hunt_type: Optional[str] = Query(default=None),
     threat_category: Optional[str] = Query(default=None),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """List hunting playbooks, optionally filtered."""
-    return _get_engine().list_playbooks(
+    rows = _get_engine().list_playbooks(
         org_id, hunt_type=hunt_type, threat_category=threat_category
+    )
+    if not rows:
+        return {
+            "playbooks": [],
+            "total": 0,
+            "hint": "Import Sigma rule playbooks via POST /api/v1/hunting-playbooks/import-sigma, or create a playbook manually via POST /api/v1/hunting-playbooks/playbooks.",
+        }
+    return {"playbooks": rows, "total": len(rows)}
+
+
+@router.post("/import-sigma", dependencies=[Depends(api_key_auth)])
+def import_sigma_playbooks(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Import threat hunting playbooks from SigmaHQ rule repository (NOT YET IMPLEMENTED)."""
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error": "not_implemented",
+            "endpoint": "POST /api/v1/hunting-playbooks/import-sigma",
+            "reason": "Sigma YAML importer not yet built. Source: https://github.com/SigmaHQ/sigma (converts Sigma rules to playbook records).",
+            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#28",
+        },
     )
 
 

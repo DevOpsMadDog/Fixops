@@ -122,9 +122,30 @@ def list_vectors(
     org_id: str = Query(..., description="Organization ID"),
     vector_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """List threat vectors with optional filters."""
-    return _get_engine().list_vectors(org_id, vector_type=vector_type, severity=severity)
+    rows = _get_engine().list_vectors(org_id, vector_type=vector_type, severity=severity)
+    if not rows:
+        return {
+            "vectors": [],
+            "total": 0,
+            "hint": "Import MITRE ATT&CK technique vectors via POST /api/v1/threat-vectors/import-mitre, or create manually via POST /api/v1/threat-vectors/vectors.",
+        }
+    return {"vectors": rows, "total": len(rows)}
+
+
+@router.post("/import-mitre", dependencies=[Depends(api_key_auth)])
+def import_mitre_techniques(org_id: str = Query(..., description="Organization ID")) -> Dict[str, Any]:
+    """Import threat vectors from MITRE ATT&CK technique bundle (NOT YET IMPLEMENTED)."""
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error": "not_implemented",
+            "endpoint": "POST /api/v1/threat-vectors/import-mitre",
+            "reason": "MITRE ATT&CK technique-to-vector taxonomy mapping not yet built. Bundle cached at /tmp/mitre.json; needs technique extraction logic.",
+            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#4",
+        },
+    )
 
 
 @router.get("/vectors/{vector_id}", dependencies=[Depends(api_key_auth)])

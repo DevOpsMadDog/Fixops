@@ -16,7 +16,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -107,7 +107,28 @@ def list_benchmarks(
     metric_category: Optional[str] = Query(None),
 ):
     """List benchmarks with optional sector and category filters."""
-    return _get_engine().list_benchmarks(org_id, sector=sector, metric_category=metric_category)
+    rows = _get_engine().list_benchmarks(org_id, sector=sector, metric_category=metric_category)
+    if not rows:
+        return {
+            "benchmarks": [],
+            "total": 0,
+            "hint": "Import SANS/Verizon DBIR industry benchmarks via POST /api/v1/security-benchmarks/import-dbir, or create one manually via POST /api/v1/security-benchmarks/benchmarks.",
+        }
+    return {"benchmarks": rows, "total": len(rows)}
+
+
+@router.post("/import-dbir", dependencies=[Depends(api_key_auth)], status_code=501)
+def import_dbir_benchmarks(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Import SANS/Verizon DBIR public industry benchmark statistics (NOT YET IMPLEMENTED)."""
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error": "not_implemented",
+            "endpoint": "POST /api/v1/security-benchmarks/import-dbir",
+            "reason": "SANS/Verizon DBIR PDF/CSV importer not yet built. Source: https://www.verizon.com/business/resources/reports/dbir/",
+            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#10",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

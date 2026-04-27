@@ -116,13 +116,34 @@ def list_benchmarks(
     org_id: str = Query(default="default"),
     framework: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """List benchmarks for the org, optionally filtered."""
     try:
-        return _get_engine().list_benchmarks(org_id, framework=framework, status=status)
+        rows = _get_engine().list_benchmarks(org_id, framework=framework, status=status)
+        if not rows:
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "hint": "Import CIS/NIST benchmark definitions via POST /api/v1/posture-benchmarking/import-cis, or create one manually via POST /api/v1/posture-benchmarking/benchmarks.",
+            }
+        return {"benchmarks": rows, "total": len(rows)}
     except Exception as exc:
         _logger.exception("list_benchmarks failed")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/import-cis", dependencies=[Depends(api_key_auth)])
+def import_cis_benchmarks(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Import CIS Benchmark definitions from public XML catalog (NOT YET IMPLEMENTED)."""
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error": "not_implemented",
+            "endpoint": "POST /api/v1/posture-benchmarking/import-cis",
+            "reason": "CIS Benchmark XML importer not yet built. Public source: https://www.cisecurity.org/cis-benchmarks",
+            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#8",
+        },
+    )
 
 
 @router.get("/benchmarks/{benchmark_id}", dependencies=[Depends(api_key_auth)])
