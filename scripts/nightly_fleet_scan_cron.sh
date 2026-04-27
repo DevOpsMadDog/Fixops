@@ -118,7 +118,7 @@ log "DPO pairs before scan: ${pairs_before}"
 # ---------------------------------------------------------------------------
 log "--- Step 1: aspm_real_scan.py ---"
 if ! "${PYTHON}" "${SCRIPTS_DIR}/aspm_real_scan.py" \
-        --fleet-dir "${FLEET_DIR}" \
+        --fleet-root "${FLEET_DIR}" \
         2>&1 | tee -a "${LOG_FILE}"; then
     fail "aspm_real_scan.py exited non-zero"
 fi
