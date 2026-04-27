@@ -94,11 +94,18 @@ def list_sessions(
     user: Optional[str] = Query(default=None),
     session_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
-) -> list:
+) -> dict:
     """List sessions, optionally filtered."""
-    return _get_engine().list_sessions(
+    rows = _get_engine().list_sessions(
         org_id, user=user, session_type=session_type, status=status
     )
+    if not rows:
+        return {
+            "sessions": [],
+            "total": 0,
+            "hint": "Session recording requires a PAM tool integration (CyberArk, BeyondTrust). No real PAM tenant configured. Start a session manually via POST /api/v1/session-recording/sessions.",
+        }
+    return {"sessions": rows, "total": len(rows)}
 
 
 @router.get("/sessions/{session_id}", dependencies=[Depends(api_key_auth)])

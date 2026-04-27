@@ -90,7 +90,14 @@ def list_apps(
     risk_level: Optional[str] = Query(None),
 ):
     """List SaaS apps with optional filters."""
-    return _get_engine().list_apps(org_id, app_category=app_category, risk_level=risk_level)
+    rows = _get_engine().list_apps(org_id, app_category=app_category, risk_level=risk_level)
+    if not rows:
+        return {
+            "apps": [],
+            "total": 0,
+            "hint": "SSPM requires SaaS OAuth flows (Salesforce, Slack, Okta tenant scan). Register a SaaS app manually via POST /api/v1/sspm/apps once OAuth credentials are configured.",
+        }
+    return {"apps": rows, "total": len(rows)}
 
 
 @router.get("/apps/{app_id}", dependencies=[Depends(api_key_auth)])

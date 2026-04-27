@@ -116,8 +116,15 @@ def deregister_workload(workload_id: str) -> Dict[str, Any]:
 def list_workloads(
     org_id: str = Query("default", description="Organisation ID"),
     workload_type: Optional[str] = Query(None, description="Filter by workload type"),
-) -> List[Dict[str, Any]]:
-    return _get_engine().list_workloads(org_id=org_id, workload_type=workload_type)
+) -> Dict[str, Any]:
+    rows = _get_engine().list_workloads(org_id=org_id, workload_type=workload_type)
+    if not rows:
+        return {
+            "workloads": [],
+            "total": 0,
+            "hint": "Workload protection requires container runtime telemetry or a Kubernetes adapter. Register a workload manually via POST /api/v1/cwpp/workloads once a k8s connector is bound to this tenant.",
+        }
+    return {"workloads": rows, "total": len(rows)}
 
 
 @router.get("/workloads/{workload_id}", summary="Get a specific workload")

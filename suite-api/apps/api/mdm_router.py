@@ -111,7 +111,14 @@ def list_devices(
     compliance_status: Optional[str] = Query(None),
 ):
     """List enrolled devices, optionally filtered by platform and/or compliance_status."""
-    return _get_engine().list_devices(org_id, platform=platform, compliance_status=compliance_status)
+    rows = _get_engine().list_devices(org_id, platform=platform, compliance_status=compliance_status)
+    if not rows:
+        return {
+            "devices": [],
+            "total": 0,
+            "hint": "MDM device enrollment requires a Jamf or Intune connector (not yet built). Enroll a device manually via POST /api/v1/mdm/devices.",
+        }
+    return {"devices": rows, "total": len(rows)}
 
 
 @router.get("/devices/{device_id}", dependencies=[Depends(api_key_auth)])

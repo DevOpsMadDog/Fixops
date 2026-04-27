@@ -93,11 +93,18 @@ def list_privileged_accounts(
     status: Optional[str] = Query(None),
 ):
     """List privileged accounts with optional filters."""
-    return _get_engine().list_privileged_accounts(
+    rows = _get_engine().list_privileged_accounts(
         org_id,
         account_type=account_type,
         status=status,
     )
+    if not rows:
+        return {
+            "accounts": [],
+            "total": 0,
+            "hint": "Connect an identity provider (Okta, AzureAD) via the connector framework to auto-populate privileged accounts, or register one manually via POST /api/v1/pag/accounts.",
+        }
+    return {"accounts": rows, "total": len(rows)}
 
 
 @router.get("/accounts/{account_id}", dependencies=[Depends(api_key_auth)])

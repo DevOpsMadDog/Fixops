@@ -136,9 +136,16 @@ def list_detections(
     source_data_type: Optional[str] = Query(default=None),
 ):
     """List detections with optional severity/status/source filters."""
-    return _get_engine().list_detections(
+    rows = _get_engine().list_detections(
         org_id, severity=severity, status=status, source_data_type=source_data_type
     )
+    if not rows:
+        return {
+            "detections": [],
+            "total": 0,
+            "hint": "AI-SOC detections are populated by XDR/SIEM connectors (not yet implemented). Record a detection manually via POST /api/v1/ai-soc/detections.",
+        }
+    return {"detections": rows, "total": len(rows)}
 
 
 @router.put("/detections/{detection_id}/triage", dependencies=[Depends(api_key_auth)])

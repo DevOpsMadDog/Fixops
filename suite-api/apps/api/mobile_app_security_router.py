@@ -116,6 +116,12 @@ def list_apps(
 ):
     eng = _get_engine()
     apps = eng.list_apps(org_id, platform=platform, risk_level=risk_level)
+    if not apps:
+        return {
+            "total": 0,
+            "apps": [],
+            "hint": "Mobile app security scanning requires a MobSF or App Store connector (not yet built). Register an app manually via POST /api/v1/mobile-app-security/apps.",
+        }
     return {"total": len(apps), "apps": apps}
 
 

@@ -120,9 +120,16 @@ def list_snapshots(
     org_id: str = Query("default"),
     account_id: Optional[str] = Query(None),
     anomaly: Optional[bool] = Query(None),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     engine = _get_engine()
-    return engine.list_snapshots(org_id, account_id=account_id, anomaly=anomaly)
+    rows = engine.list_snapshots(org_id, account_id=account_id, anomaly=anomaly)
+    if not rows:
+        return {
+            "snapshots": [],
+            "total": 0,
+            "hint": "Cloud cost snapshots require AWS Cost Explorer or Azure Cost Management credentials. Record a snapshot manually via POST /api/v1/cloud-cost/snapshots once cloud billing credentials are configured.",
+        }
+    return {"snapshots": rows, "total": len(rows)}
 
 
 @router.post("/abandoned-resources", summary="Register abandoned resource", dependencies=[Depends(api_key_auth)])
