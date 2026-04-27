@@ -9415,6 +9415,50 @@ def create_app() -> FastAPI:
         return _DocsRedirect(url="/api/v1/redoc", status_code=307)
 
     # -----------------------------------------------------------------------
+    # Bug C fix (playbook 2026-04-27): customer-onboarding doc references
+    # /api/v1/admin/orgs|connectors|system but real prefixes are /api/v1/orgs,
+    # /api/v1/connectors, /api/v1/system. Rather than churning the doc, alias
+    # the admin-prefixed paths to 307 to the real paths so curl -L works and
+    # other tools that follow redirects don't 404. include_in_schema=False so
+    # the OpenAPI spec stays single-source-of-truth on the canonical URLs.
+    # -----------------------------------------------------------------------
+    from fastapi.responses import RedirectResponse as _AdminAliasRedirect
+
+    _ADMIN_PREFIX_ALIASES = {
+        "/api/v1/admin/orgs": "/api/v1/orgs",
+        "/api/v1/admin/connectors": "/api/v1/connectors",
+        "/api/v1/admin/system": "/api/v1/system",
+    }
+
+    def _make_admin_alias(src_prefix: str, dst_prefix: str):
+        async def _alias_root() -> Any:
+            return _AdminAliasRedirect(url=dst_prefix, status_code=307)
+
+        async def _alias_subpath(subpath: str) -> Any:
+            return _AdminAliasRedirect(url=f"{dst_prefix}/{subpath}", status_code=307)
+
+        return _alias_root, _alias_subpath
+
+    for _src, _dst in _ADMIN_PREFIX_ALIASES.items():
+        _root_handler, _sub_handler = _make_admin_alias(_src, _dst)
+        # Match common verbs so writes redirect too. 307 preserves method/body.
+        for _verb in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+            app.add_api_route(
+                _src,
+                _root_handler,
+                methods=[_verb],
+                include_in_schema=False,
+                name=f"admin_alias_root_{_verb.lower()}_{_src.replace('/','_')}",
+            )
+            app.add_api_route(
+                _src + "/{subpath:path}",
+                _sub_handler,
+                methods=[_verb],
+                include_in_schema=False,
+                name=f"admin_alias_sub_{_verb.lower()}_{_src.replace('/','_')}",
+            )
+
+    # -----------------------------------------------------------------------
     # Serve React frontend — MUST be last (catch-all route)
     # -----------------------------------------------------------------------
     _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
