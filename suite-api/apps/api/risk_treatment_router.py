@@ -93,12 +93,19 @@ def list_treatments(
     risk_level: Optional[str] = Query(None),
 ):
     """List treatments with optional filters."""
-    return _get_engine().list_treatments(
+    rows = _get_engine().list_treatments(
         org_id,
         treatment_type=treatment_type,
         treatment_status=treatment_status,
         risk_level=risk_level,
     )
+    if not rows:
+        return {
+            "treatments": [],
+            "total": 0,
+            "hint": "Create a risk treatment via POST /api/v1/risk-treatment/treatments once risks are identified.",
+        }
+    return {"treatments": rows, "total": len(rows)}
 
 
 @router.get("/treatments/{treatment_id}", dependencies=[Depends(api_key_auth)])

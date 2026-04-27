@@ -115,9 +115,16 @@ def list_allocations(
     category: Optional[str] = Query(default=None),
 ):
     """List budget allocations with optional filters."""
-    return _get_engine().list_allocations(
+    rows = _get_engine().list_allocations(
         org_id, fiscal_year=fiscal_year, category=category
     )
+    if not rows:
+        return {
+            "allocations": [],
+            "total": 0,
+            "hint": "Create a budget allocation via POST /api/v1/security-budget/allocations (manual finance entry).",
+        }
+    return {"allocations": rows, "total": len(rows)}
 
 
 @router.get("/allocations/{allocation_id}", dependencies=[Depends(api_key_auth)])

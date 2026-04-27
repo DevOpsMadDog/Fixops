@@ -99,14 +99,21 @@ def list_requests(
     access_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     resource_type: Optional[str] = Query(default=None),
-) -> list:
+) -> dict:
     """List access requests, optionally filtered."""
-    return _get_engine().list_requests(
+    rows = _get_engine().list_requests(
         org_id,
         access_type=access_type,
         status=status,
         resource_type=resource_type,
     )
+    if not rows:
+        return {
+            "requests": [],
+            "total": 0,
+            "hint": "Submit POST /api/v1/access-requests/requests to create a privileged access request (user-driven workflow).",
+        }
+    return {"requests": rows, "total": len(rows)}
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])

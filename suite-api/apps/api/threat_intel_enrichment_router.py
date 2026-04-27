@@ -113,7 +113,14 @@ def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query
 @router.get("/requests", dependencies=[Depends(api_key_auth)])
 def list_enrichment_requests(org_id: str = Query(default="default"), status: str = Query(None), limit: int = Query(50)):
     """List enrichment requests for an org."""
-    return _get_engine().list_enrichment_requests(org_id=org_id, status=status, limit=limit)
+    rows = _get_engine().list_enrichment_requests(org_id=org_id, status=status, limit=limit)
+    if not rows:
+        return {
+            "requests": [],
+            "total": 0,
+            "hint": "Submit POST /api/v1/intel-enrichment/requests to enrich an IOC (IP, domain, hash, URL).",
+        }
+    return {"requests": rows, "total": len(rows)}
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])

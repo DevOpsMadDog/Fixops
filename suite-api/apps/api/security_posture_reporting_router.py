@@ -170,11 +170,18 @@ def list_reports(
     org_id: str = Query("default", description="Organisation ID"),
     report_type: Optional[str] = Query(None, description="Filter by report type"),
     status: Optional[str] = Query(None, description="Filter by status"),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     try:
-        return _get_engine().list_reports(
+        rows = _get_engine().list_reports(
             org_id=org_id, report_type=report_type, status=status
         )
+        if not rows:
+            return {
+                "reports": [],
+                "total": 0,
+                "hint": "Trigger a posture scan via POST /api/v1/posture-reports/reports to generate a report.",
+            }
+        return {"reports": rows, "total": len(rows)}
     except Exception as exc:
         logger.exception("list_reports failed")
         raise HTTPException(status_code=500, detail=str(exc))
