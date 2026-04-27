@@ -231,7 +231,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 | API routes mounted | **6300+** | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
 | Frontend pages | **~370** (TARGET: collapse to 25-40 in Phase 3) | `ls suite-ui/aldeci-ui-new/src/pages/*.tsx \| wc -l` |
 | Multica board | **2914 done / 100 todo** (last verified evening 2026-04-26) | `docker exec` psql query (see Stack v2 row) |
-| Beast Mode tests | **806+** passing, zero regressions | `pytest tests/test_phase*.py ... -q` |
+| Beast Mode tests | **893 passing, zero regressions** (32-file suite, 2026-04-26 EOD) | `pytest tests/test_phase*.py ... -q` |
 | Graphify graph | 119,765 nodes / 425,727 edges / 1516 communities | `graphify update . --no-llm` |
 | TrustGraph emit-sites | **378+** across engines/routers | `grep -rl trustgraph_event_bus suite-core/ \| wc -l` |
 

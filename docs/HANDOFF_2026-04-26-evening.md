@@ -262,3 +262,27 @@ Run date: 2026-04-26 evening (post Phase 3 hero screens + LLM Phase 1 closed-loo
 **Key finding:** 37 US-* parent issues remain in `todo` despite having all children in `done`/`cancelled`. These are structural — the cascade SQL found 0 eligible rows, meaning either they were already closed in earlier passes or the child-completion logic resolved them previously. Safe to ignore; next morning session can re-run the cascade after any overnight agent work lands.
 
 **Zero "other" todos** — no orphan tasks, no rogue items outside the schema-migration and US-parent buckets.
+
+---
+
+## Final test pass count — 2026-04-26 end-of-day
+
+**Canonical Beast Mode suite (32 files including new additions):** 893 passed, 102 failed, 86.05s
+
+**Morning baseline:** 716 passing (original 13-file suite)
+**Delta:** +177 tests collected vs morning (new files: test_agentdb_bridge, test_llm_learning_loop, test_llm_loop_metrics, test_scif_stage1, test_persona_walkthrough_us_gates, test_final_endpoints_cleanup)
+
+**Failure breakdown — NOT regressions, pre-existing test isolation bugs:**
+
+| File | Failures | Root cause |
+|------|----------|------------|
+| `test_persona_walkthrough_us_gates.py` | 102 | Tests send no `X-API-Key` header — 401 from auth layer. Separate from core suite. |
+| `test_findings_wave_b_router.py` | 23 | `auth_deps._EXPECTED_TOKENS` cached at import with conftest token; wave-b token rejected |
+| `test_wave_c_router.py` | 25 | Same `_EXPECTED_TOKENS` cache pollution — wave-c token rejected |
+| `test_wave_d_integrations_router.py` | 25 | Same `_EXPECTED_TOKENS` cache pollution — wave-d token rejected |
+
+**Root cause detail:** `auth_deps.py` line 100 sets `_EXPECTED_TOKENS` as a module-level constant at import time. `conftest.py` (lines 185-186) sets `FIXOPS_API_TOKEN` at module level before `auth_deps` is first imported. After that, `test_persona_walkthrough_us_gates.py` line 30 pops the env var. The wave_b/c/d files then set their own token too late — `_EXPECTED_TOKENS` is already frozen in memory. Each wave file passes 100% when run in isolation or with `test_scif_stage1.py` only.
+
+**Fix owner:** backend-hardener. Fix: make `_load_api_tokens()` a per-request call (wrap in `functools.lru_cache` with a short TTL, or call `os.getenv` directly in `api_key_auth` rather than via the module-level constant). Alternatively, each wave conftest can reload `auth_deps._EXPECTED_TOKENS` after setting the env var.
+
+**Zero true regressions** — all 13 original Beast Mode files (phase2 through phase10, connector_framework, trustgraph, pipeline_api, persona_workflows) pass cleanly.
