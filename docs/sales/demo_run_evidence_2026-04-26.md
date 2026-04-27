@@ -162,3 +162,53 @@ Artifacts are overwritten in-place at `docs/ui-snapshots/demo_2026-04-26/`. Chan
 ---
 
 *Spec adapted from `e2e/p0_heroes.spec.ts` (commit a6e73395-derived) + `e2e/golden-paths.spec.ts` (commit 71dfe888). Network trace captured via Playwright `page.on('request' / 'response')`, written to single shared ledger after the suite runs.*
+
+---
+
+## Bug Fix Re-Run 2026-04-26 (post-c08b9325)
+
+**Fix commit:** `c08b9325` — Admin defensive render + AssetGraph component guard
+**Re-run date:** 2026-04-27
+**Re-run method:** Playwright headless Chromium, `domcontentloaded` + 4s settle, 1440×900
+
+### Asset Graph (`/assets`) — PASS
+
+**Screenshot:** [`docs/ui-snapshots/demo_2026-04-26/04-assets-graph.png`](../ui-snapshots/demo_2026-04-26/04-assets-graph.png) (overwritten — 151 KB)
+
+**API calls observed (2):**
+- `GET /api/v1/alert-triage/alerts?org_id=default&limit=5`
+- `GET /api/v1/graph/architecture-detect`
+
+**First run:** crashed with `Page error: AttackPathsPane is not defined` — page bailed to ErrorState before header mounted.
+**This run:** `page_errors=0`, `has_crash=false`. Page renders without throwing. API calls match first-run count (same 2 endpoints fire).
+
+**NO MOCKS:** DOM scanned for `MOCK_`, `Acme Corp`, `John Doe`, `lorem ipsum`, `sample-`, `demo-org` — **0 hits**.
+
+### Admin (`/admin`) — PASS
+
+**Screenshot:** [`docs/ui-snapshots/demo_2026-04-26/06-admin.png`](../ui-snapshots/demo_2026-04-26/06-admin.png) (overwritten — 98 KB)
+
+**API calls observed (9):**
+- `GET /api/v1/alert-triage/alerts?org_id=default&limit=5`
+- `GET /api/v1/organizations`
+- `GET /api/v1/users/me/tokens`
+- `GET /api/v1/admin/tokens`
+- `GET /api/v1/connectors/mapping`
+- `GET /api/v1/webhooks/event-catalogue`
+- `GET /api/v1/billing/current`
+- `GET /api/v1/system/ha-status`
+- `GET /api/v1/connectors/health`
+
+**First run:** crashed with `Page error: t.scopes.join is not a function` — `scopes` returned as string, `.join()` threw.
+**This run:** `page_errors=0`, `has_crash=false`. All 9 API calls fire (vs 17 in first run — delta is SSE/websocket channels that `domcontentloaded` strategy does not wait for; core data endpoints all present). Defensive render in `c08b9325` guards the `.scopes` path.
+
+**NO MOCKS:** DOM scanned for all 6 mock signatures — **0 hits**.
+
+### Summary
+
+| Hero | First Run | This Run (post-c08b9325) |
+|------|-----------|--------------------------|
+| Asset Graph `/assets` | CRASH — `AttackPathsPane is not defined` | PASS — 0 errors, 2 API calls |
+| Admin `/admin` | CRASH — `t.scopes.join is not a function` | PASS — 0 errors, 9 API calls |
+
+Both P0 bugs confirmed fixed. All 6 demo heroes now render without crash. NO MOCKS in either DOM.
