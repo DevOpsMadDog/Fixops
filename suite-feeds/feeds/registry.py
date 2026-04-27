@@ -265,6 +265,41 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: osv importer unavailable: %s", exc)
 
+    # ---------- AbuseIPDB / EmergingThreats ----------
+    try:
+        from feeds.abuseipdb.importer import (
+            run_import as _abuseipdb_run,
+            total_count as _abuseipdb_count,
+            ET_COMPROMISED_IPS_URL,
+        )
+
+        def _refresh_abuseipdb() -> Dict[str, Any]:
+            return _abuseipdb_run()
+
+        def _count_abuseipdb() -> int:
+            try:
+                return _abuseipdb_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="abuseipdb",
+            display_name="AbuseIPDB / EmergingThreats Compromised IPs",
+            source_url=ET_COMPROMISED_IPS_URL,
+            source_type="csv",
+            license="BSD-style (ET Open Ruleset); AbuseIPDB API ToS when key set",
+            refresh_interval_seconds=21_600,  # 6h — the ET list updates frequently
+            importer_callable=_refresh_abuseipdb,
+            count_callable=_count_abuseipdb,
+            description=(
+                "Unified IP blocklist — Emerging Threats compromised-ips.txt "
+                "(public, no API key) plus AbuseIPDB top-10K blacklist when "
+                "ABUSEIPDB_API_KEY env is set."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: abuseipdb importer unavailable: %s", exc)
+
     # ---------- EPSS ----------
     try:
         from feeds.epss.importer import EpssImporter, EPSS_URL
@@ -327,6 +362,41 @@ def _discover() -> None:
         ))
     except ImportError as exc:
         logger.warning("feed_registry: otx importer unavailable: %s", exc)
+
+    # ---------- ExploitDB ----------
+    try:
+        from feeds.exploitdb.importer import (
+            run_import as _exploitdb_run,
+            get_store_stats as _exploitdb_stats,
+            EXPLOITDB_CSV_URL,
+        )
+
+        def _refresh_exploitdb() -> Dict[str, Any]:
+            return _exploitdb_run()
+
+        def _count_exploitdb() -> int:
+            try:
+                return int(_exploitdb_stats().get("total", 0))
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="exploitdb",
+            display_name="ExploitDB (Offensive Security Exploit Database)",
+            source_url=EXPLOITDB_CSV_URL,
+            source_type="csv",
+            license="GPL-2.0 (Offensive Security)",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_exploitdb,
+            count_callable=_count_exploitdb,
+            description=(
+                "Offensive Security's public Exploit Database. The master CSV "
+                "indexes every published PoC with metadata (type, platform, "
+                "author, port, dates) and CVE cross-references."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: exploitdb importer unavailable: %s", exc)
 
 
 def _ensure_discovered() -> None:
