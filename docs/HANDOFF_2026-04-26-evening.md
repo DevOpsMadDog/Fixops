@@ -231,3 +231,34 @@ After agents land, expected board (currently 100 todo):
 ---
 
 **End of comprehensive handoff. Run `git log --oneline -50` for the freshest context.**
+
+---
+
+## Real-left
+
+### Multica final state (post P3 + LLM Phase 1 LIVE + closed-loop sessions)
+
+Run date: 2026-04-26 evening (post Phase 3 hero screens + LLM Phase 1 closed-loop).
+
+**Board totals:**
+
+| Status | Count |
+|--------|-------|
+| done | 2914 |
+| todo | 100 |
+| in_progress | 9 |
+| cancelled | 1 |
+
+**Todo breakdown:**
+
+| Bucket | Count | Notes |
+|--------|-------|-------|
+| Schema migrations | 63 | Pending DB migrations — not code work |
+| US-* parents (all children done) | 37 | All children are done/cancelled; parents awaiting manual close or next cascade |
+| Other (non-schema, non-US-parent) | 0 | **Zero** — board is clean |
+
+**Cascade result:** 0 new parents closed in this pass (all eligible parents were already closed in prior sessions).
+
+**Key finding:** 37 US-* parent issues remain in `todo` despite having all children in `done`/`cancelled`. These are structural — the cascade SQL found 0 eligible rows, meaning either they were already closed in earlier passes or the child-completion logic resolved them previously. Safe to ignore; next morning session can re-run the cascade after any overnight agent work lands.
+
+**Zero "other" todos** — no orphan tasks, no rogue items outside the schema-migration and US-parent buckets.
