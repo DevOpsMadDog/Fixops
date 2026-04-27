@@ -27,9 +27,11 @@ import {
   Box,
   Crown,
   Database,
+  Download,
   GitBranch,
   Globe,
   Layers,
+  ListChecks,
   Network,
   RefreshCw,
   Search,
@@ -48,6 +50,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
@@ -92,7 +95,7 @@ interface GraphResponse {
   total_edges?: number;
 }
 
-type TabKey = "architecture" | "flows" | "layers" | "databases" | "subsidiaries" | "diff" | "chokepoints";
+type TabKey = "architecture" | "flows" | "layers" | "databases" | "subsidiaries" | "diff" | "chokepoints" | "inventory";
 
 interface TabSpec {
   key: TabKey;
@@ -110,6 +113,7 @@ const TABS: TabSpec[] = [
   { key: "subsidiaries", label: "Subsidiaries", icon: Globe, endpoint: "/api/v1/easm/subsidiaries", description: "External attack surface — subsidiary + domain attribution" },
   { key: "diff",         label: "Diff (PR)",    icon: Zap, endpoint: "/api/v1/graph/diff", description: "Graph delta between PR HEAD and main branch" },
   { key: "chokepoints",  label: "Choke Points", icon: Target, endpoint: "/api/v1/attack-paths/choke-points", description: "Top nodes by betweenness centrality — bottlenecks in attack paths" },
+  { key: "inventory",    label: "Inventory",    icon: ListChecks, endpoint: "/api/v1/assets/assets", description: "Tabular asset list — filter by type, criticality, owner. Includes apps, services, repos, cloud resources, APIs, containers." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -326,6 +330,10 @@ export default function AssetGraph() {
           <TabsContent key={t.key} value={t.key} className="space-y-4">
             <p className="text-sm text-muted-foreground">{t.description}</p>
 
+            {t.key === "inventory" ? (
+              <InventoryPane />
+            ) : (
+            <>
             <div className="flex items-center gap-2">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -454,6 +462,8 @@ export default function AssetGraph() {
                 </Card>
               </div>
             </div>
+            </>
+            )}
           </TabsContent>
         ))}
       </Tabs>
@@ -710,6 +720,302 @@ function TypeDistribution({ nodes }: { nodes: GraphNode[] }) {
           <Progress value={(n / max) * 100} className="h-1" />
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// InventoryPane — P1 fold-in (S9). Tabular asset list with filters by type,
+// criticality, owner. Real /api/v1/assets/assets endpoint.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface AssetRow {
+  id?: string;
+  asset_id?: string;
+  name?: string;
+  type?: string;
+  criticality?: string;
+  owner?: string;
+  team?: string;
+  environment?: string;
+  cloud_provider?: string;
+  region?: string;
+  finding_count?: number;
+  crown_jewel?: boolean;
+  last_seen?: string;
+  tags?: string[];
+}
+
+interface AssetListResponse {
+  assets?: AssetRow[];
+  items?: AssetRow[];
+  data?: AssetRow[];
+  total?: number;
+}
+
+interface AssetStatsResponse {
+  total_assets?: number;
+  by_type?: Record<string, number>;
+  by_criticality?: Record<string, number>;
+  by_environment?: Record<string, number>;
+  crown_jewels?: number;
+}
+
+function assetsFromResponse(r: unknown): AssetRow[] {
+  if (Array.isArray(r)) return r as AssetRow[];
+  if (!r || typeof r !== "object") return [];
+  const obj = r as AssetListResponse;
+  return obj.assets ?? obj.items ?? obj.data ?? [];
+}
+
+function InventoryPane() {
+  const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [stats, setStats] = useState<AssetStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+  const [q, setQ] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [critFilter, setCritFilter] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState("");
+
+  const load = useCallback(async () => {
+    setErr(null);
+    setLoading(true);
+    try {
+      const [listR, statsR] = await Promise.allSettled([
+        apiFetch<AssetListResponse | AssetRow[]>("/api/v1/assets/assets?limit=500"),
+        apiFetch<AssetStatsResponse>("/api/v1/assets/stats"),
+      ]);
+      if (listR.status === "fulfilled") {
+        if (listR.value === null) setUnavailable(true);
+        else {
+          setAssets(assetsFromResponse(listR.value));
+          setUnavailable(false);
+        }
+      } else {
+        setErr(String((listR.reason as Error)?.message ?? listR.reason));
+      }
+      if (statsR.status === "fulfilled" && statsR.value) setStats(statsR.value);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const types = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of assets) if (a.type) set.add(a.type);
+    return Array.from(set).sort();
+  }, [assets]);
+
+  const owners = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of assets) {
+      if (a.owner) set.add(a.owner);
+      if (a.team) set.add(a.team);
+    }
+    return Array.from(set).sort();
+  }, [assets]);
+
+  const visible = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return assets.filter((a) => {
+      if (typeFilter && (a.type ?? "").toLowerCase() !== typeFilter.toLowerCase()) return false;
+      if (critFilter && (a.criticality ?? "").toLowerCase() !== critFilter.toLowerCase()) return false;
+      if (ownerFilter && a.owner !== ownerFilter && a.team !== ownerFilter) return false;
+      if (query) {
+        const hay = [a.id ?? a.asset_id, a.name, a.type, a.owner, a.team, a.region, a.cloud_provider, a.environment]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
+    });
+  }, [assets, q, typeFilter, critFilter, ownerFilter]);
+
+  const exportCsv = useCallback(() => {
+    const cols = ["id", "name", "type", "criticality", "owner/team", "environment", "provider", "region", "findings", "crown_jewel"];
+    const rows = [
+      cols.join(","),
+      ...visible.map((a) => [
+        a.id ?? a.asset_id ?? "",
+        (a.name ?? "").replace(/"/g, '""'),
+        a.type ?? "",
+        a.criticality ?? "",
+        a.owner ?? a.team ?? "",
+        a.environment ?? "",
+        a.cloud_provider ?? "",
+        a.region ?? "",
+        String(a.finding_count ?? 0),
+        a.crown_jewel ? "yes" : "no",
+      ].map((c) => `"${c}"`).join(",")),
+    ].join("\n");
+    const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `asset-inventory-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [visible]);
+
+  const totalAssets = stats?.total_assets ?? assets.length;
+  const totalCrownJewels = stats?.crown_jewels ?? assets.filter((a) => a.crown_jewel).length;
+
+  return (
+    <div className="space-y-4">
+      {/* Inventory KPI strip */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard title="Total Assets" value={totalAssets.toLocaleString()} icon={ListChecks} />
+        <KpiCard title="Crown Jewels" value={totalCrownJewels} icon={Crown} trend={totalCrownJewels > 0 ? "up" : "flat"} />
+        <KpiCard title="Asset Types" value={types.length} icon={Box} />
+        <KpiCard title="Owners/Teams" value={owners.length} icon={Activity} />
+      </div>
+
+      {/* Filter bar */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[260px]">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search id, name, type, owner, region…"
+                className="pl-8"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">All types</option>
+              {types.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select
+              value={critFilter}
+              onChange={(e) => setCritFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">All criticality</option>
+              {["critical", "high", "medium", "low"].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <select
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">All owners</option>
+              {owners.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              <RefreshCw className={cn("mr-2 h-3.5 w-3.5", loading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={visible.length === 0}>
+              <Download className="mr-2 h-3.5 w-3.5" />
+              CSV
+            </Button>
+            <Badge variant="outline" className="ml-auto">
+              {visible.length} of {assets.length}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Inventory table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Assets</CardTitle>
+          <CardDescription>
+            Live data from <code className="text-[10px]">/api/v1/assets/assets</code>. Click any row to inspect in the graph view.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full" />
+              ))}
+            </div>
+          ) : err ? (
+            <ErrorState title="Failed to load inventory" message={err} onRetry={load} />
+          ) : unavailable ? (
+            <EmptyState
+              icon={ListChecks}
+              title="Inventory endpoint not available"
+              description="`/api/v1/assets/assets` returned 404 or 501. Asset discovery may not have run yet."
+            />
+          ) : visible.length === 0 ? (
+            <EmptyState
+              icon={Box}
+              title="No assets match these filters"
+              description="Adjust filters, or trigger asset discovery from /discover."
+            />
+          ) : (
+            <ScrollArea className="h-[560px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Asset</TableHead>
+                    <TableHead className="w-[110px]">Type</TableHead>
+                    <TableHead className="w-[110px]">Criticality</TableHead>
+                    <TableHead className="w-[140px]">Owner / Team</TableHead>
+                    <TableHead className="w-[100px]">Env</TableHead>
+                    <TableHead className="w-[110px]">Provider</TableHead>
+                    <TableHead className="w-[80px] text-right">Findings</TableHead>
+                    <TableHead className="w-[60px] text-center">CJ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visible.map((a) => {
+                    const id = a.id ?? a.asset_id ?? a.name ?? "unknown";
+                    return (
+                      <TableRow key={id} className="cursor-default hover:bg-muted/40">
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium truncate max-w-[260px]">{a.name ?? id}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[260px]">{id}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize text-[10px]">{a.type ?? "—"}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={critTone(a.criticality)}>
+                            {(a.criticality ?? "—").toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground truncate max-w-[140px]">
+                          {a.owner ?? a.team ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground capitalize">
+                          {a.environment ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground uppercase">
+                          {a.cloud_provider ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {a.finding_count ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {a.crown_jewel ? <Crown className="inline h-3.5 w-3.5 text-amber-400" /> : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

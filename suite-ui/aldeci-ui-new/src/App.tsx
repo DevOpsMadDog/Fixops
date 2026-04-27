@@ -787,7 +787,8 @@ export default function App() {
 
             {/* New standalone pages */}
             <Route path="/threat-intel" element={<ThreatIntelDashboardPage />} />
-            <Route path="/assets" element={<AssetInventoryPage />} />
+            {/* /assets standalone -> consolidated into /assets hero (AssetGraph) Inventory tab */}
+            <Route path="/assets/inventory" element={<Navigate to="/assets?tab=inventory" replace />} />
             <Route path="/vuln-lifecycle" element={<VulnLifecyclePage />} />
             <Route path="/insider-threats" element={<InsiderThreatMonitor />} />
             <Route path="/security-kpis" element={<SecurityKPIDashboard />} />
@@ -1194,6 +1195,7 @@ export default function App() {
             <Route path="/ai-exposure" element={<Navigate to="/compliance?tab=ai-exposure" replace />} />
 
             {/* 90-day muscle-memory redirects → Asset Graph hero */}
+            <Route path="/discover/inventory" element={<Navigate to="/assets?tab=inventory" replace />} />
             <Route path="/discover/graph" element={<Navigate to="/assets?tab=architecture" replace />} />
             <Route path="/security-graph" element={<Navigate to="/assets?tab=architecture" replace />} />
             <Route path="/discover/arch-layers" element={<Navigate to="/assets?tab=architecture" replace />} />
