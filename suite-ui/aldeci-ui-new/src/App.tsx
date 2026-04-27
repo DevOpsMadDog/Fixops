@@ -640,7 +640,7 @@ export default function App() {
             <Route path="/mission-control" element={<Navigate to="/" replace />} />
             <Route path="/mission-control/ciso" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/mission-control/executive" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/mission-control/sla" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><SLADashboard /></RequireRole>} />
+            <Route path="/mission-control/sla" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/mission-control/live-feed" element={<LiveFeed />} />
             <Route path="/mission-control/risk" element={<RiskOverview />} />
             <Route path="/mission-control/soc" element={<Navigate to="/?view=soc" replace />} />
@@ -648,7 +648,7 @@ export default function App() {
             <Route path="/mission-control/compliance" element={<Navigate to="/compliance" replace />} />
             <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
             <Route path="/mission-control/threat-intel" element={<ThreatIntelDashboard />} />
-            <Route path="/mission-control/risk-register" element={<RiskRegister />} />
+            <Route path="/mission-control/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
 
             {/* Space 2: Discover */}
             <Route path="/discover" element={<FindingExplorer />} />
@@ -731,6 +731,17 @@ export default function App() {
             <Route path="/brain/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
             <Route path="/brain/fail" element={<Navigate to="/brain?tab=fail" replace />} />
             <Route path="/attack/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
+            {/* P2 Wave: MCP Gateway + System Health → Admin hero (S28/S30) */}
+            <Route path="/connect/mcp" element={<Navigate to="/admin?tab=mcp" replace />} />
+            <Route path="/ai/mcp-registry" element={<Navigate to="/admin?tab=mcp" replace />} />
+            <Route path="/skills" element={<Navigate to="/admin?tab=mcp" replace />} />
+            <Route path="/openclaw" element={<Navigate to="/admin?tab=mcp" replace />} />
+            <Route path="/airgap" element={<Navigate to="/admin?tab=mcp" replace />} />
+            <Route path="/admin/system" element={<Navigate to="/admin?tab=system-health" replace />} />
+            <Route path="/system-health" element={<Navigate to="/admin?tab=system-health" replace />} />
+            <Route path="/capacity-planning" element={<Navigate to="/admin?tab=system-health" replace />} />
+            <Route path="/fips-status" element={<Navigate to="/admin?tab=system-health" replace />} />
+            <Route path="/local-store-status" element={<Navigate to="/admin?tab=system-health" replace />} />
             {/* P2 Wave: Waivers + Policies → Compliance hero (S20/S26) */}
             <Route path="/comply/waivers" element={<Navigate to="/compliance?tab=waivers" replace />} />
             <Route path="/comply/policies" element={<Navigate to="/compliance?tab=policies" replace />} />
@@ -832,12 +843,12 @@ export default function App() {
             <Route path="/deception" element={<DeceptionEngine />} />
             <Route path="/cert-manager" element={<CertificateManager />} />
             <Route path="/firewall" element={<FirewallAnalyzer />} />
-            <Route path="/risk-register" element={<RiskRegisterPage />} />
+            <Route path="/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/playbooks" element={<PlaybookLibraryPage />} />
             <Route path="/bug-bounty" element={<BugBounty />} />
             <Route path="/cloud-iam" element={<CloudIAM />} />
             <Route path="/email-security" element={<EmailSecurity />} />
-            <Route path="/sla-dashboard" element={<SLADashboardPage />} />
+            <Route path="/sla-dashboard" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/security-metrics" element={<SecurityMetricsDashboard />} />
             <Route path="/vuln-risk" element={<VulnRiskQueue />} />
             <Route path="/red-team" element={<RedTeamStatus />} />
@@ -854,11 +865,11 @@ export default function App() {
             <Route path="/supply-chain-risk" element={<SupplyChainDashboard />} />
             <Route path="/cloud-security" element={<CloudSecurityDashboard />} />
             <Route path="/breach-response" element={<BreachResponse />} />
-            <Route path="/soc" element={<SecurityOperationsCenter />} />
+            <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/watchlist" element={<WatchlistManager />} />
             <Route path="/uba" element={<UBADashboard />} />
             <Route path="/cmdb" element={<CMDBDashboard />} />
-            <Route path="/incident-response" element={<IncidentResponseDashboard />} />
+            <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/phishing" element={<PhishingSimulation />} />
             <Route path="/api-sec" element={<APISecurityPage />} />
             <Route path="/data-classification" element={<DataClassificationDashboard />} />
@@ -899,7 +910,7 @@ export default function App() {
 
             {/* OpenClaw + SOC Triage AI + SBOM */}
             <Route path="/openclaw" element={<Suspense fallback={<div>Loading...</div>}><OpenClawDashboard /></Suspense>} />
-            <Route path="/soc-triage" element={<Suspense fallback={<div>Loading...</div>}><SOCTriageDashboard /></Suspense>} />
+            <Route path="/soc-triage" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/sbom-dashboard" element={<Suspense fallback={<div>Loading...</div>}><SBOMDashboard /></Suspense>} />
 
             {/* NDR / XDR / Awareness / EDR */}
@@ -978,7 +989,7 @@ export default function App() {
             <Route path="/vuln-correlation" element={<VulnerabilityCorrelationDashboard />} />
             <Route path="/posture-benchmarking" element={<PostureBenchmarkingDashboard />} />
             <Route path="/quantum-crypto" element={<QuantumCryptoDashboard />} />
-            <Route path="/ai-soc" element={<AIPoweredSOCDashboard />} />
+            <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/deception-analytics" element={<DeceptionAnalyticsDashboard />} />
 
             {/* Wave 23 domain dashboards */}
@@ -1002,7 +1013,7 @@ export default function App() {
             <Route path="/posture-scoring" element={<PostureScoringDashboard />} />
             <Route path="/cloud-posture" element={<CloudPostureDashboard />} />
             <Route path="/api-threat-protection" element={<APIThreatProtectionDashboard />} />
-            <Route path="/risk-register-engine" element={<RiskRegisterDashboard />} />
+            <Route path="/risk-register-engine" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/change-management" element={<ChangeManagementDashboard />} />
 
             {/* Wave 26 domain dashboards */}
@@ -1215,6 +1226,36 @@ export default function App() {
             <Route path="/comply/vault" element={<Navigate to="/compliance?tab=vault" replace />} />
             <Route path="/evidence/vault" element={<Navigate to="/compliance?tab=vault" replace />} />
             <Route path="/comply/cryptographic-evidence" element={<Navigate to="/compliance?tab=vault" replace />} />
+
+            {/* P1 Wave 3 — SLA & Risk Register redirects → Compliance hero (S4) */}
+            <Route path="/sla-dashboard" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/sla" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/mission-control/sla" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/risk-register-engine" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/mission-control/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/risk-acceptance" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/risk-treatment" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+            <Route path="/risk-scenarios" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
+
+            {/* P1 Wave 3 — SOC Operations redirects → Command hero soc tab (S3) */}
+            <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/soc-triage" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/alert-triage" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/incidents/response" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
+
+            {/* P1 Wave 3 — Executive Brief redirects → Command hero executive tab (S2) */}
+            <Route path="/ciso" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/ciso-report" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/bu-risk-heatmap" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-risk-report" element={<Navigate to="/?view=executive" replace />} />
+
+            {/* P1 Wave 3 — Issue Detail (S6) — drill-in pattern: /issues/:id → hero with selection */}
+            <Route path="/issues/:findingId" element={<Navigate to="/issues" replace />} />
+            <Route path="/finding/:findingId" element={<Navigate to="/issues" replace />} />
+            <Route path="/vuln-lifecycle" element={<Navigate to="/issues" replace />} />
 
             {/* P1 Wave 2 — Integrations Hub redirects → Admin hero */}
             <Route path="/integrations-hub" element={<Navigate to="/admin?tab=integrations" replace />} />

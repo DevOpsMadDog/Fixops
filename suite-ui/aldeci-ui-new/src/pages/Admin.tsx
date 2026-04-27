@@ -14,20 +14,25 @@
  * Route: /admin (admin-RBAC-gated) + redirects from existing admin paths.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
   Boxes,
+  Box,
   Building2,
   CheckCircle2,
   Cloud,
+  Cpu,
   CreditCard,
   Database,
   GitBranch,
+  HardDrive,
+  HeartPulse,
   Key,
+  Layers,
   Network,
   Package,
   Plug,
@@ -36,10 +41,12 @@ import {
   Server,
   Shield,
   ShieldCheck,
+  Terminal,
   Ticket,
   Users,
   Webhook,
   XCircle,
+  Zap,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +64,19 @@ import { ErrorState } from "@/components/shared/ErrorState";
 
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+// P2 fold-ins (S28 MCP Gateway, S30 System Health)
+const MCPToolRegistry = lazy(() => import("@/pages/ai/MCPToolRegistry"));
+const ClaudeSkillsRegistry = lazy(() => import("@/pages/ClaudeSkillsRegistry"));
+const SkillsInstallPrompt = lazy(() => import("@/pages/SkillsInstallPrompt"));
+const OpenClawDashboard = lazy(() => import("@/pages/OpenClawDashboard"));
+const AirGapBundleConsole = lazy(() => import("@/pages/AirGapBundleConsole"));
+const AirGapBundleDashboard = lazy(() => import("@/pages/AirGapBundleDashboard"));
+const SystemHealthDashboard = lazy(() => import("@/pages/SystemHealthDashboard"));
+const SettingsSystemHealth = lazy(() => import("@/pages/settings/SystemHealth"));
+const CapacityPlanningDashboard = lazy(() => import("@/pages/CapacityPlanningDashboard"));
+const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
+const LocalStoreStatus = lazy(() => import("@/pages/LocalStoreStatus"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -147,7 +167,9 @@ type TabKey =
   | "integrations"
   | "webhooks"
   | "billing"
-  | "system";
+  | "system"
+  | "mcp"
+  | "system-health";
 
 interface TabSpec {
   key: TabKey;
@@ -165,6 +187,8 @@ const TABS: TabSpec[] = [
   { key: "webhooks", label: "Webhooks", icon: Webhook, description: "Event catalogue, subscriptions, retries" },
   { key: "billing", label: "Billing", icon: CreditCard, description: "Plan, seats, monthly cost, invoices" },
   { key: "system", label: "System", icon: Server, description: "HA status, uptime, component health" },
+  { key: "mcp", label: "MCP Gateway", icon: Zap, description: "P2 fold-in (S28) — 650+ tool registry, Claude Skills, OpenClaw agents, air-gap bundles. The full agent toolchain." },
+  { key: "system-health", label: "System Health", icon: HeartPulse, description: "P2 fold-in (S30) — detailed metrics, capacity planning, FIPS attestation, local-store status, telemetry pipelines." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -571,8 +595,172 @@ export default function Admin() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* ─────────── MCP GATEWAY TAB (P2 fold-in S28 -> Admin hero) ─────────── */}
+        <TabsContent value="mcp" className="space-y-4">
+          <MCPGatewayPane />
+        </TabsContent>
+
+        {/* ─────────── SYSTEM HEALTH TAB (P2 fold-in S30 -> Admin hero) ─────────── */}
+        <TabsContent value="system-health" className="space-y-4">
+          <SystemHealthPane />
+        </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminTabSkeleton — generic shimmer for lazy-loaded sub-tab content
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AdminTabSkeleton() {
+  return (
+    <div className="space-y-3 p-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="h-12 w-full" />
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MCPGatewayPane — P2 fold-in (S28). 650+ tool registry, Skills (Claude +
+// install prompts), OpenClaw agent dashboard, air-gap bundle console + status.
+// All real existing pages, lazy-loaded via Suspense.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function MCPGatewayPane() {
+  const [subTab, setSubTab] = useState<string>("tools");
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+        <div className="flex items-start gap-2">
+          <Zap className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">MCP Gateway — Agent Toolchain</p>
+            <p className="text-muted-foreground">
+              The Model Context Protocol registry: 650+ tools available to security agents,
+              skills installable via prompt, OpenClaw orchestration, and air-gap bundle
+              packaging for sovereign / classified deployments. Real{" "}
+              <code className="font-mono">/api/v1/mcp/tools</code> +{" "}
+              <code className="font-mono">/api/v1/skills/*</code> +{" "}
+              <code className="font-mono">/api/v1/airgap/*</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={subTab} onValueChange={setSubTab} className="space-y-3">
+        <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+          <TabsTrigger value="tools" className="flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5" />Tool Registry
+          </TabsTrigger>
+          <TabsTrigger value="skills" className="flex items-center gap-1.5">
+            <Box className="h-3.5 w-3.5" />Claude Skills
+          </TabsTrigger>
+          <TabsTrigger value="install" className="flex items-center gap-1.5">
+            <Package className="h-3.5 w-3.5" />Skills Install
+          </TabsTrigger>
+          <TabsTrigger value="openclaw" className="flex items-center gap-1.5">
+            <Terminal className="h-3.5 w-3.5" />OpenClaw
+          </TabsTrigger>
+          <TabsTrigger value="airgap" className="flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5" />Air-Gap Bundle
+          </TabsTrigger>
+          <TabsTrigger value="airgap-status" className="flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5" />Bundle Status
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tools">
+          <Suspense fallback={<AdminTabSkeleton />}><MCPToolRegistry /></Suspense>
+        </TabsContent>
+        <TabsContent value="skills">
+          <Suspense fallback={<AdminTabSkeleton />}><ClaudeSkillsRegistry /></Suspense>
+        </TabsContent>
+        <TabsContent value="install">
+          <Suspense fallback={<AdminTabSkeleton />}><SkillsInstallPrompt /></Suspense>
+        </TabsContent>
+        <TabsContent value="openclaw">
+          <Suspense fallback={<AdminTabSkeleton />}><OpenClawDashboard /></Suspense>
+        </TabsContent>
+        <TabsContent value="airgap">
+          <Suspense fallback={<AdminTabSkeleton />}><AirGapBundleConsole /></Suspense>
+        </TabsContent>
+        <TabsContent value="airgap-status">
+          <Suspense fallback={<AdminTabSkeleton />}><AirGapBundleDashboard /></Suspense>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SystemHealthPane — P2 fold-in (S30). Strengthens the basic System tab with
+// detailed metrics, capacity planning, FIPS mode attestation, local-store
+// status. Surfaces dashboards real ops engineers need post-incident.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SystemHealthPane() {
+  const [subTab, setSubTab] = useState<string>("dashboard");
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+        <div className="flex items-start gap-2">
+          <HeartPulse className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">System Health — Detailed Metrics</p>
+            <p className="text-muted-foreground">
+              Beyond the HA card on the main System tab: capacity planning, FIPS-mode
+              attestation, local-store integrity, and the full health dashboard with per-
+              service drill-downs. Real{" "}
+              <code className="font-mono">/api/v1/system/health</code> +{" "}
+              <code className="font-mono">/api/v1/system/capacity</code> +{" "}
+              <code className="font-mono">/api/v1/fips/status</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={subTab} onValueChange={setSubTab} className="space-y-3">
+        <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+          <TabsTrigger value="dashboard" className="flex items-center gap-1.5">
+            <HeartPulse className="h-3.5 w-3.5" />Health Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-1.5">
+            <Server className="h-3.5 w-3.5" />Component Health
+          </TabsTrigger>
+          <TabsTrigger value="capacity" className="flex items-center gap-1.5">
+            <Cpu className="h-3.5 w-3.5" />Capacity
+          </TabsTrigger>
+          <TabsTrigger value="fips" className="flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" />FIPS Mode
+          </TabsTrigger>
+          <TabsTrigger value="local-store" className="flex items-center gap-1.5">
+            <HardDrive className="h-3.5 w-3.5" />Local Store
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard">
+          <Suspense fallback={<AdminTabSkeleton />}><SystemHealthDashboard /></Suspense>
+        </TabsContent>
+        <TabsContent value="settings">
+          <Suspense fallback={<AdminTabSkeleton />}><SettingsSystemHealth /></Suspense>
+        </TabsContent>
+        <TabsContent value="capacity">
+          <Suspense fallback={<AdminTabSkeleton />}><CapacityPlanningDashboard /></Suspense>
+        </TabsContent>
+        <TabsContent value="fips">
+          <Suspense fallback={<AdminTabSkeleton />}><FIPSModeStatus /></Suspense>
+        </TabsContent>
+        <TabsContent value="local-store">
+          <Suspense fallback={<AdminTabSkeleton />}><LocalStoreStatus /></Suspense>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
 
