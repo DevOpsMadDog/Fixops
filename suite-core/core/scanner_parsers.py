@@ -42,6 +42,45 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# TrustGraph event bus — optional, never blocks on failure
+# ---------------------------------------------------------------------------
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus is optional
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises. Module-level
+    helper because there are 32 normalizer classes — wiring here covers all
+    of them via a single _make_finding() call site.
+    """
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover - best-effort telemetry
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Try to import from the ingestion module for tight integration
 # ---------------------------------------------------------------------------
 try:
@@ -185,8 +224,26 @@ else:
             return "medium"
 
 
+# Throttle counter so we emit one TrustGraph event per N findings, not per finding.
+# Per-finding emits would be ~thousands per scan and would flood the bus.
+_FINDING_EMIT_THROTTLE = 100
+_finding_emit_counter = 0
+
+
 def _make_finding(**kwargs) -> Any:
     """Create a UnifiedFinding or dict depending on availability."""
+    global _finding_emit_counter
+    _finding_emit_counter += 1
+    if _finding_emit_counter % _FINDING_EMIT_THROTTLE == 0:
+        _emit_event(
+            "scanner.findings.batch_normalized",
+            {
+                "normalizer": kwargs.get("scanner") or kwargs.get("source") or "unknown",
+                "severity": str(kwargs.get("severity", "unknown")),
+                "batch_size": _FINDING_EMIT_THROTTLE,
+                "running_total": _finding_emit_counter,
+            },
+        )
     if _INGESTION_AVAILABLE:
         # Map string severity to enum
         sev = kwargs.get("severity", "medium")
