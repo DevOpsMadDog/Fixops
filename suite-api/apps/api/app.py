@@ -719,6 +719,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Executive Security Reports router not available: %s", e)
 
+feed_registry_router: Optional[APIRouter] = None
+try:
+    from apps.api.feed_registry_router import router as feed_registry_router
+    logging.getLogger(__name__).info("Loaded Feed Registry router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Feed Registry router not available: %s", e)
+
 feed_manager_router: Optional[APIRouter] = None
 try:
     from apps.api.feed_manager_router import router as feed_manager_router
@@ -3883,6 +3890,7 @@ def create_app() -> FastAPI:
         (exception_policy_router, "Exception Policy", "write:findings"),
         (executive_report_router, "Executive Report", "read:evidence"),
         (exec_security_reports_router, "Executive Security Reports", "read:evidence"),
+        (feed_registry_router, "Feed Registry", "read:feeds"),
         (feed_manager_router, "Feed Manager", "read:feeds"),
         (breach_response_router, "Breach Response", "write:findings"),
         (fix_engine_router, "Fix Engine", "write:findings"),
