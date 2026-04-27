@@ -27,6 +27,47 @@ from core.services.enterprise.rl_controller import (
 logger = structlog.get_logger()
 settings = get_settings()
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 class DecisionOutcome(Enum):
     ALLOW = "ALLOW"
@@ -333,6 +374,17 @@ class DecisionEngine:
             from core.services.enterprise.metrics import FixOpsMetrics
 
             FixOpsMetrics.record_decision(verdict=result.decision.value)
+
+            _emit_event("decision_engine.make_decision", {
+                "engine": "decision_engine",
+                "service_name": context.service_name,
+                "environment": context.environment,
+                "decision": result.decision.value,
+                "confidence_score": result.confidence_score,
+                "finding_count": len(context.security_findings),
+                "processing_time_us": result.processing_time_us,
+                "enterprise_mode": result.enterprise_mode,
+            })
 
             return result
 
@@ -672,6 +724,13 @@ class DecisionEngine:
             },
         }
 
+        _emit_event("decision_engine.get_decision_metrics", {
+            "engine": "decision_engine",
+            "total_decisions": base_metrics["total_decisions"],
+            "high_confidence_rate": base_metrics["high_confidence_rate"],
+            "consensus_rate": base_metrics["consensus_rate"],
+            "mode": base_metrics["mode"],
+        })
         return base_metrics
 
     def _create_error_decision(

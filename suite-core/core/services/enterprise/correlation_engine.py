@@ -29,6 +29,47 @@ load_dotenv()
 
 logger = structlog.get_logger()
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 @dataclass
 class CorrelationResult:
@@ -148,6 +189,15 @@ class CorrelationEngine:
                 additional_context={"finding_id": finding_id},
             )
 
+            _emit_event("correlation_engine.correlate_finding", {
+                "engine": "correlation_engine",
+                "finding_id": finding_id,
+                "correlated": best_correlation is not None,
+                "correlation_type": best_correlation.correlation_type if best_correlation else None,
+                "confidence_score": best_correlation.confidence_score if best_correlation else None,
+                "correlated_count": len(best_correlation.correlated_findings) if best_correlation else 0,
+            })
+
             return best_correlation
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
@@ -187,6 +237,13 @@ class CorrelationEngine:
             total_time_ms=total_time * 1000,
             avg_time_per_finding_us=(total_time / len(finding_ids)) * 1_000_000,
         )
+
+        _emit_event("correlation_engine.batch_correlate_findings", {
+            "engine": "correlation_engine",
+            "total_findings": len(finding_ids),
+            "correlated_findings": len(results),
+            "total_time_ms": total_time * 1000,
+        })
 
         return results
 
@@ -492,12 +549,18 @@ class CorrelationEngine:
                 select(func.avg(FindingCorrelation.confidence_score))
             )
 
-            return {
+            stats = {
                 "total_correlations": total_correlations.scalar() or 0,
                 "correlations_by_type": dict(correlations_by_type.fetchall()),
                 "average_confidence": float(avg_confidence.scalar() or 0),
                 "cache_stats": await self.cache.get_cache_stats(),
             }
+            _emit_event("correlation_engine.get_correlation_stats", {
+                "engine": "correlation_engine",
+                "total_correlations": stats["total_correlations"],
+                "average_confidence": stats["average_confidence"],
+            })
+            return stats
 
     async def calculate_noise_reduction(
         self, time_window_hours: int = 24
