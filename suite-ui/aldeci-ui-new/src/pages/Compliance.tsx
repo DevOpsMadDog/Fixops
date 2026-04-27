@@ -38,6 +38,7 @@ import {
   FileText,
   Fingerprint,
   Flag,
+  Gauge,
   Gavel,
   KeyRound,
   Layers,
@@ -46,11 +47,13 @@ import {
   Lock,
   Package,
   RefreshCw,
+  Scale,
   ScrollText,
   Server,
   Shield,
   ShieldCheck,
   ShieldOff,
+  Timer,
   TrendingUp,
   Vault,
   Workflow,
@@ -98,6 +101,12 @@ const RuleDSLValidator = lazy(() => import("@/pages/RuleDSLValidator"));
 const UnifiedRulesCatalog = lazy(() => import("@/pages/UnifiedRulesCatalog"));
 const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector"));
 const HooksPolicyEditor = lazy(() => import("@/pages/HooksPolicyEditor"));
+// P1 Wave 3 fold-ins (S4 SLA & Risk Register)
+const SLADashboard = lazy(() => import("@/pages/SLADashboard"));
+const RiskRegister = lazy(() => import("@/pages/RiskRegister"));
+const RiskAcceptance = lazy(() => import("@/pages/RiskAcceptance"));
+const RiskTreatmentDashboard = lazy(() => import("@/pages/RiskTreatmentDashboard"));
+const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Frameworks canon (NIST 800-53 / ISO 27001 / SOC2 / HIPAA / PCI-DSS / FedRAMP / SCIF)
@@ -456,6 +465,9 @@ export default function Compliance() {
           </TabsTrigger>
           <TabsTrigger value="policies" className="flex items-center gap-1.5">
             <Gavel className="h-3.5 w-3.5" />Policies & Rules
+          </TabsTrigger>
+          <TabsTrigger value="sla-risk" className="flex items-center gap-1.5">
+            <Scale className="h-3.5 w-3.5" />SLA & Risk Register
           </TabsTrigger>
         </TabsList>
 
@@ -973,8 +985,63 @@ export default function Compliance() {
         <TabsContent value="policies" className="space-y-4">
           <PoliciesRulesPane />
         </TabsContent>
+
+        {/* ─────────────── SLA & RISK REGISTER TAB (P1 Wave 3 S4) ─────────────── */}
+        <TabsContent value="sla-risk" className="space-y-4">
+          <SLARiskPane />
+        </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SLARiskPane — P1 Wave 3 fold-in (S4) on Compliance hero. Composes:
+//   - SLADashboard           → /api/v1/sla/*           (breach burn-down)
+//   - RiskRegister           → /api/v1/risk-register   (register entries)
+//   - RiskAcceptance         → /api/v1/risk/acceptance (acceptance workflow)
+//   - RiskTreatmentDashboard → /api/v1/risk/treatment  (treatment status)
+//   - RiskScenarioDashboard  → /api/v1/risk/scenarios  (scenario library)
+// All sub-pages already wired to real apiFetch — zero mocks.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SLARiskPane() {
+  return (
+    <Tabs defaultValue="sla" className="space-y-3">
+      <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+        <TabsTrigger value="sla" className="flex items-center gap-1.5">
+          <Timer className="h-3.5 w-3.5" />SLA Burn-Down
+        </TabsTrigger>
+        <TabsTrigger value="register" className="flex items-center gap-1.5">
+          <ClipboardList className="h-3.5 w-3.5" />Risk Register
+        </TabsTrigger>
+        <TabsTrigger value="acceptance" className="flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5" />Acceptance
+        </TabsTrigger>
+        <TabsTrigger value="treatment" className="flex items-center gap-1.5">
+          <Workflow className="h-3.5 w-3.5" />Treatment
+        </TabsTrigger>
+        <TabsTrigger value="scenarios" className="flex items-center gap-1.5">
+          <Gauge className="h-3.5 w-3.5" />Scenarios
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="sla">
+        <Suspense fallback={<TabSkeleton />}><SLADashboard /></Suspense>
+      </TabsContent>
+      <TabsContent value="register">
+        <Suspense fallback={<TabSkeleton />}><RiskRegister /></Suspense>
+      </TabsContent>
+      <TabsContent value="acceptance">
+        <Suspense fallback={<TabSkeleton />}><RiskAcceptance /></Suspense>
+      </TabsContent>
+      <TabsContent value="treatment">
+        <Suspense fallback={<TabSkeleton />}><RiskTreatmentDashboard /></Suspense>
+      </TabsContent>
+      <TabsContent value="scenarios">
+        <Suspense fallback={<TabSkeleton />}><RiskScenarioDashboard /></Suspense>
+      </TabsContent>
+    </Tabs>
   );
 }
 

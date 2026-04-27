@@ -56,6 +56,8 @@ import { cn } from "@/lib/utils";
 // Lazy-load existing dashboards as inline drawers (zero functionality loss)
 const ScoreTransparencyPanel = lazy(() => import("@/pages/ScoreTransparencyPanel"));
 const ReachabilityProofView = lazy(() => import("@/pages/validate/ReachabilityProof"));
+// P1 Wave 3 fold-in (S6 Issue Detail) — finding lifecycle timeline + history
+const VulnLifecycle = lazy(() => import("@/pages/VulnLifecycle"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -173,7 +175,7 @@ export default function Issues() {
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Finding | null>(null);
-  const [drawer, setDrawer] = useState<"score" | "reachability" | null>(null);
+  const [drawer, setDrawer] = useState<"score" | "reachability" | "lifecycle" | null>(null);
 
   // Persist tab to ?tab= query so links to specific tabs work and so old-route
   // redirects (Navigate to="/issues?tab=toxic") land on the right view.
@@ -436,10 +438,11 @@ export default function Issues() {
             </Button>
           </div>
 
-          <Tabs value={drawer} onValueChange={(v) => setDrawer(v as "score" | "reachability")} className="flex-1 flex flex-col">
-            <TabsList className="mx-3 mt-3 grid w-auto grid-cols-2">
-              <TabsTrigger value="score">Score Breakdown</TabsTrigger>
-              <TabsTrigger value="reachability">Reachability Proof</TabsTrigger>
+          <Tabs value={drawer} onValueChange={(v) => setDrawer(v as "score" | "reachability" | "lifecycle")} className="flex-1 flex flex-col">
+            <TabsList className="mx-3 mt-3 grid w-auto grid-cols-3">
+              <TabsTrigger value="score">Score</TabsTrigger>
+              <TabsTrigger value="reachability">Reachability</TabsTrigger>
+              <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
             </TabsList>
             <ScrollArea className="flex-1">
               <Suspense fallback={<div className="p-6 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>}>
@@ -448,6 +451,12 @@ export default function Issues() {
                 </TabsContent>
                 <TabsContent value="reachability" className="m-0 p-0">
                   <ReachabilityProofView />
+                </TabsContent>
+                <TabsContent value="lifecycle" className="m-0 p-0">
+                  {/* P1 Wave 3 (S6) — finding lifecycle timeline + remediation history.
+                      Reads /api/v1/findings/{id}/lifecycle through the underlying VulnLifecycle
+                      page (already wired to real apiFetch). */}
+                  <VulnLifecycle />
                 </TabsContent>
               </Suspense>
             </ScrollArea>

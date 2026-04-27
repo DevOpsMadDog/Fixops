@@ -28,13 +28,19 @@ import {
   Briefcase,
   Code2,
   DollarSign,
+  FileText,
+  FlameKindling,
   Gauge,
   HeartPulse,
   Inbox,
+  Map,
+  PieChart,
+  Printer,
   RefreshCw,
   Server,
   ShieldCheck,
   Siren,
+  Stethoscope,
   TrendingDown,
   TrendingUp,
   Users,
@@ -61,6 +67,16 @@ import { cn } from "@/lib/utils";
 const Copilot = lazy(() => import("@/pages/ai/Copilot"));
 const CopilotGraphChat = lazy(() => import("@/pages/ai/CopilotGraphChat"));
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
+
+// P1 Wave 3 fold-ins (S2 Executive Brief, S3 SOC Operations) — full sub-tab content
+const ExecutiveBriefing = lazy(() => import("@/pages/ExecutiveBriefing"));
+const ExecutiveReportingDashboard = lazy(() => import("@/pages/ExecutiveReportingDashboard"));
+const CISOReportDashboard = lazy(() => import("@/pages/CISOReportDashboard"));
+const ExecutiveRiskReport = lazy(() => import("@/pages/ExecutiveRiskReport"));
+const BUDollarRiskHeatmap = lazy(() => import("@/pages/BUDollarRiskHeatmap"));
+const AlertTriageDashboard = lazy(() => import("@/pages/AlertTriageDashboard"));
+const SOCT1Dashboard = lazy(() => import("@/pages/mission-control/SOCT1Dashboard"));
+const IncidentResponseDashboard = lazy(() => import("@/pages/IncidentResponseDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -308,15 +324,25 @@ export default function Command() {
           })}
         </TabsList>
 
-        {/* Executive view */}
+        {/* Executive view (P1 Wave 3 — S2 Executive Brief fold-in) */}
         <TabsContent value="executive" className="space-y-4">
           <p className="text-sm text-muted-foreground">{VIEWS[0].description}</p>
+
+          {/* BRS hero strip — always visible above sub-tabs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Gauge className="h-4 w-4" /> Business Risk Score (BRS)
                 </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.print()}
+                  className="text-xs"
+                >
+                  <Printer className="mr-1.5 h-3.5 w-3.5" />Print / PDF
+                </Button>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -370,54 +396,137 @@ export default function Command() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Executive sub-tabs (P1 Wave 3 S2) — Briefing · CISO Report · BU Heatmap · Risk Report · Investment */}
+          <Tabs defaultValue="briefing" className="space-y-3">
+            <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+              <TabsTrigger value="briefing" className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" />Executive Briefing
+              </TabsTrigger>
+              <TabsTrigger value="ciso" className="flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5" />CISO Report
+              </TabsTrigger>
+              <TabsTrigger value="bu-heatmap" className="flex items-center gap-1.5">
+                <Map className="h-3.5 w-3.5" />BU Risk Heatmap
+              </TabsTrigger>
+              <TabsTrigger value="risk-report" className="flex items-center gap-1.5">
+                <PieChart className="h-3.5 w-3.5" />Risk Report
+              </TabsTrigger>
+              <TabsTrigger value="reporting" className="flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" />Investment / ROI
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="briefing">
+              <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
+                <ExecutiveBriefing />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="ciso">
+              <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
+                <CISOReportDashboard />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="bu-heatmap">
+              <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
+                <BUDollarRiskHeatmap />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="risk-report">
+              <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
+                <ExecutiveRiskReport />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="reporting">
+              <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
+                <ExecutiveReportingDashboard />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        {/* SOC view */}
+        {/* SOC view (P1 Wave 3 — S3 SOC Operations fold-in) */}
         <TabsContent value="soc" className="space-y-4">
           <p className="text-sm text-muted-foreground">{VIEWS[1].description}</p>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Siren className="h-4 w-4" /> Active Incidents
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {loading ? (
-                  <div className="space-y-2 p-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
-                ) : !incidents?.items?.length ? (
-                  <EmptyState icon={Siren} title="No active incidents" description="The wire is quiet. Hot incidents will surface here in real-time." />
-                ) : (
-                  <ScrollArea className="h-[420px]">
-                    <ul className="divide-y divide-border">
-                      {incidents.items.map((it) => (
-                        <li key={it.id ?? it.title} className="px-4 py-2 flex items-center gap-3 hover:bg-muted/40">
-                          <Badge variant="outline" className={cn(
-                            "uppercase text-[10px]",
-                            (it.severity ?? "").toLowerCase() === "critical" && "border-red-500/40 text-red-400 bg-red-500/10",
-                            (it.severity ?? "").toLowerCase() === "high" && "border-orange-500/40 text-orange-400 bg-orange-500/10",
-                          )}>
-                            {it.severity ?? "—"}
-                          </Badge>
-                          <span className="text-sm font-medium truncate flex-1">{it.title ?? it.id}</span>
-                          <span className="text-xs text-muted-foreground">{it.status ?? "open"}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Live SOC Feed</CardTitle>
-                <Badge variant="outline" className="text-[10px]">SSE</Badge>
-              </CardHeader>
-              <CardContent>
-                <LiveEventStream eventTypes={["incident", "alert", "finding"]} heightClass="h-[380px]" />
-              </CardContent>
-            </Card>
-          </div>
+
+          {/* SOC sub-tabs — Overview · T1 Console · Alert Triage · Incident Response */}
+          <Tabs defaultValue="overview" className="space-y-3">
+            <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+              <TabsTrigger value="overview" className="flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5" />Live Overview
+              </TabsTrigger>
+              <TabsTrigger value="t1" className="flex items-center gap-1.5">
+                <Stethoscope className="h-3.5 w-3.5" />T1 Console
+              </TabsTrigger>
+              <TabsTrigger value="triage" className="flex items-center gap-1.5">
+                <FlameKindling className="h-3.5 w-3.5" />Alert Triage
+              </TabsTrigger>
+              <TabsTrigger value="ir" className="flex items-center gap-1.5">
+                <Siren className="h-3.5 w-3.5" />Incident Response
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Card className="lg:col-span-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Siren className="h-4 w-4" /> Active Incidents
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {loading ? (
+                      <div className="space-y-2 p-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+                    ) : !incidents?.items?.length ? (
+                      <EmptyState icon={Siren} title="No active incidents" description="The wire is quiet. Hot incidents will surface here in real-time." />
+                    ) : (
+                      <ScrollArea className="h-[420px]">
+                        <ul className="divide-y divide-border">
+                          {incidents.items.map((it) => (
+                            <li key={it.id ?? it.title} className="px-4 py-2 flex items-center gap-3 hover:bg-muted/40">
+                              <Badge variant="outline" className={cn(
+                                "uppercase text-[10px]",
+                                (it.severity ?? "").toLowerCase() === "critical" && "border-red-500/40 text-red-400 bg-red-500/10",
+                                (it.severity ?? "").toLowerCase() === "high" && "border-orange-500/40 text-orange-400 bg-orange-500/10",
+                              )}>
+                                {it.severity ?? "—"}
+                              </Badge>
+                              <span className="text-sm font-medium truncate flex-1">{it.title ?? it.id}</span>
+                              <span className="text-xs text-muted-foreground">{it.status ?? "open"}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </ScrollArea>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base">Live SOC Feed</CardTitle>
+                    <Badge variant="outline" className="text-[10px]">SSE</Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <LiveEventStream eventTypes={["incident", "alert", "finding"]} heightClass="h-[380px]" />
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="t1">
+              <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
+                <SOCT1Dashboard />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="triage">
+              <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
+                <AlertTriageDashboard />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="ir">
+              <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
+                <IncidentResponseDashboard />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* DevSecOps view */}
