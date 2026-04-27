@@ -136,16 +136,63 @@ def list_vectors(
 
 @router.post("/import-mitre", dependencies=[Depends(api_key_auth)])
 def import_mitre_techniques(org_id: str = Query(..., description="Organization ID")) -> Dict[str, Any]:
-    """Import threat vectors from MITRE ATT&CK technique bundle (NOT YET IMPLEMENTED)."""
-    raise HTTPException(
-        status_code=501,
-        detail={
-            "error": "not_implemented",
-            "endpoint": "POST /api/v1/threat-vectors/import-mitre",
-            "reason": "MITRE ATT&CK technique-to-vector taxonomy mapping not yet built. Bundle cached at /tmp/mitre.json; needs technique extraction logic.",
-            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#4",
-        },
-    )
+    """Import MITRE ATT&CK techniques from STIX 2.1 bundle into the local DB.
+
+    Downloads the enterprise-attack bundle from MITRE CTI GitHub (~10 MB),
+    extracts all attack-pattern objects (techniques + sub-techniques), and
+    upserts them into data/mitre_attack.db.
+
+    Returns technique/subtechnique/tactic/platform counts.
+    """
+    try:
+        import sys
+        from pathlib import Path as _Path
+        _feeds_path = str(_Path(__file__).parent.parent.parent.parent / "suite-feeds")
+        if _feeds_path not in sys.path:
+            sys.path.insert(0, _feeds_path)
+        from feeds.mitre_attack.extractor import get_mitre_extractor
+        extractor = get_mitre_extractor()
+        result = extractor.run()
+        result["org_id"] = org_id
+        result["status"] = "ok"
+        return result
+    except Exception as exc:
+        _logger.exception("import_mitre_techniques_failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"mitre_import_failure: {exc}") from exc
+
+
+@router.get("/mitre-techniques", dependencies=[Depends(api_key_auth)])
+def list_mitre_techniques(
+    tactic: Optional[str] = Query(default=None, description="Filter by tactic slug, e.g. initial-access"),
+) -> Dict[str, Any]:
+    """List imported MITRE ATT&CK techniques from the local DB.
+
+    Optionally filter by tactic slug (e.g. execution, initial-access).
+    Returns 404 with a hint if no techniques have been imported yet.
+    """
+    try:
+        import sys
+        from pathlib import Path as _Path
+        _feeds_path = str(_Path(__file__).parent.parent.parent.parent / "suite-feeds")
+        if _feeds_path not in sys.path:
+            sys.path.insert(0, _feeds_path)
+        from feeds.mitre_attack.extractor import get_mitre_extractor
+        store = get_mitre_extractor().get_store()
+        if tactic:
+            rows = store.filter_by_tactic(tactic)
+        else:
+            rows = store.all()
+        store.close()
+        if not rows:
+            return {
+                "techniques": [],
+                "total": 0,
+                "hint": "Run POST /api/v1/threat-vectors/import-mitre to populate.",
+            }
+        return {"techniques": rows, "total": len(rows)}
+    except Exception as exc:
+        _logger.exception("list_mitre_techniques_failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"list_mitre_failure: {exc}") from exc
 
 
 @router.get("/vectors/{vector_id}", dependencies=[Depends(api_key_auth)])
