@@ -14,6 +14,47 @@ from config.enterprise.settings import get_settings
 logger = structlog.get_logger()
 settings = get_settings()
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 class OPAEngine:
     """Base OPA Engine interface"""
@@ -90,6 +131,13 @@ class LocalOPAEngine(OPAEngine):
 
             execution_time = (time.perf_counter() - start_time) * 1000
             result["execution_time_ms"] = execution_time
+            _emit_event("real_opa_engine.local_evaluate_policy", {
+                "engine": "real_opa_engine",
+                "mode": "local",
+                "policy_name": policy_name,
+                "decision": result.get("decision"),
+                "execution_time_ms": execution_time,
+            })
             return result
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
@@ -269,6 +317,12 @@ class ProductionOPAEngine(OPAEngine):
 
             execution_time = (time.perf_counter() - start_time) * 1000
             result["execution_time_ms"] = execution_time
+            _emit_event("real_opa_engine.evaluate_policy", {
+                "engine": "real_opa_engine",
+                "policy_name": policy_name,
+                "decision": result.get("decision"),
+                "execution_time_ms": execution_time,
+            })
             return result
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception

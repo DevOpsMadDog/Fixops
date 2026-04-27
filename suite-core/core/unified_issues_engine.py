@@ -33,6 +33,47 @@ from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 # Default DB paths — mirror what the source engines use.
 _FIXOPS_DATA = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -402,7 +443,14 @@ class UnifiedIssuesEngine:
             key=lambda it: (it.get("first_seen_at") or ""),
             reverse=True,
         )
-        return issues[:limit]
+        result_issues = issues[:limit]
+        _emit_event("unified_issues_engine.unified_list", {
+            "engine": "unified_issues_engine",
+            "org_id": org_id,
+            "returned": len(result_issues),
+            "limit": limit,
+        })
+        return result_issues
 
     def issue_counts_by_source(self, org_id: str) -> Dict[str, int]:
         """Return per-source counts + total for the org."""
@@ -448,6 +496,14 @@ class UnifiedIssuesEngine:
                 conn.close()
 
         counts["total"] = counts["findings"] + counts["exposures"] + counts["alerts"]
+        _emit_event("unified_issues_engine.issue_counts_by_source", {
+            "engine": "unified_issues_engine",
+            "org_id": org_id,
+            "findings": counts["findings"],
+            "exposures": counts["exposures"],
+            "alerts": counts["alerts"],
+            "total": counts["total"],
+        })
         return counts
 
     def compute_diff(
@@ -655,12 +711,19 @@ class UnifiedIssuesEngine:
             by_severity[sev] = by_severity.get(sev, 0) + 1
             by_status[st] = by_status.get(st, 0) + 1
 
-        return {
+        stats = {
             "counts": counts,
             "by_severity": by_severity,
             "by_status": by_status,
             "computed_at": _now_iso(),
         }
+        _emit_event("unified_issues_engine.issue_stats", {
+            "engine": "unified_issues_engine",
+            "org_id": org_id,
+            "total": counts.get("total", 0),
+            "severity_breakdown": by_severity,
+        })
+        return stats
 
 
 _engine_instance: Optional[UnifiedIssuesEngine] = None
