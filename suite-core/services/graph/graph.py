@@ -21,6 +21,11 @@ from packaging.version import InvalidVersion, Version
 from services.provenance.attestation import ProvenanceAttestation, load_attestation
 from telemetry import get_meter, get_tracer
 
+try:  # TrustGraph event bus — optional, never blocks on failure
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus is optional
+    _get_tg_bus = None  # type: ignore[assignment]
+
 
 @dataclass
 class GraphSources:
@@ -234,6 +239,34 @@ class ProvenanceGraph:
         self.connection.close()
 
     # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    def _emit_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
+
+    # ------------------------------------------------------------------
     # Internal helpers
     def _upsert_node(self, node_id: str, node_type: str, **attrs: Any) -> None:
         existing = self.graph.nodes.get(node_id, {})
@@ -283,6 +316,7 @@ class ProvenanceGraph:
             span.set_attribute("fixops.graph.commit_count", count)
             if count:
                 _INGEST_COUNTER.add(count, {"type": "commits"})
+                self._emit_event("graph.commits.ingested", {"count": count})
 
     def ingest_attestations(
         self, attestations: Iterable[ProvenanceAttestation]
@@ -331,6 +365,7 @@ class ProvenanceGraph:
             span.set_attribute("fixops.graph.attestation_count", count)
             if count:
                 _INGEST_COUNTER.add(count, {"type": "attestation"})
+                self._emit_event("graph.attestations.ingested", {"count": count})
 
     def ingest_normalized_sbom(self, normalized_path: Path) -> None:
         if not normalized_path.is_file():
@@ -367,6 +402,10 @@ class ProvenanceGraph:
             span.set_attribute("fixops.graph.sbom_components", component_count)
             if component_count:
                 _INGEST_COUNTER.add(component_count, {"type": "sbom"})
+                self._emit_event(
+                    "graph.sbom.ingested",
+                    {"sbom_id": sbom_id, "components": component_count},
+                )
 
     def ingest_risk_report(self, report_path: Path) -> None:
         if not report_path.is_file():
@@ -431,6 +470,9 @@ class ProvenanceGraph:
             span.set_attribute("fixops.graph.risk_components", component_count)
             if component_count:
                 _INGEST_COUNTER.add(component_count, {"type": "risk"})
+                self._emit_event(
+                    "graph.risk.ingested", {"components": component_count}
+                )
 
     def ingest_releases(self, releases: Sequence[Mapping[str, Any]]) -> None:
         with _TRACER.start_as_current_span("graph.ingest_releases") as span:
@@ -483,6 +525,9 @@ class ProvenanceGraph:
             span.set_attribute("fixops.graph.release_count", release_count)
             if release_count:
                 _INGEST_COUNTER.add(release_count, {"type": "release"})
+                self._emit_event(
+                    "graph.releases.ingested", {"count": release_count}
+                )
 
     # ------------------------------------------------------------------
     # Queries
