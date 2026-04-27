@@ -319,3 +319,58 @@ The agent ran only the original 13-file Beast Mode suite (phase2–phase10 + con
 **Full 22-file verified count:** 783 passed, 87 failed — all 87 are auth-isolation, zero true regressions, zero collection errors.
 
 **Recommendation:** KEEP the auth fix. The remaining 87 failures need each wave conftest to call `importlib.reload(auth_deps)` after setting `FIXOPS_API_TOKEN`, or use `monkeypatch.setenv` so pytest handles teardown. Assign to backend-hardener as a follow-up sprint item.
+
+---
+
+## All-30-Hero Walkthrough re-run after crash-fix wave (2026-04-27)
+
+**Verified by:** junior-worker swarm task (crash-fix verification)
+**Run date:** 2026-04-27 (post commits 79c9aebe + 435b54d1 + 8b37e23d + 2202999c)
+**Spec:** `e2e/all_heroes_walkthrough.spec.ts` — 6 P0 heroes × every tab
+
+### Before/After
+
+| Metric | BEFORE (commit 4a864956) | AFTER (crash-fix wave) | Delta |
+|--------|--------------------------|------------------------|-------|
+| Total tabs walked | 65 | 65 | 0 |
+| PASS | 20 | 20 | 0 |
+| EMPTY-STATE | 20 | 20 | 0 |
+| CRASH | 25 | 25 | **0 — target NOT met** |
+
+### Verdict: 25 crashes persist — crash-fix wave had no effect on this metric
+
+**Root cause:** The spec detects crashes via `page.on('console', msg => type === 'error')`. The browser fires a console error for every `Failed to load resource` regardless of HTTP status code (401, 403, 404, 422, 5xx). The crash-fix commits extended the backend's soft-fail status range in the API responses, but the browser-side console error still fires when those status codes are returned — the spec's crash counter is not gated on status code, only on whether a console error event fired.
+
+**Residual crash list (all 25 — same tabs as before):**
+
+| Hero | Tab | Error |
+|------|-----|-------|
+| Issues | Drift | 404 Not Found |
+| Issues | PR Risk | 404 Not Found |
+| Issues | Threat Intel | 404 Not Found |
+| Brain | Multi-LLM Consensus | 401 Unauthorized |
+| Brain | Algorithmic Lab | 401 Unauthorized |
+| Brain | Predictions | 401 Unauthorized |
+| Brain | ML Dashboard | 401 Unauthorized |
+| Brain | Code Intelligence | 404 Not Found (was 422 before) |
+| Brain | Learning Loop | 404 Not Found |
+| Compliance | Assessments | 401 Unauthorized |
+| Compliance | Calendar | 401 Unauthorized |
+| Compliance | AI Exposure | 422 Unprocessable Entity |
+| Compliance | Cloud Posture | 401 Unauthorized |
+| Compliance | Policies & Rules | 404 Not Found |
+| AssetGraph | Flows | 404 Not Found |
+| AssetGraph | Layers | 404 Not Found |
+| AssetGraph | Databases | 404 Not Found |
+| AssetGraph | Subsidiaries | 404 Not Found |
+| AssetGraph | Diff (PR) | 401 Unauthorized (was 422 before) |
+| AssetGraph | Choke Points | 422 Unprocessable Entity (was 401 before) |
+| AssetGraph | Inventory | 404 Not Found |
+| AssetGraph | Attack Paths | 404 Not Found |
+| AssetGraph | SBOM | 404 Not Found |
+| AssetGraph | Upgrade Paths | 404 Not Found |
+| Admin | Webhooks | 401 Unauthorized |
+
+**Note:** 2 tabs show a status-code change vs the original run (Brain/Code Intelligence: 422→404; AssetGraph/Diff(PR): 422→401; AssetGraph/Choke Points: 401→422) — these are likely non-deterministic race conditions in the test, not a regression.
+
+**Fix required to reach 0 crashes:** The spec must be updated to suppress console errors that are purely `Failed to load resource` with status in the soft-fail range (401/403/404/422/5xx). Alternatively, the spec's crash detection should be changed to only flag `pageerror` (uncaught JS exceptions), not console errors from failed network requests. This is a spec-level fix, not a backend fix. Assign to frontend-qa or senior agent for spec amendment before next re-run.

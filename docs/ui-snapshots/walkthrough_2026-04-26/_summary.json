@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-04-27T08:39:31.182Z",
+  "run_at": "2026-04-27T08:54:57.367Z",
   "total": 65,
   "pass": 20,
   "empty_state": 20,
@@ -185,9 +185,9 @@
       "hero": "Brain",
       "tab": "Factor Weights",
       "status": "PASS",
-      "apiCalls": 2,
+      "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/07-factor-weights.png",
-      "notes": "2 new API call(s)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "Brain",
@@ -195,7 +195,7 @@
       "status": "CRASH",
       "apiCalls": 4,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/08-code-intelligence.png",
-      "notes": "+4 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+      "notes": "+4 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
     },
     {
       "hero": "Brain",
@@ -337,17 +337,17 @@
       "hero": "Compliance",
       "tab": "Waivers",
       "status": "PASS",
-      "apiCalls": 4,
+      "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/14-waivers.png",
-      "notes": "4 new API call(s)"
+      "notes": "2 new API call(s)"
     },
     {
       "hero": "Compliance",
       "tab": "Policies & Rules",
       "status": "CRASH",
-      "apiCalls": 4,
+      "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/15-policies-rules.png",
-      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
     },
     {
       "hero": "Compliance",
@@ -401,17 +401,17 @@
       "hero": "AssetGraph",
       "tab": "Diff (PR)",
       "status": "CRASH",
-      "apiCalls": 1,
+      "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/05-diff-pr.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Choke Points",
       "status": "CRASH",
-      "apiCalls": 2,
+      "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/06-choke-points.png",
-      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
     },
     {
       "hero": "AssetGraph",
@@ -513,9 +513,9 @@
       "hero": "Admin",
       "tab": "MCP Gateway",
       "status": "PASS",
-      "apiCalls": 2,
+      "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/08-mcp-gateway.png",
-      "notes": "2 new API call(s)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "Admin",
