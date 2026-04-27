@@ -37,6 +37,11 @@ except ImportError:
 import structlog
 from config.enterprise.settings import get_settings
 
+try:  # TrustGraph event bus — optional, never blocks on failure
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus is optional
+    _get_tg_bus = None  # type: ignore[assignment]
+
 logger = structlog.get_logger()
 settings = get_settings()
 
@@ -122,6 +127,42 @@ class CacheService:
             cls._redis_pool = None
 
         logger.info("Redis cache service closed")
+        cls._emit_event_classmethod("cache.closed", {})
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        """Emit an event to the TrustGraph event bus. Never raises."""
+        self.__class__._emit_event_classmethod(event_type, payload)
+
+    @classmethod
+    def _emit_event_classmethod(cls, event_type: str, payload: Dict[str, Any]) -> None:
+        """Class-level emit helper so initialize/close (classmethods) can use it."""
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
 
     async def ping(self) -> bool:
         """Health check for Redis connectivity"""
@@ -158,6 +199,8 @@ class CacheService:
                 result = await self._redis_client.set(
                     key, serialized_value, ex=ttl, nx=nx  # Expiration in seconds
                 )
+                if result:
+                    self._emit_event("cache.set", {"key": key, "ttl": ttl, "backend": "redis"})
                 return bool(result)
             else:
                 # In-memory cache fallback — normalise value to match Redis behaviour:
@@ -177,6 +220,7 @@ class CacheService:
                     "expires_at": time.time() + ttl if ttl is not None else None,
                 }
                 self.__class__._in_memory_cache[key] = cache_item
+                self._emit_event("cache.set", {"key": key, "ttl": ttl, "backend": "memory"})
                 return True
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
@@ -227,11 +271,14 @@ class CacheService:
         try:
             if self._redis_client:
                 result = await self._redis_client.delete(key)
+                if result > 0:
+                    self._emit_event("cache.deleted", {"key": key, "backend": "redis"})
                 return result > 0
             else:
                 # In-memory cache fallback
                 if key in self.__class__._in_memory_cache:
                     del self.__class__._in_memory_cache[key]
+                    self._emit_event("cache.deleted", {"key": key, "backend": "memory"})
                     return True
                 return False
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
