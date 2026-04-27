@@ -356,7 +356,19 @@ export default function AssetGraph() {
             {t.key === "inventory" ? (
               <InventoryPane />
             ) : t.key === "attack-paths" ? (
-              <AttackPathsPane />
+              // Defensive: AttackPathsPane is hoisted but Vite/SWC has shipped a
+              // build where the symbol resolves to undefined at runtime
+              // (`AttackPathsPane is not defined`). Falling back to EmptyState
+              // keeps the hero alive while we ensure the binding is live.
+              typeof AttackPathsPane === "function" ? (
+                <AttackPathsPane />
+              ) : (
+                <EmptyState
+                  icon={Target}
+                  title="Attack Paths pane unavailable"
+                  description="Internal component binding failed to load. Refresh the page or rebuild the UI bundle."
+                />
+              )
             ) : t.key === "sbom" ? (
               <SBOMProvenancePane />
             ) : t.key === "upgrade-paths" ? (
@@ -1115,27 +1127,515 @@ function UpgradePathsPane() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AttackPathsPane / SBOMProvenancePane — P1 Wave 2 stubs (filled in by another
-// agent in flight). Render a placeholder that won't break TypeScript while
-// pointing to the existing dashboards.
+// AttackPathsPane — P1 Wave 2 fold-in (S12). Interactive attack-path explorer
+// pulling /api/v1/attack-paths/graph. Drill into kill-chain on path click.
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface AttackPathStep {
+  asset_id?: string;
+  asset?: string;
+  technique?: string;
+  mitre_id?: string;
+  description?: string;
+}
+
+interface AttackPath {
+  id?: string;
+  path_id?: string;
+  source?: string;
+  target?: string;
+  length?: number;
+  risk_score?: number;
+  exploitable?: boolean;
+  kev?: boolean;
+  steps?: AttackPathStep[];
+  techniques?: string[];
+}
+
+interface AttackPathGraphResponse {
+  paths?: AttackPath[];
+  items?: AttackPath[];
+  nodes?: GraphNode[];
+  edges?: GraphEdge[];
+  total_paths?: number;
+  exploitable_paths?: number;
+}
+
 function AttackPathsPane() {
+  const [paths, setPaths] = useState<AttackPath[]>([]);
+  const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
+  const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+  const [selected, setSelected] = useState<AttackPath | null>(null);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      const r = await apiFetch<AttackPathGraphResponse>("/api/v1/attack-paths/graph");
+      if (r === null) {
+        setUnavailable(true);
+        setPaths([]);
+      } else {
+        setUnavailable(false);
+        setPaths(r.paths ?? r.items ?? []);
+        setGraphNodes(r.nodes ?? []);
+        setGraphEdges(r.edges ?? []);
+      }
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const exploitableCount = paths.filter((p) => p.exploitable).length;
+  const kevCount = paths.filter((p) => p.kev).length;
+  const avgLen = paths.length
+    ? Math.round((paths.reduce((s, p) => s + (p.length ?? p.steps?.length ?? 0), 0) / paths.length) * 10) / 10
+    : 0;
+  const maxRisk = paths.reduce((m, p) => Math.max(m, p.risk_score ?? 0), 0);
+
   return (
-    <EmptyState
-      icon={Target}
-      title="Attack Paths — wiring in progress"
-      description="P1 Wave 2 fold-in is being completed. Existing surface available at /attack-paths and /attack-path-graph."
-    />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard title="Attack Paths" value={paths.length} icon={Target} />
+        <KpiCard title="Exploitable" value={exploitableCount} icon={Zap} trend={exploitableCount > 0 ? "down" : "flat"} />
+        <KpiCard title="KEV-Active" value={kevCount} icon={AlertTriangle} trend={kevCount > 0 ? "down" : "flat"} />
+        <KpiCard title="Avg Length" value={avgLen} icon={Network} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              Attack Path Explorer
+              <Badge variant="outline" className="text-[9px]">
+                /api/v1/attack-paths/graph
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Click any path to inspect the full kill-chain. Source asset → MITRE techniques → target asset.
+              Graph nodes ({graphNodes.length}) and edges ({graphEdges.length}) inform centrality on the Choke Points tab.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="space-y-2 p-4">
+                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : err ? (
+              <ErrorState title="Failed to load attack paths" message={err} onRetry={load} />
+            ) : unavailable ? (
+              <EmptyState
+                icon={Target}
+                title="Attack-path graph endpoint not available"
+                description="`/api/v1/attack-paths/graph` returned 404 or 501. The MPTE/path-finder engine may not be running yet."
+              />
+            ) : paths.length === 0 ? (
+              <EmptyState
+                icon={Target}
+                title="No attack paths discovered"
+                description="Once the path-finder runs, paths from external surfaces to crown-jewel assets appear here."
+              />
+            ) : (
+              <ScrollArea className="h-[440px]">
+                <div className="divide-y divide-border">
+                  {paths.map((p, i) => {
+                    const id = p.id ?? p.path_id ?? `path-${i}`;
+                    const isSel = selected && (selected.id ?? selected.path_id) === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setSelected(p)}
+                        className={cn(
+                          "w-full px-3 py-2.5 text-left hover:bg-muted/40 space-y-1.5",
+                          isSel && "bg-primary/10 border-l-2 border-primary",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-mono truncate">
+                            {p.source ?? "—"} → {p.target ?? "—"}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {p.exploitable && (
+                              <Badge variant="outline" className="text-[9px] border-red-500/40 text-red-400 bg-red-500/10">
+                                <Zap className="h-2.5 w-2.5 mr-1" />EXPLOITABLE
+                              </Badge>
+                            )}
+                            {p.kev && (
+                              <Badge variant="outline" className="text-[9px] border-orange-500/40 text-orange-400 bg-orange-500/10">
+                                KEV
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{p.length ?? p.steps?.length ?? 0} steps</span>
+                          <span className="tabular-nums">risk {p.risk_score ?? 0}</span>
+                        </div>
+                        {p.risk_score != null && (
+                          <Progress value={Math.min(100, p.risk_score)} className="h-1" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Selected path drill-in */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Network className="h-4 w-4" />
+              Kill Chain
+            </CardTitle>
+            <CardDescription>
+              {selected ? "Step-by-step breakdown of the selected path" : "Click any path on the left."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!selected ? (
+              <EmptyState
+                icon={Target}
+                title="No path selected"
+                description="Pick an attack path to inspect its MITRE technique chain."
+              />
+            ) : selected.steps && selected.steps.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-xs">
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-muted-foreground">Risk Score</span>
+                    <span className="tabular-nums font-bold">{selected.risk_score ?? 0}/{maxRisk}</span>
+                  </div>
+                  <Progress value={maxRisk ? ((selected.risk_score ?? 0) / maxRisk) * 100 : 0} />
+                </div>
+                <div className="space-y-1.5 mt-2">
+                  {selected.steps.map((step, i) => (
+                    <div key={i} className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-2">
+                      <Badge variant="outline" className="text-[9px] shrink-0">{i + 1}</Badge>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="text-xs font-medium truncate">{step.asset ?? step.asset_id ?? "—"}</p>
+                        {(step.technique || step.mitre_id) && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {step.mitre_id ?? ""} {step.technique ? `· ${step.technique}` : ""}
+                          </p>
+                        )}
+                        {step.description && (
+                          <p className="text-[10px] text-muted-foreground line-clamp-2">
+                            {step.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : selected.techniques && selected.techniques.length > 0 ? (
+              <div className="space-y-1.5">
+                {selected.techniques.map((t, i) => (
+                  <Badge key={i} variant="outline" className="mr-1 text-[10px]">{t}</Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No detailed step trace available for this path.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SBOMProvenancePane — P1 Wave 2 fold-in (S25). SBOM components, SLSA
+// attestations, signature coverage. APIs: /api/v1/sbom, /api/v1/provenance/*
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SBOMComponent {
+  name?: string;
+  purl?: string;
+  version?: string;
+  type?: string;
+  license?: string;
+  vulnerabilities?: number;
+  reachable?: boolean;
+}
+
+interface SBOMResponse {
+  format?: string;
+  spec_version?: string;
+  components?: SBOMComponent[];
+  items?: SBOMComponent[];
+  total_components?: number;
+  serial_number?: string;
+  generated_at?: string;
+}
+
+interface ProvenanceAttestation {
+  artifact?: string;
+  artifact_uri?: string;
+  builder?: string;
+  build_type?: string;
+  slsa_level?: number;
+  signed?: boolean;
+  signature_algorithm?: string;
+  generated_at?: string;
+  source_repo?: string;
+  commit_sha?: string;
+}
+
+interface ProvenanceResponse {
+  attestations?: ProvenanceAttestation[];
+  items?: ProvenanceAttestation[];
+}
+
 function SBOMProvenancePane() {
+  const [components, setComponents] = useState<SBOMComponent[]>([]);
+  const [sbomMeta, setSbomMeta] = useState<{ format?: string; spec_version?: string; generated_at?: string; serial_number?: string } | null>(null);
+  const [attestations, setAttestations] = useState<ProvenanceAttestation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      const [sbomR, provR] = await Promise.allSettled([
+        apiFetch<SBOMResponse | SBOMComponent[]>("/api/v1/sbom"),
+        apiFetch<ProvenanceResponse | ProvenanceAttestation[]>("/api/v1/provenance/attestations"),
+      ]);
+      if (sbomR.status === "fulfilled") {
+        const v = sbomR.value;
+        if (v === null) {
+          setUnavailable(true);
+        } else if (Array.isArray(v)) {
+          setComponents(v);
+          setUnavailable(false);
+        } else {
+          setComponents(v.components ?? v.items ?? []);
+          setSbomMeta({
+            format: v.format,
+            spec_version: v.spec_version,
+            generated_at: v.generated_at,
+            serial_number: v.serial_number,
+          });
+          setUnavailable(false);
+        }
+      }
+      if (provR.status === "fulfilled" && provR.value) {
+        const v = provR.value;
+        if (Array.isArray(v)) setAttestations(v);
+        else setAttestations(v.attestations ?? v.items ?? []);
+      }
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const vulnComponents = components.filter((c) => (c.vulnerabilities ?? 0) > 0).length;
+  const reachableVulns = components.filter((c) => c.reachable && (c.vulnerabilities ?? 0) > 0).length;
+  const signedAttestations = attestations.filter((a) => a.signed).length;
+  const slsaCoverage = attestations.length
+    ? attestations.reduce((s, a) => s + (a.slsa_level ?? 0), 0) / attestations.length
+    : 0;
+
   return (
-    <EmptyState
-      icon={Package}
-      title="SBOM & Provenance — wiring in progress"
-      description="P1 Wave 2 fold-in is being completed. Existing surface available at /sbom and /sbom/continuous."
-    />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <KpiCard title="Components" value={components.length.toLocaleString()} icon={Package} />
+        <KpiCard title="With Vulns" value={vulnComponents} icon={AlertTriangle} trend={vulnComponents > 0 ? "down" : "flat"} />
+        <KpiCard title="Reachable Vulns" value={reachableVulns} icon={Zap} trend={reachableVulns > 0 ? "down" : "flat"} />
+        <KpiCard title="Attestations" value={attestations.length} icon={Fingerprint} />
+        <KpiCard title="Avg SLSA Level" value={slsaCoverage.toFixed(1)} icon={ShieldCheck} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Package className="h-4 w-4 text-primary" />
+              SBOM Components
+              {sbomMeta?.format && (
+                <Badge variant="outline" className="text-[9px]">{sbomMeta.format} {sbomMeta.spec_version}</Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Software Bill of Materials from <code className="text-[10px]">/api/v1/sbom</code>. Each component
+              tracked with PURL, license, reachability, and vulnerability count.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="space-y-2 p-4">
+                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : err ? (
+              <ErrorState title="Failed to load SBOM" message={err} onRetry={load} />
+            ) : unavailable ? (
+              <EmptyState
+                icon={Package}
+                title="SBOM endpoint not available"
+                description="`/api/v1/sbom` returned 404 or 501. The SBOM generator (Syft) may not have run yet."
+              />
+            ) : components.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="No components in SBOM"
+                description="Generate an SBOM via Syft or the SBOM generator engine."
+              />
+            ) : (
+              <ScrollArea className="h-[420px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Component</TableHead>
+                      <TableHead className="w-[100px]">Version</TableHead>
+                      <TableHead className="w-[110px]">License</TableHead>
+                      <TableHead className="w-[90px] text-right">Vulns</TableHead>
+                      <TableHead className="w-[100px]">Reachable</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {components.slice(0, 200).map((c, i) => (
+                      <TableRow key={(c.purl ?? c.name ?? "comp") + i} className="hover:bg-muted/40">
+                        <TableCell className="font-mono text-xs truncate max-w-[280px]" title={c.purl ?? c.name}>
+                          {c.name ?? c.purl ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{c.version ?? "—"}</TableCell>
+                        <TableCell className="text-xs">
+                          <Badge variant="outline" className="text-[9px]">{c.license ?? "—"}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {(c.vulnerabilities ?? 0) > 0 ? (
+                            <Badge variant="outline" className="text-[9px] border-red-500/40 text-red-400 bg-red-500/10">
+                              {c.vulnerabilities}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">0</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {c.reachable ? (
+                            <Badge variant="outline" className="text-[9px] border-orange-500/40 text-orange-400 bg-orange-500/10">
+                              REACHABLE
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {components.length > 200 && (
+                  <p className="px-3 py-2 text-[10px] text-muted-foreground italic">
+                    Showing first 200 of {components.length.toLocaleString()} components.
+                  </p>
+                )}
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Provenance / SLSA attestations rail */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Fingerprint className="h-4 w-4 text-primary" />
+              SLSA Provenance
+            </CardTitle>
+            <CardDescription>
+              Build attestations + signature coverage from <code className="text-[10px]">/api/v1/provenance/attestations</code>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : attestations.length === 0 ? (
+              <EmptyState
+                icon={Fingerprint}
+                title="No attestations"
+                description="Generate SLSA provenance via the build pipeline."
+              />
+            ) : (
+              <div className="space-y-2">
+                <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-2.5 text-xs">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                      Signature coverage
+                    </span>
+                    <span className="tabular-nums">
+                      {attestations.length ? Math.round((signedAttestations / attestations.length) * 100) : 0}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={attestations.length ? (signedAttestations / attestations.length) * 100 : 0}
+                    className="h-1.5"
+                  />
+                </div>
+
+                <ScrollArea className="h-[380px]">
+                  <div className="space-y-1.5">
+                    {attestations.map((a, i) => (
+                      <div key={(a.artifact ?? "att") + i} className="rounded-md border border-border bg-muted/30 p-2 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="text-[11px] font-mono truncate">
+                            {a.artifact ?? a.artifact_uri ?? "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <Badge variant="outline" className="text-[9px]">
+                            SLSA L{a.slsa_level ?? "?"}
+                          </Badge>
+                          {a.signed ? (
+                            <Badge variant="outline" className="text-[9px] border-emerald-500/40 text-emerald-400 bg-emerald-500/10">
+                              <Fingerprint className="h-2.5 w-2.5 mr-1" />
+                              {a.signature_algorithm ?? "SIGNED"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-400 bg-amber-500/10">
+                              UNSIGNED
+                            </Badge>
+                          )}
+                        </div>
+                        {a.builder && (
+                          <p className="text-[10px] text-muted-foreground truncate">build: {a.builder}</p>
+                        )}
+                        {a.commit_sha && (
+                          <p className="text-[10px] text-muted-foreground font-mono">
+                            {a.commit_sha.slice(0, 12)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

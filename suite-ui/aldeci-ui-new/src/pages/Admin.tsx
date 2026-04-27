@@ -18,14 +18,28 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  Activity,
+  AlertTriangle,
+  Boxes,
   Building2,
+  CheckCircle2,
+  Cloud,
   CreditCard,
+  Database,
+  GitBranch,
   Key,
+  Network,
+  Package,
   Plug,
   RefreshCw,
+  Rss,
   Server,
+  Shield,
+  ShieldCheck,
+  Ticket,
   Users,
   Webhook,
+  XCircle,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,7 +78,8 @@ interface UserToken {
   token_id?: string;
   name?: string;
   prefix?: string;
-  scopes?: string[];
+  /** Backend may return scopes as `string[]` (modern) OR `string` (legacy comma-separated rows). */
+  scopes?: string[] | string;
   created_at?: string;
   last_used_at?: string;
   expires_at?: string;
@@ -105,13 +120,34 @@ interface HAStatus {
   components?: Array<{ name: string; status: string }>;
 }
 
+interface ConnectorHealth {
+  id?: string;
+  name?: string;
+  type?: string;        // scanner / git / cloud / siem / ticketing / notification / feed / secrets
+  category?: string;    // OSS | commercial
+  vendor?: string;
+  status?: string;      // healthy / degraded / down / unknown
+  last_sync_at?: string;
+  latency_ms?: number;
+  error_rate?: number;
+  events_last_hour?: number;
+}
+
 interface ListResponse<T> {
   items?: T[];
   data?: T[];
   total?: number;
 }
 
-type TabKey = "orgs" | "users" | "tokens" | "connectors" | "webhooks" | "billing" | "system";
+type TabKey =
+  | "orgs"
+  | "users"
+  | "tokens"
+  | "connectors"
+  | "integrations"
+  | "webhooks"
+  | "billing"
+  | "system";
 
 interface TabSpec {
   key: TabKey;
@@ -125,6 +161,7 @@ const TABS: TabSpec[] = [
   { key: "users", label: "Users", icon: Users, description: "Users, teams, scopes, role assignments" },
   { key: "tokens", label: "Tokens", icon: Key, description: "API keys & PATs — your own + tenant-wide" },
   { key: "connectors", label: "Connectors", icon: Plug, description: "Field mappings & data-source bindings" },
+  { key: "integrations", label: "Integrations Hub", icon: Boxes, description: "Visual catalog of OSS + commercial connectors with live health badges" },
   { key: "webhooks", label: "Webhooks", icon: Webhook, description: "Event catalogue, subscriptions, retries" },
   { key: "billing", label: "Billing", icon: CreditCard, description: "Plan, seats, monthly cost, invoices" },
   { key: "system", label: "System", icon: Server, description: "HA status, uptime, component health" },
@@ -180,6 +217,7 @@ export default function Admin() {
   const [webhooks, setWebhooks] = useState<WebhookEvent[]>([]);
   const [billing, setBilling] = useState<BillingInfo | null>(null);
   const [ha, setHa] = useState<HAStatus | null>(null);
+  const [connectorHealth, setConnectorHealth] = useState<ConnectorHealth[]>([]);
 
   // Persist tab to ?tab= query
   useEffect(() => {
@@ -195,7 +233,7 @@ export default function Admin() {
     setErr(null);
     setRefreshing(true);
     try {
-      const [orgsR, tokR, admTokR, connR, hookR, billR, haR] = await Promise.all([
+      const [orgsR, tokR, admTokR, connR, hookR, billR, haR, healthR] = await Promise.all([
         apiFetch<ListResponse<Organization> | Organization[]>("/api/v1/organizations").catch(() => null),
         apiFetch<ListResponse<UserToken> | UserToken[]>("/api/v1/users/me/tokens").catch(() => null),
         apiFetch<ListResponse<UserToken> | UserToken[]>("/api/v1/admin/tokens").catch(() => null),
@@ -203,6 +241,7 @@ export default function Admin() {
         apiFetch<ListResponse<WebhookEvent> | WebhookEvent[]>("/api/v1/webhooks/event-catalogue").catch(() => null),
         apiFetch<BillingInfo>("/api/v1/billing/current").catch(() => null),
         apiFetch<HAStatus>("/api/v1/system/ha-status").catch(() => null),
+        apiFetch<ListResponse<ConnectorHealth> | ConnectorHealth[]>("/api/v1/connectors/health").catch(() => null),
       ]);
       setOrgs(listFromResponse<Organization>(orgsR));
       setTokens(listFromResponse<UserToken>(tokR));
@@ -211,6 +250,7 @@ export default function Admin() {
       setWebhooks(listFromResponse<WebhookEvent>(hookR));
       setBilling(billR);
       setHa(haR);
+      setConnectorHealth(listFromResponse<ConnectorHealth>(healthR));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -375,7 +415,7 @@ export default function Admin() {
                         {adminTokens.map((t) => (
                           <TableRow key={t.id ?? t.token_id ?? t.prefix}>
                             <TableCell className="font-medium">{t.name ?? "—"}</TableCell>
-                            <TableCell className="text-xs">{t.scopes?.length ? t.scopes.join(", ") : "—"}</TableCell>
+                            <TableCell className="text-xs">{Array.isArray(t.scopes) ? (t.scopes.length ? t.scopes.join(", ") : "—") : (typeof t.scopes === "string" && t.scopes ? t.scopes : "—")}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">{t.expires_at?.slice(0, 10) ?? "no expiry"}</TableCell>
                           </TableRow>
                         ))}
@@ -419,9 +459,19 @@ export default function Admin() {
           </Card>
         </TabsContent>
 
+        {/* Integrations Hub (P1 Wave 2 — visual catalog of OSS + commercial connectors) */}
+        <TabsContent value="integrations" className="space-y-4">
+          <IntegrationsHubPane
+            health={connectorHealth}
+            mappings={connectors}
+            webhooks={webhooks}
+            loading={loading}
+          />
+        </TabsContent>
+
         {/* Webhooks */}
         <TabsContent value="webhooks" className="space-y-4">
-          <p className="text-sm text-muted-foreground">{TABS[4].description}</p>
+          <p className="text-sm text-muted-foreground">{TABS.find((t) => t.key === "webhooks")?.description}</p>
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Webhook Event Catalogue</CardTitle></CardHeader>
             <CardContent className="p-0">
@@ -451,7 +501,7 @@ export default function Admin() {
 
         {/* Billing */}
         <TabsContent value="billing" className="space-y-4">
-          <p className="text-sm text-muted-foreground">{TABS[5].description}</p>
+          <p className="text-sm text-muted-foreground">{TABS.find((t) => t.key === "billing")?.description}</p>
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Subscription</CardTitle></CardHeader>
             <CardContent>
@@ -473,7 +523,7 @@ export default function Admin() {
 
         {/* System */}
         <TabsContent value="system" className="space-y-4">
-          <p className="text-sm text-muted-foreground">{TABS[6].description}</p>
+          <p className="text-sm text-muted-foreground">{TABS.find((t) => t.key === "system")?.description}</p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">HA Status</CardTitle></CardHeader>
@@ -523,5 +573,266 @@ export default function Admin() {
         </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Integrations Hub pane — visual catalog of OSS + commercial connectors with
+// live health badges (P1 Wave 2).
+// API: /api/v1/connectors/health, /api/v1/webhooks/event-catalogue
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OSS_CATALOGUE: Array<Omit<ConnectorHealth, "status"> & { description: string }> = [
+  { id: "trivy", name: "Trivy", type: "scanner", category: "OSS", vendor: "Aqua", description: "Container + IaC + SBOM SCA" },
+  { id: "grype", name: "Grype", type: "scanner", category: "OSS", vendor: "Anchore", description: "Container vulnerability scanner" },
+  { id: "syft", name: "Syft", type: "scanner", category: "OSS", vendor: "Anchore", description: "SBOM generator" },
+  { id: "semgrep", name: "Semgrep", type: "scanner", category: "OSS", vendor: "r2c", description: "Static code analysis (SAST)" },
+  { id: "checkov", name: "Checkov", type: "scanner", category: "OSS", vendor: "Bridgecrew", description: "IaC misconfigurations" },
+  { id: "trufflehog", name: "TruffleHog", type: "secrets", category: "OSS", vendor: "Truffle Security", description: "Secrets in git history" },
+  { id: "gitleaks", name: "Gitleaks", type: "secrets", category: "OSS", vendor: "Zricethezav", description: "Secret detection in repos" },
+];
+
+const COMMERCIAL_CATALOGUE: Array<Omit<ConnectorHealth, "status"> & { description: string }> = [
+  { id: "snyk", name: "Snyk", type: "scanner", category: "commercial", vendor: "Snyk", description: "Vuln, IaC, container, code" },
+  { id: "wiz", name: "Wiz", type: "cloud", category: "commercial", vendor: "Wiz", description: "Agentless CNAPP" },
+  { id: "github", name: "GitHub", type: "git", category: "commercial", vendor: "GitHub", description: "Repos, code scanning, dependabot" },
+  { id: "gitlab", name: "GitLab", type: "git", category: "commercial", vendor: "GitLab", description: "Repos, container scanning, SAST" },
+  { id: "jira", name: "Jira", type: "ticketing", category: "commercial", vendor: "Atlassian", description: "Ticket lifecycle automation" },
+  { id: "servicenow", name: "ServiceNow", type: "ticketing", category: "commercial", vendor: "ServiceNow", description: "ITSM / VR pipeline" },
+  { id: "splunk", name: "Splunk", type: "siem", category: "commercial", vendor: "Splunk", description: "SIEM event ingestion" },
+  { id: "sentinel", name: "Sentinel", type: "siem", category: "commercial", vendor: "Microsoft", description: "Cloud-native SIEM" },
+  { id: "datadog", name: "Datadog", type: "siem", category: "commercial", vendor: "Datadog", description: "Observability + security" },
+  { id: "aws", name: "AWS", type: "cloud", category: "commercial", vendor: "Amazon", description: "Multi-account org scan" },
+  { id: "azure", name: "Azure", type: "cloud", category: "commercial", vendor: "Microsoft", description: "Subscription posture" },
+  { id: "gcp", name: "GCP", type: "cloud", category: "commercial", vendor: "Google", description: "Project + folder posture" },
+];
+
+function statusTone(status?: string) {
+  switch ((status ?? "unknown").toLowerCase()) {
+    case "healthy":
+    case "ok":
+    case "online":
+      return { cn: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10", icon: CheckCircle2, label: "HEALTHY" };
+    case "degraded":
+    case "partial":
+    case "warning":
+      return { cn: "border-amber-500/40 text-amber-400 bg-amber-500/10", icon: AlertTriangle, label: "DEGRADED" };
+    case "down":
+    case "error":
+    case "failed":
+    case "offline":
+      return { cn: "border-red-500/40 text-red-400 bg-red-500/10", icon: XCircle, label: "DOWN" };
+    default:
+      return { cn: "border-border text-muted-foreground", icon: Activity, label: "UNKNOWN" };
+  }
+}
+
+function typeIcon(t?: string): typeof Plug {
+  switch ((t ?? "").toLowerCase()) {
+    case "scanner": return Shield;
+    case "git": return GitBranch;
+    case "cloud": return Cloud;
+    case "siem": return Database;
+    case "ticketing": return Ticket;
+    case "feed": return Rss;
+    case "secrets": return ShieldCheck;
+    case "registry": return Package;
+    case "notification": return Network;
+    default: return Plug;
+  }
+}
+
+function ConnectorCard({
+  spec,
+  health,
+}: {
+  spec: Omit<ConnectorHealth, "status"> & { description: string };
+  health?: ConnectorHealth;
+}) {
+  const tone = statusTone(health?.status);
+  const Icon = typeIcon(spec.type);
+  const StatusIcon = tone.icon;
+  return (
+    <div className="rounded-md border border-border bg-muted/20 p-3 hover:border-primary/60 transition-colors space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className="h-4 w-4 text-primary shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{spec.name}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{spec.vendor}</p>
+          </div>
+        </div>
+        <Badge variant="outline" className={cn("text-[9px] shrink-0", tone.cn)}>
+          <StatusIcon className="h-2.5 w-2.5 mr-1" />
+          {tone.label}
+        </Badge>
+      </div>
+      <p className="text-[11px] text-muted-foreground line-clamp-2">{spec.description}</p>
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+        <Badge variant="outline" className="text-[9px] uppercase">
+          {spec.type ?? "—"}
+        </Badge>
+        {health?.latency_ms != null && (
+          <span className="font-mono tabular-nums">{health.latency_ms}ms</span>
+        )}
+      </div>
+      {health?.last_sync_at && (
+        <p className="text-[10px] text-muted-foreground">
+          last sync {new Date(health.last_sync_at).toLocaleTimeString()}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function IntegrationsHubPane({
+  health,
+  mappings,
+  webhooks,
+  loading,
+}: {
+  health: ConnectorHealth[];
+  mappings: ConnectorMapping[];
+  webhooks: WebhookEvent[];
+  loading: boolean;
+}) {
+  const healthMap = useMemo(() => {
+    const m = new Map<string, ConnectorHealth>();
+    for (const h of health) {
+      const key = (h.id ?? h.name ?? "").toLowerCase();
+      if (key) m.set(key, h);
+    }
+    return m;
+  }, [health]);
+
+  const healthyCount = health.filter((h) => statusTone(h.status).label === "HEALTHY").length;
+  const degradedCount = health.filter((h) => statusTone(h.status).label === "DEGRADED").length;
+  const downCount = health.filter((h) => statusTone(h.status).label === "DOWN").length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <KpiCard title="Total Integrations" value={OSS_CATALOGUE.length + COMMERCIAL_CATALOGUE.length} icon={Boxes} />
+        <KpiCard title="OSS Connectors" value={OSS_CATALOGUE.length} icon={GitBranch} />
+        <KpiCard title="Commercial" value={COMMERCIAL_CATALOGUE.length} icon={Cloud} />
+        <KpiCard title="Healthy" value={healthyCount} icon={CheckCircle2} trend={healthyCount > 0 ? "up" : "flat"} />
+        <KpiCard title="Down / Degraded" value={downCount + degradedCount} icon={AlertTriangle} trend={(downCount + degradedCount) > 0 ? "down" : "flat"} />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <GitBranch className="h-4 w-4 text-primary" />
+            OSS Connectors
+            <Badge variant="outline" className="text-[9px]">{OSS_CATALOGUE.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {OSS_CATALOGUE.map((c) => (
+                <ConnectorCard key={c.id} spec={c} health={healthMap.get((c.id ?? "").toLowerCase())} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Cloud className="h-4 w-4 text-primary" />
+            Commercial Connectors
+            <Badge variant="outline" className="text-[9px]">{COMMERCIAL_CATALOGUE.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {COMMERCIAL_CATALOGUE.map((c) => (
+                <ConnectorCard key={c.id} spec={c} health={healthMap.get((c.id ?? "").toLowerCase())} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Plug className="h-4 w-4" />
+              Active Field Mappings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+              </div>
+            ) : mappings.length === 0 ? (
+              <EmptyState
+                icon={Plug}
+                title="No field mappings"
+                description="Configure connector mappings via the Connectors tab."
+              />
+            ) : (
+              <div className="space-y-2 text-xs">
+                {mappings.slice(0, 5).map((m) => (
+                  <div key={m.id ?? m.name} className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-2.5">
+                    <span className="font-medium truncate">{m.name ?? m.connector_id ?? "—"}</span>
+                    <Badge variant="outline" className="text-[9px]">
+                      {Object.keys(m.field_mappings ?? {}).length} fields
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Webhook className="h-4 w-4" />
+              Webhook Events
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+              </div>
+            ) : webhooks.length === 0 ? (
+              <EmptyState
+                icon={Webhook}
+                title="No webhook events"
+                description="Catalogue is empty — see the Webhooks tab."
+              />
+            ) : (
+              <div className="space-y-1 text-xs">
+                {webhooks.slice(0, 6).map((w, i) => (
+                  <div key={w.event ?? i} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded border border-border bg-muted/30">
+                    <span className="font-mono truncate">{w.event ?? "—"}</span>
+                    <Badge variant="outline" className="text-[9px] shrink-0">{w.category ?? "—"}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
