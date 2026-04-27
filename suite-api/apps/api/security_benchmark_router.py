@@ -117,18 +117,20 @@ def list_benchmarks(
     return {"benchmarks": rows, "total": len(rows)}
 
 
-@router.post("/import-dbir", dependencies=[Depends(api_key_auth)], status_code=501)
+@router.post("/import-dbir", dependencies=[Depends(api_key_auth)])
 def import_dbir_benchmarks(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Import SANS/Verizon DBIR public industry benchmark statistics (NOT YET IMPLEMENTED)."""
-    raise HTTPException(
-        status_code=501,
-        detail={
-            "error": "not_implemented",
-            "endpoint": "POST /api/v1/security-benchmarks/import-dbir",
-            "reason": "SANS/Verizon DBIR PDF/CSV importer not yet built. Source: https://www.verizon.com/business/resources/reports/dbir/",
-            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#10",
-        },
-    )
+    """Import Verizon DBIR / VERIS Community Database breach incidents.
+
+    Pulls https://github.com/vz-risk/VCDB and upserts every validated incident
+    into the local dbir.db. The benchmark engine can then derive industry
+    breach-rate distributions from this incident corpus.
+    """
+    try:
+        from feeds.dbir.importer import run_import
+        return run_import()
+    except Exception as exc:
+        _logger.exception("DBIR import failed")
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------

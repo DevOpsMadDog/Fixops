@@ -8725,6 +8725,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.dbir_router import router as dbir_router
+        app.include_router(dbir_router)
+        _logger.info("Mounted DBIR/VCDB router at /api/v1/dbir")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.security_program_maturity_router import router as security_program_maturity_router
         app.include_router(security_program_maturity_router)
         _logger.info("Mounted Security Program Maturity router at /api/v1/program-maturity")
