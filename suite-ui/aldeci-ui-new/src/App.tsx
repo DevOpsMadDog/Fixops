@@ -538,6 +538,8 @@ const RuntimeCodeTrace = lazy(() => import("@/pages/RuntimeCodeTrace"));
 // ── Phase 3 P0 hero pages (UX_CONSOLIDATION_PLAN_2026-04-26.md) ──
 const IssuesHero = lazy(() => import("@/pages/Issues"));
 const BrainHero = lazy(() => import("@/pages/Brain"));
+const ComplianceHero = lazy(() => import("@/pages/Compliance"));
+const AssetGraphHero = lazy(() => import("@/pages/AssetGraph"));
 
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
@@ -651,7 +653,7 @@ export default function App() {
             <Route path="/discover/cloud" element={<CloudPosture />} />
             <Route path="/discover/containers" element={<ContainerSecurity />} />
             <Route path="/discover/sbom" element={<SBOMInventory />} />
-            <Route path="/discover/graph" element={<KnowledgeGraph />} />
+            {/* /discover/graph → consolidated into /assets hero (see redirect block below) */}
             <Route path="/discover/attack-paths" element={<AttackPaths />} />
             <Route path="/discover/threats" element={<ThreatFeeds />} />
             <Route path="/discover/correlation" element={<CorrelationEngine />} />
@@ -659,8 +661,7 @@ export default function App() {
             {/* Wave 1 — Discover */}
             <Route path="/discover/code-semantic" element={<CodeSemanticExplorer />} />
             <Route path="/discover/callgraph" element={<CallGraphExplorer />} />
-            <Route path="/discover/graph-perf" element={<GraphPerfDashboard />} />
-            <Route path="/discover/arch-layers" element={<ArchitectureLayerGraph />} />
+            {/* /discover/graph-perf, /discover/arch-layers → consolidated into /assets hero */}
             <Route path="/discover/pii-inventory" element={<PIIFieldInventory />} />
             <Route path="/discover/component-identity" element={<ComponentIdentityView />} />
 
@@ -685,12 +686,10 @@ export default function App() {
             <Route path="/remediate/tickets" element={<TicketIntegration />} />
 
             {/* Space 5: Comply */}
-            <Route path="/comply" element={<ComplianceDashboard />} />
-            <Route path="/comply/evidence" element={<EvidenceVault />} />
-            <Route path="/comply/bundles" element={<EvidenceBundles />} />
+            {/* /comply, /comply/evidence, /comply/bundles → consolidated into /compliance hero */}
             <Route path="/comply/soc2" element={<SOC2Evidence />} />
             <Route path="/comply/slsa" element={<SLSAProvenance />} />
-            <Route path="/comply/audit" element={<AuditTrail />} />
+            {/* /comply/audit → consolidated into /compliance hero */}
             <Route path="/comply/reports" element={<Reports />} />
             <Route path="/comply/analytics" element={<Analytics />} />
             <Route path="/comply/export" element={<EvidenceExportCenter />} />
@@ -760,7 +759,7 @@ export default function App() {
             <Route path="/sbom" element={<SBOMManagement />} />
 
             {/* Compliance Dashboard — P07 standalone */}
-            <Route path="/compliance" element={<StandaloneComplianceDashboard />} />
+            {/* /compliance → consolidated into hero (see Phase 3 P0 block) */}
 
             {/* DLP & API Abuse Detection */}
             <Route path="/dlp" element={<DLPDashboard />} />
@@ -1026,7 +1025,7 @@ export default function App() {
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
 
             {/* Security Graph — Wiz-killer interactive relationship canvas */}
-            <Route path="/security-graph" element={<SecurityGraph />} />
+            {/* /security-graph → consolidated into /assets hero */}
 
             {/* Wave 42 domain dashboards (pages for Wave 41 engines) */}
             <Route path="/privacy-impact" element={<PrivacyImpactDashboard />} />
@@ -1145,6 +1144,35 @@ export default function App() {
             {/* ─── Phase 3 P0 hero pages (Wiz/Apiiro pattern) ─── */}
             <Route path="/issues" element={<IssuesHero />} />
             <Route path="/brain" element={<BrainHero />} />
+            <Route path="/compliance" element={<ComplianceHero />} />
+            <Route path="/comply" element={<ComplianceHero />} />
+            <Route path="/assets" element={<AssetGraphHero />} />
+
+            {/* 90-day muscle-memory redirects → Compliance hero */}
+            <Route path="/comply/evidence" element={<Navigate to="/compliance?tab=evidence" replace />} />
+            <Route path="/comply/bundles" element={<Navigate to="/compliance?tab=bundles" replace />} />
+            <Route path="/comply/audit" element={<Navigate to="/compliance?tab=audit" replace />} />
+            <Route path="/compliance-mapping" element={<Navigate to="/compliance?tab=mapping" replace />} />
+            <Route path="/compliance-gaps" element={<Navigate to="/compliance?tab=gaps" replace />} />
+            <Route path="/compliance-calendar" element={<Navigate to="/compliance?tab=calendar" replace />} />
+            <Route path="/compliance-workflows" element={<Navigate to="/compliance?tab=workflows" replace />} />
+            <Route path="/compliance-automation" element={<Navigate to="/compliance?tab=workflows" replace />} />
+            <Route path="/fips-mode" element={<Navigate to="/compliance?tab=frameworks" replace />} />
+            <Route path="/system/fips-status" element={<Navigate to="/compliance?tab=frameworks" replace />} />
+            <Route path="/audit/explorer" element={<Navigate to="/compliance?tab=audit" replace />} />
+            <Route path="/ai-exposure" element={<Navigate to="/compliance?tab=ai-exposure" replace />} />
+
+            {/* 90-day muscle-memory redirects → Asset Graph hero */}
+            <Route path="/discover/graph" element={<Navigate to="/assets?tab=architecture" replace />} />
+            <Route path="/security-graph" element={<Navigate to="/assets?tab=architecture" replace />} />
+            <Route path="/discover/arch-layers" element={<Navigate to="/assets?tab=architecture" replace />} />
+            <Route path="/discover/graph-perf" element={<Navigate to="/assets?tab=architecture" replace />} />
+            <Route path="/choke-points" element={<Navigate to="/assets?tab=chokepoints" replace />} />
+            <Route path="/attack-paths/graph" element={<Navigate to="/assets?tab=architecture" replace />} />
+            <Route path="/components/version-graph" element={<Navigate to="/assets?tab=layers" replace />} />
+            <Route path="/graph/diff" element={<Navigate to="/assets?tab=diff" replace />} />
+            <Route path="/graph/databases" element={<Navigate to="/assets?tab=databases" replace />} />
+            <Route path="/easm/subsidiaries" element={<Navigate to="/assets?tab=subsidiaries" replace />} />
 
             {/* 90-day muscle-memory redirects → Issues hero */}
             <Route path="/issue-queue" element={<Navigate to="/issues" replace />} />
@@ -1172,8 +1200,7 @@ export default function App() {
             {/* Wave 3 — risk / dashboards / runtime (15 screens, 2026-04-26) */}
             <Route path="/brs-executive" element={<BRSExecutiveDashboard />} />
             <Route path="/bu-dollar-heatmap" element={<BUDollarRiskHeatmap />} />
-            <Route path="/choke-points" element={<ChokePointDashboard />} />
-            <Route path="/attack-paths/graph" element={<AttackPathInteractiveGraph />} />
+            {/* /choke-points, /attack-paths/graph → consolidated into /assets hero */}
             {/* These 7 routes were consolidated into /issues + /brain heroes — see redirects above */}
             <Route path="/sbom-continuous-monitoring" element={<SBOMContinuousMonitoring />} />
             <Route path="/snapshot-findings" element={<SnapshotFindingsView />} />
@@ -1188,17 +1215,16 @@ export default function App() {
             <Route path="/skills/install" element={<SkillsInstallPrompt />} />
             <Route path="/local-store/status" element={<LocalStoreStatus />} />
             <Route path="/local-store/init" element={<ZeroSetupOnboarding />} />
-            <Route path="/components/version-graph" element={<ComponentVersionGraph />} />
+            {/* /components/version-graph → consolidated into /assets hero */}
             <Route path="/components/upgrade-path" element={<UpgradePathExplorer />} />
-            <Route path="/graph/databases" element={<DBConnectionOverlay />} />
-            <Route path="/graph/diff" element={<DiffModeGraphCanvas />} />
+            {/* /graph/databases, /graph/diff → consolidated into /assets hero */}
             <Route path="/copilot/graph-chat" element={<CopilotGraphChatRoot />} />
             <Route path="/copilot/traversal-trace" element={<TracedFlowViewer />} />
             <Route path="/investigate/rql" element={<RQLQueryBuilder />} />
             <Route path="/investigate/saved" element={<SavedInvestigations />} />
             <Route path="/scopes" element={<ScopeManager />} />
             <Route path="/easm/seed-domain" element={<DomainSeedDiscoveryWizard />} />
-            <Route path="/easm/subsidiaries" element={<SubsidiaryAttributionGraph />} />
+            {/* /easm/subsidiaries → consolidated into /assets hero */}
             <Route path="/users/me/tokens" element={<UserTokenManager />} />
             <Route path="/llm/context-tier" element={<LLMContextTierBadge />} />
             <Route path="/llm/estimate" element={<LLMPreFlightEstimateModal />} />
@@ -1228,8 +1254,7 @@ export default function App() {
             <Route path="/rules/dsl/validate" element={<RuleDSLValidator />} />
             <Route path="/rules/catalog" element={<UnifiedRulesCatalog />} />
             <Route path="/rules/taxonomy" element={<RuleTaxonomyInspector />} />
-            <Route path="/audit/explorer" element={<AuditLogExplorer />} />
-            <Route path="/system/fips-status" element={<FIPSModeStatus />} />
+            {/* /audit/explorer, /system/fips-status → consolidated into /compliance hero */}
             <Route path="/violations/lifecycle" element={<ViolationLifecycleTimeline />} />
 
             {/* Legacy redirects */}
@@ -1238,7 +1263,7 @@ export default function App() {
             <Route path="/cloud/*" element={<Navigate to="/discover/cloud" replace />} />
             <Route path="/attack/*" element={<Navigate to="/validate" replace />} />
             <Route path="/protect/*" element={<Navigate to="/remediate" replace />} />
-            <Route path="/evidence/*" element={<Navigate to="/comply" replace />} />
+            <Route path="/evidence/*" element={<Navigate to="/compliance?tab=evidence" replace />} />
 
             {/* 404 — show proper Not Found page instead of silent redirect */}
             <Route path="*" element={<NotFound />} />
