@@ -300,6 +300,41 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: abuseipdb importer unavailable: %s", exc)
 
+    # ---------- Spamhaus DROP / EDROP ----------
+    try:
+        from feeds.spamhaus_drop.importer import (
+            run_import as _spamhaus_run,
+            get_store_stats as _spamhaus_stats,
+            DROP_URL as _SPAMHAUS_DROP_URL,
+        )
+
+        def _refresh_spamhaus() -> Dict[str, Any]:
+            return _spamhaus_run()
+
+        def _count_spamhaus() -> int:
+            try:
+                return int(_spamhaus_stats().get("total", 0))
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="spamhaus_drop",
+            display_name="Spamhaus DROP / EDROP Blocklists",
+            source_url=_SPAMHAUS_DROP_URL,
+            source_type="txt",
+            license="Spamhaus Terms of Service (free for non-commercial use)",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_spamhaus,
+            count_callable=_count_spamhaus,
+            description=(
+                "Spamhaus Don't Route Or Peer (DROP) and Extended DROP (EDROP) "
+                "CIDR blocklists. Public feeds listing netblocks that are hijacked, "
+                "leased to spammers, or otherwise controlled by cyber-criminals."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: spamhaus_drop importer unavailable: %s", exc)
+
     # ---------- EPSS ----------
     try:
         from feeds.epss.importer import EpssImporter, EPSS_URL
@@ -362,6 +397,76 @@ def _discover() -> None:
         ))
     except ImportError as exc:
         logger.warning("feed_registry: otx importer unavailable: %s", exc)
+
+    # ---------- Tor Exit Nodes ----------
+    try:
+        from feeds.tor_exit_nodes.importer import (
+            run_import as _tor_run,
+            total_count as _tor_count,
+            TOR_BULK_EXIT_LIST_URL,
+        )
+
+        def _refresh_tor() -> Dict[str, Any]:
+            return _tor_run()
+
+        def _count_tor() -> int:
+            try:
+                return _tor_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="tor_exit_nodes",
+            display_name="Tor Exit Node List (TorProject)",
+            source_url=TOR_BULK_EXIT_LIST_URL,
+            source_type="txt",
+            license="Public Domain (TorProject)",
+            refresh_interval_seconds=1_800,  # 30 min — matches upstream refresh rate
+            importer_callable=_refresh_tor,
+            count_callable=_count_tor,
+            description=(
+                "TorProject bulk exit-node list — one IPv4/IPv6 per line. "
+                "Replace semantics: each import is a full replacement of the "
+                "live exit-node set. Used for Tor egress detection in ALDECI."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: tor_exit_nodes importer unavailable: %s", exc)
+
+    # ---------- Nuclei Templates ----------
+    try:
+        from feeds.nuclei_templates.importer import (
+            run_import as _nuclei_run,
+            get_store_stats as _nuclei_stats,
+            NUCLEI_TAR_URL,
+        )
+
+        def _refresh_nuclei() -> Dict[str, Any]:
+            return _nuclei_run()
+
+        def _count_nuclei() -> int:
+            try:
+                return int(_nuclei_stats().get("total", 0))
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="nuclei_templates",
+            display_name="ProjectDiscovery Nuclei Templates",
+            source_url=NUCLEI_TAR_URL,
+            source_type="yaml",
+            license="MIT (ProjectDiscovery)",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_nuclei,
+            count_callable=_count_nuclei,
+            description=(
+                "ProjectDiscovery Nuclei detection templates — ~9000 YAML templates "
+                "covering CVEs, misconfigurations, exposures, and vulnerabilities, "
+                "with severity, CVE/CWE classification, and tag metadata."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: nuclei_templates importer unavailable: %s", exc)
 
     # ---------- ExploitDB ----------
     try:

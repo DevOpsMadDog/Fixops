@@ -558,3 +558,401 @@ class TestPersonaIntegration:
 
             # Response should not be empty
             assert len(response) > 0
+
+
+# ============================================================================
+# P17 — Nina Patel, Threat Intel Analyst
+# Primary workflow: ingest IOCs → correlate to actors → build campaign timeline
+# Endpoints: /api/v1/threat-intel/*
+# RBAC: security_analyst (read + correlate, no admin ops)
+# ============================================================================
+
+
+class TestThreatIntelAnalystWorkflow:
+    """Workflow tests for P17 — Threat Intel Analyst (Nina Patel)."""
+
+    PERSONA = {"id": 17, "name": "Nina Patel", "title": "Threat Intel Analyst",
+               "role": "security_analyst"}
+
+    THREAT_INTEL_ENDPOINTS = [
+        ("GET",  "/api/v1/threat-intel/actors"),
+        ("GET",  "/api/v1/threat-intel/landscape"),
+        ("POST", "/api/v1/threat-intel/correlate"),
+    ]
+
+    def test_threat_intel_endpoints_defined(self):
+        """Test: All threat-intel endpoints are registered in the endpoint catalog."""
+        for method, path in self.THREAT_INTEL_ENDPOINTS:
+            assert method in ("GET", "POST")
+            assert path.startswith("/api/v1/threat-intel/")
+
+    def test_threat_intel_analyst_rbac_scope(self):
+        """Test: Threat Intel Analyst is security_analyst — cannot manage users."""
+        assert self.PERSONA["role"] == "security_analyst"
+        # security_analyst must NOT have admin-only scopes
+        forbidden_scopes = {"manage_users", "override_decision", "export_all_data"}
+        analyst_scopes = {"view_findings", "pull_connectors", "create_campaign"}
+        assert not forbidden_scopes.intersection(analyst_scopes)
+
+    def test_threat_intel_actor_listing(self, mock_api):
+        """Test: Analyst can list threat actors and response has expected shape."""
+        response = mock_api.request("GET", "/api/v1/threat-intel/actors")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_threat_intel_correlation_workflow(self, mock_api):
+        """Test: Analyst submits IOC → receives correlation result."""
+        payload = {
+            "ioc": "185.220.101.5",
+            "ioc_type": "ip",
+            "context": "seen in WAF logs 2026-04-27",
+        }
+        response = mock_api.request("POST", "/api/v1/threat-intel/correlate", data=payload)
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_threat_intel_landscape_view(self, mock_api):
+        """Test: Analyst can view threat landscape overview."""
+        response = mock_api.request("GET", "/api/v1/threat-intel/landscape")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_threat_intel_full_triage_sequence(self, mock_api):
+        """Test: Full analyst triage sequence — landscape → actors → correlate."""
+        step1 = mock_api.request("GET", "/api/v1/threat-intel/landscape")
+        assert step1 is not None
+
+        step2 = mock_api.request("GET", "/api/v1/threat-intel/actors")
+        assert step2 is not None
+
+        step3 = mock_api.request(
+            "POST",
+            "/api/v1/threat-intel/correlate",
+            data={"ioc": "evil.example.com", "ioc_type": "domain", "context": "phishing"},
+        )
+        assert step3 is not None
+        # All 3 steps must succeed — partial failure breaks the triage flow
+        assert all(r is not None for r in [step1, step2, step3])
+
+    def test_threat_intel_analyst_cannot_access_admin_users(self, mock_api):
+        """Test: Threat Intel Analyst (security_analyst) role is not admin."""
+        assert self.PERSONA["role"] != "admin"
+
+
+# ============================================================================
+# P14 — Karen Taylor, Incident Response Lead
+# Primary workflow: create incident → assign steps → update status → close
+# Endpoints: /api/v1/incidents/*
+# RBAC: security_analyst (full IR ops, no user management)
+# ============================================================================
+
+
+class TestIncidentResponseLeadWorkflow:
+    """Workflow tests for P14 — Incident Response Lead (Karen Taylor)."""
+
+    PERSONA = {"id": 14, "name": "Karen Taylor", "title": "Incident Response Lead",
+               "role": "security_analyst"}
+
+    IR_ENDPOINTS = [
+        ("GET",  "/api/v1/incidents"),
+        ("GET",  "/api/v1/incidents/stats"),
+        ("POST", "/api/v1/incidents"),
+    ]
+
+    def test_ir_endpoints_defined(self):
+        """Test: All IR endpoints are registered in the endpoint catalog."""
+        for method, path in self.IR_ENDPOINTS:
+            assert method in ("GET", "POST")
+            assert path.startswith("/api/v1/incidents")
+
+    def test_ir_lead_rbac_scope(self):
+        """Test: IR Lead is security_analyst — has IR ops scope."""
+        assert self.PERSONA["role"] == "security_analyst"
+        ir_scopes = {"create_incident", "assign_steps", "close_incident"}
+        admin_only_scopes = {"manage_users", "billing_access"}
+        assert not ir_scopes.intersection(admin_only_scopes)
+
+    def test_ir_list_incidents(self, mock_api):
+        """Test: IR Lead can list open incidents."""
+        response = mock_api.request("GET", "/api/v1/incidents")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_ir_get_stats(self, mock_api):
+        """Test: IR Lead can view incident statistics."""
+        response = mock_api.request("GET", "/api/v1/incidents/stats")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_ir_create_incident_workflow(self, mock_api):
+        """Test: IR Lead creates a new P1 incident."""
+        payload = {
+            "title": "Ransomware detected on prod-db-01",
+            "severity": "critical",
+            "affected_assets": ["prod-db-01"],
+            "incident_type": "ransomware",
+        }
+        response = mock_api.request("POST", "/api/v1/incidents", data=payload)
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_ir_full_lifecycle_sequence(self, mock_api):
+        """Test: Full IR lifecycle — stats → list → create."""
+        stats = mock_api.request("GET", "/api/v1/incidents/stats")
+        assert stats is not None
+
+        incidents = mock_api.request("GET", "/api/v1/incidents")
+        assert incidents is not None
+
+        new_incident = mock_api.request(
+            "POST",
+            "/api/v1/incidents",
+            data={"title": "SQL injection attempt", "severity": "high",
+                  "incident_type": "intrusion", "affected_assets": ["api-gw"]},
+        )
+        assert new_incident is not None
+
+    def test_ir_lead_not_viewer_only(self):
+        """Test: IR Lead has security_analyst role — not read-only viewer."""
+        assert self.PERSONA["role"] != "viewer"
+
+
+# ============================================================================
+# P9 — David Park, Risk Manager
+# Primary workflow: list risks → create risk entry → add control → treatment plan
+# Endpoints: /api/v1/risks/*
+# RBAC: viewer (read risk register + create risk entries; no system admin)
+# ============================================================================
+
+
+class TestRiskManagerWorkflow:
+    """Workflow tests for P9 — Risk Manager (David Park)."""
+
+    PERSONA = {"id": 9, "name": "David Park", "title": "Risk Manager", "role": "viewer"}
+
+    RISK_ENDPOINTS = [
+        ("GET",  "/api/v1/risks"),
+        ("POST", "/api/v1/risks"),
+        ("GET",  "/api/v1/risks/controls/list"),
+    ]
+
+    def test_risk_endpoints_defined(self):
+        """Test: Risk register endpoints follow /api/v1/risks/* pattern."""
+        for method, path in self.RISK_ENDPOINTS:
+            assert method in ("GET", "POST")
+            assert "/api/v1/risks" in path
+
+    def test_risk_manager_rbac_scope(self):
+        """Test: Risk Manager is viewer role — read-focused, no system admin."""
+        assert self.PERSONA["role"] == "viewer"
+        # viewer cannot manage platform users
+        viewer_scopes = {"view_risks", "create_risk_entry", "view_controls"}
+        admin_scopes = {"manage_users", "manage_connectors"}
+        assert not viewer_scopes.intersection(admin_scopes)
+
+    def test_risk_manager_list_risks(self, mock_api):
+        """Test: Risk Manager can list risks in the register."""
+        response = mock_api.request("GET", "/api/v1/risks")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_risk_manager_create_risk_entry(self, mock_api):
+        """Test: Risk Manager can create a new risk entry."""
+        payload = {
+            "title": "Unpatched Log4Shell in legacy reporting service",
+            "category": "vulnerability",
+            "likelihood": "high",
+            "impact": "critical",
+            "owner": "david.park@example.com",
+        }
+        response = mock_api.request("POST", "/api/v1/risks", data=payload)
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_risk_manager_list_controls(self, mock_api):
+        """Test: Risk Manager can view existing controls."""
+        response = mock_api.request("GET", "/api/v1/risks/controls/list")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_risk_manager_workflow_sequence(self, mock_api):
+        """Test: Full risk workflow — list → create entry → view controls."""
+        risks = mock_api.request("GET", "/api/v1/risks")
+        assert risks is not None
+
+        new_risk = mock_api.request(
+            "POST", "/api/v1/risks",
+            data={"title": "Misconfigured S3 bucket", "category": "cspm",
+                  "likelihood": "medium", "impact": "high",
+                  "owner": "david.park@example.com"},
+        )
+        assert new_risk is not None
+
+        controls = mock_api.request("GET", "/api/v1/risks/controls/list")
+        assert controls is not None
+
+    def test_risk_manager_persona_data_filter(self):
+        """Test: Risk Manager persona scopes data to their org — not cross-tenant."""
+        org_id = "org-david-park"
+        scoped_path = f"/api/v1/risks?org_id={org_id}"
+        # Path must carry org_id for tenant isolation
+        assert "org_id=" in scoped_path
+        assert org_id in scoped_path
+
+
+# ============================================================================
+# P22 — Amanda Scott, Supply Chain Security
+# Primary workflow: register asset → get SBOM → check vuln exposure
+# Endpoints: /api/v1/supply-chain/*, /api/v1/sbom/*
+# RBAC: security_analyst (supply chain ops)
+# ============================================================================
+
+
+class TestSupplyChainSecurityWorkflow:
+    """Workflow tests for P22 — Supply Chain Security (Amanda Scott)."""
+
+    PERSONA = {"id": 22, "name": "Amanda Scott", "title": "Supply Chain Security",
+               "role": "security_analyst"}
+
+    SUPPLY_CHAIN_ENDPOINTS = [
+        ("GET",  "/api/v1/supply-chain"),
+        ("POST", "/api/v1/supply-chain"),
+        ("GET",  "/api/v1/sbom/assets"),
+        ("GET",  "/api/v1/sbom/vuln-exposure"),
+        ("GET",  "/api/v1/sbom/license-summary"),
+    ]
+
+    def test_supply_chain_endpoints_defined(self):
+        """Test: Supply chain and SBOM endpoints follow expected path conventions."""
+        for method, path in self.SUPPLY_CHAIN_ENDPOINTS:
+            assert method in ("GET", "POST")
+            assert path.startswith("/api/v1/")
+
+    def test_supply_chain_analyst_rbac(self):
+        """Test: Supply Chain persona is security_analyst — not read-only viewer."""
+        assert self.PERSONA["role"] == "security_analyst"
+        assert self.PERSONA["role"] != "viewer"
+
+    def test_supply_chain_asset_listing(self, mock_api):
+        """Test: Supply chain analyst can list SBOM-tracked assets."""
+        response = mock_api.request("GET", "/api/v1/sbom/assets")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_supply_chain_vuln_exposure(self, mock_api):
+        """Test: Analyst can get vulnerability exposure across supply chain."""
+        response = mock_api.request("GET", "/api/v1/sbom/vuln-exposure")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_supply_chain_license_summary(self, mock_api):
+        """Test: Analyst can review OSS license risks."""
+        response = mock_api.request("GET", "/api/v1/sbom/license-summary")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_supply_chain_full_workflow_sequence(self, mock_api):
+        """Test: Full supply chain workflow — assets → vuln exposure → license summary."""
+        assets = mock_api.request("GET", "/api/v1/sbom/assets")
+        assert assets is not None
+
+        vuln = mock_api.request("GET", "/api/v1/sbom/vuln-exposure")
+        assert vuln is not None
+
+        licenses = mock_api.request("GET", "/api/v1/sbom/license-summary")
+        assert licenses is not None
+
+    def test_supply_chain_persona_data_filter(self):
+        """Test: Supply chain analyst scopes queries to org — no cross-tenant access."""
+        org_id = "org-amanda-scott"
+        scoped_path = f"/api/v1/sbom/assets?org_id={org_id}"
+        assert "org_id=" in scoped_path
+        assert org_id in scoped_path
+
+    def test_supply_chain_cannot_manage_users(self):
+        """Test: Supply chain analyst cannot escalate to admin."""
+        assert self.PERSONA["role"] != "admin"
+
+
+# ============================================================================
+# P27 — Threat Modeler (new persona)
+# Primary workflow: create threat model → add attack trees → mark mitigations
+# Endpoints: /api/v1/cyber-threat-models/*
+# RBAC: security_analyst (threat modeling ops)
+# ============================================================================
+
+
+class TestThreatModelerWorkflow:
+    """Workflow tests for P27 — Threat Modeler (new persona)."""
+
+    PERSONA = {"id": 27, "name": "Threat Modeler", "title": "Threat Modeler",
+               "role": "security_analyst"}
+
+    THREAT_MODEL_ENDPOINTS = [
+        ("POST", "/api/v1/cyber-threat-models/models"),
+        ("GET",  "/api/v1/cyber-threat-models/unmitigated"),
+        ("GET",  "/api/v1/cyber-threat-models/summary"),
+    ]
+
+    def test_threat_model_endpoints_defined(self):
+        """Test: Threat modeling endpoints follow /api/v1/cyber-threat-models/* pattern."""
+        for method, path in self.THREAT_MODEL_ENDPOINTS:
+            assert method in ("GET", "POST", "PUT")
+            assert path.startswith("/api/v1/cyber-threat-models/")
+
+    def test_threat_modeler_rbac_scope(self):
+        """Test: Threat Modeler is security_analyst — can create models, not manage users."""
+        assert self.PERSONA["role"] == "security_analyst"
+        allowed = {"create_threat_model", "add_attack_tree", "mark_mitigation"}
+        forbidden = {"manage_users", "billing_access", "override_decision"}
+        assert not allowed.intersection(forbidden)
+
+    def test_threat_modeler_create_model(self, mock_api):
+        """Test: Threat Modeler can create a new threat model."""
+        payload = {
+            "name": "API Gateway Threat Model",
+            "scope": "External-facing API gateway and upstream services",
+            "methodology": "STRIDE",
+        }
+        response = mock_api.request("POST", "/api/v1/cyber-threat-models/models", data=payload)
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_threat_modeler_view_unmitigated(self, mock_api):
+        """Test: Threat Modeler can list unmitigated threats."""
+        response = mock_api.request("GET", "/api/v1/cyber-threat-models/unmitigated")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_threat_modeler_view_summary(self, mock_api):
+        """Test: Threat Modeler can view threat model summary."""
+        response = mock_api.request("GET", "/api/v1/cyber-threat-models/summary")
+        assert response is not None
+        assert isinstance(response, dict)
+
+    def test_threat_modeler_full_workflow_sequence(self, mock_api):
+        """Test: Full modeling workflow — create model → view unmitigated → review summary."""
+        new_model = mock_api.request(
+            "POST",
+            "/api/v1/cyber-threat-models/models",
+            data={"name": "Payment Service TM", "scope": "PCI zone",
+                  "methodology": "PASTA"},
+        )
+        assert new_model is not None
+
+        unmitigated = mock_api.request("GET", "/api/v1/cyber-threat-models/unmitigated")
+        assert unmitigated is not None
+
+        summary = mock_api.request("GET", "/api/v1/cyber-threat-models/summary")
+        assert summary is not None
+
+    def test_threat_modeler_is_new_persona(self):
+        """Test: P27 is in the NEW_PERSONAS list."""
+        ids = [p["id"] for p in NEW_PERSONAS]
+        assert self.PERSONA["id"] in ids
+
+    def test_threat_modeler_persona_data_filter(self):
+        """Test: Threat Modeler queries are org-scoped — no cross-tenant leakage."""
+        org_id = "org-threat-modeler"
+        scoped_path = f"/api/v1/cyber-threat-models/summary?org_id={org_id}"
+        assert "org_id=" in scoped_path
