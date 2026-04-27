@@ -629,3 +629,11 @@ def register_aspm_routers(
         _logger.info("Mounted IDE Backend router at /api/v1/ide")
     except ImportError:
         pass
+
+    # OSV (Open Source Vulnerabilities) feed — Google-run open vuln DB
+    try:
+        from apps.api.osv_router import router as osv_router
+        app.include_router(osv_router)
+        _logger.info("Mounted OSV router at /api/v1/osv")
+    except ImportError:
+        pass

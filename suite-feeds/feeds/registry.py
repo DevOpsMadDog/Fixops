@@ -292,6 +292,42 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: epss importer unavailable: %s", exc)
 
+    # ---------- AlienVault OTX (Open Threat Exchange) ----------
+    try:
+        from feeds.otx.importer import (
+            run_import as _otx_run,
+            get_store_stats as _otx_stats,
+            OTX_PUBLIC_ACTIVITY_URL as _OTX_URL,
+        )
+
+        def _refresh_otx() -> Dict[str, Any]:
+            return _otx_run()
+
+        def _count_otx() -> int:
+            try:
+                return int(_otx_stats().get("total_pulses", 0))
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="otx",
+            display_name="AlienVault OTX (Open Threat Exchange)",
+            source_url=_OTX_URL,
+            source_type="json",
+            license="Open (free tier; per-pulse author license varies)",
+            refresh_interval_seconds=3_600,  # hourly
+            importer_callable=_refresh_otx,
+            count_callable=_count_otx,
+            description=(
+                "AlienVault OTX threat-intel pulses with flattened indicators "
+                "(IPv4/IPv6/domain/URL/file hashes/CVE) and MITRE ATT&CK "
+                "technique cross-links. Defaults to the public activity feed; "
+                "uses the subscribed feed when OTX_API_KEY is set."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: otx importer unavailable: %s", exc)
+
 
 def _ensure_discovered() -> None:
     global _discovery_done
