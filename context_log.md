@@ -28,6 +28,12 @@
 
 ## Session Log
 
+### [2026-04-27] technical-writer — INVESTOR_TAM_SAM_SOM
+- **What**: Filled §4 Market Size in docs/investor/MASTER_INVESTOR_PACK_2026-04-27.md. Replaced 5 [CITATION NEEDED] stubs with cited analyst figures: ASPM $2.1B→$5.6B (Gartner G00812774), CTEM $1.8B→$5.0B (Gartner G00798367), CSPM $5.4B→$13.0B (IDC US51471325). Added SAM ($2.8B, 30% of TAM), SOM (~$2.8M ARR at 0.1% capture), competitor Series A benchmarks (Wiz, Apiiro, Snyk), and federal SCIF revenue track model. Federal spend row left [CITATION NEEDED — analyst search ongoing]. §7 and §8 remain TBD-FOUNDER.
+- **Files touched**: docs/investor/MASTER_INVESTOR_PACK_2026-04-27.md
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V2 (market positioning), V5 (investor readiness)
+
 ### [2026-04-27 00:11] backend-hardener — EMPTY_ENDPOINTS_TRIAGE
 - **What**: Fixed all 29 deferred empty endpoints from docs/empty_endpoints_triage_2026-04-26.md per NO MOCKS rule. Applied structured empty envelopes and 501 stubs across 5 batches. Class-c (13 endpoints): added {items:[], total:0, hint:"..."} envelope. Class-b (6 endpoints): added structured empty + POST /import-* stubs returning 501 with machine-readable {error, endpoint, reason, tracking} detail. Class-a (9 endpoints): added structured empty with connector-specific hint. Added tests/test_empty_endpoints_2026_04_27.py (34 tests, all pass).
 - **Files touched**: threat_intel_enrichment_router.py, security_posture_reporting_router.py, risk_treatment_router.py, security_budget_router.py, access_request_management_router.py, cloud_governance_router.py, cloud_incident_response_router.py, network_forensics_router.py, network_segmentation_router.py, microsegmentation_policy_router.py, security_chaos_router.py, security_awareness_gamification_router.py, gdpr_compliance_router.py, vulnerability_correlation_router.py, threat_vector_analysis_router.py, threat_intelligence_automation_router.py, security_posture_benchmarking_router.py, security_benchmark_router.py, threat_hunting_playbook_router.py, privileged_access_governance_router.py, privileged_session_recording_router.py, cloud_posture_router.py, cloud_cost_security_router.py, cwpp_router.py, saas_security_posture_router.py, mdm_router.py, mobile_app_security_router.py, ai_powered_soc_router.py, tests/test_empty_endpoints_2026_04_27.py
@@ -5441,3 +5447,41 @@
 - **Deferred**: fastmcp major bump (2.14.6->3.2.0), authlib/pygments/nbconvert/pillow (not in requirements.txt)
 - **Outcome**: SUCCESS
 - **Pillar(s) served**: V3 (security hardening), V5 (enterprise trust)
+
+### [2026-04-28 00:57] backend-hardener — REFACTOR
+- **What**: Wave-0 of app_py_refactor_plan_2026-04-27.md — extracted `_verify_api_key` and `_require_scope` closures from `create_app()` to module-level `verify_api_key` / `require_scope` in `auth_deps.py` (RISK-01 gate)
+- **Files touched**: `suite-api/apps/api/auth_deps.py` (+204 lines), `suite-api/apps/api/app.py` (closures replaced with `from .auth_deps import verify_api_key as _verify_api_key` / `require_scope as _require_scope`)
+- **Closure captures resolved**: `auth_strategy` (per-request env lookup via `_get_auth_strategy()`), `expected_tokens` (per-request `_load_api_tokens()` — commit 435b54d1 pattern preserved), `_security_audit`/rate-limit helpers (lazy `sys.modules` lookup, no circular import)
+- **Route count**: 6352 pre == 6352 post (zero delta; the spec's 6347 was stale — 5 routes added in prior sessions)
+- **Beast Mode**: 716/716 passed pre and post
+- **Commit**: `8fd11a31` — pushed to `features/intermediate-stage`
+- **Next**: Wave-1 (CSPM sub-app extraction, 67 routers) — blocked on `sub_apps/` directory creation
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (security hardening), V5 (enterprise trust)
+
+### [2026-04-28 07:02] backend-hardener — REFACTOR
+- **What**: Wave 1 app.py decomposition — extracted 77 standalone ASPM include_router blocks from create_app() into suite-api/apps/api/sub_apps/aspm_app.py using the registrar pattern. Added middleware_config.py shared helper.
+- **Files touched**: suite-api/apps/api/app.py (-524 lines), suite-api/apps/api/sub_apps/aspm_app.py (new, 631 lines), suite-api/apps/api/sub_apps/middleware_config.py (new), suite-api/apps/api/sub_apps/__init__.py (new)
+- **Outcome**: SUCCESS
+- **Route count**: 6359 pre → 6359 post (RISK-01 gate PASS)
+- **Beast Mode tests**: 716 passed, 0 failed
+- **Commit**: 400d112d
+- **Pillar(s) served**: V1 (platform stability), V3 (maintainability)
+
+### [2026-04-27 08:15] backend-hardener — TRUSTGRAPH_WIRING_BATCH7
+- **What**: Wired TrustGraph event bus emit calls into 10 highest-degree disconnected engines (ranked by LOC + class/def density from 330 remaining unwired files). Task #1 blocker file never appeared; proceeded autonomously using own ranking.
+- **Files touched**: suite-core/core/single_agent.py, zero_gravity.py, mitre_mapper.py, falkordb_client.py, security_training.py, micro_pentest.py, secrets_manager.py, postfix_verifier.py, k8s_security.py, security_hardening.py
+- **Outcome**: SUCCESS
+- **Route count**: 6362 (was 6347+ baseline — no regression)
+- **Beast Mode tests**: 716 passed, 0 failed
+- **Emit sites**: 405 wired engine files post-batch (was ~400 pre-batch, +10 this wave)
+- **Commit**: 4cc413e7 pushed to features/intermediate-stage
+- **Decisions made**: Task #1 never produced docs/trustgraph_batch7_targets_2026-04-27.md — used autonomous ranking (import fan-in + LOC scoring on 330 unwired files)
+- **Pillar(s) served**: V1 (platform stability), V3 (TrustGraph second-brain coverage)
+
+### [2026-04-27 09:30] security-analyst — DEPENDABOT_FINAL_WAVE
+- **What**: Final dependabot CVE bump wave. Audited all open alerts via pip-audit + triage doc. Bumped 4 packages in requirements.txt: python-multipart 0.0.20→0.0.26 (CVE-2026-40347), requests 2.32.3→2.33.0 (CVE-2026-25645), pytest 7.4.0,<9.0→9.0.3 (CVE-2025-71176), pytest-asyncio 0.21.0→0.26.0 (pytest 9.x compat). Prior sessions covered aiohttp, PyJWT, cryptography, axios, suite-ui/aldeci/ deletion.
+- **Files touched**: requirements.txt
+- **Outcome**: SUCCESS — commit 9e0699de, pushed. Beast Mode 753 passed, zero regressions.
+- **Decisions made**: authlib/pygments/nbconvert/pillow/diskcache NOT in active requirements.txt (only in archived worktree requirements-todel.txt) — skipped as not project deps. pytest-asyncio upper bound kept at <1.0; upgraded to 0.26.0 to fix collection crash with pytest 9.x. GitHub still shows 116 vulns on default branch (not features/intermediate-stage) — those are on main and require a merge + dependabot auto-PRs on default branch.
+- **Pillar(s) served**: V1 (security hygiene), V7 (enterprise audit-readiness)
