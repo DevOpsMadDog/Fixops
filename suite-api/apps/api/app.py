@@ -3043,6 +3043,12 @@ def create_app() -> FastAPI:
     # _extra_apps_routers and will be moved by a future loop-refactor wave.
     from apps.api.sub_apps.cspm_app import register_cspm_routers as _reg_cspm
     _reg_cspm(app, _verify_api_key, _require_scope, _logger)
+    # ── CTEM — Continuous Threat Exposure Management ──────────────────────────
+    # Wave-3 extraction: all standalone CTEM include_router blocks moved to
+    # suite-api/apps/api/sub_apps/ctem_app.py (registrar pattern). Loop-bound
+    # routers (predictions, mpte tuples) remain in _extra_apps_routers.
+    from apps.api.sub_apps.ctem_app import register_ctem_routers as _reg_ctem
+    _reg_ctem(app, _verify_api_key, _require_scope, _logger)
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     # Enterprise reachability analysis API
     if reachability_router:
@@ -8351,6 +8357,13 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Stage Matrix router at /api/v1/stage-matrix")
     except ImportError:
         pass
+
+    try:
+        from apps.api.tor_exit_nodes_router import router as tor_exit_nodes_router
+        app.include_router(tor_exit_nodes_router)
+        _logger.info("Mounted Tor exit-nodes router at /api/v1/tor-exit")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("tor_exit_nodes_router unavailable: %s", _e)
 
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
