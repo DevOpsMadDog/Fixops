@@ -1196,6 +1196,8 @@ export default function App() {
 
             {/* 90-day muscle-memory redirects → Asset Graph hero */}
             <Route path="/discover/inventory" element={<Navigate to="/assets?tab=inventory" replace />} />
+            <Route path="/discover/code-intel" element={<Navigate to="/brain?tab=code-intel" replace />} />
+            <Route path="/code-intel" element={<Navigate to="/brain?tab=code-intel" replace />} />
             <Route path="/discover/graph" element={<Navigate to="/assets?tab=architecture" replace />} />
             <Route path="/security-graph" element={<Navigate to="/assets?tab=architecture" replace />} />
             <Route path="/discover/arch-layers" element={<Navigate to="/assets?tab=architecture" replace />} />

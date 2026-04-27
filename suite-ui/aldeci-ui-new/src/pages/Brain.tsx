@@ -66,6 +66,11 @@ const MLDashboard = lazy(() => import("@/pages/ai/MLDashboard"));
 const BrainVisualization = lazy(() => import("@/pages/BrainVisualization"));
 const FactorWeightsView = lazy(() => import("@/pages/FactorWeightsView"));
 const ScoreTransparencyPanel = lazy(() => import("@/pages/ScoreTransparencyPanel"));
+// P1 fold-in (S10) — Code Intelligence: DCA + reachability + components
+const CodeSemanticExplorer = lazy(() => import("@/pages/discover/CodeSemanticExplorer"));
+const CallGraphExplorer = lazy(() => import("@/pages/discover/CallGraphExplorer"));
+const ComponentIdentityView = lazy(() => import("@/pages/discover/ComponentIdentityView"));
+const ReachabilityProofView = lazy(() => import("@/pages/validate/ReachabilityProof"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 12-step Brain Pipeline canon (from CTEM_PLUS_IDENTITY.md + brain_pipeline.py)
@@ -309,6 +314,7 @@ export default function Brain() {
           <TabsTrigger value="ml">ML Dashboard</TabsTrigger>
           <TabsTrigger value="score">Score Transparency</TabsTrigger>
           <TabsTrigger value="weights">Factor Weights</TabsTrigger>
+          <TabsTrigger value="code-intel">Code Intelligence</TabsTrigger>
         </TabsList>
 
         {/* ───────────────────────────────── PIPELINE TAB ─────────────────────── */}
@@ -594,6 +600,11 @@ export default function Brain() {
         <TabsContent value="weights">
           <Suspense fallback={<TabSkeleton />}><FactorWeightsView /></Suspense>
         </TabsContent>
+
+        {/* ─────────── CODE INTELLIGENCE TAB (P1 fold-in S10 -> Brain hero) ─────────── */}
+        <TabsContent value="code-intel" className="space-y-4">
+          <CodeIntelligencePane />
+        </TabsContent>
       </Tabs>
 
       {/* Step detail drawer */}
@@ -674,6 +685,149 @@ function TabSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton key={i} className="h-10 w-full" />
       ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CodeIntelligencePane — P1 fold-in (S10). DCA + reachability + components,
+// linked from the Brain step viz. Shows live counts up top + sub-tabs for the
+// three deep views (semantic explorer, call graph, components, reachability).
+// All sub-views are existing pages mounted via lazy() — zero functionality loss.
+// Real /api/v1/dca/* + /api/v1/components/* endpoints.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface DcaStats {
+  total_entities?: number;
+  callgraph_nodes?: number;
+  callgraph_edges?: number;
+  reachable_findings?: number;
+  unreachable_findings?: number;
+  language_breakdown?: Record<string, number>;
+}
+
+interface ComponentStats {
+  total_components?: number;
+  unique_components?: number;
+  vulnerable_components?: number;
+  end_of_life?: number;
+}
+
+function CodeIntelligencePane() {
+  const [dcaStats, setDcaStats] = useState<DcaStats | null>(null);
+  const [compStats, setCompStats] = useState<ComponentStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+  const [subTab, setSubTab] = useState<string>("semantic");
+
+  const load = useCallback(async () => {
+    setErr(null);
+    setLoading(true);
+    try {
+      const [dcaR, compR] = await Promise.allSettled([
+        apiFetch<DcaStats>("/api/v1/dca/stats"),
+        apiFetch<ComponentStats>("/api/v1/components/stats"),
+      ]);
+      if (dcaR.status === "fulfilled") {
+        if (dcaR.value === null) setUnavailable(true);
+        else { setDcaStats(dcaR.value); setUnavailable(false); }
+      } else {
+        setErr(String((dcaR.reason as Error)?.message ?? dcaR.reason));
+      }
+      if (compR.status === "fulfilled" && compR.value) setCompStats(compR.value);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const totalEntities = dcaStats?.total_entities ?? 0;
+  const cgNodes = dcaStats?.callgraph_nodes ?? 0;
+  const cgEdges = dcaStats?.callgraph_edges ?? 0;
+  const reachable = dcaStats?.reachable_findings ?? 0;
+  const unreachable = dcaStats?.unreachable_findings ?? 0;
+  const totalComponents = compStats?.total_components ?? compStats?.unique_components ?? 0;
+  const vulnComponents = compStats?.vulnerable_components ?? 0;
+  const reachablePct = (reachable + unreachable) > 0
+    ? Math.round((reachable / (reachable + unreachable)) * 100)
+    : 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+        <div className="flex items-start gap-2">
+          <BrainIcon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">Code Intelligence</p>
+            <p className="text-muted-foreground">
+              Surfaces what the Brain steps 3 (Resolve Identity), 5 (Dedupe), and 6 (Graph)
+              produce — Deep Code Analysis entities, call graph, semantic flows, component
+              identity, and reachability proofs. Click any pipeline step above to jump to a
+              specific finding's lineage, or use the sub-tabs below to browse the full graph.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* DCA + components KPI strip */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20" />)
+        ) : (
+          <>
+            <KpiCard title="DCA Entities" value={totalEntities.toLocaleString()} icon={Hash} />
+            <KpiCard title="CallGraph Nodes" value={cgNodes.toLocaleString()} icon={Network} />
+            <KpiCard title="CallGraph Edges" value={cgEdges.toLocaleString()} icon={GitBranch} />
+            <KpiCard title="Reachable" value={reachable.toLocaleString()} icon={Target} trend={reachable > 0 ? "up" : "flat"} />
+            <KpiCard title="Reach %" value={`${reachablePct}%`} icon={Activity} />
+            <KpiCard title="Components" value={totalComponents.toLocaleString()} icon={Layers} trend={vulnComponents > 0 ? "down" : "flat"} />
+          </>
+        )}
+      </div>
+
+      {err && !unavailable && (
+        <ErrorState title="Failed to load code-intel stats" message={err} onRetry={load} />
+      )}
+      {unavailable && (
+        <EmptyState
+          icon={BrainIcon}
+          title="DCA endpoint not available"
+          description="`/api/v1/dca/stats` returned 404 or 501. Deep Code Analysis may not have run yet — trigger from /discover/code."
+        />
+      )}
+
+      {/* Sub-tabs across the four code-intel surfaces */}
+      <Tabs value={subTab} onValueChange={setSubTab} className="space-y-3">
+        <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+          <TabsTrigger value="semantic" className="flex items-center gap-1.5">
+            <Search className="h-3.5 w-3.5" />Semantic Explorer
+          </TabsTrigger>
+          <TabsTrigger value="callgraph" className="flex items-center gap-1.5">
+            <Network className="h-3.5 w-3.5" />Call Graph
+          </TabsTrigger>
+          <TabsTrigger value="components" className="flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5" />Components
+          </TabsTrigger>
+          <TabsTrigger value="reachability" className="flex items-center gap-1.5">
+            <Target className="h-3.5 w-3.5" />Reachability
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="semantic">
+          <Suspense fallback={<TabSkeleton />}><CodeSemanticExplorer /></Suspense>
+        </TabsContent>
+        <TabsContent value="callgraph">
+          <Suspense fallback={<TabSkeleton />}><CallGraphExplorer /></Suspense>
+        </TabsContent>
+        <TabsContent value="components">
+          <Suspense fallback={<TabSkeleton />}><ComponentIdentityView /></Suspense>
+        </TabsContent>
+        <TabsContent value="reachability">
+          <Suspense fallback={<TabSkeleton />}><ReachabilityProofView /></Suspense>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
