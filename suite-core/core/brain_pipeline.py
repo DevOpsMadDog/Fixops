@@ -4088,12 +4088,46 @@ class BrainPipeline:
                 org_id=result.org_id,
                 data=event_data,
             )
+
+            # ── Pipeline → Issues bridge (onboarding bug fix 2026-04-27) ──
+            # After mirror to SecurityFindingsEngine, emit two more events so
+            # the Issues dashboard auto-populates without admin "Refresh
+            # Finding Index" workaround:
+            #   1. PIPELINE_COMPLETED — high-level signal for SSE/UI polling
+            #   2. FINDINGS_INDEX_REFRESH — federation cache invalidation
+            mirrored_count = getattr(
+                result, "findings_mirrored_to_dashboard", 0
+            )
+            pipeline_event = Event(
+                event_type=EventType.PIPELINE_COMPLETED,
+                source="brain_pipeline",
+                org_id=result.org_id,
+                data={
+                    **event_data,
+                    "findings_mirrored_to_dashboard": mirrored_count,
+                },
+            )
+            refresh_event = Event(
+                event_type=EventType.FINDINGS_INDEX_REFRESH,
+                source="brain_pipeline",
+                org_id=result.org_id,
+                data={
+                    "run_id": result.run_id,
+                    "findings_mirrored": mirrored_count,
+                    "reason": "pipeline_completed",
+                },
+            )
+
             try:
                 loop = asyncio.get_running_loop()
                 loop.create_task(bus.emit(event))
+                loop.create_task(bus.emit(pipeline_event))
+                loop.create_task(bus.emit(refresh_event))
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(bus.emit(event))
+                loop.run_until_complete(bus.emit(pipeline_event))
+                loop.run_until_complete(bus.emit(refresh_event))
                 loop.close()
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Event emission skipped: %s", type(e).__name__)

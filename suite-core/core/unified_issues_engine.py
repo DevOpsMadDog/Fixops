@@ -85,6 +85,76 @@ class UnifiedIssuesEngine:
         self.exposures_db = exposures_db
         self.alerts_db = alerts_db
         self._lock = threading.RLock()
+        # Pipeline → Issues bridge: refresh epoch is bumped every time the
+        # event_bus delivers FINDINGS_INDEX_REFRESH or PIPELINE_COMPLETED.
+        # The /api/v1/issues/index-state endpoint reads this so the UI can
+        # auto-poll without admin clicking "Refresh Finding Index".
+        self._refresh_epoch: int = 0
+        self._last_refresh_at: Optional[str] = None
+        self._last_refresh_run_id: Optional[str] = None
+        self._last_findings_mirrored: int = 0
+        self._subscribed: bool = False
+        self._subscribe_to_pipeline_events()
+
+    def _subscribe_to_pipeline_events(self) -> None:
+        """Subscribe to brain-pipeline events so the federation index refreshes
+        automatically when the pipeline finishes mirroring findings.
+
+        Failure to subscribe is non-fatal — the engine still works, just without
+        push-style refresh signals.
+        """
+        if self._subscribed:
+            return
+        try:
+            from core.event_bus import EventType, get_event_bus  # noqa: PLC0415
+            bus = get_event_bus()
+            bus.subscribe(EventType.FINDINGS_INDEX_REFRESH, self._on_refresh_event)
+            bus.subscribe(EventType.PIPELINE_COMPLETED, self._on_refresh_event)
+            self._subscribed = True
+            _logger.info(
+                "unified_issues: subscribed to pipeline → issues bridge "
+                "(FINDINGS_INDEX_REFRESH + PIPELINE_COMPLETED)"
+            )
+        except (ImportError, AttributeError, RuntimeError) as exc:
+            _logger.warning(
+                "unified_issues: pipeline event subscription skipped: %s",
+                exc,
+            )
+
+    def _on_refresh_event(self, data: Dict[str, Any]) -> None:
+        """Sync subscriber — bumps refresh epoch and records last refresh
+        metadata. The event_bus runs sync subscribers in an executor so this
+        does not block the pipeline.
+        """
+        with self._lock:
+            self._refresh_epoch += 1
+            self._last_refresh_at = _now_iso()
+            self._last_refresh_run_id = (
+                data.get("run_id") if isinstance(data, dict) else None
+            )
+            mirrored = (
+                data.get("findings_mirrored")
+                if isinstance(data, dict) and "findings_mirrored" in data
+                else (data.get("findings_mirrored_to_dashboard")
+                      if isinstance(data, dict) else None)
+            )
+            if isinstance(mirrored, int):
+                self._last_findings_mirrored = mirrored
+
+    def index_state(self) -> Dict[str, Any]:
+        """Return current refresh-epoch state for UI polling.
+
+        Used by ``/api/v1/issues/index-state`` so the Issues dashboard can
+        long-poll on a single integer instead of refetching the whole queue.
+        """
+        with self._lock:
+            return {
+                "refresh_epoch": self._refresh_epoch,
+                "last_refresh_at": self._last_refresh_at,
+                "last_refresh_run_id": self._last_refresh_run_id,
+                "last_findings_mirrored": self._last_findings_mirrored,
+                "subscribed": self._subscribed,
+            }
 
     # ------------------------------------------------------------------
     # Internals

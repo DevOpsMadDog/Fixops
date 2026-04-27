@@ -110,3 +110,20 @@ def stats(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
         return _engine().issue_stats(org_id=org_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get(
+    "/index-state",
+    summary="Pipeline → Issues bridge state (refresh epoch for UI polling)",
+)
+def index_state() -> Dict[str, Any]:
+    """Return the federation refresh-epoch counter.
+
+    The Issues dashboard polls this and refetches the queue whenever
+    ``refresh_epoch`` increments. This eliminates the onboarding-bug
+    workaround where customers had to click Admin → System → Refresh Finding
+    Index after the Brain Pipeline completed.
+
+    Wired to ``EventType.FINDINGS_INDEX_REFRESH`` and ``PIPELINE_COMPLETED``.
+    """
+    return _engine().index_state()

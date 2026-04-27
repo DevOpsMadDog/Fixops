@@ -83,6 +83,15 @@ class EventType(str, Enum):
     POLICY_VIOLATED = "policy.violated"
     AUDIT_LOGGED = "audit.logged"
 
+    # Pipeline → Issues bridge — fixes onboarding bug where pipeline reports
+    # `completed` but Issues dashboard never auto-populates. Emitted by
+    # ``brain_pipeline._emit_event`` AFTER ``_mirror_to_security_findings_engine``
+    # runs, so any subscriber (UI poll, SSE bridge, dashboard cache) can
+    # invalidate stale state immediately rather than waiting for the customer
+    # to click "Refresh Finding Index" in Admin → System.
+    PIPELINE_COMPLETED = "pipeline.completed"
+    FINDINGS_INDEX_REFRESH = "findings.index_refresh"
+
     # Copilot / AI
     COPILOT_QUERY = "copilot.query"
     COPILOT_RESPONSE = "copilot.response"
