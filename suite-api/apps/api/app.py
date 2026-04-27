@@ -1467,6 +1467,15 @@ try:
 except ImportError as e:
     _logger.warning("Self-Learning router not available: %s", e)
 
+# LLM Phase 1 Closed-Loop Telemetry — powers Brain "Learning Loop" tab.
+llm_loop_metrics_router: Optional[APIRouter] = None
+try:
+    from apps.api.llm_loop_metrics_router import router as llm_loop_metrics_router
+
+    _logger.info("Loaded LLM Loop Metrics router (Phase 1 telemetry)")
+except ImportError as e:
+    _logger.warning("LLM Loop Metrics router not available: %s", e)
+
 # Developer Risk Profiles router (Apiiro-competitive feature)
 developer_profiles_router: Optional[APIRouter] = None
 try:
@@ -3621,6 +3630,7 @@ def create_app() -> FastAPI:
         (vllm_router, "Self-Hosted LLM (Air-Gapped)", None, "admin:all"),
         (mcp_protocol_router, "MCP Protocol", None, "read:findings"),
         (self_learning_router, "Self-Learning", None, "read:findings"),
+        (llm_loop_metrics_router, "LLM Loop Telemetry", None, "read:findings"),
         (developer_profiles_router, "Developer Risk Profiles", None, "read:findings"),
         (supply_chain_router, "Supply Chain Security", None, "read:sbom"),
         (causal_router, "Causal Inference", None, "read:findings"),

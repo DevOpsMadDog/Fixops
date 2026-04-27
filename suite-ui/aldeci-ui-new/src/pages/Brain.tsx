@@ -320,6 +320,7 @@ export default function Brain() {
           <TabsTrigger value="code-intel">Code Intelligence</TabsTrigger>
           <TabsTrigger value="mpte">MPTE Console</TabsTrigger>
           <TabsTrigger value="fail">FAIL Chaos</TabsTrigger>
+          <TabsTrigger value="learning-loop">Learning Loop</TabsTrigger>
         </TabsList>
 
         {/* ───────────────────────────────── PIPELINE TAB ─────────────────────── */}
@@ -647,6 +648,11 @@ export default function Brain() {
           </div>
           <Suspense fallback={<TabSkeleton />}><FAILEngine /></Suspense>
         </TabsContent>
+
+        {/* ─────────── LEARNING LOOP TAB (LLM Phase 1 closed-loop telemetry) ─────────── */}
+        <TabsContent value="learning-loop" className="space-y-4">
+          <LearningLoopPane />
+        </TabsContent>
       </Tabs>
 
       {/* Step detail drawer */}
@@ -873,3 +879,428 @@ function CodeIntelligencePane() {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LearningLoopPane — LLM Phase 1 closed-loop telemetry dashboard.
+// Renders the live state of the learning_signals.db pipeline:
+//   EventBus → llm_learning_loop → council_verdicts + feedback_pairs
+//   → AgentDB semantic memory.
+// 4 KPI tiles + 2 charts + status row. Real /api/v1/llm-loop/metrics, no mocks.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface LoopLatency {
+  p50: number;
+  p95: number;
+  p99: number;
+  sample_size: number;
+  sample_window: number;
+  escalation_rate_in_sample: number;
+  escalations_in_sample: number;
+}
+
+interface LoopGrowthBucket {
+  bucket_start: string;
+  bucket_end: string;
+  count: number;
+}
+
+interface LoopSourceRow {
+  source_kind: string;
+  count: number;
+}
+
+interface LoopAgentDBHealth {
+  available: boolean;
+  enabled: boolean;
+  entries: number;
+  store_path?: string | null;
+  embedder?: string | null;
+  writes?: number;
+  searches?: number;
+  failures?: number;
+  skipped_reason?: string;
+  error?: string;
+}
+
+interface LoopMetrics {
+  status: "empty" | "sparse" | "ok";
+  generated_at: string;
+  duration_ms: number;
+  db_path: string;
+  db_reachable: boolean;
+  council_verdicts_total: number;
+  feedback_pairs_total: number;
+  pairs_per_hour: number;
+  pairs_last_24h: number;
+  council_fall_through_rate: number;
+  student_loaded: boolean;
+  opus_escalation_rate: number;
+  avg_latency_ms: LoopLatency;
+  top_5_finding_types: LoopSourceRow[];
+  pairs_growth_24h: LoopGrowthBucket[];
+  distill_threshold_progress: { current_pairs: number; target_pairs: number; percent: number };
+  last_event_processed_at: string | null;
+  last_pair_at: string | null;
+  last_verdict_at: string | null;
+  loop: {
+    running: boolean;
+    processed_events: number;
+    last_error: string | null;
+    council_built: boolean;
+    subscribed_event_types?: string[];
+  };
+  agentdb_entries_count: number;
+  agentdb_health: LoopAgentDBHealth;
+}
+
+const PIE_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#84cc16"];
+
+function formatBucketLabel(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  } catch {
+    return iso.slice(11, 16);
+  }
+}
+
+function formatRelative(iso: string | null | undefined): string {
+  if (!iso) return "never";
+  try {
+    const ts = new Date(iso).getTime();
+    const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diffSec < 60) return `${diffSec}s ago`;
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    return `${Math.floor(diffSec / 86400)}d ago`;
+  } catch {
+    return iso;
+  }
+}
+
+function LearningLoopPane() {
+  const [metrics, setMetrics] = useState<LoopMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    setRefreshing(true);
+    try {
+      const data = await apiFetch<LoopMetrics>("/api/v1/llm-loop/metrics");
+      if (data) setMetrics(data);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    // Auto-refresh every 30s so the CTO sees the loop ticking in real-time.
+    const id = setInterval(load, 30_000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  if (loading && !metrics) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (err && !metrics) {
+    return <ErrorState title="Learning Loop telemetry failed" message={err} onRetry={load} />;
+  }
+
+  if (!metrics) {
+    return (
+      <EmptyState
+        icon={BrainIcon}
+        title="No telemetry yet"
+        description="`/api/v1/llm-loop/metrics` returned no data. The learning loop may not have been started — set FIXOPS_LLM_LEARNING_LOOP=1 and emit a finding event."
+      />
+    );
+  }
+
+  const lat = metrics.avg_latency_ms;
+  const distillPct = metrics.distill_threshold_progress.percent;
+  const growthData = metrics.pairs_growth_24h.map((b) => ({
+    label: formatBucketLabel(b.bucket_start),
+    count: b.count,
+  }));
+  const sourceData = metrics.top_5_finding_types.map((s) => ({
+    name: s.source_kind,
+    value: s.count,
+  }));
+
+  return (
+    <div className="space-y-4">
+      {/* Banner */}
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+        <div className="flex items-start gap-2">
+          <BrainIcon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">
+              LLM Phase 1 Learning Loop · status: <span className="uppercase">{metrics.status}</span>
+            </p>
+            <p className="text-muted-foreground">
+              EventBus → council ({metrics.loop.subscribed_event_types?.length ?? 0} subscriptions) →
+              learning_signals.db → AgentDB. Reading from <code>{metrics.db_path}</code>.
+              Updated {formatRelative(metrics.generated_at)} · refresh every 30s.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={load} disabled={refreshing} className="ml-auto">
+            <RefreshCw className={cn("mr-2 h-3 w-3", refreshing && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* 4 KPI tiles */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard
+          title="Council Verdicts"
+          value={metrics.council_verdicts_total.toLocaleString()}
+          icon={Users}
+          trend={metrics.council_verdicts_total > 0 ? "up" : "flat"}
+        />
+        <KpiCard
+          title="DPO Pairs"
+          value={metrics.feedback_pairs_total.toLocaleString()}
+          icon={GitBranch}
+          trend={metrics.feedback_pairs_total > 0 ? "up" : "flat"}
+        />
+        <KpiCard
+          title="Pairs / hour (24h)"
+          value={metrics.pairs_per_hour.toFixed(2)}
+          icon={Activity}
+        />
+        <KpiCard
+          title="Distill Threshold"
+          value={`${distillPct.toFixed(2)}%`}
+          icon={Target}
+          trend={distillPct >= 100 ? "up" : "flat"}
+        />
+      </div>
+
+      {/* Distill progress bar */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Target className="h-4 w-4 text-primary" />
+            Phase 2 Distillation Progress
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Phase 2 distillation kicks in at{" "}
+            <span className="font-mono">{metrics.distill_threshold_progress.target_pairs.toLocaleString()}</span>{" "}
+            DPO pairs. Currently{" "}
+            <span className="font-mono">{metrics.distill_threshold_progress.current_pairs.toLocaleString()}</span>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Progress value={Math.min(distillPct, 100)} className="h-2" />
+        </CardContent>
+      </Card>
+
+      {/* 2 charts side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              DPO Pairs Growth (last 24h)
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {metrics.pairs_growth_24h.length} buckets · total{" "}
+              {metrics.pairs_growth_24h.reduce((s, b) => s + b.count, 0)} new pairs in window
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Suspense fallback={<Skeleton className="h-56 w-full" />}>
+              <PairsGrowthChart data={growthData} />
+            </Suspense>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              Top 5 Finding Sources
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Distribution across scanner kinds (sast / cspm / secrets / dast / sca / …)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {sourceData.length === 0 ? (
+              <EmptyState
+                icon={Layers}
+                title="No verdicts yet"
+                description="No council verdicts have been recorded — emit a finding event to populate."
+              />
+            ) : (
+              <Suspense fallback={<Skeleton className="h-56 w-full" />}>
+                <SourcePie data={sourceData} />
+              </Suspense>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Status row */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Timer className="h-4 w-4 text-primary" />
+            Loop Health
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div>
+              <div className="text-muted-foreground">Avg Latency (p50/p95/p99)</div>
+              <div className="font-mono mt-0.5">
+                {lat.p50.toFixed(0)} / {lat.p95.toFixed(0)} / {lat.p99.toFixed(0)} ms
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                sample: {lat.sample_size} verdicts
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Opus Escalation Rate</div>
+              <div className="font-mono mt-0.5">
+                {(metrics.opus_escalation_rate * 100).toFixed(1)}%
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {lat.escalations_in_sample} of {lat.sample_size}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Council Fall-Through</div>
+              <div className="font-mono mt-0.5">
+                {(metrics.council_fall_through_rate * 100).toFixed(1)}%
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                student loaded: {metrics.student_loaded ? "yes" : "no"}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Last Event Processed</div>
+              <div className="font-mono mt-0.5">
+                {formatRelative(metrics.last_event_processed_at)}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                processed: {metrics.loop.processed_events.toLocaleString()}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">AgentDB Entries</div>
+              <div className="font-mono mt-0.5">
+                {metrics.agentdb_entries_count.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {metrics.agentdb_health.available ? "available" : "unavailable"}
+                {metrics.agentdb_health.embedder ? ` · ${metrics.agentdb_health.embedder}` : ""}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Loop Status</div>
+              <div className="mt-0.5">
+                <Badge variant={metrics.loop.running ? "default" : "outline"}>
+                  {metrics.loop.running ? "running" : "stopped"}
+                </Badge>
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                council built: {metrics.loop.council_built ? "yes" : "no"}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Pairs Last 24h</div>
+              <div className="font-mono mt-0.5">{metrics.pairs_last_24h.toLocaleString()}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                rate: {metrics.pairs_per_hour.toFixed(2)}/hr
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Last Error</div>
+              <div className="text-[10px] mt-0.5 truncate" title={metrics.loop.last_error ?? ""}>
+                {metrics.loop.last_error ?? "—"}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Lazy-load recharts so we don't pull the lib into the Brain bundle for users
+// who never open the Learning Loop tab.
+const PairsGrowthChart = lazy(async () => {
+  const recharts = await import("recharts");
+  const { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } = recharts;
+  return {
+    default: function PairsGrowthChartImpl({ data }: { data: { label: string; count: number }[] }) {
+      return (
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 5, right: 12, left: -12, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="rgba(255,255,255,0.5)" />
+            <YAxis tick={{ fontSize: 10 }} stroke="rgba(255,255,255,0.5)" allowDecimals={false} />
+            <Tooltip
+              contentStyle={{ background: "rgba(0,0,0,0.85)", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="count"
+              stroke="#6366f1"
+              strokeWidth={2}
+              dot={{ r: 2 }}
+              activeDot={{ r: 4 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    },
+  };
+});
+
+const SourcePie = lazy(async () => {
+  const recharts = await import("recharts");
+  const { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } = recharts;
+  return {
+    default: function SourcePieImpl({ data }: { data: { name: string; value: number }[] }) {
+      return (
+        <ResponsiveContainer width="100%" height={220}>
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={70}
+              label={(entry: { name: string; value: number }) => `${entry.name}: ${entry.value}`}
+            >
+              {data.map((_, i) => (
+                <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{ background: "rgba(0,0,0,0.85)", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12 }}
+            />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+          </PieChart>
+        </ResponsiveContainer>
+      );
+    },
+  };
+});
