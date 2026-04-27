@@ -364,10 +364,10 @@ function NodeDetailPanel({
                 </span>
               </div>
             )}
-            {node.props.source && (
+            {Boolean(node.props.source) && (
               <Detail label="Source" value={String(node.props.source)} />
             )}
-            {node.props.cvss_score && (
+            {Boolean(node.props.cvss_score) && (
               <Detail label="CVSS" value={String(node.props.cvss_score)} />
             )}
           </div>

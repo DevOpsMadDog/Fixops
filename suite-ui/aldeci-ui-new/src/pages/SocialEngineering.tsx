@@ -245,7 +245,7 @@ export default function SocialEngineering() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableCampaigns.map((c) => {
+                {tableCampaigns.map((c: { name: string; type: string; group: string; launched: string; sent: number; clicked: number; reported: number; status: string }) => {
                   const clickPct  = c.sent > 0 ? ((c.clicked / c.sent) * 100).toFixed(1) : "0.0";
                   const reportPct = c.sent > 0 ? ((c.reported / c.sent) * 100).toFixed(1) : "0.0";
                   return (
@@ -342,7 +342,7 @@ export default function SocialEngineering() {
           Top Phishing Templates
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {tableTemplates.map((t) => (
+          {tableTemplates.map((t: { name: string; type: string; clickRate: number; lastUsed: string }) => (
             <Card key={t.name} className={cn("hover:border-border/80 transition-colors", t.clickRate > 10 && "border-red-500/20")}>
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">

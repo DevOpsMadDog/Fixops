@@ -328,7 +328,7 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveBreaches.map((row) => (
+                {liveBreaches.map((row: { id: string; title: string; severity: string; type: string; owner: string; due: string; overdue: string }) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
@@ -378,7 +378,7 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveAtRisk.map((row) => (
+                {liveAtRisk.map((row: { id: string; title: string; severity: string; deadline: string; remaining: string; owner: string; urgent: boolean }) => (
                   <TableRow
                     key={row.id}
                     className={cn(

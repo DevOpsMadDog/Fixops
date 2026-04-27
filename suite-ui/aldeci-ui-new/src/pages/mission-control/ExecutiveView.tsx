@@ -332,7 +332,7 @@ export default function ExecutiveView() {
 
   // 30-day incident trend for area chart
   const incidentTrend = postureTrend.length > 0
-    ? postureTrend.slice(-6).map((p) => ({ ...p, incidents: Math.max(0, 85 - p.score + Math.floor(Math.random() * 5)) }))
+    ? postureTrend.slice(-6).map((p: { month: string; score: number; target: number }) => ({ ...p, incidents: Math.max(0, 85 - p.score + Math.floor(Math.random() * 5)) }))
     : Array.from({ length: 6 }, (_, i) => ({
         month: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"][i],
         score: 68 + i * 2,

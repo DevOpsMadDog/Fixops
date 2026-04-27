@@ -228,7 +228,7 @@ export default function CWPPDashboard() {
                   risk: w.risk_score ?? w.risk ?? 0,
                   status: w.status ?? "running",
                   findings: w.finding_count ?? w.findings ?? 0,
-                })) : WORKLOADS).map((w) => (
+                })) : WORKLOADS).map((w: { name: string; type: string; runtime: string; image: string; cluster: string; risk: number; status: string; findings: number }) => (
                   <TableRow key={w.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{w.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={w.type} /></TableCell>
@@ -292,7 +292,7 @@ export default function CWPPDashboard() {
                   blocked: e.blocked ?? e.action === "block",
                   desc: e.description ?? e.details ?? e.message ?? "",
                   ts: e.detected_at ?? e.timestamp ?? e.ts ?? "—",
-                })) : EVENTS).map((e, i) => (
+                })) : EVENTS).map((e: { workload: string; type: string; blocked: boolean; desc: string; ts: string }, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2">{e.workload}</TableCell>
                     <TableCell className="py-2"><EventTypeBadge type={e.type} /></TableCell>

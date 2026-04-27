@@ -32,7 +32,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { analyticsApi } from "@/lib/api";
+import api, { analyticsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -216,10 +216,17 @@ export default function CISODashboard() {
     queryFn: async () => {
       try {
         const [posture, kpis] = await Promise.all([
-          analyticsApi.get("/api/v1/analytics/posture").then(r => r.data),
-          analyticsApi.get("/api/v1/analytics/kpis").then(r => r.data),
+          api.get("/api/v1/analytics/posture").then((r) => r.data),
+          api.get("/api/v1/analytics/kpis").then((r) => r.data),
         ]);
-        return { risk_posture: posture, kpis, ...generateMockCISOData() };
+        const base = generateMockCISOData();
+        return {
+          ...base,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          risk_posture: (posture ?? base.risk_posture) as typeof base.risk_posture,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          kpis: (kpis ?? base.kpis) as typeof base.kpis,
+        };
       } catch {
         // Graceful fallback to mock data when API unavailable
         return generateMockCISOData();

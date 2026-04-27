@@ -254,7 +254,7 @@ export default function UBADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableUsers.map((u) => (
+                {tableUsers.map((u: { username: string; dept: string; role: string; score: number; anomalies: number; lastAlert: string; status: string }) => (
                   <TableRow key={u.username} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{u.username}</TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{u.dept}</TableCell>
@@ -336,7 +336,7 @@ export default function UBADashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/50 max-h-80 overflow-y-auto">
-              {tableEvents.map((e, i) => (
+              {tableEvents.map((e: { username: string; type: string; ip: string; ts: string }, i: number) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20">
                   <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">{e.username}</span>
                   <EventTypeBadge type={e.type} />

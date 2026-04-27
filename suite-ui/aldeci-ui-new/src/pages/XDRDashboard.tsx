@@ -286,7 +286,7 @@ export default function XDRDashboard() {
                     <TableCell className="py-2 text-xs tabular-nums font-bold text-amber-400">{inc.signal_count}</TableCell>
                     <TableCell className="py-2">
                       <div className="flex flex-wrap gap-1">
-                        {inc.affected_entities.slice(0, 2).map((e) => (
+                        {inc.affected_entities.slice(0, 2).map((e: string) => (
                           <span key={e} className="font-mono text-[10px] bg-muted/40 px-1 py-0.5 rounded text-muted-foreground">{e}</span>
                         ))}
                         {inc.affected_entities.length > 2 && (

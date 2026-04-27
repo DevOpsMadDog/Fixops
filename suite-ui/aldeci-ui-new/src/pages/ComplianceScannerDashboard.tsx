@@ -222,7 +222,7 @@ export default function ComplianceScannerDashboard() {
                     <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                     <TableCell className="py-2.5">
                       <div className="flex flex-wrap gap-0.5">
-                        {row.frameworks.map((fw) => <FrameworkBadge key={fw} fw={fw} />)}
+                        {(row.frameworks as string[]).map((fw: string) => <FrameworkBadge key={fw} fw={fw} />)}
                       </div>
                     </TableCell>
                     <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.last_scan}</TableCell>
