@@ -3031,6 +3031,10 @@ def create_app() -> FastAPI:
         return response
 
     # ── ASPM — Application Security Posture Management ────────────────────────
+    # Wave-1 extraction: all standalone ASPM include_router blocks moved to
+    # suite-api/apps/api/sub_apps/aspm_app.py (registrar pattern).
+    from apps.api.sub_apps.aspm_app import register_aspm_routers as _reg_aspm
+    _reg_aspm(app, _verify_api_key, _require_scope, _logger)
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     # Enterprise reachability analysis API
     if reachability_router:
@@ -3393,9 +3397,6 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Azure Defender router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
-    if triage_router is not None:
-        app.include_router(triage_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-
     # FAIL Engine — expanded fault injection, drill grading, neglect zones (Pillar V2)
     app.include_router(fail_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
 
@@ -3469,12 +3470,6 @@ def create_app() -> FastAPI:
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     # Wave C: mount /api/v1/changes/material BEFORE change_management_router
     # to avoid being shadowed by its GET /{change_id} catch-all.
-    try:
-        from apps.api.wave_c_router import changes_router as _wc_changes_router
-        app.include_router(_wc_changes_router)
-        _logger.info("Mounted Wave C changes router (precedence over change_management)")
-    except ImportError:
-        pass
     app.include_router(change_management_router, dependencies=[Depends(_verify_api_key)])
     if evidence_chain_router:
         app.include_router(evidence_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
@@ -3500,11 +3495,7 @@ def create_app() -> FastAPI:
     )
 
     # CI/CD Pipeline Gate — binary pass/fail for CI systems (Tier 2.1)
-    app.include_router(gate_router)  # auth handled internally via api_key_auth dependency
-    _logger.info("Mounted CI/CD Gate router")
-
     # Enterprise features - Remediation, Collaboration, SLA
-    app.include_router(remediation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     app.include_router(sla_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     app.include_router(sla_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
@@ -3517,14 +3508,6 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Wave D integrations router (22 endpoints)")
 
     # Wave A — 19 Multica code / architecture intel endpoints
-    if _wave_a_routers:
-        for _wa_router in _wave_a_routers:
-            app.include_router(_wa_router)
-        _logger.info(
-            "Mounted Wave A code-intel routers (%d) — 19 graph/dca/reachability/components/ide/runtime endpoints",
-            len(_wave_a_routers),
-        )
-
     # Hooks router — POST /api/v1/hooks/uninstall (Multica 5894d7d7)
     if hooks_router is not None:
         app.include_router(hooks_router)
@@ -3590,9 +3573,6 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Sandbox PoC Verifier router")
 
     # Validation router - compatibility checking for security tool outputs
-    if validation_router:
-        app.include_router(validation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-
     # Enterprise marketplace API
     if marketplace_router:
         app.include_router(
@@ -5881,13 +5861,6 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # API Security Engine — OWASP API Top 10 scanning
     # -----------------------------------------------------------------------
-    try:
-        from apps.api.api_security_router import router as api_security_router
-        app.include_router(api_security_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Loaded API Security router")
-    except ImportError as _e:
-        _logger.warning("API Security router not available: %s", _e)
-
     # DAST Scanner — Dynamic Application Security Testing (OWASP Top 10)
     try:
         from apps.api.dast_router import router as _dast_inner_router
@@ -5929,23 +5902,9 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Container Runtime Security — image analysis, CIS Docker Benchmark
     # -----------------------------------------------------------------------
-    try:
-        from apps.api.container_runtime_router import router as container_runtime_router
-        app.include_router(container_runtime_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Container Runtime Security router")
-    except ImportError as _cr_err:
-        _logger.warning("Container Runtime router not available: %s", _cr_err)
-
     # -----------------------------------------------------------------------
     # Application Security — SAST/DAST findings, scan runs, appsec stats
     # -----------------------------------------------------------------------
-    try:
-        from apps.api.application_security_router import router as application_security_router
-        app.include_router(application_security_router)
-        _logger.info("Mounted Application Security router")
-    except ImportError as _as_err:
-        _logger.warning("Application Security router not available: %s", _as_err)
-
     # -----------------------------------------------------------------------
     # Bug Bounty / VDP — vulnerability disclosure program management
     # -----------------------------------------------------------------------
@@ -6350,13 +6309,6 @@ def create_app() -> FastAPI:
         _logger.warning(f"Certificate Manager router not loaded: {e}")
 
     # Application Security (AppSec) — SAST/DAST scans, findings, OWASP tracking
-    try:
-        from apps.api.app_security_router import router as app_security_router
-        app.include_router(app_security_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted AppSec router at /api/v1/app-security")
-    except Exception as e:
-        _logger.warning(f"AppSec router not loaded: {e}")
-
     # Endpoint Security / EDR — endpoint inventory, alerts, policies
     try:
         from apps.api.endpoint_security_router import router as endpoint_security_router
@@ -6433,13 +6385,6 @@ def create_app() -> FastAPI:
         _logger.warning(f"Password Policy router not loaded: {e}")
 
     # Mobile Security Engine — device MDM, threats, policies
-    try:
-        from apps.api.mobile_security_router import router as mobile_security_router
-        app.include_router(mobile_security_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Mobile Security router at /api/v1/mobile-security")
-    except Exception as e:
-        _logger.warning(f"Mobile Security router not loaded: {e}")
-
     # UBA — User Behavior Analytics, anomaly detection, risk scoring
     try:
         from apps.api.uba_router import router as uba_router
@@ -6457,13 +6402,6 @@ def create_app() -> FastAPI:
         _logger.warning(f"CMDB router not loaded: {e}")
 
     # Supply Chain Risk — suppliers, components, risks, SBOM import
-    try:
-        from apps.api.supply_chain_risk_router import router as supply_chain_risk_router
-        app.include_router(supply_chain_risk_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Supply Chain Risk router at /api/v1/supply-chain")
-    except Exception as e:
-        _logger.warning(f"Supply chain risk router not loaded: {e}")
-
     # Cyber Insurance — policies, assessments, claims, portfolio stats
     try:
         from apps.api.cyber_insurance_router import router as cyber_insurance_router
@@ -6481,13 +6419,6 @@ def create_app() -> FastAPI:
         _logger.warning(f"PAM router not loaded: {e}")
 
     # Vulnerability Scanner — scanners, schedules, results, findings, stats
-    try:
-        from apps.api.vuln_scanner_router import router as vuln_scanner_router
-        app.include_router(vuln_scanner_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Vuln Scanner router at /api/v1/vuln-scanner")
-    except Exception as e:
-        _logger.warning(f"Vuln Scanner router not loaded: {e}")
-
     # Security Awareness Training — courses, enrollments, campaigns, progress
     try:
         from apps.api.security_training_router import router as security_training_router
@@ -6601,13 +6532,6 @@ def create_app() -> FastAPI:
         _logger.warning(f"Analytics Engine router not loaded: {e}")
 
     # DevSecOps Pipeline Security Engine — CI/CD gate policies, runs, findings
-    try:
-        from apps.api.devsecops_router import router as devsecops_router
-        app.include_router(devsecops_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted DevSecOps router at /api/v1/devsecops")
-    except Exception as e:
-        _logger.warning(f"DevSecOps router not loaded: {e}")
-
     try:
         from apps.api.incident_timeline_router import router as incident_timeline_router
         app.include_router(incident_timeline_router, dependencies=[Depends(_verify_api_key)])
@@ -6856,13 +6780,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.ai_code_scanner_router import router as ai_code_scanner_router
-        app.include_router(ai_code_scanner_router)
-        _logger.info("Mounted AI Code Scanner router at /api/v1/ai-scan")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.vuln_prioritization_router import router as vuln_prioritization_router
         app.include_router(vuln_prioritization_router)
         _logger.info("Mounted Vuln Prioritization router at /api/v1/vuln-prioritization")
@@ -6912,23 +6829,9 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.sbom_router import router as _sbom_router_late
-        app.include_router(_sbom_router_late)
-        _logger.info("Mounted SBOM router at /api/v1/sbom")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.cloud_security_engine_router import router as cloud_security_engine_router
         app.include_router(cloud_security_engine_router)
         _logger.info("Mounted Cloud Security Engine router at /api/v1/cloud-security-engine")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.patch_automation_router import router as patch_automation_router
-        app.include_router(patch_automation_router)
-        _logger.info("Mounted Patch Automation router at /api/v1/patch-automation")
     except ImportError:
         pass
 
@@ -6985,20 +6888,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.secret_scanner_engine_router import router as secret_scanner_engine_router
-        app.include_router(secret_scanner_engine_router)
-        _logger.info("Mounted Secret Scanner Engine router at /api/v1/secret-scanner")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.vuln_workflow_router import router as vuln_workflow_router
-        app.include_router(vuln_workflow_router)
-        _logger.info("Mounted Vuln Workflow router at /api/v1/vuln-workflow")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.threat_intel_platform_router import router as tip_router
         app.include_router(tip_router)
         _logger.info("Mounted Threat Intel Platform router at /api/v1/tip")
@@ -7034,28 +6923,10 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.api_security_engine_router import router as api_security_engine_router
-        app.include_router(api_security_engine_router)
-    except ImportError:
-        pass
-    try:
-        from apps.api.api_security_mgmt_router import router as api_security_mgmt_router
-        app.include_router(api_security_mgmt_router)
-        _logger.info("Mounted API Security Mgmt router at /api/v1/api-security-engine")
-    except ImportError:
-        pass
-    try:
         from apps.api.vuln_intelligence_router import router as vuln_intelligence_router
         app.include_router(vuln_intelligence_router)
     except ImportError:
         pass
-
-    try:
-        from apps.api.supply_chain_router import router as supply_chain_crud_router
-        app.include_router(supply_chain_crud_router)
-        _logger.info("Mounted Supply Chain CRUD router at /api/v1/supply-chain (components/vendors/stats/sync)")
-    except ImportError as _e:
-        _logger.warning("Supply Chain CRUD router not available: %s", _e)
 
     try:
         from apps.api.ciso_report_router import router as ciso_report_router
@@ -7071,11 +6942,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.secret_scanner_router import router as _secret_scanner_late
-        app.include_router(_secret_scanner_late)
-    except ImportError:
-        pass
     try:
         from apps.api.attack_surface_engine_router import router as attack_surface_mgmt_router
         app.include_router(attack_surface_mgmt_router)
@@ -7288,30 +7154,9 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.secrets_management_router import router as secrets_management_router
-        app.include_router(secrets_management_router)
-        _logger.info("Mounted Secrets Management router at /api/v1/secrets-management")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.vulnerability_remediation_router import router as vulnerability_remediation_router
-        app.include_router(vulnerability_remediation_router)
-        _logger.info("Mounted Vulnerability Remediation router at /api/v1/vuln-remediation")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.ddos_protection_router import router as ddos_protection_router
         app.include_router(ddos_protection_router)
         _logger.info("Mounted DDoS Protection router at /api/v1/ddos-protection")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.api_gateway_security_router import router as api_gateway_security_router
-        app.include_router(api_gateway_security_router)
-        _logger.info("Mounted API Gateway Security router at /api/v1/api-gateway-security")
     except ImportError:
         pass
 
@@ -7456,13 +7301,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.asset_lifecycle_router import router as asset_lifecycle_router
-        app.include_router(asset_lifecycle_router)
-        _logger.info("Mounted Asset Lifecycle router at /api/v1/asset-lifecycle")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.vuln_exception_router import router as vuln_exception_router
         app.include_router(vuln_exception_router)
         _logger.info("Mounted Vulnerability Exception router at /api/v1/vuln-exceptions")
@@ -7512,23 +7350,9 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.supply_chain_monitoring_router import router as supply_chain_monitoring_router
-        app.include_router(supply_chain_monitoring_router)
-        _logger.info("Mounted Supply Chain Monitoring router at /api/v1/supply-chain-monitoring")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.supply_chain_attack_detection_router import router as supply_chain_attack_detection_router
         app.include_router(supply_chain_attack_detection_router)
         _logger.info("Mounted Supply Chain Attack Detection router at /api/v1/supply-chain-attacks")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.malicious_pkg_router import router as malicious_pkg_router
-        app.include_router(malicious_pkg_router)
-        _logger.info("Mounted Malicious Package router at /api/v1/malicious-pkg")
     except ImportError:
         pass
 
@@ -7661,20 +7485,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.container_runtime_security_router import router as container_runtime_security_router
-        app.include_router(container_runtime_security_router)
-        _logger.info("Mounted Container Runtime Security router at /api/v1/container-runtime")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.api_discovery_router import router as api_discovery_router
-        app.include_router(api_discovery_router)
-        _logger.info("Mounted API Discovery router at /api/v1/api-discovery")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.security_chaos_router import router as security_chaos_router
         app.include_router(security_chaos_router)
         _logger.info("Mounted Security Chaos router at /api/v1/security-chaos")
@@ -7704,13 +7514,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.browser_security_router import router as browser_security_router
-        app.include_router(browser_security_router)
-        _logger.info("Mounted Browser Security router at /api/v1/browser-security")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.data_exfiltration_router import router as data_exfiltration_router
         app.include_router(data_exfiltration_router)
         _logger.info("Mounted Data Exfiltration router at /api/v1/data-exfiltration")
@@ -7733,41 +7536,13 @@ def create_app() -> FastAPI:
 
     # Wave 21 routers
     try:
-        from apps.api.firmware_security_router import router as firmware_security_router
-        app.include_router(firmware_security_router)
-        _logger.info("Mounted Firmware Security router at /api/v1/firmware-security")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.iot_security_router import router as iot_security_router
         app.include_router(iot_security_router)
         _logger.info("Mounted IoT Security router at /api/v1/iot-security")
     except ImportError:
         pass
 
-    try:
-        from apps.api.mobile_app_security_router import router as mobile_app_security_router
-        app.include_router(mobile_app_security_router)
-        _logger.info("Mounted Mobile App Security router at /api/v1/mobile-app-security")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.api_abuse_detection_router import router as api_abuse_detection_router
-        app.include_router(api_abuse_detection_router)
-        _logger.info("Mounted API Abuse Detection router at /api/v1/api-abuse")
-    except ImportError:
-        pass
-
     # Wave 22 routers
-    try:
-        from apps.api.autonomous_remediation_router import router as autonomous_remediation_router
-        app.include_router(autonomous_remediation_router)
-        _logger.info("Mounted Autonomous Remediation router at /api/v1/autonomous-remediation")
-    except ImportError:
-        pass
-
     try:
         from apps.api.vulnerability_correlation_router import router as vulnerability_correlation_router
         app.include_router(vulnerability_correlation_router)
@@ -7869,13 +7644,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.application_risk_router import router as application_risk_router
-        app.include_router(application_risk_router)
-        _logger.info("Mounted Application Risk router at /api/v1/app-risk")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.privileged_access_governance_router import router as privileged_access_governance_router
         app.include_router(privileged_access_governance_router)
         _logger.info("Mounted Privileged Access Governance router at /api/v1/pag")
@@ -7915,13 +7683,6 @@ def create_app() -> FastAPI:
         from apps.api.cloud_posture_router import router as cloud_posture_router
         app.include_router(cloud_posture_router)
         _logger.info("Mounted Cloud Posture router at /api/v1/cloud-posture")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.api_threat_protection_router import router as api_threat_protection_router
-        app.include_router(api_threat_protection_router)
-        _logger.info("Mounted API Threat Protection router at /api/v1/api-threat-protection")
     except ImportError:
         pass
 
@@ -7969,20 +7730,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.dev_identity_router import router as dev_identity_router
-        app.include_router(dev_identity_router)
-        _logger.info("Mounted Dev Identity router at /api/v1/dev-identity")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.vulnerability_workflow_router import router as vulnerability_workflow_router
-        app.include_router(vulnerability_workflow_router)
-        _logger.info("Mounted Vulnerability Workflow router at /api/v1/vuln-workflow")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.security_data_pipeline_router import router as security_data_pipeline_router
         app.include_router(security_data_pipeline_router)
         _logger.info("Mounted Security Data Pipeline router at /api/v1/data-pipeline")
@@ -7990,13 +7737,6 @@ def create_app() -> FastAPI:
         pass
 
     # GAP-034 + GAP-035 — Universal ingest (field mapping + SIEM forwarding)
-    try:
-        from apps.api.universal_ingest_router import router as universal_ingest_router
-        app.include_router(universal_ingest_router)
-        _logger.info("Mounted Universal Ingest router at /api/v1/ingest")
-    except ImportError:
-        pass
-
     # Wave 27 routers
     try:
         from apps.api.alert_triage_router import router as alert_triage_router
@@ -8009,13 +7749,6 @@ def create_app() -> FastAPI:
         from apps.api.security_awareness_metrics_router import router as security_awareness_metrics_router
         app.include_router(security_awareness_metrics_router)
         _logger.info("Mounted Security Awareness Metrics router at /api/v1/awareness-metrics")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.patch_management_router import router as patch_management_router
-        app.include_router(patch_management_router)
-        _logger.info("Mounted Patch Management router at /api/v1/patch-management")
     except ImportError:
         pass
 
@@ -8092,13 +7825,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.api_inventory_router import router as api_inventory_router
-        app.include_router(api_inventory_router)
-        _logger.info("Mounted API Inventory router at /api/v1/api-inventory")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.threat_vector_analysis_router import router as threat_vector_analysis_router
         app.include_router(threat_vector_analysis_router)
         _logger.info("Mounted Threat Vector Analysis router at /api/v1/threat-vectors")
@@ -8135,13 +7861,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.vuln_scan_router import router as vuln_scan_router
-        app.include_router(vuln_scan_router)
-        _logger.info("Mounted Vuln Scan router at /api/v1/vuln-scans")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.threat_brief_router import router as threat_brief_router
         app.include_router(threat_brief_router)
         _logger.info("Mounted Threat Brief router at /api/v1/threat-briefs")
@@ -8152,13 +7871,6 @@ def create_app() -> FastAPI:
         from apps.api.incident_comms_router import router as incident_comms_router
         app.include_router(incident_comms_router)
         _logger.info("Mounted Incident Comms router at /api/v1/incident-comms")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.asset_tagging_router import router as asset_tagging_router
-        app.include_router(asset_tagging_router)
-        _logger.info("Mounted Asset Tagging router at /api/v1/asset-tags")
     except ImportError:
         pass
 
@@ -8300,20 +8012,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.security_findings_router import router as security_findings_router
-        app.include_router(security_findings_router)
-        _logger.info("Mounted Security Findings router at /api/v1/security-findings")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.unified_issues_router import router as unified_issues_router
-        app.include_router(unified_issues_router)
-        _logger.info("Mounted Unified Issues router at /api/v1/issues (GAP-049+066)")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.control_testing_router import router as control_testing_router
         app.include_router(control_testing_router)
         _logger.info("Mounted Control Testing router at /api/v1/control-testing")
@@ -8443,69 +8141,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_dependency_risk_router import router as security_dependency_risk_router
-        app.include_router(security_dependency_risk_router)
-        _logger.info("Mounted Security Dependency Risk router at /api/v1/dependency-risk")
-    except ImportError:
-        pass
-
     # GAP-055 + GAP-057: SBOM re-eval schedule + component claim
-    try:
-        from apps.api.sbom_reeval_router import router as sbom_reeval_router
-        app.include_router(sbom_reeval_router)
-        _logger.info("Mounted SBOM Re-Eval router at /api/v1/sbom-reeval")
-    except ImportError:
-        pass
-
     # Wave 37 pre-wiring (engines pending creation)
-    try:
-        from apps.api.sbom_export_router import router as sbom_export_router
-        app.include_router(sbom_export_router)
-        _logger.info("Mounted SBOM Export router at /api/v1/sbom-export")
-    except ImportError:
-        pass
-
     # GAP-017 Pipeline BOM (PBOM) — captures how the binary was built, not what's in it
-    try:
-        from apps.api.pipeline_bom_router import router as pipeline_bom_router
-        app.include_router(pipeline_bom_router)
-        _logger.info("Mounted Pipeline BOM (PBOM) router at /api/v1/pbom")
-    except ImportError:
-        pass
-
     # GAP-015 + GAP-068: GitHub App registration/webhook + .fixops/hooks.yaml policy
-    try:
-        from apps.api.github_app_router import (
-            router as github_app_router,
-            router_hooks as hooks_yaml_router,
-        )
-        app.include_router(github_app_router)
-        app.include_router(hooks_yaml_router)
-        _logger.info(
-            "Mounted GitHub App router at /api/v1/github-app and "
-            "Hooks YAML router at /api/v1/hooks-yaml"
-        )
-    except ImportError:
-        pass
-
     # Snyk-parity: AutoFix-on-PR — wires existing autofix engine to GitHub App
     # PR webhook so findings produce actionable patch suggestions in PR review.
-    try:
-        from apps.api.github_app_autofix_router import router as github_app_autofix_router
-        app.include_router(github_app_autofix_router)
-        _logger.info("Mounted GitHub App AutoFix router at /api/v1/github-app/autofix")
-    except ImportError:
-        pass
-
     # GAP-018 SLSA Provenance — in-toto v0.2 attestations + DSSE envelope (placeholder sig)
-    try:
-        from apps.api.slsa_provenance_router import router as slsa_provenance_router
-        app.include_router(slsa_provenance_router)
-        _logger.info("Mounted SLSA Provenance router at /api/v1/slsa")
-    except ImportError:
-        pass
-
     # GAP-007: upgrade_path_resolver_engine (CVE-aware version walker)
     try:
         from apps.api.upgrade_path_router import router as upgrade_path_router
@@ -8534,21 +8176,7 @@ def create_app() -> FastAPI:
     # ce6b3221, 71432602, a3d3443d, 9fafda03, fdf4d765, bacdd8bf, 7e62f6c6,
     # 094b9c3d, e2cf4708, 4c483284, afe86faf, 1d3a7018, 2a6a2e8a, 4b96d034,
     # 80123d56, 06e9c24b
-    try:
-        from apps.api.findings_wave_b_router import router as _findings_wave_b_router
-        app.include_router(_findings_wave_b_router)
-        _logger.info("Mounted Wave B findings/risk/scoring router (16 routes)")
-    except ImportError as exc:
-        _logger.warning("Wave B router not loaded: %s", exc)
-
     # GAP-069 Dynamic Rule DSL — user-authored YAML/JSON detection rules
-    try:
-        from apps.api.dynamic_rule_dsl_router import router as dynamic_rule_dsl_router
-        app.include_router(dynamic_rule_dsl_router)
-        _logger.info("Mounted Dynamic Rule DSL router at /api/v1/rules/dsl")
-    except ImportError:
-        pass
-
     # GAP-022/023 Compliance Seed — 100+ framework controls + 3000+ policy rules
     try:
         from apps.api.compliance_seed_router import router as compliance_seed_router
@@ -8558,13 +8186,6 @@ def create_app() -> FastAPI:
         pass
 
     # GAP-063 Findings Lifecycle — firstSeenAt/previousViolationId/resolvedAt chain
-    try:
-        from apps.api.findings_lifecycle_router import router as findings_lifecycle_router
-        app.include_router(findings_lifecycle_router)
-        _logger.info("Mounted Findings Lifecycle router at /api/v1/findings/lifecycle")
-    except ImportError:
-        pass
-
     # GAP-064 Local File Store — .fixops/ zero-infra store for npx fixops analyze
     try:
         from apps.api.local_file_store_router import router as local_file_store_router
@@ -8760,29 +8381,8 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_dependency_mapping_router import router as security_dependency_mapping_router
-        app.include_router(security_dependency_mapping_router)
-        _logger.info("Mounted Security Dependency Mapping router at /api/v1/dependency-mapping")
-    except ImportError:
-        pass
-
     # GAP-065 — architecture-aware graph (layer classifier + flow tracer)
-    try:
-        from apps.api.arch_graph_router import router as arch_graph_router
-        app.include_router(arch_graph_router)
-        _logger.info("Mounted Architecture-Aware Graph router at /api/v1/arch-graph")
-    except ImportError:
-        pass
-
     # GAP-010 — function-level reachability (Endor Labs moat)
-    try:
-        from apps.api.function_reachability_router import router as function_reachability_router
-        app.include_router(function_reachability_router)
-        _logger.info("Mounted Function Reachability router at /api/v1/reachability")
-    except ImportError:
-        pass
-
     # Wave 41 pre-wiring (engines pending creation)
     try:
         from apps.api.privacy_impact_assessment_router import router as privacy_impact_assessment_router
@@ -8821,30 +8421,8 @@ def create_app() -> FastAPI:
         pass
 
     # GAP-013 code-to-runtime matcher (3-strategy runtime→code mapping)
-    try:
-        from apps.api.code_to_runtime_router import router as code_to_runtime_router
-        app.include_router(code_to_runtime_router)
-        _logger.info("Mounted Code→Runtime Matcher router at /api/v1/code-to-runtime")
-    except ImportError:
-        pass
-
     # GAP-012 Deep Code Analysis — Apiiro DCA parity
-    try:
-        from apps.api.deep_code_analysis_router import router as deep_code_analysis_router
-        app.include_router(deep_code_analysis_router)
-        _logger.info("Mounted DCA router at /api/v1/dca")
-    except ImportError:
-        pass
-
     # NEW-G070 Semantic Analyzer — tree-sitter + LSP + ORM schema readers
-    try:
-        from apps.api.semantic_analyzer_router import router as semantic_analyzer_router
-        app.include_router(semantic_analyzer_router)
-        _logger.info("Mounted Semantic Analyzer router at /api/v1/semantic")
-        _logger.info("Mounted Code-to-Runtime router at /api/v1/code-to-runtime")
-    except ImportError:
-        pass
-
     # GAP-042 FIPS 140-3 compliance mode + PQC inventory (ML-KEM / ML-DSA / SPHINCS+)
     try:
         from apps.api.fips_router import router as fips_router
@@ -8875,14 +8453,6 @@ def create_app() -> FastAPI:
         pass
 
     # Wave C — 21 endpoints: compliance/org/system/admin/tokens/cspm/skills/rules/llm
-    try:
-        from apps.api.wave_c_router import WAVE_C_ROUTERS as _wave_c_routers
-        for _wc_router in _wave_c_routers:
-            app.include_router(_wc_router)
-        _logger.info("Mounted Wave C routers (%d) — 21 compliance/org/system endpoints", len(_wave_c_routers))
-    except ImportError as _wc_exc:
-        _logger.warning("Wave C router not mounted: %s", _wc_exc)
-
     # Wave 42 pre-wiring
     try:
         from apps.api.endpoint_forensics_router import router as endpoint_forensics_router
@@ -8951,30 +8521,9 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.code_ownership_router import router as code_ownership_router
-        app.include_router(code_ownership_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Code Ownership router at /api/v1/ownership")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.container_registry_security_router import router as container_registry_security_router
-        app.include_router(container_registry_security_router)
-        _logger.info("Mounted Container Registry Security router at /api/v1/container-registry-security")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.ctem_engine_router import router as ctem_engine_router
         app.include_router(ctem_engine_router)
         _logger.info("Mounted CTEM Engine router at /api/v1/ctem")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.dep_scanner_router import router as dep_scanner_router
-        app.include_router(dep_scanner_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Dependency Scanner router at /api/v1/dep-scanner")
     except ImportError:
         pass
 
@@ -9000,27 +8549,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.github_security_router import router as github_security_router
-        app.include_router(github_security_router)
-        _logger.info("Mounted GitHub Security router at /api/v1/security/github")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.graphql_router import router as graphql_router
-        app.include_router(graphql_router)
-        _logger.info("Mounted GraphQL router at /api/v1/graphql")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.iac_scanner_router import router as iac_scanner_router
-        app.include_router(iac_scanner_router)
-        _logger.info("Mounted IaC Scanner router at /api/v1/iac")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.jira_sync_router import router as jira_sync_router
         app.include_router(jira_sync_router)
         _logger.info("Mounted Jira Sync router at /api/v1/jira-sync")
@@ -9038,13 +8566,6 @@ def create_app() -> FastAPI:
         from apps.api.license_compliance_router import router as license_compliance_router
         app.include_router(license_compliance_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted License Compliance router at /api/v1/licenses")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.license_scanner_router import router as license_scanner_router
-        app.include_router(license_scanner_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted License Scanner router at /api/v1/license-scanner")
     except ImportError:
         pass
 
@@ -9077,13 +8598,6 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.patch_prioritizer_router import router as patch_prioritizer_router
-        app.include_router(patch_prioritizer_router)
-        _logger.info("Mounted Patch Prioritizer router at /api/v1/patch-priority")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.playbook_marketplace_router import router as playbook_marketplace_router
         app.include_router(playbook_marketplace_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Playbook Marketplace router at /playbook-marketplace")
@@ -9112,23 +8626,9 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.remediation_board_router import router as remediation_board_router
-        app.include_router(remediation_board_router)
-        _logger.info("Mounted Remediation Board router at /api/v1/remediation-board")
-    except ImportError:
-        pass
-
-    try:
         from apps.api.report_builder_router import router as report_builder_router
         app.include_router(report_builder_router)
         _logger.info("Mounted Report Builder router at /api/v1/report-builder")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.secrets_rotation_router import router as secrets_rotation_router
-        app.include_router(secrets_rotation_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Secrets Rotation router at /api/v1/secrets-rotation")
     except ImportError:
         pass
 
@@ -9143,13 +8643,6 @@ def create_app() -> FastAPI:
         from apps.api.sla_management_router import router as sla_management_router
         app.include_router(sla_management_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted SLA Management router at /api/v1/sla-management")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.software_composition_analysis_router import router as software_composition_analysis_router
-        app.include_router(software_composition_analysis_router)
-        _logger.info("Mounted Software Composition Analysis router at /api/v1/sca")
     except ImportError:
         pass
 
@@ -9226,13 +8719,6 @@ def create_app() -> FastAPI:
         pass
 
     # GAP-008: Binary Fingerprint Engine (Sonatype ABF-style)
-    try:
-        from apps.api.binary_fingerprint_router import router as binary_fingerprint_router
-        app.include_router(binary_fingerprint_router)
-        _logger.info("Mounted Binary Fingerprint router at /api/v1/binary-fp")
-    except ImportError:
-        pass
-
     # OAuth2 client credentials token endpoint (public — no api_key_auth wrapper)
     try:
         from apps.api.oauth2_router import router as oauth2_router
@@ -9258,13 +8744,6 @@ def create_app() -> FastAPI:
         pass
 
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
-    try:
-        from apps.api.ide_backend_router import router as ide_backend_router
-        app.include_router(ide_backend_router)
-        _logger.info("Mounted IDE Backend router at /api/v1/ide")
-    except ImportError:
-        pass
-
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they
     # win the route lookup. Onboarding bug surfaced 2026-04-27: customers
