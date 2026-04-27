@@ -15,6 +15,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  Activity,
   AlertOctagon,
   AlertTriangle,
   Compass,
@@ -25,8 +26,10 @@ import {
   ListFilter,
   Network,
   RefreshCw,
+  Rss,
   Search,
   ShieldAlert,
+  Target,
   TrendingUp,
   X,
   Zap,
@@ -93,7 +96,8 @@ type TabKey =
   | "drift"
   | "material"
   | "pr-risk"
-  | "explorer";
+  | "explorer"
+  | "threat-intel";
 
 interface TabSpec {
   key: TabKey;
@@ -113,6 +117,7 @@ const TABS: TabSpec[] = [
   { key: "material", label: "Material Changes", icon: Layers, endpoint: "/api/v1/changes/material", description: "Significant code changes worth reviewing" },
   { key: "pr-risk", label: "PR Risk", icon: GitPullRequest, endpoint: "/api/v1/pr/change-risk", description: "Inbound PR risk scores from open pull requests" },
   { key: "explorer", label: "Explorer", icon: Compass, endpoint: "/api/v1/findings", description: "Power-user view: rich filters, severity histogram, scanner facets, full-text search, CSV export" },
+  { key: "threat-intel", label: "Threat Intel", icon: Rss, endpoint: "/api/v1/tip/feeds/status", description: "P2 fold-in (S14) — 28+ feed status, latest IoCs, actor tracking, confidence scoring. Cross-references findings to active threats." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -286,6 +291,8 @@ export default function Issues() {
 
             {t.key === "explorer" ? (
               <FindingsExplorerPane onSelect={(f) => { setSelected(f); setDrawer("score"); }} />
+            ) : t.key === "threat-intel" ? (
+              <ThreatIntelPane />
             ) : (
             <>
             <div className="flex items-center gap-2">
@@ -757,6 +764,274 @@ function FindingsExplorerPane({ onSelect }: FindingsExplorerPaneProps) {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ThreatIntelPane — P2 fold-in (S14) on Issues hero. Shows:
+//   - 28+ feed status (last sync, items pulled, error rate)
+//   - Latest IoCs (last 24h)
+//   - Active threat actors tracked
+// All real /api/v1/tip/* + /api/v1/threat-intel/* endpoints. NO MOCKS.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FeedStatus {
+  id?: string;
+  feed_id?: string;
+  name?: string;
+  source?: string;
+  status?: string;
+  last_sync_at?: string;
+  items_24h?: number;
+  error_rate?: number;
+  confidence?: number;
+}
+
+interface IoC {
+  id?: string;
+  ioc_id?: string;
+  type?: string;
+  value?: string;
+  confidence?: number;
+  first_seen?: string;
+  feed?: string;
+  severity?: string;
+}
+
+interface ThreatActor {
+  id?: string;
+  actor_id?: string;
+  name?: string;
+  aliases?: string[];
+  motivation?: string;
+  region?: string;
+  last_activity?: string;
+  campaigns?: number;
+}
+
+function ThreatIntelPane() {
+  const [feeds, setFeeds] = useState<FeedStatus[]>([]);
+  const [iocs, setIocs] = useState<IoC[]>([]);
+  const [actors, setActors] = useState<ThreatActor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    setLoading(true);
+    try {
+      const [feedsR, iocsR, actorsR] = await Promise.allSettled([
+        apiFetch<{ items?: FeedStatus[]; feeds?: FeedStatus[] } | FeedStatus[]>("/api/v1/tip/feeds/status"),
+        apiFetch<{ items?: IoC[]; iocs?: IoC[] } | IoC[]>("/api/v1/threat-intel/iocs?since=24h&limit=100"),
+        apiFetch<{ items?: ThreatActor[]; actors?: ThreatActor[] } | ThreatActor[]>("/api/v1/threat-intel/actors?limit=20"),
+      ]);
+
+      const fromR = <T,>(r: PromiseSettledResult<unknown>): T[] => {
+        if (r.status !== "fulfilled" || r.value == null) return [];
+        if (Array.isArray(r.value)) return r.value as T[];
+        const v = r.value as Record<string, unknown>;
+        for (const k of ["items", "feeds", "iocs", "actors"]) {
+          if (Array.isArray(v[k])) return v[k] as T[];
+        }
+        return [];
+      };
+
+      // Mark unavailable only when ALL three returned null/non-200 (404/501)
+      const allNull = [feedsR, iocsR, actorsR].every(
+        (r) => r.status === "fulfilled" && r.value === null,
+      );
+      setUnavailable(allNull);
+
+      setFeeds(fromR<FeedStatus>(feedsR));
+      setIocs(fromR<IoC>(iocsR));
+      setActors(fromR<ThreatActor>(actorsR));
+
+      const failed = [feedsR, iocsR, actorsR].find((r) => r.status === "rejected") as
+        | PromiseRejectedResult
+        | undefined;
+      if (failed) setErr(String((failed.reason as Error)?.message ?? failed.reason));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (err && !unavailable) {
+    return <ErrorState title="Failed to load threat intel" message={err} onRetry={load} />;
+  }
+
+  if (unavailable) {
+    return (
+      <EmptyState
+        icon={Rss}
+        title="Threat intel endpoints not available"
+        description="`/api/v1/tip/feeds/status` returned 404/501. Threat intel platform service may not be running. Configure feeds via /admin?tab=connectors."
+      />
+    );
+  }
+
+  const healthyFeeds = feeds.filter((f) => (f.status ?? "").toLowerCase() === "healthy" || (f.status ?? "").toLowerCase() === "ok").length;
+  const totalIocs24h = iocs.length;
+  const highConfIocs = iocs.filter((i) => (i.confidence ?? 0) >= 0.8).length;
+  const activeActors = actors.length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard title="Active Feeds" value={`${healthyFeeds}/${feeds.length}`} icon={Rss} trend={healthyFeeds === feeds.length ? "up" : "down"} />
+        <KpiCard title="IoCs (24h)" value={totalIocs24h} icon={Activity} />
+        <KpiCard title="High Confidence" value={highConfIocs} icon={Target} />
+        <KpiCard title="Tracked Actors" value={activeActors} icon={ShieldAlert} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Rss className="h-4 w-4" />Feed Status (28+)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {feeds.length === 0 ? (
+              <EmptyState icon={Rss} title="No feeds configured" description="Configure threat intel feeds via Admin → Connectors." />
+            ) : (
+              <ScrollArea className="h-[420px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Feed</TableHead>
+                      <TableHead className="w-[100px]">Status</TableHead>
+                      <TableHead className="w-[80px]">24h</TableHead>
+                      <TableHead className="w-[120px]">Last Sync</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {feeds.map((f) => (
+                      <TableRow key={f.id ?? f.feed_id ?? f.name}>
+                        <TableCell className="font-medium text-xs">{f.name ?? f.source ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px]",
+                              (f.status ?? "").toLowerCase() === "healthy" || (f.status ?? "").toLowerCase() === "ok"
+                                ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                                : "border-yellow-500/40 text-yellow-400 bg-yellow-500/10",
+                            )}
+                          >
+                            {f.status ?? "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums">{f.items_24h ?? "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {f.last_sync_at?.slice(0, 16)?.replace("T", " ") ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4 w-4" />Latest IoCs (24h)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {iocs.length === 0 ? (
+              <EmptyState icon={Activity} title="No IoCs in last 24h" description="Indicators are pulled from active feeds. Check feed status." />
+            ) : (
+              <ScrollArea className="h-[420px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[80px]">Type</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead className="w-[80px]">Conf</TableHead>
+                      <TableHead className="w-[120px]">Feed</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {iocs.slice(0, 60).map((i) => (
+                      <TableRow key={i.id ?? i.ioc_id ?? i.value}>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] uppercase">{i.type ?? "—"}</Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-[10px] truncate max-w-[200px]">
+                          {i.value ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums">
+                          {i.confidence != null ? `${Math.round(i.confidence * 100)}%` : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground truncate max-w-[120px]">
+                          {i.feed ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {actors.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" />Tracked Threat Actors
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="max-h-[280px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Motivation</TableHead>
+                    <TableHead>Region</TableHead>
+                    <TableHead className="w-[100px]">Campaigns</TableHead>
+                    <TableHead className="w-[140px]">Last Activity</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {actors.map((a) => (
+                    <TableRow key={a.id ?? a.actor_id ?? a.name}>
+                      <TableCell className="font-medium text-xs">{a.name ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{a.motivation ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{a.region ?? "—"}</TableCell>
+                      <TableCell className="text-xs tabular-nums">{a.campaigns ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {a.last_activity?.slice(0, 10) ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

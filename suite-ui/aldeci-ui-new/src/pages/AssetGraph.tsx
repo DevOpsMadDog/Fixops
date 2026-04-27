@@ -18,25 +18,30 @@
  * Route: /assets
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
+  ArrowUpCircle,
   Box,
   Crown,
   Database,
   Download,
+  Fingerprint,
   GitBranch,
   Globe,
   Layers,
+  Link2,
   ListChecks,
   Network,
+  Package,
   RefreshCw,
   Search,
   Server,
   Shield,
+  ShieldCheck,
   Target,
   X,
   Zap,
@@ -59,6 +64,10 @@ import { ErrorState } from "@/components/shared/ErrorState";
 
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+// P2 fold-in (S21) — Upgrade Paths companion dashboards
+const UpgradePathExplorer = lazy(() => import("@/pages/UpgradePathExplorer"));
+const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -95,7 +104,18 @@ interface GraphResponse {
   total_edges?: number;
 }
 
-type TabKey = "architecture" | "flows" | "layers" | "databases" | "subsidiaries" | "diff" | "chokepoints" | "inventory";
+type TabKey =
+  | "architecture"
+  | "flows"
+  | "layers"
+  | "databases"
+  | "subsidiaries"
+  | "diff"
+  | "chokepoints"
+  | "inventory"
+  | "attack-paths"
+  | "sbom"
+  | "upgrade-paths";
 
 interface TabSpec {
   key: TabKey;
@@ -114,6 +134,9 @@ const TABS: TabSpec[] = [
   { key: "diff",         label: "Diff (PR)",    icon: Zap, endpoint: "/api/v1/graph/diff", description: "Graph delta between PR HEAD and main branch" },
   { key: "chokepoints",  label: "Choke Points", icon: Target, endpoint: "/api/v1/attack-paths/choke-points", description: "Top nodes by betweenness centrality — bottlenecks in attack paths" },
   { key: "inventory",    label: "Inventory",    icon: ListChecks, endpoint: "/api/v1/assets/assets", description: "Tabular asset list — filter by type, criticality, owner. Includes apps, services, repos, cloud resources, APIs, containers." },
+  { key: "attack-paths", label: "Attack Paths", icon: Target, endpoint: "/api/v1/attack-paths/graph", description: "P1 Wave 2 (S12) — interactive attack-path explorer. Click a node to drill into the kill-chain through that asset." },
+  { key: "sbom",         label: "SBOM",         icon: Package, endpoint: "/api/v1/sbom", description: "P1 Wave 2 (S25) — components, SLSA attestations, propagation tracking. Provenance graph for every artifact." },
+  { key: "upgrade-paths", label: "Upgrade Paths", icon: ArrowUpCircle, endpoint: "/api/v1/components/upgrade-paths", description: "P2 fold-in (S21) — safe-upgrade resolver per pURL. Shows next-secure version, breaking-change risk, and dependency-mapping impact." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -332,6 +355,12 @@ export default function AssetGraph() {
 
             {t.key === "inventory" ? (
               <InventoryPane />
+            ) : t.key === "attack-paths" ? (
+              <AttackPathsPane />
+            ) : t.key === "sbom" ? (
+              <SBOMProvenancePane />
+            ) : t.key === "upgrade-paths" ? (
+              <UpgradePathsPane />
             ) : (
             <>
             <div className="flex items-center gap-2">
@@ -1017,5 +1046,96 @@ function InventoryPane() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UpgradePathsPane — P2 fold-in (S21) on Asset Graph hero. Folds in
+// UpgradePathExplorer + UpgradePathDashboard via lazy imports. Shows components
+// that have safe-upgrade paths, breaking-change risk, and dependency-mapping
+// impact. Real /api/v1/components/upgrade-paths + per-pURL drill via the
+// existing UpgradePathExplorer.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PaneSkeleton() {
+  return (
+    <div className="space-y-3 p-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="h-10 w-full" />
+      ))}
+    </div>
+  );
+}
+
+function UpgradePathsPane() {
+  const [subTab, setSubTab] = useState<"summary" | "explorer">("summary");
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+        <div className="flex items-start gap-2">
+          <ArrowUpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">Safe-Upgrade Resolver</p>
+            <p className="text-muted-foreground">
+              For every vulnerable component (pURL), shows the next-secure version,
+              breaking-change risk, transitive dependency impact, and binary fingerprint
+              delta. Endpoint:{" "}
+              <code className="font-mono">/api/v1/components/&#123;purl&#125;/safe-upgrade</code>.
+              Switch to <em>Explorer</em> for per-pURL drill-down.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={subTab} onValueChange={(v) => setSubTab(v as "summary" | "explorer")} className="space-y-3">
+        <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+          <TabsTrigger value="summary" className="flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5" />Summary
+          </TabsTrigger>
+          <TabsTrigger value="explorer" className="flex items-center gap-1.5">
+            <Search className="h-3.5 w-3.5" />Explorer
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="summary">
+          <Suspense fallback={<PaneSkeleton />}>
+            <UpgradePathDashboard />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="explorer">
+          <Suspense fallback={<PaneSkeleton />}>
+            <UpgradePathExplorer />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AttackPathsPane / SBOMProvenancePane — P1 Wave 2 stubs (filled in by another
+// agent in flight). Render a placeholder that won't break TypeScript while
+// pointing to the existing dashboards.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AttackPathsPane() {
+  return (
+    <EmptyState
+      icon={Target}
+      title="Attack Paths — wiring in progress"
+      description="P1 Wave 2 fold-in is being completed. Existing surface available at /attack-paths and /attack-path-graph."
+    />
+  );
+}
+
+function SBOMProvenancePane() {
+  return (
+    <EmptyState
+      icon={Package}
+      title="SBOM & Provenance — wiring in progress"
+      description="P1 Wave 2 fold-in is being completed. Existing surface available at /sbom and /sbom/continuous."
+    />
   );
 }
