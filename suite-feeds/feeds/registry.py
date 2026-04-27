@@ -504,6 +504,43 @@ def _discover() -> None:
         logger.warning("feed_registry: exploitdb importer unavailable: %s", exc)
 
 
+
+    # ---------- SANS ISC ----------
+    try:
+        from feeds.sans_isc.importer import (
+            run_import as _sans_isc_run,
+            total_source_count as _sans_isc_src_count,
+            SANS_SOURCES_URL as _SANS_SOURCES_URL,
+        )
+
+        def _refresh_sans_isc() -> Dict[str, Any]:
+            return _sans_isc_run()
+
+        def _count_sans_isc() -> int:
+            try:
+                return _sans_isc_src_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="sans_isc",
+            display_name="SANS Internet Storm Center Top Sources",
+            source_url=_SANS_SOURCES_URL,
+            source_type="json",
+            license="Public (SANS ISC — free, no API key required)",
+            refresh_interval_seconds=3_600,  # hourly
+            importer_callable=_refresh_sans_isc,
+            count_callable=_count_sans_isc,
+            description=(
+                "SANS Internet Storm Center top 100 attack source IPs with "
+                "country, attack count, and first/last seen dates; plus top "
+                "attacked ports with service name and attack count."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: sans_isc importer unavailable: %s", exc)
+
+
 def _ensure_discovered() -> None:
     global _discovery_done
     with _discovery_lock:
