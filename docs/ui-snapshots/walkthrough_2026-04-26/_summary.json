@@ -1,0 +1,529 @@
+{
+  "run_at": "2026-04-27T08:39:31.182Z",
+  "total": 65,
+  "pass": 20,
+  "empty_state": 20,
+  "crash": 25,
+  "results": [
+    {
+      "hero": "Command",
+      "tab": "ExecutiveYOU",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/command/00-executiveyou.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Command",
+      "tab": "SOC Analyst",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/command/01-soc-analyst.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Command",
+      "tab": "DevSecOps",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/command/02-devsecops.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Command",
+      "tab": "Operational",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/command/03-operational.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Command",
+      "tab": "AI Copilot",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/command/04-ai-copilot.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Issues",
+      "tab": "All",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/00-all.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Issues",
+      "tab": "Critical",
+      "status": "PASS",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/01-critical.png",
+      "notes": "1 new API call(s)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "High",
+      "status": "PASS",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/02-high.png",
+      "notes": "1 new API call(s)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "Toxic Combos",
+      "status": "PASS",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/03-toxic-combos.png",
+      "notes": "1 new API call(s)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "KEV-Active",
+      "status": "PASS",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/04-kev-active.png",
+      "notes": "1 new API call(s)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "Drift",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/05-drift.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "Material Changes",
+      "status": "PASS",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/06-material-changes.png",
+      "notes": "1 new API call(s)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "PR Risk",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/07-pr-risk.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "Explorer",
+      "status": "PASS",
+      "apiCalls": 3,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/08-explorer.png",
+      "notes": "3 new API call(s)"
+    },
+    {
+      "hero": "Issues",
+      "tab": "Threat Intel",
+      "status": "CRASH",
+      "apiCalls": 7,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/09-threat-intel.png",
+      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "12-Step Pipeline",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/00-12-step-pipeline.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Neural Map",
+      "status": "PASS",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/01-neural-map.png",
+      "notes": "4 new API call(s)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Multi-LLM Consensus",
+      "status": "CRASH",
+      "apiCalls": 8,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/02-multi-llm-consensus.png",
+      "notes": "+8 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Algorithmic Lab",
+      "status": "CRASH",
+      "apiCalls": 6,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/03-algorithmic-lab.png",
+      "notes": "+6 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Predictions",
+      "status": "CRASH",
+      "apiCalls": 6,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/04-predictions.png",
+      "notes": "+6 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "ML Dashboard",
+      "status": "CRASH",
+      "apiCalls": 11,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/05-ml-dashboard.png",
+      "notes": "+11 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Score Transparency",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/06-score-transparency.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Factor Weights",
+      "status": "PASS",
+      "apiCalls": 2,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/07-factor-weights.png",
+      "notes": "2 new API call(s)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Code Intelligence",
+      "status": "CRASH",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/08-code-intelligence.png",
+      "notes": "+4 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "MPTE Console",
+      "status": "PASS",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/09-mpte-console.png",
+      "notes": "4 new API call(s)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "FAIL Chaos",
+      "status": "PASS",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/10-fail-chaos.png",
+      "notes": "4 new API call(s)"
+    },
+    {
+      "hero": "Brain",
+      "tab": "Learning Loop",
+      "status": "CRASH",
+      "apiCalls": 2,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/11-learning-loop.png",
+      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Frameworks",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/00-frameworks.png",
+      "notes": "Coming Soon / EmptyState rendered"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Controls",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/01-controls.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Evidence",
+      "status": "PASS",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/02-evidence.png",
+      "notes": "1 new API call(s)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Bundles",
+      "status": "PASS",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/03-bundles.png",
+      "notes": "4 new API call(s)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Evidence Vault",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/04-evidence-vault.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Assessments",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/05-assessments.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Posture Trend",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/06-posture-trend.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Mapping",
+      "status": "PASS",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/07-mapping.png",
+      "notes": "4 new API call(s)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Gaps",
+      "status": "PASS",
+      "apiCalls": 6,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/08-gaps.png",
+      "notes": "6 new API call(s)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Calendar",
+      "status": "CRASH",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/09-calendar.png",
+      "notes": "+5 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Workflows",
+      "status": "PASS",
+      "apiCalls": 8,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/10-workflows.png",
+      "notes": "8 new API call(s)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Audit",
+      "status": "PASS",
+      "apiCalls": 2,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/11-audit.png",
+      "notes": "2 new API call(s)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "AI Exposure",
+      "status": "CRASH",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/12-ai-exposure.png",
+      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Cloud Posture",
+      "status": "CRASH",
+      "apiCalls": 5,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/13-cloud-posture.png",
+      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Waivers",
+      "status": "PASS",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/14-waivers.png",
+      "notes": "4 new API call(s)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "Policies & Rules",
+      "status": "CRASH",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/15-policies-rules.png",
+      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "Compliance",
+      "tab": "SLA & Risk Register",
+      "status": "PASS",
+      "apiCalls": 8,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/16-sla-risk-register.png",
+      "notes": "8 new API call(s)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Architecture",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/00-architecture.png",
+      "notes": "Coming Soon / EmptyState rendered"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Flows",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/01-flows.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Layers",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/02-layers.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Databases",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/03-databases.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Subsidiaries",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/04-subsidiaries.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Diff (PR)",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/05-diff-pr.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Choke Points",
+      "status": "CRASH",
+      "apiCalls": 2,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/06-choke-points.png",
+      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Inventory",
+      "status": "CRASH",
+      "apiCalls": 5,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/07-inventory.png",
+      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Attack Paths",
+      "status": "CRASH",
+      "apiCalls": 3,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/08-attack-paths.png",
+      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "SBOM",
+      "status": "CRASH",
+      "apiCalls": 5,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/09-sbom.png",
+      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "AssetGraph",
+      "tab": "Upgrade Paths",
+      "status": "CRASH",
+      "apiCalls": 3,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/10-upgrade-paths.png",
+      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "hero": "Admin",
+      "tab": "Organizations",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/00-organizations.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Admin",
+      "tab": "Users",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/01-users.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Admin",
+      "tab": "Tokens",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/02-tokens.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Admin",
+      "tab": "Connectors",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/03-connectors.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Admin",
+      "tab": "Integrations Hub",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/04-integrations-hub.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Admin",
+      "tab": "Webhooks",
+      "status": "CRASH",
+      "apiCalls": 1,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/05-webhooks.png",
+      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "hero": "Admin",
+      "tab": "Billing",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/06-billing.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Admin",
+      "tab": "System",
+      "status": "EMPTY-STATE",
+      "apiCalls": 0,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/07-system.png",
+      "notes": "no /api/v1/ call observed and no EmptyState marker — likely static/stub"
+    },
+    {
+      "hero": "Admin",
+      "tab": "MCP Gateway",
+      "status": "PASS",
+      "apiCalls": 2,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/08-mcp-gateway.png",
+      "notes": "2 new API call(s)"
+    },
+    {
+      "hero": "Admin",
+      "tab": "System Health",
+      "status": "PASS",
+      "apiCalls": 4,
+      "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/09-system-health.png",
+      "notes": "4 new API call(s)"
+    }
+  ]
+}
