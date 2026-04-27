@@ -1203,6 +1203,18 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Onboarding Wizard router not available: %s", e)
 
+# First-login wizard router (admin) — onboarding bug fix 2026-04-27
+# Backs the FirstLoginWizard React modal. Tiny SQLite store, no localStorage.
+admin_wizard_router: Optional[APIRouter] = None
+try:
+    from apps.api.admin_wizard_router import router as admin_wizard_router
+
+    logging.getLogger(__name__).info("Loaded Admin First-Login Wizard router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        "Admin First-Login Wizard router not available: %s", e
+    )
+
 # ---------------------------------------------------------------------------
 # Suite-Core routers (intelligence, brain, ML — from suite-core/api/)
 # ---------------------------------------------------------------------------
@@ -3586,6 +3598,15 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
         )
         _logger.info("Mounted Onboarding Wizard router")
+
+    # First-login wizard (admin) — NO auth dependency: a freshly installed
+    # admin who has not yet provisioned an API key MUST be able to GET the
+    # wizard state, otherwise the modal can never render and we are back to
+    # the empty-Command-hero bug we are fixing. The endpoint exposes only the
+    # boolean completion flag plus completed-step list; no secrets, no PII.
+    if admin_wizard_router:
+        app.include_router(admin_wizard_router)
+        _logger.info("Mounted Admin First-Login Wizard router (no auth — first-login flow)")
 
     # Suite-Attack routers (offensive security) — require attack:execute scope
     for _r, _name in [

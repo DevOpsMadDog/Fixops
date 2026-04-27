@@ -58,6 +58,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LiveEventStream } from "@/components/shared/LiveEventStream";
+import FirstLoginWizard from "@/components/onboarding/FirstLoginWizard";
 
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { useAuth, type UserRole } from "@/lib/auth";
@@ -281,6 +282,10 @@ export default function Command() {
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6 p-6"
     >
+      {/* First-login wizard — fires once for the very first admin on this
+          install. Self-suppresses after completion via /api/v1/admin/wizard-state.
+          Renders nothing on subsequent loads. Onboarding bug fix 2026-04-27. */}
+      <FirstLoginWizard />
       <PageHeader
         title="Command"
         description={`Your operational center. Auto-selected ${user?.role ?? "viewer"} view. Switch with the tabs below.`}
