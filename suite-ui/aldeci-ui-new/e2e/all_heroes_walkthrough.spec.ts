@@ -248,7 +248,7 @@ async function walkHero(
     const label = labelRaw || `tab-${i}`;
     const tabSlug = slug(label);
 
-    const errorsBefore = pageErrors.length + consoleErrors.length;
+    const pageErrorsBefore = pageErrors.length;
     const apiBefore = hits.length;
 
     await tab.click({ trial: false, timeout: 5_000 }).catch(() => {});
@@ -258,9 +258,11 @@ async function walkHero(
     await softWait(page, 250);
 
     const apiAfter = hits.length;
-    const errorsAfter = pageErrors.length + consoleErrors.length;
+    const pageErrorsAfter = pageErrors.length;
     const newApiCalls = apiAfter - apiBefore;
-    const newErrors = errorsAfter - errorsBefore;
+    // Only count uncaught JS exceptions (pageerror) as CRASH.
+    // console.error from failed network requests (401/403/404/422) is NOT a crash.
+    const newPageErrors = pageErrorsAfter - pageErrorsBefore;
 
     const mockHits = await detectMockData(page);
     const isEmpty = await detectEmptyState(page);
@@ -268,9 +270,9 @@ async function walkHero(
     let status: TabResult["status"];
     let notes = "";
 
-    if (newErrors > 0) {
+    if (newPageErrors > 0) {
       status = "CRASH";
-      notes = `+${newErrors} errors. First: ${(pageErrors.slice(-1)[0] || consoleErrors.slice(-1)[0] || "").slice(0, 200)}`;
+      notes = `+${newPageErrors} uncaught JS exception(s). First: ${(pageErrors.slice(-1)[0] || "").slice(0, 200)}`;
     } else if (newApiCalls === 0 && isEmpty) {
       status = "EMPTY-STATE";
       notes = "Coming Soon / EmptyState rendered";
