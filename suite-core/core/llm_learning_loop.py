@@ -245,7 +245,17 @@ class LLMLearningLoop:
         )
         self.org_id = org_id
 
-        self._signals_lock = threading.Lock()
+        # NOTE: We intentionally do NOT use a Python threading.Lock around
+        # SQLite writes. SQLite already serialises writers internally, and a
+        # Python lock just adds an extra layer of contention without helping
+        # multi-writer concurrency. With WAL mode enabled (see
+        # `_init_signals_db`) readers don't block writers, and writers
+        # serialise on the SQLite write lock with `PRAGMA busy_timeout`
+        # backing off automatically.
+        #
+        # See: docs/load_test_llm_loop_2026-04-26.md "Bottleneck #2" — the
+        # previous `_signals_lock` capped 8-worker throughput at +13% over
+        # 1-worker. After this change concurrency=8 should scale ~4-6x.
         self._council = None  # built lazily on first event
         self._knowledge_store = None  # built lazily
         self._retriever = None  # built lazily
@@ -255,7 +265,8 @@ class LLMLearningLoop:
         self._last_error: Optional[str] = None
 
         # Initialise the signals DB so verdicts/pairs can be written even if
-        # no event has fired yet (tests + observability).
+        # no event has fired yet (tests + observability). Also flips the DB
+        # to WAL + synchronous=NORMAL for concurrent-writer throughput.
         self._init_signals_db()
 
     # ------------------------------------------------------------------
@@ -321,14 +332,12 @@ class LLMLearningLoop:
 
     def signals_summary(self) -> Dict[str, Any]:
         """Return current verdict + pair counts for ops/tests."""
-        with self._signals_lock:
-            conn = sqlite3.connect(self.signals_db_path)
-            try:
-                conn.executescript(_LEARNING_SIGNALS_SCHEMA)
-                vc = conn.execute("SELECT COUNT(*) FROM council_verdicts").fetchone()[0]
-                pc = conn.execute("SELECT COUNT(*) FROM feedback_pairs").fetchone()[0]
-            finally:
-                conn.close()
+        conn = self._connect_signals()
+        try:
+            vc = conn.execute("SELECT COUNT(*) FROM council_verdicts").fetchone()[0]
+            pc = conn.execute("SELECT COUNT(*) FROM feedback_pairs").fetchone()[0]
+        finally:
+            conn.close()
         return {
             "verdicts": int(vc),
             "pairs": int(pc),
@@ -487,15 +496,44 @@ class LLMLearningLoop:
         self._knowledge_store = KnowledgeStore(db_path=self.tg_db_path)
         self._retriever = _Retriever(self._knowledge_store, self.org_id)
 
+    def _connect_signals(self, *, apply_pragmas: bool = False) -> sqlite3.Connection:
+        """Open a SQLite connection. WAL is a database-level mode that
+        persists across connections — we only need to set it once during
+        ``_init_signals_db``. Subsequent connects skip the PRAGMA round-trip
+        (which was costing ~1ms per event in the hot path).
+
+        ``busy_timeout`` IS connection-local — we always set it because it
+        is what lets concurrent writers wait for the SQLite write lock instead
+        of raising ``database is locked``.
+
+        WAL (Write-Ahead Logging) lets readers run concurrently with a writer,
+        replacing the previous Python ``threading.Lock`` that serialised every
+        thread for every operation.
+
+        Reasoning: see ``docs/load_test_llm_loop_2026-04-26.md`` Bottleneck #2.
+        """
+        conn = sqlite3.connect(self.signals_db_path, timeout=30.0)
+        try:
+            # busy_timeout is per-connection in SQLite; always set it.
+            conn.execute("PRAGMA busy_timeout=30000")
+            if apply_pragmas:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA synchronous=NORMAL")
+        except sqlite3.Error:  # noqa: PERF203 - PRAGMA probe is best-effort
+            # WAL not always supported (e.g. some tmpfs). Fall back silently —
+            # busy_timeout is enough on its own for correctness.
+            pass
+        return conn
+
     def _init_signals_db(self) -> None:
         Path(self.signals_db_path).parent.mkdir(parents=True, exist_ok=True)
-        with self._signals_lock:
-            conn = sqlite3.connect(self.signals_db_path)
-            try:
-                conn.executescript(_LEARNING_SIGNALS_SCHEMA)
-                conn.commit()
-            finally:
-                conn.close()
+        # First connection sets WAL mode (database-level, persists).
+        conn = self._connect_signals(apply_pragmas=True)
+        try:
+            conn.executescript(_LEARNING_SIGNALS_SCHEMA)
+            conn.commit()
+        finally:
+            conn.close()
 
     def _persist_blocking(
         self,
@@ -507,66 +545,67 @@ class LLMLearningLoop:
     ) -> tuple[str, str]:
         """Insert verdict + (synthetic) DPO pair. Returns (verdict_id, pair_id|"")."""
         verdict_id = f"v_{uuid.uuid4().hex[:12]}"
-        with self._signals_lock:
-            conn = sqlite3.connect(self.signals_db_path)
-            try:
-                conn.executescript(_LEARNING_SIGNALS_SCHEMA)
+        conn = self._connect_signals()
+        try:
+            # Schema is initialised once in __init__; avoid re-running
+            # `executescript` on every insert (was adding a parser pass per
+            # event under the old lock-protected hot path).
+            conn.execute(
+                """INSERT INTO council_verdicts
+                   (verdict_id, finding_id, org_id, rag_context, council_action,
+                    confidence, reasoning, raw_verdict, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    verdict_id,
+                    finding_id,
+                    org_id,
+                    rag_block,
+                    council_action or "unknown",
+                    float(verdict.get("confidence", 0.0)),
+                    verdict.get("reasoning", ""),
+                    json.dumps(verdict, default=str),
+                    _now_iso(),
+                ),
+            )
+
+            # Auto-emit a DPO pair for low-confidence verdicts so we always
+            # accumulate training signal even before any human override.
+            # The pair lists the council action as "rejected" and a
+            # contrasting alternative as "chosen" — this is the
+            # "council-disagreement" pair flavour from the roadmap §2.
+            pair_id = ""
+            confidence = float(verdict.get("confidence", 0.0))
+            if confidence < 0.75:
+                chosen = (
+                    "remediate_high"
+                    if council_action != "remediate_high"
+                    else "accept_risk"
+                )
+                pair_id = f"p_{uuid.uuid4().hex[:12]}"
                 conn.execute(
-                    """INSERT INTO council_verdicts
-                       (verdict_id, finding_id, org_id, rag_context, council_action,
-                        confidence, reasoning, raw_verdict, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO feedback_pairs
+                       (pair_id, verdict_id, chosen_action, rejected_action,
+                        pair_source, metadata, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
                     (
+                        pair_id,
                         verdict_id,
-                        finding_id,
-                        org_id,
-                        rag_block,
+                        chosen,
                         council_action or "unknown",
-                        float(verdict.get("confidence", 0.0)),
-                        verdict.get("reasoning", ""),
-                        json.dumps(verdict, default=str),
+                        "llm_learning_loop_low_confidence",
+                        json.dumps(
+                            {
+                                "trigger": "confidence_below_threshold",
+                                "threshold": 0.75,
+                                "observed_confidence": confidence,
+                            }
+                        ),
                         _now_iso(),
                     ),
                 )
-
-                # Auto-emit a DPO pair for low-confidence verdicts so we always
-                # accumulate training signal even before any human override.
-                # The pair lists the council action as "rejected" and a
-                # contrasting alternative as "chosen" — this is the
-                # "council-disagreement" pair flavour from the roadmap §2.
-                pair_id = ""
-                confidence = float(verdict.get("confidence", 0.0))
-                if confidence < 0.75:
-                    chosen = (
-                        "remediate_high"
-                        if council_action != "remediate_high"
-                        else "accept_risk"
-                    )
-                    pair_id = f"p_{uuid.uuid4().hex[:12]}"
-                    conn.execute(
-                        """INSERT INTO feedback_pairs
-                           (pair_id, verdict_id, chosen_action, rejected_action,
-                            pair_source, metadata, created_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            pair_id,
-                            verdict_id,
-                            chosen,
-                            council_action or "unknown",
-                            "llm_learning_loop_low_confidence",
-                            json.dumps(
-                                {
-                                    "trigger": "confidence_below_threshold",
-                                    "threshold": 0.75,
-                                    "observed_confidence": confidence,
-                                }
-                            ),
-                            _now_iso(),
-                        ),
-                    )
-                conn.commit()
-            finally:
-                conn.close()
+            conn.commit()
+        finally:
+            conn.close()
         return verdict_id, pair_id
 
     async def _republish_decision(
