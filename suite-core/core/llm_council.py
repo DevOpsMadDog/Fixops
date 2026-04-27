@@ -318,6 +318,10 @@ class LLMCouncilEngine:
         """
         wall_start = time.perf_counter()
 
+        # Augment context with similar past decisions from AgentDB (RAG-over-TrustGraph).
+        # Best-effort: never block convene if the bridge is unavailable.
+        context = self._augment_with_similar_decisions(finding, context)
+
         # Stage 1: Independent Analysis
         stage1_analyses = self._stage_independent_analysis(finding, context)
 
@@ -337,6 +341,10 @@ class LLMCouncilEngine:
         verdict.latency_ms = (time.perf_counter() - wall_start) * 1000
         self._history.append(verdict)
 
+        # Persist verdict back to AgentDB so future convene() calls can find it.
+        # Best-effort, never blocks the verdict return.
+        self._persist_verdict_to_agentdb(finding, verdict)
+
         logger.info(
             "Council verdict: action=%s, confidence=%.2f, escalated=%s, latency=%.0fms",
             verdict.action,
@@ -346,6 +354,65 @@ class LLMCouncilEngine:
         )
 
         return verdict
+
+    def _augment_with_similar_decisions(
+        self,
+        finding: Mapping[str, Any],
+        context: Mapping[str, Any],
+    ) -> Dict[str, Any]:
+        """Look up past similar council verdicts via AgentDB semantic search.
+
+        Adds a ``similar_past_decisions`` key to the context dict so the prompt
+        builder can render "we faced N similar decisions, here's what we ruled."
+        Always returns a fresh dict (never mutates the caller's mapping).
+        Best-effort: silently degrades to the original context on any failure.
+        """
+        ctx_out: Dict[str, Any] = dict(context)
+        try:
+            from trustgraph.agentdb_bridge import get_agentdb_bridge
+
+            bridge = get_agentdb_bridge()
+            similar = bridge.find_similar_decisions(finding=finding, k=5, min_similarity=0.30)
+            if similar:
+                ctx_out["similar_past_decisions"] = [
+                    {
+                        "key": s.key,
+                        "similarity": round(s.similarity, 3),
+                        "summary": (s.content or "")[:280],
+                        "metadata": s.metadata,
+                    }
+                    for s in similar
+                ]
+                logger.debug(
+                    "Council: augmented context with %d similar past decisions",
+                    len(similar),
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Council: AgentDB augmentation skipped: %s", exc)
+        return ctx_out
+
+    def _persist_verdict_to_agentdb(
+        self,
+        finding: Mapping[str, Any],
+        verdict: "CouncilVerdict",
+    ) -> None:
+        """Write the verdict back to AgentDB for future similarity lookups."""
+        try:
+            from trustgraph.agentdb_bridge import get_agentdb_bridge
+
+            bridge = get_agentdb_bridge()
+            verdict_dict = verdict.to_dict() if hasattr(verdict, "to_dict") else {
+                "action": getattr(verdict, "action", "unknown"),
+                "confidence": getattr(verdict, "confidence", 0.0),
+                "reasoning": getattr(verdict, "reasoning", ""),
+            }
+            bridge.write_council_verdict(
+                finding=dict(finding),
+                verdict=verdict_dict,
+                org_id=str(finding.get("tenant", finding.get("org_id", "default"))),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Council: AgentDB verdict persist skipped: %s", exc)
 
     def _stage_independent_analysis(
         self,
@@ -654,13 +721,29 @@ class LLMCouncilEngine:
         cve = finding.get("cve_id", "N/A")
         risk_score = finding.get("risk_score", 0)
 
+        # Render similar past decisions block (RAG-over-TrustGraph).
+        similar = context.get("similar_past_decisions") or []
+        if similar:
+            similar_lines = [
+                f"\nPast similar council decisions (top {len(similar)} from TrustGraph/AgentDB):"
+            ]
+            for i, s in enumerate(similar, 1):
+                similar_lines.append(
+                    f"  {i}. similarity={s.get('similarity', 0):.2f} "
+                    f"key={s.get('key', '?')} — {s.get('summary', '')[:160]}"
+                )
+            similar_block = "\n".join(similar_lines) + "\n"
+        else:
+            similar_block = ""
+
         prompt = (
             f"Analyze this security finding for remediation decision:\n\n"
             f"Title: {title}\n"
             f"Severity: {severity}\n"
             f"CVE: {cve}\n"
             f"Risk Score: {risk_score:.2f}\n"
-            f"Service: {context.get('service_name', 'unknown')}\n\n"
+            f"Service: {context.get('service_name', 'unknown')}\n"
+            f"{similar_block}\n"
             f"Provide your independent assessment in JSON with keys:\n"
             f"  - recommended_action: one of [remediate_critical, remediate_high, "
             f"accept_risk, defer, investigate, false_positive]\n"

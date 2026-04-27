@@ -659,6 +659,22 @@ class EventBus:
         self.metrics.record_emit(event_type)
         handlers = list(self._handlers.get(event_type, []))
 
+        # AgentDB dual-write — fire-and-forget, additive, never blocks.
+        # Lazy-imported and try/except so a missing/broken bridge can't
+        # take down the bus.
+        try:  # pragma: no cover — bridge is optional
+            from trustgraph.agentdb_bridge import get_agentdb_bridge
+
+            asyncio.ensure_future(
+                asyncio.to_thread(
+                    get_agentdb_bridge().dual_write,
+                    event_type=event_type,
+                    payload=data,
+                )
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         if not handlers:
             # No handlers registered — queue for later (handlers registered on startup)
             self._queue.enqueue(event_type, data)
