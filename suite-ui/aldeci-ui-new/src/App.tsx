@@ -535,6 +535,10 @@ const SnapshotFindingsView = lazy(() => import("@/pages/SnapshotFindingsView"));
 const AgentlessScanStatus = lazy(() => import("@/pages/AgentlessScanStatus"));
 const RuntimeCodeTrace = lazy(() => import("@/pages/RuntimeCodeTrace"));
 
+// ── Phase 3 P0 hero pages (UX_CONSOLIDATION_PLAN_2026-04-26.md) ──
+const IssuesHero = lazy(() => import("@/pages/Issues"));
+const BrainHero = lazy(() => import("@/pages/Brain"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -710,11 +714,12 @@ export default function App() {
 
             {/* AI Copilot & AI Engine */}
             <Route path="/ai" element={<CopilotDashboard />} />
-            <Route path="/ai/brain" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><BrainPipeline /></RequireRole>} />
-            <Route path="/ai/consensus" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MultiLLM /></RequireRole>} />
-            <Route path="/ai/algorithms" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><AlgorithmicLab /></RequireRole>} />
-            <Route path="/ai/ml" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MLDashboard /></RequireRole>} />
-            <Route path="/ai/predictions" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Predictions /></RequireRole>} />
+            {/* /ai/* → Brain hero (Phase 3 P0 consolidation, 90-day redirects) */}
+            <Route path="/ai/brain" element={<Navigate to="/brain?tab=pipeline" replace />} />
+            <Route path="/ai/consensus" element={<Navigate to="/brain?tab=consensus" replace />} />
+            <Route path="/ai/algorithms" element={<Navigate to="/brain?tab=lab" replace />} />
+            <Route path="/ai/ml" element={<Navigate to="/brain?tab=ml" replace />} />
+            <Route path="/ai/predictions" element={<Navigate to="/brain?tab=predictions" replace />} />
             {/* Wave 1 — AI */}
             <Route path="/ai/shadow-inventory" element={<ShadowAIInventory />} />
             <Route path="/ai/attack-paths" element={<AIAttackPathView />} />
@@ -1066,7 +1071,7 @@ export default function App() {
 
             {/* Wave 37 domain dashboards */}
             <Route path="/posture-maturity" element={<SecurityPostureMaturityDashboard />} />
-            <Route path="/cloud-findings" element={<CloudSecurityFindingsDashboard />} />
+            <Route path="/cloud-findings" element={<Navigate to="/issues?tab=all" replace />} />
             <Route path="/soc-metrics" element={<SecurityOperationsMetricsDashboard />} />
             <Route path="/vuln-age" element={<VulnerabilityAgeDashboard />} />
             <Route path="/ti-confidence" element={<ThreatIntelConfidenceDashboard />} />
@@ -1093,7 +1098,7 @@ export default function App() {
             <Route path="/risk-scenarios" element={<RiskScenarioDashboard />} />
             <Route path="/feed-subscriptions" element={<FeedSubscriptionsDashboard />} />
             <Route path="/asset-groups" element={<AssetGroupsDashboard />} />
-            <Route path="/security-findings" element={<SecurityFindingsDashboard />} />
+            <Route path="/security-findings" element={<Navigate to="/issues" replace />} />
             <Route path="/control-testing" element={<ControlTestingDashboard />} />
 
             {/* Wave 32 domain dashboards */}
@@ -1137,8 +1142,29 @@ export default function App() {
             <Route path="/local-file-store" element={<LocalFileStoreDashboard />} />
             <Route path="/dynamic-rule-dsl" element={<DynamicRuleDSLDashboard />} />
 
-            {/* Neural Brain Visualization */}
-            <Route path="/brain" element={<BrainVisualization />} />
+            {/* ─── Phase 3 P0 hero pages (Wiz/Apiiro pattern) ─── */}
+            <Route path="/issues" element={<IssuesHero />} />
+            <Route path="/brain" element={<BrainHero />} />
+
+            {/* 90-day muscle-memory redirects → Issues hero */}
+            <Route path="/issue-queue" element={<Navigate to="/issues" replace />} />
+            <Route path="/issues/toxic" element={<Navigate to="/issues?tab=toxic" replace />} />
+            <Route path="/material-changes" element={<Navigate to="/issues?tab=material" replace />} />
+            <Route path="/pr-change-risk" element={<Navigate to="/issues?tab=pr-risk" replace />} />
+            <Route path="/drift-tracking" element={<Navigate to="/issues?tab=drift" replace />} />
+            <Route path="/security-findings" element={<Navigate to="/issues" replace />} />
+            <Route path="/cloud-findings" element={<Navigate to="/issues?tab=all" replace />} />
+
+            {/* 90-day muscle-memory redirects → Brain hero */}
+            <Route path="/ai/brain" element={<Navigate to="/brain?tab=pipeline" replace />} />
+            <Route path="/ai/consensus" element={<Navigate to="/brain?tab=consensus" replace />} />
+            <Route path="/ai/algorithms" element={<Navigate to="/brain?tab=lab" replace />} />
+            <Route path="/ai/predictions" element={<Navigate to="/brain?tab=predictions" replace />} />
+            <Route path="/score-transparency" element={<Navigate to="/brain?tab=score" replace />} />
+            <Route path="/factor-weights" element={<Navigate to="/brain?tab=weights" replace />} />
+
+            {/* Legacy: BrainVisualization preserved under explicit alias for the Neural Map view */}
+            <Route path="/brain/neural" element={<BrainVisualization />} />
 
             {/* Main Overview Dashboard */}
             <Route path="/dashboard" element={<MainOverviewDashboard />} />
@@ -1148,13 +1174,7 @@ export default function App() {
             <Route path="/bu-dollar-heatmap" element={<BUDollarRiskHeatmap />} />
             <Route path="/choke-points" element={<ChokePointDashboard />} />
             <Route path="/attack-paths/graph" element={<AttackPathInteractiveGraph />} />
-            <Route path="/issues/toxic" element={<ToxicCombinationIssueView />} />
-            <Route path="/issue-queue" element={<IssueQueue />} />
-            <Route path="/score-transparency" element={<ScoreTransparencyPanel />} />
-            <Route path="/factor-weights" element={<FactorWeightsView />} />
-            <Route path="/drift-tracking" element={<DriftTrackingPanel />} />
-            <Route path="/material-changes" element={<MaterialChangeDashboard />} />
-            <Route path="/pr-change-risk" element={<PRChangeRiskPanel />} />
+            {/* These 7 routes were consolidated into /issues + /brain heroes — see redirects above */}
             <Route path="/sbom-continuous-monitoring" element={<SBOMContinuousMonitoring />} />
             <Route path="/snapshot-findings" element={<SnapshotFindingsView />} />
             <Route path="/agentless-scan-status" element={<AgentlessScanStatus />} />
