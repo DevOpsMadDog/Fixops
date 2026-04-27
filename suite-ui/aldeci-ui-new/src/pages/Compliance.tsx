@@ -30,20 +30,26 @@ import {
   Calendar,
   CheckCircle2,
   ClipboardList,
+  Cloud,
   Database,
+  Download,
   FileCheck,
   FileText,
+  Fingerprint,
   Flag,
   KeyRound,
   Layers,
   Library,
   Link2,
   Lock,
+  Package,
   RefreshCw,
   ScrollText,
+  Server,
   Shield,
   ShieldCheck,
   TrendingUp,
+  Vault,
   Workflow,
   XCircle,
 } from "lucide-react";
@@ -148,6 +154,41 @@ interface AuditChainVerify {
   last_verified_at?: string;
 }
 
+interface VaultBundle {
+  bundle_id?: string;
+  id?: string;
+  framework?: string;
+  control?: string;
+  signed?: boolean;
+  quantum_signed?: boolean;
+  signature_algorithm?: string;
+  signed_at?: string;
+  signed_by?: string;
+  size_bytes?: number;
+  worm_enabled?: boolean;
+  attestation_hash?: string;
+  retention_until?: string;
+  exportable?: boolean;
+  evidence_count?: number;
+}
+
+interface VaultStats {
+  total_bundles?: number;
+  signed_bundles?: number;
+  quantum_signed?: number;
+  worm_locked?: number;
+  pending_export?: number;
+  retention_breaches?: number;
+  total_evidence_items?: number;
+  storage_bytes?: number;
+}
+
+interface VaultResponse {
+  bundles?: VaultBundle[];
+  items?: VaultBundle[];
+  stats?: VaultStats;
+}
+
 interface HsmInfo {
   vendor?: string;
   model?: string;
@@ -224,6 +265,8 @@ export default function Compliance() {
   const [scifBoot, setScifBoot] = useState<ScifBoot | null>(null);
   const [auditChain, setAuditChain] = useState<AuditChainVerify | null>(null);
   const [hsm, setHsm] = useState<HsmInfo | null>(null);
+  const [vaultBundles, setVaultBundles] = useState<VaultBundle[]>([]);
+  const [vaultStats, setVaultStats] = useState<VaultStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -243,13 +286,16 @@ export default function Compliance() {
     setErr(null);
     setRefreshing(true);
     try {
-      const [postureRes, fipsRes, scifBootRes, chainRes, hsmRes] = await Promise.allSettled([
-        apiFetch<PostureResponse>("/api/v1/system/compliance-posture"),
-        apiFetch<FipsModeResponse>("/api/v1/system/fips-mode"),
-        apiFetch<ScifBoot>("/api/v1/scif/boot"),
-        apiFetch<AuditChainVerify>("/api/v1/scif/audit-chain/verify"),
-        apiFetch<HsmInfo>("/api/v1/scif/hsm/info"),
-      ]);
+      const [postureRes, fipsRes, scifBootRes, chainRes, hsmRes, vaultRes, vaultStatsRes] =
+        await Promise.allSettled([
+          apiFetch<PostureResponse>("/api/v1/system/compliance-posture"),
+          apiFetch<FipsModeResponse>("/api/v1/system/fips-mode"),
+          apiFetch<ScifBoot>("/api/v1/scif/boot"),
+          apiFetch<AuditChainVerify>("/api/v1/scif/audit-chain/verify"),
+          apiFetch<HsmInfo>("/api/v1/scif/hsm/info"),
+          apiFetch<VaultResponse | VaultBundle[]>("/api/v1/evidence-vault/bundles"),
+          apiFetch<VaultStats>("/api/v1/evidence-vault/stats"),
+        ]);
 
       if (postureRes.status === "fulfilled") {
         if (postureRes.value === null) {
@@ -264,6 +310,18 @@ export default function Compliance() {
       if (scifBootRes.status === "fulfilled" && scifBootRes.value) setScifBoot(scifBootRes.value);
       if (chainRes.status === "fulfilled" && chainRes.value) setAuditChain(chainRes.value);
       if (hsmRes.status === "fulfilled" && hsmRes.value) setHsm(hsmRes.value);
+      if (vaultRes.status === "fulfilled" && vaultRes.value) {
+        const v = vaultRes.value;
+        if (Array.isArray(v)) {
+          setVaultBundles(v);
+        } else {
+          setVaultBundles(v.bundles ?? v.items ?? []);
+          if (v.stats) setVaultStats(v.stats);
+        }
+      }
+      if (vaultStatsRes.status === "fulfilled" && vaultStatsRes.value) {
+        setVaultStats(vaultStatsRes.value);
+      }
 
       const failed = [postureRes, fipsRes, scifBootRes, chainRes, hsmRes].find(
         (r) => r.status === "rejected",
@@ -346,6 +404,9 @@ export default function Compliance() {
           <TabsTrigger value="bundles" className="flex items-center gap-1.5">
             <Layers className="h-3.5 w-3.5" />Bundles
           </TabsTrigger>
+          <TabsTrigger value="vault" className="flex items-center gap-1.5">
+            <Vault className="h-3.5 w-3.5" />Evidence Vault
+          </TabsTrigger>
           <TabsTrigger value="assessments" className="flex items-center gap-1.5">
             <FileCheck className="h-3.5 w-3.5" />Assessments
           </TabsTrigger>
@@ -369,6 +430,9 @@ export default function Compliance() {
           </TabsTrigger>
           <TabsTrigger value="ai-exposure" className="flex items-center gap-1.5">
             <Bot className="h-3.5 w-3.5" />AI Exposure
+          </TabsTrigger>
+          <TabsTrigger value="cloud-posture" className="flex items-center gap-1.5">
+            <Cloud className="h-3.5 w-3.5" />Cloud Posture
           </TabsTrigger>
         </TabsList>
 
@@ -771,6 +835,16 @@ export default function Compliance() {
           <Suspense fallback={<TabSkeleton />}><EvidenceBundles /></Suspense>
         </TabsContent>
 
+        {/* ─────────────── EVIDENCE VAULT TAB (P1 Wave 2) ─────────────── */}
+        <TabsContent value="vault" className="space-y-4">
+          <EvidenceVaultPane
+            bundles={vaultBundles}
+            stats={vaultStats}
+            loading={loading}
+            onRefresh={load}
+          />
+        </TabsContent>
+
         {/* ─────────────── ASSESSMENTS TAB ─────────────── */}
         <TabsContent value="assessments">
           <Card>
@@ -861,6 +935,11 @@ export default function Compliance() {
             <Suspense fallback={<TabSkeleton />}><AIAttackPathView /></Suspense>
           </div>
         </TabsContent>
+
+        {/* ─────────────── CLOUD POSTURE TAB (P1 fold-in S11 -> S23) ─────────────── */}
+        <TabsContent value="cloud-posture" className="space-y-4">
+          <CloudPosturePane />
+        </TabsContent>
       </Tabs>
     </motion.div>
   );
@@ -927,6 +1006,581 @@ function TabSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton key={i} className="h-10 w-full" />
       ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Evidence Vault pane — cryptographically-signed bundles, exportable for audits
+// (P1 Wave 2 — folds Evidence Vault into Compliance hero as a tab)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function bytesHuman(n?: number) {
+  if (!n) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
+}
+
+async function exportBundle(bundle: VaultBundle) {
+  const id = bundle.bundle_id ?? bundle.id;
+  if (!id) return;
+  try {
+    const res = await fetch(buildApiUrl(`/api/v1/evidence-vault/bundles/${id}/export`), {
+      headers: {
+        "X-API-Key": getStoredAuthToken(),
+        "X-Org-ID": getStoredOrgId(),
+      },
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `evidence-bundle-${id}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    // Server may not have export endpoint yet; download metadata instead
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `evidence-bundle-${id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
+
+function EvidenceVaultPane({
+  bundles,
+  stats,
+  loading,
+  onRefresh,
+}: {
+  bundles: VaultBundle[];
+  stats: VaultStats | null;
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  const computedStats: VaultStats = useMemo(() => ({
+    total_bundles: stats?.total_bundles ?? bundles.length,
+    signed_bundles: stats?.signed_bundles ?? bundles.filter((b) => b.signed || b.quantum_signed).length,
+    quantum_signed: stats?.quantum_signed ?? bundles.filter((b) => b.quantum_signed).length,
+    worm_locked: stats?.worm_locked ?? bundles.filter((b) => b.worm_enabled).length,
+    pending_export: stats?.pending_export ?? bundles.filter((b) => b.exportable).length,
+    retention_breaches: stats?.retention_breaches ?? bundles.filter((b) => {
+      if (!b.retention_until) return false;
+      return new Date(b.retention_until).getTime() < Date.now();
+    }).length,
+    total_evidence_items: stats?.total_evidence_items ?? bundles.reduce((s, b) => s + (b.evidence_count ?? 0), 0),
+    storage_bytes: stats?.storage_bytes ?? bundles.reduce((s, b) => s + (b.size_bytes ?? 0), 0),
+  }), [stats, bundles]);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard title="Bundles in Vault" value={computedStats.total_bundles ?? 0} icon={Vault} />
+        <KpiCard
+          title="Cryptographically Signed"
+          value={computedStats.signed_bundles ?? 0}
+          icon={Fingerprint}
+          trend={(computedStats.signed_bundles ?? 0) > 0 ? "up" : "flat"}
+        />
+        <KpiCard title="Quantum-Signed" value={computedStats.quantum_signed ?? 0} icon={Lock} />
+        <KpiCard
+          title="Retention Breaches"
+          value={computedStats.retention_breaches ?? 0}
+          icon={AlertTriangle}
+          trend={(computedStats.retention_breaches ?? 0) > 0 ? "down" : "flat"}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Bundle list */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Vault className="h-4 w-4 text-primary" />
+                Cryptographic Evidence Vault
+                <Badge variant="new" className="text-[9px]">SCIF-grade</Badge>
+              </CardTitle>
+              <CardDescription>
+                Quantum-signed bundles, WORM-locked, exportable as audit-ready ZIP. Powered by
+                <code className="text-[10px] mx-1">/api/v1/evidence-vault/bundles</code>.
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={onRefresh} aria-label="Refresh vault">
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="space-y-2 p-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : bundles.length === 0 ? (
+              <EmptyState
+                icon={Vault}
+                title="Vault is empty"
+                description="Generate your first cryptographically-signed evidence bundle from the Bundles tab or via POST /api/v1/evidence-vault/generate."
+              />
+            ) : (
+              <ScrollArea className="h-[440px]">
+                <div className="divide-y divide-border">
+                  {bundles.map((b, i) => (
+                    <div
+                      key={(b.bundle_id ?? b.id ?? "bundle") + i}
+                      className="flex items-center justify-between gap-3 px-3 py-2.5 text-xs hover:bg-muted/40"
+                    >
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="font-mono truncate font-medium">
+                            {b.bundle_id ?? b.id ?? "—"}
+                          </span>
+                          {b.framework && (
+                            <Badge variant="outline" className="text-[9px]">{b.framework}</Badge>
+                          )}
+                          {b.control && (
+                            <Badge variant="outline" className="text-[9px] text-muted-foreground">
+                              {b.control}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {b.quantum_signed ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] border-violet-500/40 text-violet-300 bg-violet-500/10"
+                            >
+                              <Lock className="h-2.5 w-2.5 mr-1" />
+                              QUANTUM-SIGNED
+                            </Badge>
+                          ) : b.signed ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                            >
+                              <Fingerprint className="h-2.5 w-2.5 mr-1" />
+                              {b.signature_algorithm ?? "SIGNED"}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] border-amber-500/40 text-amber-400 bg-amber-500/10"
+                            >
+                              <AlertTriangle className="h-2.5 w-2.5 mr-1" />
+                              UNSIGNED
+                            </Badge>
+                          )}
+                          {b.worm_enabled && (
+                            <Badge variant="outline" className="text-[9px] border-blue-500/40 text-blue-400 bg-blue-500/10">
+                              WORM
+                            </Badge>
+                          )}
+                          {b.size_bytes != null && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {bytesHuman(b.size_bytes)}
+                            </span>
+                          )}
+                          {b.evidence_count != null && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {b.evidence_count} items
+                            </span>
+                          )}
+                          {b.signed_at && (
+                            <span className="text-[10px] text-muted-foreground">
+                              signed {new Date(b.signed_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        {b.attestation_hash && (
+                          <p
+                            className="text-[10px] text-muted-foreground font-mono truncate"
+                            title={b.attestation_hash}
+                          >
+                            attest: {b.attestation_hash.slice(0, 32)}…
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => exportBundle(b)}
+                        className="shrink-0"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                        Export
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Vault posture rail */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4 text-primary" />
+              Vault Posture
+            </CardTitle>
+            <CardDescription>
+              Storage, signing coverage, retention compliance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium flex items-center gap-1.5">
+                  <Database className="h-3.5 w-3.5" />
+                  Total storage
+                </span>
+                <span className="font-mono tabular-nums">
+                  {bytesHuman(computedStats.storage_bytes)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  Evidence items
+                </span>
+                <span className="font-mono tabular-nums">
+                  {(computedStats.total_evidence_items ?? 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium">Signing coverage</span>
+                <span className="tabular-nums">
+                  {computedStats.total_bundles
+                    ? Math.round(((computedStats.signed_bundles ?? 0) / computedStats.total_bundles) * 100)
+                    : 0}
+                  %
+                </span>
+              </div>
+              <Progress
+                value={
+                  computedStats.total_bundles
+                    ? ((computedStats.signed_bundles ?? 0) / computedStats.total_bundles) * 100
+                    : 0
+                }
+                className="h-1.5"
+              />
+            </div>
+
+            <div className="rounded-md border border-violet-500/40 bg-violet-500/5 p-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-violet-400" />
+                  Quantum-signed (Dilithium)
+                </span>
+                <span className="tabular-nums text-violet-300">
+                  {computedStats.quantum_signed ?? 0}
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Post-quantum signatures (CRYSTALS-Dilithium) survive Q-Day (~2030).
+              </p>
+            </div>
+
+            <div className="rounded-md border border-blue-500/40 bg-blue-500/5 p-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium">WORM locked</span>
+                <span className="tabular-nums text-blue-300">{computedStats.worm_locked ?? 0}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Write-Once-Read-Many bundles are immutable and tamper-proof.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CloudPosturePane — P1 fold-in (S11 -> S23). CSPM rollup with provider filter
+// (AWS / GCP / Azure / all). Real /api/v1/cspm/* endpoints. NO MOCKS.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface CspmFinding {
+  id?: string;
+  finding_id?: string;
+  title?: string;
+  severity?: string;
+  status?: string;
+  resource?: string;
+  resource_id?: string;
+  resource_type?: string;
+  region?: string;
+  provider?: string;
+  cloud?: string;
+  account?: string;
+  account_id?: string;
+  framework?: string;
+  control?: string;
+  rule?: string;
+  compliance_status?: string;
+  created_at?: string;
+}
+
+interface CspmListResponse {
+  items?: CspmFinding[];
+  findings?: CspmFinding[];
+  data?: CspmFinding[];
+  total?: number;
+}
+
+interface CspmStatsResponse {
+  total_findings?: number;
+  by_provider?: Record<string, number>;
+  by_severity?: Record<string, number>;
+  by_status?: Record<string, number>;
+  passing_controls?: number;
+  failing_controls?: number;
+  total_resources?: number;
+  scanned_accounts?: number;
+}
+
+const PROVIDERS = ["all", "aws", "azure", "gcp"] as const;
+type Provider = typeof PROVIDERS[number];
+
+function cspmFindings(r: unknown): CspmFinding[] {
+  if (Array.isArray(r)) return r as CspmFinding[];
+  if (!r || typeof r !== "object") return [];
+  const obj = r as CspmListResponse;
+  return obj.items ?? obj.findings ?? obj.data ?? [];
+}
+
+function providerOf(f: CspmFinding): string {
+  return (f.provider ?? f.cloud ?? "").toLowerCase();
+}
+
+function CloudPosturePane() {
+  const [findings, setFindings] = useState<CspmFinding[]>([]);
+  const [stats, setStats] = useState<CspmStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+  const [provider, setProvider] = useState<Provider>("all");
+  const [severity, setSeverity] = useState<string>("");
+
+  const load = useCallback(async () => {
+    setErr(null);
+    setLoading(true);
+    try {
+      const sp = new URLSearchParams();
+      sp.set("limit", "300");
+      if (provider !== "all") sp.set("provider", provider);
+      if (severity) sp.set("severity", severity);
+
+      const [listR, statsR] = await Promise.allSettled([
+        apiFetch<CspmListResponse | CspmFinding[]>(`/api/v1/cspm/findings?${sp.toString()}`),
+        apiFetch<CspmStatsResponse>(`/api/v1/cspm/stats${provider !== "all" ? `?provider=${provider}` : ""}`),
+      ]);
+
+      if (listR.status === "fulfilled") {
+        if (listR.value === null) setUnavailable(true);
+        else { setFindings(cspmFindings(listR.value)); setUnavailable(false); }
+      } else {
+        setErr(String((listR.reason as Error)?.message ?? listR.reason));
+      }
+      if (statsR.status === "fulfilled" && statsR.value) setStats(statsR.value);
+    } finally {
+      setLoading(false);
+    }
+  }, [provider, severity]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const visible = useMemo(() => {
+    return findings.filter((f) => {
+      if (provider !== "all" && providerOf(f) !== provider) return false;
+      if (severity && (f.severity ?? "").toLowerCase() !== severity.toLowerCase()) return false;
+      return true;
+    });
+  }, [findings, provider, severity]);
+
+  const byProvider = useMemo(() => {
+    const c: Record<string, number> = { aws: 0, azure: 0, gcp: 0, other: 0 };
+    for (const f of findings) {
+      const p = providerOf(f);
+      if (p === "aws" || p === "azure" || p === "gcp") c[p] += 1;
+      else c.other += 1;
+    }
+    return c;
+  }, [findings]);
+
+  const totalFindings = stats?.total_findings ?? findings.length;
+  const passing = stats?.passing_controls ?? 0;
+  const failing = stats?.failing_controls ?? 0;
+  const accountsScanned = stats?.scanned_accounts ?? 0;
+  const totalResources = stats?.total_resources ?? 0;
+  const complianceRate = (passing + failing) > 0 ? Math.round((passing / (passing + failing)) * 100) : 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+        <div className="flex items-start gap-2">
+          <Cloud className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">Cloud Security Posture Management</p>
+            <p className="text-muted-foreground">
+              Multi-cloud CSPM rollup across AWS, Azure, and GCP. Filter by provider to scope
+              compliance posture per cloud. Real-time data from
+              <code className="text-[10px] mx-1">/api/v1/cspm/findings</code> and
+              <code className="text-[10px] mx-1">/api/v1/cspm/stats</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Provider filter chips */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground">Provider:</span>
+        {PROVIDERS.map((p) => {
+          const active = provider === p;
+          const count = p === "all" ? findings.length : (byProvider[p] ?? 0);
+          return (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setProvider(p)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs uppercase tracking-wide transition-colors",
+                active
+                  ? "border-primary/80 bg-primary/15 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/40",
+              )}
+            >
+              {p === "all" ? "All" : p.toUpperCase()} ({count})
+            </button>
+          );
+        })}
+        <span className="ml-4 text-xs text-muted-foreground">Severity:</span>
+        <select
+          value={severity}
+          onChange={(e) => setSeverity(e.target.value)}
+          className="h-8 rounded-md border border-input bg-background px-3 text-xs"
+        >
+          <option value="">All</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <Button variant="outline" size="sm" onClick={load} disabled={loading} className="ml-auto">
+          <RefreshCw className={cn("mr-2 h-3.5 w-3.5", loading && "animate-spin")} />
+          Refresh
+        </Button>
+      </div>
+
+      {/* CSPM KPI strip */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <KpiCard title="Findings" value={totalFindings.toLocaleString()} icon={AlertTriangle} trend={totalFindings > 0 ? "down" : "flat"} />
+        <KpiCard title="Resources Scanned" value={totalResources.toLocaleString()} icon={Server} />
+        <KpiCard title="Accounts" value={accountsScanned} icon={Cloud} />
+        <KpiCard title="Controls Passing" value={passing.toLocaleString()} icon={CheckCircle2} trend="up" />
+        <KpiCard title="Compliance" value={`${complianceRate}%`} icon={ShieldCheck} trend={complianceRate >= 80 ? "up" : "down"} />
+      </div>
+
+      {/* CSPM table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Cloud className="h-4 w-4" />
+            Cloud Findings
+          </CardTitle>
+          <CardDescription>
+            Live CSPM findings from {provider === "all" ? "all providers" : provider.toUpperCase()}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+            </div>
+          ) : err ? (
+            <ErrorState title="Failed to load CSPM findings" message={err} onRetry={load} />
+          ) : unavailable ? (
+            <EmptyState
+              icon={Cloud}
+              title="CSPM endpoint not available"
+              description="`/api/v1/cspm/findings` returned 404 or 501. Connect a cloud account in Settings -> Connectors to populate."
+            />
+          ) : visible.length === 0 ? (
+            <EmptyState
+              icon={Cloud}
+              title="No CSPM findings for this filter"
+              description="No findings match the current provider/severity filter. Try widening the scope."
+            />
+          ) : (
+            <ScrollArea className="h-[480px]">
+              <div className="divide-y divide-border text-xs">
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-muted/30 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <div className="col-span-1">Sev</div>
+                  <div className="col-span-4">Title</div>
+                  <div className="col-span-2">Resource</div>
+                  <div className="col-span-1">Region</div>
+                  <div className="col-span-1">Cloud</div>
+                  <div className="col-span-2">Account</div>
+                  <div className="col-span-1">Status</div>
+                </div>
+                {visible.map((f) => {
+                  const id = f.id ?? f.finding_id ?? f.title ?? "unknown";
+                  return (
+                    <div key={id} className="grid grid-cols-12 gap-2 px-4 py-2 hover:bg-muted/40">
+                      <div className="col-span-1">
+                        <Badge variant="outline" className={statusTone(f.severity)}>
+                          {(f.severity ?? "—").toString().toUpperCase()}
+                        </Badge>
+                      </div>
+                      <div className="col-span-4 truncate font-medium">{f.title ?? "(untitled)"}</div>
+                      <div className="col-span-2 truncate text-muted-foreground">
+                        {f.resource ?? f.resource_id ?? "—"}
+                        {f.resource_type && (
+                          <span className="text-[9px] text-muted-foreground ml-1">({f.resource_type})</span>
+                        )}
+                      </div>
+                      <div className="col-span-1 truncate text-muted-foreground">{f.region ?? "—"}</div>
+                      <div className="col-span-1">
+                        <Badge variant="outline" className="text-[9px] uppercase">
+                          {providerOf(f) || "—"}
+                        </Badge>
+                      </div>
+                      <div className="col-span-2 truncate text-muted-foreground font-mono text-[10px]">
+                        {f.account ?? f.account_id ?? "—"}
+                      </div>
+                      <div className="col-span-1 text-muted-foreground capitalize">
+                        {(f.compliance_status ?? f.status ?? "—").toString().replace("_", " ")}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
