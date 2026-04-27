@@ -61,6 +61,11 @@ from requests import RequestException, Response
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+try:  # TrustGraph event bus — optional, never blocks on failure
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:  # pragma: no cover - bus is optional
+    _get_tg_bus = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 
@@ -303,6 +308,22 @@ class _BaseConnector:
                     "Request succeeded: %s %s -> %s (%.2fs)",
                     method, url, response.status_code, elapsed,
                 )
+                # Only emit on state-changing successful calls. GETs are too noisy
+                # (health-checks, list operations, polling); state-changing ops
+                # are the meaningful side-effects we want to broadcast.
+                if (
+                    method.upper() in ("POST", "PUT", "PATCH", "DELETE")
+                    and 200 <= response.status_code < 300
+                ):
+                    self._emit_event(
+                        "connector.request.success",
+                        {
+                            "connector": type(self).__name__,
+                            "method": method.upper(),
+                            "status_code": response.status_code,
+                            "elapsed_ms": int(elapsed * 1000),
+                        },
+                    )
 
             return response
 
@@ -331,6 +352,42 @@ class _BaseConnector:
                 else 0.0
             ),
         }
+
+    # ------------------------------------------------------------------
+    # TrustGraph event emission (best-effort, non-blocking)
+    # ------------------------------------------------------------------
+
+    def _emit_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        """Emit an event to the TrustGraph event bus. Never raises.
+
+        Inherited by all 6 connector subclasses (Jira, Confluence, Slack,
+        ServiceNow, GitLab, AzureDevOps, GitHub) so any of them can fire
+        bus events on key actions (issue created, ticket transitioned,
+        message posted, etc.) without a per-class import.
+        """
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            result = emit(event_type, payload)
+            try:
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        result.close()
+            except Exception:  # pragma: no cover
+                pass
+        except Exception:  # pragma: no cover - best-effort telemetry
+            pass
 
 
 class JiraConnector(_BaseConnector):
