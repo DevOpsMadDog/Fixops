@@ -731,6 +731,14 @@ export default function App() {
             <Route path="/brain/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
             <Route path="/brain/fail" element={<Navigate to="/brain?tab=fail" replace />} />
             <Route path="/attack/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
+            {/* P2 Wave: Waivers + Policies → Compliance hero (S20/S26) */}
+            <Route path="/comply/waivers" element={<Navigate to="/compliance?tab=waivers" replace />} />
+            <Route path="/comply/policies" element={<Navigate to="/compliance?tab=policies" replace />} />
+            <Route path="/remediate/waivers" element={<Navigate to="/compliance?tab=waivers" replace />} />
+            <Route path="/policy-library" element={<Navigate to="/compliance?tab=policies" replace />} />
+            <Route path="/policy-stage-matrix" element={<Navigate to="/compliance?tab=policies" replace />} />
+            <Route path="/rules-catalog" element={<Navigate to="/compliance?tab=policies" replace />} />
+            <Route path="/auto-waiver-rules" element={<Navigate to="/compliance?tab=waivers" replace />} />
             {/* Wave 1 — AI */}
             <Route path="/ai/shadow-inventory" element={<ShadowAIInventory />} />
             <Route path="/ai/attack-paths" element={<AIAttackPathView />} />

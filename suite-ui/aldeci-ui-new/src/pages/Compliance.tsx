@@ -26,6 +26,7 @@ import {
   Activity,
   AlertTriangle,
   BadgeCheck,
+  BookOpen,
   Bot,
   Calendar,
   CheckCircle2,
@@ -37,6 +38,7 @@ import {
   FileText,
   Fingerprint,
   Flag,
+  Gavel,
   KeyRound,
   Layers,
   Library,
@@ -48,6 +50,7 @@ import {
   Server,
   Shield,
   ShieldCheck,
+  ShieldOff,
   TrendingUp,
   Vault,
   Workflow,
@@ -81,6 +84,20 @@ const ComplianceGapDashboard = lazy(() => import("@/pages/ComplianceGapDashboard
 const EvidenceVault = lazy(() => import("@/pages/comply/EvidenceVault"));
 const EvidenceBundles = lazy(() => import("@/pages/comply/EvidenceBundles"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
+// P2 fold-ins (S20 Waivers, S26 Policies)
+const WaiversExplorer = lazy(() => import("@/pages/WaiversExplorer"));
+const AutoWaiverRules = lazy(() => import("@/pages/AutoWaiverRules"));
+const SecurityExceptionDashboard = lazy(() => import("@/pages/SecurityExceptionDashboard"));
+const ExceptionWorkflowDashboard = lazy(() => import("@/pages/ExceptionWorkflowDashboard"));
+const PolicyLibraryBrowser = lazy(() => import("@/pages/PolicyLibraryBrowser"));
+const PolicyStageEditor = lazy(() => import("@/pages/PolicyStageEditor"));
+const PolicyInheritanceView = lazy(() => import("@/pages/PolicyInheritanceView"));
+const StagePolicyMatrix = lazy(() => import("@/pages/StagePolicyMatrix"));
+const RuleDSLAuthoringStudio = lazy(() => import("@/pages/RuleDSLAuthoringStudio"));
+const RuleDSLValidator = lazy(() => import("@/pages/RuleDSLValidator"));
+const UnifiedRulesCatalog = lazy(() => import("@/pages/UnifiedRulesCatalog"));
+const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector"));
+const HooksPolicyEditor = lazy(() => import("@/pages/HooksPolicyEditor"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Frameworks canon (NIST 800-53 / ISO 27001 / SOC2 / HIPAA / PCI-DSS / FedRAMP / SCIF)
@@ -433,6 +450,12 @@ export default function Compliance() {
           </TabsTrigger>
           <TabsTrigger value="cloud-posture" className="flex items-center gap-1.5">
             <Cloud className="h-3.5 w-3.5" />Cloud Posture
+          </TabsTrigger>
+          <TabsTrigger value="waivers" className="flex items-center gap-1.5">
+            <ShieldOff className="h-3.5 w-3.5" />Waivers
+          </TabsTrigger>
+          <TabsTrigger value="policies" className="flex items-center gap-1.5">
+            <Gavel className="h-3.5 w-3.5" />Policies & Rules
           </TabsTrigger>
         </TabsList>
 
@@ -939,6 +962,16 @@ export default function Compliance() {
         {/* ─────────────── CLOUD POSTURE TAB (P1 fold-in S11 -> S23) ─────────────── */}
         <TabsContent value="cloud-posture" className="space-y-4">
           <CloudPosturePane />
+        </TabsContent>
+
+        {/* ─────────────── WAIVERS & EXCEPTIONS TAB (P2 fold-in S20) ─────────────── */}
+        <TabsContent value="waivers" className="space-y-4">
+          <WaiversExceptionsPane />
+        </TabsContent>
+
+        {/* ─────────────── POLICIES & RULES TAB (P2 fold-in S26) ─────────────── */}
+        <TabsContent value="policies" className="space-y-4">
+          <PoliciesRulesPane />
         </TabsContent>
       </Tabs>
     </motion.div>
@@ -1581,6 +1614,157 @@ function CloudPosturePane() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WaiversExceptionsPane — P2 fold-in (S20) on Compliance hero. Strengthens
+// the partial WaiversExplorer fold from P1 wave 1 with auto-rules + approval
+// workflow + risk-acceptance + exception lifecycle. All sub-views are existing
+// pages mounted via lazy() — zero functionality loss.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function WaiversExceptionsPane() {
+  const [subTab, setSubTab] = useState<string>("explorer");
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+        <div className="flex items-start gap-2">
+          <ShieldOff className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">Waivers, Exceptions & Risk Acceptance</p>
+            <p className="text-muted-foreground">
+              Active waivers, auto-acceptance rules, approval workflows, and full exception
+              lifecycle. Every waiver is signed into the audit chain (Step 12 evidence) so
+              compliance and audit can reproduce the decision trail. Real{" "}
+              <code className="font-mono">/api/v1/waivers/*</code> +{" "}
+              <code className="font-mono">/api/v1/exceptions/*</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={subTab} onValueChange={setSubTab} className="space-y-3">
+        <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+          <TabsTrigger value="explorer" className="flex items-center gap-1.5">
+            <ShieldOff className="h-3.5 w-3.5" />Active Waivers
+          </TabsTrigger>
+          <TabsTrigger value="auto-rules" className="flex items-center gap-1.5">
+            <Workflow className="h-3.5 w-3.5" />Auto Rules
+          </TabsTrigger>
+          <TabsTrigger value="exceptions" className="flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" />Exceptions
+          </TabsTrigger>
+          <TabsTrigger value="approvals" className="flex items-center gap-1.5">
+            <CheckCircle2 className="h-3.5 w-3.5" />Approval Workflow
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="explorer">
+          <Suspense fallback={<TabSkeleton />}><WaiversExplorer /></Suspense>
+        </TabsContent>
+        <TabsContent value="auto-rules">
+          <Suspense fallback={<TabSkeleton />}><AutoWaiverRules /></Suspense>
+        </TabsContent>
+        <TabsContent value="exceptions">
+          <Suspense fallback={<TabSkeleton />}><SecurityExceptionDashboard /></Suspense>
+        </TabsContent>
+        <TabsContent value="approvals">
+          <Suspense fallback={<TabSkeleton />}><ExceptionWorkflowDashboard /></Suspense>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PoliciesRulesPane — P2 fold-in (S26) on Compliance hero. Surfaces the full
+// policy library + rule DSL stack: stage matrix, stage editor, inheritance,
+// library browser, hooks-policy editor, rule DSL author + validator, rules
+// catalog, rule taxonomy. All real existing pages, lazy-loaded.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PoliciesRulesPane() {
+  const [subTab, setSubTab] = useState<string>("library");
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+        <div className="flex items-start gap-2">
+          <Gavel className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-foreground">Policy & Rule Library</p>
+            <p className="text-muted-foreground">
+              Brain Step 9 (<code>policy</code>) evaluates findings against this library. Author
+              and validate DSL rules, browse the unified rules catalog, manage stage policies
+              and inheritance, and configure pre-commit hooks policies. All policy decisions
+              feed the audit chain.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={subTab} onValueChange={setSubTab} className="space-y-3">
+        <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+          <TabsTrigger value="library" className="flex items-center gap-1.5">
+            <BookOpen className="h-3.5 w-3.5" />Library
+          </TabsTrigger>
+          <TabsTrigger value="stage-matrix" className="flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5" />Stage Matrix
+          </TabsTrigger>
+          <TabsTrigger value="stage-editor" className="flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5" />Stage Editor
+          </TabsTrigger>
+          <TabsTrigger value="inheritance" className="flex items-center gap-1.5">
+            <Link2 className="h-3.5 w-3.5" />Inheritance
+          </TabsTrigger>
+          <TabsTrigger value="rules-catalog" className="flex items-center gap-1.5">
+            <ClipboardList className="h-3.5 w-3.5" />Rules Catalog
+          </TabsTrigger>
+          <TabsTrigger value="dsl-author" className="flex items-center gap-1.5">
+            <FileCheck className="h-3.5 w-3.5" />DSL Author
+          </TabsTrigger>
+          <TabsTrigger value="dsl-validator" className="flex items-center gap-1.5">
+            <CheckCircle2 className="h-3.5 w-3.5" />DSL Validator
+          </TabsTrigger>
+          <TabsTrigger value="taxonomy" className="flex items-center gap-1.5">
+            <Library className="h-3.5 w-3.5" />Taxonomy
+          </TabsTrigger>
+          <TabsTrigger value="hooks" className="flex items-center gap-1.5">
+            <Workflow className="h-3.5 w-3.5" />Hooks Policy
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="library">
+          <Suspense fallback={<TabSkeleton />}><PolicyLibraryBrowser /></Suspense>
+        </TabsContent>
+        <TabsContent value="stage-matrix">
+          <Suspense fallback={<TabSkeleton />}><StagePolicyMatrix /></Suspense>
+        </TabsContent>
+        <TabsContent value="stage-editor">
+          <Suspense fallback={<TabSkeleton />}><PolicyStageEditor /></Suspense>
+        </TabsContent>
+        <TabsContent value="inheritance">
+          <Suspense fallback={<TabSkeleton />}><PolicyInheritanceView /></Suspense>
+        </TabsContent>
+        <TabsContent value="rules-catalog">
+          <Suspense fallback={<TabSkeleton />}><UnifiedRulesCatalog /></Suspense>
+        </TabsContent>
+        <TabsContent value="dsl-author">
+          <Suspense fallback={<TabSkeleton />}><RuleDSLAuthoringStudio /></Suspense>
+        </TabsContent>
+        <TabsContent value="dsl-validator">
+          <Suspense fallback={<TabSkeleton />}><RuleDSLValidator /></Suspense>
+        </TabsContent>
+        <TabsContent value="taxonomy">
+          <Suspense fallback={<TabSkeleton />}><RuleTaxonomyInspector /></Suspense>
+        </TabsContent>
+        <TabsContent value="hooks">
+          <Suspense fallback={<TabSkeleton />}><HooksPolicyEditor /></Suspense>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
