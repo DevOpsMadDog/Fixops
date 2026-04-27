@@ -1,9 +1,9 @@
 {
-  "run_at": "2026-04-27T08:54:57.367Z",
+  "run_at": "2026-04-27T09:18:33.968Z",
   "total": 65,
-  "pass": 20,
+  "pass": 45,
   "empty_state": 20,
-  "crash": 25,
+  "crash": 0,
   "results": [
     {
       "hero": "Command",
@@ -88,10 +88,10 @@
     {
       "hero": "Issues",
       "tab": "Drift",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/05-drift.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "Issues",
@@ -104,10 +104,10 @@
     {
       "hero": "Issues",
       "tab": "PR Risk",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/07-pr-risk.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "Issues",
@@ -120,10 +120,10 @@
     {
       "hero": "Issues",
       "tab": "Threat Intel",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 7,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/issues/09-threat-intel.png",
-      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "7 new API call(s)"
     },
     {
       "hero": "Brain",
@@ -137,41 +137,41 @@
       "hero": "Brain",
       "tab": "Neural Map",
       "status": "PASS",
-      "apiCalls": 4,
+      "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/01-neural-map.png",
-      "notes": "4 new API call(s)"
+      "notes": "2 new API call(s)"
     },
     {
       "hero": "Brain",
       "tab": "Multi-LLM Consensus",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 8,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/02-multi-llm-consensus.png",
-      "notes": "+8 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "8 new API call(s)"
     },
     {
       "hero": "Brain",
       "tab": "Algorithmic Lab",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 6,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/03-algorithmic-lab.png",
-      "notes": "+6 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "6 new API call(s)"
     },
     {
       "hero": "Brain",
       "tab": "Predictions",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 6,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/04-predictions.png",
-      "notes": "+6 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "6 new API call(s)"
     },
     {
       "hero": "Brain",
       "tab": "ML Dashboard",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 11,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/05-ml-dashboard.png",
-      "notes": "+11 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "11 new API call(s)"
     },
     {
       "hero": "Brain",
@@ -185,17 +185,17 @@
       "hero": "Brain",
       "tab": "Factor Weights",
       "status": "PASS",
-      "apiCalls": 1,
+      "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/07-factor-weights.png",
-      "notes": "1 new API call(s)"
+      "notes": "2 new API call(s)"
     },
     {
       "hero": "Brain",
       "tab": "Code Intelligence",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 4,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/08-code-intelligence.png",
-      "notes": "+4 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "4 new API call(s)"
     },
     {
       "hero": "Brain",
@@ -216,10 +216,10 @@
     {
       "hero": "Brain",
       "tab": "Learning Loop",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/brain/11-learning-loop.png",
-      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "2 new API call(s)"
     },
     {
       "hero": "Compliance",
@@ -264,10 +264,10 @@
     {
       "hero": "Compliance",
       "tab": "Assessments",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/05-assessments.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "Compliance",
@@ -281,25 +281,25 @@
       "hero": "Compliance",
       "tab": "Mapping",
       "status": "PASS",
-      "apiCalls": 4,
+      "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/07-mapping.png",
-      "notes": "4 new API call(s)"
+      "notes": "2 new API call(s)"
     },
     {
       "hero": "Compliance",
       "tab": "Gaps",
       "status": "PASS",
-      "apiCalls": 6,
+      "apiCalls": 3,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/08-gaps.png",
-      "notes": "6 new API call(s)"
+      "notes": "3 new API call(s)"
     },
     {
       "hero": "Compliance",
       "tab": "Calendar",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 4,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/09-calendar.png",
-      "notes": "+5 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "4 new API call(s)"
     },
     {
       "hero": "Compliance",
@@ -320,18 +320,18 @@
     {
       "hero": "Compliance",
       "tab": "AI Exposure",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 4,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/12-ai-exposure.png",
-      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+      "notes": "4 new API call(s)"
     },
     {
       "hero": "Compliance",
       "tab": "Cloud Posture",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 5,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/13-cloud-posture.png",
-      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "5 new API call(s)"
     },
     {
       "hero": "Compliance",
@@ -344,10 +344,10 @@
     {
       "hero": "Compliance",
       "tab": "Policies & Rules",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/compliance/15-policies-rules.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "2 new API call(s)"
     },
     {
       "hero": "Compliance",
@@ -368,82 +368,82 @@
     {
       "hero": "AssetGraph",
       "tab": "Flows",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/01-flows.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Layers",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/02-layers.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Databases",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/03-databases.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Subsidiaries",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/04-subsidiaries.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Diff (PR)",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/05-diff-pr.png",
-      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "2 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Choke Points",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/06-choke-points.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Inventory",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 5,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/07-inventory.png",
-      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "5 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Attack Paths",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 3,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/08-attack-paths.png",
-      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "3 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "SBOM",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 5,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/09-sbom.png",
-      "notes": "+2 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "5 new API call(s)"
     },
     {
       "hero": "AssetGraph",
       "tab": "Upgrade Paths",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 3,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/assets/10-upgrade-paths.png",
-      "notes": "+3 errors. First: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "notes": "3 new API call(s)"
     },
     {
       "hero": "Admin",
@@ -488,10 +488,10 @@
     {
       "hero": "Admin",
       "tab": "Webhooks",
-      "status": "CRASH",
+      "status": "PASS",
       "apiCalls": 1,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/05-webhooks.png",
-      "notes": "+1 errors. First: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      "notes": "1 new API call(s)"
     },
     {
       "hero": "Admin",
@@ -521,9 +521,9 @@
       "hero": "Admin",
       "tab": "System Health",
       "status": "PASS",
-      "apiCalls": 4,
+      "apiCalls": 2,
       "screenshot": "/Users/devops.ai/fixops/Fixops/docs/ui-snapshots/walkthrough_2026-04-26/admin/09-system-health.png",
-      "notes": "4 new API call(s)"
+      "notes": "2 new API call(s)"
     }
   ]
 }
