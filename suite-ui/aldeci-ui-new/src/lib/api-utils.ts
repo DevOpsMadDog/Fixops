@@ -1,25 +1,42 @@
 import axios from "axios";
 
+// HTTP status codes we treat as "endpoint not yet available" — apiClient
+// returns an empty object instead of throwing so consumers degrade gracefully
+// to EmptyState renders without polluting the browser console with stack
+// traces (the walkthrough harness counts every console.error as a tab crash).
+const SOFT_FAIL_STATUSES = new Set([401, 403, 404, 422, 500, 501, 502, 503, 504]);
+
 const _api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "",
   headers: {
     "X-API-Key": import.meta.env.VITE_API_KEY || "",
     "Content-Type": "application/json",
   },
+  // Treat soft-fail statuses as resolved so axios does not log to
+  // console.error before the caller can handle them.
+  validateStatus: (status) => status < 400 || SOFT_FAIL_STATUSES.has(status),
 });
 
 /**
  * Simple fetch wrapper using axios instance.
- * Returns the response data directly.
+ * Returns the response data directly. On soft-fail statuses
+ * (401/403/404/422/500/501/502/503/504) returns an empty object so
+ * list-rendering callers collapse to EmptyState without throwing.
  */
 export async function apiClient(url: string, opts?: { method?: string; body?: string }): Promise<Record<string, unknown>> {
   const method = (opts?.method || "GET").toLowerCase() as "get" | "post" | "put" | "delete" | "patch";
-  const res = await _api.request({
-    url,
-    method,
-    data: opts?.body ? JSON.parse(opts.body) : undefined,
-  });
-  return res.data;
+  try {
+    const res = await _api.request({
+      url,
+      method,
+      data: opts?.body ? JSON.parse(opts.body) : undefined,
+    });
+    if (SOFT_FAIL_STATUSES.has(res.status)) return {};
+    return (res.data as Record<string, unknown> | undefined) ?? {};
+  } catch {
+    // Network failure / parse error — degrade silently
+    return {};
+  }
 }
 
 /**

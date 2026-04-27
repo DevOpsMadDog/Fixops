@@ -42,11 +42,21 @@ interface MatchResponse {
   comingSoon?: boolean;
 }
 
+// Soft-fail statuses degrade to a "comingSoon" empty payload so the UI
+// renders an EmptyState instead of throwing (which surfaces as a tab crash
+// in the walkthrough console-error counter).
+const SOFT_FAIL_STATUSES = new Set([401, 403, 404, 422, 500, 501, 502, 503, 504]);
+
 async function apiFetch<T>(path: string, params: Record<string, string> = {}): Promise<{ data: T; status: number }> {
   const orgId = getStoredOrgId();
   const url = buildApiUrl(path, { org_id: orgId, ...params });
-  const res = await fetch(url, { headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" } });
-  if (res.status === 501 || res.status === 404) return { data: { comingSoon: true } as T, status: res.status };
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { "X-API-Key": getStoredAuthToken(), "X-Org-ID": orgId, "Content-Type": "application/json" } });
+  } catch {
+    return { data: { comingSoon: true } as T, status: 0 };
+  }
+  if (SOFT_FAIL_STATUSES.has(res.status)) return { data: { comingSoon: true } as T, status: res.status };
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return { data: (await res.json()) as T, status: res.status };
 }

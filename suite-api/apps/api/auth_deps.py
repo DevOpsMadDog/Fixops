@@ -97,18 +97,21 @@ def _is_dev_mode() -> bool:
     return mode in ("demo", "dev", "development", "local")
 
 
-_EXPECTED_TOKENS: tuple[str, ...] = _load_api_tokens()
 _JWT_SECRET: Optional[str] = _load_jwt_secret()
 _DEV_MODE: bool = _is_dev_mode()
 
-# Determine effective auth strategy
-_HAS_TOKEN_AUTH: bool = bool(_EXPECTED_TOKENS)
+# NOTE: _EXPECTED_TOKENS is intentionally NOT cached at module level.
+# Calling _load_api_tokens() per-request allows test fixtures to mutate
+# FIXOPS_API_TOKEN between test modules without stale-constant failures.
+# Production cost: one os.getenv() call per authenticated request (negligible).
+
+# Determine effective auth strategy (JWT and dev-mode are still boot-time)
 _HAS_JWT_AUTH: bool = bool(_JWT_SECRET)
 
-if not _HAS_TOKEN_AUTH and not _HAS_JWT_AUTH:
+if not _load_api_tokens() and not _HAS_JWT_AUTH:
     if _DEV_MODE:
         logger.warning(
-            "⚠️  SECURITY WARNING: auth_deps is running in %s mode. "
+            "SECURITY WARNING: auth_deps is running in %s mode. "
             "All API endpoints are UNAUTHENTICATED — any request receives admin access. "
             "Do NOT expose this service to untrusted networks. "
             "Set FIXOPS_API_TOKEN or FIXOPS_JWT_SECRET to enable real authentication.",
@@ -193,8 +196,14 @@ async def api_key_auth(
         HTTPException(401): Missing or clearly invalid credential.
         HTTPException(403): Credential present but invalid/rejected.
     """
+    # Resolve tokens fresh on every request so env-var changes (e.g. between
+    # pytest modules) are reflected immediately without a stale module-level
+    # constant.
+    expected_tokens: tuple[str, ...] = _load_api_tokens()
+    has_token_auth: bool = bool(expected_tokens)
+
     # Dev/demo mode pass-through when no auth is configured
-    if _DEV_MODE and not _HAS_TOKEN_AUTH and not _HAS_JWT_AUTH:
+    if _DEV_MODE and not has_token_auth and not _HAS_JWT_AUTH:
         request.state.user_role = "admin"
         request.state.user_scopes = ["admin:all"]
         # Add a visible header so clients/proxies can detect demo mode is active.
@@ -216,8 +225,8 @@ async def api_key_auth(
         bearer_token = auth_header[7:].strip() or None
 
     # ── Step 1: Check X-API-Key / ?api_key= ──────────────────────────────
-    if token and _HAS_TOKEN_AUTH:
-        if token in _EXPECTED_TOKENS:
+    if token and has_token_auth:
+        if token in expected_tokens:
             request.state.user_role = "admin"
             request.state.user_scopes = ["admin:all"]
             return
@@ -239,9 +248,9 @@ async def api_key_auth(
             raise  # Re-raise 401/403 directly
 
     # ── Step 3: If we have an API key but no JWT secret, check token ──────
-    if bearer_token and _HAS_TOKEN_AUTH:
+    if bearer_token and has_token_auth:
         # Caller may send their API key as a Bearer token (common client error)
-        if bearer_token in _EXPECTED_TOKENS:
+        if bearer_token in expected_tokens:
             request.state.user_role = "admin"
             request.state.user_scopes = ["admin:all"]
             return

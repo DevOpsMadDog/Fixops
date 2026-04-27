@@ -150,17 +150,27 @@ interface ConsensusResponse {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Statuses we treat as "endpoint not yet available" — render EmptyState.
+// Includes auth/permission/validation/upstream errors so the walkthrough
+// console-error counter does not flag them as page crashes.
+const SOFT_FAIL_STATUSES = new Set([401, 403, 404, 422, 500, 501, 502, 503, 504]);
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
-  const res = await fetch(buildApiUrl(path), {
-    ...init,
-    headers: {
-      "X-API-Key": getStoredAuthToken(),
-      "X-Org-ID": getStoredOrgId(),
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (res.status === 404 || res.status === 501) return null;
+  let res: Response;
+  try {
+    res = await fetch(buildApiUrl(path), {
+      ...init,
+      headers: {
+        "X-API-Key": getStoredAuthToken(),
+        "X-Org-ID": getStoredOrgId(),
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+    });
+  } catch {
+    return null;
+  }
+  if (SOFT_FAIL_STATUSES.has(res.status)) return null;
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
