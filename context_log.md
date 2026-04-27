@@ -28,6 +28,13 @@
 
 ## Session Log
 
+### [2026-04-26 14:30] marketing-head — PERSONA_LANDING_PAGES
+- **What**: Wrote 7 persona-specific landing page copy files for top buyer personas — each a designer-ready CMS one-pager with hero headline, sub-hero, 3 proof bullets (all cited to real commits/files), pain-vs-outcome table, dual CTAs, quote placeholder, and SEO meta description. All claims verified against CTEM_PLUS_IDENTITY.md, competitive_validation_2026-04-26.md, scif_readiness_2026-04-26.md, and INVESTOR_PACK_2026-04-26.md. No invented capabilities; SCIF page includes honest scope note on 35% maturity.
+- **Files touched**: docs/marketing/landing_pages/ciso.md, devsecops-lead.md, soc-analyst-tier1.md, compliance-officer.md, federal-cio-rmf-ao.md, appsec-engineer.md, cloud-security-engineer.md (all created)
+- **Outcome**: SUCCESS
+- **Decisions made**: Recommended CISO and Federal CIO/RMF AO pages as first two to ship to web (highest SEO search volume + highest ACV personas). Included honest SCIF maturity disclaimer on federal page as sales-team note, not public copy. Did not claim FedRAMP High authorized — used "FedRAMP High control-mapped, air-gap ready" per scif_readiness_2026-04-26.md §4c guidance.
+- **Pillar(s) served**: V3 (competitive positioning), V6 (quantum-secure evidence), V9 (air-gap), V10 (CTEM full loop)
+
 ### [2026-03-20 19:57] ai-researcher — APIIRO_COMPETITIVE_DEEP_DIVE
 - **What**: Produced comprehensive Apiiro product capability analysis covering all 8 requested categories: Risk Scoring (4 features), Code Analysis (4 features), Supply Chain (3 features), CI/CD (3 features), Compliance (2 features), Developer Experience (3 features), Integrations (5 features), API/CLI (4 features). Documented 17 verified gaps in Apiiro's capabilities. Produced feature-by-feature comparison matrix: ALdeci leads on 16 features, Apiiro leads on 8 (maturity/scale), 6 even.
 - **Files touched**: `.claude/team-state/research/apiiro-competitive-deep-dive.md` (created, ~500 lines)
@@ -5287,3 +5294,34 @@
 - **Files touched**: scripts/llm_distill_dataset_curator.py (525 LOC), scripts/llm_distill_train.py (517 LOC), suite-core/core/llm_distill_router.py (532 LOC), docs/LLM_TRAINING_ROADMAP_2026-04-26.md (Phase 2 status section), data/distill_train.jsonl, data/distill_sft.jsonl, data/distill_dataset_manifest.json
 - **Outcome**: SUCCESS. Curator processes 703 verdicts/pairs from learning_signals.db; trainer dry-run validates 703/703 SFT and DPO records on MPS in <1s; cost-guard exits 2 without FIXOPS_DISTILL_TRAIN=1.
 - **Pillar(s) served**: V1 (CTEM+ intelligence), V4 (multi-LLM consensus calibration), V9 (air-gapped offline ML)
+
+### [2026-04-26 22:30] sales-engineer — ANALYST_ARTIFACTS
+- **What**: SALES ARTIFACTS WAVE 2 — 5 analyst-grade briefing docs under docs/sales/analyst/ for Gartner/Forrester/IDC submissions
+- **Files touched**: docs/sales/analyst/analyst_one_pager_2026-04-26.md (645w), mq_wave_submission_2026-04-26.md (1008w), reference_architecture_whitepaper.md (1633w with Mermaid), case_study_template.md (1151w), anti_customer_profile.md (991w) — 5,428 words total
+- **Outcome**: SUCCESS — all citations resolved (12 file paths + 5 commit hashes verified), committed
+- **Pillar(s) served**: V1 (CTEM+ identity), V4 (LLM consensus), V8 (compliance/evidence), V9 (federal/SCIF), V10 (analyst/GTM)
+
+### [2026-04-26 18:22] data-scientist — AGENTDB_MINILM_UPGRADE
+- **What**: Installed sentence-transformers>=3.0.0; verified AgentDB bridge auto-upgrades embedder from hash-blake2b to sentence-transformers/all-MiniLM-L6-v2 (384-dim real semantic vectors) on first call. health() confirmed embedder=minilm-l6-v2. All 8 tests pass. Latency: hash ~0.16ms, MiniLM ~168ms (1076x slower — expected, model inference). Added sentence-transformers>=3.0.0 to requirements.txt. Committed 65cbbc93.
+- **Files touched**: requirements.txt
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V4 (Multi-LLM Consensus — semantic RAG over council decisions now uses real embeddings)
+
+### [2026-04-26 23:59] technical-writer — DOCS_CONSOLIDATION
+- **What**: Walked docs/ recursively (108 markdown files + schemas + image assets). Produced docs/INDEX.md — full table-of-contents with 1-line description + audience tag per doc, 7 consolidation candidate groups identified (no deletions), "Read These First" top-5 for next-LLM onboarding. Produced docs/STRATEGIC_ROADMAP_NEXT.md — 1-page priority order for next session: P0 push branch, P1 TrustGraph router/connector wiring, P2 UX P1 completions, P3 LLM Phase 2 distillation, P4 SCIF outreach (human-only), P5 investor close.
+- **Files touched**: `docs/INDEX.md` (created), `docs/STRATEGIC_ROADMAP_NEXT.md` (created)
+- **Outcome**: SUCCESS — commit 54d1fa4f
+- **Pillar(s) served**: V3 (competitive clarity), V9 (air-gap / SCIF path documented), V10 (evidence chain navigability)
+
+### [2026-04-26 18:26] backend-hardener — WEBHOOK_CONSUMER_EXAMPLES
+- **What**: Built 3 external SIEM/SOC webhook consumer forwarders + integration test suite under `examples/webhook_consumer/`. Proves TrustGraph EventBus federation story for partner pitches and analyst pack.
+  - `splunk_hec_forwarder.py` (port 9090): ALdeci → Splunk HEC envelope with severity mapping, epoch timestamp, mock fallback.
+  - `elastic_forwarder.py` (port 9091): ALdeci → ECS full field sets (event.*, vulnerability.*, file.*, observer.*, organization.*), dynamic event.category per event type.
+  - `slack_alerter.py` (port 9092): Block Kit messages for HIGH/CRITICAL decision.made/threat.detected/finding.critical events, configurable severity/event filters, deep-link actions button.
+  - `README.md`: quick-start, env var reference, schema citation URLs.
+  - `test_consumer.py`: 50 tests, all passing (0.64s).
+- **Files touched**: `examples/webhook_consumer/splunk_hec_forwarder.py`, `elastic_forwarder.py`, `slack_alerter.py`, `README.md`, `test_consumer.py`
+- **Outcome**: SUCCESS
+- **Decisions made**: stdlib-only HTTP (no requests/httpx) so examples run zero-install. Mock fallback via env var = "mock" for demo without real SIEM. HMAC verification optional but enforced when secret is set.
+- **Commit**: fe90b742
+- **Pillar(s) served**: V3 (Decision Intelligence), V7 (MCP-Native/partner integrations), V9 (Air-Gapped — stdlib only)
