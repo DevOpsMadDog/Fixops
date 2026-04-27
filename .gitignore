@@ -213,3 +213,5 @@ lib/
 .claude-flow/logs/
 .claude-flow/sessions/
 .claude-flow/cache/
+.claude-flow/metrics/
+.claude-flow/security/

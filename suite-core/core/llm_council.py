@@ -366,29 +366,58 @@ class LLMCouncilEngine:
         builder can render "we faced N similar decisions, here's what we ruled."
         Always returns a fresh dict (never mutates the caller's mapping).
         Best-effort: silently degrades to the original context on any failure.
-        """
-        ctx_out: Dict[str, Any] = dict(context)
-        try:
-            from trustgraph.agentdb_bridge import get_agentdb_bridge
 
-            bridge = get_agentdb_bridge()
-            similar = bridge.find_similar_decisions(finding=finding, k=5, min_similarity=0.30)
-            if similar:
-                ctx_out["similar_past_decisions"] = [
-                    {
-                        "key": s.key,
-                        "similarity": round(s.similarity, 3),
-                        "summary": (s.content or "")[:280],
-                        "metadata": s.metadata,
-                    }
-                    for s in similar
-                ]
+        Non-blocking by design: the lookup is dispatched to a daemon thread
+        and the result is only used if it completes within _AGENTDB_AUGMENT_MS.
+        This prevents MiniLM lazy-load (up to several seconds) or slow SQLite
+        reads from stalling the council on bulk ingestion paths.
+        """
+        import threading as _threading
+
+        _AGENTDB_AUGMENT_MS = 5  # hard cap — must not affect bulk throughput
+
+        ctx_out: Dict[str, Any] = dict(context)
+        result_box: Dict[str, Any] = {}
+        done_event = _threading.Event()
+
+        def _do_augment() -> None:
+            try:
+                from trustgraph import agentdb_bridge as _agentdb_mod
+                # Skip if bridge not yet warm — avoids 80MB MiniLM load stalling hot path
+                if getattr(_agentdb_mod, "_bridge", None) is None:
+                    return
+                bridge = _agentdb_mod.get_agentdb_bridge()
+                similar = bridge.find_similar_decisions(finding=finding, k=5, min_similarity=0.30)
+                if similar:
+                    result_box["similar_past_decisions"] = [
+                        {
+                            "key": s.key,
+                            "similarity": round(s.similarity, 3),
+                            "summary": (s.content or "")[:280],
+                            "metadata": s.metadata,
+                        }
+                        for s in similar
+                    ]
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Council: AgentDB augmentation skipped: %s", exc)
+            finally:
+                done_event.set()
+
+        t = _threading.Thread(target=_do_augment, daemon=True, name="agentdb-augment")
+        t.start()
+        # Wait only _AGENTDB_AUGMENT_MS — if bridge is warm and fast, we get
+        # the result; if cold/slow, we return the plain context immediately.
+        if done_event.wait(timeout=_AGENTDB_AUGMENT_MS / 1000):
+            ctx_out.update(result_box)
+            if result_box:
                 logger.debug(
                     "Council: augmented context with %d similar past decisions",
-                    len(similar),
+                    len(result_box.get("similar_past_decisions", [])),
                 )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Council: AgentDB augmentation skipped: %s", exc)
+        else:
+            logger.debug(
+                "Council: AgentDB augmentation timed out (>%dms) — skipped", _AGENTDB_AUGMENT_MS
+            )
         return ctx_out
 
     def _persist_verdict_to_agentdb(
@@ -396,23 +425,32 @@ class LLMCouncilEngine:
         finding: Mapping[str, Any],
         verdict: "CouncilVerdict",
     ) -> None:
-        """Write the verdict back to AgentDB for future similarity lookups."""
-        try:
-            from trustgraph.agentdb_bridge import get_agentdb_bridge
+        """Write the verdict back to AgentDB for future similarity lookups.
 
-            bridge = get_agentdb_bridge()
-            verdict_dict = verdict.to_dict() if hasattr(verdict, "to_dict") else {
-                "action": getattr(verdict, "action", "unknown"),
-                "confidence": getattr(verdict, "confidence", 0.0),
-                "reasoning": getattr(verdict, "reasoning", ""),
-            }
-            bridge.write_council_verdict(
-                finding=dict(finding),
-                verdict=verdict_dict,
-                org_id=str(finding.get("tenant", finding.get("org_id", "default"))),
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Council: AgentDB verdict persist skipped: %s", exc)
+        Fire-and-forget via a daemon thread — the caller is never blocked.
+        The thread may outlive the call; that's intentional (write-behind cache).
+        """
+        import threading as _threading
+
+        def _do_persist() -> None:
+            try:
+                from trustgraph.agentdb_bridge import get_agentdb_bridge
+
+                bridge = get_agentdb_bridge()
+                verdict_dict = verdict.to_dict() if hasattr(verdict, "to_dict") else {
+                    "action": getattr(verdict, "action", "unknown"),
+                    "confidence": getattr(verdict, "confidence", 0.0),
+                    "reasoning": getattr(verdict, "reasoning", ""),
+                }
+                bridge.write_council_verdict(
+                    finding=dict(finding),
+                    verdict=verdict_dict,
+                    org_id=str(finding.get("tenant", finding.get("org_id", "default"))),
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Council: AgentDB verdict persist skipped: %s", exc)
+
+        _threading.Thread(target=_do_persist, daemon=True, name="agentdb-persist").start()
 
     def _stage_independent_analysis(
         self,
