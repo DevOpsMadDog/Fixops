@@ -17,6 +17,8 @@ import { motion } from "framer-motion";
 import {
   AlertOctagon,
   AlertTriangle,
+  Compass,
+  Download,
   GitPullRequest,
   Inbox,
   Layers,
@@ -90,7 +92,8 @@ type TabKey =
   | "kev"
   | "drift"
   | "material"
-  | "pr-risk";
+  | "pr-risk"
+  | "explorer";
 
 interface TabSpec {
   key: TabKey;
@@ -109,6 +112,7 @@ const TABS: TabSpec[] = [
   { key: "drift", label: "Drift", icon: TrendingUp, endpoint: "/api/v1/drift/findings", description: "Posture drift since last baseline" },
   { key: "material", label: "Material Changes", icon: Layers, endpoint: "/api/v1/changes/material", description: "Significant code changes worth reviewing" },
   { key: "pr-risk", label: "PR Risk", icon: GitPullRequest, endpoint: "/api/v1/pr/change-risk", description: "Inbound PR risk scores from open pull requests" },
+  { key: "explorer", label: "Explorer", icon: Compass, endpoint: "/api/v1/findings", description: "Power-user view: rich filters, severity histogram, scanner facets, full-text search, CSV export" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -280,6 +284,10 @@ export default function Issues() {
           <TabsContent key={t.key} value={t.key} className="space-y-4">
             <p className="text-sm text-muted-foreground">{t.description}</p>
 
+            {t.key === "explorer" ? (
+              <FindingsExplorerPane onSelect={(f) => { setSelected(f); setDrawer("score"); }} />
+            ) : (
+            <>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -385,6 +393,8 @@ export default function Issues() {
                 </CardContent>
               </Card>
             </div>
+            </>
+            )}
           </TabsContent>
         ))}
       </Tabs>
@@ -438,5 +448,315 @@ export default function Issues() {
         </motion.aside>
       )}
     </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FindingsExplorerPane — P1 fold-in (S7) inside Issues hero. Power-user table
+// with severity histogram, scanner facet filter, severity multi-select, status
+// filter, search, paging, and CSV export. Real /api/v1/findings only.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FindingsExplorerPaneProps {
+  onSelect: (f: Finding) => void;
+}
+
+const SEVERITIES = ["critical", "high", "medium", "low", "info"] as const;
+const STATUSES = ["new", "triaged", "in_progress", "fixed", "wont_fix", "false_positive"] as const;
+
+function FindingsExplorerPane({ onSelect }: FindingsExplorerPaneProps) {
+  const [items, setItems] = useState<Finding[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [sevFilter, setSevFilter] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [scannerFilter, setScannerFilter] = useState<string>("");
+  const [limit, setLimit] = useState(200);
+
+  const params = useMemo(() => {
+    const sp = new URLSearchParams();
+    sp.set("limit", String(limit));
+    if (statusFilter) sp.set("status", statusFilter);
+    if (sevFilter.size === 1) sp.set("severity", Array.from(sevFilter)[0]);
+    if (scannerFilter) sp.set("scanner", scannerFilter);
+    if (q.trim()) sp.set("q", q.trim());
+    return sp.toString();
+  }, [limit, statusFilter, sevFilter, scannerFilter, q]);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    setLoading(true);
+    try {
+      const r = await apiFetch<ListResponse | Finding[]>(`/api/v1/findings?${params}`);
+      setItems(findingsFromResponse(r));
+    } catch (e) {
+      setErr((e as Error).message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [params]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Client-side multi-sev (server side returns one if specified)
+  const visible = useMemo(() => {
+    if (sevFilter.size <= 1) return items;
+    return items.filter((f) => sevFilter.has((f.severity ?? "").toLowerCase()));
+  }, [items, sevFilter]);
+
+  const histogram = useMemo(() => {
+    const h: Record<string, number> = {};
+    for (const s of SEVERITIES) h[s] = 0;
+    for (const f of items) {
+      const s = (f.severity ?? "").toLowerCase();
+      if (s in h) h[s] += 1;
+    }
+    return h;
+  }, [items]);
+  const histMax = Math.max(1, ...Object.values(histogram));
+
+  const scanners = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of items) {
+      const s = f.scanner ?? f.source;
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort();
+  }, [items]);
+
+  const exportCsv = useCallback(() => {
+    const rows = [
+      ["id", "severity", "status", "title", "cve", "scanner", "asset"].join(","),
+      ...visible.map((f) =>
+        [
+          findingId(f),
+          f.severity ?? "",
+          f.status ?? "",
+          (f.title ?? "").replace(/"/g, '""'),
+          f.cve ?? f.cve_id ?? "",
+          f.scanner ?? f.source ?? "",
+          f.asset ?? f.asset_id ?? "",
+        ]
+          .map((c) => `"${c}"`)
+          .join(","),
+      ),
+    ].join("\n");
+    const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `findings-explorer-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [visible]);
+
+  const toggleSev = (s: string) => {
+    setSevFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filter bar */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[260px]">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search title, CVE, scanner, asset…"
+                className="pl-8"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">All statuses</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s.replace("_", " ")}</option>
+              ))}
+            </select>
+            <select
+              value={scannerFilter}
+              onChange={(e) => setScannerFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">All scanners</option>
+              {scanners.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              value={String(limit)}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {[100, 200, 500, 1000].map((l) => (
+                <option key={l} value={l}>{l} rows</option>
+              ))}
+            </select>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              <RefreshCw className={cn("mr-2 h-3.5 w-3.5", loading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={visible.length === 0}>
+              <Download className="mr-2 h-3.5 w-3.5" />
+              CSV
+            </Button>
+          </div>
+
+          {/* Severity multi-select chips */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground mr-1">Severity:</span>
+            {SEVERITIES.map((s) => {
+              const active = sevFilter.has(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => toggleSev(s)}
+                  className={cn(
+                    "rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wide transition-colors",
+                    active ? sevTone(s) : "border-border text-muted-foreground hover:border-primary/40",
+                  )}
+                >
+                  {s} ({histogram[s] ?? 0})
+                </button>
+              );
+            })}
+            {sevFilter.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setSevFilter(new Set())}
+                className="ml-1 text-[10px] text-muted-foreground underline hover:text-foreground"
+              >
+                clear
+              </button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Severity histogram */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Severity Histogram</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {SEVERITIES.map((s) => {
+              const v = histogram[s] ?? 0;
+              const pct = (v / histMax) * 100;
+              return (
+                <div key={s} className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="capitalize">{s}</span>
+                    <span className="tabular-nums text-muted-foreground">{v}</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded bg-muted">
+                    <div
+                      className={cn(
+                        "h-full",
+                        s === "critical" && "bg-red-500",
+                        s === "high" && "bg-orange-500",
+                        s === "medium" && "bg-yellow-500",
+                        s === "low" && "bg-emerald-500",
+                        s === "info" && "bg-slate-500",
+                      )}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            <div className="pt-2 mt-2 border-t border-border text-[11px] text-muted-foreground">
+              Total: {items.length.toLocaleString()} · Filtered: {visible.length.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Findings table */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Findings</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="space-y-2 p-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full" />
+                ))}
+              </div>
+            ) : err ? (
+              <ErrorState title="Failed to load findings" message={err} onRetry={load} />
+            ) : visible.length === 0 ? (
+              <EmptyState
+                icon={Compass}
+                title="No findings match these filters"
+                description="Adjust filters or trigger a scan from /discover."
+              />
+            ) : (
+              <ScrollArea className="h-[560px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[110px]">Severity</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead className="w-[130px]">CVE</TableHead>
+                      <TableHead className="w-[140px]">Scanner</TableHead>
+                      <TableHead className="w-[140px]">Asset</TableHead>
+                      <TableHead className="w-[110px]">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visible.map((f) => {
+                      const id = findingId(f);
+                      return (
+                        <TableRow
+                          key={id}
+                          className="cursor-pointer hover:bg-muted/40"
+                          onClick={() => onSelect(f)}
+                        >
+                          <TableCell>
+                            <Badge variant="outline" className={sevTone(f.severity)}>
+                              {(f.severity ?? "—").toString().toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {f.title ?? "(untitled finding)"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {f.cve ?? f.cve_id ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {f.scanner ?? f.source ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground truncate max-w-[140px]">
+                            {f.asset ?? f.asset_id ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground capitalize">
+                            {(f.status ?? "—").toString().replace("_", " ")}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
