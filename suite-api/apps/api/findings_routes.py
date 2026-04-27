@@ -217,6 +217,75 @@ class ExportRequest(BaseModel):
 # ============================================================================
 
 
+def _engine_findings_for_org(org_id: str) -> List[Dict[str, Any]]:
+    """Mirror engine-DB issues into the findings response shape.
+
+    Onboarding bug 2026-04-27 (Bug A — playbook divergence): the in-memory
+    ``_findings_store`` only receives findings produced by the new pipeline
+    bridge (commit ``d057efed``). Pre-existing rows in the
+    ``security_findings_engine.db`` (used by /api/v1/issues) were stranded:
+    /issues showed 163 rows for ``juice-shop-corp`` while /findings returned
+    zero. Customers using the Issues hero on /issues hit an empty state.
+
+    We UNION over both sources at read time so /findings always reflects the
+    same totals /issues sees, without requiring a one-shot backfill the SE
+    might forget to run. Engine-DB rows missed by the bridge are degraded
+    gracefully (empty list).
+    """
+    if not org_id:
+        return []
+    try:
+        from core.unified_issues_engine import get_unified_issues_engine  # noqa: PLC0415
+    except ImportError:
+        return []
+
+    try:
+        rows = get_unified_issues_engine().unified_list(
+            org_id=org_id,
+            filters={"source": "findings"},
+            limit=1000,
+        )
+    except (ValueError, RuntimeError, OSError) as exc:  # noqa: BLE001 — defensive
+        logger.warning(
+            "findings.list: unified-issues federation failed (%s: %s); "
+            "falling back to in-memory store only",
+            type(exc).__name__, exc,
+        )
+        return []
+
+    mirrored: List[Dict[str, Any]] = []
+    for row in rows:
+        meta = row.get("metadata") or {}
+        first_seen = row.get("first_seen_at") or ""
+        try:
+            created_at = (
+                datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
+                if first_seen
+                else datetime.now(timezone.utc)
+            )
+        except ValueError:
+            created_at = datetime.now(timezone.utc)
+        mirrored.append({
+            "id": row.get("id") or "",
+            "title": row.get("title") or "",
+            "description": "",
+            "severity": (row.get("severity") or "medium").lower(),
+            "status": row.get("status") or "open",
+            "connector": meta.get("source_tool") or row.get("source_engine") or "engine",
+            "asset_id": row.get("asset_id") or "",
+            "cve_id": meta.get("cve_id") or "",
+            "risk_score": float(meta.get("cvss_score") or 0.0),
+            "created_at": created_at,
+            "updated_at": created_at,
+            "last_seen": created_at,
+            "assigned_to": row.get("owner") or None,
+            "assigned_team": None,
+            "org_id": org_id,
+            "_source": "engine_db",
+        })
+    return mirrored
+
+
 @router.get("", response_model=Dict[str, Any])
 async def list_findings(
     severity: Optional[str] = Query(None),
@@ -251,7 +320,17 @@ async def list_findings(
         Paginated findings list with total count
     """
     # AUTHZ-VULN-05: Filter by org_id to prevent cross-tenant access
-    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
+    in_memory = [f for f in _findings_store.values() if f.get("org_id") == org_id]
+    # Bug A fix (playbook divergence 2026-04-27): UNION with engine-DB rows
+    # so /findings reflects the same total /issues sees. Dedup by id, with
+    # in-memory rows winning (they're authoritative for any post-bridge state
+    # transitions like assignment / status updates).
+    in_memory_ids = {f.get("id") for f in in_memory if f.get("id")}
+    engine_rows = [
+        f for f in _engine_findings_for_org(org_id)
+        if f.get("id") and f.get("id") not in in_memory_ids
+    ]
+    findings = list(in_memory) + engine_rows
 
     # Apply filters
     if severity:
