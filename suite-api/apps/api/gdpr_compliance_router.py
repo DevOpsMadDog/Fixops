@@ -95,11 +95,18 @@ def list_processing_activities(
     lawful_basis: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     try:
-        return _get_engine().list_processing_activities(
+        rows = _get_engine().list_processing_activities(
             org_id, lawful_basis=lawful_basis, status=status
         )
+        if not rows:
+            return {
+                "activities": [],
+                "total": 0,
+                "hint": "Record GDPR processing activities via POST /api/v1/gdpr/activities (manual data-mapping entry).",
+            }
+        return {"activities": rows, "total": len(rows)}
     except Exception as exc:
         _logger.error("gdpr.list_activities error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))

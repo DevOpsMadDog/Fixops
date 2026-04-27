@@ -101,9 +101,16 @@ def list_experiments(
     status: Optional[str] = Query(None),
 ):
     """List chaos experiments with optional filters."""
-    return _get_engine().list_experiments(
+    rows = _get_engine().list_experiments(
         org_id, experiment_type=experiment_type, status=status
     )
+    if not rows:
+        return {
+            "experiments": [],
+            "total": 0,
+            "hint": "Design and run chaos experiments via POST /api/v1/security-chaos/experiments (manual experiment design).",
+        }
+    return {"experiments": rows, "total": len(rows)}
 
 
 @router.get("/experiments/{experiment_id}", dependencies=[Depends(api_key_auth)])

@@ -93,7 +93,14 @@ async def list_challenges(
     auth=Depends(api_key_auth),
 ):
     """List challenges with optional filters."""
-    return _get_engine().list_challenges(org_id, challenge_type=challenge_type, difficulty=difficulty)
+    rows = _get_engine().list_challenges(org_id, challenge_type=challenge_type, difficulty=difficulty)
+    if not rows:
+        return {
+            "challenges": [],
+            "total": 0,
+            "hint": "Create security awareness challenges via POST /api/v1/awareness-gamification/challenges (manual content authoring).",
+        }
+    return {"challenges": rows, "total": len(rows)}
 
 
 @router.post("/completions")
