@@ -140,16 +140,19 @@ def list_playbooks(
 
 @router.post("/import-sigma", dependencies=[Depends(api_key_auth)])
 def import_sigma_playbooks(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Import threat hunting playbooks from SigmaHQ rule repository (NOT YET IMPLEMENTED)."""
-    raise HTTPException(
-        status_code=501,
-        detail={
-            "error": "not_implemented",
-            "endpoint": "POST /api/v1/hunting-playbooks/import-sigma",
-            "reason": "Sigma YAML importer not yet built. Source: https://github.com/SigmaHQ/sigma (converts Sigma rules to playbook records).",
-            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#28",
-        },
-    )
+    """Import detection rules from SigmaHQ master branch into sigmahq_rules.db.
+
+    Downloads https://github.com/SigmaHQ/sigma/archive/refs/heads/master.tar.gz,
+    parses all YAML rules under rules/ (skipping deprecated/unsupported/tests),
+    and upserts them by UUID.  Returns a summary with rule count by level and platform.
+    """
+    try:
+        from feeds.sigmahq.importer import run_import
+        result = run_import()
+        return {"org_id": org_id, **result}
+    except Exception as exc:
+        _logger.exception("SigmaHQ import failed")
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/playbooks/{playbook_id}", dependencies=[Depends(api_key_auth)])

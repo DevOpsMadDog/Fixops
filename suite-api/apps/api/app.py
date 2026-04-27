@@ -2686,139 +2686,13 @@ def create_app() -> FastAPI:
         expected_tokens.append(_env_api_token)
     expected_tokens = tuple(expected_tokens)
 
-    # Default scopes for token-based auth (service accounts get admin)
-    _ALL_SCOPES = [
-        "read:sbom",
-        "write:sbom",
-        "read:findings",
-        "write:findings",
-        "read:graph",
-        "write:graph",
-        "read:feeds",
-        "read:evidence",
-        "write:evidence",
-        "read:integrations",
-        "write:integrations",
-        "attack:execute",
-        "admin:all",
-    ]
-
-    async def _verify_api_key(
-        request: Request,
-        api_key: Optional[str] = Depends(api_key_header),
-    ) -> None:
-        # Determine client IP for brute-force tracking
-        client_ip = request.client.host if request.client else "unknown"
-
-        # Check auth rate limit before any validation
-        if _check_auth_rate_limit(client_ip):
-            logger.warning(
-                "Auth rate limit exceeded for IP %s — rejecting request", client_ip
-            )
-            raise HTTPException(
-                status_code=429,
-                detail="Too many failed authentication attempts. Try again later.",
-            )
-
-        # Also accept token via ?api_key= query parameter (for browser-opened
-        # URLs like report view/download where headers cannot be sent).
-        if not api_key:
-            api_key = request.query_params.get("api_key")
-
-        # Try to extract Authorization header for JWT (frontend sends this after login)
-        auth_header = request.headers.get("Authorization", "")
-
-        if auth_strategy == "token":
-            # First check X-API-Key token
-            if api_key and api_key in expected_tokens:
-                request.state.user_role = "admin"
-                request.state.user_scopes = _ALL_SCOPES
-                _clear_auth_failures(client_ip)  # valid key — reset any accumulated failures
-                return
-            # Also accept JWT Bearer tokens (dual auth: API key + JWT login)
-            if auth_header.lower().startswith("bearer "):
-                jwt_token = auth_header[7:].strip()
-                try:
-                    claims = decode_access_token(jwt_token)
-                    request.state.user_role = claims.get("role", "viewer")
-                    request.state.user_scopes = claims.get("scopes", ["read:findings"])
-                    _clear_auth_failures(client_ip)  # valid JWT — reset any accumulated failures
-                    return
-                except HTTPException:
-                    pass  # Fall through to failure
-            _record_auth_failure(client_ip)
-            logger.warning("Failed token auth attempt from IP %s", client_ip)
-            if _security_audit:
-                _security_audit.log_login_attempt(
-                    client_ip=client_ip,
-                    success=False,
-                    auth_method="token",
-                    correlation_id=getattr(request.state, "correlation_id", None),
-                )
-            raise HTTPException(
-                status_code=401, detail="Invalid or missing API token"
-            )
-        if auth_strategy == "jwt":
-            if not api_key:
-                _record_auth_failure(client_ip)
-                logger.warning("Missing Authorization header from IP %s", client_ip)
-                if _security_audit:
-                    _security_audit.log_login_attempt(
-                        client_ip=client_ip,
-                        success=False,
-                        auth_method="jwt",
-                        correlation_id=getattr(request.state, "correlation_id", None),
-                        details={"reason": "missing_authorization_header"},
-                    )
-                raise HTTPException(
-                    status_code=401, detail="Missing Authorization header"
-                )
-            token = api_key
-            if token.lower().startswith("bearer "):
-                token = token[7:].strip()
-            try:
-                claims = decode_access_token(token)
-            except HTTPException:
-                _record_auth_failure(client_ip)
-                logger.warning("Failed JWT auth attempt from IP %s", client_ip)
-                if _security_audit:
-                    _security_audit.log_login_attempt(
-                        client_ip=client_ip,
-                        success=False,
-                        auth_method="jwt",
-                        correlation_id=getattr(request.state, "correlation_id", None),
-                        details={"reason": "invalid_jwt"},
-                    )
-                raise
-            # Extract role/scopes from JWT claims
-            request.state.user_role = claims.get("role", "viewer")
-            request.state.user_scopes = claims.get("scopes", ["read:findings"])
-            _clear_auth_failures(client_ip)  # valid JWT — reset any accumulated failures
-            return
-        # Fallback — no auth strategy → admin (dev mode)
-        request.state.user_role = "admin"
-        request.state.user_scopes = _ALL_SCOPES
-        _clear_auth_failures(client_ip)  # dev mode pass-through — reset any accumulated failures
-
-    def _require_scope(scope: str):
-        """Factory returning a dependency that checks for a required scope."""
-
-        async def _check(request: Request):
-            user_scopes = getattr(request.state, "user_scopes", [])
-            if scope not in user_scopes and "admin:all" not in user_scopes:
-                if _security_audit:
-                    _security_audit.log_permission_denied(
-                        client_ip=request.client.host if request.client else None,
-                        resource=request.url.path,
-                        required_scope=scope,
-                        correlation_id=getattr(request.state, "correlation_id", None),
-                    )
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"Forbidden — missing required scope: {scope}",
-                )
-
-        return _check
+    # Wave-0 refactor: auth closures extracted to auth_deps.py (RISK-01 gate).
+    # _verify_api_key and _require_scope are now module-level functions imported
+    # from .auth_deps.  We re-bind them here under the original local names so
+    # all existing Depends(_verify_api_key) / Depends(_require_scope(...)) call
+    # sites in this file continue to work without modification.
+    from .auth_deps import verify_api_key as _verify_api_key  # noqa: PLC0415
+    from .auth_deps import require_scope as _require_scope     # noqa: PLC0415
 
     allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
     for directory in overlay.data_directories.values():
@@ -8840,6 +8714,13 @@ def create_app() -> FastAPI:
         from apps.api.threat_hunting_playbook_router import router as threat_hunting_playbook_router
         app.include_router(threat_hunting_playbook_router)
         _logger.info("Mounted Threat Hunting Playbook router at /api/v1/hunting-playbooks")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.sigmahq_router import router as sigmahq_router
+        app.include_router(sigmahq_router)
+        _logger.info("Mounted SigmaHQ router at /api/v1/sigmahq")
     except ImportError:
         pass
 
