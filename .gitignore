@@ -207,3 +207,9 @@ lib/
 .omc/state/last-tool-error.json
 .omc/state/subagent-tracking.json
 .claude/scheduled_tasks.lock
+
+# RuFlo (claude-flow) runtime — config OK to commit, runtime/data NOT
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+.claude-flow/cache/
