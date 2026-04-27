@@ -540,6 +540,9 @@ const IssuesHero = lazy(() => import("@/pages/Issues"));
 const BrainHero = lazy(() => import("@/pages/Brain"));
 const ComplianceHero = lazy(() => import("@/pages/Compliance"));
 const AssetGraphHero = lazy(() => import("@/pages/AssetGraph"));
+// ── Phase 3 P0 Wave 3 hero pages (Command + Admin) ──
+const CommandHero = lazy(() => import("@/pages/Command"));
+const AdminHero = lazy(() => import("@/pages/Admin"));
 
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
@@ -630,18 +633,18 @@ export default function App() {
 
           {/* Protected workspace */}
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
-            {/* Space 1: Mission Control */}
-            <Route path="/" element={<CommandDashboard />} />
-            <Route path="/mission-control" element={<CommandDashboard />} />
-            <Route path="/mission-control/ciso" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><CISODashboard /></RequireRole>} />
-            <Route path="/mission-control/executive" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><ExecutiveView /></RequireRole>} />
+            {/* Space 1: Mission Control — Phase 3 P0 Wave 3: root → CommandHero, legacy → redirects */}
+            <Route path="/" element={<CommandHero />} />
+            <Route path="/mission-control" element={<Navigate to="/" replace />} />
+            <Route path="/mission-control/ciso" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/mission-control/executive" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/mission-control/sla" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><SLADashboard /></RequireRole>} />
             <Route path="/mission-control/live-feed" element={<LiveFeed />} />
             <Route path="/mission-control/risk" element={<RiskOverview />} />
-            <Route path="/mission-control/soc" element={<SOCDashboard />} />
-            <Route path="/mission-control/soc-t1" element={<SOCT1Dashboard />} />
-            <Route path="/mission-control/compliance" element={<MissionControlComplianceDashboard />} />
-            <Route path="/mission-control/dev-security" element={<DevSecurityDashboard />} />
+            <Route path="/mission-control/soc" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/mission-control/soc-t1" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/mission-control/compliance" element={<Navigate to="/compliance" replace />} />
+            <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
             <Route path="/mission-control/threat-intel" element={<ThreatIntelDashboard />} />
             <Route path="/mission-control/risk-register" element={<RiskRegister />} />
 
@@ -701,7 +704,7 @@ export default function App() {
             <Route path="/settings/teams" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><Teams /></RequireRole>} />
             <Route path="/settings/marketplace" element={<Marketplace />} />
             <Route path="/settings/policies" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Policies /></RequireRole>} />
-            <Route path="/settings/health" element={<SystemHealth />} />
+            <Route path="/settings/health" element={<Navigate to="/admin?tab=system" replace />} />
             <Route path="/settings/logs" element={<LogViewer />} />
 
             {/* AI Security Advisor */}
@@ -802,7 +805,7 @@ export default function App() {
             <Route path="/attack-paths" element={<AttackPathAnalysis />} />
             <Route path="/incident-timeline" element={<IncidentTimeline />} />
             <Route path="/identity-governance" element={<IdentityGovernance />} />
-            <Route path="/executive-report" element={<ExecutiveRiskReport />} />
+            <Route path="/executive-report" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/network-analysis" element={<NetworkAnalysis />} />
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
@@ -845,13 +848,13 @@ export default function App() {
             <Route path="/pam" element={<PAMDashboard />} />
             <Route path="/cyber-insurance" element={<CyberInsuranceDashboard />} />
             <Route path="/cyber-insurance-legacy" element={<CyberInsurance />} />
-            <Route path="/executive-reporting" element={<ExecutiveReportingDashboard />} />
+            <Route path="/executive-reporting" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/vuln-scanner" element={<VulnerabilityScanner />} />
             <Route path="/risk-quantification" element={<RiskQuantification />} />
             <Route path="/attack-simulation" element={<AttackSimulationPage />} />
             <Route path="/vuln-scanner-mgmt" element={<VulnerabilityScannerPage />} />
             <Route path="/security-posture" element={<SecurityPostureDashboard />} />
-            <Route path="/executive-briefing" element={<ExecutiveBriefing />} />
+            <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/threat-feeds" element={<ThreatFeedDashboard />} />
             <Route path="/cwpp" element={<CWPPDashboard />} />
             <Route path="/digital-forensics" element={<DigitalForensicsDashboard />} />
@@ -1148,6 +1151,34 @@ export default function App() {
             <Route path="/comply" element={<ComplianceHero />} />
             <Route path="/assets" element={<AssetGraphHero />} />
 
+            {/* ─── Phase 3 P0 Wave 3 hero pages (Command + Admin) ─── */}
+            <Route path="/command" element={<CommandHero />} />
+            <Route path="/admin" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><AdminHero /></RequireRole>} />
+
+            {/* 90-day muscle-memory redirects → Command hero */}
+            <Route path="/main" element={<Navigate to="/" replace />} />
+            <Route path="/overview" element={<Navigate to="/" replace />} />
+            <Route path="/executive-brief" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-report" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-reporting" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/mission-control" element={<Navigate to="/" replace />} />
+            <Route path="/mission-control/ciso" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/mission-control/executive" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/mission-control/soc" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/mission-control/soc-t1" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
+
+            {/* 90-day muscle-memory redirects → Admin hero */}
+            <Route path="/users/me/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
+            <Route path="/admin/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
+            <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
+            <Route path="/webhooks/event-catalogue" element={<Navigate to="/admin?tab=webhooks" replace />} />
+            <Route path="/webhooks/retry-queue" element={<Navigate to="/admin?tab=webhooks" replace />} />
+            <Route path="/organizations" element={<Navigate to="/admin?tab=orgs" replace />} />
+            <Route path="/billing" element={<Navigate to="/admin?tab=billing" replace />} />
+            <Route path="/settings/health" element={<Navigate to="/admin?tab=system" replace />} />
+
             {/* 90-day muscle-memory redirects → Compliance hero */}
             <Route path="/comply/evidence" element={<Navigate to="/compliance?tab=evidence" replace />} />
             <Route path="/comply/bundles" element={<Navigate to="/compliance?tab=bundles" replace />} />
@@ -1195,7 +1226,7 @@ export default function App() {
             <Route path="/brain/neural" element={<BrainVisualization />} />
 
             {/* Main Overview Dashboard */}
-            <Route path="/dashboard" element={<MainOverviewDashboard />} />
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
             {/* Wave 3 — risk / dashboards / runtime (15 screens, 2026-04-26) */}
             <Route path="/brs-executive" element={<BRSExecutiveDashboard />} />
@@ -1225,19 +1256,19 @@ export default function App() {
             <Route path="/scopes" element={<ScopeManager />} />
             <Route path="/easm/seed-domain" element={<DomainSeedDiscoveryWizard />} />
             {/* /easm/subsidiaries → consolidated into /assets hero */}
-            <Route path="/users/me/tokens" element={<UserTokenManager />} />
+            <Route path="/users/me/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
             <Route path="/llm/context-tier" element={<LLMContextTierBadge />} />
             <Route path="/llm/estimate" element={<LLMPreFlightEstimateModal />} />
             <Route path="/llm/rules/edit" element={<LLMRuleContextEditor />} />
             <Route path="/hooks/policy" element={<HooksPolicyEditor />} />
             <Route path="/hooks/status" element={<HooksStatusPanel />} />
-            <Route path="/connectors/mapping" element={<ConnectorMappingUI />} />
+            <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
             <Route path="/connectors/mapping/dry-run" element={<UniversalIngestionTester />} />
             <Route path="/pbom/propagation" element={<PBOMViewer />} />
             <Route path="/provenance/attestation" element={<PipelineAttestationGraph />} />
             <Route path="/provenance/sign" element={<SLSAAttestationSigner />} />
-            <Route path="/webhooks/event-catalogue" element={<WebhookEventCatalogExplorer />} />
-            <Route path="/webhooks/retry-queue" element={<WebhookRetryConsole />} />
+            <Route path="/webhooks/event-catalogue" element={<Navigate to="/admin?tab=webhooks" replace />} />
+            <Route path="/webhooks/retry-queue" element={<Navigate to="/admin?tab=webhooks" replace />} />
             <Route path="/assets/crown-jewel" element={<CrownJewelConfigurator />} />
             <Route path="/organizations" element={<OrgHierarchyExplorer />} />
             <Route path="/findings/drift" element={<StaleBaselineBanner />} />
