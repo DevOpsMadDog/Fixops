@@ -73,39 +73,48 @@ When the user says "test with real apps", that means **onboard them as real tena
 
 **Rule #1: Don't build what already exists.** Configuration/integration layer wiring existing OSS tools.
 
+### PRIMARY (the 6 things that actually run our work):
+
 | Tool | Status | Purpose |
 |------|--------|---------|
-| **graphify** | ✅ ACTIVE | Codebase knowledge graph (`/opt/homebrew/bin/graphify`). Currently **119,765 nodes / 425,727 edges / 1516 communities**. Run `graphify update . --no-llm` to refresh; output at `graphify-out/graph.json`. **Use BEFORE reading files** for blast-radius/explain queries. |
-| **oh-my-claudecode (OMC)** | ✅ ACTIVE (plugin) | Skills: `/team`, `/ultrawork`, `/ralph`, `/autopilot`, `/ask codex` + `/ask gemini` (debate), `/verify`, `/ultraqa`. |
-| **superpowers-optimized** | ✅ ACTIVE (plugin marketplace `REPOZY/superpowers-optimized`) | 24 skills + 10 OWASP hooks + cross-session memory + ~76% token compression. |
-| **ruflo (claude-flow v3.5.80)** | 🟡 PARTIAL — ~10% utilized | **ACTIVE-USED**: AgentDB (`.swarm/memory.db`, **6,121 entries**, MiniLM-l6-v2 384-dim, WAL mode), 5 AgentDB skills + 2 ReasoningBank skills auto-loaded, HNSW `vector_indexes`, async drain daemon (`scripts/agentdb_async_worker.py`). 8 source files reference AgentDB. **ACTIVE-IDLE (worth adopting)**: `pending-insights.jsonl` consolidation (320 events unprocessed), `ruflo swarm status` observability, 8 AgentDB controllers (skills/episodes/causal_chains all 0 rows). **BROKEN**: hive-mind autonomous executor. **NOT-USED**: 27 hooks (none in `settings.json`), 12 background workers, 98 agent templates (`Task` resolves to our 17 personas), MCP server (`autoStart: false`), 18 of 26 CLI commands. **Full audit**: `docs/ruflo_full_audit_2026-04-26.md`. |
-| **AgentDB Bridge** | ✅ ACTIVE | `suite-core/trustgraph/agentdb_bridge.py` — TrustGraph + LLM Council ↔ AgentDB HNSW. ~360ms warm semantic search via MiniLM 384-dim. Council `convene()` augments with top-5 similar past verdicts before Stage 1. |
-| **Agent Memory Bridge** | ✅ ACTIVE | `suite-core/core/agent_memory_bridge.py` — per-agent namespace memory at `.swarm/memory.db` (`agent:backend-hardener`, etc). 124 commits bootstrap-loaded across 10 namespaces. Tomorrow's agents inherit today's outcomes. |
-| **Agent Routing Advisor** | ✅ ACTIVE | `tools/agent_routing_advisor.py` — Q-Learning task→agent router (`data/agent_routing_qtable.db`, 118 states / 372 routing-history rows). |
-| **ReasoningBank** | ⚠️ IN-FLIGHT | `suite-core/core/reasoning_bank.py` — trajectory tracker + pattern distillation built on AgentDB. Council convene queries past trajectories ranked by outcome (not just raw similarity). |
-| **Multica** | ✅ ACTIVE | Internal kanban: UI :3000, API :8080, Postgres :5433 (`docker exec multica-postgres-1 psql -U multica -d multica`). Currently **2942 done / 72 todo / 9 in_progress** (long-running EPIC parents). |
-| **TrustGraph** | ✅ 38.4% WIRED | Built (`suite-core/trustgraph/`). 30 hubs + 16 connectors broadcasting + Brain Pipeline emits. AQUA blast-radius color in `scripts/visualize_second_brain.py`. AgentDB-bridged for semantic recall. |
-| **LLM Phase 1 closed-loop** | ✅ LIVE | `suite-core/core/llm_learning_loop.py` (commit `cbd01c4d`). Subscribes to TrustGraph events → council → DPO pair persistence. Currently **5,196 DPO pairs** (was 2 yesterday — 2598x growth). 52% to 10K Phase 2 GA training threshold. WAL + non-blocking AgentDB queue → 41x throughput, 83x latency. |
-| **LLM Phase 2 distillation** | ✅ SCAFFOLDED | `scripts/llm_distill_dataset_curator.py` + `llm_distill_train.py` + `suite-core/core/llm_distill_router.py`. Qwen 2.5 7B + LoRA r=16 + 4-bit nf4. Cost-guard via `FIXOPS_DISTILL_TRAIN=1`. |
-| **Claude Opus 4.7 (1M context)** | ✅ ACTIVE — primary | You are this. CTO mode: plan, review, delegate. |
-| **Codex (GPT-5.5)** | ✅ ACTIVE (key in `~/.omc/.env`) | Second opinion via `/ask codex` for HIGH-stakes only: architecture, security, code review of large diffs, confusing test failures. NOT for scaffolding/typos/board reconciliation. |
-| **Playwright MCP** | ✅ ACTIVE (npx) | Browser automation for the NO MOCKS rule (every UI task ends with navigate→screenshot→DOM-inspect→confirm-API-call). |
+| **graphify** | ✅ PRIMARY — codebase graph | `/opt/homebrew/bin/graphify`. Currently **119,765 nodes / 425,727 edges / 1516 communities**. Run `graphify update . --no-llm` to refresh. **Use BEFORE reading files.** |
+| **TrustGraph** | ✅ PRIMARY — second brain | `suite-core/trustgraph/`. **38.4% wired** (15.1% direct + 10.6% AQUA + 12.7% middleware). 30 hubs + 16 connectors broadcasting. Brain Pipeline emits at `brain_pipeline.py:553`. |
+| **AgentDB** (via ruflo) | ✅ PRIMARY — vector memory | `.swarm/memory.db`, **8,034+ entries** (MiniLM-l6-v2 384-dim, WAL). ~360ms semantic search. Wired via `agentdb_bridge.py` + `agent_memory_bridge.py` + `reasoning_bank.py`. |
+| **LLM Phase 1 closed-loop** | ✅ PRIMARY — self-learning | `suite-core/core/llm_learning_loop.py`. **5,196 DPO pairs** auto-captured (52% to Phase 2 10K threshold). Council `convene()` augments with top-5 past verdicts via AgentDB. |
+| **Claude Opus 4.7 (1M context)** | ✅ PRIMARY — execution | Native `Agent` tool dispatches ~50+ specialist agents per session. CTO mode: plan, review, delegate. |
+| **Multica** | ✅ PRIMARY — kanban | UI :3000, API :8080, Postgres :5433. Currently **2942 done / 72 todo / 9 in_progress**. |
 
-### Retired / installed-but-unused
+### SECONDARY (loaded, used selectively):
 
-| Tool | Why retired |
-|------|-------------|
-| code-review-graph | Superseded by graphify (better community detection, multi-format input, HTML viz). Binary still installed but not used. |
-| SwarmClaw | Free models (Qwen 3.6+, Kimi K2) inferior to Opus 4.7 — user prefers paying for Opus quality. Container still running but inactive. |
-| Ollama | Local Gemma 4 unhealthy + same quality concern. |
-| Context7 MCP | Not actively used; WebFetch + agent's existing knowledge sufficient. |
+| Tool | Status | Purpose |
+|------|--------|---------|
+| **Codex (GPT-5.5)** | ✅ ACTIVE — debate only | Key in `~/.omc/.env`. CLI not on PATH → use `/ask codex` skill or simulate dual-framing. HIGH-stakes only (architecture, security, large-diff review). |
+| **Playwright MCP** | ✅ ACTIVE (npx) | Browser automation for NO MOCKS rule. Every UI task ends with navigate→screenshot→DOM→API check. |
+| **superpowers-optimized** | ✅ ACTIVE (plugin) | 24 skills + 10 OWASP hooks + cross-session memory + ~76% token compression. |
+| **ReasoningBank** | ✅ ACTIVE — backfill in progress | `suite-core/core/reasoning_bank.py` — trajectory tracker + pattern distillation built on AgentDB. Backfill of 5,196 DPO pairs ongoing (PID 79802). |
+| **Agent Memory Bridge** | ✅ ACTIVE | `suite-core/core/agent_memory_bridge.py` — per-agent namespace memory. 124 commits backfilled across 10 specialist namespaces. Tomorrow's agents inherit context. |
+| **Agent Routing Advisor** | ✅ ACTIVE | `tools/agent_routing_advisor.py` — Q-Learning task→agent router (118 states / 372 routing rows). |
+| **LLM Phase 2 distillation** | ✅ SCAFFOLDED | `scripts/llm_distill_*.py` + `llm_distill_router.py`. Qwen 2.5 7B + LoRA r=16 + 4-bit nf4. Cost-guard via `FIXOPS_DISTILL_TRAIN=1`. Triggers at 10K DPO pairs. |
+| **ruflo (claude-flow v3.5.80)** | 🟡 PARTIAL — AgentDB only | **ACTIVE-USED**: AgentDB schema + 5 AgentDB skills + 2 ReasoningBank skills + HNSW `vector_indexes` + async drain daemon. **BROKEN**: hive-mind autonomous executor (no `task run` subcommand). **NOT-USED**: 27 hooks, 12 background workers, 98 agent templates, 18 of 26 CLI commands. **Full audit**: `docs/ruflo_full_audit_2026-04-26.md`. |
+
+### DORMANT / RETIRED:
+
+| Tool | Why dormant/retired |
+|------|---------------------|
+| **OMC slash commands** (`/team`, `/ultrawork`, `/ralph`, `/autopilot`) | DORMANT — plugin still loaded, skills still registered, but **rarely invoked**. Today: `/ask codex` 1x; `/team`/`/ultrawork`/`/ralph` 0x. Native `Agent` tool dispatches replaced them in practice. |
+| **OMC standalone CLI** (`omc` binary) | NOT INSTALLED — `which omc` → command not found |
+| **ruflo swarm/hive-mind orchestration** | BROKEN — coordination metadata only, no task execution path. Skip. |
+| **code-review-graph** | RETIRED — superseded by graphify |
+| **SwarmClaw** | RETIRED — free models < Opus 4.7. Container still running but unused. |
+| **Ollama** | RETIRED — local Gemma 4 unhealthy + same quality concern |
+| **Context7 MCP** | RETIRED — not actively used |
 
 ### How CTO operates with this stack
 
 - **Codebase questions:** `graphify query "..."` or `graphify explain "..."` — no file reads.
-- **Bulk parallel work:** `/ultrawork` or spawn N `Agent` calls in one message (verified working: 5+ agents in flight last swing).
-- **High-stakes review:** `/ask codex "..."` for second opinion before commit.
-- **Persist across sessions:** superpowers-optimized memory + `docs/HANDOFF_<date>.md` + Multica board state.
+- **Bulk parallel work:** spawn N `Agent` calls in one message (native Claude Code Agent tool — verified up to 12 concurrent today).
+- **High-stakes review:** `/ask codex "..."` simulated dual-framing if CLI not on PATH.
+- **Persist across sessions:** Agent Memory Bridge writes per-agent → `.swarm/memory.db`. Tomorrow's agents auto-prepend top-5 past trajectories.
 - **Quality gate:** Beast Mode tests (`pytest tests/test_phase*.py ... -q`) MUST pass before any commit lands.
 
 ---
