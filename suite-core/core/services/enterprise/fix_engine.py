@@ -10,6 +10,47 @@ import structlog
 
 logger = structlog.get_logger()
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 @dataclass
 class FixRecommendation:
@@ -50,7 +91,7 @@ class FixEngine:
             await self.initialize()
 
         # Demo mode - return sample fix recommendations
-        return [
+        recommendations = [
             FixRecommendation(
                 fix_id=f"FIX-{finding_id}-001",
                 title="Update vulnerable dependency",
@@ -73,6 +114,13 @@ class FixEngine:
                 validation_steps=["Code review", "Security testing"],
             ),
         ]
+        _emit_event("fix_engine.get_fix_recommendations", {
+            "engine": "fix_engine",
+            "finding_id": finding_id,
+            "recommendation_count": len(recommendations),
+            "automated_count": sum(1 for r in recommendations if r.automated),
+        })
+        return recommendations
 
     async def apply_automated_fix(self, fix_id: str) -> Dict[str, Any]:
         """Apply an automated fix"""
@@ -82,12 +130,19 @@ class FixEngine:
         logger.info("Applying automated fix", fix_id=fix_id)
 
         # Demo mode - simulate fix application
-        return {
+        result = {
             "fix_id": fix_id,
             "status": "applied",
             "message": "Automated fix applied successfully",
             "validation_required": True,
         }
+        _emit_event("fix_engine.apply_automated_fix", {
+            "engine": "fix_engine",
+            "fix_id": fix_id,
+            "status": result["status"],
+            "validation_required": result["validation_required"],
+        })
+        return result
 
     async def validate_fix(self, fix_id: str) -> Dict[str, Any]:
         """Validate that a fix was applied correctly"""
@@ -97,13 +152,22 @@ class FixEngine:
         logger.info("Validating fix", fix_id=fix_id)
 
         # Demo mode - simulate fix validation
-        return {
+        result = {
             "fix_id": fix_id,
             "validation_status": "passed",
             "tests_passed": 5,
             "tests_failed": 0,
             "security_scan_clean": True,
         }
+        _emit_event("fix_engine.validate_fix", {
+            "engine": "fix_engine",
+            "fix_id": fix_id,
+            "validation_status": result["validation_status"],
+            "tests_passed": result["tests_passed"],
+            "tests_failed": result["tests_failed"],
+            "security_scan_clean": result["security_scan_clean"],
+        })
+        return result
 
 
 # Global fix engine instance

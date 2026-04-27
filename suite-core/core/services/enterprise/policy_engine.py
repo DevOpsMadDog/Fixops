@@ -30,6 +30,47 @@ load_dotenv()
 
 logger = structlog.get_logger()
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 class PolicyDecision(str, Enum):
     BLOCK = "block"
@@ -184,6 +225,17 @@ class PolicyEngine:
                 },
             )
 
+            _emit_event("policy_engine.evaluate_policy", {
+                "engine": "policy_engine",
+                "finding_id": context.finding_id,
+                "service_id": context.service_id,
+                "decision": final_result.decision.value,
+                "confidence": final_result.confidence,
+                "escalation_required": final_result.escalation_required,
+                "policies_applied": len(final_result.policy_rules_applied),
+                "execution_time_ms": final_result.execution_time_ms,
+            })
+
             return final_result
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
@@ -240,6 +292,13 @@ class PolicyEngine:
             total_time_ms=total_time * 1000,
             avg_time_per_context_us=(total_time / len(contexts)) * 1_000_000,
         )
+
+        _emit_event("policy_engine.batch_evaluate_policies", {
+            "engine": "policy_engine",
+            "total_contexts": len(contexts),
+            "valid_results": len(valid_results),
+            "total_time_ms": total_time * 1000,
+        })
 
         return valid_results
 
@@ -718,13 +777,19 @@ class PolicyEngine:
                 select(func.count(PolicyRule.id)).where(PolicyRule.active.is_(True))
             )
 
-            return {
+            stats = {
                 "total_decisions": total_decisions.scalar() or 0,
                 "decisions_by_type": dict(decisions_by_type.fetchall()),
                 "average_execution_time_ms": float(avg_execution_time.scalar() or 0),
                 "active_policies": active_policies.scalar() or 0,
                 "cache_stats": await self.cache.get_cache_stats(),
             }
+            _emit_event("policy_engine.get_policy_stats", {
+                "engine": "policy_engine",
+                "total_decisions": stats["total_decisions"],
+                "active_policies": stats["active_policies"],
+            })
+            return stats
 
 
 # Global policy engine instance
