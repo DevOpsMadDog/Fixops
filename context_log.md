@@ -5275,3 +5275,15 @@
 - **Blockers**: None — every step that broke was fixed in the same session
 - **Next steps**: Highest-leverage fixes for next sprint: (1) bridge SAST → SecurityFindingsEngine so dashboard shows findings (today they only land in analytics.db), (2) Brain Pipeline → SecurityFindingsEngine bridge in step 12, (3) `/openapi.json` returns marketing HTML — middleware ordering issue
 - **Pillar(s) served**: V1 (multi-tenant org isolation), V3 (Decision Intelligence — full Brain Pipeline runs), V10 (CTEM evidence integrity — pipeline runs produce SOC2 evidence)
+
+### [2026-04-25 00:00] backend-hardener — DAST_CONNECTOR_ALIASES
+- **What**: Added `ingest_zap_dump()` and `ingest_nuclei_dump()` module-level alias functions to `suite-core/connectors/dast_pentest_connector.py`. Both delegate to the existing `DastPentestConnector.ingest_zap_report` / `ingest_nuclei_report` methods. Full docstrings document exact ZAP JSON format (site→alerts→instances, riskcode 0-4) and Nuclei JSONL format (template-id, info.severity, classification). Seed script `scripts/seed_dast_juice_shop.py` already carries 18 ZAP alerts + 14 Nuclei hits. Expanded test suite from 35 → 106 tests: TestIngestZapDump (14), TestIngestNucleiDump (14), TestSampleDataCoverage (15). Router already wired at /api/v1/connectors/dast.
+- **Files touched**: `suite-core/connectors/dast_pentest_connector.py`, `tests/test_dast_pentest_connector.py`
+- **Outcome**: SUCCESS — 106 passed, 1 skipped (Docker live gate)
+- **Pillar(s) served**: V1 (DAST scanner coverage), V3 (enterprise-grade scan ingest)
+
+### [2026-04-27 17:36] data-scientist — LLM_PHASE2_SCAFFOLD
+- **What**: Phase 2 distillation scaffold: dataset curator + DPO/SFT trainer (gated dry-run validated) + inference router with student->council fall-through. Doc extended with implementation status, 10K-pair gate, env-var matrix, hardware envelope.
+- **Files touched**: scripts/llm_distill_dataset_curator.py (525 LOC), scripts/llm_distill_train.py (517 LOC), suite-core/core/llm_distill_router.py (532 LOC), docs/LLM_TRAINING_ROADMAP_2026-04-26.md (Phase 2 status section), data/distill_train.jsonl, data/distill_sft.jsonl, data/distill_dataset_manifest.json
+- **Outcome**: SUCCESS. Curator processes 703 verdicts/pairs from learning_signals.db; trainer dry-run validates 703/703 SFT and DPO records on MPS in <1s; cost-guard exits 2 without FIXOPS_DISTILL_TRAIN=1.
+- **Pillar(s) served**: V1 (CTEM+ intelligence), V4 (multi-LLM consensus calibration), V9 (air-gapped offline ML)

@@ -147,9 +147,56 @@ flowchart LR
 ### Phase 2 — Distilled Specialist Member (Months 3 – 6)
 
 - Replace the Opus-escalation council slot with a distilled local model.
-- Collect 50K Opus verdicts → distill into Qwen 3.6 7B with LoRA.
+- Collect 50K Opus verdicts → distill into Qwen 7B with LoRA.
 - Goal: ≥90% of Opus quality on triage, at ~10× lower cost. SCIF-native.
 - Trigger: only after Phase 1 ships and we have a quality baseline.
+
+#### Phase 2 — Implementation Status (as of 2026-04-27)
+
+Scaffolding has shipped — pipeline is real, training is gated until we hit the
+volume threshold. Three artefacts are now in `features/intermediate-stage`:
+
+| Artefact | Path | Purpose |
+|---|---|---|
+| Dataset curator | `scripts/llm_distill_dataset_curator.py` | Reads `data/learning_signals.db` (`council_verdicts` + `feedback_pairs`) → emits `data/distill_train.jsonl` (DPO format) and `data/distill_sft.jsonl` (SFT format) + `distill_dataset_manifest.json` sidecar. Filters: dedupe by SHA-256 of prompt, min-confidence floor, council-agreement gate, Opus-escalation gate, source whitelist (smoke pairs excluded by default). |
+| Training scaffold | `scripts/llm_distill_train.py` | Two-stage student fine-tune (`trl.SFTTrainer` warm-start → `trl.DPOTrainer` preference alignment) on `Qwen/Qwen2.5-7B-Instruct` (HF, no auth) with 4-bit nf4 + LoRA `r=16, alpha=32`. `--dry-run` validates schema + library status without GPU. Cost-guard: refuses real training without `FIXOPS_DISTILL_TRAIN=1` (exit 2). |
+| Inference router | `suite-core/core/llm_distill_router.py` | `LLMDistillRouter.triage()` → student first; if `student_confidence < FIXOPS_DISTILL_CONFIDENCE` (default 0.70) falls through to `LLMCouncilEngine`. Every fall-through where student≠council is persisted as a new DPO pair (`pair_source="distill_router_fallthrough"`) — closing the continuous-improvement loop. Fail-soft: missing adapter or libs → council-only mode. |
+
+**Dry-run trace (2026-04-27 07:35 UTC, MPS device, no GPU, no libs installed):**
+
+```
+Curator:  107 verdicts (107 Opus-escalated), 107 feedback pairs
+          → 107 DPO records, 107 SFT records, 0 dropped (--include-smoke)
+Trainer:  --dry-run, 843 ms
+          SFT 107/107 valid, DPO 107/107 valid
+          library_status: torch=2.10.0; transformers/trl/peft/datasets/bitsandbytes/accelerate = MISSING
+          notes: trl import deferred (expected on dev box)
+Cost-guard: real run without FIXOPS_DISTILL_TRAIN=1 → exit code 2 ✅
+Router smoke: parser ok (remediate_high@0.85), no-adapter env → student_available=False, threshold=0.70
+```
+
+**Threshold-to-train (Phase-2 GA gate):** **10K curated DPO pairs** in
+`data/learning_signals.db` after the curator's default filters. At today's
+107-pair seed (smoke + low-confidence escalation captures from the Phase-1
+loop), we are **0.107%** of the way there. Volume is gated on (a) prod tenants
+exercising the Phase-1 closed loop with `FIXOPS_LLM_LEARNING_LOOP=1` and (b)
+analyst overrides being captured by the UI feedback path (W5 deliverable).
+
+**Gating env vars (CTO sign-off surface):**
+
+| Env var | Default | Effect |
+|---|---|---|
+| `FIXOPS_DISTILL_TRAIN` | unset | Required `=1` to leave dry-run; cost-guard for accidental cloud-GPU spend |
+| `FIXOPS_DISTILL_ADAPTER` | unset | Path to LoRA adapter; if unset, router silently delegates to council |
+| `FIXOPS_DISTILL_BASE_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | Override base model |
+| `FIXOPS_DISTILL_CONFIDENCE` | `0.70` | Student confidence threshold below which router falls through |
+| `FIXOPS_LEARNING_SIGNALS_DB` | `data/learning_signals.db` | Where router persists fall-through DPO signals |
+
+**Hardware/budget envelope (CTO can sign off when threshold is met):**
+- 1× L40S (48 GB) or A100 40 GB, ~$1.50–2.50/hr on Lambda/RunPod.
+- Estimated wall-clock at 10K pairs: SFT 1 epoch ~45 min, DPO 1 epoch ~60 min → ≤$10 per training run.
+- Adapter size (LoRA r=16): ~120 MB; signed + offline-importable per W8 SCIF flow.
+- No data leaves the cluster — all training happens on prepared JSONL artefacts shipped from `data/`.
 
 ### Phase 3 — Org-Specific Continued Pre-Training (Months 6 – 12+)
 
