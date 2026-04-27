@@ -8382,6 +8382,15 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Snyk-parity: AutoFix-on-PR — wires existing autofix engine to GitHub App
+    # PR webhook so findings produce actionable patch suggestions in PR review.
+    try:
+        from apps.api.github_app_autofix_router import router as github_app_autofix_router
+        app.include_router(github_app_autofix_router)
+        _logger.info("Mounted GitHub App AutoFix router at /api/v1/github-app/autofix")
+    except ImportError:
+        pass
+
     # GAP-018 SLSA Provenance — in-toto v0.2 attestations + DSSE envelope (placeholder sig)
     try:
         from apps.api.slsa_provenance_router import router as slsa_provenance_router
