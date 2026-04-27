@@ -123,10 +123,17 @@ def list_incidents(
     org_id: str = Query(..., description="Organisation identifier"),
     status: Optional[str] = Query(default=None),
     cloud_provider: Optional[str] = Query(default=None),
-) -> List[Dict[str, Any]]:
-    return _get_engine().list_incidents(
+) -> Dict[str, Any]:
+    rows = _get_engine().list_incidents(
         org_id=org_id, status=status, cloud_provider=cloud_provider
     )
+    if not rows:
+        return {
+            "incidents": [],
+            "total": 0,
+            "hint": "Cloud IR incidents are triggered by detection events. Create one via POST /api/v1/cloud-ir/incidents.",
+        }
+    return {"incidents": rows, "total": len(rows)}
 
 
 @router.get("/incidents/{incident_id}", summary="Get a single incident with actions and playbooks")

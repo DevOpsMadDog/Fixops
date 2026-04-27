@@ -87,7 +87,7 @@ def create_governance_policy(
         raise HTTPException(status_code=400, detail=str(exc))
 
 
-@router.get("/policies", response_model=List[Dict[str, Any]])
+@router.get("/policies")
 def list_governance_policies(
     org_id: str = Query("default"),
     policy_type: Optional[str] = Query(None, description="Filter by policy_type"),
@@ -95,12 +95,19 @@ def list_governance_policies(
     enforcement: Optional[str] = Query(None, description="Filter by enforcement"),
 ):
     """List governance policies with optional filters."""
-    return _get_engine(org_id).list_governance_policies(
+    rows = _get_engine(org_id).list_governance_policies(
         org_id,
         policy_type=policy_type,
         cloud_provider=cloud_provider,
         enforcement=enforcement,
     )
+    if not rows:
+        return {
+            "policies": [],
+            "total": 0,
+            "hint": "Create governance policies via POST /api/v1/cloud-governance/policies (manual policy authoring).",
+        }
+    return {"policies": rows, "total": len(rows)}
 
 
 @router.get("/policies/{policy_id}", response_model=Dict[str, Any])

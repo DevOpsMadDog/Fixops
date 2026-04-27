@@ -93,9 +93,16 @@ def list_segments(
     enforcement_mode: Optional[str] = Query(None),
 ):
     """List microsegments with optional filters."""
-    return _get_engine().list_segments(
+    rows = _get_engine().list_segments(
         org_id, segment_type=segment_type, enforcement_mode=enforcement_mode
     )
+    if not rows:
+        return {
+            "segments": [],
+            "total": 0,
+            "hint": "Define microsegmentation policies via POST /api/v1/microsegmentation/segments (manual policy authoring).",
+        }
+    return {"segments": rows, "total": len(rows)}
 
 
 @router.get("/segments/{segment_id}", dependencies=[Depends(api_key_auth)])

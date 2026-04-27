@@ -87,7 +87,14 @@ def list_segments(
     segment_type: Optional[str] = Query(None),
 ):
     """List segments with optional type filter."""
-    return _get_engine().list_segments(org_id, segment_type=segment_type)
+    rows = _get_engine().list_segments(org_id, segment_type=segment_type)
+    if not rows:
+        return {
+            "segments": [],
+            "total": 0,
+            "hint": "Define network segments via POST /api/v1/network-segmentation/segments (manual network discovery entry).",
+        }
+    return {"segments": rows, "total": len(rows)}
 
 
 # ---------------------------------------------------------------------------

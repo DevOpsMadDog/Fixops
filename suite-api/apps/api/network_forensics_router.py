@@ -76,7 +76,14 @@ async def list_captures(
     auth=Depends(api_key_auth),
 ):
     try:
-        return _get_engine().list_captures(org_id=org_id, status=status)
+        rows = _get_engine().list_captures(org_id=org_id, status=status)
+        if not rows:
+            return {
+                "captures": [],
+                "total": 0,
+                "hint": "Packet captures are manual/triggered. Start one via POST /api/v1/network-forensics/captures.",
+            }
+        return {"captures": rows, "total": len(rows)}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
