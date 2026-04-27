@@ -28,6 +28,20 @@
 
 ## Session Log
 
+### [2026-04-26 23:55] technical-writer — RELEASE_CUT_0.1.0-alpha
+- **What**: Wrote all three release artifacts for the v0.1.0-alpha cut: CHANGELOG.md (full keep-a-changelog format, 69 commits grouped by domain), docs/RELEASE_NOTES_0.1.0-alpha.md (narrative/public-facing), docs/UPGRADE_NOTES_0.1.0-alpha.md (operator guide with env vars, DB schema, dependency notes, SCIF instructions).
+- **Files touched**: CHANGELOG.md (replaced), docs/RELEASE_NOTES_0.1.0-alpha.md (created), docs/UPGRADE_NOTES_0.1.0-alpha.md (created)
+- **Outcome**: SUCCESS — 390 total lines across 3 files. Commit: release(0.1.0-alpha).
+- **Decisions made**: CHANGELOG kept prior session history under [Unreleased] section rather than discarding it. All commit SHAs verified against `git log`. SCIF maturity honestly stated as ~35% in release notes. Known issues section includes Multica 100-todo block, 98 TS errors, 134 dependabot advisories — no papering over.
+- **Pillar(s) served**: V3 (competitive positioning), V9 (air-gap), V10 (CTEM full loop)
+
+### [2026-04-27 00:00] devops-engineer — CRON_SETUP
+- **What**: Shipped nightly fleet-scan cron infrastructure to grow LLM Phase 1 DPO pairs from 703 toward 10K GA threshold. Three files: cron wrapper (4-step pipeline: aspm scan → SBOM seed → CSPM seed → curator refresh), progress checker (Markdown/JSON report with ETA and ASCII bar), and runbook (install/uninstall/troubleshoot/GA checklist).
+- **Files touched**: scripts/nightly_fleet_scan_cron.sh (created), scripts/nightly_progress_check.sh (created), docs/llm_phase1_nightly_runbook.md (created)
+- **Outcome**: SUCCESS — commit f9cf3fe8, both scripts pass bash -n syntax check and live smoke-test
+- **Decisions made**: Steps 2 (SBOM) and 3 (CSPM/LocalStack) are non-fatal so LocalStack absence never kills the run. Log header is always OK/FAILED/RUNNING for fast `head -1` health check. Cron suggested at 0 2 * * * (2 AM local).
+- **Pillar(s) served**: V1 (autonomous AI ops), V10 (CTEM full loop — feeds LLM council improvement)
+
 ### [2026-04-26 14:30] marketing-head — PERSONA_LANDING_PAGES
 - **What**: Wrote 7 persona-specific landing page copy files for top buyer personas — each a designer-ready CMS one-pager with hero headline, sub-hero, 3 proof bullets (all cited to real commits/files), pain-vs-outcome table, dual CTAs, quote placeholder, and SEO meta description. All claims verified against CTEM_PLUS_IDENTITY.md, competitive_validation_2026-04-26.md, scif_readiness_2026-04-26.md, and INVESTOR_PACK_2026-04-26.md. No invented capabilities; SCIF page includes honest scope note on 35% maturity.
 - **Files touched**: docs/marketing/landing_pages/ciso.md, devsecops-lead.md, soc-analyst-tier1.md, compliance-officer.md, federal-cio-rmf-ao.md, appsec-engineer.md, cloud-security-engineer.md (all created)
