@@ -20,7 +20,6 @@ import {
   Target, Activity, ArrowUp, ArrowDown, Minus, BarChart3,
   Building2, Eye, ChevronUp, ChevronDown, Layers,
   Zap, TriangleAlert, CircleAlert, CheckCircle2, Clock,
-  TrendingFlat,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -269,14 +268,16 @@ function KRICard({ label, value, threshold, unit = "", icon: Icon, description, 
 // ─── Treatment Progress ──────────────────────────────────────
 
 interface TreatmentBarProps {
-  label: string;
+  label?: string;
+  title?: string;
   mitigated: number;
   accepted: number;
   transferred: number;
   avoided: number;
 }
 
-function TreatmentBar({ label, mitigated, accepted, transferred, avoided }: TreatmentBarProps) {
+function TreatmentBar({ label, title, mitigated, accepted, transferred, avoided }: TreatmentBarProps) {
+  const _label = label ?? title ?? "";
   const total = mitigated + accepted + transferred + avoided || 1;
   const segments = [
     { label: "Mitigated", value: mitigated, color: "bg-emerald-500" },
@@ -288,7 +289,7 @@ function TreatmentBar({ label, mitigated, accepted, transferred, avoided }: Trea
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-slate-300">{label}</span>
+        <span className="text-[11px] font-semibold text-slate-300">{_label}</span>
         <span className="text-[10px] font-mono text-slate-500">{total} risks</span>
       </div>
       <div className="flex h-2 rounded-full overflow-hidden gap-px">
@@ -616,10 +617,10 @@ export default function RiskOverview() {
             </div>
             {/* 4 stat chips */}
             <div className="grid grid-cols-2 gap-3">
-              <StatChip title="Critical" value={criticalCount} sev="critical" />
-              <StatChip title="High" value={highCount} sev="high" />
-              <StatChip title="Medium" value={mediumCount} sev="medium" />
-              <StatChip title="Low" value={lowCount} sev="low" />
+              <StatChip label="Critical" value={criticalCount} sev="critical" />
+              <StatChip label="High" value={highCount} sev="high" />
+              <StatChip label="Medium" value={mediumCount} sev="medium" />
+              <StatChip label="Low" value={lowCount} sev="low" />
             </div>
           </motion.div>
 

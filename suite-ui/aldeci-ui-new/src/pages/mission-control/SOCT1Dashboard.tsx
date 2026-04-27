@@ -1254,28 +1254,28 @@ export default function SOCT1Dashboard() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-3"
         >
           <StatCard
-            title="Open Alerts"
+            label="Open Alerts"
             value={stats.openCount}
             sub={stats.openTrend}
             trend="down"
             icon={AlertTriangle}
           />
           <StatCard
-            title="Mean Time to Triage"
+            label="Mean Time to Triage"
             value={stats.mttt}
             sub={stats.mtttTrend}
             trend="up"
             icon={Timer}
           />
           <StatCard
-            title="False Positive Rate"
+            label="False Positive Rate"
             value={stats.fpRate}
             sub={stats.fpTrend}
             trend="flat"
             icon={BarChart3}
           />
           <StatCard
-            title="LLM Accuracy"
+            label="LLM Accuracy"
             value={stats.llmAccuracy}
             sub={stats.llmTrend}
             trend="up"
