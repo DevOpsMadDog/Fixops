@@ -39,6 +39,49 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+# ---------------------------------------------------------------------------
+# TrustGraph event-bus wiring (auto-added by hub-wiring wave)
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload):  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+# Module-load heartbeat
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -137,9 +180,11 @@ class NetworkXGraphBackend:
         self._reverse_adj: Dict[str, List[Tuple[str, GraphEdge]]] = defaultdict(list)
 
     def add_node(self, node: GraphNode) -> None:
+        _emit_event("asset.discovered", {"module": __name__, "action": "add_node"})
         self._nodes[node.id] = node
 
     def add_edge(self, edge: GraphEdge) -> None:
+        _emit_event("finding.updated", {"module": __name__, "action": "add_edge"})
         self._edges.append(edge)
         self._adjacency[edge.source_id].append((edge.target_id, edge))
         self._reverse_adj[edge.target_id].append((edge.source_id, edge))

@@ -28,6 +28,49 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 # ---------------------------------------------------------------------------
+# TrustGraph event-bus wiring (auto-added by hub-wiring wave)
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload):  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+# Module-load heartbeat
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
+# ---------------------------------------------------------------------------
 # MITRE ATT&CK v14 — All 14 Tactics
 # ---------------------------------------------------------------------------
 
@@ -1756,6 +1799,7 @@ class MITREMapper:
         Returns:
             FindingMappingResult with all matched techniques
         """
+        _emit_event("finding.created", {"module": __name__, "action": "map_finding"})
         finding_id = str(finding.get("id", str(uuid.uuid4())))
         title = str(finding.get("title", ""))
         description = str(finding.get("description", ""))
@@ -1849,6 +1893,7 @@ class MITREMapper:
         Returns:
             MappingEngineResult with full analysis
         """
+        _emit_event("finding.updated", {"module": __name__, "action": "map_findings"})
         session_id = str(uuid.uuid4())
         mapped_at = datetime.now(timezone.utc).isoformat()
 

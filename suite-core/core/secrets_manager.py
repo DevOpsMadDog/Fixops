@@ -40,6 +40,49 @@ from typing import Any, Dict, List, Optional, Tuple
 import structlog
 from pydantic import BaseModel, Field
 
+# ---------------------------------------------------------------------------
+# TrustGraph event-bus wiring (auto-added by hub-wiring wave)
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload):  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+# Module-load heartbeat
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
 _logger = structlog.get_logger(__name__)
 
 _DB_ENV = "FIXOPS_DATA_DIR"
@@ -1111,6 +1154,7 @@ class SecretsManager:
 
     def scan_filesystem(self, target_path: str) -> ScanResult:
         """Recursively scan a directory or single file for secrets."""
+        _emit_event("finding.created", {"module": __name__, "action": "scan_filesystem"})
         result = ScanResult(scan_type=ScanType.FILESYSTEM, target_path=target_path)
         root = Path(target_path)
 
@@ -1144,6 +1188,7 @@ class SecretsManager:
 
     def scan_git_history(self, repo_path: str) -> ScanResult:
         """Scan all commits in a git repo for leaked secrets."""
+        _emit_event("finding.created", {"module": __name__, "action": "scan_git_history"})
         result = ScanResult(scan_type=ScanType.GIT_HISTORY, target_path=repo_path)
         repo = Path(repo_path)
 

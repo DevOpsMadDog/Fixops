@@ -23,6 +23,49 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import structlog
 from pydantic import BaseModel, Field
 
+# ---------------------------------------------------------------------------
+# TrustGraph event-bus wiring (auto-added by hub-wiring wave)
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload):  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+# Module-load heartbeat
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
 logger = structlog.get_logger(__name__)
 
 
@@ -501,6 +544,7 @@ class K8sSecurityEngine:
 
     def scan_cluster(self, config: ClusterConfig) -> ClusterPosture:
         """Run a full KSPM scan using provided resources (offline/synthetic mode)."""
+        _emit_event("asset.discovered", {"module": __name__, "action": "scan_cluster"})
         import time
         t0 = time.monotonic()
         logger.info("Starting K8s cluster scan", cluster=config.cluster_name)
@@ -597,6 +641,7 @@ class K8sSecurityEngine:
 
     def evaluate_admission(self, resource: K8sResource) -> AdmissionResult:
         """Evaluate a resource against all active admission rules."""
+        _emit_event("finding.created", {"module": __name__, "action": "evaluate_admission"})
         result = AdmissionResult(
             resource_kind=resource.kind,
             resource_name=resource.name,
