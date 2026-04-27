@@ -132,18 +132,104 @@ def list_benchmarks(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/import-cis", dependencies=[Depends(api_key_auth)])
-def import_cis_benchmarks(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Import CIS Benchmark definitions from public XML catalog (NOT YET IMPLEMENTED)."""
-    raise HTTPException(
-        status_code=501,
-        detail={
-            "error": "not_implemented",
-            "endpoint": "POST /api/v1/posture-benchmarking/import-cis",
-            "reason": "CIS Benchmark XML importer not yet built. Public source: https://www.cisecurity.org/cis-benchmarks",
-            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#8",
-        },
+_cis_importer = None
+
+
+def _get_cis_importer(file_path: Optional[str] = None, url: Optional[str] = None):
+    """Return a configured CisBenchmarkImporter. file_path overrides url."""
+    from feeds.cis_benchmark.importer import (
+        CIS_BENCHMARK_DEFAULT_URL,
+        CisBenchmarkImporter,
     )
+    global _cis_importer
+    # Always rebuild if a one-off source override is supplied (admin upload).
+    if file_path or url:
+        return CisBenchmarkImporter(
+            url=url or None,
+            file_path=file_path or None,
+        )
+    if _cis_importer is None:
+        # Default: live URL fetch. Operator can swap to file_path via API.
+        _cis_importer = CisBenchmarkImporter(url=CIS_BENCHMARK_DEFAULT_URL)
+    return _cis_importer
+
+
+class ImportCisRequest(BaseModel):
+    file_path: Optional[str] = Field(
+        default=None,
+        description=(
+            "Local XCCDF file path (admin-uploaded fallback). Required when "
+            "the CIS source URL is gated behind registration. Mutually "
+            "exclusive with url."
+        ),
+    )
+    url: Optional[str] = Field(
+        default=None,
+        description="Override the CIS XCCDF source URL (defaults to public SCAP-Repository mirror).",
+    )
+    idempotent: bool = Field(
+        default=True,
+        description="Skip controls already present in DB (default true).",
+    )
+
+
+@router.post("/import-cis", dependencies=[Depends(api_key_auth)])
+def import_cis_benchmarks(
+    req: Optional[ImportCisRequest] = None,
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Import CIS Benchmark XCCDF controls into local catalog.
+
+    Source resolution order:
+      1. ``req.file_path`` (admin-uploaded XCCDF doc — used when CIS source is gated)
+      2. ``req.url`` (caller-supplied HTTP source)
+      3. Default public SCAP-Repository mirror (CIS Controls v8)
+    """
+    from feeds.cis_benchmark.importer import CisBenchmarkSourceError
+
+    payload = req or ImportCisRequest()
+    try:
+        importer = _get_cis_importer(file_path=payload.file_path, url=payload.url)
+        result = importer.run(idempotent=payload.idempotent)
+    except CisBenchmarkSourceError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "source_unreachable",
+                "reason": str(exc),
+                "remediation": "Download the CIS XCCDF doc manually and POST again with file_path=/path/to/xccdf.xml",
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid XCCDF: {exc}")
+    except Exception as exc:
+        _logger.exception("import_cis_benchmarks failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return result
+
+
+@router.get("/cis-controls", dependencies=[Depends(api_key_auth)])
+def list_cis_controls(
+    benchmark_id: Optional[str] = Query(default=None),
+    profile: Optional[str] = Query(default=None, description="e.g. L1, L2"),
+    severity: Optional[str] = Query(default=None, description="informational|low|medium|high"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=100, ge=1, le=1000),
+) -> Dict[str, Any]:
+    """List imported CIS Benchmark controls with optional filters."""
+    try:
+        importer = _get_cis_importer()
+        return importer.list_controls(
+            benchmark_id=benchmark_id,
+            profile=profile,
+            severity=severity,
+            page=page,
+            page_size=page_size,
+        )
+    except Exception as exc:
+        _logger.exception("list_cis_controls failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/benchmarks/{benchmark_id}", dependencies=[Depends(api_key_auth)])
