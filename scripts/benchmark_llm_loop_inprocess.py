@@ -114,12 +114,24 @@ async def run_bench(
     concurrency: int,
     signals_db: str,
     tg_db: str,
+    with_agentdb_async: bool = False,
 ) -> Dict[str, Any]:
     # Configure AgentDB based on mode BEFORE any imports of the loop module
     if mode == "deterministic-agentdb":
         os.environ["FIXOPS_AGENTDB_ENABLED"] = "1"
     else:
         os.environ["FIXOPS_AGENTDB_ENABLED"] = "0"
+
+    # Per-run isolated queue DB so we can measure drain rate without polluting
+    # the shared .aldeci/agentdb_async_queue.db
+    if with_agentdb_async:
+        queue_db = signals_db.replace("signals_", "agentdb_queue_")
+        os.environ["FIXOPS_AGENTDB_QUEUE_DB"] = queue_db
+        # Force-reload module-level singleton state in agentdb_bridge
+        try:
+            Path(queue_db).unlink()
+        except FileNotFoundError:
+            pass
 
     # Force a fresh signals DB for this run
     os.environ["FIXOPS_LLM_LOOP_SIGNALS_DB"] = signals_db
@@ -273,6 +285,42 @@ async def run_bench(
         },
     }
 
+    # ----------------------------------------------------------------------
+    # Optional: drain the AgentDB async queue and report drain throughput.
+    # Demonstrates that the council hot path latency does NOT include the
+    # MiniLM compute — that work is deferred to the queue worker.
+    # ----------------------------------------------------------------------
+    if with_agentdb_async:
+        try:
+            # Reset bridge module so it picks up the per-run queue DB env var
+            import importlib
+
+            from trustgraph import agentdb_bridge as _bridge_mod  # noqa: WPS433
+
+            importlib.reload(_bridge_mod)
+            stats_before = _bridge_mod.async_queue_stats()
+
+            drain_t0 = time.perf_counter()
+            drain_result = _bridge_mod.drain_async_queue(max_jobs=10000)
+            drain_seconds = time.perf_counter() - drain_t0
+
+            metrics["agentdb_async_queue"] = {
+                "queue_db": os.environ.get("FIXOPS_AGENTDB_QUEUE_DB"),
+                "stats_before_drain": stats_before,
+                "stats_after_drain": _bridge_mod.async_queue_stats(),
+                "drain_processed": drain_result.get("processed", 0),
+                "drain_failed": drain_result.get("failed", 0),
+                "drain_remaining": drain_result.get("remaining", 0),
+                "drain_seconds": round(drain_seconds, 4),
+                "drain_throughput_per_sec": (
+                    round(drain_result.get("processed", 0) / drain_seconds, 2)
+                    if drain_seconds > 0
+                    else 0.0
+                ),
+            }
+        except Exception as exc:  # noqa: BLE001
+            metrics["agentdb_async_queue"] = {"error": f"{type(exc).__name__}: {exc}"}
+
     loop.stop()
     return metrics
 
@@ -302,6 +350,15 @@ def main() -> int:
     )
     ap.add_argument("--concurrency", type=int, default=1)
     ap.add_argument("--out", type=str, default="-")
+    ap.add_argument(
+        "--with-agentdb-async",
+        action="store_true",
+        help=(
+            "Force the AgentDB write path through the persistent async queue "
+            "(see scripts/agentdb_async_worker.py). The benchmark drains the "
+            "queue post-run and reports queue stats + drain rate."
+        ),
+    )
     args = ap.parse_args()
 
     modes = (
@@ -323,6 +380,7 @@ def main() -> int:
                     concurrency=args.concurrency,
                     signals_db=signals_db,
                     tg_db=tg_db,
+                    with_agentdb_async=args.with_agentdb_async,
                 )
             )
             all_metrics.append(metrics)

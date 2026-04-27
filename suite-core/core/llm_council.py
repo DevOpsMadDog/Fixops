@@ -425,10 +425,61 @@ class LLMCouncilEngine:
         finding: Mapping[str, Any],
         verdict: "CouncilVerdict",
     ) -> None:
-        """Write the verdict back to AgentDB for future similarity lookups.
+        """Enqueue the verdict for asynchronous AgentDB write.
 
-        Fire-and-forget via a daemon thread — the caller is never blocked.
-        The thread may outlive the call; that's intentional (write-behind cache).
+        HOT PATH — must complete in < 1ms. Performs a single SQLite INSERT
+        into the persistent ``agentdb_write_queue`` and returns. The actual
+        AgentDB write (MiniLM encode + memory_entries insert) is performed
+        by the background daemon ``scripts/agentdb_async_worker.py``.
+
+        This replaces the previous fire-and-forget daemon-thread pattern,
+        which spawned one thread per verdict — under load (1000+ events) the
+        thread pool grew unbounded and each thread paid the full ~430ms
+        MiniLM compute cost, dragging council throughput down even though
+        the main thread didn't block on join.
+
+        See ``docs/load_test_llm_loop_2026-04-26.md`` Bottleneck #1
+        (AgentDB write moves OUT of the council hot path).
+
+        Falls back to direct in-thread write if the queue is unavailable so
+        we don't silently lose verdicts.
+        """
+        try:
+            from trustgraph.agentdb_bridge import enqueue_council_verdict
+
+            verdict_dict = verdict.to_dict() if hasattr(verdict, "to_dict") else {
+                "action": getattr(verdict, "action", "unknown"),
+                "confidence": getattr(verdict, "confidence", 0.0),
+                "reasoning": getattr(verdict, "reasoning", ""),
+            }
+            org_id = str(finding.get("tenant", finding.get("org_id", "default")))
+
+            enqueued = enqueue_council_verdict(
+                finding=dict(finding),
+                verdict=verdict_dict,
+                org_id=org_id,
+            )
+            if enqueued:
+                return
+
+            # Queue unavailable — fall back to inline daemon thread so the
+            # verdict isn't lost. Logged at debug because falling through to
+            # a daemon thread is an OK degraded mode, not an error.
+            logger.debug(
+                "Council: AgentDB queue unavailable — falling back to daemon thread"
+            )
+            self._spawn_legacy_persist_thread(finding, verdict_dict, org_id)
+        except Exception as exc:  # noqa: BLE001 — verdict persist must never break convene
+            logger.debug("Council: AgentDB enqueue skipped: %s", exc)
+
+    @staticmethod
+    def _spawn_legacy_persist_thread(
+        finding: Mapping[str, Any],
+        verdict_dict: Mapping[str, Any],
+        org_id: str,
+    ) -> None:
+        """Legacy fire-and-forget AgentDB write. Only used as a fallback when
+        the async queue is unavailable (e.g. read-only filesystem in tests).
         """
         import threading as _threading
 
@@ -437,15 +488,10 @@ class LLMCouncilEngine:
                 from trustgraph.agentdb_bridge import get_agentdb_bridge
 
                 bridge = get_agentdb_bridge()
-                verdict_dict = verdict.to_dict() if hasattr(verdict, "to_dict") else {
-                    "action": getattr(verdict, "action", "unknown"),
-                    "confidence": getattr(verdict, "confidence", 0.0),
-                    "reasoning": getattr(verdict, "reasoning", ""),
-                }
                 bridge.write_council_verdict(
                     finding=dict(finding),
-                    verdict=verdict_dict,
-                    org_id=str(finding.get("tenant", finding.get("org_id", "default"))),
+                    verdict=dict(verdict_dict),
+                    org_id=org_id,
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.debug("Council: AgentDB verdict persist skipped: %s", exc)

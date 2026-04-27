@@ -86,6 +86,9 @@ __all__ = [
     "AgentDBSearchResult",
     "get_agentdb_bridge",
     "reset_agentdb_bridge",
+    "enqueue_council_verdict",
+    "drain_async_queue",
+    "async_queue_stats",
 ]
 
 # ---------------------------------------------------------------------------
@@ -98,6 +101,30 @@ _DEFAULT_NAMESPACE = "trustgraph"
 _DECISIONS_NAMESPACE = "council_decisions"
 _RUFLO_CMD = "ruflo"
 _SUBPROCESS_TIMEOUT_SEC = 5.0
+
+# Async write queue — see ``enqueue_council_verdict()`` and the
+# ``scripts/agentdb_async_worker.py`` daemon. Verdicts are appended here in
+# the council hot path (single SQLite INSERT, ~50us) and a background worker
+# drains the queue and runs the actual AgentDB write (MiniLM encode +
+# memory_entries insert) off the request path.
+_ASYNC_QUEUE_DB = os.environ.get(
+    "FIXOPS_AGENTDB_QUEUE_DB", "./.aldeci/agentdb_async_queue.db"
+)
+_ASYNC_QUEUE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS agentdb_write_queue (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_type    TEXT    NOT NULL,
+    payload     TEXT    NOT NULL,
+    org_id      TEXT    NOT NULL DEFAULT 'default',
+    created_at  TEXT    NOT NULL,
+    status      TEXT    NOT NULL DEFAULT 'queued'
+                CHECK(status IN ('queued', 'in_progress', 'done', 'failed')),
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    last_error  TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_agentdb_q_status ON agentdb_write_queue(status, id);
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -831,6 +858,217 @@ class AgentDBBridge:
             "failures": self._failures,
             "cli_fallbacks": self._cli_fallbacks,
         }
+
+
+# ---------------------------------------------------------------------------
+# Async queue API
+# ---------------------------------------------------------------------------
+#
+# Why a queue, not a daemon thread per event?
+#
+# The previous fire-and-forget pattern (`_threading.Thread(...).start()` per
+# verdict) works for single-event writes but breaks under load: 1000 verdicts
+# spawns 1000 daemon threads, each holding a sqlite connection AND each
+# running the ~430ms MiniLM encode. Threads pile up, GIL contention spikes,
+# and the council hot path slows down anyway.
+#
+# The queue path is:
+#   1. council convene -> verdict ready
+#   2. enqueue_council_verdict() -> single INSERT into agentdb_write_queue
+#      (~50us, no embed compute, no MiniLM load)
+#   3. council returns IMMEDIATELY
+#   4. agentdb_async_worker.py daemon polls the queue, drains FIFO,
+#      runs the actual write_council_verdict() in batch
+#
+# Worst case (worker is dead): jobs accumulate in the queue but the council
+# never blocks, never errors. Worker can be restarted, queue is durable.
+
+_queue_init_lock = threading.Lock()
+_queue_initialised = False
+
+
+def _ensure_async_queue() -> Optional[sqlite3.Connection]:
+    """Open / create the async write queue DB. Returns None on failure."""
+    global _queue_initialised
+    try:
+        Path(_ASYNC_QUEUE_DB).parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(_ASYNC_QUEUE_DB, timeout=10.0, isolation_level=None)
+        # Per-connection PRAGMAs — busy_timeout is connection-local. WAL is
+        # DB-level; we apply it once via the init flag below.
+        conn.execute("PRAGMA busy_timeout=10000")
+        if not _queue_initialised:
+            with _queue_init_lock:
+                if not _queue_initialised:
+                    try:
+                        conn.execute("PRAGMA journal_mode=WAL")
+                        conn.execute("PRAGMA synchronous=NORMAL")
+                    except sqlite3.Error:
+                        # WAL not always available; busy_timeout suffices.
+                        pass
+                    conn.executescript(_ASYNC_QUEUE_SCHEMA)
+                    _queue_initialised = True
+        return conn
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("agentdb_bridge: async queue init failed: %s", exc)
+        return None
+
+
+def enqueue_council_verdict(
+    *,
+    finding: Mapping[str, Any],
+    verdict: Mapping[str, Any],
+    org_id: str = "default",
+) -> bool:
+    """Enqueue a council verdict for asynchronous AgentDB write.
+
+    HOT PATH — must be < 1ms. Performs a single SQLite INSERT into the
+    persistent queue and returns. The actual MiniLM-embedded
+    ``write_council_verdict`` is performed by the background worker in
+    ``scripts/agentdb_async_worker.py``.
+
+    Returns:
+        True if the job was enqueued, False if the queue couldn't be opened.
+    """
+    if os.environ.get("FIXOPS_AGENTDB_ENABLED", "1") in ("0", "false", "no"):
+        return False
+
+    conn = _ensure_async_queue()
+    if conn is None:
+        return False
+    try:
+        from datetime import datetime, timezone
+
+        payload = json.dumps(
+            {"finding": dict(finding), "verdict": dict(verdict)},
+            default=str,
+        )
+        conn.execute(
+            """INSERT INTO agentdb_write_queue
+               (job_type, payload, org_id, created_at, status)
+               VALUES (?, ?, ?, ?, 'queued')""",
+            (
+                "council_verdict",
+                payload,
+                org_id,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("agentdb_bridge.enqueue_council_verdict failed: %s", exc)
+        return False
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def drain_async_queue(
+    *,
+    max_jobs: int = 100,
+    bridge: Optional["AgentDBBridge"] = None,
+) -> Dict[str, int]:
+    """Drain up to ``max_jobs`` queued verdicts into AgentDB.
+
+    Called by ``scripts/agentdb_async_worker.py``. Picks up jobs in FIFO
+    order, runs the actual MiniLM-embedded write_council_verdict, marks
+    each row done/failed.
+
+    Returns:
+        dict {"processed": N, "failed": M, "remaining": K}
+    """
+    out = {"processed": 0, "failed": 0, "remaining": 0}
+    conn = _ensure_async_queue()
+    if conn is None:
+        return out
+
+    try:
+        if bridge is None:
+            bridge = get_agentdb_bridge()
+
+        # Claim a batch of queued jobs by flipping their status atomically.
+        # SQLite row-level locking via UPDATE...WHERE id IN (subquery).
+        rows = conn.execute(
+            """SELECT id, payload, org_id FROM agentdb_write_queue
+               WHERE status='queued'
+               ORDER BY id ASC
+               LIMIT ?""",
+            (max_jobs,),
+        ).fetchall()
+
+        for job_id, payload_str, org_id in rows:
+            try:
+                # Mark in_progress so a parallel worker doesn't pick it up.
+                conn.execute(
+                    "UPDATE agentdb_write_queue SET status='in_progress', attempts=attempts+1 WHERE id=?",
+                    (job_id,),
+                )
+                payload = json.loads(payload_str)
+                ok = bridge.write_council_verdict(
+                    finding=payload.get("finding", {}),
+                    verdict=payload.get("verdict", {}),
+                    org_id=org_id,
+                )
+                if ok:
+                    conn.execute(
+                        "UPDATE agentdb_write_queue SET status='done', last_error=NULL WHERE id=?",
+                        (job_id,),
+                    )
+                    out["processed"] += 1
+                else:
+                    # Re-queue on transient failure (attempts<5); permanently
+                    # mark failed otherwise so we stop spinning on dead rows.
+                    conn.execute(
+                        """UPDATE agentdb_write_queue
+                           SET status=CASE WHEN attempts<5 THEN 'queued' ELSE 'failed' END,
+                               last_error='write_council_verdict returned False'
+                           WHERE id=?""",
+                        (job_id,),
+                    )
+                    out["failed"] += 1
+            except Exception as exc:  # noqa: BLE001
+                conn.execute(
+                    "UPDATE agentdb_write_queue SET status='failed', last_error=? WHERE id=?",
+                    (str(exc)[:500], job_id),
+                )
+                out["failed"] += 1
+
+        # Remaining queued jobs (cheap COUNT)
+        out["remaining"] = conn.execute(
+            "SELECT COUNT(*) FROM agentdb_write_queue WHERE status='queued'"
+        ).fetchone()[0]
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("agentdb_bridge.drain_async_queue failed: %s", exc)
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return out
+
+
+def async_queue_stats() -> Dict[str, int]:
+    """Return queue depth metrics for ops dashboards."""
+    out = {"queued": 0, "in_progress": 0, "done": 0, "failed": 0, "total": 0}
+    conn = _ensure_async_queue()
+    if conn is None:
+        return out
+    try:
+        for status, in conn.execute(
+            "SELECT status FROM agentdb_write_queue"
+        ).fetchall():
+            out["total"] += 1
+            if status in out:
+                out[status] += 1
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("agentdb_bridge.async_queue_stats failed: %s", exc)
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return out
 
 
 # ---------------------------------------------------------------------------
