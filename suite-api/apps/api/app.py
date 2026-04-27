@@ -2145,18 +2145,74 @@ def create_app() -> FastAPI:
     # OpenAPI size guard — the schema can exceed 196MB with 500+ routers.
     # Override app.openapi() to cap paths at 800 and strip examples/descriptions
     # from individual schemas to keep the response under ~4MB.
+    #
+    # Onboarding bug surfaced 2026-04-27: when a single router has a bad
+    # Pydantic ForwardRef (e.g. unresolved ``Annotated[ForwardRef('Request'),
+    # ...]``), get_openapi() raises PydanticUserError and the entire
+    # /openapi.json endpoint returns a 500 — which the marketing landing page
+    # catch-all then surfaces as HTML to the customer. We now retry with the
+    # offending routes stripped, so the spec still ships even if a few routes
+    # are malformed. The faulty route's path appears in
+    # ``info.x-openapi-skipped-routes`` so engineers can see what was dropped.
     def _capped_openapi() -> Dict[str, Any]:
         if app.openapi_schema:
             return app.openapi_schema
         from fastapi.openapi.utils import get_openapi
 
-        schema = get_openapi(
-            title=app.title,
-            version=app.version,
-            description=app.description,
-            routes=app.routes,
-            tags=app.openapi_tags,
-        )
+        skipped: List[str] = []
+        try:
+            schema = get_openapi(
+                title=app.title,
+                version=app.version,
+                description=app.description,
+                routes=app.routes,
+                tags=app.openapi_tags,
+            )
+        except Exception as exc:  # noqa: BLE001 — defensive, schema gen is brittle
+            _logger.warning(
+                "openapi: full-route schema generation failed (%s: %s); "
+                "retrying with per-route filtering",
+                type(exc).__name__, exc,
+            )
+            # Retry per-route, dropping any route that individually fails.
+            safe_routes = []
+            for route in app.routes:
+                try:
+                    get_openapi(
+                        title=app.title,
+                        version=app.version,
+                        description=app.description,
+                        routes=[route],
+                        tags=app.openapi_tags,
+                    )
+                    safe_routes.append(route)
+                except Exception:  # noqa: BLE001
+                    skipped.append(getattr(route, "path", repr(route)))
+            try:
+                schema = get_openapi(
+                    title=app.title,
+                    version=app.version,
+                    description=app.description,
+                    routes=safe_routes,
+                    tags=app.openapi_tags,
+                )
+            except Exception as exc2:  # noqa: BLE001
+                # Last-ditch: return a minimal stub so /openapi.json still
+                # returns valid JSON instead of HTML.
+                _logger.error(
+                    "openapi: filtered schema also failed (%s: %s); returning stub",
+                    type(exc2).__name__, exc2,
+                )
+                return {
+                    "openapi": "3.1.0",
+                    "info": {
+                        "title": app.title,
+                        "version": app.version,
+                        "x-openapi-error": str(exc2),
+                        "x-openapi-skipped-routes": skipped,
+                    },
+                    "paths": {},
+                }
 
         # Trim paths to first 800 to avoid memory/response size issues
         _MAX_PATHS = 800
@@ -2168,6 +2224,10 @@ def create_app() -> FastAPI:
                 f"Schema truncated to {_MAX_PATHS} of {len(paths)} paths. "
                 "Use /api/v1/openapi-full.json for the complete schema (large)."
             )
+
+        # Record any skipped routes so the spec is honest about coverage.
+        if skipped:
+            schema.setdefault("info", {})["x-openapi-skipped-routes"] = skipped
 
         # Strip verbose per-operation examples to shrink schema further
         for _path_item in schema.get("paths", {}).values():
@@ -9155,6 +9215,51 @@ def create_app() -> FastAPI:
         pass
 
     # -----------------------------------------------------------------------
+    # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they
+    # win the route lookup. Onboarding bug surfaced 2026-04-27: customers
+    # hitting `curl http://host/openapi.json` (no -L) got back the marketing
+    # landing page because the previous 307 redirect was both (a) only mounted
+    # when the SPA dist existed and (b) not followed by curl/non-browser
+    # clients. We now serve the OpenAPI JSON directly, with no redirect, so
+    # any tool that does autodiscovery on the canonical /openapi.json gets a
+    # real spec on Day 1.
+    # -----------------------------------------------------------------------
+    from starlette.responses import JSONResponse as _SpaJsonResp
+
+    @app.get("/openapi.json", include_in_schema=False)
+    async def _openapi_root_alias():
+        # Re-use the capped openapi schema generated by _capped_openapi above.
+        # Even if schema generation fails catastrophically (defensive — the
+        # _capped_openapi wrapper already retries + stubs), we MUST return JSON
+        # rather than letting FastAPI's default 500 handler return HTML, which
+        # would land customers back on the marketing landing page.
+        try:
+            return _SpaJsonResp(app.openapi())
+        except Exception as exc:  # noqa: BLE001
+            return _SpaJsonResp(
+                {
+                    "openapi": "3.1.0",
+                    "info": {
+                        "title": app.title,
+                        "version": app.version,
+                        "x-openapi-error": f"{type(exc).__name__}: {exc}",
+                    },
+                    "paths": {},
+                },
+                status_code=200,
+            )
+
+    @app.get("/docs", include_in_schema=False)
+    async def _docs_root_alias():
+        from fastapi.responses import RedirectResponse as _DocsRedirect
+        return _DocsRedirect(url="/api/v1/docs", status_code=307)
+
+    @app.get("/redoc", include_in_schema=False)
+    async def _redoc_root_alias():
+        from fastapi.responses import RedirectResponse as _DocsRedirect
+        return _DocsRedirect(url="/api/v1/redoc", status_code=307)
+
+    # -----------------------------------------------------------------------
     # Serve React frontend — MUST be last (catch-all route)
     # -----------------------------------------------------------------------
     _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -9169,22 +9274,10 @@ def create_app() -> FastAPI:
         if os.path.isdir(_assets_dir):
             app.mount("/assets", StaticFiles(directory=_assets_dir), name="ui-assets")
 
-        from starlette.responses import JSONResponse as _SpaJsonResp
-
-        # Onboarding bug #5 (2026-04-24): /openapi.json (and /docs, /redoc)
-        # used to fall through to index.html so the marketing landing page
-        # was returned to anyone hitting the standard FastAPI URLs. Two-part
-        # fix:
-        #   (a) explicit alias registered BEFORE the catch-all (route order
-        #       matters in FastAPI — first match wins)
-        #   (b) catch-all gates a hardcoded set of API-doc paths so future
-        #       additions / typos still 404 cleanly
-        from fastapi.responses import RedirectResponse as _SpaRedirect
-
-        @app.get("/openapi.json", include_in_schema=False)
-        async def _openapi_alias():
-            return _SpaRedirect(url="/api/v1/openapi.json", status_code=307)
-
+        # API-doc gating list — paths the SPA catch-all must NOT serve as HTML.
+        # /openapi.json, /docs, /redoc are already handled by the explicit
+        # aliases above; this set is the defense-in-depth for typos and other
+        # API-doc paths so they always 404 cleanly instead of returning HTML.
         _API_DOC_PATHS = {"openapi.json", "docs", "redoc", "docs/oauth2-redirect"}
 
         @app.get("/{full_path:path}", include_in_schema=False)
