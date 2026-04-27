@@ -262,10 +262,10 @@ class TestSuiteContents:
         core_path = PROJECT_ROOT / "suite-core" / "core"
         assert core_path.exists(), "suite-core/core should exist"
 
-    def test_suite_ui_has_aldeci(self):
-        """suite-ui/aldeci should exist."""
-        aldeci_path = PROJECT_ROOT / "suite-ui" / "aldeci"
-        assert aldeci_path.exists(), "suite-ui/aldeci should exist"
+    def test_suite_ui_has_aldeci_ui_new(self):
+        """suite-ui/aldeci-ui-new (active UI) should exist."""
+        aldeci_path = PROJECT_ROOT / "suite-ui" / "aldeci-ui-new"
+        assert aldeci_path.exists(), "suite-ui/aldeci-ui-new should exist"
 
     def test_suite_evidence_risk_has_risk(self):
         """suite-evidence-risk/risk should exist."""
