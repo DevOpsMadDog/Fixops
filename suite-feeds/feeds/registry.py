@@ -171,6 +171,33 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: mitre_attack importer unavailable: %s", exc)
 
+    # ---------- NIST NVD CVE ----------
+    try:
+        from feeds.nvd_cve.importer import NvdCveImporter, NVD_CVE_URL
+
+        def _refresh_nvd_cve() -> Dict[str, Any]:
+            return NvdCveImporter().run(days=7)
+
+        def _count_nvd_cve() -> int:
+            try:
+                return NvdCveImporter().total_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="nvd_cve",
+            display_name="NIST NVD CVE Feed",
+            source_url=NVD_CVE_URL,
+            source_type="json",
+            license="Public Domain (US Government work)",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_nvd_cve,
+            count_callable=_count_nvd_cve,
+            description="NIST National Vulnerability Database — authoritative CVE catalog with CVSS v3.1 metrics and CWE weaknesses.",
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: nvd_cve importer unavailable: %s", exc)
+
     # ---------- SigmaHQ ----------
     try:
         from feeds.sigmahq.importer import (
@@ -201,6 +228,69 @@ def _discover() -> None:
         ))
     except ImportError as exc:
         logger.warning("feed_registry: sigmahq importer unavailable: %s", exc)
+
+    # ---------- OSV (Open Source Vulnerabilities) ----------
+    try:
+        from feeds.osv.importer import (
+            run_import as _osv_run,
+            get_store_stats as _osv_stats,
+            DEFAULT_ECOSYSTEM as _OSV_DEFAULT_ECO,
+            OSV_BUCKET_BASE as _OSV_BASE,
+        )
+
+        def _refresh_osv() -> Dict[str, Any]:
+            return _osv_run(ecosystem=_OSV_DEFAULT_ECO)
+
+        def _count_osv() -> int:
+            try:
+                return int(_osv_stats().get("total", 0))
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="osv",
+            display_name="OSV (Open Source Vulnerabilities)",
+            source_url=f"{_OSV_BASE}/{_OSV_DEFAULT_ECO}/all.zip",
+            source_type="json",
+            license="CC-BY-4.0",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_osv,
+            count_callable=_count_osv,
+            description=(
+                "Google-run open vulnerability database aggregating PyPI, npm, "
+                "Maven, Go, RubyGems, NuGet, crates.io, Packagist, and Hex "
+                "advisories under the OSV schema."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: osv importer unavailable: %s", exc)
+
+    # ---------- EPSS ----------
+    try:
+        from feeds.epss.importer import EpssImporter, EPSS_URL
+
+        def _refresh_epss() -> Dict[str, Any]:
+            return EpssImporter().run()
+
+        def _count_epss() -> int:
+            try:
+                return EpssImporter().total_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="epss",
+            display_name="FIRST.org EPSS (Exploit Prediction Scoring System)",
+            source_url=EPSS_URL,
+            source_type="csv",
+            license="CC-BY-4.0 (FIRST.org)",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_epss,
+            count_callable=_count_epss,
+            description="ML-derived probability (0..1) that each CVE will be exploited in the next 30 days.",
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: epss importer unavailable: %s", exc)
 
 
 def _ensure_discovered() -> None:
@@ -308,6 +398,7 @@ def refresh_feed(feed_id: str, db_path: Optional[str] = None) -> Dict[str, Any]:
                 + (result.get("subtechniques") or 0)
             )
             or result.get("imported")
+            or result.get("scores_imported")
         )
         if not derived and feed.count_callable is not None:
             try:
