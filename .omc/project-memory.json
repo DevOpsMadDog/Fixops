@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776779391193,
+  "lastScanned": 1777295390524,
   "projectRoot": "/Users/devops.ai/fixops/Fixops",
   "techStack": {
     "languages": [
@@ -60,6 +60,8 @@
     "workspaces": [],
     "mainDirectories": [
       "docs",
+      "examples",
+      "lib",
       "scripts",
       "tests"
     ],
@@ -74,14 +76,14 @@
       "path": "MagicMock",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391176,
+      "lastAccessed": 1777295390472,
       "keyFiles": []
     },
     "__pycache__": {
       "path": "__pycache__",
       "purpose": null,
       "fileCount": 6,
-      "lastAccessed": 1776779391177,
+      "lastAccessed": 1777295390472,
       "keyFiles": [
         "sitecustomize.cpython-310.pyc",
         "sitecustomize.cpython-311.pyc",
@@ -94,7 +96,7 @@
       "path": "alembic",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776779391177,
+      "lastAccessed": 1777295390473,
       "keyFiles": [
         "env.py",
         "script.py.mako"
@@ -104,14 +106,14 @@
       "path": "archive",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391178,
+      "lastAccessed": 1777295390477,
       "keyFiles": []
     },
     "bash-5.1": {
       "path": "bash-5.1",
       "purpose": null,
       "fileCount": 172,
-      "lastAccessed": 1776779391178,
+      "lastAccessed": 1777295390482,
       "keyFiles": [
         "ABOUT-NLS",
         "AUTHORS",
@@ -123,21 +125,21 @@
     "data": {
       "path": "data",
       "purpose": "Data files",
-      "fileCount": 119,
-      "lastAccessed": 1776779391179,
+      "fileCount": 209,
+      "lastAccessed": 1777295390484,
       "keyFiles": [
         "access_matrix.db",
+        "access_matrix.db-shm",
+        "access_matrix.db-wal",
         "activity_feed.db",
-        "ai_orchestrator.db",
-        "analytics.db",
-        "anomaly_detector.db"
+        "admin_wizard.db"
       ]
     },
     "deliverables": {
       "path": "deliverables",
       "purpose": null,
       "fileCount": 17,
-      "lastAccessed": 1776779391179,
+      "lastAccessed": 1777295390485,
       "keyFiles": [
         "auth_analysis_deliverable.md",
         "auth_exploitation_evidence.md",
@@ -146,24 +148,44 @@
         "authz_exploitation_evidence.md"
       ]
     },
+    "deploy": {
+      "path": "deploy",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777295390486,
+      "keyFiles": []
+    },
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 5,
+      "lastAccessed": 1777295390486,
+      "keyFiles": [
+        "aldeci_data_room_2026-04-26.manifest.sha256",
+        "aldeci_data_room_2026-04-26.tar.gz",
+        "fixops-claude-skills-0.1.0-alpha.tar.gz",
+        "fixops-claude-skills-0.1.0-alpha.tar.gz.sha256",
+        "fixops-claude-skills-0.1.0-alpha.tar.gz.sig.placeholder"
+      ]
+    },
     "docker": {
       "path": "docker",
       "purpose": null,
-      "fileCount": 10,
-      "lastAccessed": 1776779391179,
+      "fileCount": 15,
+      "lastAccessed": 1777295390486,
       "keyFiles": [
         "Dockerfile.api",
+        "Dockerfile.scif",
+        "Dockerfile.scif.ironbank",
         "Dockerfile.ui",
-        "docker-compose.connectors.yml",
-        "docker-compose.enterprise.yml",
-        "docker-compose.full.yml"
+        "docker-compose.connectors.yml"
       ]
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
-      "fileCount": 25,
-      "lastAccessed": 1776779391179,
+      "fileCount": 62,
+      "lastAccessed": 1777295390486,
       "keyFiles": [
         "ADMIN_GUIDE.md",
         "ALDECI_BUILD_STATUS.md",
@@ -172,11 +194,18 @@
         "API_QUICKSTART.md"
       ]
     },
+    "examples": {
+      "path": "examples",
+      "purpose": "Example code",
+      "fileCount": 0,
+      "lastAccessed": 1777295390486,
+      "keyFiles": []
+    },
     "fixtures": {
       "path": "fixtures",
       "purpose": "Test fixtures",
       "fileCount": 1,
-      "lastAccessed": 1776779391180,
+      "lastAccessed": 1777295390487,
       "keyFiles": [
         "security_patterns.json"
       ]
@@ -185,7 +214,7 @@
       "path": "frontend",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776779391180,
+      "lastAccessed": 1777295390487,
       "keyFiles": [
         "index.html"
       ]
@@ -193,21 +222,44 @@
     "graphify-out": {
       "path": "graphify-out",
       "purpose": null,
-      "fileCount": 6,
-      "lastAccessed": 1776779391180,
+      "fileCount": 19,
+      "lastAccessed": 1777295390487,
       "keyFiles": [
         "GRAPH_REPORT.md",
+        "SECOND_BRAIN_REPORT.md",
         "cost.json",
+        "graph-filtered.html",
+        "graph-filtered.json"
+      ]
+    },
+    "graphify-out-integrations": {
+      "path": "graphify-out-integrations",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1777295390487,
+      "keyFiles": [
+        "GRAPH_REPORT.md",
         "graph.html",
         "graph.json",
-        "manifest.json"
+        "integration-topology.html"
+      ]
+    },
+    "graphify-out-truecourse": {
+      "path": "graphify-out-truecourse",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1777295390488,
+      "keyFiles": [
+        "GRAPH_REPORT.md",
+        "graph.html",
+        "graph.json"
       ]
     },
     "htmlcov": {
       "path": "htmlcov",
       "purpose": null,
-      "fileCount": 1528,
-      "lastAccessed": 1776779391186,
+      "fileCount": 1644,
+      "lastAccessed": 1777295390507,
       "keyFiles": [
         "class_index.html",
         "coverage_html_cb_dd2e7eb5.js",
@@ -216,11 +268,18 @@
         "index.html"
       ]
     },
+    "lib": {
+      "path": "lib",
+      "purpose": "Library code",
+      "fileCount": 0,
+      "lastAccessed": 1777295390507,
+      "keyFiles": []
+    },
     "logs": {
       "path": "logs",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776779391187,
+      "lastAccessed": 1777295390507,
       "keyFiles": [
         "jarvis-20260227-170428.log",
         "jarvis-20260227_183322.log"
@@ -230,7 +289,7 @@
       "path": "n8n-workflows",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1776779391187,
+      "lastAccessed": 1777295390508,
       "keyFiles": [
         "cloud-posture-collector.json",
         "github-repo-scanner.json",
@@ -241,7 +300,7 @@
       "path": "newman",
       "purpose": null,
       "fileCount": 19,
-      "lastAccessed": 1776779391187,
+      "lastAccessed": 1777295390508,
       "keyFiles": [
         "newman-run-report-2026-03-02-01-40-22-331-0.json",
         "newman-run-report-2026-03-02-01-41-16-012-0.json",
@@ -254,14 +313,21 @@
       "path": "outputs",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391187,
+      "lastAccessed": 1777295390508,
+      "keyFiles": []
+    },
+    "raw": {
+      "path": "raw",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777295390508,
       "keyFiles": []
     },
     "reports": {
       "path": "reports",
       "purpose": null,
       "fileCount": 7,
-      "lastAccessed": 1776779391187,
+      "lastAccessed": 1777295390508,
       "keyFiles": [
         "e2e_15_repos_scan.json",
         "e2e_real_scan_results.json",
@@ -273,8 +339,8 @@
     "scripts": {
       "path": "scripts",
       "purpose": "Build/utility scripts",
-      "fileCount": 201,
-      "lastAccessed": 1776779391187,
+      "fileCount": 231,
+      "lastAccessed": 1777295390509,
       "keyFiles": [
         "README.md",
         "_bulk_test_all.py",
@@ -287,7 +353,7 @@
       "path": "security_tests",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776779391187,
+      "lastAccessed": 1777295390509,
       "keyFiles": [
         "auth_vuln_07_04_05.py"
       ]
@@ -296,7 +362,7 @@
       "path": "shannon-report",
       "purpose": null,
       "fileCount": 12,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390509,
       "keyFiles": [
         "auth_analysis_deliverable.md",
         "auth_exploitation_queue.json",
@@ -309,42 +375,42 @@
       "path": "simulations",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390510,
       "keyFiles": []
     },
     "suite-api": {
       "path": "suite-api",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390510,
       "keyFiles": []
     },
     "suite-attack": {
       "path": "suite-attack",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390510,
       "keyFiles": []
     },
     "suite-core": {
       "path": "suite-core",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390510,
       "keyFiles": []
     },
     "suite-evidence-risk": {
       "path": "suite-evidence-risk",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390510,
       "keyFiles": []
     },
     "suite-feeds": {
       "path": "suite-feeds",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390510,
       "keyFiles": [
         "feeds_service.py",
         "threat_intel_aggregator.py"
@@ -354,21 +420,21 @@
       "path": "suite-integrations",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391188,
+      "lastAccessed": 1777295390510,
       "keyFiles": []
     },
     "suite-ui": {
       "path": "suite-ui",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776779391189,
+      "lastAccessed": 1777295390511,
       "keyFiles": []
     },
     "tests": {
       "path": "tests",
       "purpose": "Test files",
-      "fileCount": 844,
-      "lastAccessed": 1776779391189,
+      "fileCount": 931,
+      "lastAccessed": 1777295390513,
       "keyFiles": [
         "__init__.py",
         "conftest.py",
@@ -380,9 +446,13 @@
     "tools": {
       "path": "tools",
       "purpose": null,
-      "fileCount": 1,
-      "lastAccessed": 1776779391190,
+      "fileCount": 5,
+      "lastAccessed": 1777295390514,
       "keyFiles": [
+        "agent_memory_prompt_wrapper.py",
+        "agent_routing_advisor.py",
+        "extract_wave_routes.py",
+        "gen_wave_api_docs.py",
         "generate_pentest_report.py"
       ]
     },
@@ -390,7 +460,7 @@
       "path": "workspace",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1776779391190,
+      "lastAccessed": 1777295390515,
       "keyFiles": [
         "auth_false_positives.md",
         "ssrf_false_positives.md",
@@ -401,7 +471,7 @@
       "path": "outputs/schemas",
       "purpose": "Schema definitions",
       "fileCount": 3,
-      "lastAccessed": 1776779391191,
+      "lastAccessed": 1777295390519,
       "keyFiles": [
         "facts.cve.json",
         "facts.sarif.json",
@@ -411,8 +481,8 @@
     "suite-api/data": {
       "path": "suite-api/data",
       "purpose": "Data files",
-      "fileCount": 32,
-      "lastAccessed": 1776779391191,
+      "fileCount": 34,
+      "lastAccessed": 1777295390520,
       "keyFiles": [
         "activity_feed.db",
         "analytics.db",
@@ -423,7 +493,7 @@
       "path": "suite-api/fixtures",
       "purpose": "Test fixtures",
       "fileCount": 1,
-      "lastAccessed": 1776779391192,
+      "lastAccessed": 1777295390520,
       "keyFiles": [
         "security_patterns.json"
       ]
@@ -432,7 +502,7 @@
       "path": "suite-attack/api",
       "purpose": "API routes",
       "fileCount": 14,
-      "lastAccessed": 1776779391192,
+      "lastAccessed": 1777295390520,
       "keyFiles": [
         "api_fuzzer_router.py",
         "app.py",
@@ -443,7 +513,7 @@
       "path": "suite-core/api",
       "purpose": "API routes",
       "fileCount": 44,
-      "lastAccessed": 1776779391192,
+      "lastAccessed": 1777295390521,
       "keyFiles": [
         "agents_router.py",
         "ai_code_guardian_router.py",
@@ -454,7 +524,7 @@
       "path": "suite-core/config",
       "purpose": "Configuration files",
       "fileCount": 6,
-      "lastAccessed": 1776779391192,
+      "lastAccessed": 1777295390521,
       "keyFiles": [
         "feature_flags.example.yml",
         "fixops.overlay.yml",
@@ -465,7 +535,7 @@
       "path": "suite-evidence-risk/api",
       "purpose": "API routes",
       "fileCount": 12,
-      "lastAccessed": 1776779391192,
+      "lastAccessed": 1777295390521,
       "keyFiles": [
         "app.py",
         "business_context.py",
@@ -476,7 +546,7 @@
       "path": "suite-feeds/api",
       "purpose": "API routes",
       "fileCount": 2,
-      "lastAccessed": 1776779391192,
+      "lastAccessed": 1777295390522,
       "keyFiles": [
         "app.py",
         "feeds_router.py"
@@ -485,9 +555,10 @@
     "suite-feeds/data": {
       "path": "suite-feeds/data",
       "purpose": "Data files",
-      "fileCount": 1,
-      "lastAccessed": 1776779391193,
+      "fileCount": 2,
+      "lastAccessed": 1777295390522,
       "keyFiles": [
+        "ghsa_sync_state.json",
         "threat_intel.db"
       ]
     },
@@ -495,7 +566,7 @@
       "path": "suite-integrations/api",
       "purpose": "API routes",
       "fileCount": 8,
-      "lastAccessed": 1776779391193,
+      "lastAccessed": 1777295390523,
       "keyFiles": [
         "app.py",
         "iac_router.py",
@@ -506,8 +577,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 711,
-      "lastAccessed": 1776813409687,
+      "accessCount": 731,
+      "lastAccessed": 1777295539414,
       "type": "directory"
     },
     {
