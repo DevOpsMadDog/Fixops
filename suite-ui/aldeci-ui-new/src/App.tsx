@@ -540,6 +540,8 @@ const IssuesHero = lazy(() => import("@/pages/Issues"));
 const BrainHero = lazy(() => import("@/pages/Brain"));
 const ComplianceHero = lazy(() => import("@/pages/Compliance"));
 const AssetGraphHero = lazy(() => import("@/pages/AssetGraph"));
+// ── Phase 3 P1 hero (Remediate) ──
+const RemediateHero = lazy(() => import("@/pages/Remediate"));
 // ── Phase 3 P0 Wave 3 hero pages (Command + Admin) ──
 const CommandHero = lazy(() => import("@/pages/Command"));
 const AdminHero = lazy(() => import("@/pages/Admin"));
@@ -679,14 +681,16 @@ export default function App() {
             {/* Wave 1 — Validate */}
             <Route path="/validate/reachability-proof" element={<ReachabilityProof />} />
 
-            {/* Space 4: Remediate */}
-            <Route path="/remediate" element={<RemediationCenter />} />
-            <Route path="/remediate/autofix" element={<AutoFix />} />
+            {/* Space 4: Remediate — /remediate is now the Phase 3 P1 RemediateHero (S19) */}
+            <Route path="/remediate" element={<RemediateHero />} />
+            <Route path="/remediate/autofix" element={<Navigate to="/remediate?tab=suggested" replace />} />
             <Route path="/remediate/bulk" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><BulkOperations /></RequireRole>} />
             <Route path="/remediate/collaborate" element={<Collaboration />} />
-            <Route path="/remediate/workflows" element={<Workflows />} />
+            <Route path="/remediate/workflows" element={<Navigate to="/remediate?tab=workflows" replace />} />
             <Route path="/remediate/cases" element={<ExposureCases />} />
             <Route path="/remediate/tickets" element={<TicketIntegration />} />
+            <Route path="/remediate/center" element={<Navigate to="/remediate?tab=center" replace />} />
+            <Route path="/remediate/waivers" element={<Navigate to="/remediate?tab=waivers" replace />} />
 
             {/* Space 5: Comply */}
             {/* /comply, /comply/evidence, /comply/bundles → consolidated into /compliance hero */}
@@ -1194,6 +1198,28 @@ export default function App() {
             <Route path="/audit/explorer" element={<Navigate to="/compliance?tab=audit" replace />} />
             <Route path="/ai-exposure" element={<Navigate to="/compliance?tab=ai-exposure" replace />} />
 
+            {/* P1 Wave 2 — Evidence Vault redirects → Compliance hero */}
+            <Route path="/evidence-vault" element={<Navigate to="/compliance?tab=vault" replace />} />
+            <Route path="/comply/vault" element={<Navigate to="/compliance?tab=vault" replace />} />
+            <Route path="/evidence/vault" element={<Navigate to="/compliance?tab=vault" replace />} />
+            <Route path="/comply/cryptographic-evidence" element={<Navigate to="/compliance?tab=vault" replace />} />
+
+            {/* P1 Wave 2 — Integrations Hub redirects → Admin hero */}
+            <Route path="/integrations-hub" element={<Navigate to="/admin?tab=integrations" replace />} />
+            <Route path="/connectors/health" element={<Navigate to="/admin?tab=integrations" replace />} />
+            <Route path="/connectors/marketplace" element={<Navigate to="/admin?tab=integrations" replace />} />
+            <Route path="/connect" element={<Navigate to="/admin?tab=integrations" replace />} />
+
+            {/* P1 Wave 2 — Attack Paths + SBOM new redirect-only routes → Asset Graph hero
+                (existing canonical routes preserved at /discover/sbom, /discover/attack-paths,
+                /sbom-continuous-monitoring, /comply/slsa for backward compat) */}
+            <Route path="/attack-paths-graph" element={<Navigate to="/assets?tab=attack-paths" replace />} />
+            <Route path="/attack/paths" element={<Navigate to="/assets?tab=attack-paths" replace />} />
+            <Route path="/sbom-inventory" element={<Navigate to="/assets?tab=sbom" replace />} />
+            <Route path="/sbom-management" element={<Navigate to="/assets?tab=sbom" replace />} />
+            <Route path="/comply/sbom" element={<Navigate to="/assets?tab=sbom" replace />} />
+            <Route path="/provenance" element={<Navigate to="/assets?tab=sbom" replace />} />
+
             {/* 90-day muscle-memory redirects → Asset Graph hero */}
             <Route path="/discover/inventory" element={<Navigate to="/assets?tab=inventory" replace />} />
             <Route path="/discover/code-intel" element={<Navigate to="/brain?tab=code-intel" replace />} />
@@ -1280,6 +1306,9 @@ export default function App() {
             {/* Frontend Wave 2 — policy / waivers / rules / audit (14 screens, 2026-04-26) */}
             <Route path="/policies/stage-matrix" element={<StagePolicyMatrix />} />
             <Route path="/policies/stage-editor" element={<PolicyStageEditor />} />
+            {/* /waivers/* — Phase 3 P1 consolidated into /remediate?tab=waivers (S19 fold). */}
+            {/* Standalone pages still render for old bookmarks; add a top-level /waivers redirect. */}
+            <Route path="/waivers" element={<Navigate to="/remediate?tab=waivers" replace />} />
             <Route path="/waivers/explorer" element={<WaiversExplorer />} />
             <Route path="/waivers/request" element={<WaiverRequestModal />} />
             <Route path="/waivers/auto-rules" element={<AutoWaiverRules />} />
