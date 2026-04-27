@@ -71,6 +71,9 @@ const CodeSemanticExplorer = lazy(() => import("@/pages/discover/CodeSemanticExp
 const CallGraphExplorer = lazy(() => import("@/pages/discover/CallGraphExplorer"));
 const ComponentIdentityView = lazy(() => import("@/pages/discover/ComponentIdentityView"));
 const ReachabilityProofView = lazy(() => import("@/pages/validate/ReachabilityProof"));
+// P2 fold-ins (S13 MPTE Console, S17 FAIL Chaos)
+const MPTEConsole = lazy(() => import("@/pages/validate/MPTEConsole"));
+const FAILEngine = lazy(() => import("@/pages/validate/FAILEngine"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 12-step Brain Pipeline canon (from CTEM_PLUS_IDENTITY.md + brain_pipeline.py)
@@ -315,6 +318,8 @@ export default function Brain() {
           <TabsTrigger value="score">Score Transparency</TabsTrigger>
           <TabsTrigger value="weights">Factor Weights</TabsTrigger>
           <TabsTrigger value="code-intel">Code Intelligence</TabsTrigger>
+          <TabsTrigger value="mpte">MPTE Console</TabsTrigger>
+          <TabsTrigger value="fail">FAIL Chaos</TabsTrigger>
         </TabsList>
 
         {/* ───────────────────────────────── PIPELINE TAB ─────────────────────── */}
@@ -604,6 +609,43 @@ export default function Brain() {
         {/* ─────────── CODE INTELLIGENCE TAB (P1 fold-in S10 -> Brain hero) ─────────── */}
         <TabsContent value="code-intel" className="space-y-4">
           <CodeIntelligencePane />
+        </TabsContent>
+
+        {/* ─────────── MPTE CONSOLE TAB (P2 fold-in S13 -> Brain hero) ─────────── */}
+        <TabsContent value="mpte" className="space-y-4">
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-start gap-2">
+              <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div className="text-xs space-y-0.5">
+                <p className="font-semibold text-foreground">Micro-Pentest Engine — 19-Phase Verification</p>
+                <p className="text-muted-foreground">
+                  Brain Step 11 (<code>pentest</code>) drills here. Each finding is verified against
+                  a 19-phase exploitability protocol — recon → discovery → enumeration → vuln
+                  identification → exploit → post-exploit → evidence. Real <code>/api/v1/mpte/runs</code> +
+                  per-finding traces. Aliased at <code>/brain/mpte</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+          <Suspense fallback={<TabSkeleton />}><MPTEConsole /></Suspense>
+        </TabsContent>
+
+        {/* ─────────── FAIL CHAOS TAB (P2 fold-in S17 -> Brain hero) ─────────── */}
+        <TabsContent value="fail" className="space-y-4">
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+            <div className="flex items-start gap-2">
+              <Zap className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+              <div className="text-xs space-y-0.5">
+                <p className="font-semibold text-foreground">FAIL Engine — Security Chaos & Fault Injection</p>
+                <p className="text-muted-foreground">
+                  Chaos campaigns, fault-injection runs, blast-radius analytics, deception
+                  playbooks, tabletop exercises. Real <code>/api/v1/fail/*</code>. EmptyStates fall
+                  back gracefully if the engine is unavailable.
+                </p>
+              </div>
+            </div>
+          </div>
+          <Suspense fallback={<TabSkeleton />}><FAILEngine /></Suspense>
         </TabsContent>
       </Tabs>
 

@@ -726,6 +726,11 @@ export default function App() {
             <Route path="/ai/algorithms" element={<Navigate to="/brain?tab=lab" replace />} />
             <Route path="/ai/ml" element={<Navigate to="/brain?tab=ml" replace />} />
             <Route path="/ai/predictions" element={<Navigate to="/brain?tab=predictions" replace />} />
+            {/* P2 Wave: MPTE / Verification / FAIL Chaos → Brain hero (S13/S16/S17) */}
+            <Route path="/verification" element={<Navigate to="/brain?tab=mpte" replace />} />
+            <Route path="/brain/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
+            <Route path="/brain/fail" element={<Navigate to="/brain?tab=fail" replace />} />
+            <Route path="/attack/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
             {/* Wave 1 — AI */}
             <Route path="/ai/shadow-inventory" element={<ShadowAIInventory />} />
             <Route path="/ai/attack-paths" element={<AIAttackPathView />} />
@@ -1065,7 +1070,6 @@ export default function App() {
             <Route path="/network-anomaly" element={<NetworkAnomalyDashboard />} />
             <Route path="/privileged-identity" element={<PrivilegedIdentityDashboard />} />
             <Route path="/hunting-automation" element={<HuntingAutomationDashboard />} />
-            <Route path="/evidence-vault" element={<EvidenceVaultDashboard />} />
             <Route path="/service-catalog" element={<ServiceCatalogDashboard />} />
 
             {/* Wave 38 domain dashboards */}
