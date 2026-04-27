@@ -18,12 +18,13 @@
  * Route: / (root after login) + redirects from /dashboard, /main, /overview, /executive-brief
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Activity,
   AlertOctagon,
+  Bot,
   Briefcase,
   Code2,
   DollarSign,
@@ -55,6 +56,11 @@ import { LiveEventStream } from "@/components/shared/LiveEventStream";
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { useAuth, type UserRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+
+// P2 fold-in (S18) — AI Copilot full-screen chat (lazy)
+const Copilot = lazy(() => import("@/pages/ai/Copilot"));
+const CopilotGraphChat = lazy(() => import("@/pages/ai/CopilotGraphChat"));
+const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -95,7 +101,7 @@ interface IncidentList {
   items?: Array<{ id?: string; title?: string; severity?: string; status?: string; created_at?: string }>;
 }
 
-type ViewKey = "executive" | "soc" | "dev" | "ops";
+type ViewKey = "executive" | "soc" | "dev" | "ops" | "copilot";
 
 interface ViewSpec {
   key: ViewKey;
@@ -110,6 +116,7 @@ const VIEWS: ViewSpec[] = [
   { key: "soc", label: "SOC Analyst", icon: Siren, description: "Active incidents, alert queue, MTTR, hot threats", defaultRoles: ["security_analyst"] },
   { key: "dev", label: "DevSecOps", icon: Code2, description: "Pipeline status, recent failed scans, code-quality gates", defaultRoles: ["developer"] },
   { key: "ops", label: "Operational", icon: Activity, description: "Coverage, scanner health, system uptime", defaultRoles: ["viewer"] },
+  { key: "copilot", label: "AI Copilot", icon: Bot, description: "P2 fold-in (S18) — full-screen chat with security copilot. Graph-aware NL queries, traversal traces, model selection.", defaultRoles: [] },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -481,6 +488,39 @@ export default function Command() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* AI Copilot view (P2 fold-in S18) */}
+        <TabsContent value="copilot" className="space-y-4">
+          <p className="text-sm text-muted-foreground">{VIEWS[4].description}</p>
+          <Tabs defaultValue="chat" className="space-y-3">
+            <TabsList className="flex flex-wrap gap-1 h-auto justify-start">
+              <TabsTrigger value="chat" className="flex items-center gap-1.5">
+                <Bot className="h-3.5 w-3.5" />Chat
+              </TabsTrigger>
+              <TabsTrigger value="graph-chat" className="flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5" />Graph NL Query
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" />Dashboard
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="chat">
+              <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
+                <Copilot />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="graph-chat">
+              <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
+                <CopilotGraphChat />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="dashboard">
+              <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
+                <CopilotDashboard />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* Operational view */}
