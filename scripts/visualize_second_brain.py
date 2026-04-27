@@ -10,9 +10,12 @@ Reads:
 Classifies every node by its `source_file` against TrustGraph emission status:
     GREEN  — file directly emits to TrustGraph (uses get_event_bus / _emit_event /
              bus.publish / bus.emit / from core.trustgraph_event_bus)
+    AQUA   — file does NOT directly emit but is reachable (within depth 2) from a
+             GREEN/wired hub via an inbound import/call edge.  The hub effectively
+             pumps these files' state through the bus on its own emit.
     YELLOW — file is a router/middleware-touched file in suite-api/apps/api/ and is
              therefore covered by ResponseInterceptorMiddleware auto-emit
-    RED    — file has no known link into TrustGraph
+    RED    — file has no known link into TrustGraph (not even via blast-radius)
 
 Outputs:
     graphify-out/second_brain.html       — interactive pyvis force-directed view
@@ -66,9 +69,15 @@ MIDDLEWARE_COVERED_PREFIXES = ("suite-api/apps/api/",)
 
 # Color palette
 COLOR_GREEN = "#1ec97a"   # directly wired
+COLOR_AQUA = "#3ec5ff"    # reachable via wired hub (blast-radius depth <= 2)
 COLOR_YELLOW = "#f5c542"  # likely-wired via middleware
 COLOR_RED = "#e34a4a"     # disconnected
 COLOR_GREY = "#444"        # docs / non-code (excluded from %)
+
+# How many hops outward from a GREEN file we walk before stopping.
+# 1 = files that directly import or are called by the hub.
+# 2 = files that import a file that imports the hub.
+BLAST_RADIUS_DEPTH = 2
 
 
 def find_emit_files() -> Set[str]:
@@ -127,6 +136,66 @@ def compute_degrees(nodes: List[dict], links: List[dict]) -> Dict[str, int]:
     return deg
 
 
+def compute_blast_radius(
+    nodes: List[dict],
+    links: List[dict],
+    file_class: Dict[str, str],
+    depth: int = BLAST_RADIUS_DEPTH,
+) -> Set[str]:
+    """Return the set of source files reachable from a GREEN file within `depth` hops.
+
+    Direction:
+        We follow edges OUTWARD from the GREEN hub.  An edge `A -> B` (A imports
+        or calls B; or A "contains" symbol B) means symbol B is part of the
+        hub's surface, so when the hub emits, the hub's outputs reflect B's
+        state.  We therefore mark B's *file* as reachable.
+
+    The traversal works on a file-level graph derived from the symbol graph:
+        for each (src_node, tgt_node) link, we add a (src_file, tgt_file) edge.
+
+    GREEN files themselves are excluded from the return set (they're already
+    GREEN; we only mark *new* files as AQUA).
+    """
+    # Build node-id -> file map
+    node_file: Dict[str, str] = {}
+    for n in nodes:
+        sf = n.get("source_file", "")
+        if sf:
+            node_file[n["id"]] = sf
+
+    # Build adjacency at file level (outbound: src_file -> set of tgt_files)
+    file_adj: Dict[str, Set[str]] = defaultdict(set)
+    for e in links:
+        s = e.get("_src") or e.get("source")
+        t = e.get("_tgt") or e.get("target")
+        sf = node_file.get(s)
+        tf = node_file.get(t)
+        if sf and tf and sf != tf:
+            file_adj[sf].add(tf)
+
+    # BFS from each GREEN seed up to `depth` hops
+    green_seeds = {f for f, c in file_class.items() if c == "green"}
+    reached: Set[str] = set()
+
+    for seed in green_seeds:
+        # frontier per seed
+        frontier: Set[str] = {seed}
+        for _hop in range(depth):
+            next_frontier: Set[str] = set()
+            for f in frontier:
+                for nbr in file_adj.get(f, ()):
+                    if nbr in green_seeds:
+                        continue  # already GREEN — don't downgrade to AQUA
+                    if nbr not in reached:
+                        next_frontier.add(nbr)
+                        reached.add(nbr)
+            if not next_frontier:
+                break
+            frontier = next_frontier
+
+    return reached
+
+
 def write_report(
     nodes: List[dict],
     links: List[dict],
@@ -140,12 +209,28 @@ def write_report(
     color_counts = Counter(classification.values())
     total_code = (
         color_counts.get("green", 0)
+        + color_counts.get("aqua", 0)
         + color_counts.get("yellow", 0)
         + color_counts.get("red", 0)
     )
     pct_green = 100 * color_counts.get("green", 0) / max(total_code, 1)
+    pct_aqua = 100 * color_counts.get("aqua", 0) / max(total_code, 1)
     pct_yellow = 100 * color_counts.get("yellow", 0) / max(total_code, 1)
     pct_red = 100 * color_counts.get("red", 0) / max(total_code, 1)
+    pct_reachable = (
+        100
+        * (color_counts.get("green", 0) + color_counts.get("aqua", 0))
+        / max(total_code, 1)
+    )
+    pct_wired_total = (
+        100
+        * (
+            color_counts.get("green", 0)
+            + color_counts.get("aqua", 0)
+            + color_counts.get("yellow", 0)
+        )
+        / max(total_code, 1)
+    )
 
     # Per-file degree (sum of node degrees grouped by source_file)
     file_degree: Dict[str, int] = defaultdict(int)
@@ -196,9 +281,22 @@ def write_report(
     lines.append(f"- **Total edges**: {len(links):,}")
     lines.append(f"- **Code nodes (excluding docs/configs)**: {total_code:,}")
     lines.append(f"- **GREEN — direct TrustGraph emit**: {color_counts.get('green', 0):,} ({pct_green:.1f}%)")
+    lines.append(
+        f"- **AQUA — reachable via wired hub (depth ≤ {BLAST_RADIUS_DEPTH})**: "
+        f"{color_counts.get('aqua', 0):,} ({pct_aqua:.1f}%)"
+    )
     lines.append(f"- **YELLOW — middleware auto-emit (suite-api routers)**: {color_counts.get('yellow', 0):,} ({pct_yellow:.1f}%)")
     lines.append(f"- **RED — disconnected from TrustGraph**: {color_counts.get('red', 0):,} ({pct_red:.1f}%)")
     lines.append(f"- **GREY — docs / non-code**: {color_counts.get('grey', 0):,}")
+    lines.append("")
+    lines.append(
+        f"- **Reachable via wired hubs (GREEN + AQUA)**: {pct_reachable:.1f}%  "
+        f"← *true second-brain coverage including blast-radius*"
+    )
+    lines.append(
+        f"- **Total wired (GREEN + AQUA + YELLOW)**: {pct_wired_total:.1f}%  "
+        f"← *includes middleware-covered routers*"
+    )
     lines.append("")
     lines.append(f"- **Files emitting directly**: {len(emit_files):,}")
     lines.append(f"- **Source files in graph**: {len(file_class):,}")
@@ -244,13 +342,21 @@ def write_report(
         " `get_event_bus()`, `bus.emit()`, `bus.publish()`, or `_emit_event()` somewhere."
     )
     lines.append(
+        f"- **AQUA** = the file does not directly emit, but it is reached within"
+        f" {BLAST_RADIUS_DEPTH} hop(s) outward from a GREEN hub via the call/import"
+        f" graph.  When the hub fires its emit on a public method, the AQUA file's"
+        f" state is part of the hub's surface — so it is effectively second-brain"
+        f" reachable without needing its own emit."
+    )
+    lines.append(
         "- **YELLOW** = the file lives under `suite-api/apps/api/` and is therefore"
         " auto-covered by `ResponseInterceptorMiddleware`, which sniffs every POST/PUT/PATCH"
         " response for entity IDs and emits an event without the router needing to know."
     )
     lines.append(
-        "- **RED** = no known wire into TrustGraph. These are the next-priority files to"
-        " add explicit emits to."
+        "- **RED** = no known wire into TrustGraph (not even via blast-radius from a"
+        " wired hub). These are the next-priority files to either wire directly or to"
+        " surface through an existing hub."
     )
     lines.append(
         "- **GREY** = documentation / config / non-Python — excluded from the % coverage."
@@ -297,6 +403,7 @@ def write_html(
 
     color_map = {
         "green": COLOR_GREEN,
+        "aqua": COLOR_AQUA,
         "yellow": COLOR_YELLOW,
         "red": COLOR_RED,
         "grey": COLOR_GREY,
@@ -329,8 +436,8 @@ def write_html(
         if s in keep_ids and t in keep_ids:
             cs = classification.get(s, "grey")
             ct = classification.get(t, "grey")
-            # Heavier edge if both endpoints are wired into TrustGraph
-            wired = cs in ("green", "yellow") and ct in ("green", "yellow")
+            # Heavier edge if both endpoints are reachable into TrustGraph
+            wired = cs in ("green", "aqua", "yellow") and ct in ("green", "aqua", "yellow")
             net.add_edge(
                 s,
                 t,
@@ -343,11 +450,23 @@ def write_html(
 
     total_code = (
         color_counts.get("green", 0)
+        + color_counts.get("aqua", 0)
         + color_counts.get("yellow", 0)
         + color_counts.get("red", 0)
     )
+    pct_reachable = (
+        100
+        * (color_counts.get("green", 0) + color_counts.get("aqua", 0))
+        / max(total_code, 1)
+    )
     pct_wired = (
-        100 * (color_counts.get("green", 0) + color_counts.get("yellow", 0)) / max(total_code, 1)
+        100
+        * (
+            color_counts.get("green", 0)
+            + color_counts.get("aqua", 0)
+            + color_counts.get("yellow", 0)
+        )
+        / max(total_code, 1)
     )
 
     # pyvis writes an HTML file we then post-process to inject overlays
@@ -373,10 +492,13 @@ def write_html(
 </style>
 <div id="sb-overlay">
   <h2>TrustGraph Coverage</h2>
-  <div class="pct">{pct_wired:.1f}%</div>
-  <div style="font-size:12px;opacity:0.8;margin-bottom:8px;">of {total_code:,} code nodes wired</div>
+  <div class="pct">{pct_reachable:.1f}%</div>
+  <div style="font-size:12px;opacity:0.8;margin-bottom:4px;">reachable via wired hubs (GREEN + AQUA, depth ≤ {BLAST_RADIUS_DEPTH})</div>
+  <div style="font-size:12px;opacity:0.8;margin-bottom:8px;">{pct_wired:.1f}% total wired (incl. middleware) of {total_code:,} code nodes</div>
   <div class="legend-row"><span class="swatch" style="background:{COLOR_GREEN}"></span>
     GREEN direct emit ({color_counts.get('green', 0):,})</div>
+  <div class="legend-row"><span class="swatch" style="background:{COLOR_AQUA}"></span>
+    AQUA blast-radius ({color_counts.get('aqua', 0):,})</div>
   <div class="legend-row"><span class="swatch" style="background:{COLOR_YELLOW}"></span>
     YELLOW middleware ({color_counts.get('yellow', 0):,})</div>
   <div class="legend-row"><span class="swatch" style="background:{COLOR_RED}"></span>
@@ -409,8 +531,8 @@ def main() -> int:
     nodes = g["nodes"]
     links = g["links"]
 
-    print("Step 3/4: classifying nodes + computing degrees...")
-    # File-level classification
+    print("Step 3/5: classifying nodes + computing degrees...")
+    # File-level classification (initial pass: green/yellow/red/grey)
     file_class: Dict[str, str] = {}
     file_node_count: Dict[str, int] = Counter()
     for n in nodes:
@@ -418,14 +540,28 @@ def main() -> int:
         file_node_count[sf] += 1
         if sf not in file_class:
             file_class[sf] = classify_file(sf, emit_files)
-    # Per-node classification (inherits from file)
+    degrees = compute_degrees(nodes, links)
+
+    print(
+        f"Step 4/5: computing blast-radius (depth {BLAST_RADIUS_DEPTH}) "
+        f"from {sum(1 for c in file_class.values() if c == 'green')} GREEN seeds..."
+    )
+    aqua_files = compute_blast_radius(nodes, links, file_class, depth=BLAST_RADIUS_DEPTH)
+    # Promote RED -> AQUA where reachable.  Do NOT touch GREEN, YELLOW, or GREY.
+    promoted = 0
+    for f in aqua_files:
+        if file_class.get(f) == "red":
+            file_class[f] = "aqua"
+            promoted += 1
+    print(f"  promoted {promoted} files RED -> AQUA via blast radius")
+
+    # Per-node classification (inherits from file, post-promotion)
     classification: Dict[str, str] = {}
     for n in nodes:
         sf = n.get("source_file", "")
         classification[n["id"]] = file_class.get(sf, "grey")
-    degrees = compute_degrees(nodes, links)
 
-    print("Step 4/4: writing report + HTML...")
+    print("Step 5/5: writing report + HTML...")
     color_counts = write_report(
         nodes, links, classification, degrees, file_class, file_node_count, emit_files
     )
@@ -433,19 +569,33 @@ def main() -> int:
 
     total_code = (
         color_counts.get("green", 0)
+        + color_counts.get("aqua", 0)
         + color_counts.get("yellow", 0)
         + color_counts.get("red", 0)
     )
+    pct_reachable = (
+        100
+        * (color_counts.get("green", 0) + color_counts.get("aqua", 0))
+        / max(total_code, 1)
+    )
     pct_wired = (
-        100 * (color_counts.get("green", 0) + color_counts.get("yellow", 0)) / max(total_code, 1)
+        100
+        * (
+            color_counts.get("green", 0)
+            + color_counts.get("aqua", 0)
+            + color_counts.get("yellow", 0)
+        )
+        / max(total_code, 1)
     )
     print()
     print("=" * 60)
-    print(f"Second-brain coverage: {pct_wired:.1f}% of {total_code:,} code nodes wired")
-    print(f"  GREEN  {color_counts.get('green', 0):>7,}")
-    print(f"  YELLOW {color_counts.get('yellow', 0):>7,}")
-    print(f"  RED    {color_counts.get('red', 0):>7,}")
-    print(f"  GREY   {color_counts.get('grey', 0):>7,}")
+    print(f"Reachable via wired hubs (GREEN+AQUA): {pct_reachable:.1f}% of {total_code:,} code nodes")
+    print(f"Total wired (GREEN+AQUA+YELLOW):      {pct_wired:.1f}%")
+    print(f"  GREEN  {color_counts.get('green', 0):>7,}  (direct emit)")
+    print(f"  AQUA   {color_counts.get('aqua', 0):>7,}  (blast-radius depth {BLAST_RADIUS_DEPTH})")
+    print(f"  YELLOW {color_counts.get('yellow', 0):>7,}  (middleware auto-emit)")
+    print(f"  RED    {color_counts.get('red', 0):>7,}  (disconnected)")
+    print(f"  GREY   {color_counts.get('grey', 0):>7,}  (non-code)")
     print("=" * 60)
     print(f"Open: {OUT_HTML}")
     print(f"Read: {OUT_REPORT}")

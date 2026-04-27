@@ -58,6 +58,42 @@ __all__ = [
     "KnowledgeStore",
 ]
 
+# TrustGraph event bus — optional, never blocks on failure.
+# This module IS part of TrustGraph; emitting here makes the store's own
+# ingestion observable in the second-brain (the bus is decoupled from the
+# store, so there is no cycle).
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
 
 # ============================================================================
 # Data Classes
@@ -277,6 +313,15 @@ class KnowledgeStore:
 
         conn.commit()
         logger.debug(f"Ingested entity {entity.entity_id}")
+        _emit_event(
+            "trustgraph.entity.ingested",
+            {
+                "entity_id": entity.entity_id,
+                "core_id": entity.core_id,
+                "entity_type": entity.entity_type,
+                "org_id": entity.org_id,
+            },
+        )
 
     def search(
         self,
@@ -407,6 +452,16 @@ class KnowledgeStore:
 
         conn.commit()
         logger.debug(f"Added relationship {rel.rel_id}")
+        _emit_event(
+            "trustgraph.relationship.added",
+            {
+                "rel_id": rel.rel_id,
+                "rel_type": rel.rel_type,
+                "source_id": rel.source_id,
+                "target_id": rel.target_id,
+                "confidence": rel.confidence,
+            },
+        )
 
     def get_relationships(
         self,

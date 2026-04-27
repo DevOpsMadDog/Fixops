@@ -43,6 +43,44 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# TrustGraph event bus — optional, never blocks on failure
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises.
+
+    Used by every quantum-secure signing/verification path so the second-brain
+    can observe key rotations, hybrid signatures, and verification outcomes
+    without coupling crypto to TrustGraph.
+    """
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
 
 # ---------------------------------------------------------------------------
 # ML-DSA Pure-Python Implementation (FIPS 204 Simplified)
@@ -663,12 +701,30 @@ def get_quantum_signer() -> HybridQuantumSigner:
 
 def hybrid_sign(data: bytes) -> HybridSignature:
     """Sign data with hybrid RSA + ML-DSA."""
-    return get_quantum_signer().sign(data)
+    sig = get_quantum_signer().sign(data)
+    _emit_event(
+        "quantum.signed",
+        {
+            "algorithm": "hybrid-rsa-mldsa",
+            "data_size_bytes": len(data),
+            "key_id": getattr(sig, "key_id", None),
+        },
+    )
+    return sig
 
 
 def hybrid_verify(data: bytes, envelope: HybridSignature) -> Dict[str, Any]:
     """Verify a hybrid signature envelope."""
-    return get_quantum_signer().verify(data, envelope)
+    result = get_quantum_signer().verify(data, envelope)
+    _emit_event(
+        "quantum.verified",
+        {
+            "algorithm": "hybrid-rsa-mldsa",
+            "data_size_bytes": len(data),
+            "valid": result.get("valid") if isinstance(result, dict) else None,
+        },
+    )
+    return result
 
 
 __all__ = [

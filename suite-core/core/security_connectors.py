@@ -23,6 +23,45 @@ from core.connectors import ConnectorHealth, ConnectorOutcome, _BaseConnector
 
 logger = logging.getLogger(__name__)
 
+# TrustGraph event bus — optional, never blocks on failure
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises.
+
+    Used by every security connector (Snyk, SonarQube, Dependabot, AWS
+    SecurityHub, Azure Defender, Wiz, etc.) on every successful fetch so the
+    second-brain sees both the connector activity and the resulting findings
+    count without each connector having to know about TrustGraph.
+    """
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
 
 # ---------------------------------------------------------------------------
 # 1. Snyk Connector
@@ -77,6 +116,10 @@ class SnykConnector(_BaseConnector):
         """Fetch vulnerability issues for a Snyk project."""
         if not self.configured:
             return ConnectorOutcome("skipped", {"reason": "snyk not configured"})
+        _emit_event(
+            "security_connector.fetch.started",
+            {"connector": "snyk", "project_id": project_id, "endpoint": "aggregated-issues"},
+        )
         url = f"{self.base_url}/v1/org/{self.org_id}/project/{project_id}/aggregated-issues"
         try:
             resp = self._request(
@@ -348,6 +391,14 @@ class AWSSecurityHubConnector(_BaseConnector):
                 MaxResults=min(max_results, 100),
             )
             findings = resp.get("Findings", [])
+            _emit_event(
+                "security_connector.findings.fetched",
+                {
+                    "connector": "aws_securityhub",
+                    "severity": severity,
+                    "count": len(findings),
+                },
+            )
             return ConnectorOutcome(
                 "fetched", {"findings": findings, "count": len(findings)}
             )
