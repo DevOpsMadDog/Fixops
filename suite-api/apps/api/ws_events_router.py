@@ -50,9 +50,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 
 from apps.api.auth_deps import (
     _DEV_MODE,
-    _EXPECTED_TOKENS,
     _HAS_JWT_AUTH,
     _decode_jwt,
+    _load_api_tokens,
     api_key_auth,
 )
 
@@ -96,8 +96,10 @@ def _authenticate_ws(api_key: Optional[str], token: Optional[str]) -> bool:
     Returns:
         True if the credential is valid or auth is not required.
     """
+    expected_tokens = _load_api_tokens()
+
     # Dev pass-through: no credentials configured and running in dev mode
-    if _DEV_MODE and not _EXPECTED_TOKENS and not _HAS_JWT_AUTH:
+    if _DEV_MODE and not expected_tokens and not _HAS_JWT_AUTH:
         return True
 
     credential = api_key or token
@@ -105,7 +107,7 @@ def _authenticate_ws(api_key: Optional[str], token: Optional[str]) -> bool:
         return False
 
     # Direct API token check
-    if credential in _EXPECTED_TOKENS:
+    if credential in expected_tokens:
         return True
 
     # JWT validation

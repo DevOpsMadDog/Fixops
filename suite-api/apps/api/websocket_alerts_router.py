@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 
-from apps.api.auth_deps import api_key_auth, _EXPECTED_TOKENS, _DEV_MODE, _decode_jwt, _HAS_JWT_AUTH
+from apps.api.auth_deps import api_key_auth, _load_api_tokens, _DEV_MODE, _decode_jwt, _HAS_JWT_AUTH
 
 try:
     from core.alert_broadcaster import (
@@ -72,15 +72,17 @@ def _authenticate_ws_token(token: Optional[str]) -> bool:
     Returns:
         True if the token is valid or auth is not required.
     """
+    expected_tokens = _load_api_tokens()
+
     # Dev pass-through
-    if _DEV_MODE and not _EXPECTED_TOKENS and not _HAS_JWT_AUTH:
+    if _DEV_MODE and not expected_tokens and not _HAS_JWT_AUTH:
         return True
 
     if not token:
         return False
 
     # API token check
-    if token in _EXPECTED_TOKENS:
+    if token in expected_tokens:
         return True
 
     # JWT check
