@@ -29,6 +29,40 @@ from pydantic import BaseModel, Field, model_validator
 
 _logger = structlog.get_logger(__name__)
 
+# TrustGraph event bus — optional, never blocks on failure
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
 _DEFAULT_DB_PATH = "data/vendor_risk.db"
 
 
@@ -1034,6 +1068,14 @@ class VendorRiskEngine:
             )
 
         _logger.info("Vendor registered", vendor_id=vendor.id, tier=vendor.tier.value)
+        _emit_event(
+            "vendor.registered",
+            {
+                "vendor_id": vendor.id,
+                "tier": vendor.tier.value,
+                "contract_risk_count": len(contract_risks) if contract_risks else 0,
+            },
+        )
         return vendor
 
     def get_vendor(self, vendor_id: str) -> Optional[Vendor]:
@@ -1110,6 +1152,15 @@ class VendorRiskEngine:
             score=assessment.questionnaire_score,
             question_count=len(responses),
         )
+        _emit_event(
+            "vendor.assessed",
+            {
+                "vendor_id": vendor_id,
+                "score": assessment.questionnaire_score,
+                "question_count": len(responses),
+                "assessed_by": assessed_by,
+            },
+        )
         return assessment
 
     def get_assessment(self, vendor_id: str) -> Optional[VendorAssessment]:
@@ -1133,6 +1184,14 @@ class VendorRiskEngine:
             vendor_id=signal.vendor_id,
             signal_type=signal.signal_type.value,
             severity=signal.severity.value,
+        )
+        _emit_event(
+            "vendor.risk_signal",
+            {
+                "vendor_id": signal.vendor_id,
+                "signal_type": signal.signal_type.value,
+                "severity": signal.severity.value,
+            },
         )
         return signal
 

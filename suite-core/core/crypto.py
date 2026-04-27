@@ -78,6 +78,44 @@ except ImportError:
 # ---------------------------------------------------------------------------
 logger = logging.getLogger(__name__)
 
+# TrustGraph event bus — optional, never blocks on failure
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises.
+
+    Used by every signing/verification surface in this module to make crypto
+    operations observable in the second-brain (TrustGraph) without coupling
+    crypto code to TrustGraph internals.
+    """
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
 # ---------------------------------------------------------------------------
 # Module-level constants
 # ---------------------------------------------------------------------------
@@ -2525,7 +2563,17 @@ def sign_evidence(bundle: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Try hybrid first (RSA + ML-DSA)
     try:
-        return _get_default_hybrid_signer().sign_evidence_bundle(bundle)
+        signed = _get_default_hybrid_signer().sign_evidence_bundle(bundle)
+        _emit_event(
+            "evidence.signed",
+            {
+                "algorithm": "hybrid-rsa-mldsa",
+                "format_version": (signed.get("signature") or {}).get("format_version", 2),
+                "key_fingerprint": (signed.get("signature") or {}).get("combined_fingerprint")
+                or (signed.get("signature") or {}).get("key_fingerprint"),
+            },
+        )
+        return signed
     except (KeyGenerationError, CryptoError, ImportError, AttributeError) as exc:
         logger.info(
             "Hybrid signing unavailable (%s: %s), falling back to RSA-only",
@@ -2548,6 +2596,14 @@ def sign_evidence(bundle: Dict[str, Any]) -> Dict[str, Any]:
             "key_fingerprint": fingerprint,
             "signed_at": datetime.now(timezone.utc).isoformat(),
         }
+        _emit_event(
+            "evidence.signed",
+            {
+                "algorithm": "rsa-sha256",
+                "format_version": 1,
+                "key_fingerprint": fingerprint,
+            },
+        )
         return signed
     except (OSError, ValueError, KeyError, RuntimeError) as rsa_exc:  # narrowed from bare Exception
         logger.warning("RSA signing also failed: %s", type(rsa_exc).__name__)
@@ -2565,7 +2621,16 @@ def verify_evidence(bundle: Dict[str, Any]) -> VerificationResult:
     Returns:
         :class:`VerificationResult` with per-algorithm outcomes.
     """
-    return _get_default_hybrid_verifier().verify_evidence_bundle(bundle)
+    result = _get_default_hybrid_verifier().verify_evidence_bundle(bundle)
+    _emit_event(
+        "evidence.verified",
+        {
+            "valid": getattr(result, "valid", None),
+            "algorithm": getattr(result, "algorithm", None),
+            "key_fingerprint": getattr(result, "key_fingerprint", None),
+        },
+    )
+    return result
 
 
 def generate_key_pair(

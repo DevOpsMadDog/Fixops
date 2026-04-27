@@ -20,6 +20,39 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
+# TrustGraph event bus — optional, never blocks on failure
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
 
 class TelemetryPayload(BaseModel):
     """Standardized telemetry payload matching ops-telemetry.schema.json."""
@@ -155,6 +188,15 @@ async def ingest_telemetry(payload: TelemetryPayload):
             response.raise_for_status()
 
             logger.info(f"Successfully forwarded telemetry: {response.status_code}")
+            _emit_event(
+                "telemetry.forwarded",
+                {
+                    "mode": "http",
+                    "alerts": len(payload.alerts or []),
+                    "latency_ms_p95": payload.latency_ms_p95,
+                    "status_code": response.status_code,
+                },
+            )
             return {"ok": True, "status_code": response.status_code}
 
         elif mode == "file":
@@ -168,6 +210,15 @@ async def ingest_telemetry(payload: TelemetryPayload):
                 json.dump(payload.dict(), f, indent=2)
 
             logger.info("Successfully wrote telemetry to file")
+            _emit_event(
+                "telemetry.persisted",
+                {
+                    "mode": "file",
+                    "alerts": len(payload.alerts or []),
+                    "latency_ms_p95": payload.latency_ms_p95,
+                    "file": output_path,
+                },
+            )
             return {"ok": True, "file": output_path}
 
         else:
@@ -222,6 +273,16 @@ async def generate_evidence(
             compressed_data=compressed, metadata=metadata
         )
 
+        _emit_event(
+            "evidence.bundle.created",
+            {
+                "sha256": sha256_hash,
+                "line_count": len(lines),
+                "since_seconds": since,
+                "asset": asset,
+                "compressed_size_bytes": len(compressed),
+            },
+        )
         return {"ok": True, "metadata": metadata, "upload": upload_result}
 
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception

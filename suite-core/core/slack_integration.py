@@ -32,6 +32,39 @@ import structlog
 
 _logger = structlog.get_logger(__name__)
 
+# TrustGraph event bus — optional, never blocks on failure
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
 
 # ============================================================================
 # Enums
@@ -649,6 +682,15 @@ class SlackIntegration:
             thread_id=thread.thread_id,
             finding_id=fid,
             channel_id=target_channel,
+        )
+        _emit_event(
+            "slack.finding.posted",
+            {
+                "thread_id": thread.thread_id,
+                "finding_id": fid,
+                "channel_id": target_channel,
+                "severity": finding.get("severity"),
+            },
         )
         return thread
 

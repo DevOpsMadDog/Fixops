@@ -17,6 +17,39 @@ from dotenv import load_dotenv
 # Load environment variables from .env file so API keys are available
 load_dotenv()
 
+# TrustGraph event bus — optional, never blocks on failure
+try:  # pragma: no cover - bus is optional
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio
+            import inspect
+            if inspect.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
 
 @dataclass
 class LLMResponse:
@@ -63,7 +96,7 @@ class BaseLLMProvider:
         mitre = _ensure_list(hints.get("mitre_candidates"))
         compliance = _ensure_list(hints.get("compliance"))
         attack_vectors = _ensure_list(hints.get("attack_vectors"))
-        return LLMResponse(
+        response = LLMResponse(
             recommended_action=default_action,
             confidence=default_confidence,
             reasoning=default_reasoning,
@@ -72,6 +105,18 @@ class BaseLLMProvider:
             attack_vectors=attack_vectors,
             metadata=metadata,
         )
+        _emit_event(
+            "llm.analysis.completed",
+            {
+                "provider": self.name,
+                "style": self.style,
+                "mode": metadata.get("mode", "unknown"),
+                "recommended_action": response.recommended_action,
+                "confidence": response.confidence,
+                "mitre_count": len(response.mitre_techniques),
+            },
+        )
+        return response
 
 
 class DeterministicLLMProvider(BaseLLMProvider):
