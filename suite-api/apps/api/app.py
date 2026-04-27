@@ -1030,6 +1030,58 @@ except ImportError:
 # ---------------------------------------------------------------------------
 _logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Boot identity — Bug B fix (playbook 2026-04-27)
+# ---------------------------------------------------------------------------
+# When SEs upgrade the binary mid-session, uvicorn doesn't reload routes; the
+# playbook would then send the SE down a debugging rabbit hole. We resolve the
+# running commit SHA at import time and surface it via /api/v1/system/git-sha
+# so the playbook can detect "you're on stale code, restart this process".
+def _detect_boot_git_sha() -> tuple[str, str]:
+    """Resolve the SHA the running process was built from.
+
+    Order: env var FIXOPS_GIT_COMMIT, then `git rev-parse HEAD` if .git exists,
+    else 'unknown'. Failures are silent — this must never block app startup.
+    """
+    env_sha = os.getenv("FIXOPS_GIT_COMMIT", "").strip()
+    if env_sha:
+        return env_sha, "env:FIXOPS_GIT_COMMIT"
+    try:
+        import subprocess  # noqa: PLC0415
+        repo_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip(), "git:rev-parse"
+    except (OSError, ValueError, RuntimeError):
+        pass
+    return "unknown", "fallback"
+
+
+_BOOT_GIT_SHA, _BOOT_GIT_SHA_SOURCE = _detect_boot_git_sha()
+_BOOT_AT_ISO = datetime.now(timezone.utc).isoformat()
+
+# One-line banner so operators can confirm the running build at process start.
+# If you upgraded the binary mid-session, RESTART this process — uvicorn does
+# not auto-reload route registrations.
+_logger.info(
+    "ALDECI API boot: sha=%s (%s) at=%s — if you just upgraded the binary, "
+    "RESTART this process; FastAPI does not hot-reload routers",
+    (_BOOT_GIT_SHA[:12] if _BOOT_GIT_SHA != "unknown" else "unknown"),
+    _BOOT_GIT_SHA_SOURCE,
+    _BOOT_AT_ISO,
+)
+
+
 mpte_router: Optional[APIRouter] = None
 try:
     from api.mpte_router import router as mpte_router
@@ -2166,9 +2218,49 @@ def create_app() -> FastAPI:
     # offending routes stripped, so the spec still ships even if a few routes
     # are malformed. The faulty route's path appears in
     # ``info.x-openapi-skipped-routes`` so engineers can see what was dropped.
+    # Bug B fix (playbook 2026-04-27): cold /openapi.json was 14.2s walking
+    # 6300+ routes. Persist the generated schema to disk so a process restart
+    # warms quickly. Refresh either at boot (cache stale relative to running
+    # commit SHA) or via POST /api/v1/system/openapi-refresh.
+    _OPENAPI_CACHE_PATH = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+        "data",
+        "openapi_cache.json",
+    )
+
+    def _load_openapi_cache() -> Optional[Dict[str, Any]]:
+        try:
+            with open(_OPENAPI_CACHE_PATH, "r", encoding="utf-8") as fh:
+                cached = json.load(fh)
+            running_sha = os.getenv("FIXOPS_GIT_COMMIT") or _BOOT_GIT_SHA
+            cache_sha = cached.get("info", {}).get("x-build-sha")
+            if running_sha and cache_sha and running_sha != cache_sha:
+                _logger.info(
+                    "openapi: disk cache SHA mismatch (cache=%s running=%s); regenerating",
+                    cache_sha[:8] if isinstance(cache_sha, str) else cache_sha,
+                    running_sha[:8] if isinstance(running_sha, str) else running_sha,
+                )
+                return None
+            return cached
+        except (OSError, ValueError, TypeError):
+            return None
+
+    def _save_openapi_cache(schema: Dict[str, Any]) -> None:
+        try:
+            os.makedirs(os.path.dirname(_OPENAPI_CACHE_PATH), exist_ok=True)
+            with open(_OPENAPI_CACHE_PATH, "w", encoding="utf-8") as fh:
+                json.dump(schema, fh)
+        except (OSError, TypeError, ValueError) as exc:
+            _logger.warning("openapi: cache persist failed (%s: %s)", type(exc).__name__, exc)
+
     def _capped_openapi() -> Dict[str, Any]:
         if app.openapi_schema:
             return app.openapi_schema
+        # Disk-cache fast-path: avoid the 14s rebuild on cold start.
+        cached = _load_openapi_cache()
+        if cached is not None:
+            app.openapi_schema = cached
+            return cached
         from fastapi.openapi.utils import get_openapi
 
         skipped: List[str] = []
@@ -2247,10 +2339,52 @@ def create_app() -> FastAPI:
                 if isinstance(_op, dict):
                     _op.pop("examples", None)
 
+        # Stamp the build SHA so the disk cache can detect staleness on restart.
+        running_sha = os.getenv("FIXOPS_GIT_COMMIT") or _BOOT_GIT_SHA
+        if running_sha:
+            schema.setdefault("info", {})["x-build-sha"] = running_sha
+
         app.openapi_schema = schema
+        _save_openapi_cache(schema)
         return schema
 
     app.openapi = _capped_openapi  # type: ignore[method-assign]
+
+    # Bug B fix (playbook 2026-04-27): /system/git-sha and openapi-refresh
+    # so SEs running the playbook know whether the binary matches the doc and
+    # can force a schema refresh without restarting.
+    @app.get("/api/v1/system/git-sha", include_in_schema=False)
+    async def _system_git_sha() -> Dict[str, Any]:
+        """Return the running build's commit SHA — playbook compares against
+        local HEAD; a mismatch tells the SE to restart uvicorn after upgrade.
+        Public (no auth) so the smoke check works on a fresh tenant.
+        """
+        return {
+            "git_sha": _BOOT_GIT_SHA or "unknown",
+            "git_sha_source": _BOOT_GIT_SHA_SOURCE,
+            "boot_at": _BOOT_AT_ISO,
+            "version": app.version,
+        }
+
+    @app.post("/api/v1/system/openapi-refresh", include_in_schema=False)
+    async def _system_openapi_refresh() -> Dict[str, Any]:
+        """Invalidate the cached OpenAPI schema; next /openapi.json regenerates
+        from the live route table. Useful when a router was hot-reloaded but
+        we don't want to bounce the process.
+        """
+        prev_paths = len((app.openapi_schema or {}).get("paths", {}))
+        app.openapi_schema = None
+        try:
+            os.remove(_OPENAPI_CACHE_PATH)
+            removed = True
+        except OSError:
+            removed = False
+        return {
+            "refreshed": True,
+            "previous_paths": prev_paths,
+            "disk_cache_removed": removed,
+            "cache_path": _OPENAPI_CACHE_PATH,
+        }
 
     app.add_middleware(CorrelationIdMiddleware)
 
