@@ -17,33 +17,11 @@ Multica IDs (42 todos) closed by this file are tagged in each docstring.
 
 from __future__ import annotations
 
-import os
+import importlib
 import sys
 from pathlib import Path
 
 import pytest
-
-# Auth pass-through for api_key_auth dep (FIXOPS_MODE=demo branch).
-# CRITICAL: must clear API token + JWT secret BEFORE auth_deps is imported,
-# so the dev/demo no-auth pass-through branch (auth_deps.py:197) activates.
-os.environ["FIXOPS_MODE"] = "demo"
-os.environ.pop("FIXOPS_API_TOKEN", None)
-os.environ.pop("FIXOPS_JWT_SECRET", None)
-os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
-os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
-
-# Force re-evaluation of auth_deps gates if it was already imported by another
-# test fixture loaded earlier in the pytest session.
-import importlib  # noqa: E402
-try:
-    import apps.api.auth_deps as _auth_deps  # type: ignore
-    _auth_deps._EXPECTED_TOKENS = ()
-    _auth_deps._JWT_SECRET = None
-    _auth_deps._DEV_MODE = True
-    _auth_deps._HAS_TOKEN_AUTH = False
-    _auth_deps._HAS_JWT_AUTH = False
-except Exception:
-    pass  # auth_deps not yet imported — env vars above will configure it
 
 ROOT = Path(__file__).resolve().parent.parent
 for sub in ("suite-core", "suite-api", "suite-attack", "suite-feeds",
@@ -52,6 +30,24 @@ for sub in ("suite-core", "suite-api", "suite-attack", "suite-feeds",
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+
+# Module-scoped autouse fixture activates the FIXOPS_MODE=demo no-auth
+# pass-through branch in auth_deps at test-execution time (not collection
+# time). Reload is necessary because _DEV_MODE / _HAS_JWT_AUTH are cached
+# at module-init in auth_deps; only _load_api_tokens() is per-request.
+@pytest.fixture(scope="module", autouse=True)
+def _demo_auth_env() -> None:
+    mp = pytest.MonkeyPatch()
+    mp.setenv("FIXOPS_MODE", "demo")
+    mp.delenv("FIXOPS_API_TOKEN", raising=False)
+    mp.delenv("FIXOPS_JWT_SECRET", raising=False)
+    mp.setenv("FIXOPS_DISABLE_TELEMETRY", "1")
+    mp.setenv("FIXOPS_DISABLE_RATE_LIMIT", "1")
+    import apps.api.auth_deps as _auth_mod
+    importlib.reload(_auth_mod)
+    yield
+    mp.undo()
 
 ORG_ID = "tenant-walkthrough-001"
 # No X-API-Key — demo mode bypass means absence triggers the no-auth pass-through.

@@ -11,25 +11,29 @@ Auth is configured via env BEFORE auth_deps is imported.
 from __future__ import annotations
 
 import importlib
-import os
 import tempfile
 from pathlib import Path
 from typing import Iterator
 
 import pytest
 
-# Configure auth BEFORE auth_deps gets imported
-os.environ["FIXOPS_API_TOKEN"] = "wave-a-test-token"
-os.environ.setdefault("FIXOPS_MODE", "dev")
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
-from fastapi import FastAPI  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
+import apps.api.auth_deps as _auth_mod
+from apps.api.wave_a_code_intel_router import WAVE_A_ROUTERS
+from apps.api.hooks_router import router as hooks_router
 
-import apps.api.auth_deps as _auth_mod  # noqa: E402
-importlib.reload(_auth_mod)
 
-from apps.api.wave_a_code_intel_router import WAVE_A_ROUTERS  # noqa: E402
-from apps.api.hooks_router import router as hooks_router  # noqa: E402
+@pytest.fixture(scope="module", autouse=True)
+def _auth_env() -> None:
+    mp = pytest.MonkeyPatch()
+    mp.setenv("FIXOPS_API_TOKEN", "wave-a-test-token")
+    mp.setenv("FIXOPS_MODE", "dev")
+    mp.delenv("FIXOPS_JWT_SECRET", raising=False)
+    importlib.reload(_auth_mod)
+    yield
+    mp.undo()
 
 
 # ---------------------------------------------------------------------------

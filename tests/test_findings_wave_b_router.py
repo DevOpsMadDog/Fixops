@@ -11,22 +11,29 @@ Auth: ``FIXOPS_API_TOKEN`` is set BEFORE auth_deps import; we pass
 from __future__ import annotations
 
 import importlib
-import os
 
 import pytest
 
-# Configure auth BEFORE auth_deps import.
-os.environ["FIXOPS_API_TOKEN"] = "wave-b-test-token"
-os.environ.setdefault("FIXOPS_MODE", "dev")
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
-from fastapi import FastAPI  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
+import apps.api.auth_deps as _auth_mod
+from apps.api.findings_wave_b_router import router as wave_b_router
 
-import apps.api.auth_deps as _auth_mod  # noqa: E402
 
-importlib.reload(_auth_mod)
-
-from apps.api.findings_wave_b_router import router as wave_b_router  # noqa: E402
+# Module-scoped autouse fixture sets FIXOPS_API_TOKEN at test-execution time
+# (not collection time) so a later-collected module cannot clobber our token.
+# auth_deps._load_api_tokens() is per-request so reload only refreshes
+# _DEV_MODE / _HAS_JWT_AUTH cached at module-init.
+@pytest.fixture(scope="module", autouse=True)
+def _auth_env() -> None:
+    mp = pytest.MonkeyPatch()
+    mp.setenv("FIXOPS_API_TOKEN", "wave-b-test-token")
+    mp.setenv("FIXOPS_MODE", "dev")
+    mp.delenv("FIXOPS_JWT_SECRET", raising=False)
+    importlib.reload(_auth_mod)
+    yield
+    mp.undo()
 
 
 # ---------------------------------------------------------------------------
