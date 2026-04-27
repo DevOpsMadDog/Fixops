@@ -24,6 +24,10 @@ help:
 	@echo "  make up-mpte-demo         Start ALdeci Demo + MPTE"
 	@echo "  make down-mpte            Stop services (use BASE_COMPOSE for variants)"
 	@echo "  make logs-mpte            View MPTE container logs"
+	@echo ""
+	@echo "SCIF / Iron Bank:"
+	@echo "  make scif-build           Build SCIF image (RHCC UBI9-minimal, no token needed)"
+	@echo "  make scif-build-ironbank  Build SCIF image (Iron Bank UBI9-minimal, requires IRONBANK_TOKEN)"
 
 $(VENV):
 	$(PYTHON) -m venv $(VENV)
@@ -224,3 +228,38 @@ down-mpte-demo:
 	@echo "Stopping ALdeci Demo + MPTE..."
 	docker compose -f docker/docker-compose.demo.yml -f $(MPTE_COMPOSE) down
 	@echo "✓ Services stopped"
+
+# ===================================================================
+# SCIF / Iron Bank Targets
+# ===================================================================
+
+.PHONY: scif-build scif-build-ironbank
+
+## Build the standard SCIF-hardened image (RHCC UBI9-minimal — no CAC needed)
+scif-build:
+	docker build -f docker/Dockerfile.scif -t aldeci:scif-hardened .
+
+## Build the Iron Bank-based SCIF image (DoD-accredited UBI9-minimal).
+## Requires IRONBANK_TOKEN env var (DoD CAC token) and prior registry login:
+##   docker login ironbank.dso.mil
+## Usage: IRONBANK_TOKEN=<token> make scif-build-ironbank
+scif-build-ironbank:
+	@if [ -z "$$IRONBANK_TOKEN" ]; then \
+		echo ""; \
+		echo "ERROR: IRONBANK_TOKEN is not set."; \
+		echo ""; \
+		echo "To activate Iron Bank build:"; \
+		echo "  1. Obtain your DoD CAC token from https://ironbank.dso.mil"; \
+		echo "  2. Login: docker login ironbank.dso.mil"; \
+		echo "  3. Export: export IRONBANK_TOKEN=<your-token>"; \
+		echo "  4. Retry:  make scif-build-ironbank"; \
+		echo ""; \
+		echo "Fallback (RHCC UBI9-minimal, no token needed): make scif-build"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "Iron Bank token present — pulling base image..."
+	docker pull ironbank.dso.mil/ironbank/redhat/ubi/ubi9-minimal:latest
+	docker build -f docker/Dockerfile.scif.ironbank -t aldeci:scif-hardened-ironbank .
+	@echo ""
+	@echo "Built: aldeci:scif-hardened-ironbank (Iron Bank UBI9-minimal base)"

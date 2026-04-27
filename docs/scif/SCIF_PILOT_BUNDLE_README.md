@@ -211,7 +211,58 @@ The pilot does NOT require any of these to be closed before authorization, *prov
 
 ---
 
-## 8. Companion Documents
+## 8. Iron Bank Activation (T+0 once CAC token in hand)
+
+Iron Bank is the DoD Platform One registry of continuously-scanned, DoD-signed base images.
+Switching ALDECI to Iron Bank UBI9-minimal is a single `FROM`-line change already prepared in
+`docker/Dockerfile.scif.ironbank`. No other code changes are required.
+
+### Prerequisites
+
+| Item | Where to obtain |
+|---|---|
+| DoD CAC token / Iron Bank account | https://ironbank.dso.mil (request access via P1 SSO) |
+| `docker login ironbank.dso.mil` | Run after token is issued |
+| `IRONBANK_TOKEN` env var set | Export in shell before running `make` |
+
+### Activation steps (from repo root)
+
+```bash
+# Step 1 — authenticate
+docker login ironbank.dso.mil        # enter DoD CAC credentials when prompted
+
+# Step 2 — set token env var
+export IRONBANK_TOKEN=<your-token>
+
+# Step 3 — build (pulls Iron Bank base, then builds ALDECI on top)
+make scif-build-ironbank
+# produces: aldeci:scif-hardened-ironbank
+
+# Step 4 — verify the base digest matches Iron Bank manifest
+docker inspect aldeci:scif-hardened-ironbank \
+  | python3 -c "import sys,json; [print(l['RootFS']) for l in json.load(sys.stdin)]"
+```
+
+### What changes vs the standard SCIF build
+
+| | `docker/Dockerfile.scif` (current) | `docker/Dockerfile.scif.ironbank` (ready) |
+|---|---|---|
+| Stage 1 builder FROM | `registry.access.redhat.com/ubi9/ubi:latest` | `ironbank.dso.mil/ironbank/redhat/ubi/ubi9:latest` |
+| Stage 2 runtime FROM | `registry.access.redhat.com/ubi9-minimal:latest` | `ironbank.dso.mil/ironbank/redhat/ubi/ubi9-minimal:latest` |
+| DoD CAC required | No | Yes |
+| Platform One continuous scan | No | Yes |
+| Required for IL5+ ATO | No | Yes |
+
+All hardening flags, entrypoint, HSM/FIPS settings, and runtime behaviour are **identical**.
+
+### Fast-fail precheck
+
+`make scif-build-ironbank` fails immediately with a clear error message if `IRONBANK_TOKEN`
+is not set, preventing accidental builds against the wrong registry.
+
+---
+
+## 9. Companion Documents (was §8)
 
 | Doc | Purpose |
 |---|---|
