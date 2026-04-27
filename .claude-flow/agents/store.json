@@ -1,0 +1,18 @@
+{
+  "agents": {
+    "agent-1777279693325-06pnr7": {
+      "agentId": "agent-1777279693325-06pnr7",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic"
+      },
+      "createdAt": "2026-04-27T08:48:13.325Z",
+      "model": "sonnet",
+      "modelRoutedBy": "default"
+    }
+  },
+  "version": "3.0.0"
+}

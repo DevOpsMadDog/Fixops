@@ -5353,3 +5353,10 @@
 - **Decisions made**: stdlib-only HTTP (no requests/httpx) so examples run zero-install. Mock fallback via env var = "mock" for demo without real SIEM. HMAC verification optional but enforced when secret is set.
 - **Commit**: fe90b742
 - **Pillar(s) served**: V3 (Decision Intelligence), V7 (MCP-Native/partner integrations), V9 (Air-Gapped — stdlib only)
+
+### [2026-04-27 08:48] backend-hardener — RUFLO_SWARM_EVALUATION
+- **What**: Ran full ruflo swarm trial — swarm init, agent spawn, hive-mind spawn, memory.db inspection, status check. Wrote evaluation doc comparing ruflo swarm vs Claude Code Agent tool.
+- **Files touched**: docs/ruflo_swarm_evaluation_2026-04-26.md (created)
+- **Outcome**: SUCCESS — all 4 evaluation steps completed. hive-mind spawn failed as expected (requires separate init), documented honestly.
+- **Decisions made**: HYBRID recommendation — keep Agent tool for dispatch, adopt ruflo for AgentDB persistence + swarm status observability + Q-Learning route. swarm/hive-mind orchestration not worth adopting over native Agent tool.
+- **Pillar(s) served**: V1 (autonomous ops), V3 (competitive intelligence — toolchain evaluation)
