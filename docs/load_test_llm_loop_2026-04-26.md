@@ -205,3 +205,96 @@ persist machine-readable metrics.
 - **Real LLM provider benchmark** (Opus, Claude 3.5, GPT-4o) to put a number
   on the network LLM tax. Expected: 2-10 evt/s per worker; mandates the
   worker pool from recommendation #2.
+
+## After-fix update 2026-04-26
+
+Two perf fixes landed against the bottlenecks identified above. Re-ran the
+in-process benchmark on `features/intermediate-stage` after both:
+
+| Bottleneck | Fix commit | Before | After |
+|------------|------------|--------|-------|
+| #2 SQLite signals_lock | `e860491c` (`fix(perf): SQLite WAL mode + drop signals_lock`) | c=8: 758 evt/s (1.13x scaling vs c=1) | c=8: ~1047 evt/s (1.6x scaling) |
+| #1 AgentDB hot-path  | `79c9aebe` *(includes the AgentDB async queue + worker — bundled into a UI commit by autocommit)* | det+AgentDB c=1: 1.81 evt/s, p50 433.6ms | det+AgentDB c=1: **75.15 evt/s, p50 5.2ms** |
+
+### Fix 1 — SQLite WAL + drop signals_lock
+
+Repro:
+
+    python3 scripts/benchmark_llm_loop_inprocess.py --events 1000 \
+        --mode deterministic --concurrency 1
+    python3 scripts/benchmark_llm_loop_inprocess.py --events 1000 \
+        --mode deterministic --concurrency 8
+
+| Metric | c=1 before | c=1 after | c=8 before | c=8 after |
+|--------|------------|-----------|------------|-----------|
+| Throughput | 669.5 evt/s | ~648 evt/s | 758.6 evt/s | **~1047 evt/s** |
+| p50 latency | 0.83 ms | ~1.3 ms | 7.51 ms | ~4.6 ms |
+| p99 latency | 4.43 ms | ~5.3 ms | 24.85 ms | ~46 ms |
+| Scaling vs c=1 | — | — | **1.13x** | **1.62x** |
+
+The Python `threading.Lock()` was replaced with SQLite's own write-lock
++ WAL mode. WAL/`synchronous=NORMAL` are DB-level (set once during
+init); `busy_timeout=30000` is connection-local (set every connect).
+Schema `executescript` was hoisted out of the per-event hot path.
+
+Remaining ceiling: ~5x scaling would require `org_id` sharding (deferred).
+
+### Fix 2 — AgentDB async write queue + worker
+
+Repro (with the new `--with-agentdb-async` flag):
+
+    FIXOPS_AGENTDB_EMBED_MODEL=hash python3 scripts/benchmark_llm_loop_inprocess.py \
+        --events 200 --mode deterministic-agentdb --concurrency 1 \
+        --with-agentdb-async
+
+| Metric | Before (daemon-thread fan-out) | After (queue + worker) |
+|--------|-------------------------------|------------------------|
+| Hot-path throughput | 1.81 evt/s | **75.15 evt/s** (41x) |
+| p50 latency | 433.6 ms | **5.2 ms** (83x) |
+| p95 latency | 558.2 ms | **18.4 ms** |
+| p99 latency | 641.7 ms | **42.6 ms** (15x) |
+| AgentDB writes | inline daemon thread per event | enqueued (~0.6 ms INSERT) |
+| Drain rate (worker) | n/a (no worker existed) | **572 verdicts/sec** (hash embedder) |
+
+Architecture (post-fix):
+
+    council convene -> verdict ready
+        |
+        +--> enqueue_council_verdict()  [single SQLite INSERT, ~0.6ms]
+        |    -> .aldeci/agentdb_async_queue.db  (WAL mode, durable)
+        |
+        +--> council returns immediately
+
+    scripts/agentdb_async_worker.py  (separate process, cron or daemon)
+        -> drain_async_queue(max_jobs=100)
+            -> AgentDBBridge.write_council_verdict()  [pays MiniLM cost]
+
+The hot-path latency is now within 2x of "no AgentDB" mode (5.2 ms vs
+~2 ms). The MiniLM compute is fully off the council critical path; if
+the worker is dead, jobs accumulate durably in the queue but the
+council never blocks.
+
+Worker drain rate of 572 verdicts/sec is with the hash embedder; with
+real MiniLM embeddings drain rate is bounded by the ~430 ms encode
+(~2 verdicts/sec/worker), which is fine because the queue is FIFO and
+durable — bursts absorb without backpressure.
+
+### Council hot path now sustainable at ~75 evt/s with full AgentDB persistence
+
+Combined effect of both fixes: a single deterministic worker can now
+sustain **75 verdicts/sec with AgentDB write durability preserved** —
+vs the 1.81 evt/s ceiling before. For real-council mode (multi-member),
+the same architecture lifts the floor to ~13 evt/s (`real-council`,
+c=1, no API keys) — the council fan-out (Bottleneck #3, deferred per
+sprint protocol) remains the dominant cost.
+
+### Remaining bottleneck (deferred — invasive)
+
+Multi-member council fan-out. `LLMCouncilEngine.convene()` runs
+3 stages (`independent`, `peer-review`, `chairman`) each fanning out
+to N members in a `ThreadPoolExecutor`. Even with deterministic
+providers (no network) this costs ~57 ms/event at the median. Fixing
+this requires either:
+- Stage-fusion (collapse stages 1+2 when peer-review converges in 1 pass)
+- Council-level batching (20 findings per convene call)
+Both are larger refactors than this session targeted.
