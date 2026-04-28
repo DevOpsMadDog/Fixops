@@ -731,6 +731,38 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: censys importer unavailable: %s", exc)
 
+    # ---------- HIBP (Have I Been Pwned) ----------
+    try:
+        from feeds.hibp.importer import HibpImporter, HIBP_BREACHES_URL  # noqa: PLC0415
+
+        def _refresh_hibp() -> Dict[str, Any]:
+            return HibpImporter().import_breaches(idempotent=True)
+
+        def _count_hibp() -> int:
+            try:
+                return HibpImporter().total_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="hibp",
+            display_name="Have I Been Pwned — Breach Catalog",
+            source_url=HIBP_BREACHES_URL,
+            source_type="json",
+            license="Have I Been Pwned API Terms (free breach catalog; paid account-check requires HIBP_API_KEY)",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_hibp,
+            count_callable=_count_hibp,
+            description=(
+                "Have I Been Pwned breach catalog (~700 entries, free). "
+                "Password range proxy uses k-anonymity (5-char SHA-1 prefix only — full hash never sent). "
+                "Breached-account check requires HIBP_API_KEY env var (paid tier). "
+                "Privacy: full passwords and email addresses are never logged or stored."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: hibp importer unavailable: %s", exc)
+
 
 def _ensure_discovered() -> None:
     global _discovery_done
