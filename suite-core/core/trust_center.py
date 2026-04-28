@@ -22,6 +22,22 @@ from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
@@ -237,6 +253,7 @@ class TrustCenterManager:
             )
             conn.commit()
         _logger.info("trust_center: configured org=%s", config.org_id)
+        _tg_emit("trust_center.configure", {"org_id": config.org_id, "org_name": config.org_name})
         return config
 
     def get_config(self, org_id: str) -> Optional[TrustPageConfig]:
@@ -284,6 +301,7 @@ class TrustCenterManager:
                 ),
             )
             conn.commit()
+        _tg_emit("trust_center.add_badge", {"org_id": org_id, "framework": badge.framework, "status": badge.status})
         return badge
 
     def list_badges(self, org_id: str) -> List[ComplianceBadge]:

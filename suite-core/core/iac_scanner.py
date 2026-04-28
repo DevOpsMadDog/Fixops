@@ -32,6 +32,22 @@ from core.safe_path_ops import (
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 class ScannerType(str, Enum):
     """Supported IaC scanner types."""
@@ -677,6 +693,7 @@ class IaCScanner:
                 for finding in findings:
                     finding.file_path = filename
 
+                _tg_emit("iac_scanner.scan_content_completed", {"scanner": str(selected_scanner), "provider": str(detected_provider), "findings_count": len(findings), "duration_seconds": duration})
                 return ScanResult(
                     scan_id=scan_id,
                     status=ScanStatus.COMPLETED,
