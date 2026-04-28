@@ -53,7 +53,7 @@ const SNAPSHOT_ROOT = path.resolve(
   "..",
   "docs",
   "ui-snapshots",
-  "walkthrough_2026-04-26",
+  "walkthrough_2026-04-27-evening",
 );
 
 /** Mock-data signatures forbidden by CLAUDE.md NO MOCKS rule. */
