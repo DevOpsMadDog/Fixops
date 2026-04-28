@@ -30,6 +30,22 @@ logger = structlog.get_logger(__name__)
 
 _DEFAULT_DB = os.getenv("FIXOPS_BUG_BOUNTY_DB", ".fixops_data/bug_bounty.db")
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -797,6 +813,7 @@ class BugBountyEngine:
         )
         self._db.upsert_program(prog)
         logger.info("Program created", program_id=prog.id, name=name, org_id=org_id)
+        _tg_emit("bug_bounty.create_program", {"program_id": prog.id, "name": name, "org_id": org_id})
         return prog
 
     def update_program_status(self, program_id: str, status: ProgramStatus) -> BountyProgram:
@@ -897,6 +914,7 @@ class BugBountyEngine:
             reporter_email=reporter_email,
             status=sub.status.value,
         )
+        _tg_emit("bug_bounty.submit_vulnerability", {"submission_id": sub.id, "program_id": program_id, "status": sub.status.value})
         return sub
 
     # ---- Triage Workflow ----

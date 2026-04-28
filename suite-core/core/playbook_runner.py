@@ -35,6 +35,22 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 class PlaybookKind(str, Enum):
     """Types of playbooks/packs."""
@@ -559,6 +575,7 @@ class PlaybookRunner:
                     break
 
         context.completed_at = datetime.now(timezone.utc)
+        _tg_emit("playbook_runner.execute_completed", {"playbook": playbook.metadata.name, "status": context._compute_status(), "steps": len(context.step_results), "dry_run": dry_run})
         return context
 
     def execute_sync(

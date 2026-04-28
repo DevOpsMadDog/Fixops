@@ -35,6 +35,22 @@ _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "audit_analytics.db")
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 # Business hours for off-hours detection (UTC)
 _BUSINESS_HOUR_START = 8   # 08:00 UTC
 _BUSINESS_HOUR_END = 18    # 18:00 UTC
@@ -757,6 +773,7 @@ class AuditAnalyticsDB:
                     entry.raw, entry.status.value, entry.checksum,
                 ),
             )
+        _tg_emit("audit_analytics.insert_entry", {"org_id": entry.org_id, "actor": entry.actor, "action": entry.action, "severity": entry.severity.value})
         return entry
 
     def insert_entries_bulk(self, entries: List[AuditEntry]) -> int:

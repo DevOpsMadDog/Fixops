@@ -17,6 +17,26 @@ from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+import logging as _logging
+
+_logger = _logging.getLogger(__name__)
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -455,6 +475,7 @@ class CSPMEngine:
                 )
                 count += 1
             conn.commit()
+            _tg_emit("cspm.sync_resources", {"provider": provider.value, "org_id": org_id, "resource_count": count})
             return count
         finally:
             conn.close()
@@ -515,6 +536,7 @@ class CSPMEngine:
                 result = self.run_check(resource, check)
                 self._persist_result(result, org_id)
                 results.append(result)
+        _tg_emit("cspm.run_security_checks", {"org_id": org_id, "provider": provider.value if provider else "all", "results_count": len(results)})
         return results
 
     def run_check(self, resource: CloudResource, check: SecurityCheck) -> CheckResult:
