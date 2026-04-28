@@ -1,0 +1,503 @@
+{
+  "pipeline_elapsed_ms": 3006.29,
+  "pipeline_status": "completed",
+  "step_timings_ms": {
+    "connect": 0.04,
+    "normalize": 0.59,
+    "resolve_identity": 43.54,
+    "fp_auto_suppress": 0.21,
+    "deduplicate": 90.71,
+    "build_graph": 8.66,
+    "enrich_threats": 0.77,
+    "score_risk": 710.31,
+    "apply_policy": 4.47,
+    "llm_consensus": 0.03,
+    "micro_pentest": 0,
+    "run_playbooks": 2.69,
+    "generate_evidence": 2124.37
+  },
+  "top30_by_cumtime": [
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 3.006,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 3006.0,
+      "location": "/Users/devops.ai/fixops/Fixops/scripts/profile_brain_pipeline.py:87(run_pipeline)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 3.006,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 3006.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/brain_pipeline.py:313(run)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.124,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2124.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/brain_pipeline.py:3905(_step_generate_evidence)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.121,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2121.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/quantum_crypto.py:542(sign)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.12,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2120.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/crypto.py:1252(sign_base64)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.12,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2120.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/crypto.py:1226(sign)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.111,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2111.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/crypto.py:468(private_key)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.111,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2111.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/crypto.py:514(_load_or_generate_keys)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.111,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2111.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/crypto.py:572(_generate_key_pair)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 2.111,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 2111.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/cryptography/hazmat/primitives/asymmetric/rsa.py:150(generate_private_key)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 2.111,
+      "cumtime_s": 2.111,
+      "tottime_ms": 2111.0,
+      "cumtime_ms": 2111.0,
+      "location": "{built-in"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.001,
+      "cumtime_s": 0.71,
+      "tottime_ms": 1.0,
+      "cumtime_ms": 710.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/brain_pipeline.py:2603(_step_score_risk)"
+    },
+    {
+      "ncalls": "2050",
+      "tottime_s": 0.003,
+      "cumtime_s": 0.645,
+      "tottime_ms": 3.0,
+      "cumtime_ms": 645.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/ensemble/_gb.py:2141(predict)"
+    },
+    {
+      "ncalls": "50",
+      "tottime_s": 0.003,
+      "cumtime_s": 0.527,
+      "tottime_ms": 3.0,
+      "cumtime_ms": 527.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/ml/risk_scorer.py:507(predict)"
+    },
+    {
+      "ncalls": "2050",
+      "tottime_s": 0.169,
+      "cumtime_s": 0.494,
+      "tottime_ms": 169.0,
+      "cumtime_ms": 494.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/ensemble/_gb.py:970(_raw_predict)"
+    },
+    {
+      "ncalls": "50",
+      "tottime_s": 0.013,
+      "cumtime_s": 0.343,
+      "tottime_ms": 13.0,
+      "cumtime_ms": 343.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/ml/risk_scorer.py:530(<listcomp>)"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.018,
+      "cumtime_s": 0.298,
+      "tottime_ms": 18.0,
+      "cumtime_ms": 298.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:2793(validate_data)"
+    },
+    {
+      "ncalls": "2050",
+      "tottime_s": 0.004,
+      "cumtime_s": 0.29,
+      "tottime_ms": 4.0,
+      "cumtime_ms": 290.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/ensemble/_gb.py:956(_raw_predict_init)"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.045,
+      "cumtime_s": 0.243,
+      "tottime_ms": 45.0,
+      "cumtime_ms": 243.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:725(check_array)"
+    },
+    {
+      "ncalls": "50",
+      "tottime_s": 0.003,
+      "cumtime_s": 0.182,
+      "tottime_ms": 3.0,
+      "cumtime_ms": 182.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/ml/risk_scorer.py:582(explain_prediction)"
+    },
+    {
+      "ncalls": "2050",
+      "tottime_s": 0.002,
+      "cumtime_s": 0.155,
+      "tottime_ms": 2.0,
+      "cumtime_ms": 155.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/tree/_classes.py:485(_validate_X_predict)"
+    },
+    {
+      "ncalls": "6250",
+      "tottime_s": 0.006,
+      "cumtime_s": 0.102,
+      "tottime_ms": 6.0,
+      "cumtime_ms": 102.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:1621(check_is_fitted)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.0,
+      "cumtime_s": 0.091,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 91.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/brain_pipeline.py:1996(_step_deduplicate)"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.019,
+      "cumtime_s": 0.081,
+      "tottime_ms": 19.0,
+      "cumtime_ms": 81.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:103(_assert_all_finite)"
+    },
+    {
+      "ncalls": "2050",
+      "tottime_s": 0.002,
+      "cumtime_s": 0.075,
+      "tottime_ms": 2.0,
+      "cumtime_ms": 75.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/ensemble/_gb.py:94(_init_raw_predictions)"
+    },
+    {
+      "ncalls": "2050",
+      "tottime_s": 0.005,
+      "cumtime_s": 0.072,
+      "tottime_ms": 5.0,
+      "cumtime_ms": 72.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/dummy.py:624(predict)"
+    },
+    {
+      "ncalls": "6",
+      "tottime_s": 0.0,
+      "cumtime_s": 0.07,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 70.0,
+      "location": "/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/threading.py:295(wait)"
+    },
+    {
+      "ncalls": "22",
+      "tottime_s": 0.07,
+      "cumtime_s": 0.07,
+      "tottime_ms": 70.0,
+      "cumtime_ms": 70.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "2",
+      "tottime_s": 0.0,
+      "cumtime_s": 0.07,
+      "tottime_ms": 0.0,
+      "cumtime_ms": 70.0,
+      "location": "/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/concurrent/futures/_base.py:428(result)"
+    },
+    {
+      "ncalls": "12500",
+      "tottime_s": 0.007,
+      "cumtime_s": 0.062,
+      "tottime_ms": 7.0,
+      "cumtime_ms": 62.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/_tags.py:250(get_tags)"
+    }
+  ],
+  "top30_by_tottime": [
+    {
+      "ncalls": "1",
+      "tottime_s": 2.111,
+      "cumtime_s": 2.111,
+      "tottime_ms": 2111.0,
+      "cumtime_ms": 2111.0,
+      "location": "{built-in"
+    },
+    {
+      "ncalls": "2050",
+      "tottime_s": 0.169,
+      "cumtime_s": 0.494,
+      "tottime_ms": 169.0,
+      "cumtime_ms": 494.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/ensemble/_gb.py:970(_raw_predict)"
+    },
+    {
+      "ncalls": "22",
+      "tottime_s": 0.07,
+      "cumtime_s": 0.07,
+      "tottime_ms": 70.0,
+      "cumtime_ms": 70.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.045,
+      "cumtime_s": 0.243,
+      "tottime_ms": 45.0,
+      "cumtime_ms": 243.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:725(check_array)"
+    },
+    {
+      "ncalls": "6250",
+      "tottime_s": 0.029,
+      "cumtime_s": 0.046,
+      "tottime_ms": 29.0,
+      "cumtime_ms": 46.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:1615(<listcomp>)"
+    },
+    {
+      "ncalls": "4600/4050",
+      "tottime_s": 0.025,
+      "cumtime_s": 0.034,
+      "tottime_ms": 25.0,
+      "cumtime_ms": 34.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/services/fuzzy_identity.py:121(levenshtein_distance)"
+    },
+    {
+      "ncalls": "736",
+      "tottime_s": 0.022,
+      "cumtime_s": 0.022,
+      "tottime_ms": 22.0,
+      "cumtime_ms": 22.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "109628",
+      "tottime_s": 0.019,
+      "cumtime_s": 0.019,
+      "tottime_ms": 19.0,
+      "cumtime_ms": 19.0,
+      "location": "{built-in"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.019,
+      "cumtime_s": 0.081,
+      "tottime_ms": 19.0,
+      "cumtime_ms": 81.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:103(_assert_all_finite)"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.018,
+      "cumtime_s": 0.298,
+      "tottime_ms": 18.0,
+      "cumtime_ms": 298.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:2793(validate_data)"
+    },
+    {
+      "ncalls": "6250",
+      "tottime_s": 0.014,
+      "cumtime_s": 0.062,
+      "tottime_ms": 14.0,
+      "cumtime_ms": 62.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:1583(_is_fitted)"
+    },
+    {
+      "ncalls": "4100",
+      "tottime_s": 0.014,
+      "cumtime_s": 0.028,
+      "tottime_ms": 14.0,
+      "cumtime_ms": 28.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:1846(ravel)"
+    },
+    {
+      "ncalls": "8500",
+      "tottime_s": 0.014,
+      "cumtime_s": 0.024,
+      "tottime_ms": 14.0,
+      "cumtime_ms": 24.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/externals/array_api_compat/numpy/_aliases.py:89(asarray)"
+    },
+    {
+      "ncalls": "50",
+      "tottime_s": 0.013,
+      "cumtime_s": 0.343,
+      "tottime_ms": 13.0,
+      "cumtime_ms": 343.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/ml/risk_scorer.py:530(<listcomp>)"
+    },
+    {
+      "ncalls": "6350",
+      "tottime_s": 0.013,
+      "cumtime_s": 0.013,
+      "tottime_ms": 13.0,
+      "cumtime_ms": 13.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "148401",
+      "tottime_s": 0.012,
+      "cumtime_s": 0.012,
+      "tottime_ms": 12.0,
+      "cumtime_ms": 12.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "14550",
+      "tottime_s": 0.012,
+      "cumtime_s": 0.04,
+      "tottime_ms": 12.0,
+      "cumtime_ms": 40.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/base.py:475(__sklearn_tags__)"
+    },
+    {
+      "ncalls": "14350",
+      "tottime_s": 0.011,
+      "cumtime_s": 0.058,
+      "tottime_ms": 11.0,
+      "cumtime_ms": 58.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/base.py:603(__sklearn_tags__)"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.011,
+      "cumtime_s": 0.024,
+      "tottime_ms": 11.0,
+      "cumtime_ms": 24.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:2255(sum)"
+    },
+    {
+      "ncalls": "107424",
+      "tottime_s": 0.011,
+      "cumtime_s": 0.022,
+      "tottime_ms": 11.0,
+      "cumtime_ms": 22.0,
+      "location": "{built-in"
+    },
+    {
+      "ncalls": "4200",
+      "tottime_s": 0.01,
+      "cumtime_s": 0.012,
+      "tottime_ms": 10.0,
+      "cumtime_ms": 12.0,
+      "location": "/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/warnings.py:182(_add_filter)"
+    },
+    {
+      "ncalls": "4300",
+      "tottime_s": 0.01,
+      "cumtime_s": 0.039,
+      "tottime_ms": 10.0,
+      "cumtime_ms": 39.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/_array_api.py:857(_asarray_with_order)"
+    },
+    {
+      "ncalls": "8300",
+      "tottime_s": 0.01,
+      "cumtime_s": 0.021,
+      "tottime_ms": 10.0,
+      "cumtime_ms": 21.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/numpy/_core/numerictypes.py:380(isdtype)"
+    },
+    {
+      "ncalls": "6250",
+      "tottime_s": 0.01,
+      "cumtime_s": 0.033,
+      "tottime_ms": 10.0,
+      "cumtime_ms": 33.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/validation.py:371(_num_samples)"
+    },
+    {
+      "ncalls": "1",
+      "tottime_s": 0.01,
+      "cumtime_s": 0.01,
+      "tottime_ms": 10.0,
+      "cumtime_ms": 10.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "426",
+      "tottime_s": 0.008,
+      "cumtime_s": 0.008,
+      "tottime_ms": 8.0,
+      "cumtime_ms": 8.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "4801",
+      "tottime_s": 0.008,
+      "cumtime_s": 0.008,
+      "tottime_ms": 8.0,
+      "cumtime_ms": 8.0,
+      "location": "{method"
+    },
+    {
+      "ncalls": "12500",
+      "tottime_s": 0.007,
+      "cumtime_s": 0.062,
+      "tottime_ms": 7.0,
+      "cumtime_ms": 62.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/sklearn/utils/_tags.py:250(get_tags)"
+    },
+    {
+      "ncalls": "8300",
+      "tottime_s": 0.007,
+      "cumtime_s": 0.009,
+      "tottime_ms": 7.0,
+      "cumtime_ms": 9.0,
+      "location": "/opt/homebrew/lib/python3.11/site-packages/numpy/_core/numerictypes.py:367(_preprocess_dtype)"
+    },
+    {
+      "ncalls": "900",
+      "tottime_s": 0.006,
+      "cumtime_s": 0.006,
+      "tottime_ms": 6.0,
+      "cumtime_ms": 6.0,
+      "location": "/Users/devops.ai/fixops/Fixops/suite-core/core/ml/risk_scorer.py:699(_fmt_float)"
+    }
+  ]
+}
