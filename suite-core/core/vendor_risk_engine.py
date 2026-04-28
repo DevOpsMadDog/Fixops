@@ -38,6 +38,38 @@ except ImportError:
     _get_tg_bus = None
 
 
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 _logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -914,6 +946,13 @@ class VendorRiskEngine:
             risk_score=risk_score,
             risk_level=risk_level.value,
         )
+        _emit_event("vendor_risk.assessed", {
+            "vendor_id": vendor_id,
+            "name": name,
+            "risk_score": risk_score,
+            "risk_level": risk_level.value,
+            "findings_count": len(findings),
+        })
         return result
 
     def check_vendor_cvss(self, vendor_name: str) -> List[Dict[str, Any]]:

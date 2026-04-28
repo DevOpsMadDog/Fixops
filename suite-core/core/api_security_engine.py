@@ -322,6 +322,39 @@ except ImportError:
     _get_tg_bus = None
 
 
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
 def _b64url_encode(data: bytes) -> str:
     import base64
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
@@ -1457,6 +1490,13 @@ class ApiSecurityEngine:
 
         self._scans[scan_id] = result
         log.info("api_security_scan_complete", scan_id=scan_id, findings=len(findings), duration_ms=duration_ms)
+        _emit_event("api_security.scan.completed", {
+            "scan_id": scan_id,
+            "target_url": base_url,
+            "endpoints_discovered": len(endpoints),
+            "findings_count": len(findings),
+            "duration_ms": duration_ms,
+        })
         return result
 
     def get_scan(self, scan_id: str) -> Optional[ScanResult]:

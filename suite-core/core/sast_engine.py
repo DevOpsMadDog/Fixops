@@ -32,6 +32,39 @@ try:
 except ImportError:
     _get_tg_bus = None
 
+
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 try:
     import yaml as _yaml
 
@@ -2062,6 +2095,14 @@ class SASTEngine:
             if incremental:
                 fhash = self._file_hash(code)
                 self._file_cache[filename] = (fhash, result)
+
+        _emit_event("sast.scan.completed", {
+            "scan_id": result.scan_id,
+            "filename": filename,
+            "language": lang.value if hasattr(lang, "value") else str(lang),
+            "findings_count": result.total_findings,
+            "duration_ms": result.duration_ms,
+        })
 
         return result
 

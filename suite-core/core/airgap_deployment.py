@@ -44,6 +44,39 @@ try:
 except ImportError:  # pragma: no cover - bus optional
     _get_tg_bus = None
 
+
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -395,6 +428,11 @@ class OfflineCVEDatabase:
                 conn.commit()
 
         logger.info("imported_nvd_feed", path=feed_path, year=year, count=count)
+        _emit_event("airgap.nvd_feed.imported", {
+            "feed_path": feed_path,
+            "year": year,
+            "cve_count": count,
+        })
         return count
 
     def _parse_nvd_item(self, item: Dict[str, Any]) -> Optional[CVERecord]:

@@ -42,6 +42,38 @@ except ImportError:
     _get_tg_bus = None
 
 
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 _logger = structlog.get_logger(__name__)
 
 # Default DB path alongside running process
@@ -1235,6 +1267,13 @@ class IRPlaybookEngine:
             severity=severity.value,
             playbook_id=playbook.id,
         )
+        _emit_event("ir.incident.created", {
+            "incident_id": incident.id,
+            "incident_type": incident_type.value,
+            "severity": severity.value,
+            "playbook_id": playbook.id,
+            "org_id": org_id,
+        })
         return incident
 
     def get_incident(self, incident_id: str, org_id: str = "default") -> Optional[IRIncident]:
@@ -1357,6 +1396,12 @@ class IRPlaybookEngine:
             from_phase=incident.current_phase.value,
             to_phase=next_phase.value,
         )
+        _emit_event("ir.incident.phase_advanced", {
+            "incident_id": incident_id,
+            "from_phase": incident.current_phase.value,
+            "to_phase": next_phase.value,
+            "org_id": org_id,
+        })
 
         updated = self.get_incident(incident_id, org_id=org_id)
         return updated  # type: ignore[return-value]

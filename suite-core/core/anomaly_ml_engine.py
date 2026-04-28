@@ -40,6 +40,38 @@ except ImportError:
     _get_tg_bus = None
 
 
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / "data" / "anomaly_ml_engine.db"
 )
@@ -562,6 +594,14 @@ class AnomalyMLEngine:
             org_id=org_id or self.org_id,
         )
         self._persist_anomaly(anomaly)
+        _emit_event("anomaly.zscore.detected", {
+            "anomaly_id": anomaly.anomaly_id,
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "metric_name": metric_name,
+            "risk_level": anomaly.risk_level.value,
+            "org_id": org_id or self.org_id,
+        })
         return anomaly
 
     # ------------------------------------------------------------------

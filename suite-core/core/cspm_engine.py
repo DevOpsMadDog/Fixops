@@ -27,6 +27,39 @@ try:
 except ImportError:
     _get_tg_bus = None
 
+
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
@@ -1386,10 +1419,21 @@ class CSPMEngine:
         score = self._compliance_score(len(findings), resources_scanned if "resources_scanned" in dir() else 1)
         duration_ms = (time.perf_counter() - t0) * 1000
 
+        _provider_val = provider.value if "provider" in dir() else "aws"
+        _resources_val = resources_scanned if "resources_scanned" in dir() else 1
+        _emit_event("cspm.scan.terraform.completed", {
+            "provider": _provider_val,
+            "filename": filename,
+            "resources_scanned": _resources_val,
+            "findings_count": len(findings),
+            "compliance_score": score,
+            "duration_ms": duration_ms,
+        })
+
         return CspmScanResult(
             scan_id=f"cspm-{uuid.uuid4().hex[:10]}",
-            provider=provider.value if "provider" in dir() else "aws",
-            resources_scanned=resources_scanned if "resources_scanned" in dir() else 1,
+            provider=_provider_val,
+            resources_scanned=_resources_val,
             total_findings=len(findings),
             findings=findings,
             by_severity=by_sev,
@@ -1458,6 +1502,15 @@ class CSPMEngine:
         by_sev, by_cat = self._summarize(findings)
         score = self._compliance_score(len(findings), max(resources_scanned, 1))
         duration_ms = (time.perf_counter() - t0) * 1000
+
+        _emit_event("cspm.scan.cloudformation.completed", {
+            "provider": "aws",
+            "filename": filename,
+            "resources_scanned": resources_scanned,
+            "findings_count": len(findings),
+            "compliance_score": score,
+            "duration_ms": duration_ms,
+        })
 
         return CspmScanResult(
             scan_id=f"cspm-{uuid.uuid4().hex[:10]}",
