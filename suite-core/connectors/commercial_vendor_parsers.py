@@ -26,13 +26,11 @@ Closes 4 of 11 substitute-only-integration gaps tracked in board.
 """
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from connectors._emit import emit_connector_event
 

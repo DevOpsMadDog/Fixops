@@ -13,20 +13,18 @@ Compliance: SOC2 CC7.2 (System monitoring and alerting)
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import sqlite3
 import threading
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable, Coroutine
+from typing import Any, Dict, List, Optional
 
 from core.errors import ExternalServiceError  # noqa: F401 - re-exported for callers
-from core.event_streaming import StreamEvent, EventBus, EventSeverity
+from core.event_streaming import StreamEvent, EventBus
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

@@ -18,12 +18,10 @@ Configuration via environment variables:
 from __future__ import annotations
 
 import base64
-import hashlib
 import ipaddress
 import json
 import logging
 import os
-import secrets
 import socket
 import time
 import urllib.parse

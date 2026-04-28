@@ -6,7 +6,7 @@ Detect risks in AI-generated code. Apiiro Guardian Agent parity.
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field

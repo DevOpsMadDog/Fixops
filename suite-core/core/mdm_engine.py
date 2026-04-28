@@ -181,7 +181,6 @@ class MDMEngine:
                 f"Invalid enrollment_type: {enrollment_type}. Must be one of {_VALID_ENROLLMENT_TYPES}"
             )
 
-        import json
         now = _now_iso()
         record = {
             "device_id": str(uuid.uuid4()),

@@ -22,7 +22,6 @@ Multi-core routing: Some findings span multiple cores (e.g., CVE in a deployed a
 from __future__ import annotations
 
 import json
-import logging
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timezone

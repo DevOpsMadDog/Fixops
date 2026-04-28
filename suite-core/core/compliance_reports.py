@@ -379,14 +379,14 @@ class ComplianceReportGenerator:
     def _to_markdown(self, report: ComplianceReport) -> str:
         lines = [
             f"# {report.title}",
-            f"",
+            "",
             f"**Framework:** {report.framework}  ",
             f"**Score:** {report.score}%  ",
             f"**Gaps:** {report.gaps_count}  ",
             f"**Generated:** {report.generated_at.isoformat()}  ",
-            f"",
-            f"| Control | Title | Category | Status | Evidence |",
-            f"|---------|-------|----------|--------|----------|",
+            "",
+            "| Control | Title | Category | Status | Evidence |",
+            "|---------|-------|----------|--------|----------|",
         ]
         for s in report.sections:
             evidence = "; ".join(s.get("evidence", []))

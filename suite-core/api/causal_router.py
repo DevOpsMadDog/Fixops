@@ -6,7 +6,7 @@ counterfactual reasoning, and SHAP-based explainability.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -105,7 +105,7 @@ async def analyze_vulnerability(req: CausalAnalysisRequest) -> Dict[str, Any]:
 @router.post("/counterfactual", summary="What-if counterfactual analysis")
 async def counterfactual(req: CounterfactualRequest) -> Dict[str, Any]:
     """Evaluate a counterfactual scenario: 'What if factor X were different?'"""
-    from core.causal_inference import CausalInferenceEngine, SecurityFactor
+    from core.causal_inference import CausalInferenceEngine
 
     engine = CausalInferenceEngine()
     evidence = _evidence_to_factors(req.evidence)

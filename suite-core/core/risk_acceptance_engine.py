@@ -1,5 +1,4 @@
 """Risk acceptance workflow — formal process for accepting security risks."""
-import json
 import uuid
 import sqlite3
 import structlog

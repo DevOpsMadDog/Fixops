@@ -604,7 +604,7 @@ class OpenClawEngine:
         if campaign is None:
             raise ValueError(f"Campaign {campaign_id} not found")
         if campaign["status"] not in ("running", "paused"):
-            raise ValueError(f"Campaign must be running or paused to advance phase")
+            raise ValueError("Campaign must be running or paused to advance phase")
 
         current_phase = campaign["phase"]
         try:
@@ -673,7 +673,7 @@ class OpenClawEngine:
         if campaign is None:
             raise ValueError(f"Campaign {campaign_id} not found")
         if campaign["status"] not in ("running", "paused"):
-            raise ValueError(f"Campaign must be running or paused to complete")
+            raise ValueError("Campaign must be running or paused to complete")
 
         # Calculate risk score from findings
         risk_score = self._calculate_risk_score(org_id, campaign_id)

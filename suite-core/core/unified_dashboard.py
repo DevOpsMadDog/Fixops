@@ -17,7 +17,6 @@ Compliance: SOC2 CC7.2, CC6.1
 
 from __future__ import annotations
 
-import logging
 import threading
 import time
 import uuid

@@ -1505,11 +1505,8 @@ def get_cspm_engine() -> CSPMEngine:
 
 try:
     import uuid as _uuid
-    import os as _os
-    import sqlite3 as _sqlite3
-    import threading as _threading
     from datetime import datetime as _datetime, timezone as _timezone
-    from typing import Any as _Any, Dict as _Dict, List as _List, Optional as _Optional, Tuple as _Tuple
+    from typing import Any as _Any, Dict as _Dict, List as _List, Optional as _Optional
     from enum import Enum as _Enum
     from pydantic import BaseModel as _BaseModel, Field as _Field
 

@@ -17,7 +17,6 @@ Compliance: ITIL v4, SOC2 CC8.1 (Change Management)
 
 from __future__ import annotations
 
-import json
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone

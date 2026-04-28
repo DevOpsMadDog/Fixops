@@ -13,12 +13,10 @@ Usage:
 
 from __future__ import annotations
 
-import hashlib
 import re
 import math
-import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from threading import Lock
@@ -208,7 +206,7 @@ class AICodeGuardian:
                         description=f"{name} — AI models frequently produce injectable code",
                         line_number=i, code_snippet=line.strip()[:120],
                         cwe_id=cwe, owasp=owasp,
-                        recommendation=f"Use parameterized queries or safe APIs instead",
+                        recommendation="Use parameterized queries or safe APIs instead",
                         confidence=0.80,
                     ))
 
@@ -223,7 +221,7 @@ class AICodeGuardian:
                         description=f"{name} — AI often uses deprecated algorithms",
                         line_number=i, code_snippet=line.strip()[:120],
                         cwe_id=cwe, owasp="A02:2021",
-                        recommendation=f"Use SHA-256+ for hashing, AES-256 for encryption, secrets module for randomness",
+                        recommendation="Use SHA-256+ for hashing, AES-256 for encryption, secrets module for randomness",
                         confidence=0.75,
                     ))
 

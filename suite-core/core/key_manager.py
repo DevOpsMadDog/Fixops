@@ -70,7 +70,6 @@ except Exception:  # noqa: BLE001
 import hashlib
 import logging
 import os
-import re
 import secrets
 import sqlite3
 import threading
@@ -333,7 +332,6 @@ class KeyManager:
 
     def get_key(self, key_id: str) -> Optional[ManagedKey]:
         """Get a key record by ID."""
-        import json as _json
 
         with self._conn() as conn:
             row = conn.execute(
@@ -345,7 +343,6 @@ class KeyManager:
 
     def validate_key(self, raw_key: str) -> Optional[ManagedKey]:
         """Validate a raw API key — returns the key record if valid."""
-        import json as _json
 
         key_hash = _hash_key(raw_key)
         now = datetime.now(timezone.utc)
@@ -384,7 +381,6 @@ class KeyManager:
 
     def list_keys(self, user_id: Optional[str] = None, include_revoked: bool = False) -> List[ManagedKey]:
         """List all managed keys, optionally filtered by user."""
-        import json as _json
 
         query = "SELECT * FROM managed_keys"
         params: list = []

@@ -46,9 +46,7 @@ import sqlite3
 import threading
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
-import os
 
 logger = logging.getLogger(__name__)
 

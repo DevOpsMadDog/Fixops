@@ -18,7 +18,6 @@ Compliance: MITRE ATT&CK, STIX 2.1, TLP protocol, NIST SP 800-150
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 import logging
 import sqlite3

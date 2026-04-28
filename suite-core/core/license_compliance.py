@@ -15,8 +15,6 @@ Compliance: OSS supply-chain risk management, NTIA SBOM minimum elements.
 
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -131,7 +129,7 @@ try:
     from pydantic import BaseModel, Field, model_validator
     _PYDANTIC_V2 = True
 except ImportError:
-    from pydantic import BaseModel, Field, validator as model_validator  # type: ignore
+    from pydantic import BaseModel, Field  # type: ignore
     _PYDANTIC_V2 = False
 
 

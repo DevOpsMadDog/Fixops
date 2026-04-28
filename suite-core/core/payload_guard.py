@@ -18,9 +18,9 @@ Usage:
 from __future__ import annotations
 
 import json
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, List, Optional
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 
 from core.exceptions import ValidationError
 

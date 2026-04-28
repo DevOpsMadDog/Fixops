@@ -21,7 +21,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-import math
 import random
 import time
 import uuid
@@ -32,7 +31,7 @@ from enum import Enum
 from threading import Lock, RLock
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 

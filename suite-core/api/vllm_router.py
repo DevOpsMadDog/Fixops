@@ -18,8 +18,7 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends
-from apps.api.dependencies import get_org_id
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)

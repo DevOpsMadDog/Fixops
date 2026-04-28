@@ -67,7 +67,6 @@ class GenerateFixRequest(BaseModel):
             try:
                 import sqlite3
                 from pathlib import Path
-                import os
                 # Try known locations for analytics.db
                 db_path = None
                 for candidate in [

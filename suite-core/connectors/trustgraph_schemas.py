@@ -19,11 +19,10 @@ This is the data contract between connectors and TrustGraph.
 
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any, Set, Tuple
+from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass, field
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
-import json
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 # ============================================================================

@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
@@ -2247,7 +2247,6 @@ def get_sast_engine() -> SASTEngine:
 # ---------------------------------------------------------------------------
 
 import json as _snippet_json
-import os as _snippet_os
 import sqlite3 as _snippet_sqlite3
 import threading as _snippet_threading
 

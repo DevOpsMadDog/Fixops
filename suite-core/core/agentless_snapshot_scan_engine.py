@@ -51,7 +51,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Protocol, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore

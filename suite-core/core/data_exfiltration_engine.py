@@ -15,7 +15,6 @@ Compliance: NIST SP 800-53 SI-12, ISO 27001 A.8.2, GDPR Art 32, PCI-DSS 3.4
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

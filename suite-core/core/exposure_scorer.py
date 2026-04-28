@@ -19,7 +19,6 @@ Compliance: SOC2 CC9.2, NIST CSF ID.RA-5, CIS Control 18
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

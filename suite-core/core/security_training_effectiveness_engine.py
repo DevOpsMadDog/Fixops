@@ -15,7 +15,6 @@ Compliance: NIST SP 800-50, ISO 27001 A.6.3, CIS Control 14
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

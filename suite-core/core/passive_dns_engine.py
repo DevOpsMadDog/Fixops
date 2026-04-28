@@ -120,7 +120,7 @@ class PassiveDNSEngine:
 
     def record_resolution(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Record or update a DNS resolution for a domain→IP pair."""
-        import uuid, json
+        import uuid
 
         domain = str(data.get("domain", "")).strip().lower()
         resolved_ip = str(data.get("resolved_ip", "")).strip()
@@ -271,7 +271,8 @@ class PassiveDNSEngine:
 
     def add_domain_threat(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mark a domain as malicious with threat classification."""
-        import uuid, json
+        import uuid
+        import json
 
         domain = str(data.get("domain", "")).strip().lower()
         threat_type = str(data.get("threat_type", "")).lower()
@@ -339,7 +340,6 @@ class PassiveDNSEngine:
 
     def check_domain_reputation(self, org_id: str, domain: str) -> Dict[str, Any]:
         """Check domain reputation against recorded threats and resolution history."""
-        import json
 
         domain = domain.strip().lower()
 

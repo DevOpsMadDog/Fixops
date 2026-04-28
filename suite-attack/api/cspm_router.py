@@ -29,7 +29,6 @@ from core.cspm_engine import (
     OrgPosture,
     RemediationPlaybook,
     ResourceType,
-    ScanRequest,
     ScanResult,
     Severity,
     get_cspm_engine,

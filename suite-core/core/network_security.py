@@ -17,11 +17,9 @@ Compliance: PCI DSS 1.x, HIPAA §164.312(e), NIST SP 800-207 (Zero Trust).
 
 from __future__ import annotations
 
-import hashlib
 import ipaddress
 import json
 import math
-import re
 import sqlite3
 import threading
 import uuid

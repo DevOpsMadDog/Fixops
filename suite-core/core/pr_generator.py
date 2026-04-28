@@ -390,7 +390,7 @@ class PRGenerator:
         diff_lines: List[str] = [
             f"--- a/{fix.manifest_file}",
             f"+++ b/{fix.manifest_file}",
-            f"@@ -1 +1 @@",
+            "@@ -1 +1 @@",
         ]
         for orig_line, new_line in zip(original.splitlines(), updated.splitlines()):
             if orig_line != new_line:

@@ -14,7 +14,6 @@ Compliance: SOC2 CC7.2, ISO27001 A.12.6.1, PCI-DSS Req 6.3, NIST SP 800-137
 from __future__ import annotations
 
 import json
-import logging
 import sqlite3
 import threading
 import uuid

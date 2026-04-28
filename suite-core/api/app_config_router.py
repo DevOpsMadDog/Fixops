@@ -13,7 +13,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from apps.api.dependencies import get_org_id
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 

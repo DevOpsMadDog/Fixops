@@ -18,7 +18,6 @@ import json
 import logging
 import shutil
 import subprocess  # nosec B404
-import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional

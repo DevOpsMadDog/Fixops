@@ -19,7 +19,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from core.sast_engine import SAST_RULES, _EXTRA_RULES, get_sast_engine, parse_semgrep_yaml, SASTEngine
+from core.sast_engine import SAST_RULES, _EXTRA_RULES, get_sast_engine, SASTEngine
 from fastapi import APIRouter, HTTPException, Depends
 from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field

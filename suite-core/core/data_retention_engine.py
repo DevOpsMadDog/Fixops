@@ -8,7 +8,6 @@ Compliance: GDPR Art.5(1)(e), CCPA §1798.100, HIPAA §164.530(j), SOC 2 CC6.5
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

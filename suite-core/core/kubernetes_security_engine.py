@@ -8,7 +8,6 @@ Multi-tenant via org_id.  Thread-safe via RLock.  SQLite WAL for concurrency.
 """
 from __future__ import annotations
 
-import json
 import logging
 import random
 import sqlite3

@@ -14,7 +14,6 @@ Compliance: NIST CSF RS.RP, ISO 27035, SOC2 CC7.3
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import uuid

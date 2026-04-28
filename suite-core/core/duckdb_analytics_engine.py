@@ -12,7 +12,6 @@ Compliance: SOC2 CC7.2 (monitoring), ISO 27001 A.12.4 (event logging)
 from __future__ import annotations
 
 import logging
-import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path

@@ -14,10 +14,7 @@ Qualys, AWS Security Hub, Azure Defender, GCP SCC, and many more.
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -534,7 +531,7 @@ class DefectDojoParserClient:
             payload = {
                 "product": product_id,
                 "name": name,
-                "description": f"Auto-created by ALDECI",
+                "description": "Auto-created by ALDECI",
                 "status": "In Progress",
                 "target_start": today,
                 "target_end": today,

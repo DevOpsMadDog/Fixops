@@ -16,9 +16,7 @@ Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 
 from __future__ import annotations
 
-import hashlib
 import json
-import logging
 import os
 import time
 import uuid
@@ -27,7 +25,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from threading import Lock
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 import structlog
 
@@ -177,7 +175,7 @@ class _RateLimiter:
 try:
     from pydantic import BaseModel, Field, field_validator, model_validator
 except ImportError:
-    from pydantic import BaseModel, Field, validator as field_validator  # type: ignore
+    from pydantic import BaseModel, Field  # type: ignore
 
 
 class CloudCredentials(BaseModel):

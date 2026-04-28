@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import ipaddress
 import json
-import re
 import sqlite3
 import uuid
 from datetime import datetime, timezone

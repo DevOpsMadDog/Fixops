@@ -21,7 +21,6 @@ import html
 import logging
 import re
 import time
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone

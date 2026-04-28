@@ -15,7 +15,6 @@ Compliance: CMMI, NIST CSF, ISO 27001, CIS Controls v8
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

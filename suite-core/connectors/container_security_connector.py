@@ -39,7 +39,6 @@ import logging
 import os
 import shutil
 import subprocess  # nosec B404 — invoked with fixed argv lists, no shell=True
-import tempfile
 import threading
 import time
 import uuid

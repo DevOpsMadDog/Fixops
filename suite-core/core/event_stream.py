@@ -24,7 +24,7 @@ import uuid
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Set
+from typing import Any, AsyncGenerator, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 

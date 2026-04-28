@@ -16,7 +16,6 @@ Compliance: NIST SP 800-53 AC-2 (Account Management), ISO 27001 A.9.2,
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

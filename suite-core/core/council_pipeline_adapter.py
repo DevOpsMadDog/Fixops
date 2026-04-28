@@ -33,10 +33,9 @@ import logging
 import os
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional
 
 from core.errors import ExternalServiceError  # noqa: F401 - re-exported for callers
 

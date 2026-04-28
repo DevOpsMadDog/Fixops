@@ -8,7 +8,6 @@ Compliance: NIST SP 800-50, CIS Controls v8 14.2, ISO/IEC 27001 A.7.2.2
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

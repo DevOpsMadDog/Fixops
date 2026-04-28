@@ -27,11 +27,10 @@ import json
 import logging
 import sqlite3
 import threading
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

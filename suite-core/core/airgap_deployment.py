@@ -19,7 +19,6 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
-import logging
 import os
 import re
 import socket
@@ -34,7 +33,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
 
 import structlog
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -514,7 +512,7 @@ class OfflineCVEDatabase:
             query += " AND (LOWER(products) LIKE ? OR LOWER(description) LIKE ?)"
             params.extend([f"%{product.lower()}%", f"%{product.lower()}%"])
 
-        query += f" ORDER BY cvss_score DESC LIMIT ?"
+        query += " ORDER BY cvss_score DESC LIMIT ?"
         params.append(limit)
 
         results: List[CVERecord] = []

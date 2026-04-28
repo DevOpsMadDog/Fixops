@@ -29,7 +29,7 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

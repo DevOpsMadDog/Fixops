@@ -1574,7 +1574,6 @@ class ResourceStreamManager:
                     media_type="text/event-stream"
                 )
         """
-        from typing import Generator as _Generator
         sub_id = self.subscribe(stream_uri, client_id)
         last_event_id: str = ""
 

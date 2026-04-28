@@ -19,7 +19,7 @@ import json
 import logging
 import subprocess  # nosec B404
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -390,7 +390,7 @@ class TrustGraphMCPBridge:
                     return []
             else:
                 logger.warning(
-                    f"TrustGraph unavailable; returning empty results for query"
+                    "TrustGraph unavailable; returning empty results for query"
                 )
 
             return results
@@ -479,7 +479,7 @@ class TrustGraphMCPBridge:
                 }
             else:
                 # Simulation mode
-                logger.warning(f"TrustGraph unavailable; simulating invocation")
+                logger.warning("TrustGraph unavailable; simulating invocation")
                 return {
                     "success": True,
                     "data": {"simulated": True, "params": params},

@@ -7,7 +7,7 @@ import time
 import uuid
 from pathlib import Path
 from threading import Lock
-from typing import List, Optional
+from typing import Optional
 
 import structlog
 

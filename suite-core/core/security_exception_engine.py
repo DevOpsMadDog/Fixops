@@ -9,7 +9,6 @@ Multi-tenant via org_id. SQLite WAL + threading.RLock for concurrency safety.
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

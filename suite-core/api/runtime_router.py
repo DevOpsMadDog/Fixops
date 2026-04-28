@@ -13,8 +13,6 @@ from pydantic import BaseModel, Field
 
 from core.runtime_protection import (
     EngineMode,
-    ProtectionConfig,
-    RuntimeProtectionEngine,
     get_runtime_protection_engine,
 )
 

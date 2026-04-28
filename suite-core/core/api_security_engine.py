@@ -9,16 +9,13 @@ Competitive parity: 42Crunch, StackHawk, Salt Security, Noname Security.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import re
-import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from typing import Any, Dict, List, Optional
 
 import httpx
 import structlog

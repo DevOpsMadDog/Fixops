@@ -12,7 +12,6 @@ Compliance: NIST SP 800-41r1, CIS Controls v8 12.x, PCI DSS 4.0 req 1.3
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

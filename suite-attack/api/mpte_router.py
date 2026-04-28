@@ -1114,7 +1114,6 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
         # Also create PenTestRequest + PenTestResult in the DB for backward compat
         try:
             from core.mpte_models import PenTestRequest, PenTestStatus, PenTestPriority, PenTestResult, ExploitabilityLevel
-            import uuid as _uuid
 
             request = PenTestRequest(
                 id="",

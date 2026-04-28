@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 _logger = logging.getLogger(__name__)
 
@@ -754,7 +754,7 @@ class CISOReportGenerator:
         operations = sections["operations"]
 
         lines = [
-            f"# CISO Weekly Security Briefing",
+            "# CISO Weekly Security Briefing",
             f"**Organization:** {org_id}  ",
             f"**Generated:** {now_str}  ",
             f"**Period:** {report['report_period']['start']} → {report['report_period']['end']}",
@@ -773,8 +773,8 @@ class CISOReportGenerator:
             "",
             "## Risk Posture",
             "",
-            f"| Metric | Value |",
-            f"|--------|-------|",
+            "| Metric | Value |",
+            "|--------|-------|",
             f"| Overall Score | **{posture['overall_score']}/100** |",
             f"| Delta (7d) | {'+' if posture['delta'] >= 0 else ''}{posture['delta']} |",
             f"| Trend | {posture['trend'].capitalize()} |",
@@ -801,8 +801,8 @@ class CISOReportGenerator:
             "",
             "## Vulnerability Summary",
             "",
-            f"| Metric | Count |",
-            f"|--------|-------|",
+            "| Metric | Count |",
+            "|--------|-------|",
             f"| Critical | {vulns.get('critical_count', 0)} |",
             f"| High | {vulns.get('high_count', 0)} |",
             f"| Medium | {vulns.get('medium_count', 0)} |",
@@ -816,8 +816,8 @@ class CISOReportGenerator:
             "",
             "## Threat Intelligence",
             "",
-            f"| Metric | Value |",
-            f"|--------|-------|",
+            "| Metric | Value |",
+            "|--------|-------|",
             f"| Active Attack Paths | {threats.get('active_attack_paths', 0)} |",
             f"| Crown Jewels at Risk | {threats.get('crown_jewels_at_risk', 0)} |",
             f"| Insider Threat Alerts | {threats.get('insider_threat_alerts', 0)} |",
@@ -829,8 +829,8 @@ class CISOReportGenerator:
             "",
             "## Compliance",
             "",
-            f"| Metric | Value |",
-            f"|--------|-------|",
+            "| Metric | Value |",
+            "|--------|-------|",
             f"| Overall Score | {compliance.get('overall_score', 0):.1f}% |",
             f"| Grade | {compliance.get('compliance_grade', 'N/A')} |",
             f"| Passing Controls | {compliance.get('passing_checks', 0)} |",
@@ -841,8 +841,8 @@ class CISOReportGenerator:
             "",
             "## Incidents & Health",
             "",
-            f"| Metric | Value |",
-            f"|--------|-------|",
+            "| Metric | Value |",
+            "|--------|-------|",
             f"| Open Incidents | {incidents.get('open_incidents', 0)} |",
             f"| Resolved This Week | {incidents.get('resolved_this_week', 0)} |",
             f"| Avg MTTD (min) | {incidents.get('avg_mttd_minutes') or 'N/A'} |",
@@ -853,8 +853,8 @@ class CISOReportGenerator:
             "",
             "## SOC Operations",
             "",
-            f"| Metric | Value |",
-            f"|--------|-------|",
+            "| Metric | Value |",
+            "|--------|-------|",
             f"| Alerts Ingested | {operations.get('alerts_ingested', 0)} |",
             f"| Alerts Resolved | {operations.get('alerts_resolved', 0)} |",
             f"| False Positives | {operations.get('alerts_false_positive', 0)} |",

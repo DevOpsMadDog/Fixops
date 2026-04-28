@@ -37,12 +37,10 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import os
 from base64 import b64encode
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional
 
 import httpx
@@ -55,7 +53,7 @@ from connectors.pull_connector import (
     PullSchedule,
     SDLCStage,
 )
-from core.connectors import ConnectorOutcome, ConnectorHealth
+from core.connectors import ConnectorOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +309,7 @@ class GitHubSCMConnector(PullConnector):
                 "source": "github-scm",
                 "severity": "critical",
                 "title": f"Secret found in {raw.get('repo')}: {raw.get('secret_type')}",
-                "description": f"Credentials/secrets detected in repository",
+                "description": "Credentials/secrets detected in repository",
                 "cve_ids": [],
                 "cwe_ids": ["CWE-798"],  # Use of hardcoded credentials
                 "affected_asset": raw.get("repo"),
@@ -333,7 +331,7 @@ class GitHubSCMConnector(PullConnector):
                 "source": "github-scm",
                 "severity": severity,
                 "title": f"Vulnerable dependency: {raw.get('package')}",
-                "description": f"Vulnerable library detected in dependencies",
+                "description": "Vulnerable library detected in dependencies",
                 "cve_ids": [raw.get("cve_id")] if raw.get("cve_id") else [],
                 "cwe_ids": [],
                 "affected_asset": raw.get("repo"),
@@ -800,7 +798,7 @@ class JenkinsPipelineConnector(PullConnector):
                 "source": "jenkins-pipeline",
                 "severity": "low",
                 "title": f"Jenkins plugin: {raw.get('name')} v{raw.get('version')}",
-                "description": f"Plugin audit entry",
+                "description": "Plugin audit entry",
                 "cve_ids": [],
                 "cwe_ids": [],
                 "affected_asset": raw.get("name"),
@@ -1151,7 +1149,7 @@ class EASMConnector(PullConnector):
             "source": "easm",
             "severity": "medium",
             "title": f"External asset discovered: {raw.get('ip')} port {raw.get('port')}",
-            "description": f"Asset exposed on external internet",
+            "description": "Asset exposed on external internet",
             "cve_ids": [],
             "cwe_ids": [],
             "affected_asset": raw.get("ip"),

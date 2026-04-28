@@ -9,12 +9,7 @@ Competitive parity: Aqua Security, Prisma Cloud, Sysdig Secure, Snyk Container.
 
 from __future__ import annotations
 
-import hashlib
-import json
-import re
-import time
 import uuid
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
@@ -117,7 +112,7 @@ try:
     from pydantic import BaseModel, Field, field_validator, model_validator
     _PYDANTIC_V2 = True
 except ImportError:  # pragma: no cover
-    from pydantic import BaseModel, Field, validator as field_validator  # type: ignore
+    from pydantic import BaseModel, Field  # type: ignore
     _PYDANTIC_V2 = False
 
 

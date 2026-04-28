@@ -16,18 +16,15 @@ and Step 13 (enrichment feedback) for closed-loop threat management.
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
 import logging
-import time
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from threading import Lock
 from typing import Any, Dict, List, Mapping, Optional
 
-from core.connectors import ConnectorHealth, ConnectorOutcome, _BaseConnector
+from core.connectors import ConnectorOutcome, _BaseConnector
 from connectors._emit import emit_connector_event
 
 logger = logging.getLogger(__name__)

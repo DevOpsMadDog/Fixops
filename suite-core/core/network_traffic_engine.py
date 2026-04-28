@@ -15,7 +15,6 @@ Compliance: MITRE ATT&CK, CIS Controls v8 (Control 13), NIST SP 800-53 (SI-4)
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

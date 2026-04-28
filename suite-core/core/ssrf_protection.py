@@ -14,7 +14,7 @@ from __future__ import annotations
 import ipaddress
 import re
 import socket
-from typing import List, Optional
+from typing import List
 from urllib.parse import urlparse
 
 from core.exceptions import SSRFError

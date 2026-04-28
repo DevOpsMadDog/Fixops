@@ -28,8 +28,6 @@ Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 
 from __future__ import annotations
 
-import json
-import logging
 import os
 import time
 import uuid
@@ -749,7 +747,6 @@ class IAMAuditor:
         except Exception:
             pass  # Report may already be fresh
 
-        import base64
 
         for _ in range(5):
             try:

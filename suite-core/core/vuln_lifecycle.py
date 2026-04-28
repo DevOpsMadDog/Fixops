@@ -21,7 +21,6 @@ Compliance: SOC2 CC7.2, ISO27001 A.16 (Incident management)
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import uuid

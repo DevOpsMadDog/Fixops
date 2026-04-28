@@ -14,16 +14,14 @@ Competitive parity: Socket.dev, Phylum, Snyk SCA.
 
 from __future__ import annotations
 
-import hashlib
 import logging
-import math
 import re
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

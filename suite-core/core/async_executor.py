@@ -25,11 +25,10 @@ For unknown task names, raises ValueError immediately.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict
 
 from core.task_queue import (
     TaskResult,
-    TaskStatus,
     dispatch_autofix_generate,
     dispatch_brain_pipeline,
     dispatch_mpte_scan,

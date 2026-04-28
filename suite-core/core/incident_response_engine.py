@@ -8,7 +8,6 @@ Compliance: NIST SP 800-61r2, ISO/IEC 27035, SANS Incident Handling.
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

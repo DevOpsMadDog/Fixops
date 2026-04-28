@@ -8,7 +8,6 @@ Compliance: NIST SP 800-53 SC-28, ISO/IEC 27001 A.8.2, SOC 2 CC6.7
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

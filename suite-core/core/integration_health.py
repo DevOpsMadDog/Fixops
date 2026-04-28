@@ -6,7 +6,6 @@ integrations. SQLite-backed with automatic disable after consecutive failures.
 
 from __future__ import annotations
 
-import random
 import sqlite3
 import time
 import uuid

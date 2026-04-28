@@ -16,7 +16,6 @@ Compliance: FIPS 140-3, FedRAMP High, NIST SP 800-208, CNSA 2.0, NSM-10
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

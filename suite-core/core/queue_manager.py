@@ -71,7 +71,6 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from core.exceptions import PipelineError
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +241,6 @@ class RedisQueueManager(BaseQueueManager):
         logger.debug("publish_result run=%s step=%s", run_id, step_name)
 
     def subscribe_results(self, run_id: str) -> "RedisResultSubscription":
-        import redis as _redis  # type: ignore[import]
 
         ps = self._redis.pubsub()
         ps.subscribe(self._channel(run_id))

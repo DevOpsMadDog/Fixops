@@ -15,7 +15,6 @@ Compliance: OWASP Top 10, CWE/SANS Top 25, NIST SP 800-218 (SSDF)
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

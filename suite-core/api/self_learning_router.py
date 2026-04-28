@@ -23,7 +23,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from apps.api.dependencies import get_org_id
 
 try:
     from apps.api.auth_deps import require_auth as _verify_api_key

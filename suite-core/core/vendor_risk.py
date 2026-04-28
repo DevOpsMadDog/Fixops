@@ -15,17 +15,16 @@ Compliance: SOC2 CC9.2, ISO27001 A.15, PCI-DSS 12.8, NIST CSF ID.SC
 
 from __future__ import annotations
 
-import json
 import sqlite3
 import threading
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import structlog
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 _logger = structlog.get_logger(__name__)
 

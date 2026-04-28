@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional
 

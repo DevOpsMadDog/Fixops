@@ -24,7 +24,6 @@ Alert types:
 from __future__ import annotations
 
 import asyncio
-import logging
 import threading
 import uuid
 from datetime import datetime, timezone

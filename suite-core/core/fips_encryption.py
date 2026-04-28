@@ -4,12 +4,10 @@ import hashlib
 import hmac
 import json
 import os
-import secrets
-import struct
 import threading
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from pydantic import BaseModel
 

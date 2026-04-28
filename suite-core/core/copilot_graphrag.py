@@ -16,7 +16,6 @@ Personas served: P03 (SOC T1), P04 (SOC T2), P20 (Security Architect)
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -149,7 +148,6 @@ class CopilotGraphRAGAdapter:
 
         # Fallback: direct LIKE query bypassing FTS
         try:
-            import json as _json
             conn = self._store._get_conn()
             cursor = conn.cursor()
             like_term = f"%{query_text}%"

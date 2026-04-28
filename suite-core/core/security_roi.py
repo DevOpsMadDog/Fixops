@@ -20,7 +20,6 @@ Compliance: SOC2 CC9.1 (Risk Mitigation Strategies), CC3.2 (Risk Assessment)
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

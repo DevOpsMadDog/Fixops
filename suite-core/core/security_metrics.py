@@ -16,7 +16,6 @@ Compliance: SOC2 CC7.2, NIST CSF PR.IP-8, CIS Control 17
 from __future__ import annotations
 
 import json
-import logging
 import sqlite3
 import threading
 import uuid

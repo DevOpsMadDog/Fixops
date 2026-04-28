@@ -21,10 +21,8 @@ P09 Risk Manager, P17 Threat Intel Analyst
 from __future__ import annotations
 
 import logging
-import os
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -640,7 +638,7 @@ def run_indexer(org_id: str = "default") -> Dict[str, Any]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     stats = run_indexer()
-    print(f"\nTrustGraph Indexing Complete:")
+    print("\nTrustGraph Indexing Complete:")
     print(f"  Core 1 (Customer Environment): {stats['core_1_connectors']} entities")
     print(f"  Core 2 (Threat Intelligence):  {stats['core_2_threat_intel']} entities")
     print(f"  Core 3 (Compliance):           {stats['core_3_compliance']} entities")

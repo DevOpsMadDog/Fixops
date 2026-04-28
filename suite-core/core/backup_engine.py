@@ -12,7 +12,6 @@ import json
 import logging
 import os
 import sqlite3
-import struct
 import uuid
 import zipfile
 from datetime import datetime, timedelta, timezone
@@ -25,7 +24,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

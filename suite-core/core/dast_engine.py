@@ -14,7 +14,6 @@ Competitive parity: Aikido DAST, Snyk DAST, OWASP ZAP.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import time
@@ -24,7 +23,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from html.parser import HTMLParser
 from typing import Any, Dict, List, Optional, Set, Tuple
-from urllib.parse import urljoin, urlparse
 
 import httpx
 from core.tls_config import tls_verify

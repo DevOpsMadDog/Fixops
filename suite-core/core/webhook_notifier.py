@@ -18,7 +18,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import logging
 import sqlite3
 import threading
 import time

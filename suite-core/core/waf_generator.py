@@ -128,7 +128,7 @@ try:
     from pydantic import BaseModel, Field, field_validator, model_validator
     _PYDANTIC_V2 = True
 except ImportError:
-    from pydantic import BaseModel, Field, validator as field_validator  # type: ignore
+    from pydantic import BaseModel, Field  # type: ignore
     _PYDANTIC_V2 = False
 
 
@@ -1060,18 +1060,18 @@ def _export_apache(rule: WAFRule) -> str:
     lines = [f"# WAF Rule: {rule.name}", f"# Description: {rule.description}"]
     for cond in rule.conditions:
         var = _apache_variable(cond.field)
-        lines.append(f"<IfModule mod_rewrite.c>")
-        lines.append(f"  RewriteEngine On")
+        lines.append("<IfModule mod_rewrite.c>")
+        lines.append("  RewriteEngine On")
         if cond.operator in ("MATCHES", "CONTAINS"):
             flag = "NC" if not cond.negate else "NC"
             lines.append(f"  RewriteCond {var} {cond.value} [{flag}]")
         elif cond.operator == "STARTS_WITH":
             lines.append(f"  RewriteCond {var} ^{re.escape(cond.value)}")
         if rule.rule_type == RuleType.BLOCK:
-            lines.append(f"  RewriteRule ^ - [F,L]")
+            lines.append("  RewriteRule ^ - [F,L]")
         else:
-            lines.append(f"  # Log condition matched — no block action")
-        lines.append(f"</IfModule>")
+            lines.append("  # Log condition matched — no block action")
+        lines.append("</IfModule>")
     return "\n".join(lines)
 
 
@@ -1098,7 +1098,7 @@ def _export_owasp_crs(rule: WAFRule) -> Dict[str, Any]:
         "rev": str(rule.version),
         "maturity": 1,
         "accuracy": 8,
-        "tag": [f"language-multi", f"OWASP_{rule.owasp_category or 'A03'}", rule.vuln_type.value],
+        "tag": ["language-multi", f"OWASP_{rule.owasp_category or 'A03'}", rule.vuln_type.value],
         "msg": rule.name,
         "logdata": rule.description,
         "severity": "CRITICAL" if rule.rule_type == RuleType.BLOCK else "WARNING",

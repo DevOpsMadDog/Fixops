@@ -746,7 +746,6 @@ __all__ = [
 
 
 import hmac
-import struct
 import time
 
 
@@ -1538,7 +1537,6 @@ class MLKEMKeyExchange:
     @staticmethod
     def _decap_sim(public_key: bytes, secret_key: bytes, ciphertext: bytes) -> bytes:
         """Simulated decapsulation: recover r from ciphertext."""
-        import hmac as _hmac
         ct_core = ciphertext[:32]
         # We need to recover r — in real Kyber this uses NTT polynomial ops
         # Simulation: brute-approach using HMAC with secret key material

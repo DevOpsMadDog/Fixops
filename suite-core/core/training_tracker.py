@@ -9,7 +9,6 @@ Supports 10 built-in training modules across 5 categories:
 """
 from __future__ import annotations
 
-import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone

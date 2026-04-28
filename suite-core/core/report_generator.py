@@ -24,8 +24,7 @@ import io
 import uuid
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import structlog
 
@@ -381,7 +380,7 @@ class ExecutiveReportGenerator:
             ("Posture Score", f"{posture}", "/100"),
             ("Total Findings", str(total), "active"),
             ("Critical", str(critical), "immediate action"),
-            ("Resolved", str(resolved), f"last period"),
+            ("Resolved", str(resolved), "last period"),
         ]
 
         kpi_html = '<div class="kpi-grid">'

@@ -24,11 +24,9 @@ The gateway provides:
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import logging
-import time
 from datetime import datetime, timezone
 from threading import Lock
 from typing import Any, Dict, List, Optional
@@ -36,7 +34,6 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ValidationError, field_validator
 
 from connectors.pull_connector import (
-    BidirectionalConnector,
     ConnectorMetadata,
     PullConnector,
     SDLCStage,

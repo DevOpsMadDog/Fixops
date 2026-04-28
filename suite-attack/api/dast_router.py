@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Query

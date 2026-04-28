@@ -105,7 +105,6 @@ def trace_engine_call(
             _otel_span.set_attribute("org_id", str(org_id))
         # Make this the current span so child calls inherit context
         from opentelemetry import context as otel_context
-        from opentelemetry.trace import use_span
 
         _otel_token = otel_context.attach(
             otel_context.get_current()

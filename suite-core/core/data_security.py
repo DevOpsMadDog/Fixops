@@ -8,7 +8,6 @@ Competitive parity: Nightfall DLP, Forcepoint, Symantec DLP, Microsoft Purview.
 
 from __future__ import annotations
 
-import hashlib
 import math
 import re
 import secrets
@@ -231,7 +230,7 @@ if _PYDANTIC:
 
 else:
     # Fallback dataclasses if pydantic unavailable
-    from dataclasses import dataclass, field as dc_field
+    from dataclasses import dataclass
 
     @dataclass
     class DataMatch:

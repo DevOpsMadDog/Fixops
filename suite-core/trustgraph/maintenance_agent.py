@@ -19,7 +19,6 @@ Checks:
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import time
@@ -542,8 +541,8 @@ class TrustGraphMaintenanceAgent:
                             f"Data may be outdated (threshold: {days} days)."
                         ),
                         suggested_fix=(
-                            f"Re-ingest this entity from its source system, or soft-delete "
-                            f"it if it is no longer relevant."
+                            "Re-ingest this entity from its source system, or soft-delete "
+                            "it if it is no longer relevant."
                         ),
                         extra={"last_updated": row["updated_at"], "staleness_days": days},
                     )

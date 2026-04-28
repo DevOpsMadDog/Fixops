@@ -31,7 +31,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 from collections import deque
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 _logger = logging.getLogger(__name__)
 

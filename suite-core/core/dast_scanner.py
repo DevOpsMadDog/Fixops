@@ -15,7 +15,6 @@ No external dependencies — uses urllib.request for HTTP.
 from __future__ import annotations
 
 import base64
-import hashlib
 import html.parser
 import ipaddress
 import re
@@ -972,7 +971,7 @@ class OwaspTestSuite:
                             recommendation="Validate that authenticated user owns the requested resource.",
                             probe=probe,
                             reproduction_steps=[
-                                f"Authenticate as a low-privilege user.",
+                                "Authenticate as a low-privilege user.",
                                 f"Send GET {test_url}",
                                 "Observe HTTP 200 — may expose another user's data.",
                             ],
@@ -1095,7 +1094,7 @@ class OwaspTestSuite:
                     probe=probe,
                     reproduction_steps=[
                         f"Send GET {test_url}",
-                        f"Observe SQL error in response body.",
+                        "Observe SQL error in response body.",
                     ],
                     confidence=0.85,
                 ))
@@ -1347,7 +1346,7 @@ class OwaspTestSuite:
                             reproduction_steps=[
                                 f"POST {ep.url}",
                                 f"Body: username={username}&password={password}",
-                                f"Observe redirect/200 — login successful.",
+                                "Observe redirect/200 — login successful.",
                             ],
                             confidence=0.95,
                         ))

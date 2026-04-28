@@ -14,7 +14,6 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import json
-import logging
 import socket
 import sqlite3
 import threading
@@ -23,7 +22,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import structlog
 

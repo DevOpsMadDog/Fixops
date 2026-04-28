@@ -567,7 +567,6 @@ class CyberInsuranceEngine:
         if not date_str:
             return None
         try:
-            from datetime import timedelta
             expiry = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
             now = datetime.now(timezone.utc)
             # make naive datetimes timezone-aware for comparison

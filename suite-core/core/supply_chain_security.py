@@ -1151,7 +1151,7 @@ class SupplyChainEngine:
         elif fmt == SBOMFormat.SPDX:
             record, components = _parse_spdx(raw_payload, sbom_id)
         else:
-            raise ValueError(f"Unrecognised SBOM format — expected CycloneDX or SPDX JSON")
+            raise ValueError("Unrecognised SBOM format — expected CycloneDX or SPDX JSON")
 
         record.org_id = org_id
         record.sha256 = sha256

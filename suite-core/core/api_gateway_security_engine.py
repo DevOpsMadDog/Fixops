@@ -8,7 +8,6 @@ Compliance: OWASP API Security Top 10, NIST SP 800-95 (Guide to Secure Web Servi
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

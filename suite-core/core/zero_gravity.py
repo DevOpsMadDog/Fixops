@@ -906,7 +906,6 @@ __all__ = [
 import collections
 import math
 import pickle as _pickle  # nosec B403 -- pickle used for ML model serialization only
-import struct
 
 
 class ADWIN:

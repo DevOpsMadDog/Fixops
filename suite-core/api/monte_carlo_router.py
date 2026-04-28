@@ -6,7 +6,7 @@ risk quantification, CVE-specific risk, and portfolio simulation.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field

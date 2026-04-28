@@ -10,7 +10,6 @@ Compliance: NIST CSF DE.AE-3, ISO/IEC 27001 A.16.1.4, SOC 2 CC7.2
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import sqlite3
 import threading

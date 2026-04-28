@@ -13,7 +13,6 @@ Dimensions (equal 0.125 weight each, 8 total = 1.0):
 """
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

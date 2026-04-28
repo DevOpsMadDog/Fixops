@@ -6,7 +6,6 @@ SQLite-backed with recurring event generation and overdue detection.
 """
 from __future__ import annotations
 
-import json
 import sqlite3
 import uuid
 from datetime import date, datetime, timedelta, timezone

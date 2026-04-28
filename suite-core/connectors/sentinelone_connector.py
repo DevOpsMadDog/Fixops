@@ -62,8 +62,7 @@ import logging
 import threading
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from connectors._emit import emit_connector_event
 

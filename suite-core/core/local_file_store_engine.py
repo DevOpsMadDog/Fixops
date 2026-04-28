@@ -76,7 +76,6 @@ except Exception:  # noqa: BLE001
     pass
 
 
-import errno
 import json
 import logging
 import os

@@ -44,12 +44,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import os
 import sqlite3
 import threading
 import time
-import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -723,7 +721,7 @@ class EventBus:
     async def _broadcast_alert(self, event_type: str, data: Dict[str, Any]) -> None:
         """Fire-and-forget push to AlertBroadcaster (best-effort, never raises)."""
         try:
-            from core.alert_broadcaster import ALERT_TYPES, build_alert, get_alert_broadcaster
+            from core.alert_broadcaster import build_alert, get_alert_broadcaster
 
             # Map TrustGraph event types to alert broadcaster types
             _event_to_alert_type: Dict[str, str] = {

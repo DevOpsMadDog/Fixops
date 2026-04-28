@@ -28,9 +28,7 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -38,7 +36,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
-from core.llm_providers import BaseLLMProvider, LLMResponse
+from core.llm_providers import BaseLLMProvider
 # ---------------------------------------------------------------------------
 # TrustGraph event-bus wiring (auto-added by hub-wiring wave)
 # ---------------------------------------------------------------------------
@@ -928,9 +926,9 @@ class LLMCouncilEngine:
     ) -> str:
         """Build synthesis prompt for chairman (stage 3)."""
         prompt = (
-            f"You are the chairman of a security council. "
-            f"Your role is to synthesize the council's analysis into a final verdict.\n\n"
-            f"Council member analyses (post-peer-review):\n\n"
+            "You are the chairman of a security council. "
+            "Your role is to synthesize the council's analysis into a final verdict.\n\n"
+            "Council member analyses (post-peer-review):\n\n"
         )
 
         for analysis in stage2:
@@ -975,8 +973,8 @@ class LLMCouncilEngine:
             prompt += f"  - {vote.member_name} ({vote.expertise}): {vote.action}\n"
 
         prompt += (
-            f"\nConsider the conflicting opinions and provide your authoritative "
-            f"decision in JSON format (recommended_action, confidence, reasoning)."
+            "\nConsider the conflicting opinions and provide your authoritative "
+            "decision in JSON format (recommended_action, confidence, reasoning)."
         )
         return prompt
 

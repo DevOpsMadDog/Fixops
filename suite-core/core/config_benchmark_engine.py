@@ -8,7 +8,6 @@ Thread-safe via RLock. Multi-tenant via org_id.
 
 from __future__ import annotations
 
-import json
 import logging
 import random
 import sqlite3

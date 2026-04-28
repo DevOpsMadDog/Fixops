@@ -3,7 +3,6 @@ import json
 import uuid
 import sqlite3
 import structlog
-from typing import Optional
 from datetime import datetime, timedelta
 from pathlib import Path
 

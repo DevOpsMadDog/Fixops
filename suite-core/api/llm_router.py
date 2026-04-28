@@ -14,8 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.persistent_store import get_persistent_store
-from fastapi import APIRouter, HTTPException, Depends
-from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])

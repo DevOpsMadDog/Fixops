@@ -9,7 +9,6 @@ Compliance: NIST SP 800-82, IEC 62443, NERC CIP
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

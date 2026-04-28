@@ -17,15 +17,13 @@ Compliance: SOC2 CC9.2, ISO27001 A.5.1, NIST CSF ID.GV-1, CIS Control 1.
 from __future__ import annotations
 
 import html as _html
-import json
 import logging
 import sqlite3
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -1019,7 +1017,7 @@ class PolicyGenerator:
     def _export_markdown(self, policy: PolicyDocument) -> str:
         """Render a policy as a Markdown document with metadata header."""
         lines = [
-            f"---",
+            "---",
             f"title: {policy.title}",
             f"id: {policy.id}",
             f"type: {policy.type}",
@@ -1029,7 +1027,7 @@ class PolicyGenerator:
             f"approved_by: {policy.approved_by or 'Pending'}",
             f"effective_date: {policy.effective_date.isoformat() if policy.effective_date else 'N/A'}",
             f"review_date: {policy.review_date.isoformat() if policy.review_date else 'N/A'}",
-            f"---",
+            "---",
             "",
             policy.content,
         ]

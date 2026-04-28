@@ -14,11 +14,10 @@ Compliance: SOC2 CC7.2, ISO27001 A.12.6.1, NIST SP 800-137
 """
 from __future__ import annotations
 
-import json
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 

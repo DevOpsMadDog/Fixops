@@ -46,7 +46,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
