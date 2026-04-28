@@ -162,11 +162,9 @@ export default function RiskScenarioDashboard() {
     fetch("/api/v1/risk-scenarios", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [sortField, setSortField] = useState<"residual_risk" | "inherent_risk">("residual_risk");
-  const [loading, setLoading] = useState(true);
 
   const avgInherent = Math.round(SCENARIOS.reduce((s, r) => s + r.inherent_risk, 0) / SCENARIOS.length);
   const avgResidual = Math.round(SCENARIOS.reduce((s, r) => s + r.residual_risk, 0) / SCENARIOS.length);
@@ -178,14 +176,6 @@ export default function RiskScenarioDashboard() {
   };
 
   const topRisks = [...SCENARIOS].sort((a, b) => b.residual_risk - a.residual_risk).slice(0, 10);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -250,6 +240,7 @@ export default function RiskScenarioDashboard() {
                     </div>
                   );
                 })
+              )}
             </div>
           </div>
           <div className="flex gap-3 mt-4 flex-wrap">
@@ -273,13 +264,7 @@ export default function RiskScenarioDashboard() {
             <Activity className="w-4 h-4 text-red-400" /> Top Risks by Residual Score
           </div>
           <div className="space-y-2">
-            {topRisks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              topRisks.map((r, idx) => (
+            {topRisks.map((r, idx) => (
               <div
                 key={r.id}
                 onClick={() => setSelectedScenario(r)}
@@ -299,8 +284,7 @@ export default function RiskScenarioDashboard() {
                 </div>
                 <span className={`text-xs font-bold ${riskText[r.risk_level]}`}>{r.residual_risk}</span>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </div>
 
@@ -371,18 +355,11 @@ export default function RiskScenarioDashboard() {
                 <tr>
                   {["Scenario","Category","Inherent","Residual","Reduction","Level"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                  ))
-            )}
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {SCENARIOS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  SCENARIOS.map(s => (
+                {SCENARIOS.map(s => (
                   <tr
                     key={s.id}
                     onClick={() => setSelectedScenario(s)}
@@ -410,8 +387,7 @@ export default function RiskScenarioDashboard() {
                       </span>
                     </td>
                   </tr>
-                ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
@@ -449,8 +425,7 @@ export default function RiskScenarioDashboard() {
                     </div>
                   </div>
                 </div>
-              ))
-                )}
+              ))}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Click on a scenario to view its mitigations.</p>

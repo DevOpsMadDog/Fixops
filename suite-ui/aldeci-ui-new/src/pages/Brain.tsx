@@ -1163,14 +1163,12 @@ function LearningLoopPane() {
         <KpiCard
           title="Council Verdicts"
           value={metrics.council_verdicts_total.toLocaleString()}
-          icon={Users}
-          trend={metrics.council_verdicts_total > 0 ? "up" : "flat"}
+          icon={Users}         trend={metrics.council_verdicts_total > 0 ? "up" : "flat"}
         />
         <KpiCard
           title="DPO Pairs"
           value={metrics.feedback_pairs_total.toLocaleString()}
-          icon={GitBranch}
-          trend={metrics.feedback_pairs_total > 0 ? "up" : "flat"}
+          icon={GitBranch}         trend={metrics.feedback_pairs_total > 0 ? "up" : "flat"}
         />
         <KpiCard
           title="Pairs / hour (24h)"
@@ -1180,8 +1178,7 @@ function LearningLoopPane() {
         <KpiCard
           title="Distill Threshold"
           value={`${distillPct.toFixed(2)}%`}
-          icon={Target}
-          trend={distillPct >= 100 ? "up" : "flat"}
+          icon={Target}         trend={distillPct >= 100 ? "up" : "flat"}
         />
       </div>
 

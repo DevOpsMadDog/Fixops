@@ -1000,8 +1000,7 @@ export default function VendorManagement() {
           <KpiCard
             title="Avg Risk Score"
             value={`${avgScore}/100`}
-            icon={BarChart3}
-            trend={avgScore >= 75 ? "up" : avgScore >= 55 ? "flat" : "down"}
+            icon={BarChart3}         trend={avgScore >= 75 ? "up" : avgScore >= 55 ? "flat" : "down"}
             trendLabel={avgScore >= 75 ? "Acceptable posture" : avgScore >= 55 ? "Needs attention" : "High exposure"}
           />
           <KpiCard
@@ -1013,22 +1012,19 @@ export default function VendorManagement() {
           <KpiCard
             title="Active Alerts"
             value={activeAlertCount}
-            icon={Bell}
-            trend={activeAlertCount === 0 ? "up" : "down"}
+            icon={Bell}         trend={activeAlertCount === 0 ? "up" : "down"}
             trendLabel={activeAlertCount === 0 ? "All clear" : "Require attention"}
           />
           <KpiCard
             title="Overdue Assessments"
             value={overdueCount}
-            icon={Clock}
-            trend={overdueCount === 0 ? "up" : "down"}
+            icon={Clock}         trend={overdueCount === 0 ? "up" : "down"}
             trendLabel={overdueCount === 0 ? "All current" : "Past due date"}
           />
           <KpiCard
             title="Open CVEs"
             value={totalCVEs}
-            icon={ShieldX}
-            trend={totalCVEs === 0 ? "up" : "down"}
+            icon={ShieldX}         trend={totalCVEs === 0 ? "up" : "down"}
             trendLabel={totalCVEs === 0 ? "No CVEs" : "In SBOM components"}
           />
         </div>

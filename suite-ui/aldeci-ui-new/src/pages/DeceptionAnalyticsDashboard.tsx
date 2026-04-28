@@ -193,8 +193,7 @@ export default function DeceptionAnalyticsDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"         value={stats.total_assets}         icon={Crosshair
-    setLoading(false);}    trend="up"   />
+        <KpiCard title="Total Assets"         value={stats.total_assets}         icon={Crosshair}         trend="up"   />
         <KpiCard title="Active Assets"        value={stats.active_assets}        icon={Wifi}         trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Interactions"   value={stats.total_interactions}   icon={Activity}     trend="up"   className="border-orange-500/20" />
         <KpiCard title="Unique Attacker IPs"  value={stats.unique_attacker_ips}  icon={Users}        trend="up"   className="border-red-500/20" />

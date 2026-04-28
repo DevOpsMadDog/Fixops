@@ -257,15 +257,13 @@ export default function SecurityScorecardDashboard() {
           <KpiCard
             title="Overall Score"
             value={`${scorecard.overall_score}/100`}
-            icon={Shield}
-            trend="up"
+            icon={Shield}         trend="up"
             className="border-blue-500/20"
           />
           <KpiCard
             title="Percentile Rank"
             value={`${scorecard.percentile_rank}th`}
-            icon={Users}
-            trend="up"
+            icon={Users}         trend="up"
             className="border-purple-500/20"
           />
           <KpiCard

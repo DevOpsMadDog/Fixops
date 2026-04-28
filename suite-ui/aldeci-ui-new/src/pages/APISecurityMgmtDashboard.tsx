@@ -246,7 +246,7 @@ export default function APISecurityMgmtDashboard() {
           title="API Keys"
           value={displayStats.total_api_keys ?? "87"}
           icon={Key}
-          trend="neutral"
+          trend="flat"
           className="border-blue-500/20"
         />
         <KpiCard
@@ -293,13 +293,7 @@ export default function APISecurityMgmtDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayEndpoints.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  displayEndpoints.map((ep: any, i: number) => (
+                {displayEndpoints.map((ep: any, i: number) => (
                   <TableRow key={ep.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
                       <MethodBadge method={ep.http_method ?? "GET"} />
@@ -328,8 +322,7 @@ export default function APISecurityMgmtDashboard() {
                       <RiskScore score={ep.risk_score ?? 0} />
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -364,13 +357,7 @@ export default function APISecurityMgmtDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displayAbuse.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    displayAbuse.map((ev: any, i: number) => (
+                  {displayAbuse.map((ev: any, i: number) => (
                     <TableRow key={ev.id ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2">
                         <AbuseTypeBadge type={ev.event_type ?? "unknown"} />
@@ -388,8 +375,7 @@ export default function APISecurityMgmtDashboard() {
                         <StatusBadge status={ev.status ?? "detected"} />
                       </TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -406,13 +392,7 @@ export default function APISecurityMgmtDashboard() {
             <CardDescription className="text-xs">OWASP API Top 10 and schema validation scan history</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {displayScans.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              displayScans.map((scan: any, i: number) => (
+            {displayScans.map((scan: any, i: number) => (
               <div key={scan.id ?? i} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold truncate">{scan.target_service || "unknown"}</span>
@@ -443,8 +423,7 @@ export default function APISecurityMgmtDashboard() {
                   )}
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -471,8 +450,7 @@ export default function APISecurityMgmtDashboard() {
                 <div className={cn("text-2xl font-bold tabular-nums", item.color)}>{item.value}</div>
                 <div className="text-[11px] text-muted-foreground">{item.label}</div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>

@@ -302,8 +302,7 @@ export default function SLADashboard() {
           <KpiCard
             title="Overdue (Critical)"
             value={atRiskCritical + overdueCount}
-            icon={Flame}
-            trend={(atRiskCritical + overdueCount) > 0 ? "up" : "down"}
+            icon={Flame}         trend={(atRiskCritical + overdueCount) > 0 ? "up" : "down"}
             className={cn((atRiskCritical + overdueCount) > 0 && "border-red-500/30 bg-red-500/5")}
             onClick={() => navigate("/remediate?status=overdue&severity=critical")}
           />
@@ -312,8 +311,7 @@ export default function SLADashboard() {
           <KpiCard
             title="At Risk"
             value={atRiskCount}
-            icon={AlertCircle}
-            trend={atRiskCount > 5 ? "up" : "flat"}
+            icon={AlertCircle}         trend={atRiskCount > 5 ? "up" : "flat"}
             className={cn(atRiskCount > 0 && "border-yellow-500/30 bg-yellow-500/5")}
             onClick={() => navigate("/remediate?status=at_risk")}
           />
@@ -338,8 +336,7 @@ export default function SLADashboard() {
           <KpiCard
             title="MTTR (P90)"
             value={mttrP90 > 0 ? `${mttrP90.toFixed(0)}h` : "—"}
-            icon={AlertTriangle}
-            trend={mttrP90 > 72 ? "up" : "down"}
+            icon={AlertTriangle}         trend={mttrP90 > 72 ? "up" : "down"}
             className={cn(mttrP90 > 72 && "border-orange-500/20")}
           />
         </motion.div>

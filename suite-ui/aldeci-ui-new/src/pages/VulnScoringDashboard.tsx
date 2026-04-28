@@ -125,11 +125,9 @@ export default function VulnScoringDashboard() {
     fetch("/api/v1/vuln-scoring", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [filterPriority, setFilterPriority] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
 
   const selected = MOCK_VULNS.find(v => v.id === selectedId) ?? null;
 
@@ -140,27 +138,8 @@ export default function VulnScoringDashboard() {
   // Donut CSS approach: stacked bars as proxy
   const total = distribution.reduce((s, d) => s + d.count, 0);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -222,13 +201,7 @@ export default function VulnScoringDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  filtered.map(v => {
+                {filtered.map(v => {
                   const pc = priorityColor(v.priority);
                   return (
                     <tr
@@ -257,8 +230,7 @@ export default function VulnScoringDashboard() {
                       </td>
                     </tr>
                   );
-                })
-                )}
+                })}
               </tbody>
             </table>
           </div>
@@ -287,8 +259,7 @@ export default function VulnScoringDashboard() {
                       <div className={`h-2 rounded-full ${scoreBarColor(c.value)}`} style={{ width: `${c.value}%` }} />
                     </div>
                   </div>
-                ))
-                )}
+                ))}
               </div>
               <div className="mt-3 text-xs text-gray-400">
                 Assets affected: <span className="text-white font-semibold">{selected.assets_affected}</span>
@@ -302,13 +273,7 @@ export default function VulnScoringDashboard() {
               <SlidersHorizontal className="w-4 h-4 text-indigo-400" /> Model Weights
             </h2>
             <div className="space-y-3">
-              {MODEL_WEIGHTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MODEL_WEIGHTS.map(w => (
+              {MODEL_WEIGHTS.map(w => (
                 <div key={w.component}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-gray-400">{w.component}</span>
@@ -318,8 +283,7 @@ export default function VulnScoringDashboard() {
                     <div className="h-1.5 rounded-full bg-indigo-500" style={{ width: `${w.weight}%` }} />
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
 
@@ -329,13 +293,7 @@ export default function VulnScoringDashboard() {
               <BarChart2 className="w-4 h-4 text-orange-400" /> Distribution
             </h2>
             <div className="space-y-2">
-              {distribution.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                distribution.map(d => (
+              {distribution.map(d => (
                 <div key={d.label} className="flex items-center gap-3">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
                   <div className="flex-1">
@@ -348,8 +306,7 @@ export default function VulnScoringDashboard() {
                     </div>
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
         </div>
@@ -363,13 +320,7 @@ export default function VulnScoringDashboard() {
             <h2 className="font-semibold text-white text-sm">Override History</h2>
           </div>
           <div className="divide-y divide-gray-700/50">
-            {MOCK_OVERRIDES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_OVERRIDES.map(ov => (
+            {MOCK_OVERRIDES.map(ov => (
               <div key={ov.id} className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-xs text-gray-300">{ov.cve}</span>
@@ -378,8 +329,7 @@ export default function VulnScoringDashboard() {
                 <p className="text-gray-400 text-xs">{ov.reason}</p>
                 <div className="text-gray-500 text-xs mt-1">{ov.overridden_by} · {ov.date}</div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </div>
 
@@ -399,13 +349,7 @@ export default function VulnScoringDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_ASSET_RISKS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_ASSET_RISKS.map(a => (
+                {MOCK_ASSET_RISKS.map(a => (
                   <tr key={a.asset} className="border-b border-gray-700/50">
                     <td className="p-3 text-gray-200 font-mono text-xs">{a.asset}</td>
                     <td className="p-3 text-gray-400 text-xs">{a.asset_type}</td>
@@ -422,8 +366,7 @@ export default function VulnScoringDashboard() {
                       {a.critical_count > 0 && <span className="text-red-400 text-xs ml-1">({a.critical_count} crit)</span>}
                     </td>
                   </tr>
-                ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

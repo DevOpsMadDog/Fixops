@@ -181,8 +181,7 @@ export default function ITDRDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Threats"          value={stats.total_threats
-    setLoading(false);}           icon={ShieldAlert}   trend="up"   />
+        <KpiCard title="Total Threats"          value={stats.total_threats}         icon={ShieldAlert}   trend="up"   />
         <KpiCard title="Open Threats"           value={stats.open_threats}            icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
         <KpiCard title="Critical Threats"       value={stats.critical_threats}        icon={UserX}         trend="up"   className="border-red-500/20" />
         <KpiCard title="Response Actions"       value={stats.response_actions_count}  icon={Zap}           trend="flat" className="border-blue-500/20" />

@@ -195,8 +195,7 @@ export default function ContainerRuntimeSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Containers"    value={stats.total_containers}    icon={Box
-    setLoading(false);}           trend="flat" />
+        <KpiCard title="Total Containers"    value={stats.total_containers}    icon={Box}         trend="flat" />
         <KpiCard title="Running Containers"  value={stats.running_containers}  icon={Activity}      trend="flat" className="border-green-500/20" />
         <KpiCard title="Violations"          value={stats.violations_count}    icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
         <KpiCard title="Blocked"             value={stats.blocked_count}       icon={XCircle}       trend="up"   className="border-red-500/20" />

@@ -188,8 +188,7 @@ export default function MFAManagementDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Enrolled"         value={stats.total_enrolled
-    setLoading(false);}                            icon={Shield}       trend="up"   />
+        <KpiCard title="Total Enrolled"         value={stats.total_enrolled}         icon={Shield}       trend="up"   />
         <KpiCard title="Compliance Rate"        value={`${stats.compliance_rate}%`}                     icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Failed Auths (24h)"     value={stats.failed_auths_24h}                          icon={XCircle}      trend="down" className="border-red-500/20" />
         <KpiCard title="Active Policies"        value={stats.active_policies}                           icon={Lock}         trend="flat" className="border-blue-500/20" />

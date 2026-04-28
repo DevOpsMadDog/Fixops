@@ -313,8 +313,7 @@ export default function LiveFeed() {
           <KpiCard
             title="Findings"
             value={findingCount}
-            icon={AlertTriangle}
-            trend={findingCount > 5 ? "up" : "flat"}
+            icon={AlertTriangle}         trend={findingCount > 5 ? "up" : "flat"}
             className={cn(findingCount > 0 && "border-red-500/20")}
           />
         </motion.div>
@@ -331,8 +330,7 @@ export default function LiveFeed() {
           <KpiCard
             title="Critical Events"
             value={criticalCount}
-            icon={XCircle}
-            trend={criticalCount > 0 ? "up" : "down"}
+            icon={XCircle}         trend={criticalCount > 0 ? "up" : "down"}
             className={cn(criticalCount > 0 && "border-red-500/30 bg-red-500/5")}
           />
         </motion.div>

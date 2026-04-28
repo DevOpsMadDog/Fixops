@@ -1071,15 +1071,13 @@ export default function DeveloperPortal() {
         <KpiCard
           title="Findings Fixed"
           value={totalFixed}
-          icon={CheckCircle2}
-          trend="up"
+          icon={CheckCircle2}         trend="up"
           trendLabel="+12 this sprint"
         />
         <KpiCard
           title="Avg Fix Time"
           value={avgFixTime}
-          icon={Clock}
-          trend="up"
+          icon={Clock}         trend="up"
           trendLabel="↓ 0.4d vs last sprint"
         />
         <KpiCard
@@ -1091,8 +1089,7 @@ export default function DeveloperPortal() {
         <KpiCard
           title="Security Score"
           value={`${secScore}`}
-          icon={Star}
-          trend={secScore >= 70 ? "up" : "down"}
+          icon={Star}         trend={secScore >= 70 ? "up" : "down"}
           trendLabel={secScore >= 70 ? "Good standing" : "Needs attention"}
         />
       </div>

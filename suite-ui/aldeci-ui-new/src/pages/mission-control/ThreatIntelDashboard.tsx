@@ -1357,29 +1357,25 @@ export default function ThreatIntelDashboard() {
           <KpiCard
             title="Critical CVEs"
             value={criticalCount}
-            icon={Flame}
-            trend="down"
+            icon={Flame}         trend="down"
             trendLabel="CVSS 9+"
           />
           <KpiCard
             title="KEV Active"
             value={kevCount}
-            icon={ShieldAlert}
-            trend={kevCount > 8 ? "down" : "up"}
+            icon={ShieldAlert}         trend={kevCount > 8 ? "down" : "up"}
             trendLabel="CISA KEV list"
           />
           <KpiCard
             title="High EPSS (>70%)"
             value={highEpss}
-            icon={Activity}
-            trend="down"
+            icon={Activity}         trend="down"
             trendLabel="Exploit likely"
           />
           <KpiCard
             title="CVEs in Stack"
             value={withFindings}
-            icon={Target}
-            trend={withFindings > 0 ? "down" : "up"}
+            icon={Target}         trend={withFindings > 0 ? "down" : "up"}
             trendLabel="ALDECI mapped"
           />
         </div>

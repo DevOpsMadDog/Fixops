@@ -1018,15 +1018,13 @@ export default function DevSecurityDashboard() {
             <KpiCard
               title="Critical / High"
               value={d.kpis.crit_high}
-              icon={AlertTriangle}
-              trend={d.kpis.crit_high > 5 ? "down" : "up"}
+              icon={AlertTriangle}         trend={d.kpis.crit_high > 5 ? "down" : "up"}
               trendLabel={d.kpis.crit_high > 5 ? "Needs attention" : "Under control"}
             />
             <KpiCard
               title="My MTTR"
               value={`${d.kpis.my_mttr}h`}
-              icon={Clock}
-              trend={d.kpis.my_mttr < d.kpis.team_mttr ? "up" : "down"}
+              icon={Clock}         trend={d.kpis.my_mttr < d.kpis.team_mttr ? "up" : "down"}
               trendLabel={`${mttrDiff > 0 ? `${mttrDiff.toFixed(1)}h faster than` : `${Math.abs(mttrDiff).toFixed(1)}h slower than`} team avg`}
             />
             <KpiCard

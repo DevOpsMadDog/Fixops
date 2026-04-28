@@ -354,8 +354,7 @@ export default function VulnTrendDashboard() {
                     {c.avg_cvss ?? 0}
                   </TableCell>
                 </TableRow>
-              ))
-                )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

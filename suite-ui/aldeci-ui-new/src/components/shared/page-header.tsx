@@ -1,16 +1,19 @@
+import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { type LucideIcon } from "lucide-react";
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   badge?: string;
-  actions?: React.ReactNode;
-  children?: React.ReactNode;
+  icon?: LucideIcon | ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 
-export function PageHeader({ title, description, badge, actions, children, className }: PageHeaderProps) {
+export function PageHeader({ title, description, badge, icon: _icon, actions, children, className }: PageHeaderProps) {
   const actionContent = actions || children;
   return (
     <div className={cn("flex items-start justify-between gap-6", className)}>

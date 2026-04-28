@@ -202,16 +202,14 @@ export default function SocialEngineering() {
         <KpiCard
           title="Click Rate"
           value={kpiClickRate}
-          icon={AlertTriangle}
-          trend="down"
+          icon={AlertTriangle}         trend="down"
           description="-2.1% vs last quarter"
           className="border-amber-500/20"
         />
         <KpiCard
           title="Reported Rate"
           value={kpiReportedRate}
-          icon={ShieldCheck}
-          trend="up"
+          icon={ShieldCheck}         trend="up"
           description="+5.2% vs last quarter"
           className="border-green-500/20"
         />

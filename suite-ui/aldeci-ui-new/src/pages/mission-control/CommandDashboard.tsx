@@ -323,8 +323,7 @@ export default function CommandDashboard() {
             <KpiCard
               title="Active Threats"
               value={activeThreats}
-              icon={AlertTriangle}
-              trend={activeThreats > 10 ? "up" : activeThreats > 0 ? "flat" : "down"}
+              icon={AlertTriangle}         trend={activeThreats > 10 ? "up" : activeThreats > 0 ? "flat" : "down"}
               className={cn(activeThreats > 5 && "border-red-500/30 bg-red-500/5")}
               onClick={() => navigate("/discover?severity=critical")}
             />
@@ -333,8 +332,7 @@ export default function CommandDashboard() {
             <KpiCard
               title="MTTR (hours)"
               value={mttr > 0 ? `${mttr.toFixed(1)}h` : "—"}
-              icon={Timer}
-              trend={mttr < 24 ? "up" : mttr < 72 ? "flat" : "down"}
+              icon={Timer}         trend={mttr < 24 ? "up" : mttr < 72 ? "flat" : "down"}
               onClick={() => navigate("/remediate?status=in_progress")}
             />
           </motion.div>
@@ -342,8 +340,7 @@ export default function CommandDashboard() {
             <KpiCard
               title="SLA Compliance"
               value={`${slaCompliance.toFixed(0)}%`}
-              icon={Target}
-              trend={slaCompliance >= 95 ? "up" : slaCompliance >= 80 ? "flat" : "down"}
+              icon={Target}         trend={slaCompliance >= 95 ? "up" : slaCompliance >= 80 ? "flat" : "down"}
               onClick={() => navigate("/comply")}
             />
           </motion.div>
@@ -351,8 +348,7 @@ export default function CommandDashboard() {
             <KpiCard
               title="Noise Reduction"
               value={`${noiseReduction.toFixed(0)}%`}
-              icon={Zap}
-              trend={noiseReduction > 50 ? "up" : "flat"}
+              icon={Zap}         trend={noiseReduction > 50 ? "up" : "flat"}
               onClick={() => navigate("/discover?status=suppressed")}
             />
           </motion.div>
@@ -360,8 +356,7 @@ export default function CommandDashboard() {
             <KpiCard
               title="Fixes Today"
               value={fixesToday}
-              icon={Wrench}
-              trend={fixesToday > 0 ? "up" : "flat"}
+              icon={Wrench}         trend={fixesToday > 0 ? "up" : "flat"}
               onClick={() => navigate("/remediate?status=resolved")}
             />
           </motion.div>

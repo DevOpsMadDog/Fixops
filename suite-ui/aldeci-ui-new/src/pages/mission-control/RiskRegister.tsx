@@ -924,31 +924,27 @@ export default function RiskRegister() {
         <KpiCard
           title="Total Risks"
           value={stats.total}
-          icon={Target}
-          trend="flat"
+          icon={Target}         trend="flat"
           trendLabel="Tracked org-wide"
         />
         <KpiCard
           title="Critical (≥20)"
           value={stats.critical}
-          icon={AlertTriangle}
-          trend={stats.critical > 0 ? "down" : "up"}
+          icon={AlertTriangle}         trend={stats.critical > 0 ? "down" : "up"}
           trendLabel={stats.critical > 0 ? "Requires immediate action" : "None active"}
           className={cn(stats.critical > 0 && "border-red-500/30 bg-red-500/5")}
         />
         <KpiCard
           title="High (15–19)"
           value={stats.high}
-          icon={Shield}
-          trend={stats.high > 3 ? "down" : "flat"}
+          icon={Shield}         trend={stats.high > 3 ? "down" : "flat"}
           trendLabel="Elevated exposure"
           className={cn(stats.high > 3 && "border-orange-500/20")}
         />
         <KpiCard
           title="Reduced This Month"
           value={stats.reduced}
-          icon={TrendingDown}
-          trend="up"
+          icon={TrendingDown}         trend="up"
           trendLabel="Score improvements"
           className="border-green-500/20 bg-green-500/5"
         />

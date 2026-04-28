@@ -195,8 +195,7 @@ export default function ZeroDayIntelligenceDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Vulns"         value={stats.total_vulns
-    setLoading(false);}        icon={Bug}         trend="flat" />
+        <KpiCard title="Total Vulns"         value={stats.total_vulns}         icon={Bug}         trend="flat" />
         <KpiCard title="Unpatched"           value={stats.unpatched_count}    icon={ShieldOff}   trend="down" className="border-orange-500/20" />
         <KpiCard title="Actively Exploited"  value={stats.actively_exploited} icon={Zap}         trend="down" className="border-red-500/20" />
         <KpiCard title="Critical"            value={stats.critical_count}     icon={AlertTriangle} trend="down" className="border-red-500/20" />

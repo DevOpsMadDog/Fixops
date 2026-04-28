@@ -737,8 +737,7 @@ export default function SupplyChainSecurity() {
         {/* Header */}
         <PageHeader
           title="Supply Chain Security"
-          subtitle="SBOM analysis and dependency risk"
-          icon={Package}
+          description="SBOM analysis and dependency risk"
         />
 
         {/* Content */}
@@ -750,25 +749,25 @@ export default function SupplyChainSecurity() {
                 icon={Package}
                 title="Total Dependencies"
                 value={summary.total_dependencies}
-                trend={{ value: 12, direction: "up" }}
+                trend="up"
               />
               <KpiCard
                 icon={AlertTriangle}
                 title="Critical Vulns in Deps"
                 value={summary.critical_vulns}
-                valueColor="text-red-400"
+
               />
               <KpiCard
                 icon={Shield}
                 title="Untrusted Sources"
                 value={summary.untrusted_sources}
-                valueColor="text-orange-400"
+
               />
               <KpiCard
                 icon={Lock}
                 title="License Issues"
                 value={summary.license_issues}
-                valueColor="text-yellow-400"
+
               />
             </div>
 

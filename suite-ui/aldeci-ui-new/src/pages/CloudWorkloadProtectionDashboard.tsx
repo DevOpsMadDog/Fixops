@@ -199,8 +199,7 @@ export default function CloudWorkloadProtectionDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Workloads"    value={stats.total_workloads
-    setLoading(false);}       icon={Cloud}       trend="flat" />
+        <KpiCard title="Total Workloads"    value={stats.total_workloads}         icon={Cloud}       trend="flat" />
         <KpiCard title="Protected"          value={stats.protected_workloads}   icon={ShieldCheck} trend="up"   className="border-green-500/20" />
         <KpiCard title="Unprotected"        value={stats.unprotected_workloads} icon={ShieldOff}   trend="down" className="border-red-500/20" />
         <KpiCard title="Active Threats"     value={stats.active_threats}        icon={AlertTriangle} trend="down" className="border-amber-500/20" />

@@ -105,7 +105,6 @@ function fmtTime(ts: string): string {
 export default function ThreatScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<{
     stats: any | null;
     topThreats: any[] | null;
@@ -127,8 +126,7 @@ export default function ThreatScoreDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -141,14 +139,6 @@ export default function ThreatScoreDashboard() {
   const distribution = liveData.distribution ?? MOCK_DISTRIBUTION;
 
   const distTotal = (distribution.critical ?? 0) + (distribution.high ?? 0) + (distribution.medium ?? 0) + (distribution.low ?? 0);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -168,8 +158,7 @@ export default function ThreatScoreDashboard() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Assets Scored"  value={stats.total_assets_scored.toLocaleString()} icon={Target}      trend="up"     />
         <KpiCard title="Critical Assets"      value={stats.critical_assets}                       icon={AlertTriangle} trend="down" className="border-red-500/20" />
@@ -204,13 +193,7 @@ export default function ThreatScoreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topThreats.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  topThreats.map((t: any, i: number) => (
+                {topThreats.map((t: any, i: number) => (
                   <TableRow key={t.asset_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{t.asset_id}</TableCell>
                     <TableCell className="py-2 text-xs capitalize">{(t.asset_type ?? "").replace(/_/g, " ")}</TableCell>
@@ -221,8 +204,7 @@ export default function ThreatScoreDashboard() {
                             initial={{ width: 0 }}
                             animate={{ width: `${t.score ?? 0}%` }}
                             transition={{ duration: 0.6, delay: i * 0.05 }}
-                            className={cn("h-full rounded-full", scoreBg(t.score ?? 0))
-                )}
+                            className={cn("h-full rounded-full", scoreBg(t.score ?? 0))}
                           />
                         </div>
                         <span className={cn("text-xs font-bold tabular-nums w-6 text-right", scoreColor(t.score ?? 0))}>
@@ -233,8 +215,7 @@ export default function ThreatScoreDashboard() {
                     <TableCell className="py-2"><RiskLevelBadge level={t.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(t.calculated_at)}</TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -275,8 +256,7 @@ export default function ThreatScoreDashboard() {
                   </div>
                 )}
               </motion.div>
-            ))
-                )}
+            ))}
           </div>
         </CardContent>
       </Card>

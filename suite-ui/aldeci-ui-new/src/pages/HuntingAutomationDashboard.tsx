@@ -150,7 +150,6 @@ export default function HuntingAutomationDashboard() {
   const [expandedHyp, setExpandedHyp] = useState<string | null>("hyp-001");
 
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setFetchError(null);
@@ -161,8 +160,7 @@ export default function HuntingAutomationDashboard() {
 
   useEffect(() => {
     loadData();
-  
-    setLoading(false);}, []);
+  }, []);
 
   const totalHypotheses = MOCK_HYPOTHESES.length;
   const validated = MOCK_HYPOTHESES.filter(h => h.validated).length;
@@ -172,14 +170,6 @@ export default function HuntingAutomationDashboard() {
   const allQueries = MOCK_HYPOTHESES.flatMap(h => h.queries);
   const highYieldQueries = allQueries.filter(q => q.findings_count >= 1).sort((a, b) => b.findings_count - a.findings_count);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       <PageHeader
@@ -187,8 +177,7 @@ export default function HuntingAutomationDashboard() {
         description="Automated threat hunting hypotheses, queries, and execution management"
       />
 
-      {/* Fetch Error Banner */
-    setLoading(false);}
+      {/* Fetch Error Banner */}
       {fetchError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
@@ -207,13 +196,7 @@ export default function HuntingAutomationDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Hypotheses List */}
         <div className="lg:col-span-2 space-y-3">
-          {MOCK_HYPOTHESES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_HYPOTHESES.map(h => (
+          {MOCK_HYPOTHESES.map(h => (
             <Card key={h.id} className={cn("bg-gray-800 border-zinc-700 cursor-pointer transition-all", selectedHyp.id === h.id && "border-cyan-500/40")}>
               <div className="p-4 space-y-3" onClick={() => { setSelectedHyp(h); setExpandedHyp(h.id); }}>
                 {/* Hypothesis header */}
@@ -255,8 +238,7 @@ export default function HuntingAutomationDashboard() {
                           <span className="ml-auto">{timeAgo(q.last_executed)}</span>
                         </div>
                       </div>
-                    ))
-          )}
+                    ))}
 
                     {/* Execution History */}
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium pl-7 mt-2">Executions</p>
@@ -272,14 +254,12 @@ export default function HuntingAutomationDashboard() {
                           </div>
                         </div>
                       </div>
-                    ))
-          )}
+                    ))}
                   </motion.div>
                 )}
               </div>
             </Card>
-          ))
-          )}
+          ))}
         </div>
 
         {/* High-yield Queries Panel */}
@@ -291,13 +271,7 @@ export default function HuntingAutomationDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {highYieldQueries.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                highYieldQueries.map(q => (
+              {highYieldQueries.map(q => (
                 <div key={q.id} className="bg-zinc-900 rounded-lg p-3 border border-zinc-700 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-xs text-zinc-200 leading-tight">{q.query_name}</p>
@@ -315,8 +289,7 @@ export default function HuntingAutomationDashboard() {
                     <Play className="h-2.5 w-2.5 mr-1" /> Run Now
                   </Button>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
         </div>

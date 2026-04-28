@@ -115,7 +115,6 @@ function GapStatusBadge({ status }: { status: string }) {
 export default function ComplianceGapDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<{
     stats: any | null;
     assessments: any[] | null;
@@ -137,8 +136,7 @@ export default function ComplianceGapDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -149,14 +147,6 @@ export default function ComplianceGapDashboard() {
   const stats       = liveData.stats       ?? MOCK_STATS;
   const frameworks  = liveData.assessments ?? MOCK_FRAMEWORKS;
   const gaps        = liveData.gaps        ?? MOCK_GAPS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -178,8 +168,7 @@ export default function ComplianceGapDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assessments"      value={stats.total_assessments
-    setLoading(false);}                    icon={FileText}      trend="flat"   />
+        <KpiCard title="Total Assessments"      value={stats.total_assessments}                    icon={FileText}      trend="flat"   />
         <KpiCard title="Open Gaps"              value={stats.open_gaps}                             icon={AlertTriangle} trend="down"   className="border-red-500/20" />
         <KpiCard title="Critical Gaps"          value={stats.critical_gaps}                         icon={Shield}        trend="down"   className="border-orange-500/20" />
         <KpiCard title="Avg Remediation (hrs)"  value={stats.avg_remediation_hours.toFixed(1)}      icon={Clock}         trend="flat"   className="border-blue-500/20" />
@@ -196,13 +185,7 @@ export default function ComplianceGapDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {frameworks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              frameworks.map((fw: any, i: number) => {
+            {frameworks.map((fw: any, i: number) => {
               const pct = fw.compliance_pct ?? 0;
               return (
                 <motion.div
@@ -223,8 +206,7 @@ export default function ComplianceGapDashboard() {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.7, delay: i * 0.06 }}
-                      className={cn("h-full rounded-full", complianceBar(pct))
-            )}
+                      className={cn("h-full rounded-full", complianceBar(pct))}
                     />
                   </div>
                   <div className="text-[10px] text-muted-foreground">
@@ -232,8 +214,7 @@ export default function ComplianceGapDashboard() {
                   </div>
                 </motion.div>
               );
-            })
-            )}
+            })}
           </div>
         </CardContent>
       </Card>
@@ -271,13 +252,7 @@ export default function ComplianceGapDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {gaps.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  gaps.map((g: any, i: number) => (
+                {gaps.map((g: any, i: number) => (
                   <TableRow key={g.control_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{g.control_id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium whitespace-nowrap">{g.control_name}</TableCell>
@@ -292,8 +267,7 @@ export default function ComplianceGapDashboard() {
                       {g.description}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

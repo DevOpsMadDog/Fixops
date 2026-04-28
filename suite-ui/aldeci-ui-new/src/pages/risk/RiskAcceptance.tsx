@@ -934,29 +934,25 @@ export default function RiskAcceptance() {
           <KpiCard
             title="Pending Approvals"
             value={stats.pending}
-            icon={Inbox}
-            trend={stats.pending > 0 ? "down" : "flat"}
+            icon={Inbox}         trend={stats.pending > 0 ? "down" : "flat"}
             trendLabel={stats.pending > 0 ? "Awaiting reviewer" : "Queue clear"}
           />
           <KpiCard
             title="Active Acceptances"
             value={stats.accepted}
-            icon={CheckCircle2}
-            trend="flat"
+            icon={CheckCircle2}         trend="flat"
             trendLabel="Currently in force"
           />
           <KpiCard
             title="Expiring ≤ 30 Days"
             value={stats.expiringSoon}
-            icon={CalendarClock}
-            trend={stats.expiringSoon > 0 ? "down" : "flat"}
+            icon={CalendarClock}         trend={stats.expiringSoon > 0 ? "down" : "flat"}
             trendLabel={stats.expiringSoon > 0 ? "Renewal required" : "None imminent"}
           />
           <KpiCard
             title="Expired / Rejected"
             value={stats.expired + records.filter((r) => r.status === "rejected").length}
-            icon={Ban}
-            trend="flat"
+            icon={Ban}         trend="flat"
             trendLabel="Historical"
           />
         </div>

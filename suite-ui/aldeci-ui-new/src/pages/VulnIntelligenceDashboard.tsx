@@ -36,10 +36,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
-import { EntityLink } from "@/components/EntityLink";
 
 // ── API helpers ──────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
@@ -47,7 +46,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -345,10 +344,10 @@ export default function VulnIntelligenceDashboard() {
                 {displayCves.map((cve: any, i: number) => (
                   <TableRow key={cve.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
-                      <EntityLink type="cve" id={cve.cve_id} className="font-mono text-[11px] text-cyan-400 hover:text-cyan-300 underline underline-offset-2 flex items-center gap-1">
+                      <span className="font-mono text-[11px] text-blue-400 flex items-center gap-1">
                         {cve.cve_id}
                         <ExternalLink className="h-2.5 w-2.5 opacity-50" />
-                      </EntityLink>
+                      </span>
                     </TableCell>
                     <TableCell className="py-2 text-xs text-muted-foreground max-w-[240px] truncate">
                       {cve.title || "—"}
@@ -524,8 +523,7 @@ export default function VulnIntelligenceDashboard() {
                 <div className={cn("text-2xl font-bold tabular-nums", item.color)}>{item.value}</div>
                 <div className="text-[11px] text-muted-foreground">{item.label}</div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>

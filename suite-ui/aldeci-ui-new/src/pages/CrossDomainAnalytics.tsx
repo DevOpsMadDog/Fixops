@@ -15,12 +15,12 @@ import { motion } from "framer-motion";
 import { Database, Search, Shield, AlertTriangle, RefreshCw, BarChart3, Globe, Activity } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID   = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -324,8 +324,7 @@ export default function CrossDomainAnalytics() {
                           <div className="flex flex-wrap gap-1">
                             {r.domains.map((d) => (
                               <Badge key={d} className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">{d}</Badge>
-                            ))
-              )}
+                            ))}
                           </div>
                         </TableCell>
                       </TableRow>

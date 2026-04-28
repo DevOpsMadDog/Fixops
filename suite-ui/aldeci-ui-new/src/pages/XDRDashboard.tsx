@@ -421,8 +421,7 @@ export default function XDRDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{s.ingested_at}</TableCell>
                   </TableRow>
-                ))
-            )}
+                ))}
               </TableBody>
             </Table>
           </div>

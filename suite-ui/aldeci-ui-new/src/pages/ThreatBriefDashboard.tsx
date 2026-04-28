@@ -157,12 +157,10 @@ export default function ThreatBriefDashboard() {
     fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [distributing, setDistributing] = useState<string | null>(null);
   const [distributed, setDistributed] = useState<Set<string>>(
-  const [loading, setLoading] = useState(true);
     new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id))
   );
 
@@ -179,27 +177,8 @@ export default function ThreatBriefDashboard() {
     }, 1500);
   }
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
       <PageHeader
         title="Threat Briefs"
         description="Curated threat intelligence briefs by type with TLP classification and distribution tracking"
@@ -224,13 +203,7 @@ export default function ThreatBriefDashboard() {
         {/* Brief Cards */}
         <div className="xl:col-span-2 flex flex-col gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">All Briefs</h2>
-          {MOCK_BRIEFS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_BRIEFS.map((brief, i) => (
+          {MOCK_BRIEFS.map((brief, i) => (
             <motion.div
               key={brief.id}
               initial={{ opacity: 0, x: -8 }}
@@ -265,8 +238,7 @@ export default function ThreatBriefDashboard() {
                 )}
               </div>
             </motion.div>
-          ))
-          )}
+          ))}
         </div>
 
         {/* Brief Detail */}
@@ -311,8 +283,7 @@ export default function ThreatBriefDashboard() {
                   <div className="flex flex-wrap gap-2">
                     {selectedBrief.tags.map((tag) => (
                       <span key={tag} className="px-2 py-0.5 bg-gray-700/50 border border-gray-600/50 rounded text-xs text-gray-300">#{tag}</span>
-                    ))
-          )}
+                    ))}
                   </div>
                 </div>
 

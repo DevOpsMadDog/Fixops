@@ -673,29 +673,25 @@ export default function SecurityAwareness() {
         <KpiCard
           title="Training Completion Rate"
           value={liveData?.stats?.avg_completion_pct != null ? `${Math.round(liveData.stats.avg_completion_pct)}%` : "78%"}
-          icon={CheckCircle2}
-          trend="up"
+          icon={CheckCircle2}         trend="up"
           trendLabel="+4% this quarter"
         />
         <KpiCard
           title="Phishing Click Rate"
           value={liveData?.stats?.avg_phishing_click_rate != null ? `${liveData.stats.avg_phishing_click_rate.toFixed(1)}%` : "12%"}
-          icon={Mail}
-          trend="down"
+          icon={Mail}         trend="down"
           trendLabel="-3% vs last quarter"
         />
         <KpiCard
           title="High Risk Users"
           value={liveData?.stats?.high_risk_count ?? liveData?.stats?.high_risk_users ?? 34}
-          icon={ShieldAlert}
-          trend="down"
+          icon={ShieldAlert}         trend="down"
           trendLabel="Down from 41"
         />
         <KpiCard
           title="Avg Human Risk Score"
           value={liveData?.stats?.avg_risk_score != null ? `${Math.round(liveData.stats.avg_risk_score)}/100` : "42/100"}
-          icon={Users}
-          trend="down"
+          icon={Users}         trend="down"
           trendLabel="Improving trend"
         />
       </div>

@@ -370,8 +370,7 @@ export default function MPTEConsole() {
         <KpiCard
           title="Verified Vulnerable"
           value={verified}
-          icon={ShieldAlert}
-          trend={verified > 0 ? "up" : "flat"}
+          icon={ShieldAlert}         trend={verified > 0 ? "up" : "flat"}
         />
         <KpiCard
           title="Not Vulnerable"

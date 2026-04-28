@@ -970,8 +970,7 @@ export default function SBOMManagement() {
           <KpiCard
             title="Vulnerabilities"
             value={kpis.totalVulns}
-            icon={Shield}
-            trend="down"
+            icon={Shield}         trend="down"
             trendLabel="↓ 8% since last week"
           />
           <KpiCard

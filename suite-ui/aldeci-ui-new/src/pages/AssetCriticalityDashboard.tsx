@@ -365,8 +365,7 @@ export default function AssetCriticalityDashboard() {
                   </div>
                 </div>
               );
-            })
-                )}
+            })}
           </div>
           <div className="mt-4 text-xs text-gray-500">Click a row in the table to inspect a different asset.</div>
         </div>

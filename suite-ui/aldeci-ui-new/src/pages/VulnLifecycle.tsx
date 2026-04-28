@@ -384,29 +384,25 @@ export default function VulnLifecycle() {
           <KpiCard
             title="Open"
             value={openCount}
-            icon={Bug}
-            trend="down"
+            icon={Bug}         trend="down"
             trendLabel="Active exposure"
           />
           <KpiCard
             title="In Remediation"
             value={inRemCount}
-            icon={Shield}
-            trend="up"
+            icon={Shield}         trend="up"
             trendLabel="Being worked"
           />
           <KpiCard
             title={mttr != null ? "MTTR (days)" : "Fixed This Week"}
             value={mttr != null ? `${mttr}d` : fixedCount}
-            icon={CheckCircle2}
-            trend="up"
+            icon={CheckCircle2}         trend="up"
             trendLabel={mttr != null ? "Mean time to remediate" : "Good velocity"}
           />
           <KpiCard
             title={mttd != null ? "MTTD (hours)" : "False Positive Rate"}
             value={mttd != null ? `${mttd}h` : `${fpRate}%`}
-            icon={Percent}
-            trend="flat"
+            icon={Percent}         trend="flat"
             trendLabel={mttd != null ? "Mean time to detect" : "Across closed"}
           />
         </div>

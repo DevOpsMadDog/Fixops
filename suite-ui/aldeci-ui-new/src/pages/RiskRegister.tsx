@@ -385,26 +385,22 @@ export default function RiskRegister() {
           <KpiCard
             title="Total Risks"
             value={totalRisks}
-            icon={BarChart3}
-            trend="flat"
+            icon={BarChart3}         trend="flat"
           />
           <KpiCard
             title="Critical Risks"
             value={criticalRisks}
-            icon={AlertTriangle}
-            trend={criticalRisks > 0 ? "down" : "up"}
+            icon={AlertTriangle}         trend={criticalRisks > 0 ? "down" : "up"}
           />
           <KpiCard
             title="Risks Accepted"
             value={acceptedRisks}
-            icon={CheckCircle2}
-            trend="flat"
+            icon={CheckCircle2}         trend="flat"
           />
           <KpiCard
             title="Avg Risk Score"
             value={avgScore}
-            icon={ShieldAlert}
-            trend="flat"
+            icon={ShieldAlert}         trend="flat"
           />
         </div>
 

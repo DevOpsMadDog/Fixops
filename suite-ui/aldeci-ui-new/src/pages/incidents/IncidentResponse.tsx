@@ -1183,30 +1183,26 @@ export default function IncidentResponse() {
           <KpiCard
             title="Active Incidents"
             value={kpis.active}
-            icon={Siren}
-            trend="down"
+            icon={Siren}         trend="down"
             trendLabel="vs last week"
             description="Open across all phases"
           />
           <KpiCard
             title="Critical Open"
             value={kpis.critical}
-            icon={ShieldAlert}
-            trend={kpis.critical > 2 ? "down" : "flat"}
+            icon={ShieldAlert}         trend={kpis.critical > 2 ? "down" : "flat"}
             description="Requiring immediate action"
           />
           <KpiCard
             title="SLA Breached"
             value={kpis.slaBreached}
-            icon={AlertTriangle}
-            trend="flat"
+            icon={AlertTriangle}         trend="flat"
             description="Resolution time exceeded"
           />
           <KpiCard
             title="Avg MTTR"
             value={`${kpis.avgMttr}h`}
-            icon={Clock}
-            trend="up"
+            icon={Clock}         trend="up"
             trendLabel="vs baseline"
             description="Mean time to resolve (closed)"
           />

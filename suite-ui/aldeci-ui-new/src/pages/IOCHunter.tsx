@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
@@ -24,7 +24,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -323,8 +323,7 @@ export default function IOCHunter() {
               <div className="flex flex-wrap gap-1">
                 {["UNC2452", "COZY BEAR", "SolarWinds-APT"].map((c) => (
                   <Badge key={c} className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{c}</Badge>
-                ))
-                )}
+                ))}
               </div>
             </div>
             <div className="rounded-md bg-muted/30 p-3 space-y-2">
@@ -332,8 +331,7 @@ export default function IOCHunter() {
               <div className="flex flex-wrap gap-1">
                 {["Cobalt Strike", "SUNBURST", "Mimikatz"].map((m) => (
                   <Badge key={m} className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{m}</Badge>
-                ))
-                )}
+                ))}
               </div>
             </div>
           </CardContent>

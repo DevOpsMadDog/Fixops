@@ -101,13 +101,11 @@ export default function IntelEnrichmentDashboard() {
 
   useEffect(() => {
     loadData();
-  
-    setLoading(false);}, []);
+  }, []);
 
   const [selectedRequest, setSelectedRequest] = useState<string>(MOCK_REQUESTS[0].id);
   const [bulkInput, setBulkInput] = useState("");
   const [bulkSubmitted, setBulkSubmitted] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const selected = MOCK_REQUESTS.find(r => r.id === selectedRequest);
 
@@ -123,16 +121,7 @@ export default function IntelEnrichmentDashboard() {
       setTimeout(() => setBulkSubmitted(false), 3000);
       setBulkInput("");
     }
-  
-    setLoading(false);}
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -181,13 +170,7 @@ export default function IntelEnrichmentDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {MOCK_REQUESTS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_REQUESTS.map(req => (
+                {MOCK_REQUESTS.map(req => (
                   <tr
                     key={req.id}
                     onClick={() => setSelectedRequest(req.id)}
@@ -205,8 +188,7 @@ export default function IntelEnrichmentDashboard() {
                     </td>
                     <td className="py-3 text-gray-500 text-xs">{req.created_at}</td>
                   </tr>
-                ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
@@ -255,8 +237,7 @@ export default function IntelEnrichmentDashboard() {
                     <div className="flex flex-wrap gap-1">
                       {selected.tags.map(tag => (
                         <span key={tag} className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded text-xs">{tag}</span>
-                      ))
-                )}
+                      ))}
                     </div>
                   </div>
                 )}
@@ -283,21 +264,14 @@ export default function IntelEnrichmentDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
-              {MOCK_SOURCES.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_SOURCES.map(src => (
+              {MOCK_SOURCES.map(src => (
                 <tr key={src.id} className="hover:bg-gray-700/50">
                   <td className="py-3 pr-4 text-white font-medium">{src.name}</td>
                   <td className="py-3 pr-4">
                     <div className="flex flex-wrap gap-1">
                       {src.ioc_types.map(t => (
                         <span key={t} className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${typeColors[t]}`}>{t}</span>
-                      ))
-              )}
+                      ))}
                     </div>
                   </td>
                   <td className="py-3 pr-4">
@@ -316,8 +290,7 @@ export default function IntelEnrichmentDashboard() {
                   <td className="py-3 pr-4 text-gray-400 text-xs">{src.avg_response_ms}ms</td>
                   <td className="py-3 text-gray-400">{src.total_queries.toLocaleString()}</td>
                 </tr>
-              ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>

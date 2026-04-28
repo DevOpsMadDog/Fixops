@@ -458,8 +458,7 @@ export default function MobileSecurity() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-          )}
+                ))}
               </TableBody>
             </Table>
           </div>

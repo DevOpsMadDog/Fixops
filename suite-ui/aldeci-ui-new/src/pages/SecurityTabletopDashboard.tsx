@@ -200,8 +200,7 @@ export default function SecurityTabletopDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Exercises"    value={stats.total_exercises
-    setLoading(false);}    icon={Users}          trend="up"   />
+        <KpiCard title="Total Exercises"    value={stats.total_exercises}         icon={Users}          trend="up"   />
         <KpiCard title="Completed"          value={stats.completed_exercises} icon={CheckCircle}    trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Findings"     value={stats.total_findings}     icon={ClipboardList}  trend="flat" />
         <KpiCard title="Open Findings"      value={stats.open_findings}      icon={FileWarning}    trend="down" className="border-red-500/20" />

@@ -173,8 +173,7 @@ export default function AutonomousRemediationDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Workflows"       value={stats.total_workflows}                         icon={Settings
-    setLoading(false);}     trend="up"   />
+        <KpiCard title="Total Workflows"       value={stats.total_workflows}                         icon={Settings}         trend="up"   />
         <KpiCard title="Active Workflows"      value={stats.active_workflows}                        icon={Play}         trend="up"   className="border-blue-500/20" />
         <KpiCard title="Succeeded Executions"  value={stats.succeeded_executions}                    icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Success Rate"          value={`${stats.success_rate}%`}                      icon={Zap}          trend="up"   className="border-purple-500/20" />

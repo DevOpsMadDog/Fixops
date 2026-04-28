@@ -661,22 +661,19 @@ export default function AttackSurface() {
           <KpiCard
             title="Total Assets"
             value={totalAssets}
-            icon={Shield}
-            trend="up"
+            icon={Shield}         trend="up"
             trendLabel={`${criticalCount} critical · ${highCount} high`}
           />
           <KpiCard
             title="Internet-Exposed"
             value={externalAssets}
-            icon={Globe}
-            trend="down"
+            icon={Globe}         trend="down"
             trendLabel="Direct external reach"
           />
           <KpiCard
             title="High-Risk Paths"
             value={highRiskPaths}
-            icon={ShieldAlert}
-            trend="down"
+            icon={ShieldAlert}         trend="down"
             trendLabel={`${MOCK_PATHS.filter((p) => p.severity === "critical").length} critical paths`}
           />
           <div>

@@ -205,8 +205,7 @@ export default function PKIManagementDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Certs"     value={stats.total_certs
-    setLoading(false);}    icon={KeyRound}     trend="flat" />
+        <KpiCard title="Total Certs"     value={stats.total_certs}         icon={KeyRound}     trend="flat" />
         <KpiCard title="Active"          value={stats.active_certs}   icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Expiring (30d)"  value={stats.expiring_30d}   icon={AlertTriangle} trend="down" className="border-amber-500/20" />
         <KpiCard title="Revoked"         value={stats.revoked_certs}  icon={XCircle}      trend="flat" className="border-red-500/20" />

@@ -767,43 +767,37 @@ export default function ComplianceDashboard() {
         <KpiCard
           title="Avg Compliance"
           value={`${avgCompliance}%`}
-          icon={ShieldCheck}
-          trend={avgCompliance >= 85 ? "up" : "down"}
+          icon={ShieldCheck}         trend={avgCompliance >= 85 ? "up" : "down"}
           trendLabel="Across all frameworks"
         />
         <KpiCard
           title="Compliant"
           value={`${compliantCount}/${totalFrameworks}`}
-          icon={CheckCircle2}
-          trend={compliantCount === totalFrameworks ? "up" : "flat"}
+          icon={CheckCircle2}         trend={compliantCount === totalFrameworks ? "up" : "flat"}
           trendLabel="Frameworks ≥85%"
         />
         <KpiCard
           title="Total Gaps"
           value={totalGaps}
-          icon={AlertTriangle}
-          trend="down"
+          icon={AlertTriangle}         trend="down"
           trendLabel="Failing controls"
         />
         <KpiCard
           title="Overdue Evidence"
           value={overdueEvidence}
-          icon={Clock}
-          trend={overdueEvidence === 0 ? "up" : "down"}
+          icon={Clock}         trend={overdueEvidence === 0 ? "up" : "down"}
           trendLabel="Collection items"
         />
         <KpiCard
           title="Next Audit"
           value={`${nearestAudit}d`}
-          icon={Calendar}
-          trend={nearestAudit <= 45 ? "down" : "flat"}
+          icon={Calendar}         trend={nearestAudit <= 45 ? "down" : "flat"}
           trendLabel={nearestAudit <= 45 ? "Approaching" : "Days away"}
         />
         <KpiCard
           title="Risk Items"
           value={d.frameworks.reduce((sum, f) => sum + f.riskItems, 0)}
-          icon={AlertCircle}
-          trend="down"
+          icon={AlertCircle}         trend="down"
           trendLabel="Open risk items"
         />
       </div>

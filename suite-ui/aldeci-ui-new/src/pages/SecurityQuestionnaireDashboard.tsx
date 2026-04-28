@@ -115,12 +115,10 @@ export default function SecurityQuestionnaireDashboard() {
     fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"assessments" | "questionnaires">("assessments");
-  const [loading, setLoading] = useState(true);
 
   const overdue = ASSESSMENTS.filter(isOverdue);
   const completed = ASSESSMENTS.filter(a => a.status === "completed");
@@ -135,27 +133,8 @@ export default function SecurityQuestionnaireDashboard() {
     low: ASSESSMENTS.filter(a => a.risk_level === "low").length,
   };
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -176,13 +155,7 @@ export default function SecurityQuestionnaireDashboard() {
           <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
           <span className="text-red-300 font-medium">
             {overdue.length} assessment{overdue.length > 1 ? "s are" : " is"} overdue —{" "}
-            {overdue.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              overdue.map(a => a.vendor_name).join(", ")}
+            {overdue.map(a => a.vendor_name).join(", ")}
           </span>
         </div>
       )}
@@ -192,7 +165,6 @@ export default function SecurityQuestionnaireDashboard() {
         {[
           { label: "Questionnaires", value: QUESTIONNAIRES.length, icon: <ClipboardList className="w-5 h-5 text-blue-400" />, sub: "templates available" },
           { label: "Active Assessments", value: ASSESSMENTS.filter(a => ["sent","in_progress"].includes(a.status)).length, icon: <Clock className="w-5 h-5 text-yellow-400" />, sub: "awaiting response" },
-            )}
           { label: "Overdue", value: overdue.length, icon: <AlertTriangle className="w-5 h-5 text-red-400" />, sub: "require follow-up" },
           { label: "Avg Score", value: `${avgScore}%`, icon: <BarChart2 className="w-5 h-5 text-green-400" />, sub: "completed assessments" },
         ].map(k => (
@@ -204,8 +176,7 @@ export default function SecurityQuestionnaireDashboard() {
             <div className="text-3xl font-bold">{k.value}</div>
             <div className="text-gray-500 text-xs mt-1">{k.sub}</div>
           </div>
-        ))
-            )}
+        ))}
       </div>
 
       {/* Vendor risk summary */}
@@ -218,8 +189,7 @@ export default function SecurityQuestionnaireDashboard() {
               <div className="text-gray-500 text-xs">risk vendors</div>
             </div>
           </div>
-        ))
-            )}
+        ))}
       </div>
 
       {/* Tabs */}
@@ -234,8 +204,7 @@ export default function SecurityQuestionnaireDashboard() {
           >
             {tab}
           </button>
-        ))
-            )}
+        ))}
       </div>
 
       {activeTab === "assessments" ? (
@@ -251,18 +220,11 @@ export default function SecurityQuestionnaireDashboard() {
                   <tr>
                     {["Vendor","Questionnaire","Status","Score","Risk","Due Date"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                    ))
-            )}
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {ASSESSMENTS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    ASSESSMENTS.map(a => (
+                  {ASSESSMENTS.map(a => (
                     <tr
                       key={a.id}
                       onClick={() => setSelectedAssessment(a)}
@@ -299,8 +261,7 @@ export default function SecurityQuestionnaireDashboard() {
                         {a.due_date}
                       </td>
                     </tr>
-                  ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -315,13 +276,7 @@ export default function SecurityQuestionnaireDashboard() {
             {selectedAssessment ? (
               <>
                 <div className="space-y-4">
-                  {SAMPLE_QUESTIONS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    SAMPLE_QUESTIONS.map((q, i) => (
+                  {SAMPLE_QUESTIONS.map((q, i) => (
                     <div key={q.id} className="bg-gray-700/50 rounded-lg p-3 space-y-2">
                       <div className="text-xs text-gray-400 flex justify-between">
                         <span className="bg-gray-600 px-2 py-0.5 rounded">{q.category}</span>
@@ -336,18 +291,15 @@ export default function SecurityQuestionnaireDashboard() {
                               name={q.id}
                               value={val}
                               checked={responses[q.id] === val}
-                              onChange={() => setResponses(r => ({ ...r, [q.id]: val }))
-                  )}
+                              onChange={() => setResponses(r => ({ ...r, [q.id]: val }))}
                               className="accent-blue-500"
                             />
                             <span className="text-xs text-gray-300">{label}</span>
                           </label>
-                        ))
-                  )}
+                        ))}
                       </div>
                     </div>
-                  ))
-                  )}
+                  ))}
                 </div>
                 <button className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg text-sm font-medium transition-colors">
                   Submit Responses
@@ -370,19 +322,12 @@ export default function SecurityQuestionnaireDashboard() {
                 <tr>
                   {["Name","Framework","Questions","Type","Created"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                  ))
-                  )}
+                  ))}
                   <th className="px-4 py-3 text-left text-gray-400 font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {QUESTIONNAIRES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  QUESTIONNAIRES.map(q => (
+                {QUESTIONNAIRES.map(q => (
                   <tr key={q.id} className="border-t border-gray-700 hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3 font-medium">{q.name}</td>
                     <td className="px-4 py-3">
@@ -399,8 +344,7 @@ export default function SecurityQuestionnaireDashboard() {
                       </button>
                     </td>
                   </tr>
-                ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

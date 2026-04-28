@@ -179,68 +179,16 @@ function ScoreBar({ label, score, color }: { label: string; score: number; color
   );
 }
 
-// ── Interfaces ─────────────────────────────────────────────────
-
-interface InsurancePolicy {
-  policy_id: string;
-  carrier: string;
-  policy_number: string;
-  coverage_type: string;
-  coverage_limit: number;
-  deductible: number;
-  premium_annual: number;
-  effective_date: string;
-  expiry_date: string;
-  status: string;
-  covered_events: string[];
-}
-
-interface InsuranceClaim {
-  claim_id: string;
-  policy_id: string;
-  incident_type: string;
-  incident_date: string;
-  estimated_loss: number;
-  settlement_amount: number | null;
-  status: string;
-  adjuster: string;
-  filed_at: string;
-}
-
-interface InsuranceStats {
-  total_policies: number;
-  active_policies: number;
-  total_coverage: number;
-  annual_premium: number;
-  total_claims: number;
-  open_claims: number;
-  settled_amount: number;
-}
-
-interface CoverageAssessment {
-  assessment_id: string;
-  policy_id: string;
-  overall_score: number;
-  mfa_score: number;
-  backup_score: number;
-  incident_response_score: number;
-  patch_score: number;
-  training_score: number;
-  recommendations: string[];
-  assessed_at: string;
-}
-
 // ── Component ──────────────────────────────────────────────────
 
 export default function CyberInsuranceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<{
-    policies: InsurancePolicy[] | null;
-    claims: InsuranceClaim[] | null;
-    stats: InsuranceStats | null;
-    assessments: CoverageAssessment[] | null;
+    policies: any[] | null;
+    claims: any[] | null;
+    stats: any | null;
+    assessments: any[] | null;
   }>({ policies: null, claims: null, stats: null, assessments: null });
 
   const fetchData = () => {
@@ -260,8 +208,7 @@ export default function CyberInsuranceDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -276,18 +223,10 @@ export default function CyberInsuranceDashboard() {
   const assessments = liveData.assessments ?? MOCK_ASSESSMENTS;
   const assessment  = assessments[0];
 
-  const activePolicies  = stats?.active_policies  ?? policies.filter((p: InsurancePolicy) => p.status === "active").length;
-  const totalCoverage   = stats?.total_coverage   ?? policies.reduce((s: number, p: InsurancePolicy) => s + (p.coverage_limit ?? 0), 0);
-  const annualPremium   = stats?.annual_premium    ?? policies.reduce((s: number, p: InsurancePolicy) => s + (p.premium_annual ?? 0), 0);
-  const openClaims      = stats?.open_claims       ?? claims.filter((c: InsuranceClaim) => c.status !== "settled" && c.status !== "denied").length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
+  const activePolicies  = stats?.active_policies  ?? policies.filter((p: any) => p.status === "active").length;
+  const totalCoverage   = stats?.total_coverage   ?? policies.reduce((s: number, p: any) => s + (p.coverage_limit ?? 0), 0);
+  const annualPremium   = stats?.annual_premium    ?? policies.reduce((s: number, p: any) => s + (p.premium_annual ?? 0), 0);
+  const openClaims      = stats?.open_claims       ?? claims.filter((c: any) => c.status !== "settled" && c.status !== "denied").length;
 
   return (
     <motion.div
@@ -304,15 +243,14 @@ export default function CyberInsuranceDashboard() {
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
-        
-    setLoading(false);}
+        }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Policies"   value={activePolicies}               icon={Shield}        trend="stable" />
+        <KpiCard title="Active Policies"   value={activePolicies}               icon={Shield}        trend="flat" />
         <KpiCard title="Total Coverage"    value={fmtMoney(totalCoverage)}      icon={DollarSign}    trend="up"     className="border-green-500/20" />
-        <KpiCard title="Annual Premium"    value={fmtMoney(annualPremium)}      icon={FileText}      trend="stable" className="border-blue-500/20" />
+        <KpiCard title="Annual Premium"    value={fmtMoney(annualPremium)}      icon={FileText}      trend="flat" className="border-blue-500/20" />
         <KpiCard title="Pending Claims"    value={openClaims}                   icon={AlertTriangle} trend="down"   className="border-amber-500/20" />
       </div>
 
@@ -347,13 +285,7 @@ export default function CyberInsuranceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {policies.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  policies.map((p: InsurancePolicy) => (
+                {policies.map((p: any) => (
                   <TableRow key={p.policy_id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{p.carrier}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{p.policy_number}</TableCell>
@@ -375,8 +307,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{p.expiry_date}</TableCell>
                     <TableCell className="py-2"><PolicyStatusBadge status={p.status ?? "active"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -412,13 +343,7 @@ export default function CyberInsuranceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {claims.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  claims.map((c: InsuranceClaim) => (
+                {claims.map((c: any) => (
                   <TableRow key={c.claim_id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{c.claim_id}</TableCell>
                     <TableCell className="py-2"><IncidentTypeBadge type={c.incident_type ?? ""} /></TableCell>
@@ -432,8 +357,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{c.adjuster}</TableCell>
                     <TableCell className="py-2"><ClaimStatusBadge status={c.status ?? "filed"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -511,8 +435,7 @@ export default function CyberInsuranceDashboard() {
                     <Clock className="h-3 w-3 shrink-0 text-amber-400 mt-0.5" />
                     <span className="text-xs text-muted-foreground">{rec}</span>
                   </div>
-                ))
-                )}
+                ))}
               </div>
             )}
 

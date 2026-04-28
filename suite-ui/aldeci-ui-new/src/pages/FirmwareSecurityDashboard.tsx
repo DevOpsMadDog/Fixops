@@ -174,8 +174,7 @@ export default function FirmwareSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Devices"    value={stats.total_devices}   icon={Cpu
-    setLoading(false);}          trend="flat" />
+        <KpiCard title="Total Devices"    value={stats.total_devices}   icon={Cpu}         trend="flat" />
         <KpiCard title="Active Devices"   value={stats.active_devices}  icon={Shield}       trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Vulns"      value={stats.total_vulns}     icon={AlertTriangle} trend="down" className="border-amber-500/20" />
         <KpiCard title="Unpatched Vulns"  value={stats.unpatched_vulns} icon={ShieldAlert}  trend="down" className="border-red-500/20" />

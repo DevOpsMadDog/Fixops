@@ -175,8 +175,7 @@ export default function PostureBenchmarkingDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Benchmarks"   value={stats.total_benchmarks}                    icon={BarChart2
-    setLoading(false);}   trend="flat" />
+        <KpiCard title="Total Benchmarks"   value={stats.total_benchmarks}                    icon={BarChart2}         trend="flat" />
         <KpiCard title="Active Benchmarks"  value={stats.active_benchmarks}                   icon={Target}      trend="up"   className="border-blue-500/20" />
         <KpiCard title="Avg Score"          value={`${stats.avg_score}%`}                     icon={TrendingUp}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Above Industry Avg" value={stats.above_industry_avg}                  icon={CheckSquare} trend="up"   className="border-purple-500/20" />

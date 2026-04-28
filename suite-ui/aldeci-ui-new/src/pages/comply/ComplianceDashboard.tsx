@@ -993,29 +993,25 @@ export default function ComplianceDashboard() {
         <KpiCard
           title="Overall Score"
           value={`${overallScore}%`}
-          icon={TrendingUp}
-          trend={overallScore >= 80 ? "up" : "down"}
+          icon={TrendingUp}         trend={overallScore >= 80 ? "up" : "down"}
           trendLabel={overallScore >= 80 ? "Above target" : "Below 80% target"}
         />
         <KpiCard
           title="Fully Compliant"
           value={`${compliantCount}/${frameworks.length}`}
-          icon={CheckCircle2}
-          trend={compliantCount >= frameworks.length * 0.7 ? "up" : "down"}
+          icon={CheckCircle2}         trend={compliantCount >= frameworks.length * 0.7 ? "up" : "down"}
           trendLabel="Frameworks"
         />
         <KpiCard
           title="Controls Passed"
           value={`${passedControls}/${totalControls}`}
-          icon={FileCheck2}
-          trend="up"
+          icon={FileCheck2}         trend="up"
           trendLabel={`${Math.round((passedControls / totalControls) * 100)}% pass rate`}
         />
         <KpiCard
           title="Evidence Overdue"
           value={overdueEvidence}
-          icon={AlertTriangle}
-          trend={overdueEvidence === 0 ? "up" : "down"}
+          icon={AlertTriangle}         trend={overdueEvidence === 0 ? "up" : "down"}
           trendLabel={overdueEvidence === 0 ? "All current" : "Action required"}
         />
       </div>

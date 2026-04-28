@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { GitBranch, Shield, AlertTriangle, RefreshCw, Code2, CheckCircle2, XCircle, Clock } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
@@ -22,7 +22,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -327,8 +327,7 @@ export default function DevSecOpsDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))
-          )}
+                ))}
               </TableBody>
             </Table>
           </div>

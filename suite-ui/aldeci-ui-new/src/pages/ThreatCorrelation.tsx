@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 // ── API config ─────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
@@ -30,7 +30,7 @@ const API_KEY =
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -410,8 +410,7 @@ export default function ThreatCorrelation() {
                       <TableCell className="text-xs tabular-nums py-2">{Math.round((ind.confidence ?? 0.8) * 100)}%</TableCell>
                       <TableCell className="text-[10px] py-2 text-muted-foreground">{ind.source ?? "aldeci"}</TableCell>
                     </TableRow>
-                  ))
-              )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -427,8 +426,7 @@ export default function ThreatCorrelation() {
                   <span className="text-lg font-black tabular-nums">{item.value}</span>
                   <span className="text-[10px] text-muted-foreground text-center">{item.label}</span>
                 </div>
-              ))
-              )}
+              ))}
               <p className="text-[10px] text-muted-foreground ml-2">No indicators shared yet — sharing groups will appear here once configured.</p>
             </div>
           )}

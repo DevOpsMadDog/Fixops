@@ -147,17 +147,6 @@ function CircleProgress({ pct }: { pct: number }) {
   const color = pct >= 80 ? "#22c55e" : pct >= 50 ? "#6366f1" : "#f97316";
   return (
     <svg width="52" height="52" className="flex-shrink-0">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
       <circle cx="26" cy="26" r={r} fill="none" stroke="#374151" strokeWidth="4" />
       <circle
         cx="26" cy="26" r={r} fill="none" stroke={color} strokeWidth="4"
@@ -174,27 +163,17 @@ function CircleProgress({ pct }: { pct: number }) {
 
 export default function SecurityCultureDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<string>("asm-001");
-  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/security-culture", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const selAsmn = MOCK_ASSESSMENTS.find(a => a.id === selectedAssessment)!;
 
   const avgCulture = Math.round(MOCK_DEPT_SCORES.reduce((s, d) => s + d.culture_score, 0) / MOCK_DEPT_SCORES.length);
   const avgMetric  = Math.round(MOCK_METRICS.reduce((s, m) => s + m.value, 0) / MOCK_METRICS.length);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -229,13 +208,7 @@ export default function SecurityCultureDashboard() {
 
       {/* Culture metrics grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {MOCK_METRICS.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          MOCK_METRICS.map(metric => {
+        {MOCK_METRICS.map(metric => {
           const pct = Math.round((metric.value / metric.target) * 100);
           const gap = metric.target - metric.value;
           return (
@@ -261,8 +234,7 @@ export default function SecurityCultureDashboard() {
               </div>
             </div>
           );
-        })
-        )}
+        })}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -274,13 +246,7 @@ export default function SecurityCultureDashboard() {
             </h2>
           </div>
           <div className="divide-y divide-gray-700/50">
-            {MOCK_INITIATIVES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_INITIATIVES.map(ini => (
+            {MOCK_INITIATIVES.map(ini => (
               <div key={ini.id} className="p-4 flex items-center gap-3">
                 <CircleProgress pct={ini.completion_rate} />
                 <div className="flex-1 min-w-0">
@@ -294,8 +260,7 @@ export default function SecurityCultureDashboard() {
                   </div>
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </div>
 
@@ -308,13 +273,7 @@ export default function SecurityCultureDashboard() {
               </h2>
             </div>
             <div className="divide-y divide-gray-700/50">
-              {MOCK_ASSESSMENTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_ASSESSMENTS.map(asm => (
+              {MOCK_ASSESSMENTS.map(asm => (
                 <div
                   key={asm.id}
                   onClick={() => setSelectedAssessment(asm.id)}
@@ -342,8 +301,7 @@ export default function SecurityCultureDashboard() {
                             <li key={s} className="text-gray-300 text-xs flex items-start gap-1">
                               <span className="text-green-400 mt-0.5">✓</span> {s}
                             </li>
-                          ))
-              )}
+                          ))}
                         </ul>
                       </div>
                       <div>
@@ -353,15 +311,13 @@ export default function SecurityCultureDashboard() {
                             <li key={w} className="text-gray-300 text-xs flex items-start gap-1">
                               <span className="text-red-400 mt-0.5">✗</span> {w}
                             </li>
-                          ))
-              )}
+                          ))}
                         </ul>
                       </div>
                     </div>
                   )}
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
 
@@ -377,8 +333,7 @@ export default function SecurityCultureDashboard() {
                     <span className="text-xs text-gray-500">{a.score}</span>
                   </div>
                 );
-              })
-              )}
+              })}
             </div>
           </div>
         </div>

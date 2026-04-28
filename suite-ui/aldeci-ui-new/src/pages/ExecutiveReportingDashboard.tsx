@@ -139,57 +139,16 @@ function AudienceBadge({ audience }: { audience: string }) {
   );
 }
 
-// ── Interfaces ─────────────────────────────────────────────────
-
-interface ExecReport {
-  id: string;
-  report_type: string;
-  title: string;
-  period_start: string;
-  period_end: string;
-  status: string;
-  created_by: string;
-  created_at: string;
-}
-
-interface ExecKpi {
-  id: string;
-  kpi_name: string;
-  kpi_value: number;
-  target_value: number;
-  kpi_unit: string;
-  status: string;
-  trend: string;
-}
-
-interface BoardPresentation {
-  id: string;
-  title: string;
-  presentation_date: string;
-  audience: string;
-  risk_summary?: string;
-  action_items?: string[];
-  created_at: string;
-}
-
-interface ExecSummary {
-  kpi_summary: { on_track: number; at_risk: number; off_track: number };
-  recent_reports: ExecReport[];
-  board_presentations_count: number;
-  posture_trend: string;
-}
-
 // ── Component ──────────────────────────────────────────────────
 
 export default function ExecutiveReportingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<{
-    reports: ExecReport[] | null;
-    kpis: ExecKpi[] | null;
-    boards: BoardPresentation[] | null;
-    summary: ExecSummary | null;
+    reports: any[] | null;
+    kpis: any[] | null;
+    boards: any[] | null;
+    summary: any | null;
   }>({ reports: null, kpis: null, boards: null, summary: null });
 
   const fetchData = () => {
@@ -209,8 +168,7 @@ export default function ExecutiveReportingDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -224,19 +182,11 @@ export default function ExecutiveReportingDashboard() {
   const boards  = liveData.boards  ?? MOCK_BOARD_PRESENTATIONS;
   const summary = liveData.summary ?? MOCK_SUMMARY;
 
-  const publishedCount = reports.filter((r: ExecReport) => r.status === "published").length;
-  const draftCount     = reports.filter((r: ExecReport) => r.status === "draft").length;
-  const onTrackKpis    = summary?.kpi_summary?.on_track  ?? kpis.filter((k: ExecKpi) => k.status === "on_track").length;
-  const atRiskKpis     = summary?.kpi_summary?.at_risk   ?? kpis.filter((k: ExecKpi) => k.status === "at_risk").length;
-  const offTrackKpis   = summary?.kpi_summary?.off_track ?? kpis.filter((k: ExecKpi) => k.status === "off_track").length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
+  const publishedCount = reports.filter((r: any) => r.status === "published").length;
+  const draftCount     = reports.filter((r: any) => r.status === "draft").length;
+  const onTrackKpis    = summary?.kpi_summary?.on_track  ?? kpis.filter((k: any) => k.status === "on_track").length;
+  const atRiskKpis     = summary?.kpi_summary?.at_risk   ?? kpis.filter((k: any) => k.status === "at_risk").length;
+  const offTrackKpis   = summary?.kpi_summary?.off_track ?? kpis.filter((k: any) => k.status === "off_track").length;
 
   return (
     <motion.div
@@ -253,16 +203,15 @@ export default function ExecutiveReportingDashboard() {
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
-        
-    setLoading(false);}
+        }
       />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Published Reports"  value={publishedCount}                                 icon={FileText}      trend="up"     />
-        <KpiCard title="KPIs On Track"      value={`${onTrackKpis} / ${kpis.length}`}             icon={CheckCircle}   trend="stable" className="border-green-500/20" />
+        <KpiCard title="KPIs On Track"      value={`${onTrackKpis} / ${kpis.length}`}             icon={CheckCircle}   trend="flat" className="border-green-500/20" />
         <KpiCard title="KPIs At Risk"       value={atRiskKpis}                                    icon={AlertTriangle} trend="down"   className="border-amber-500/20" />
-        <KpiCard title="Board Decks"        value={summary?.board_presentations_count ?? boards.length} icon={Presentation} trend="stable" className="border-purple-500/20" />
+        <KpiCard title="Board Decks"        value={summary?.board_presentations_count ?? boards.length} icon={Presentation} trend="flat" className="border-purple-500/20" />
       </div>
 
       {/* Reports Table */}
@@ -300,13 +249,7 @@ export default function ExecutiveReportingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  reports.map((r: ExecReport) => (
+                {reports.map((r: any) => (
                   <TableRow key={r.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium max-w-[240px] truncate">{r.title}</TableCell>
                     <TableCell className="py-2"><ReportTypeBadge type={r.report_type ?? "monthly"} /></TableCell>
@@ -319,8 +262,7 @@ export default function ExecutiveReportingDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><ReportStatusBadge status={r.status ?? "draft"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -360,13 +302,7 @@ export default function ExecutiveReportingDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kpis.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    kpis.map((k: ExecKpi) => (
+                  {kpis.map((k: any) => (
                     <TableRow key={k.id ?? k.kpi_name} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-xs font-medium">{k.kpi_name}</TableCell>
                       <TableCell className="py-2 text-right">
@@ -384,8 +320,7 @@ export default function ExecutiveReportingDashboard() {
                       </TableCell>
                       <TableCell className="py-2"><KpiStatusBadge status={k.status ?? "on_track"} /></TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -402,13 +337,7 @@ export default function ExecutiveReportingDashboard() {
             <CardDescription className="text-xs">Recent board and executive security briefings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {boards.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              boards.map((bp: BoardPresentation) => (
+            {boards.map((bp: any) => (
               <div key={bp.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-semibold leading-tight">{bp.title}</span>
@@ -436,13 +365,11 @@ export default function ExecutiveReportingDashboard() {
                         <CheckCircle className="h-2.5 w-2.5 shrink-0 text-green-400" />
                         {item}
                       </div>
-                    ))
-            )}
+                    ))}
                   </div>
                 )}
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>

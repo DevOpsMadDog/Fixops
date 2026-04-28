@@ -943,8 +943,7 @@ export default function SOCDashboard() {
         <KpiCard
           title="Critical"
           value={stats.critical}
-          icon={Flame}
-          trend={stats.critical > 0 ? "down" : "up"}
+          icon={Flame}         trend={stats.critical > 0 ? "down" : "up"}
           trendLabel={stats.critical > 0 ? "Needs attention" : "Clear"}
         />
         <KpiCard
@@ -968,8 +967,7 @@ export default function SOCDashboard() {
         <KpiCard
           title="Avg Response"
           value={`${stats.avgResponseMins}m`}
-          icon={Timer}
-          trend="up"
+          icon={Timer}         trend="up"
           trendLabel="Below 60m SLA"
         />
       </div>

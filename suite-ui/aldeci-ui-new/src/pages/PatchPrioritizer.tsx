@@ -317,7 +317,6 @@ export default function PatchPrioritizer() {
   const [sortBy, setSortBy] = useState<"score" | "deadline" | "cvss">("score");
   const [patchData, setPatchData] = useState<PatchPrioritizerData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setIsLoading(true);
@@ -353,8 +352,7 @@ export default function PatchPrioritizer() {
           patches_in_sla:          stats?.total              ?? MOCK_PATCH_DATA.patches_in_sla,
           avg_time_to_patch_days:  stats?.avg_patch_age_days ?? MOCK_PATCH_DATA.avg_time_to_patch_days,
         });
-      
-    setLoading(false);} else {
+      } else {
         setPatchData(MOCK_PATCH_DATA);
       }
     }).finally(() => setIsLoading(false));
@@ -399,21 +397,12 @@ export default function PatchPrioritizer() {
 
   const data: PatchPrioritizerData = patchData ?? MOCK_PATCH_DATA;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
       <PageHeader
         title="Patch Prioritizer"
-        subtitle="CVSS × EPSS × KEV composite scoring for vulnerability remediation"
-        icon={Shield}
+        description="CVSS × EPSS × KEV composite scoring for vulnerability remediation"
       />
 
       {/* ── Scoring Explanation Banner ── */}
@@ -459,30 +448,30 @@ export default function PatchPrioritizer() {
           <KpiCard
             title="Critical Patches Due"
             value={data.critical_patches_due}
-            subtitle="Require immediate action"
+            description="Require immediate action"
             icon={AlertTriangle}
-            trend={{ value: -2, label: "vs last week" }}
+            trend="flat"
           />
           <KpiCard
             title="High Priority This Week"
             value={data.high_priority_this_week}
-            subtitle="Score ≥60, deadline ≤7d"
+            description="Score ≥60, deadline ≤7d"
             icon={Zap}
-            trend={{ value: 3, label: "vs last week" }}
+            trend="flat"
           />
           <KpiCard
             title="Patches in SLA"
             value={data.patches_in_sla}
-            subtitle={`${Math.round((data.patches_in_sla / data.patches.length) * 100)}% of queue`}
+            description={`${Math.round((data.patches_in_sla / data.patches.length) * 100)}% of queue`}
             icon={CheckCircle2}
-            trend={{ value: 1, label: "vs last week" }}
+            trend="flat"
           />
           <KpiCard
             title="Avg Time to Patch"
             value={`${data.avg_time_to_patch_days}d`}
-            subtitle="From discovery to remediation"
+            description="From discovery to remediation"
             icon={Clock}
-            trend={{ value: -1, label: "vs last month" }}
+            trend="flat"
           />
         </div>
       </motion.div>
@@ -536,17 +525,7 @@ export default function PatchPrioritizer() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedPatches.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8}>
-                        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                          <p className="text-lg font-medium">No data available</p>
-                          <p className="text-sm">Data will appear here once available</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    sortedPatches.map((patch) => (
+                  {sortedPatches.map((patch) => (
                     <TableRow
                       key={patch.id}
                       className={cn(
@@ -609,8 +588,7 @@ export default function PatchPrioritizer() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>

@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 import { Crosshair, AlertTriangle, Search, Play, RefreshCw, BookOpen, BarChart3, Shield } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
@@ -24,7 +24,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -37,7 +37,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
-import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -125,7 +124,6 @@ function SevDot({ sev }: { sev: string }) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ThreatHuntingDashboard() {
-  usePageTitle("Threat Hunting");
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
@@ -133,8 +131,8 @@ export default function ThreatHuntingDashboard() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/hunting/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/hunting/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-hunting/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-hunting/hunts?org_id=${ORG_ID}&limit=20`),
     ]).then(([statsResult, huntsResult]) => {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const hunts = huntsResult.status === "fulfilled" ? huntsResult.value : null;
@@ -306,8 +304,7 @@ export default function ThreatHuntingDashboard() {
                           : <span className="text-[10px] text-muted-foreground">—</span>}
                       </TableCell>
                     </TableRow>
-                  ))
-          )}
+                  ))}
                 </TableBody>
               </Table>
             </div>

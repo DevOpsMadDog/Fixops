@@ -1344,15 +1344,13 @@ function EvidenceVaultPane({
         <KpiCard
           title="Cryptographically Signed"
           value={computedStats.signed_bundles ?? 0}
-          icon={Fingerprint}
-          trend={(computedStats.signed_bundles ?? 0) > 0 ? "up" : "flat"}
+          icon={Fingerprint}         trend={(computedStats.signed_bundles ?? 0) > 0 ? "up" : "flat"}
         />
         <KpiCard title="Quantum-Signed" value={computedStats.quantum_signed ?? 0} icon={Lock} />
         <KpiCard
           title="Retention Breaches"
           value={computedStats.retention_breaches ?? 0}
-          icon={AlertTriangle}
-          trend={(computedStats.retention_breaches ?? 0) > 0 ? "down" : "flat"}
+          icon={AlertTriangle}         trend={(computedStats.retention_breaches ?? 0) > 0 ? "down" : "flat"}
         />
       </div>
 

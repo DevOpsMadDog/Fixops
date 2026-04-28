@@ -259,43 +259,37 @@ export default function CISODashboard() {
         <KpiCard
           title="MTTD"
           value={`${d.kpis.mttd}h`}
-          icon={Eye}
-          trend="down"
+          icon={Eye}         trend="down"
           trendLabel="Mean Time to Detect"
         />
         <KpiCard
           title="MTTR"
           value={`${d.kpis.mttr}h`}
-          icon={Timer}
-          trend="down"
+          icon={Timer}         trend="down"
           trendLabel="Mean Time to Remediate"
         />
         <KpiCard
           title="SLA Compliance"
           value={`${d.kpis.sla_compliance}%`}
-          icon={CheckCircle2}
-          trend={d.kpis.sla_compliance >= 90 ? "up" : "down"}
+          icon={CheckCircle2}         trend={d.kpis.sla_compliance >= 90 ? "up" : "down"}
           trendLabel={d.kpis.sla_compliance >= 90 ? "On target" : "Below target"}
         />
         <KpiCard
           title="Remediation Rate"
           value={`${d.kpis.remediation_rate}%`}
-          icon={Target}
-          trend={d.kpis.remediation_rate >= 75 ? "up" : "down"}
+          icon={Target}         trend={d.kpis.remediation_rate >= 75 ? "up" : "down"}
           trendLabel="Closed / Total"
         />
         <KpiCard
           title="Detection Accuracy"
           value={`${d.kpis.detection_accuracy}%`}
-          icon={Activity}
-          trend="up"
+          icon={Activity}         trend="up"
           trendLabel="True positive rate"
         />
         <KpiCard
           title="Findings / Day"
           value={d.kpis.findings_per_day.toFixed(1)}
-          icon={BarChart3}
-          trend="flat"
+          icon={BarChart3}         trend="flat"
           trendLabel="Avg daily ingest"
         />
       </div>
@@ -498,15 +492,13 @@ export default function CISODashboard() {
           title="Error Rate"
           value={`${d.pipeline.error_rate}%`}
           description="Pipeline failures"
-          icon={AlertTriangle}
-          trend={d.pipeline.error_rate < 1 ? "up" : "down"}
+          icon={AlertTriangle}         trend={d.pipeline.error_rate < 1 ? "up" : "down"}
         />
         <KpiCard
           title="Pipeline Stages"
           value={`${d.pipeline.stages_healthy}/${d.pipeline.stages_total}`}
           description="Healthy / Total stages"
-          icon={CheckCircle2}
-          trend={d.pipeline.stages_healthy === d.pipeline.stages_total ? "up" : "down"}
+          icon={CheckCircle2}         trend={d.pipeline.stages_healthy === d.pipeline.stages_total ? "up" : "down"}
         />
       </div>
     </div>

@@ -102,7 +102,6 @@ function TransactionStatusBadge({ status }: { status: string }) {
 export default function SecurityBudgetDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<{
     stats: any | null;
     allocations: any[] | null;
@@ -124,8 +123,7 @@ export default function SecurityBudgetDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -138,14 +136,6 @@ export default function SecurityBudgetDashboard() {
   const transactions = liveData.transactions ?? MOCK_TRANSACTIONS;
 
   const utilPct = stats.utilization_pct ?? (stats.total_allocated > 0 ? (stats.total_spent / stats.total_allocated) * 100 : 0);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -165,8 +155,7 @@ export default function SecurityBudgetDashboard() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Allocated"  value={fmtMoney(stats.total_allocated)} icon={DollarSign}  trend="flat" />
         <KpiCard title="Total Spent"      value={fmtMoney(stats.total_spent)}     icon={TrendingUp}  trend="up"     className="border-blue-500/20" />
@@ -225,13 +214,7 @@ export default function SecurityBudgetDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allocations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  allocations.map((a: any, i: number) => {
+                {allocations.map((a: any, i: number) => {
                   const pct = a.allocated > 0 ? Math.round((a.spent / a.allocated) * 100) : 0;
                   return (
                     <TableRow key={a.category ?? i} className="hover:bg-muted/30">
@@ -246,8 +229,7 @@ export default function SecurityBudgetDashboard() {
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
                               transition={{ duration: 0.6, delay: i * 0.04 }}
-                              className={cn("h-full rounded-full", utilizationColor(pct))
-                )}
+                              className={cn("h-full rounded-full", utilizationColor(pct))}
                             />
                           </div>
                           <span className="text-[11px] tabular-nums text-muted-foreground w-8 text-right">{pct}%</span>
@@ -255,8 +237,7 @@ export default function SecurityBudgetDashboard() {
                       </TableCell>
                     </TableRow>
                   );
-                })
-                )}
+                })}
               </TableBody>
             </Table>
           </div>
@@ -290,13 +271,7 @@ export default function SecurityBudgetDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  transactions.map((t: any, i: number) => (
+                {transactions.map((t: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{t.vendor}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[260px] truncate">{t.description}</TableCell>
@@ -306,8 +281,7 @@ export default function SecurityBudgetDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{t.date}</TableCell>
                     <TableCell className="py-2"><TransactionStatusBadge status={t.status ?? "pending"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

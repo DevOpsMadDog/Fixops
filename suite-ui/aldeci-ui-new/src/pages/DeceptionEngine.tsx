@@ -248,8 +248,7 @@ export default function DeceptionEngine() {
                     )}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

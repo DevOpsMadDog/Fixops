@@ -128,7 +128,6 @@ function IncidentStatusBadge({ status }: { status: string }) {
 export default function DataExfiltrationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<{
     stats: any | null;
     incidents: any[] | null;
@@ -147,8 +146,7 @@ export default function DataExfiltrationDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -158,14 +156,6 @@ export default function DataExfiltrationDashboard() {
 
   const stats     = liveData.stats     ?? MOCK_STATS;
   const incidents = liveData.incidents ?? MOCK_INCIDENTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -185,8 +175,7 @@ export default function DataExfiltrationDashboard() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Incidents"    value={stats.total_incidents}    icon={ArrowUpFromLine} trend="flat" />
         <KpiCard title="Confirmed"          value={stats.confirmed_incidents} icon={ShieldAlert}    trend="down" className="border-red-500/20" />
@@ -221,13 +210,7 @@ export default function DataExfiltrationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {incidents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  incidents.map((inc: any, i: number) => (
+                {incidents.map((inc: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><IncidentTypeBadge type={inc.incident_type ?? "unknown"} /></TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={inc.severity ?? "medium"} /></TableCell>
@@ -235,8 +218,7 @@ export default function DataExfiltrationDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{inc.detection_method}</TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -260,8 +242,7 @@ export default function DataExfiltrationDashboard() {
               </CardContent>
             </Card>
           );
-        })
-                )}
+        })}
       </div>
     </motion.div>
   );

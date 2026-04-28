@@ -14,7 +14,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Cloud, AlertTriangle, Shield, BarChart3, RefreshCw, Zap, CheckCircle } from "lucide-react";
-import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
@@ -31,7 +30,7 @@ const API_KEY =
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -271,7 +270,7 @@ export default function CloudSecurityDashboard() {
                     <TableCell className="py-2.5"><ScoreBar value={acct.score} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{acct.scanned}</TableCell>
                     <TableCell className="py-2.5 text-right">
-                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toast.info("Cloud account scan initiated…")}>Scan Now</Button>
+                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Scan Now</Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -362,8 +361,7 @@ export default function CloudSecurityDashboard() {
                         <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">Fix</Button>
                       </TableCell>
                     </TableRow>
-                  ))
-            )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
