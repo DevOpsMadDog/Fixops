@@ -24,6 +24,22 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Pydantic model
 # ---------------------------------------------------------------------------
@@ -818,7 +834,9 @@ class DependencyScanner:
                 name, ver = parsed
                 packages[name] = ver
 
-        return self._check_packages(packages)
+        results = self._check_packages(packages)
+        _tg_emit("dep_scanner.scan_requirements", {"file": file_path, "vuln_count": len(results)})
+        return results
 
     def scan_package_json(self, file_path: str) -> List[DepVulnerability]:
         """Parse a package.json and check dependencies against the vulnerability DB."""
@@ -840,7 +858,9 @@ class DependencyScanner:
                 ver = re.sub(r"^[\^~>=<v\s]+", "", str(ver_spec)).strip()
                 packages[_normalize_pkg_name(pkg)] = ver or "0.0.0"
 
-        return self._check_packages(packages)
+        results = self._check_packages(packages)
+        _tg_emit("dep_scanner.scan_package_json", {"file": file_path, "vuln_count": len(results)})
+        return results
 
     def scan_installed(self) -> List[DepVulnerability]:
         """Run pip freeze and check the installed packages against the vuln DB."""
@@ -860,7 +880,9 @@ class DependencyScanner:
         except Exception as exc:
             logger.error("pip freeze failed: %s", exc)
 
-        return self._check_packages(packages)
+        results = self._check_packages(packages)
+        _tg_emit("dep_scanner.scan_installed", {"vuln_count": len(results)})
+        return results
 
     def get_outdated(self) -> List[Dict[str, Any]]:
         """Return packages that have newer versions available (via pip list --outdated).

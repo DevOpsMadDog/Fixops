@@ -32,6 +32,22 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 _DB_ENV = "FIXOPS_DATA_DIR"
 _DEFAULT_DB_DIR = ".fixops_data"
 
@@ -570,6 +586,7 @@ class SecretScanner:
                 self._persist_secret(secret, dedup)
                 found.append(secret)
 
+        _tg_emit("secret_scanner.scan_text", {"file_path": file_path, "org_id": org_id, "secrets_found": len(found)})
         return found
 
     def _persist_secret(self, secret: DetectedSecret, content_hash: str) -> None:
@@ -718,7 +735,10 @@ class SecretScanner:
             (SecretStatus.FALSE_POSITIVE.value, secret_id),
         )
         conn.commit()
-        return cursor.rowcount > 0
+        found = cursor.rowcount > 0
+        if found:
+            _tg_emit("secret_scanner.mark_false_positive", {"secret_id": secret_id})
+        return found
 
     def mark_rotated(self, secret_id: str, rotated_by: str, new_key_prefix: Optional[str] = None) -> bool:
         """Mark a secret as rotated and record the rotation. Returns True if found."""
@@ -745,6 +765,7 @@ class SecretScanner:
             ),
         )
         conn.commit()
+        _tg_emit("secret_scanner.mark_rotated", {"secret_id": secret_id, "rotated_by": rotated_by})
         return True
 
     # ------------------------------------------------------------------

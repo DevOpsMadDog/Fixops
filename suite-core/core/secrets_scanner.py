@@ -32,6 +32,22 @@ from core.secrets_models import SecretFinding, SecretStatus, SecretType
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus is not None:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 class SecretsScanner(str, Enum):
     """Supported secrets scanner types."""
@@ -613,6 +629,7 @@ class SecretsDetector:
         completed_at = datetime.now()
         duration = (completed_at - started_at).total_seconds()
 
+        _tg_emit("secrets_scanner.scan_content_builtin", {"repository": repository, "branch": branch, "findings_count": len(findings), "duration_seconds": duration})
         return SecretsScanResult(
             scan_id=scan_id,
             status=SecretsScanStatus.COMPLETED,
@@ -809,6 +826,7 @@ class SecretsDetector:
                 for finding in findings:
                     finding.file_path = filename
 
+                _tg_emit("secrets_scanner.scan_content_completed", {"repository": repository, "branch": branch, "findings_count": len(findings), "scanner": str(selected_scanner), "duration_seconds": duration})
                 return SecretsScanResult(
                     scan_id=scan_id,
                     status=SecretsScanStatus.COMPLETED,
