@@ -404,6 +404,22 @@ class RSAKeyManager:
     SUPPORTED_KEY_SIZES: Tuple[int, ...] = (2048, 3072, 4096)
     DEFAULT_KEY_SIZE: int = 4096
 
+    # Project-rooted default key directory: <repo>/data/keys/
+    # Resolves to /Users/.../Fixops/data/keys regardless of CWD because this
+    # file lives at <repo>/suite-core/core/crypto.py.
+    _DEFAULT_KEY_DIR: Path = Path(__file__).resolve().parents[2] / "data" / "keys"
+    _DEFAULT_PRIVATE_KEY_FILENAME: str = "rsa_private.pem"
+    _DEFAULT_PUBLIC_KEY_FILENAME: str = "rsa_public.pem"
+
+    # Class-level cache survives across instances within the same process so
+    # that a single RSA-4096 keygen (~2.1s) doesn't repeat on every BrainPipeline
+    # run. Keyed by (resolved_private_path, resolved_public_path, key_size).
+    _KEY_CACHE: Dict[
+        Tuple[str, str, int],
+        Tuple[RSAPrivateKey, RSAPublicKey, "KeyMetadata"],
+    ] = {}
+    _CACHE_LOCK: threading.Lock = threading.Lock()
+
     def __init__(
         self,
         private_key_path: Optional[str] = None,
@@ -426,8 +442,16 @@ class RSAKeyManager:
         """
         _private_path = private_key_path or os.getenv("FIXOPS_RSA_PRIVATE_KEY_PATH") or ""
         _public_path = public_key_path or os.getenv("FIXOPS_RSA_PUBLIC_KEY_PATH") or ""
-        self.private_key_path: Path = Path(_private_path) if _private_path else Path()
-        self.public_key_path: Path = Path(_public_path) if _public_path else Path()
+        # When no override is supplied, fall back to <repo>/data/keys/rsa_*.pem
+        # so the keypair is persisted across pipeline runs (eliminates the
+        # 2.1s RSA-4096 keygen that fired every Brain Pipeline invocation
+        # because both env vars were unset).
+        if not _private_path:
+            _private_path = str(self._DEFAULT_KEY_DIR / self._DEFAULT_PRIVATE_KEY_FILENAME)
+        if not _public_path:
+            _public_path = str(self._DEFAULT_KEY_DIR / self._DEFAULT_PUBLIC_KEY_FILENAME)
+        self.private_key_path: Path = Path(_private_path)
+        self.public_key_path: Path = Path(_public_path)
 
         env_key_size = os.getenv("FIXOPS_RSA_KEY_SIZE")
         if env_key_size:
@@ -511,14 +535,57 @@ class RSAKeyManager:
     # Key lifecycle
     # ------------------------------------------------------------------
 
+    def _cache_key(self) -> Tuple[str, str, int]:
+        """Return the class-cache key for this manager's path/size combination."""
+        return (str(self.private_key_path), str(self.public_key_path), self.key_size)
+
+    def _populate_class_cache(self) -> None:
+        """Store the current keypair + metadata in the class-level cache."""
+        if self._private_key is None or self._public_key is None or self._metadata is None:
+            return
+        with RSAKeyManager._CACHE_LOCK:
+            RSAKeyManager._KEY_CACHE[self._cache_key()] = (
+                self._private_key,
+                self._public_key,
+                self._metadata,
+            )
+
+    def _restore_from_class_cache(self) -> bool:
+        """Restore key material from the class-level cache. Returns True on hit."""
+        with RSAKeyManager._CACHE_LOCK:
+            cached = RSAKeyManager._KEY_CACHE.get(self._cache_key())
+        if cached is None:
+            return False
+        self._private_key, self._public_key, self._metadata = cached
+        return True
+
     def _load_or_generate_keys(self) -> None:
-        """Load keys from disk or generate an ephemeral pair."""
+        """Load keys from cache → disk → generate (and persist) as needed.
+
+        Order of resolution:
+          1. Class-level in-process cache (zero cost — survives across instances).
+          2. Disk PEM at ``self.private_key_path`` or ``self.public_key_path``.
+          3. Fresh keypair generation; the result is persisted to the configured
+             path with 0600 permissions so subsequent process starts skip step 3.
+        """
+        # 1. In-process cache — fastest path. Eliminates repeat keygen across
+        #    Brain Pipeline runs in the same process.
+        if self._restore_from_class_cache():
+            return
+
+        # 2. On-disk PEM (env override or the project-rooted default).
         if self._path_is_valid_file(self.private_key_path):
             self._load_private_key()
         elif self._path_is_valid_file(self.public_key_path):
             self._load_public_key()
         else:
+            # 3. Fresh generation — the only path that pays the ~2.1s RSA-4096
+            #    cost. _generate_key_pair persists to disk so this only runs
+            #    once per host (or env-overridden path).
             self._generate_key_pair()
+
+        # Cache the resolved key material for the rest of this process.
+        self._populate_class_cache()
 
     def _load_private_key(self) -> None:
         """Load RSA private key from PEM file.
@@ -603,7 +670,9 @@ class RSAKeyManager:
         if not str(self.private_key_path) or str(self.private_key_path) == ".":
             return
         try:
-            self.private_key_path.parent.mkdir(parents=True, exist_ok=True)
+            key_dir = self.private_key_path.parent
+            key_dir.mkdir(parents=True, exist_ok=True)
+            key_dir.chmod(0o700)
             pem_data = self._private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
