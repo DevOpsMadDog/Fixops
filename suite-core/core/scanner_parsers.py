@@ -2145,6 +2145,81 @@ class GitleaksScannerNormalizer(_Base):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 26b. pip-audit Parser (JSON — Python dependency CVE audit)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class PipAuditNormalizer(_Base):
+    """Parse pip-audit JSON output (`pip-audit --format json`).
+
+    pip-audit produces a top-level object with a ``dependencies`` array. Each
+    dependency entry has ``name``, ``version``, and a ``vulns`` list. Each
+    vuln carries ``id`` (GHSA or CVE), ``description``, ``fix_versions`` and
+    ``aliases`` (other identifiers — typically CVE↔GHSA).
+
+    Empty ``vulns`` arrays produce zero findings (clean dependency).
+    """
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:8192].decode("utf-8", errors="ignore")
+        # pip-audit signature: top-level "dependencies" array with name/version/vulns triplets
+        if '"dependencies"' in text and '"vulns"' in text and '"fix_versions"' in text:
+            return 0.97
+        if '"dependencies"' in text and '"vulns"' in text and '"aliases"' in text:
+            return 0.92
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        findings: list = []
+        parsed = _parse_json_safe(content)
+        if not parsed or not isinstance(parsed, dict):
+            return findings
+
+        deps = parsed.get("dependencies", [])
+        if not isinstance(deps, list):
+            return findings
+
+        for dep in deps:
+            if not isinstance(dep, dict):
+                continue
+            pkg = (dep.get("name") or "").strip()
+            ver = (dep.get("version") or "").strip()
+            for vuln in dep.get("vulns", []) or []:
+                if not isinstance(vuln, dict):
+                    continue
+                vid = (vuln.get("id") or "").strip()
+                aliases = vuln.get("aliases") or []
+                # Pick the first CVE we can find — id may be GHSA, aliases may carry CVE
+                all_ids = [vid] + [a for a in aliases if isinstance(a, str)]
+                cves = [i for i in all_ids if i.upper().startswith("CVE-")]
+                ghsas = [i for i in all_ids if i.upper().startswith("GHSA-")]
+                description = (vuln.get("description") or "").strip()
+                fix_versions = vuln.get("fix_versions") or []
+                if isinstance(fix_versions, str):
+                    fix_versions = [fix_versions]
+
+                if fix_versions:
+                    recommendation = f"Upgrade {pkg} to >= {fix_versions[0]}"
+                else:
+                    recommendation = f"No upstream fix released for {pkg} {ver}; mitigate via configuration"
+
+                title_id = vid or (cves[0] if cves else "pip-audit-finding")
+                findings.append(_make_finding(
+                    title=f"{title_id}: {pkg}@{ver}",
+                    description=description[:1000] if description else f"Vulnerable dependency {pkg}=={ver}",
+                    severity="high",  # pip-audit only reports known-exploitable CVEs/GHSAs
+                    source_tool="pip-audit",
+                    source_format_str="custom",
+                    rule_id=vid,
+                    cve_id=cves[0] if cves else None,
+                    package_name=pkg,
+                    package_version=ver,
+                    recommendation=recommendation,
+                    tags=([t for t in (cves[1:] + ghsas) if t and t != vid]) or [],
+                ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # 27. Claude Code Security Parser (JSON — AI SAST)
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -2296,6 +2371,9 @@ SCANNER_NORMALIZERS = {
     "claude_code_security": ClaudeCodeSecurityNormalizer,
     # Supply chain security
     "combobulator": CombobulatorNormalizer,
+    # Python deps CVE audit
+    "pip-audit": PipAuditNormalizer,
+    "pip_audit": PipAuditNormalizer,
 }
 
 
