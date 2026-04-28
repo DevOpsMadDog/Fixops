@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -1325,9 +1327,47 @@ class K8sSecurityEngine:
         return any(image_base.startswith(reg) for reg in trusted_registries)
 
     def _is_image_signed(self, image: str) -> bool:
-        # Stub: in production this would call cosign/notation verify
-        # Return False to surface unsigned images as findings
-        return False
+        """Query cosign to verify the image has a valid signature.
+
+        Returns False (unsigned) when:
+          - cosign binary is not installed (warns, degrades gracefully)
+          - cosign exits non-zero (no valid signature found)
+          - cosign times out (treated as unverifiable = unsigned)
+
+        Returns True only when cosign exits 0 (valid signature confirmed).
+        """
+        cosign_bin = shutil.which("cosign")
+        if cosign_bin is None:
+            logger.warning(
+                "cosign_binary_not_found",
+                image=image,
+                advice="install cosign for real signature verification",
+            )
+            return False  # conservative: treat as unsigned when cosign absent
+
+        try:
+            result = subprocess.run(
+                [cosign_bin, "verify", image],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if result.returncode == 0:
+                logger.info("cosign_verify_ok", image=image)
+                return True
+            logger.debug(
+                "cosign_verify_no_sig",
+                image=image,
+                returncode=result.returncode,
+                stderr=result.stderr[:300] if result.stderr else "",
+            )
+            return False
+        except subprocess.TimeoutExpired:
+            logger.warning("cosign_verify_timeout", image=image)
+            return False
+        except Exception as exc:  # pragma: no cover
+            logger.warning("cosign_verify_error", image=image, error=str(exc))
+            return False
 
     def _image_report_to_check_results(self, report: ImageSecurityReport) -> List[CheckResult]:
         results = []

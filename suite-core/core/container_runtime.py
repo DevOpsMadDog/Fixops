@@ -9,6 +9,8 @@ Competitive parity: Aqua Security, Prisma Cloud, Sysdig Secure, Snyk Container.
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
@@ -1110,6 +1112,60 @@ class CISBenchmarkChecker:
 
 
 # ---------------------------------------------------------------------------
+# Cosign shell-out helper
+# ---------------------------------------------------------------------------
+
+def _cosign_verify_image(
+    image_ref: str,
+    scheme: "SignatureScheme" = None,  # type: ignore[assignment]
+    timeout: int = 15,
+) -> Optional[bool]:
+    """Shell out to the cosign binary to verify an image signature.
+
+    Returns:
+      True   — cosign exited 0 (signature valid)
+      False  — cosign exited non-zero (signature invalid / not found)
+      None   — cosign binary not installed; caller should degrade gracefully
+
+    Never raises. Structured warnings are logged on failure so oncall
+    can diagnose without stack-trace noise in the API response.
+    """
+    cosign_bin = shutil.which("cosign")
+    if cosign_bin is None:
+        log.warning(
+            "cosign_binary_not_found",
+            image_ref=image_ref,
+            advice="install cosign (https://docs.sigstore.dev/cosign/installation) for real signature verification",
+        )
+        return None
+
+    cmd = [cosign_bin, "verify", image_ref]
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if result.returncode == 0:
+            log.info("cosign_verify_ok", image_ref=image_ref)
+            return True
+        log.warning(
+            "cosign_verify_failed",
+            image_ref=image_ref,
+            returncode=result.returncode,
+            stderr=result.stderr[:500] if result.stderr else "",
+        )
+        return False
+    except subprocess.TimeoutExpired:
+        log.warning("cosign_verify_timeout", image_ref=image_ref, timeout=timeout)
+        return False
+    except Exception as exc:  # pragma: no cover
+        log.warning("cosign_verify_error", image_ref=image_ref, error=str(exc))
+        return False
+
+
+# ---------------------------------------------------------------------------
 # Image Signing Verification
 # ---------------------------------------------------------------------------
 
@@ -1163,8 +1219,13 @@ class ImageSigningVerifier:
         signed_at = sig.get("signed_at") or signature_data.get("signed_at")
         sig_digest = sig.get("digest") or signature_data.get("digest")
 
-        # Simulate verification: in production, shell out to cosign/notary
-        verified = bool(signer and sig_digest)
+        # Real cosign/notation verify shell-out.
+        # If cosign binary is present, delegate to it; else fall back to
+        # structural check (signer + digest present) with a logged warning.
+        verified = _cosign_verify_image(image_ref, scheme=scheme)
+        if verified is None:
+            # cosign not installed — degrade gracefully with structural check
+            verified = bool(signer and sig_digest)
 
         result = SignatureVerificationResult(
             image_ref=image_ref,
