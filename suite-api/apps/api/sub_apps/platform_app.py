@@ -925,6 +925,13 @@ def register_platform_routers(
         _logger.warning("council_enhanced_router not available: %s", exc)
 
     try:
+        from apps.api.llm_council_router import router as llm_council_router  # noqa: PLC0415
+        app.include_router(llm_council_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted LLM Council Status router at /api/v1/llm/council/status")
+    except ImportError as exc:
+        _logger.warning("llm_council_router not available: %s", exc)
+
+    try:
         from apps.api.workflow_engine_router import router as workflow_engine_router  # noqa: PLC0415
         app.include_router(workflow_engine_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Workflow Engine router")

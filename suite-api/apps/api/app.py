@@ -5182,6 +5182,46 @@ def create_app() -> FastAPI:
             _logger.info("All %d critical route prefixes verified OK", len(critical))
 
     # ------------------------------------------------------------------
+    # LLM Council composition check — warn if < 2 providers configured
+    # ------------------------------------------------------------------
+    @app.on_event("startup")
+    async def _check_llm_council_composition():
+        """Warn at startup if the LLM council cannot form consensus (< 2 members)."""
+        import os as _os
+
+        _PROVIDER_ENV_VARS = [
+            ("anthropic", ["ANTHROPIC_API_KEY", "FIXOPS_ANTHROPIC_KEY"]),
+            ("openai", ["OPENAI_API_KEY", "FIXOPS_OPENAI_KEY"]),
+            ("gemini", ["GOOGLE_API_KEY", "FIXOPS_GEMINI_KEY"]),
+            ("openrouter", ["OPENROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY"]),
+            ("mulerouter", ["MULEROUTER_API_KEY"]),
+        ]
+        # Self-hosted providers (Ollama/vLLM) count as configured — no key needed
+        self_hosted_count = 2  # ollama + vllm always available (use default URLs)
+        cloud_configured = [
+            name
+            for name, envs in _PROVIDER_ENV_VARS
+            if any(_os.getenv(e, "").strip() for e in envs)
+        ]
+        total_configured = len(cloud_configured) + self_hosted_count
+        if total_configured < 2:
+            _logger.warning(
+                "LLM council has %d member — disagreement-resolution disabled. "
+                "Add a second LLM key to .env to enable multi-LLM consensus. "
+                "Configured cloud providers: %s. "
+                "See docs/llm_council_setup.md for env-var names.",
+                total_configured,
+                cloud_configured or ["none"],
+            )
+        else:
+            _logger.info(
+                "LLM council: %d providers configured (%s + self-hosted). "
+                "Multi-LLM consensus enabled.",
+                total_configured,
+                ", ".join(cloud_configured) if cloud_configured else "none",
+            )
+
+    # ------------------------------------------------------------------
     # Connector Scheduler — PULL connectors on cron-based schedules
     # ------------------------------------------------------------------
     @app.on_event("startup")
