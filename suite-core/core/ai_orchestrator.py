@@ -34,6 +34,11 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
 _DEFAULT_DB = os.environ.get(
     "FIXOPS_ORCHESTRATOR_DB",
     str(Path(os.environ.get("FIXOPS_DATA_DIR", "data")) / "ai_orchestrator.db"),
@@ -332,6 +337,17 @@ class AIOrchestrator:
             self._update_task_result(task_id, error_msg, TaskStatus.FAILED)
             task.result = error_msg
             task.status = TaskStatus.FAILED
+
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("ai_orchestrator.task_completed", {
+                    "task_id": task_id,
+                    "role": task.role.value,
+                    "status": task.status.value,
+                    "org_id": task.org_id,
+                })
+            except Exception:  # noqa: BLE001
+                pass
 
         return task
 

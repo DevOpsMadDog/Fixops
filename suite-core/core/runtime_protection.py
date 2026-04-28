@@ -44,12 +44,17 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from threading import Lock
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import structlog
 from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -776,6 +781,19 @@ class HostRuntimeEngine:
             self._conn.commit()
         logger.debug("edr.event.ingested", event_id=event.id,
                      event_type=event.event_type.value, host=event.source_host)
+
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("runtime_protection.event_ingested", {
+                    "event_id": event.id,
+                    "event_type": event.event_type.value,
+                    "source_host": event.source_host,
+                    "threat_level": event.threat_level.value,
+                    "org_id": event.org_id,
+                })
+            except Exception:  # noqa: BLE001
+                pass
+
         return event
 
     def evaluate_policies(self, event: RuntimeEvent, org_id: str) -> List[RuntimeAlert]:
@@ -813,6 +831,18 @@ class HostRuntimeEngine:
                 logger.warning("edr.alert.generated", policy=policy.name,
                                event_id=event.id, host=event.source_host,
                                threat=threat_level)
+
+        if alerts and _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("runtime_protection.alerts_generated", {
+                    "event_id": event.id,
+                    "org_id": org_id,
+                    "alert_count": len(alerts),
+                    "threat_levels": [a.threat_level.value for a in alerts],
+                })
+            except Exception:  # noqa: BLE001
+                pass
+
         return alerts
 
     def create_policy(self, policy: RuntimePolicy) -> RuntimePolicy:

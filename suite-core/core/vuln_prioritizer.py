@@ -32,6 +32,11 @@ from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "vuln_prioritizer.db")
 
 # EPSS API endpoint (FIRST.org public API — no auth required)
@@ -807,6 +812,20 @@ class VulnPrioritizer:
             )
 
             self._persist_vuln(vuln)
+
+            if _get_tg_bus is not None:
+                try:
+                    _get_tg_bus().emit("vuln_prioritizer.vuln_upserted", {
+                        "finding_id": finding_id,
+                        "asset_id": asset_id,
+                        "cve_id": cve_id,
+                        "risk_bucket": bucket.value,
+                        "composite_score": score,
+                        "org_id": _org,
+                    })
+                except Exception:  # noqa: BLE001
+                    pass
+
             return vuln
 
     def _persist_vuln(self, v: PrioritizedVuln) -> None:

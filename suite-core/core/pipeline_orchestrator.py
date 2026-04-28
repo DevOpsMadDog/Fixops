@@ -34,12 +34,17 @@ import json
 import logging
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
 
 
 # ============================================================================
@@ -345,6 +350,19 @@ class PipelineOrchestrator:
             f"Finding {finding_id} processed through pipeline "
             f"in {total_duration_ms:.2f}ms"
         )
+
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("pipeline_orchestrator.finding_processed", {
+                    "finding_id": finding_id,
+                    "source": source,
+                    "duration_ms": round(total_duration_ms, 2),
+                    "stages_completed": len(state.completed_stages),
+                    "stages_skipped": len(state.skipped_stages),
+                    "errors": len(state.processing_errors),
+                })
+            except Exception:  # noqa: BLE001
+                pass
 
         return state.final_finding
 
