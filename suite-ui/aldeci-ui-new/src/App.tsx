@@ -794,7 +794,7 @@ export default function App() {
 
             {/* DLP & API Abuse Detection */}
             <Route path="/dlp" element={<DLPDashboard />} />
-            <Route path="/api-abuse" element={<APIAbuseDashboard />} />
+            <Route path="/api-abuse" element={<Navigate to="/asset-graph?tab=api-abuse" replace />} />
 
             {/* Crypto Key, Certificate, Privilege Escalation, Security Automation */}
             <Route path="/crypto-keys" element={<CryptoKeyDashboard />} />
@@ -829,7 +829,7 @@ export default function App() {
             <Route path="/secrets-rotation" element={<SecretsRotation />} />
             <Route path="/security-awareness" element={<SecurityAwareness />} />
             <Route path="/supply-chain" element={<SupplyChainSecurity />} />
-            <Route path="/zero-trust" element={<ZeroTrustDashboard />} />
+            <Route path="/zero-trust" element={<Navigate to="/asset-graph?tab=zero-trust" replace />} />
             <Route path="/threat-modeling" element={<ThreatModeling />} />
             <Route path="/attack-paths" element={<AttackPathAnalysis />} />
             <Route path="/incident-timeline" element={<IncidentTimeline />} />
@@ -1044,7 +1044,7 @@ export default function App() {
 
             {/* Wave 29 domain dashboards */}
             <Route path="/sspm" element={<SaasSecurityPostureDashboard />} />
-            <Route path="/api-inventory" element={<APIInventoryDashboard />} />
+            <Route path="/api-inventory" element={<Navigate to="/asset-graph?tab=api-inventory" replace />} />
             <Route path="/threat-vectors" element={<ThreatVectorDashboard />} />
             <Route path="/awareness-campaigns" element={<AwarenessCampaignDashboard />} />
             <Route path="/risk-treatment" element={<RiskTreatmentDashboard />} />
@@ -1065,7 +1065,7 @@ export default function App() {
             <Route path="/privacy-impact" element={<PrivacyImpactDashboard />} />
             <Route path="/threat-indicators" element={<ThreatIndicatorDashboard />} />
             <Route path="/ransomware-protection" element={<RansomwareProtectionDashboard />} />
-            <Route path="/access-anomaly" element={<AccessAnomalyDashboard />} />
+            <Route path="/access-anomaly" element={<Navigate to="/asset-graph?tab=access-anomaly" replace />} />
             <Route path="/training-effectiveness" element={<TrainingEffectivenessDashboard />} />
             <Route path="/cost-optimization" element={<CloudCostOptimizationDashboard />} />
             <Route path="/competitive-comparison" element={<CompetitiveComparisonPage />} />
@@ -1141,7 +1141,7 @@ export default function App() {
             <Route path="/compliance-workflows" element={<ComplianceWorkflowDashboard />} />
             <Route path="/threat-landscape" element={<ThreatLandscapeDashboard />} />
             <Route path="/posture-trends" element={<PostureTrendsDashboard />} />
-            <Route path="/access-governance" element={<AccessGovernanceDashboard />} />
+            <Route path="/access-governance" element={<Navigate to="/asset-graph?tab=access-governance" replace />} />
             <Route path="/network-threats" element={<NetworkThreatsDashboard />} />
             <Route path="/incident-kb" element={<IncidentKBDashboard />} />
 

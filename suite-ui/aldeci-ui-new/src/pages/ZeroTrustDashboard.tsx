@@ -1,3 +1,5 @@
+// FOLDED into AssetGraph hero 2026-04-27 — access via /asset-graph?tab=zero-trust
+// Wave 3 Phase 3 UX consolidation fold (target: 30 screens)
 /**
  * Zero Trust Dashboard - Live API
  * Route: /zero-trust

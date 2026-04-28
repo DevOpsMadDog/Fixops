@@ -1,3 +1,5 @@
+// FOLDED into AssetGraph hero 2026-04-27 — access via /asset-graph?tab=access-anomaly
+// Wave 3 Phase 3 UX consolidation fold (target: 30 screens)
 /**
  * Access Anomaly - Live API
  * API: GET /api/v1/access-anomaly/anomalies

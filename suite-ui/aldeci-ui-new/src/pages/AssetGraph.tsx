@@ -36,7 +36,9 @@ import {
   Layers,
   Link2,
   ListChecks,
+  Lock,
   Network,
+  Users,
   Package,
   RefreshCw,
   Search,
@@ -78,6 +80,12 @@ const IoTSecurityDashboard = lazy(() => import("@/pages/IoTSecurityDashboard"));
 const ApplicationRiskDashboard = lazy(() => import("@/pages/ApplicationRiskDashboard"));
 // P4 fold-in — SecurityToolInventoryDashboard → AssetGraph hero "tool-inventory" tab
 const SecurityToolInventoryDashboard = lazy(() => import("@/pages/SecurityToolInventoryDashboard"));
+// Wave 3 Phase 3 fold-ins (2026-04-27)
+const ZeroTrustDashboard = lazy(() => import("@/pages/ZeroTrustDashboard"));
+const AccessAnomalyDashboard = lazy(() => import("@/pages/AccessAnomalyDashboard"));
+const AccessGovernanceDashboard = lazy(() => import("@/pages/AccessGovernanceDashboard"));
+const APIAbuseDashboard = lazy(() => import("@/pages/APIAbuseDashboard"));
+const APIInventoryDashboard = lazy(() => import("@/pages/APIInventoryDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -130,7 +138,12 @@ type TabKey =
   | "tool-inventory"
   | "attack-surface"
   | "iot-security"
-  | "app-risk";
+  | "app-risk"
+  | "zero-trust"
+  | "access-anomaly"
+  | "access-governance"
+  | "api-abuse"
+  | "api-inventory";
 
 interface TabSpec {
   key: TabKey;
@@ -157,6 +170,11 @@ const TABS: TabSpec[] = [
   { key: "attack-surface", label: "Attack Surface", icon: Target,  endpoint: "/api/v1/attack-surface/exposures", description: "Wave 2 Phase 3 fold-in — external attack surface exposures: open ports, misconfigs, public endpoints, EASM findings. Folded from AttackSurfaceDashboard 2026-04-27." },
   { key: "iot-security",   label: "IoT Security",   icon: Cpu,     endpoint: "/api/v1/iot/devices",              description: "Wave 2 Phase 3 fold-in — IoT/OT device inventory, firmware risk, protocol exposure, network segmentation. Folded from IoTSecurityDashboard 2026-04-27." },
   { key: "app-risk",       label: "App Risk",       icon: Shield,  endpoint: "/api/v1/application-risk/summary", description: "Wave 2 Phase 3 fold-in — application risk scoring: top risky apps, component exposure, reachable vulns. Folded from ApplicationRiskDashboard 2026-04-27." },
+  { key: "zero-trust",     label: "Zero Trust",     icon: Lock,    endpoint: "/api/v1/zero-trust-policy/stats",  description: "Wave 3 Phase 3 fold-in — Zero Trust policy compliance: access events, policy violations, trust scores. Folded from ZeroTrustDashboard 2026-04-27." },
+  { key: "access-anomaly", label: "Access Anomaly", icon: AlertTriangle, endpoint: "/api/v1/access-anomaly/anomalies", description: "Wave 3 Phase 3 fold-in — access anomaly detection: unusual patterns, risk scores, behavioral baselines. Folded from AccessAnomalyDashboard 2026-04-27." },
+  { key: "access-governance", label: "Access Gov", icon: Users,   endpoint: "/api/v1/access-governance/summary", description: "Wave 3 Phase 3 fold-in — access governance: certifications, orphaned accounts, over-privileged identities. Folded from AccessGovernanceDashboard 2026-04-27." },
+  { key: "api-abuse",      label: "API Abuse",      icon: Zap,     endpoint: "/api/v1/api-abuse/detections",     description: "Wave 3 Phase 3 fold-in — API abuse detection: anomalous calls, rate violations, credential stuffing, data exfil. Folded from APIAbuseDashboard 2026-04-27." },
+  { key: "api-inventory",  label: "API Inventory",  icon: Network, endpoint: "/api/v1/api-inventory/apis",       description: "Wave 3 Phase 3 fold-in — full API inventory: discovered endpoints, auth posture, sensitive data exposure, risk scores. Folded from APIInventoryDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -423,6 +441,26 @@ export default function AssetGraph() {
             ) : t.key === "app-risk" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
                 <ApplicationRiskDashboard />
+              </Suspense>
+            ) : t.key === "zero-trust" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <ZeroTrustDashboard />
+              </Suspense>
+            ) : t.key === "access-anomaly" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <AccessAnomalyDashboard />
+              </Suspense>
+            ) : t.key === "access-governance" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <AccessGovernanceDashboard />
+              </Suspense>
+            ) : t.key === "api-abuse" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <APIAbuseDashboard />
+              </Suspense>
+            ) : t.key === "api-inventory" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <APIInventoryDashboard />
               </Suspense>
             ) : (
             <>

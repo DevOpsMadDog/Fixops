@@ -1,3 +1,5 @@
+// FOLDED into AssetGraph hero 2026-04-27 — access via /asset-graph?tab=api-abuse
+// Wave 3 Phase 3 UX consolidation fold (target: 30 screens)
 /**
  * API Abuse Dashboard
  *
@@ -183,8 +185,7 @@ export default function APIAbuseDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Endpoints"     value={stats.total_endpoints
-    setLoading(false);}     icon={Globe}         trend="flat" />
+        <KpiCard title="Total Endpoints"     value={stats.total_endpoints}     icon={Globe}         trend="flat" />
         <KpiCard title="Monitored"           value={stats.monitored_endpoints} icon={Eye}           trend="up"   className="border-blue-500/20" />
         <KpiCard title="Total Incidents"     value={stats.total_incidents}     icon={AlertTriangle} trend="down" className="border-amber-500/20" />
         <KpiCard title="Critical Incidents"  value={stats.critical_incidents}  icon={ShieldAlert}   trend="down" className="border-red-500/20" />
