@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any, TypeVar, cast
+
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
+
+from ..types import UNSET, Unset
+
+T = TypeVar("T", bound="DisableOfflineRequest")
+
+
+@_attrs_define
+class DisableOfflineRequest:
+    """
+    Attributes:
+        org_id (str | Unset):  Default: 'default'.
+        subscription_id (None | str | Unset):
+    """
+
+    org_id: str | Unset = "default"
+    subscription_id: None | str | Unset = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        org_id = self.org_id
+
+        subscription_id: None | str | Unset
+        if isinstance(self.subscription_id, Unset):
+            subscription_id = UNSET
+        else:
+            subscription_id = self.subscription_id
+
+        field_dict: dict[str, Any] = {}
+        field_dict.update(self.additional_properties)
+        field_dict.update({})
+        if org_id is not UNSET:
+            field_dict["org_id"] = org_id
+        if subscription_id is not UNSET:
+            field_dict["subscription_id"] = subscription_id
+
+        return field_dict
+
+    @classmethod
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        d = dict(src_dict)
+        org_id = d.pop("org_id", UNSET)
+
+        def _parse_subscription_id(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        subscription_id = _parse_subscription_id(d.pop("subscription_id", UNSET))
+
+        disable_offline_request = cls(
+            org_id=org_id,
+            subscription_id=subscription_id,
+        )
+
+        disable_offline_request.additional_properties = d
+        return disable_offline_request
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

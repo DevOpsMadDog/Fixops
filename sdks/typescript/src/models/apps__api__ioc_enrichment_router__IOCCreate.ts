@@ -1,0 +1,13 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+export type apps__api__ioc_enrichment_router__IOCCreate = {
+    value: string;
+    ioc_type?: string;
+    severity?: string;
+    source?: string;
+    tags?: Array<string>;
+    confidence?: number;
+};
+

@@ -1,0 +1,17 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+export type apps__api__aws_security_hub_router__ImportResponse = {
+    import_id: string;
+    org_id: string;
+    started_at: string;
+    completed_at: string;
+    status: string;
+    is_mock: boolean;
+    findings_count: number;
+    severity_breakdown: Record<string, number>;
+    findings: Array<Record<string, any>>;
+    error?: (string | null);
+};
+
