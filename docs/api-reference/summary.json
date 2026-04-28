@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-04-28T11:41:10Z",
+  "total_endpoints": 8910,
+  "per_subapp": {
+    "aspm": 1314,
+    "cspm": 1236,
+    "ctem": 1860,
+    "grc": 2064,
+    "platform": 2436
+  },
+  "generator": "scripts/gen_api_reference.py"
+}

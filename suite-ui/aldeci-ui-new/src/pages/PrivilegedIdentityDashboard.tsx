@@ -1,3 +1,4 @@
+// FOLDED into Admin hero (privileged-access tab) 2026-04-27 — preserve for git history
 /**
  * Privileged Identity Dashboard
  *

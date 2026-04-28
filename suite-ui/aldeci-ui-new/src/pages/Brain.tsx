@@ -74,6 +74,8 @@ const ReachabilityProofView = lazy(() => import("@/pages/validate/ReachabilityPr
 // P2 fold-ins (S13 MPTE Console, S17 FAIL Chaos)
 const MPTEConsole = lazy(() => import("@/pages/validate/MPTEConsole"));
 const FAILEngine = lazy(() => import("@/pages/validate/FAILEngine"));
+// P4 fold-in — IncidentTimelineDashboard → Brain hero "incident-timeline" tab
+const IncidentTimelineDashboard = lazy(() => import("@/pages/IncidentTimelineDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 12-step Brain Pipeline canon (from CTEM_PLUS_IDENTITY.md + brain_pipeline.py)
@@ -331,6 +333,7 @@ export default function Brain() {
           <TabsTrigger value="mpte">MPTE Console</TabsTrigger>
           <TabsTrigger value="fail">FAIL Chaos</TabsTrigger>
           <TabsTrigger value="learning-loop">Learning Loop</TabsTrigger>
+          <TabsTrigger value="incident-timeline">Incident Timeline</TabsTrigger>
         </TabsList>
 
         {/* ───────────────────────────────── PIPELINE TAB ─────────────────────── */}
@@ -662,6 +665,13 @@ export default function Brain() {
         {/* ─────────── LEARNING LOOP TAB (LLM Phase 1 closed-loop telemetry) ─────────── */}
         <TabsContent value="learning-loop" className="space-y-4">
           <LearningLoopPane />
+        </TabsContent>
+
+        {/* ─────────── INCIDENT TIMELINE TAB (P4 fold-in) ─────────── */}
+        <TabsContent value="incident-timeline" className="space-y-4">
+          <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>}>
+            <IncidentTimelineDashboard />
+          </Suspense>
         </TabsContent>
       </Tabs>
 

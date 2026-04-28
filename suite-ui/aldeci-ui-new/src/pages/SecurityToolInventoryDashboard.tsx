@@ -1,3 +1,4 @@
+// FOLDED into AssetGraph hero (tool-inventory tab) 2026-04-27 — preserve for git history
 /**
  * Security Tool Inventory Dashboard
  *
@@ -204,8 +205,7 @@ export default function SecurityToolInventoryDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Tools"      value={stats.total_tools
-    setLoading(false);}                              icon={Wrench}         trend="flat" />
+        <KpiCard title="Total Tools"      value={stats.total_tools}                              icon={Wrench}         trend="flat" />
         <KpiCard title="Active"           value={stats.active_tools}                             icon={CheckCircle}    trend="up"   className="border-green-500/20" />
         <KpiCard title="Annual Cost"      value={`$${(stats.total_cost_annual / 1000).toFixed(0)}K`} icon={DollarSign} trend="flat" className="border-amber-500/20" />
         <KpiCard title="Avg Coverage"     value={`${stats.coverage_avg}%`}                       icon={BarChart2}      trend="up"   className="border-blue-500/20" />

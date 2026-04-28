@@ -1,3 +1,4 @@
+// FOLDED into Compliance hero (posture-reports tab) 2026-04-27 — preserve for git history
 /**
  * Posture Reporting Dashboard
  *
@@ -302,7 +303,7 @@ export default function PostureReportingDashboard() {
                         <td className="py-2 text-right text-zinc-500 font-mono">{m.benchmark_value}{m.unit}</td>
                       </tr>
                     ))
-          )}
+                  }
                   </tbody>
                 </table>
               </div>

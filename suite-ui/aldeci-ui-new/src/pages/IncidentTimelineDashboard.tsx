@@ -1,3 +1,4 @@
+// FOLDED into Brain hero (incident-timeline tab) 2026-04-27 — preserve for git history
 /**
  * Incident Timeline Dashboard
  *

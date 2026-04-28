@@ -43,6 +43,7 @@ import {
   Shield,
   ShieldCheck,
   Target,
+  Wrench,
   X,
   Zap,
 } from "lucide-react";
@@ -70,6 +71,8 @@ const UpgradePathExplorer = lazy(() => import("@/pages/UpgradePathExplorer"));
 const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
 // P3 fold-in — ServiceCatalogDashboard → AssetGraph hero "catalog" tab
 const ServiceCatalogDashboard = lazy(() => import("@/pages/ServiceCatalogDashboard"));
+// P4 fold-in — SecurityToolInventoryDashboard → AssetGraph hero "tool-inventory" tab
+const SecurityToolInventoryDashboard = lazy(() => import("@/pages/SecurityToolInventoryDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -118,7 +121,8 @@ type TabKey =
   | "attack-paths"
   | "sbom"
   | "upgrade-paths"
-  | "catalog";
+  | "catalog"
+  | "tool-inventory";
 
 interface TabSpec {
   key: TabKey;
@@ -141,6 +145,7 @@ const TABS: TabSpec[] = [
   { key: "sbom",         label: "SBOM",         icon: Package, endpoint: "/api/v1/sbom", description: "P1 Wave 2 (S25) — components, SLSA attestations, propagation tracking. Provenance graph for every artifact." },
   { key: "upgrade-paths", label: "Upgrade Paths", icon: ArrowUpCircle, endpoint: "/api/v1/components/upgrade-paths", description: "P2 fold-in (S21) — safe-upgrade resolver per pURL. Shows next-secure version, breaking-change risk, and dependency-mapping impact." },
   { key: "catalog", label: "Service Catalog", icon: Package, endpoint: "/api/v1/service-catalog/services", description: "P3 fold-in — security service catalog with SLA tracking, request management, and availability monitoring. Folded from ServiceCatalogDashboard 2026-04-27." },
+  { key: "tool-inventory", label: "Tool Inventory", icon: Wrench, endpoint: "/api/v1/tool-inventory/stats", description: "P4 fold-in — security tool portfolio: coverage, cost, effectiveness, and utilization tracking across all deployed tools. Folded from SecurityToolInventoryDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -391,6 +396,10 @@ export default function AssetGraph() {
             ) : t.key === "catalog" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
                 <ServiceCatalogDashboard />
+              </Suspense>
+            ) : t.key === "tool-inventory" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <SecurityToolInventoryDashboard />
               </Suspense>
             ) : (
             <>

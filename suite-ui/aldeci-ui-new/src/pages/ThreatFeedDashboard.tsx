@@ -1,3 +1,4 @@
+// FOLDED into Issues hero (threat-feed tab) 2026-04-27 — preserve for git history
 /**
  * Threat Feed Dashboard
  *

@@ -884,7 +884,7 @@ export default function App() {
             <Route path="/vuln-scanner-mgmt" element={<VulnerabilityScannerPage />} />
             <Route path="/security-posture" element={<SecurityPostureDashboard />} />
             <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/threat-feeds" element={<ThreatFeedDashboard />} />
+            <Route path="/threat-feeds" element={<Navigate to="/issues?tab=threat-feed" replace />} />
             <Route path="/cwpp" element={<CWPPDashboard />} />
             <Route path="/digital-forensics" element={<DigitalForensicsDashboard />} />
             <Route path="/grc-assessment" element={<GRCAssessment />} />
@@ -898,7 +898,7 @@ export default function App() {
             <Route path="/devsecops" element={<DevSecOpsDashboard />} />
             <Route path="/vuln-trends" element={<VulnTrendDashboard />} />
             <Route path="/config-benchmark" element={<ConfigBenchmarkDashboard />} />
-            <Route path="/incident-timeline-dashboard" element={<IncidentTimelineDashboard />} />
+            <Route path="/incident-timeline-dashboard" element={<Navigate to="/brain?tab=incident-timeline" replace />} />
             <Route path="/security-metrics-live" element={<SecurityMetricsDashboard2 />} />
             <Route path="/zero-trust-policies" element={<ZeroTrustPolicyDashboard />} />
             <Route path="/threat-models" element={<ThreatModelDashboard />} />
@@ -976,7 +976,7 @@ export default function App() {
             <Route path="/browser-security" element={<BrowserSecurityDashboard />} />
             <Route path="/data-exfiltration" element={<DataExfiltrationDashboard />} />
             <Route path="/pki-management" element={<PKIManagementDashboard />} />
-            <Route path="/tool-inventory" element={<SecurityToolInventoryDashboard />} />
+            <Route path="/tool-inventory" element={<Navigate to="/assets?tab=tool-inventory" replace />} />
 
             {/* Wave 21 domain dashboards */}
             <Route path="/firmware-security" element={<FirmwareSecurityDashboard />} />
@@ -1089,9 +1089,9 @@ export default function App() {
             <Route path="/vuln-intel-fusion" element={<Navigate to="/issues?tab=vuln-intel-fusion" replace />} />
 
             {/* Wave 39 domain dashboards */}
-            <Route path="/posture-reports" element={<PostureReportingDashboard />} />
+            <Route path="/posture-reports" element={<Navigate to="/compliance?tab=posture-reports" replace />} />
             <Route path="/network-anomaly" element={<NetworkAnomalyDashboard />} />
-            <Route path="/privileged-identity" element={<PrivilegedIdentityDashboard />} />
+            <Route path="/privileged-identity" element={<Navigate to="/admin?tab=privileged-access" replace />} />
             <Route path="/hunting-automation" element={<HuntingAutomationDashboard />} />
             {/* P3 fold 2026-04-27 — ServiceCatalogDashboard folded into /assets#catalog */}
             <Route path="/service-catalog" element={<Navigate to="/assets?tab=catalog" replace />} />

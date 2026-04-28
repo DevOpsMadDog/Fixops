@@ -114,6 +114,8 @@ const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard")
 const RiskQuantDashboard = lazy(() => import("@/pages/RiskQuantDashboard"));
 const TprmExchangeDashboard = lazy(() => import("@/pages/TprmExchangeDashboard"));
 const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
+// P4 fold-in — PostureReportingDashboard → Compliance hero "posture-reports" tab
+const PostureReportingDashboard = lazy(() => import("@/pages/PostureReportingDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Frameworks canon (NIST 800-53 / ISO 27001 / SOC2 / HIPAA / PCI-DSS / FedRAMP / SCIF)
@@ -494,6 +496,9 @@ export default function Compliance() {
           </TabsTrigger>
           <TabsTrigger value="scorecard" className="flex items-center gap-1.5">
             <Award className="h-3.5 w-3.5" />Scorecard
+          </TabsTrigger>
+          <TabsTrigger value="posture-reports" className="flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5" />Posture Reports
           </TabsTrigger>
         </TabsList>
 
@@ -1031,6 +1036,11 @@ export default function Compliance() {
         <TabsContent value="scorecard" className="space-y-4">
           <ScorecardPane />
         </TabsContent>
+
+        {/* ─────────── POSTURE REPORTS TAB (P4 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="posture-reports" className="space-y-4">
+          <PostureReportsPane />
+        </TabsContent>
       </Tabs>
     </motion.div>
   );
@@ -1058,6 +1068,19 @@ function TprmPane() {
   return (
     <Suspense fallback={<TabSkeleton />}>
       <TprmExchangeDashboard />
+    </Suspense>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PostureReportsPane — P4 fold-in 2026-04-27 (Posture Reports tab on Compliance hero)
+// Folds: PostureReportingDashboard → /api/v1/posture-reports/reports
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PostureReportsPane() {
+  return (
+    <Suspense fallback={<TabSkeleton />}>
+      <PostureReportingDashboard />
     </Suspense>
   );
 }

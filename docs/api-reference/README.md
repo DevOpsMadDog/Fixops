@@ -1,55 +1,97 @@
-# ALDECI API Reference — Wave A/B/C/D + Engine Routers
+# ALDECI API Reference
 
-_Auto-generated 2026-04-26._
+> **Generated:** 2026-04-28T11:41:10Z  
+> **Total endpoints documented:** 8910  
+> **Generator:** `scripts/gen_api_reference.py`
 
-**Total endpoints documented in this set: 124** (plus pre-existing endpoints documented in `../API_REFERENCE.md`)
+## Sub-app Endpoint Counts
 
-This directory contains per-router API reference docs for the four Multica delivery waves and the seven supporting engine routers.
+| Sub-app | Endpoints | File |
+|---------|-----------|------|
+| [ASPM](./aspm.md) | 1314 | `docs/api-reference/aspm.md` |
+| [CSPM](./cspm.md) | 1236 | `docs/api-reference/cspm.md` |
+| [CTEM](./ctem.md) | 1860 | `docs/api-reference/ctem.md` |
+| [GRC](./grc.md) | 2064 | `docs/api-reference/grc.md` |
+| [Platform](./platform.md) | 2436 | `docs/api-reference/platform.md` |
 
-## How to use
+**Total:** 8910 endpoints across 5 sub-apps
 
-1. Find your domain in the table below.
-2. Click into the per-router doc.
-3. Each endpoint has: HTTP method + path, auth requirement, request body type, success status, common 4xx/5xx codes, and a working `curl` example.
-4. UI integration: each doc lists the React `.tsx` page(s) that consume the endpoints.
+## Quickstart
 
-## Index
+```bash
+# Obtain an API token (dev mode)
+curl -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"<password>"}'
 
-| Doc | Endpoints | Source Router | Personas |
-|---|---|---|---|
-| [Wave A — Code & Architecture Intelligence](wave_a.md) | 17 | `suite-api/apps/api/wave_a_code_intel_router.py` | AppSec Engineer, Platform Engineer, Developer (IDE), Architect |
-| [Wave B — Findings, Risk & Scoring](wave_b.md) | 16 | `suite-api/apps/api/findings_wave_b_router.py` | AppSec Lead, SOC Analyst, Risk Manager |
-| [Wave C — System, Org, PBOM, Provenance & Admin](wave_c.md) | 21 | `suite-api/apps/api/wave_c_router.py` | Platform Admin, Compliance Lead, SecOps Engineer |
-| [Wave D — Connectors, Webhooks, EASM, Copilot & Policies](wave_d.md) | 20 | `suite-api/apps/api/wave_d_integrations_router.py` | Integration Engineer, AI Security Lead, Policy Author |
-| [Privilege Escalation Detector](privilege_escalation_detector.md) | 10 | `suite-api/apps/api/privilege_escalation_detector_router.py` | IAM Engineer, SOC Analyst |
-| [MITRE ATT&CK Coverage](mitre_attack_coverage.md) | 10 | `suite-api/apps/api/mitre_attack_coverage_router.py` | Detection Engineer, SOC Lead |
-| [DuckDB Cross-Domain Analytics](duckdb_analytics.md) | 9 | `suite-api/apps/api/duckdb_analytics_router.py` | Risk Analyst, Executive Reporting |
-| [Multi-Stage Verification](verification.md) | 4 | `suite-api/apps/api/verification_router.py` | Security Engineer, Compliance Lead |
-| [Intelligent Security Engine](intelligent_security.md) | 6 | `suite-api/apps/api/intelligent_security_router.py` | Security Analyst |
-| [GraphRAG](graphrag.md) | 8 | `suite-api/apps/api/graphrag_router.py` | Security Analyst, AI Engineer |
-| [Context Engine](context_engine.md) | 3 | `suite-api/apps/api/context_engine_router.py` | Risk Engineer |
-
-## Authentication (applies to all)
-
-```http
-X-API-Key: <your-api-key>
-X-Org-ID: <your-org-id>     # optional but recommended for multi-tenant
+# Use the token
+curl http://localhost:8000/api/v1/triage/findings \
+  -H "X-API-Key: <your-token>"
 ```
 
-Live OpenAPI spec: `GET /openapi.json` · Swagger UI: `GET /docs` · ReDoc: `GET /redoc`
+## Authentication Model
 
-## Wave Roadmap
+| Method | Header | Notes |
+|--------|--------|-------|
+| API Key | `X-API-Key: <token>` | Primary method for all API calls |
+| JWT Bearer | `Authorization: Bearer <jwt>` | Issued by `/api/v1/auth/token` |
+| SSO/SAML | Session cookie | Browser UI flows via `/api/v1/sso/` |
+| OAuth2 | `Authorization: Bearer <token>` | `/api/v1/oauth2/` endpoints |
 
-- **Wave A** — Code & Architecture intelligence (DCA, reachability, IDE, runtime).
-- **Wave B** — Finding lifecycle, scoring explainability, continuous SBOM, investigations.
-- **Wave C** — System / org tree / PBOM / provenance / changes / air-gap / admin / CSPM / rules / LLM cost-routing.
-- **Wave D** — Connectors, webhooks, EASM, NL copilot, AI exposure, AI Teammates, policies.
-- **Engine routers** — Standalone engines that ship endpoints independently of waves: privilege escalation, MITRE coverage, DuckDB analytics, verification, intelligent security, GraphRAG, context engine.
+### Scopes
 
-## Cross-references
+| Scope | Access Level |
+|-------|-------------|
+| `read:findings` | Read security findings, reports, dashboards |
+| `write:findings` | Create/update findings, trigger scans |
+| `admin:all` | Full admin access — user management, system config |
 
-- Top-level reference: [`../API_REFERENCE.md`](../API_REFERENCE.md)
-- v2 reference: [`../API_REFERENCE_v2.md`](../API_REFERENCE_v2.md)
-- Architecture: [`../ARCHITECTURE_v3.md`](../ARCHITECTURE_v3.md)
-- CTEM+ identity: [`../CTEM_PLUS_IDENTITY.md`](../CTEM_PLUS_IDENTITY.md)
-- Postman collection: [`../ALDECI_Postman_Collection.json`](../ALDECI_Postman_Collection.json)
+## Pagination Convention
+
+All list endpoints accept `?page=1&page_size=50` query parameters.
+Maximum `page_size` is 500. Cursor-based pagination available via `?cursor=<token>`.
+
+## Error Response Format
+
+```json
+{
+  "detail": "Human-readable error message",
+  "error_code": "MACHINE_READABLE_CODE",
+  "request_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+## Rate Limiting
+
+| Tier | Requests/min | Burst |
+|------|-------------|-------|
+| Starter | 60 | 10 |
+| Pro | 300 | 50 |
+| Enterprise | 1000 | 200 |
+
+Rate limit headers returned on every response:
+- `X-RateLimit-Limit` — requests allowed per window
+- `X-RateLimit-Remaining` — requests remaining
+- `X-RateLimit-Reset` — Unix timestamp when window resets
+
+## Sub-app Reference
+
+### [ASPM — Application Security Posture Management](./aspm.md)
+
+Endpoints covering the full application security lifecycle: SAST/DAST/IaC scanning, SBOM generation and re-evaluation, secret detection, software composition analysis, supply-chain risk, container security, vulnerability management, CI/CD gating, code intelligence, asset inventory, and autonomous remediation.
+
+### [CSPM — Cloud Security Posture Management](./cspm.md)
+
+Endpoints covering cloud posture across AWS/Azure/GCP: resource inventory, misconfiguration detection, CIS benchmark compliance, drift detection, network security (NDR/WAF/firewall), identity & access management, zero-trust enforcement, Kubernetes security, and cryptographic key lifecycle.
+
+### [CTEM — Continuous Threat Exposure Management](./ctem.md)
+
+Endpoints covering threat intelligence, attack path analysis, incident response, SOAR playbooks, breach simulation, phishing simulation, EDR/XDR integrations, SIEM connectors, threat hunting, MPTE orchestration, anomaly detection (ML/UEBA), and purple/red team management.
+
+### [GRC — Governance, Risk & Compliance](./grc.md)
+
+Endpoints covering compliance frameworks (SOC2/ISO27001/PCI-DSS/GDPR/FedRAMP), evidence collection and vault, risk register, policy engine, vendor risk management (TPRM), audit management, GRC workflows, KPI/OKR tracking, executive reporting, data classification, privacy, DLP, and security awareness.
+
+### [Platform — Auth / Tenancy / Integrations / Infra](./platform.md)
+
+Cross-cutting platform endpoints: authentication (JWT/SSO/SAML/OAuth2), user & team management, multi-tenant org hierarchy, admin controls, MCP gateway (650+ tools), TrustGraph knowledge store, Brain Pipeline ingestion, streaming/WebSocket events, webhook management, system health, analytics, DuckDB, and third-party integrations (Jira, Slack, ServiceNow, PagerDuty, n8n).
