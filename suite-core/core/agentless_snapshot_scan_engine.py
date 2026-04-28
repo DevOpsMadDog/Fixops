@@ -44,6 +44,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import re
 import sqlite3
 import threading
@@ -129,22 +130,53 @@ class SnapshotAdapter(Protocol):
 
 
 # ---------------------------------------------------------------------------
-# Mock adapter (v0 default)
+# No-credentials stub adapter
+# ---------------------------------------------------------------------------
+
+
+class _NoCredentialsAdapter:
+    """Returned when no cloud credentials are present.
+
+    Every method returns an empty result and logs a structured warning so the
+    engine surfaces ``status=needs_credentials`` to the caller rather than
+    producing any synthetic data.
+    """
+
+    def __init__(self, provider: str = "aws") -> None:
+        self._provider = provider
+
+    def list_snapshots(
+        self, org_id: str, provider: str, account_id: str
+    ) -> List[SnapshotRef]:
+        _logger.warning(
+            "agentless_snapshot_scan: no credentials for provider=%s org=%s "
+            "account=%s — configure AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY "
+            "or AZURE_CLIENT_ID/AZURE_CLIENT_SECRET/AZURE_TENANT_ID.",
+            provider,
+            org_id,
+            account_id,
+        )
+        return []
+
+    def fetch_snapshot(self, snapshot_id: str) -> SnapshotBlob:
+        return SnapshotBlob(snapshot_id=snapshot_id, files={}, os_family="unknown")
+
+    def release(self, snapshot_id: str) -> None:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Test/demo in-memory adapter (no fake bytes — safe fixture data only)
 # ---------------------------------------------------------------------------
 
 
 class MockAWSAdapter:
-    """Deterministic in-memory adapter used for v0 demos and tests.
+    """Deterministic in-memory adapter for unit tests and local demos.
 
-    Synthesises 2–3 fake snapshots per ``account_id`` with inline filesystem
-    manifests that intentionally contain one finding of each probe type so
-    the engine's scan logic can be exercised end-to-end without cloud access.
-
-    TODO(real-adapter): replace with ``AWSEBSAdapter`` that uses
-    ``boto3.client('ebs').list_snapshot_blocks`` + ``get_snapshot_block`` to
-    stream real snapshot blocks into ``SnapshotBlob.files``. Azure uses
-    ``azure-mgmt-compute`` + shared access URIs; GCP uses snapshot export jobs
-    to Cloud Storage.
+    Contains only safe fixture data that exercises all scan probes without
+    introducing any real or synthesised malware payloads.  The Log4Shell jar
+    entry uses real dpkg/status metadata (which the vulnerable-package probe
+    reads) instead of a fake binary blob.
     """
 
     _FIXTURES: Dict[str, Dict[str, bytes]] = {
@@ -171,7 +203,7 @@ class MockAWSAdapter:
                 b"-----END RSA PRIVATE KEY-----\n"
             ),
             "/home/dev/.npmrc": b"//registry.npmjs.org/:_authToken=npm_abcdefghijklmnopqrstuvwxyz123456\n",
-            "/opt/vulnerable/log4j.jar": b"PK\x03\x04log4j-core-2.14.1-fake-bytes",
+            # Vulnerable package detected via dpkg/status metadata — no fake binary blob.
             "/var/lib/dpkg/status": b"Package: log4j\nVersion: 2.14.1\n",
         },
     }
@@ -179,8 +211,6 @@ class MockAWSAdapter:
     def list_snapshots(
         self, org_id: str, provider: str, account_id: str
     ) -> List[SnapshotRef]:
-        # Synthesise deterministic snapshots keyed by account_id so multiple
-        # accounts in the same org get distinct snapshot_ids.
         now = datetime.now(timezone.utc).isoformat()
         count = 3 if account_id.endswith("prod") else 2
         refs: List[SnapshotRef] = []
@@ -200,9 +230,7 @@ class MockAWSAdapter:
         return refs
 
     def fetch_snapshot(self, snapshot_id: str) -> SnapshotBlob:
-        # The suffix after the last '-snap-' maps onto the fixture bucket.
-        fixture_key = "snap-" + snapshot_id.rsplit("-snap-", 1)[-1].lstrip("snap-") if "-snap-" in snapshot_id else "snap-0001"
-        # Simpler: just look at trailing 9 chars.
+        fixture_key = "snap-0001"
         for key in self._FIXTURES:
             if snapshot_id.endswith(key):
                 fixture_key = key
@@ -211,8 +239,61 @@ class MockAWSAdapter:
         return SnapshotBlob(snapshot_id=snapshot_id, files=files, os_family="linux")
 
     def release(self, snapshot_id: str) -> None:
-        # Real adapter would revoke access tokens / stop streaming sessions.
         return None
+
+
+# ---------------------------------------------------------------------------
+# Auto-select the best available adapter based on present credentials
+# ---------------------------------------------------------------------------
+
+
+def _build_default_adapter() -> SnapshotAdapter:
+    """Return the most capable adapter available at runtime.
+
+    Priority:
+    1. AWSEBSSnapshotConnector — when AWS credentials are present.
+    2. AzureDiskSnapshotConnector — when Azure credentials are present.
+    3. _NoCredentialsAdapter — when neither cloud is configured, returning
+       an empty list and a structured warning instead of fake data.
+
+    The MockAWSAdapter is NOT used as a default; it is only instantiated
+    directly in test code via explicit ``adapter=MockAWSAdapter()``.
+    """
+    # Attempt AWS first.
+    try:
+        from connectors.aws_ebs_snapshot_connector import (  # type: ignore
+            AWSEBSSnapshotConnector,
+            _aws_credentials_available,
+        )
+
+        if _aws_credentials_available():
+            _logger.info(
+                "agentless_snapshot_scan: using AWSEBSSnapshotConnector (credentials found)"
+            )
+            return AWSEBSSnapshotConnector()  # type: ignore[return-value]
+    except ImportError:
+        pass
+
+    # Attempt Azure second.
+    try:
+        from connectors.azure_disk_snapshot_connector import (  # type: ignore
+            AzureDiskSnapshotConnector,
+            _azure_credentials_available,
+        )
+
+        if _azure_credentials_available():
+            _logger.info(
+                "agentless_snapshot_scan: using AzureDiskSnapshotConnector (credentials found)"
+            )
+            return AzureDiskSnapshotConnector()  # type: ignore[return-value]
+    except ImportError:
+        pass
+
+    _logger.warning(
+        "agentless_snapshot_scan: no cloud credentials detected — "
+        "returning needs_credentials status. Configure AWS or Azure credentials."
+    )
+    return _NoCredentialsAdapter()
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +424,7 @@ class AgentlessSnapshotScanEngine:
         if db_path is None:
             db_path = str(Path(_DEFAULT_DB_DIR) / "agentless_snapshot_scan.db")
         self._db_path = db_path
-        self._adapter: SnapshotAdapter = adapter or MockAWSAdapter()
+        self._adapter: SnapshotAdapter = adapter if adapter is not None else _build_default_adapter()
         self._lock = threading.RLock()
         self._init_db()
 
@@ -850,5 +931,7 @@ __all__ = [
     "SnapshotBlob",
     "SnapshotAdapter",
     "MockAWSAdapter",
+    "_NoCredentialsAdapter",
+    "_build_default_adapter",
     "AgentlessSnapshotScanEngine",
 ]
