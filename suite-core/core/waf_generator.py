@@ -28,6 +28,47 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -1261,6 +1302,7 @@ class WAFRuleGenerator:
                     finding_id=finding.finding_id,
                     vuln_type=finding.vuln_type.value,
                     rule_count=len(rules))
+        _emit_event("waf.rules_generated", {"finding_id": finding.finding_id, "vuln_type": finding.vuln_type.value, "rule_count": len(rules)})
         return rules
 
     # ---- Virtual patching ----
@@ -1315,6 +1357,7 @@ class WAFRuleGenerator:
             self._rules[rule.rule_id] = rule
 
         logger.info("Generated virtual patch", cve_id=cve_id, rule_id=rule.rule_id)
+        _emit_event("waf.virtual_patch_generated", {"cve_id": cve_id, "rule_id": rule.rule_id, "endpoint": endpoint})
         return rule
 
     # ---- Rule store CRUD ----

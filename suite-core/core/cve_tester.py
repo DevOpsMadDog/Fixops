@@ -30,6 +30,47 @@ from core.verification_engine import (
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 # ── Verdict taxonomy ────────────────────────────────────────────────
 # Enterprise-grade 4-state verdict system.  Never conflate
@@ -1392,6 +1433,7 @@ class CVEVulnerabilityTester:
                         f"CVE test: {cve_id} on {target_url} - "
                         f"Vulnerable: {result.vulnerable}, Confidence: {result.confidence}"
                     )
+                    _emit_event("cve.test_completed", {"cve_id": cve_id, "target": target_url, "vulnerable": result.vulnerable, "confidence": result.confidence})
                 except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Failed to test {cve_id} on {target_url}: {e}")
                     results.append(
