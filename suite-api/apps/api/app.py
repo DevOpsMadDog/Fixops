@@ -7860,6 +7860,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.ml_vuln_prioritizer_router import router as ml_vuln_prioritizer_router
+        app.include_router(ml_vuln_prioritizer_router)
+        _logger.info("Mounted ML Vulnerability Prioritizer router at /api/v1/ml/vuln-prioritizer")
+    except ImportError:
+        pass
+
     # slack_notifier_router — moved to platform_app.py (Wave 5)
 
     # export_router — moved to platform_app.py (Wave 5)
