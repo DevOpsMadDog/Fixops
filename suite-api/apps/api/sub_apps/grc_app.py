@@ -1192,4 +1192,173 @@ def register_grc_routers(
     except ImportError:
         pass
 
+    # ------------------------------------------------------------------
+    # Wave-6 — loop-bound GRC entries (formerly in _evidence_routers /
+    # _extra_apps_routers loops in app.py, deferred from Waves 1-4)
+    # ------------------------------------------------------------------
+
+    # _evidence_routers (all read:evidence scope, /api/v1 prefix)
+
+    # Evidence — tamper-proof evidence chain (suite-evidence-risk/api/)
+    try:
+        from api.evidence_router import router as evidence_router  # noqa: PLC0415
+        app.include_router(evidence_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Evidence router (wave-6)")
+    except ImportError:
+        pass
+
+    # Risk — risk register and scoring (suite-evidence-risk/api/)
+    try:
+        from api.risk_router import router as risk_router_ext  # noqa: PLC0415
+        app.include_router(risk_router_ext, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Risk router (wave-6)")
+    except ImportError:
+        pass
+
+    # Graph — attack path / knowledge graph (suite-evidence-risk/api/)
+    try:
+        from api.graph_router import router as graph_router  # noqa: PLC0415
+        app.include_router(graph_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Graph router (wave-6)")
+    except ImportError:
+        pass
+
+    # Provenance — data lineage (suite-evidence-risk/api/)
+    try:
+        from api.provenance_router import router as provenance_router  # noqa: PLC0415
+        app.include_router(provenance_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Provenance router (wave-6)")
+    except ImportError:
+        pass
+
+    # Compliance Engine — control assessment (suite-evidence-risk/api/)
+    try:
+        from api.compliance_engine_router import router as compliance_engine_router  # noqa: PLC0415
+        app.include_router(compliance_engine_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Compliance Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # Business Context — asset business criticality (suite-evidence-risk/api/)
+    try:
+        from api.business_context import router as biz_ctx_router  # noqa: PLC0415
+        app.include_router(biz_ctx_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Business Context router (wave-6)")
+    except ImportError:
+        pass
+
+    # Business Context Enhanced (suite-evidence-risk/api/)
+    try:
+        from api.business_context_enhanced import router as biz_ctx_enhanced_router  # noqa: PLC0415
+        app.include_router(biz_ctx_enhanced_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Business Context Enhanced router (wave-6)")
+    except ImportError:
+        pass
+
+    # _extra_apps_routers GRC entries
+
+    # Compliance Planner (apps/api/)
+    try:
+        from apps.api.compliance_planner_router import router as compliance_planner_router  # noqa: PLC0415
+        app.include_router(compliance_planner_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Compliance Planner router (wave-6)")
+    except ImportError:
+        pass
+
+    # Evidence Collector (apps/api/)
+    try:
+        from apps.api.evidence_collector_router import router as evidence_collector_router  # noqa: PLC0415
+        app.include_router(evidence_collector_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Evidence Collector router (wave-6)")
+    except ImportError:
+        pass
+
+    # Exception Policy (apps/api/)
+    try:
+        from apps.api.exception_policy_router import router as exception_policy_router  # noqa: PLC0415
+        app.include_router(exception_policy_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Exception Policy router (wave-6)")
+    except ImportError:
+        pass
+
+    # Executive Report (apps/api/)
+    try:
+        from apps.api.executive_report_router import router as executive_report_router  # noqa: PLC0415
+        app.include_router(executive_report_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Executive Report router (wave-6)")
+    except ImportError:
+        pass
+
+    # Executive Security Reports (apps/api/)
+    try:
+        from apps.api.exec_security_reports_router import router as exec_security_reports_router  # noqa: PLC0415
+        app.include_router(exec_security_reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Executive Security Reports router (wave-6)")
+    except ImportError:
+        pass
+
+    # Risk Acceptance (apps/api/)
+    try:
+        from apps.api.risk_acceptance_router import router as risk_acceptance_router  # noqa: PLC0415
+        app.include_router(risk_acceptance_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Risk Acceptance router (wave-6)")
+    except ImportError:
+        pass
+
+    # Risk Quantifier (apps/api/)
+    try:
+        from apps.api.risk_quantifier_router import router as risk_quantifier_router  # noqa: PLC0415
+        app.include_router(risk_quantifier_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Risk Quantifier router (wave-6)")
+    except ImportError:
+        pass
+
+    # Security ROI (apps/api/)
+    try:
+        from apps.api.security_roi_router import router as security_roi_router  # noqa: PLC0415
+        app.include_router(security_roi_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Security ROI router (wave-6)")
+    except ImportError:
+        pass
+
+    # Vendor Scorecard (apps/api/)
+    try:
+        from apps.api.vendor_scorecard_router import router as vendor_scorecard_router  # noqa: PLC0415
+        app.include_router(vendor_scorecard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Vendor Scorecard router (wave-6)")
+    except ImportError:
+        pass
+
+    # Security Scorecard Engine (apps/api/)
+    try:
+        from apps.api.security_scorecard_engine_router import router as security_scorecard_engine_router  # noqa: PLC0415
+        app.include_router(security_scorecard_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Security Scorecard Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # Security Scorecard (apps/api/)
+    try:
+        from apps.api.security_scorecard_router import router as security_scorecard_router  # noqa: PLC0415
+        app.include_router(security_scorecard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Security Scorecard router (wave-6)")
+    except ImportError:
+        pass
+
+    # Regulatory Tracker Engine (apps/api/)
+    try:
+        from apps.api.regulatory_tracker_engine_router import router as regulatory_tracker_engine_router  # noqa: PLC0415
+        app.include_router(regulatory_tracker_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Regulatory Tracker Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # Questionnaire Engine (apps/api/)
+    try:
+        from apps.api.questionnaire_router import router as questionnaire_router  # noqa: PLC0415
+        app.include_router(questionnaire_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Questionnaire Engine router (wave-6)")
+    except ImportError:
+        pass
+
     _logger.info("GRC sub-app: all routers registered")

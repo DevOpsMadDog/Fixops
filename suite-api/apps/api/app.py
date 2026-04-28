@@ -3298,22 +3298,10 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Sandbox PoC Verifier router")
 
-    # Suite-Attack routers (offensive security) — require attack:execute scope
-    for _r, _name in [
-        (mpte_router, "MPTE"),
-        (micro_pentest_router, "Micro Pentest"),
-        (vuln_discovery_router, "Vulnerability Discovery"),
-        (mpte_orchestrator_router, "MPTE Orchestrator"),
-        (secrets_router, "Secrets Scanner"),
-    ]:
-        if _r:
-            app.include_router(
-                _r,
-                dependencies=[
-                    Depends(_verify_api_key),
-                    Depends(_require_scope("attack:execute")),
-                ],
-            )
+    # Suite-Attack routers (offensive security) — Wave-6: moved to
+    # suite-api/apps/api/sub_apps/ctem_app.py (register_ctem_routers wave-6 section).
+    # mpte_router, micro_pentest_router, vuln_discovery_router,
+    # mpte_orchestrator_router, secrets_router all registered there.
 
     # Suite-Feeds router (real-time vulnerability intelligence)
     if feeds_router:
@@ -3354,137 +3342,36 @@ def create_app() -> FastAPI:
     except ImportError as _prof_err:
         _logger.warning("Profiling metrics router not available: %s", _prof_err)
 
-    _core_routers = [
-        (nerve_center_router, "Nerve Center", None, "read:findings"),
-        (decisions_router, "Decisions", "/api/v1", "read:findings"),
-        (deduplication_router, "Deduplication", None, "write:findings"),
-        (smart_dedup_router, "Smart Dedup", None, "write:findings"),
-        (ml_router, "ML/MindsDB", None, "read:findings"),
-        (autofix_verify_router, "AutoFix Verification", None, "write:findings"),
-        (postfix_verify_router, "MPTE Post-Fix Verification", None, "write:findings"),
-        (mitre_mapper_router, "MITRE ATT&CK Mapper", None, "read:findings"),
-        (airgap_router, "Air-Gap Operations", None, "admin:all"),
-        (fuzzy_identity_router, "Fuzzy Identity", None, "read:findings"),
-        (exposure_case_router, "Exposure Case", None, "read:findings"),
-        (pipeline_router, "Pipeline", None, "read:findings"),
-        (copilot_router, "Copilot", None, "read:findings"),
-        (agents_router, "Agents", None, "read:findings"),
-        (predictions_router, "Predictions", None, "read:findings"),
-        (llm_router, "LLM", None, "read:findings"),
-        (algorithmic_router, "Algorithmic", None, "read:findings"),
-        (llm_monitor_router, "LLM Monitor", None, "read:findings"),
-        (llm_guard_router, "LLM Guard", None, "read:findings"),
-        (code_to_cloud_router, "Code-to-Cloud", None, "read:graph"),
-        (streaming_router, "SSE Streaming", None, "read:findings"),
-        (quantum_crypto_router, "Quantum Crypto", None, "admin:all"),
-        (zero_gravity_router, "Zero-Gravity Data", None, "admin:all"),
-        (single_agent_router, "AI Agent", None, "read:findings"),
-        (knowledge_graph_router, "Knowledge Graph", None, "read:graph"),
-        (vllm_router, "Self-Hosted LLM (Air-Gapped)", None, "admin:all"),
-        (mcp_protocol_router, "MCP Protocol", None, "read:findings"),
-        (self_learning_router, "Self-Learning", None, "read:findings"),
-        (llm_loop_metrics_router, "LLM Loop Telemetry", None, "read:findings"),
-        (developer_profiles_router, "Developer Risk Profiles", None, "read:findings"),
-        (supply_chain_router, "Supply Chain Security", None, "read:sbom"),
-        (causal_router, "Causal Inference", None, "read:findings"),
-        (gnn_router, "GNN Attack Paths", None, "read:graph"),
-        (monte_carlo_router, "Monte Carlo Risk Simulation", None, "read:findings"),
-        (runtime_router, "Runtime Protection", None, "read:findings"),
-        (threat_modeling_router, "Threat Modeling", None, "read:findings"),
-        (ai_code_guardian_router, "AI Code Guardian", None, "read:findings"),
-        (attack_surface_router, "Attack Surface Discovery", None, "read:findings"),
-        (attack_surface_manager_router, "Attack Surface Manager", None, "read:findings"),
-        (attack_surface_monitor_router, "Attack Surface Monitor", None, "read:findings"),
-    ]
-    for _r, _name, _prefix, _scope in _core_routers:
-        if _r:
-            kwargs: Dict[str, Any] = {
-                "dependencies": [
-                    Depends(_verify_api_key),
-                    Depends(_require_scope(_scope)),
-                ],
-            }
-            if _prefix:
-                kwargs["prefix"] = _prefix
-            app.include_router(_r, **kwargs)
-            _logger.info("Mounted %s router from suite-core", _name)
+    # _core_routers — Wave-6: all entries moved to sub-app registrars.
+    # ASPM entries (nerve_center, decisions, deduplication, smart_dedup,
+    #   autofix_verify, postfix_verify, mitre_mapper, supply_chain):
+    #   → suite-api/apps/api/sub_apps/aspm_app.py wave-6 section
+    # Platform/Brain entries (ml_router, airgap, fuzzy_identity, exposure_case,
+    #   pipeline, copilot, agents, predictions, llm, algorithmic, llm_monitor,
+    #   llm_guard, streaming, code_to_cloud, quantum_crypto, zero_gravity,
+    #   single_agent, knowledge_graph, vllm, mcp_protocol, self_learning,
+    #   llm_loop_metrics, developer_profiles):
+    #   → suite-api/apps/api/sub_apps/platform_app.py wave-6 section
+    # CTEM entries (causal, gnn, monte_carlo, runtime, threat_modeling,
+    #   ai_code_guardian, attack_surface, attack_surface_manager,
+    #   attack_surface_monitor):
+    #   → suite-api/apps/api/sub_apps/ctem_app.py wave-6 section
 
     # ── Suite-Attack — Offensive Security / SAST / DAST / CSPM / Fuzzer ───────
-    # -------------------------------------------------------------------
-    # Suite-Attack routers (additional offensive security engines)
-    # -------------------------------------------------------------------
-    _attack_extra_routers = [
-        (attack_sim_router, "Attack Simulation"),
-        (sast_router, "SAST"),
-        (container_router, "Container Security"),
-        (dast_router, "DAST"),
-        (dast_pentest_router, "DAST/Pentest OSS (ZAP+Nuclei)"),
-        (cspm_router, "CSPM"),
-        (api_fuzzer_router, "API Fuzzer"),
-        (malware_router, "Malware Analysis"),
-    ]
-    for _r, _name in _attack_extra_routers:
-        if _r:
-            app.include_router(
-                _r,
-                dependencies=[
-                    Depends(_verify_api_key),
-                    Depends(_require_scope("attack:execute")),
-                ],
-            )
-            _logger.info("Mounted %s router from suite-attack", _name)
+    # Wave-6: _attack_extra_routers moved to ctem_app.py wave-6 section.
+    # attack_sim, sast, container, dast, dast_pentest, cspm_router,
+    # api_fuzzer, malware all registered in register_ctem_routers wave-6.
 
     # ── Suite-Evidence-Risk — Compliance / Risk / Evidence / Graph ─────────────
-    # -------------------------------------------------------------------
-    # Suite-Evidence-Risk routers (compliance, risk, evidence, graph)
-    # -------------------------------------------------------------------
-    _evidence_routers = [
-        (evidence_router, "Evidence", "/api/v1"),
-        (risk_router_ext, "Risk", "/api/v1"),
-        (graph_router, "Graph", "/api/v1"),
-        (provenance_router, "Provenance", "/api/v1"),
-        (compliance_engine_router, "Compliance Engine", "/api/v1"),
-        (biz_ctx_router, "Business Context", "/api/v1"),
-        (biz_ctx_enhanced_router, "Business Context Enhanced", "/api/v1"),
-    ]
-    for _r, _name, _prefix in _evidence_routers:
-        if _r:
-            app.include_router(
-                _r,
-                prefix=_prefix,
-                dependencies=[
-                    Depends(_verify_api_key),
-                    Depends(_require_scope("read:evidence")),
-                ],
-            )
-            _logger.info("Mounted %s router from suite-evidence-risk", _name)
+    # Wave-6: _evidence_routers moved to grc_app.py wave-6 section.
+    # evidence, risk, graph, provenance, compliance_engine, biz_ctx,
+    # biz_ctx_enhanced all registered in register_grc_routers wave-6.
 
     # ── Suite-Integrations — External Tools / Webhooks / IaC / IDE / SIEM ─────
-    # -------------------------------------------------------------------
-    # Suite-Integrations routers (external tools, webhooks, IaC, IDE)
-    # -------------------------------------------------------------------
-    _integration_routers = [
-        (integrations_router_ext, "Integrations"),
-        (webhooks_router, "Webhooks"),
-        (iac_router, "IaC"),
-        (ide_router, "IDE"),
-        (siem_router, "SIEM"),
-        # Legacy mcp_router removed — superseded by MCP Auto-Discovery
-        # router (apps.api.mcp_router) which auto-generates tools from
-        # all FastAPI routes instead of 9 hard-coded definitions.
-        # Client management endpoints (/clients, /manifest, /config)
-        # are preserved via the new router's broader coverage.
-    ]
-    for _r, _name in _integration_routers:
-        if _r:
-            app.include_router(
-                _r,
-                dependencies=[
-                    Depends(_verify_api_key),
-                    Depends(_require_scope("write:integrations")),
-                ],
-            )
-            _logger.info("Mounted %s router from suite-integrations", _name)
+    # Wave-6: _integration_routers moved to platform_app.py wave-6 section.
+    # integrations, webhooks, iac, ide, siem all registered in
+    # register_platform_routers wave-6.
+    # Legacy mcp_router removed — superseded by MCP Auto-Discovery router.
 
     # Webhooks receiver — moved to platform_app.py (Wave 5)
 
@@ -3513,85 +3400,34 @@ def create_app() -> FastAPI:
     # -------------------------------------------------------------------
     # Additional apps/api routers (wired in this session)
     # -------------------------------------------------------------------
-    _extra_apps_routers = [
-        (analytics_dashboard_router, "Analytics Dashboard", "read:findings"),
-        (analytics_routes_router, "Analytics Routes", "read:findings"),
-        (apikey_router, "API Key Management", "admin:all"),
-        (asset_inventory_router, "Asset Inventory", "read:findings"),
-        (backup_router, "Backup", "admin:all"),
-        (backup_validator_router, "Backup DR Validator", "admin:all"),
-        (patch_manager_router, "Patch Management", "read:findings"),
-        (bulk_operations_router, "Bulk Operations", "write:findings"),
-        (changelog_router, "Changelog", "read:findings"),
-        (cicd_router, "CI/CD", "write:findings"),
-        (compliance_planner_router, "Compliance Planner", "read:evidence"),
-        (container_scanner_router, "Container Scanner", "read:findings"),
-        (cspm_engine_router, "CSPM Engine", "read:findings"),
-        (cspm_deep_router, "CSPM Deep Scan", "read:findings"),
-        (cspm_connector_router, "CSPM Connector (OSS family)", "read:findings"),
-        (privilege_escalation_detector_router, "Privilege Escalation Detector", "read:findings"),
-        (mitre_attack_coverage_router, "MITRE ATT&CK Coverage", "read:findings"),
-        (duckdb_analytics_router, "DuckDB Analytics", "read:findings"),
-        (verification_router, "Multi-Stage Verification", "attack:execute"),
-        (intelligent_security_router, "Intelligent Security Engine", "attack:execute"),
-        (graphrag_router, "GraphRAG", "read:findings"),
-        (context_engine_router, "Context Engine", "read:findings"),
-        (dashboard_builder_router, "Dashboard Builder", "read:findings"),
-        (developer_portal_router, "Developer Portal", "read:findings"),
-        (api_docs_router, "API Docs", "read:findings"),
-        (drift_router, "Drift", "read:findings"),
-        (evidence_collector_router, "Evidence Collector", "read:evidence"),
-        (exception_policy_router, "Exception Policy", "write:findings"),
-        (executive_report_router, "Executive Report", "read:evidence"),
-        (exec_security_reports_router, "Executive Security Reports", "read:evidence"),
-        (feed_registry_router, "Feed Registry", "read:feeds"),
-        (feed_manager_router, "Feed Manager", "read:feeds"),
-        (breach_response_router, "Breach Response", "write:findings"),
-        (fix_engine_router, "Fix Engine", "write:findings"),
-        (incident_response_router, "Incident Response", "write:findings"),
-        (integration_health_router, "Integration Health", "read:findings"),
-        (ip_reputation_router, "IP Reputation", "read:feeds"),
-        (metrics_aggregator_router, "Metrics Aggregator", "read:findings"),
-        (notification_router, "Notifications", "read:findings"),
-        (pentest_router, "Pentest", "attack:execute"),
-        (auto_pentest_router, "Auto Pentest", "attack:execute"),
-        (posture_router, "Posture", "read:findings"),
-        (posture_benchmark_router, "Posture Benchmark", "read:findings"),
-        (rasp_router, "RASP", "read:findings"),
-        (runtime_protection_router, "Runtime Protection", "read:findings"),
-        (pr_generator_router, "PR Generator", "write:findings"),
-        (prioritizer_router, "Prioritizer", "read:findings"),
-        (rate_limit_router, "Rate Limits", "admin:all"),
-        (tenant_rate_limiter_router, "Tenant Rate Limits", "admin:all"),
-        (retention_router, "Retention", "admin:all"),
-        (risk_acceptance_router, "Risk Acceptance", "write:findings"),
-        (risk_quantifier_router, "Risk Quantifier", "read:findings"),
-        (security_roi_router, "Security ROI", "read:findings"),
-        (sbom_router, "SBOM", "read:sbom"),
-        (secret_scanner_router, "Secret Scanner", "read:findings"),
-        (security_kb_router, "Security KB", "read:findings"),
-        (slack_bot_router, "Slack Bot", "write:integrations"),
-        (soc_automation_router, "SOC Automation", "write:findings"),
-        (system_health_router, "System Health", "admin:all"),
-        (tag_router, "Tags", "read:findings"),
-        (threat_hunting_router, "Threat Hunting", "read:findings"),
-        (user_analytics_router, "User Analytics", "read:findings"),
-        (questionnaire_router, "Questionnaire Engine", "read:findings"),
-        (security_scorecard_router, "Security Scorecard", "read:findings"),
-        (security_scorecard_engine_router, "Security Scorecard Engine", "read:findings"),
-        (regulatory_tracker_engine_router, "Regulatory Tracker Engine", "read:findings"),
-        (vendor_scorecard_router, "Vendor Scorecard", "read:findings"),
-        (versioning_router, "Versioning", "read:findings"),
-        (webhook_events_router, "Webhook Events", "read:findings"),
-        (workflow_engine_router, "Workflow Engine", "write:findings"),
-    ]
-    for _r, _name, _scope in _extra_apps_routers:
-        if _r:
-            app.include_router(
-                _r,
-                dependencies=[Depends(_verify_api_key), Depends(_require_scope(_scope))],
-            )
-            _logger.info("Mounted %s router", _name)
+    # ── Apps/API Domain Routers — Wave-6: all _extra_apps_routers entries
+    # moved to their respective sub-app registrars:
+    #
+    # ASPM (aspm_app.py wave-6): container_scanner, cicd, context_engine,
+    #   fix_engine, pr_generator, sbom, secret_scanner, bulk_operations,
+    #   asset_inventory, patch_manager, verification
+    #
+    # CSPM (cspm_app.py wave-6): cspm_engine, cspm_deep, cspm_connector,
+    #   privilege_escalation_detector
+    #
+    # CTEM (ctem_app.py wave-6): intelligent_security, mitre_attack_coverage,
+    #   pentest, auto_pentest, soc_automation, breach_response,
+    #   incident_response, threat_hunting, ip_reputation, security_kb
+    #
+    # GRC (grc_app.py wave-6): compliance_planner, evidence_collector,
+    #   exception_policy, executive_report, exec_security_reports,
+    #   risk_acceptance, risk_quantifier, security_roi, vendor_scorecard,
+    #   security_scorecard_engine, security_scorecard, regulatory_tracker_engine,
+    #   questionnaire
+    #
+    # Platform (platform_app.py wave-6): analytics_dashboard, analytics_routes,
+    #   apikey, backup, backup_validator, changelog, dashboard_builder,
+    #   developer_portal, api_docs, drift, feed_registry, feed_manager,
+    #   integration_health, metrics_aggregator, notification, posture,
+    #   posture_benchmark, rasp, runtime_protection, prioritizer, rate_limit,
+    #   tenant_rate_limiter, retention, slack_bot, system_health, tag,
+    #   threat_hunting (platform analytics), user_analytics, versioning,
+    #   webhook_events, workflow_engine, graphrag, duckdb_analytics
 
     # Public (unauthenticated) scorecard endpoint — no extra auth deps
     if security_scorecard_public_router:

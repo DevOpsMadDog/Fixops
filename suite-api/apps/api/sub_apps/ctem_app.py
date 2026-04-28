@@ -1148,4 +1148,267 @@ def register_ctem_routers(
     except ImportError:
         pass
 
+    # ------------------------------------------------------------------
+    # Wave-6 — loop-bound CTEM entries (formerly in _core_routers /
+    # _attack_extra_routers / _extra_apps_routers loops in app.py)
+    # ------------------------------------------------------------------
+
+    # _core_routers CTEM entries
+
+    # Causal Inference — root cause analysis (suite-core/api/)
+    try:
+        from api.causal_router import router as causal_router  # noqa: PLC0415
+        app.include_router(causal_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Causal Inference router (wave-6)")
+    except ImportError:
+        pass
+
+    # GNN Attack Paths — graph neural network attack prediction (suite-core/api/)
+    try:
+        from api.gnn_router import router as gnn_router  # noqa: PLC0415
+        app.include_router(gnn_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))])
+        _logger.info("Mounted GNN Attack Path router (wave-6)")
+    except ImportError:
+        pass
+
+    # Monte Carlo Risk Simulation — FAIR stochastic modeling (suite-core/api/)
+    try:
+        from api.monte_carlo_router import router as monte_carlo_router  # noqa: PLC0415
+        app.include_router(monte_carlo_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Monte Carlo Risk Simulation router (wave-6)")
+    except ImportError:
+        pass
+
+    # Runtime Protection — in-app firewall / RASP (suite-core/api/)
+    try:
+        from api.runtime_router import router as runtime_router  # noqa: PLC0415
+        app.include_router(runtime_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Runtime Protection router (wave-6)")
+    except ImportError:
+        pass
+
+    # Threat Modeling — STRIDE-based AI threat modeling (suite-core/api/)
+    try:
+        from api.threat_modeling_router import router as threat_modeling_router  # noqa: PLC0415
+        app.include_router(threat_modeling_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Threat Modeling router (wave-6)")
+    except ImportError:
+        pass
+
+    # AI Code Guardian — AI-generated code security (suite-core/api/)
+    try:
+        from api.ai_code_guardian_router import router as ai_code_guardian_router  # noqa: PLC0415
+        app.include_router(ai_code_guardian_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted AI Code Guardian router (wave-6)")
+    except ImportError:
+        pass
+
+    # Attack Surface Discovery — external asset monitoring (suite-core/api/)
+    try:
+        from api.attack_surface_router import router as attack_surface_router  # noqa: PLC0415
+        app.include_router(attack_surface_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Attack Surface Discovery router (wave-6)")
+    except ImportError:
+        pass
+
+    # Attack Surface Manager — full ASM engine (apps/api/)
+    try:
+        from apps.api.attack_surface_manager_router import router as attack_surface_manager_router  # noqa: PLC0415
+        app.include_router(attack_surface_manager_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Attack Surface Manager router (wave-6)")
+    except ImportError:
+        pass
+
+    # Attack Surface Monitor — continuous monitoring (apps/api/)
+    try:
+        from apps.api.attack_surface_monitor_router import router as attack_surface_monitor_router  # noqa: PLC0415
+        app.include_router(attack_surface_monitor_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Attack Surface Monitor router (wave-6)")
+    except ImportError:
+        pass
+
+    # _attack_extra_routers (all attack:execute scope) — formerly loop-bound
+
+    # Attack Simulation (suite-attack/api/)
+    try:
+        from api.attack_sim_router import router as attack_sim_router  # noqa: PLC0415
+        app.include_router(attack_sim_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Attack Simulation router (wave-6)")
+    except ImportError:
+        pass
+
+    # SAST (suite-attack/api/)
+    try:
+        from api.sast_router import router as sast_router  # noqa: PLC0415
+        app.include_router(sast_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted SAST router (wave-6)")
+    except ImportError:
+        pass
+
+    # Container Security Scanner (suite-attack/api/)
+    try:
+        from api.container_router import router as container_router  # noqa: PLC0415
+        app.include_router(container_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Container Security router (wave-6)")
+    except ImportError:
+        pass
+
+    # DAST (suite-attack/api/)
+    try:
+        from api.dast_router import router as dast_router  # noqa: PLC0415
+        app.include_router(dast_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted DAST router (wave-6)")
+    except ImportError:
+        pass
+
+    # DAST Pentest OSS (ZAP+Nuclei) (apps/api/)
+    try:
+        from apps.api.dast_pentest_router import router as dast_pentest_router  # noqa: PLC0415
+        app.include_router(dast_pentest_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted DAST/Pentest OSS router (wave-6)")
+    except ImportError:
+        pass
+
+    # CSPM attack-path scanner (suite-attack/api/)
+    try:
+        from api.cspm_router import router as cspm_attack_router  # noqa: PLC0415
+        app.include_router(cspm_attack_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted CSPM (attack) router (wave-6)")
+    except ImportError:
+        pass
+
+    # API Fuzzer (suite-attack/api/)
+    try:
+        from api.api_fuzzer_router import router as api_fuzzer_router  # noqa: PLC0415
+        app.include_router(api_fuzzer_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted API Fuzzer router (wave-6)")
+    except ImportError:
+        pass
+
+    # Malware Analysis (suite-attack/api/)
+    try:
+        from api.malware_router import router as malware_router  # noqa: PLC0415
+        app.include_router(malware_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Malware Analysis router (wave-6)")
+    except ImportError:
+        pass
+
+    # Suite-Attack MPTE suite (attack:execute scope) — formerly inline loop
+    try:
+        from api.mpte_router import router as mpte_router  # noqa: PLC0415
+        app.include_router(mpte_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted MPTE router (wave-6)")
+    except ImportError:
+        pass
+
+    try:
+        from api.micro_pentest_router import router as micro_pentest_router  # noqa: PLC0415
+        app.include_router(micro_pentest_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Micro Pentest router (wave-6)")
+    except ImportError:
+        pass
+
+    try:
+        from api.vuln_discovery_router import router as vuln_discovery_router  # noqa: PLC0415
+        app.include_router(vuln_discovery_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Vulnerability Discovery router (wave-6)")
+    except ImportError:
+        pass
+
+    try:
+        from api.mpte_orchestrator_router import router as mpte_orchestrator_router  # noqa: PLC0415
+        app.include_router(mpte_orchestrator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted MPTE Orchestrator router (wave-6)")
+    except ImportError:
+        pass
+
+    try:
+        from api.secrets_router import router as secrets_router  # noqa: PLC0415
+        app.include_router(secrets_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Secrets Scanner router (wave-6)")
+    except ImportError:
+        pass
+
+    # _extra_apps_routers CTEM entries
+
+    # Intelligent Security Engine (apps/api/)
+    try:
+        from apps.api.intelligent_security_router import router as intelligent_security_router  # noqa: PLC0415
+        app.include_router(intelligent_security_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Intelligent Security Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # MITRE ATT&CK Coverage (apps/api/)
+    try:
+        from apps.api.mitre_attack_coverage_router import router as mitre_attack_coverage_router  # noqa: PLC0415
+        app.include_router(mitre_attack_coverage_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted MITRE ATT&CK Coverage router (wave-6)")
+    except ImportError:
+        pass
+
+    # Pentest management (apps/api/)
+    try:
+        from apps.api.pentest_router import router as pentest_router  # noqa: PLC0415
+        app.include_router(pentest_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Pentest router (wave-6)")
+    except ImportError:
+        pass
+
+    # Auto Pentest (apps/api/)
+    try:
+        from apps.api.auto_pentest_router import router as auto_pentest_router  # noqa: PLC0415
+        app.include_router(auto_pentest_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Auto Pentest router (wave-6)")
+    except ImportError:
+        pass
+
+    # SOC Automation (apps/api/)
+    try:
+        from apps.api.soc_automation_router import router as soc_automation_router  # noqa: PLC0415
+        app.include_router(soc_automation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted SOC Automation router (wave-6)")
+    except ImportError:
+        pass
+
+    # Breach Response (apps/api/)
+    try:
+        from apps.api.breach_response_router import router as breach_response_router  # noqa: PLC0415
+        app.include_router(breach_response_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Breach Response router (wave-6)")
+    except ImportError:
+        pass
+
+    # Incident Response (apps/api/)
+    try:
+        from apps.api.incident_response_router import router as incident_response_router  # noqa: PLC0415
+        app.include_router(incident_response_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Incident Response router (wave-6)")
+    except ImportError:
+        pass
+
+    # Threat Hunting (apps/api/)
+    try:
+        from apps.api.threat_hunting_router import router as threat_hunting_router  # noqa: PLC0415
+        app.include_router(threat_hunting_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Threat Hunting router (wave-6)")
+    except ImportError:
+        pass
+
+    # IP Reputation (apps/api/)
+    try:
+        from apps.api.ip_reputation_router import router as ip_reputation_router  # noqa: PLC0415
+        app.include_router(ip_reputation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
+        _logger.info("Mounted IP Reputation router (wave-6)")
+    except ImportError:
+        pass
+
+    # Security Knowledge Base (apps/api/)
+    try:
+        from apps.api.security_kb_router import router as security_kb_router  # noqa: PLC0415
+        app.include_router(security_kb_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Security KB router (wave-6)")
+    except ImportError:
+        pass
+
     _logger.info("CTEM sub-app: all routers registered")

@@ -637,3 +637,164 @@ def register_aspm_routers(
         _logger.info("Mounted OSV router at /api/v1/osv")
     except ImportError:
         pass
+
+    # ------------------------------------------------------------------
+    # Wave-6 — loop-bound ASPM entries (formerly in _core_routers /
+    # _extra_apps_routers loops in app.py, deferred from Waves 1-5)
+    # ------------------------------------------------------------------
+
+    # Nerve Center — unified findings + risk dashboard (suite-core/api/)
+    try:
+        from api.nerve_center import router as nerve_center_router  # noqa: PLC0415
+        app.include_router(nerve_center_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Nerve Center router (wave-6)")
+    except ImportError:
+        pass
+
+    # Decisions — AI decision log and audit trail (suite-core/api/)
+    try:
+        from api.decisions import router as decisions_router  # noqa: PLC0415
+        app.include_router(decisions_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Decisions router (wave-6)")
+    except ImportError:
+        pass
+
+    # Deduplication — finding dedup engine (suite-core/api/)
+    try:
+        from api.deduplication_router import router as deduplication_router  # noqa: PLC0415
+        app.include_router(deduplication_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Deduplication router (wave-6)")
+    except ImportError:
+        pass
+
+    # Smart Dedup — ML-assisted deduplication (suite-core/api/)
+    try:
+        from api.smart_dedup_router import router as smart_dedup_router  # noqa: PLC0415
+        app.include_router(smart_dedup_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Smart Dedup router (wave-6)")
+    except ImportError:
+        pass
+
+    # AutoFix Verification — post-fix validation (suite-core/api/)
+    try:
+        from api.autofix_verify_router import router as autofix_verify_router  # noqa: PLC0415
+        app.include_router(autofix_verify_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted AutoFix Verification router (wave-6)")
+    except ImportError:
+        pass
+
+    # MPTE Post-Fix Verification (suite-core/api/)
+    try:
+        from api.postfix_verify_router import router as postfix_verify_router  # noqa: PLC0415
+        app.include_router(postfix_verify_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted MPTE Post-Fix Verification router (wave-6)")
+    except ImportError:
+        pass
+
+    # MITRE ATT&CK Application-Layer Mapper (suite-core/api/)
+    try:
+        from api.mitre_mapper_router import router as mitre_mapper_router  # noqa: PLC0415
+        app.include_router(mitre_mapper_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted MITRE ATT&CK Mapper router (wave-6)")
+    except ImportError:
+        pass
+
+    # Supply Chain Security (suite-core/api/)
+    try:
+        from api.supply_chain_router import router as supply_chain_router  # noqa: PLC0415
+        app.include_router(supply_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))])
+        _logger.info("Mounted Supply Chain Security router (wave-6)")
+    except ImportError:
+        pass
+
+    # _extra_apps_routers ASPM entries (formerly loop-bound in app.py)
+
+    # Container Scanner (apps/api/)
+    try:
+        from apps.api.container_scanner_router import router as container_scanner_router  # noqa: PLC0415
+        app.include_router(container_scanner_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Container Scanner router (wave-6)")
+    except ImportError:
+        pass
+
+    # CI/CD Security (apps/api/)
+    try:
+        from apps.api.cicd_router import router as cicd_router  # noqa: PLC0415
+        app.include_router(cicd_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted CI/CD router (wave-6)")
+    except ImportError:
+        pass
+
+    # Context Engine — code context graph (apps/api/)
+    try:
+        from apps.api.context_engine_router import router as context_engine_router  # noqa: PLC0415
+        app.include_router(context_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Context Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # Fix Engine — AutoFix dispatch (apps/api/)
+    try:
+        from apps.api.fix_engine_router import router as fix_engine_router  # noqa: PLC0415
+        app.include_router(fix_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Fix Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # PR Generator — AutoFix PR creation (apps/api/)
+    try:
+        from apps.api.pr_generator_router import router as pr_generator_router  # noqa: PLC0415
+        app.include_router(pr_generator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted PR Generator router (wave-6)")
+    except ImportError:
+        pass
+
+    # SBOM (apps/api/)
+    try:
+        from apps.api.sbom_router import router as sbom_router  # noqa: PLC0415
+        app.include_router(sbom_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))])
+        _logger.info("Mounted SBOM router (wave-6)")
+    except ImportError:
+        pass
+
+    # Secret Scanner (apps/api/)
+    try:
+        from apps.api.secret_scanner_router import router as secret_scanner_router  # noqa: PLC0415
+        app.include_router(secret_scanner_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Secret Scanner router (wave-6)")
+    except ImportError:
+        pass
+
+    # Bulk Operations (apps/api/)
+    try:
+        from apps.api.bulk_operations_router import router as bulk_operations_router  # noqa: PLC0415
+        app.include_router(bulk_operations_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Bulk Operations router (wave-6)")
+    except ImportError:
+        pass
+
+    # Asset Inventory (apps/api/)
+    try:
+        from apps.api.asset_inventory_router import router as asset_inventory_router  # noqa: PLC0415
+        app.include_router(asset_inventory_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Asset Inventory router (wave-6)")
+    except ImportError:
+        pass
+
+    # Patch Manager (apps/api/)
+    try:
+        from apps.api.patch_manager_router import router as patch_manager_router  # noqa: PLC0415
+        app.include_router(patch_manager_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Patch Manager router (wave-6)")
+    except ImportError:
+        pass
+
+    # Validation — security tool output compatibility (apps/api/)
+    try:
+        from apps.api.verification_router import router as verification_router  # noqa: PLC0415
+        app.include_router(verification_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+        _logger.info("Mounted Multi-Stage Verification router (wave-6)")
+    except ImportError:
+        pass
+
+    _logger.info("ASPM sub-app: wave-6 loop-bound routers registered")

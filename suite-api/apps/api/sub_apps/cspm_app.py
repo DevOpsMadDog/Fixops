@@ -512,3 +512,42 @@ def register_cspm_routers(
         _logger.info("Mounted Prowler CSPM router at /api/v1/prowler")
     except ImportError:
         pass
+
+    # ------------------------------------------------------------------
+    # Wave-6 — loop-bound CSPM entries (formerly in _extra_apps_routers
+    # loop in app.py, deferred from Waves 1-2)
+    # ------------------------------------------------------------------
+
+    # CSPM Engine (apps/api/)
+    try:
+        from apps.api.cspm_engine_router import router as cspm_engine_router  # noqa: PLC0415
+        app.include_router(cspm_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted CSPM Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # CSPM Deep Scan (apps/api/)
+    try:
+        from apps.api.cspm_deep_router import router as cspm_deep_router  # noqa: PLC0415
+        app.include_router(cspm_deep_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted CSPM Deep Scan router (wave-6)")
+    except ImportError:
+        pass
+
+    # CSPM Connector OSS family (apps/api/)
+    try:
+        from apps.api.cspm_connector_router import router as cspm_connector_router  # noqa: PLC0415
+        app.include_router(cspm_connector_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted CSPM Connector router (wave-6)")
+    except ImportError:
+        pass
+
+    # Privilege Escalation Detector (apps/api/)
+    try:
+        from apps.api.privilege_escalation_detector_router import router as privilege_escalation_detector_router  # noqa: PLC0415
+        app.include_router(privilege_escalation_detector_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Privilege Escalation Detector router (wave-6)")
+    except ImportError:
+        pass
+
+    _logger.info("CSPM sub-app: wave-6 loop-bound routers registered")

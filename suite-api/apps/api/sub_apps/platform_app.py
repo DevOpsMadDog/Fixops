@@ -968,3 +968,496 @@ def register_platform_routers(
         _logger.info("Mounted Org Hierarchy router")
     except ImportError as exc:
         _logger.warning("org_hierarchy_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Wave-6 — loop-bound Platform entries (formerly in _core_routers /
+    # _integration_routers / _extra_apps_routers loops in app.py)
+    # ------------------------------------------------------------------
+
+    # _core_routers Platform/Brain entries (read:findings unless noted)
+
+    # ML/MindsDB router (suite-core/api/)
+    try:
+        from api.mindsdb_router import router as ml_router  # noqa: PLC0415
+        app.include_router(ml_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted ML/MindsDB router (wave-6)")
+    except ImportError:
+        pass
+
+    # Air-Gap Operations (suite-core/api/)
+    try:
+        from api.airgap_router import router as airgap_router  # noqa: PLC0415
+        app.include_router(airgap_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Air-Gap Operations router (wave-6)")
+    except ImportError:
+        pass
+
+    # Fuzzy Identity (suite-core/api/)
+    try:
+        from api.fuzzy_identity_router import router as fuzzy_identity_router  # noqa: PLC0415
+        app.include_router(fuzzy_identity_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Fuzzy Identity router (wave-6)")
+    except ImportError:
+        pass
+
+    # Exposure Case (suite-core/api/)
+    try:
+        from api.exposure_case_router import router as exposure_case_router  # noqa: PLC0415
+        app.include_router(exposure_case_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Exposure Case router (wave-6)")
+    except ImportError:
+        pass
+
+    # Pipeline — Brain Pipeline (suite-core/api/)
+    try:
+        from api.pipeline_router import router as pipeline_router  # noqa: PLC0415
+        app.include_router(pipeline_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Pipeline router (wave-6)")
+    except ImportError:
+        pass
+
+    # Copilot (suite-core/api/)
+    try:
+        from api.copilot_router import router as copilot_router  # noqa: PLC0415
+        app.include_router(copilot_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Copilot router (wave-6)")
+    except ImportError:
+        pass
+
+    # Agents (suite-core/api/)
+    try:
+        from api.agents_router import router as agents_router  # noqa: PLC0415
+        app.include_router(agents_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Agents router (wave-6)")
+    except ImportError:
+        pass
+
+    # Predictions (suite-core/api/)
+    try:
+        from api.predictions_router import router as predictions_router  # noqa: PLC0415
+        app.include_router(predictions_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Predictions router (wave-6)")
+    except ImportError:
+        pass
+
+    # LLM (suite-core/api/)
+    try:
+        from api.llm_router import router as llm_router  # noqa: PLC0415
+        app.include_router(llm_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted LLM router (wave-6)")
+    except ImportError:
+        pass
+
+    # Algorithmic (suite-core/api/)
+    try:
+        from api.algorithmic_router import router as algorithmic_router  # noqa: PLC0415
+        app.include_router(algorithmic_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Algorithmic router (wave-6)")
+    except ImportError:
+        pass
+
+    # LLM Monitor (suite-core/api/)
+    try:
+        from api.llm_monitor_router import router as llm_monitor_router  # noqa: PLC0415
+        app.include_router(llm_monitor_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted LLM Monitor router (wave-6)")
+    except (ImportError, Exception):
+        pass
+
+    # LLM Guard (suite-core/api/)
+    try:
+        from api.llm_guard_router import router as llm_guard_router  # noqa: PLC0415
+        app.include_router(llm_guard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted LLM Guard router (wave-6)")
+    except (ImportError, Exception):
+        pass
+
+    # SSE Streaming (suite-core/api/)
+    try:
+        from api.streaming_router import router as streaming_router  # noqa: PLC0415
+        app.include_router(streaming_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted SSE Streaming router (wave-6)")
+    except ImportError:
+        pass
+
+    # Code-to-Cloud Tracing (suite-core/api/)
+    try:
+        from api.code_to_cloud_router import router as code_to_cloud_router  # noqa: PLC0415
+        app.include_router(code_to_cloud_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))])
+        _logger.info("Mounted Code-to-Cloud router (wave-6)")
+    except ImportError:
+        pass
+
+    # Quantum Crypto (suite-core/api/)
+    try:
+        from api.quantum_crypto_router import router as quantum_crypto_router  # noqa: PLC0415
+        app.include_router(quantum_crypto_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Quantum Crypto router (wave-6)")
+    except ImportError:
+        pass
+
+    # Zero-Gravity Data (suite-core/api/)
+    try:
+        from api.zero_gravity_router import router as zero_gravity_router  # noqa: PLC0415
+        app.include_router(zero_gravity_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Zero-Gravity router (wave-6)")
+    except ImportError:
+        pass
+
+    # Single Agent (suite-core/api/)
+    try:
+        from api.single_agent_router import router as single_agent_router  # noqa: PLC0415
+        app.include_router(single_agent_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Single Agent router (wave-6)")
+    except ImportError:
+        pass
+
+    # Knowledge Graph (suite-core/api/)
+    try:
+        from api.knowledge_graph_router import router as knowledge_graph_router  # noqa: PLC0415
+        app.include_router(knowledge_graph_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))])
+        _logger.info("Mounted Knowledge Graph router (wave-6)")
+    except ImportError:
+        pass
+
+    # vLLM Self-Hosted (suite-core/api/)
+    try:
+        from api.vllm_router import router as vllm_router  # noqa: PLC0415
+        app.include_router(vllm_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted vLLM router (wave-6)")
+    except ImportError:
+        pass
+
+    # MCP Protocol (suite-core/api/)
+    try:
+        from api.mcp_protocol_router import router as mcp_protocol_router  # noqa: PLC0415
+        app.include_router(mcp_protocol_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted MCP Protocol router (wave-6)")
+    except ImportError:
+        pass
+
+    # Self-Learning (suite-core/api/)
+    try:
+        from api.self_learning_router import router as self_learning_router  # noqa: PLC0415
+        app.include_router(self_learning_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Self-Learning router (wave-6)")
+    except ImportError:
+        pass
+
+    # LLM Loop Metrics telemetry (apps/api/)
+    try:
+        from apps.api.llm_loop_metrics_router import router as llm_loop_metrics_router  # noqa: PLC0415
+        app.include_router(llm_loop_metrics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted LLM Loop Metrics router (wave-6)")
+    except ImportError:
+        pass
+
+    # Developer Risk Profiles (apps/api/)
+    try:
+        from apps.api.developer_profiles_router import router as developer_profiles_router  # noqa: PLC0415
+        app.include_router(developer_profiles_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Developer Risk Profiles router (wave-6)")
+    except ImportError:
+        pass
+
+    # _integration_routers (all write:integrations scope)
+
+    # Integrations (suite-integrations/api/)
+    try:
+        from api.integrations_router import router as integrations_router_ext  # noqa: PLC0415
+        app.include_router(integrations_router_ext, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
+        _logger.info("Mounted Integrations router (wave-6)")
+    except ImportError:
+        pass
+
+    # Webhooks (suite-integrations/api/)
+    try:
+        from api.webhooks_router import router as webhooks_router  # noqa: PLC0415
+        app.include_router(webhooks_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
+        _logger.info("Mounted Webhooks router (wave-6)")
+    except ImportError:
+        pass
+
+    # IaC (suite-integrations/api/)
+    try:
+        from api.iac_router import router as iac_router  # noqa: PLC0415
+        app.include_router(iac_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
+        _logger.info("Mounted IaC router (wave-6)")
+    except ImportError:
+        pass
+
+    # IDE (suite-integrations/api/)
+    try:
+        from api.ide_router import router as ide_router  # noqa: PLC0415
+        app.include_router(ide_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
+        _logger.info("Mounted IDE router (wave-6)")
+    except ImportError:
+        pass
+
+    # SIEM (suite-integrations/api/)
+    try:
+        from api.siem_router import router as siem_router  # noqa: PLC0415
+        app.include_router(siem_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
+        _logger.info("Mounted SIEM router (wave-6)")
+    except ImportError:
+        pass
+
+    # _extra_apps_routers Platform entries
+
+    # Analytics Dashboard (apps/api/)
+    try:
+        from apps.api.analytics_dashboard_router import router as analytics_dashboard_router  # noqa: PLC0415
+        app.include_router(analytics_dashboard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Analytics Dashboard router (wave-6)")
+    except ImportError:
+        pass
+
+    # Analytics Routes (apps/api/)
+    try:
+        from apps.api.analytics_routes import router as analytics_routes_router  # noqa: PLC0415
+        app.include_router(analytics_routes_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Analytics Routes router (wave-6)")
+    except ImportError:
+        pass
+
+    # API Key Management (apps/api/)
+    try:
+        from apps.api.apikey_router import router as apikey_router  # noqa: PLC0415
+        app.include_router(apikey_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted API Key Management router (wave-6)")
+    except ImportError:
+        pass
+
+    # Backup (apps/api/)
+    try:
+        from apps.api.backup_router import router as backup_router  # noqa: PLC0415
+        app.include_router(backup_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Backup router (wave-6)")
+    except ImportError:
+        pass
+
+    # Backup DR Validator (apps/api/)
+    try:
+        from apps.api.backup_validator_router import router as backup_validator_router  # noqa: PLC0415
+        app.include_router(backup_validator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Backup DR Validator router (wave-6)")
+    except ImportError:
+        pass
+
+    # Changelog (apps/api/)
+    try:
+        from apps.api.changelog_router import router as changelog_router  # noqa: PLC0415
+        app.include_router(changelog_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Changelog router (wave-6)")
+    except ImportError:
+        pass
+
+    # Dashboard Builder (apps/api/)
+    try:
+        from apps.api.dashboard_builder_router import router as dashboard_builder_router  # noqa: PLC0415
+        app.include_router(dashboard_builder_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Dashboard Builder router (wave-6)")
+    except ImportError:
+        pass
+
+    # Developer Portal (apps/api/)
+    try:
+        from apps.api.developer_portal_router import router as developer_portal_router  # noqa: PLC0415
+        app.include_router(developer_portal_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Developer Portal router (wave-6)")
+    except ImportError:
+        pass
+
+    # API Docs (apps/api/)
+    try:
+        from apps.api.api_docs_router import router as api_docs_router  # noqa: PLC0415
+        app.include_router(api_docs_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted API Docs router (wave-6)")
+    except ImportError:
+        pass
+
+    # Drift (apps/api/)
+    try:
+        from apps.api.drift_router import router as drift_router  # noqa: PLC0415
+        app.include_router(drift_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Drift router (wave-6)")
+    except ImportError:
+        pass
+
+    # Feed Registry (apps/api/)
+    try:
+        from apps.api.feed_registry_router import router as feed_registry_router  # noqa: PLC0415
+        app.include_router(feed_registry_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
+        _logger.info("Mounted Feed Registry router (wave-6)")
+    except ImportError:
+        pass
+
+    # Feed Manager (apps/api/)
+    try:
+        from apps.api.feed_manager_router import router as feed_manager_router  # noqa: PLC0415
+        app.include_router(feed_manager_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
+        _logger.info("Mounted Feed Manager router (wave-6)")
+    except ImportError:
+        pass
+
+    # Integration Health (apps/api/)
+    try:
+        from apps.api.integration_health_router import router as integration_health_router  # noqa: PLC0415
+        app.include_router(integration_health_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Integration Health router (wave-6)")
+    except ImportError:
+        pass
+
+    # Metrics Aggregator (apps/api/)
+    try:
+        from apps.api.metrics_aggregator_router import router as metrics_aggregator_router  # noqa: PLC0415
+        app.include_router(metrics_aggregator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Metrics Aggregator router (wave-6)")
+    except ImportError:
+        pass
+
+    # Notifications (apps/api/)
+    try:
+        from apps.api.notification_router import router as notification_router  # noqa: PLC0415
+        app.include_router(notification_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Notifications router (wave-6)")
+    except ImportError:
+        pass
+
+    # Posture (apps/api/)
+    try:
+        from apps.api.posture_router import router as posture_router  # noqa: PLC0415
+        app.include_router(posture_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Posture router (wave-6)")
+    except ImportError:
+        pass
+
+    # Posture Benchmark (apps/api/)
+    try:
+        from apps.api.posture_benchmark_router import router as posture_benchmark_router  # noqa: PLC0415
+        app.include_router(posture_benchmark_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Posture Benchmark router (wave-6)")
+    except ImportError:
+        pass
+
+    # RASP (apps/api/)
+    try:
+        from apps.api.rasp_router import router as rasp_router  # noqa: PLC0415
+        app.include_router(rasp_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted RASP router (wave-6)")
+    except ImportError:
+        pass
+
+    # Runtime Protection (apps/api/)
+    try:
+        from apps.api.runtime_protection_router import router as runtime_protection_router  # noqa: PLC0415
+        app.include_router(runtime_protection_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Runtime Protection router (wave-6)")
+    except ImportError:
+        pass
+
+    # Prioritizer (apps/api/)
+    try:
+        from apps.api.prioritizer_router import router as prioritizer_router  # noqa: PLC0415
+        app.include_router(prioritizer_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Prioritizer router (wave-6)")
+    except ImportError:
+        pass
+
+    # Rate Limits (apps/api/)
+    try:
+        from apps.api.rate_limit_router import router as rate_limit_router  # noqa: PLC0415
+        app.include_router(rate_limit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Rate Limits router (wave-6)")
+    except ImportError:
+        pass
+
+    # Tenant Rate Limiter (apps/api/)
+    try:
+        from apps.api.tenant_rate_limiter_router import router as tenant_rate_limiter_router  # noqa: PLC0415
+        app.include_router(tenant_rate_limiter_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Tenant Rate Limiter router (wave-6)")
+    except ImportError:
+        pass
+
+    # Retention (apps/api/)
+    try:
+        from apps.api.retention_router import router as retention_router  # noqa: PLC0415
+        app.include_router(retention_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted Retention router (wave-6)")
+    except ImportError:
+        pass
+
+    # Slack Bot (apps/api/)
+    try:
+        from apps.api.slack_bot_router import router as slack_bot_router  # noqa: PLC0415
+        app.include_router(slack_bot_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
+        _logger.info("Mounted Slack Bot router (wave-6)")
+    except ImportError:
+        pass
+
+    # System Health (apps/api/)
+    try:
+        from apps.api.system_health_router import router as system_health_router  # noqa: PLC0415
+        app.include_router(system_health_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+        _logger.info("Mounted System Health router (wave-6)")
+    except ImportError:
+        pass
+
+    # Tags (apps/api/)
+    try:
+        from apps.api.tag_router import router as tag_router  # noqa: PLC0415
+        app.include_router(tag_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Tags router (wave-6)")
+    except ImportError:
+        pass
+
+    # User Analytics (apps/api/)
+    try:
+        from apps.api.user_analytics_router import router as user_analytics_router  # noqa: PLC0415
+        app.include_router(user_analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted User Analytics router (wave-6)")
+    except ImportError:
+        pass
+
+    # Versioning (apps/api/)
+    try:
+        from apps.api.versioning_router import router as versioning_router  # noqa: PLC0415
+        app.include_router(versioning_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Versioning router (wave-6)")
+    except ImportError:
+        pass
+
+    # Webhook Events (apps/api/)
+    try:
+        from apps.api.webhook_events_router import router as webhook_events_router  # noqa: PLC0415
+        app.include_router(webhook_events_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted Webhook Events router (wave-6)")
+    except ImportError:
+        pass
+
+    # Workflow Engine (apps/api/)
+    try:
+        from apps.api.workflow_engine_router import router as workflow_engine_router  # noqa: PLC0415
+        app.include_router(workflow_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+        _logger.info("Mounted Workflow Engine router (wave-6)")
+    except ImportError:
+        pass
+
+    # GraphRAG (apps/api/)
+    try:
+        from apps.api.graphrag_router import router as graphrag_router  # noqa: PLC0415
+        app.include_router(graphrag_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted GraphRAG router (wave-6)")
+    except ImportError:
+        pass
+
+    # DuckDB Analytics (apps/api/)
+    try:
+        from apps.api.duckdb_analytics_router import router as duckdb_analytics_router  # noqa: PLC0415
+        app.include_router(duckdb_analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Mounted DuckDB Analytics router (wave-6)")
+    except ImportError:
+        pass
+
+    _logger.info("Platform sub-app: wave-6 loop-bound routers registered")
