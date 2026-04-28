@@ -537,10 +537,402 @@ class DeepCodeAnalysisEngine:
         source = file_path.read_text(encoding="utf-8", errors="replace")
         return self._analyze_typescript_source(source, str(file_path), is_tsx=is_tsx)
 
+    # ------------------------------------------------------------------
+    # JavaScript AST analysis — esprima (pure-Python, no Node required)
+    # Works air-gapped, independent of tree-sitter C extension.
+    # ------------------------------------------------------------------
+
+    _JS_TAINT_SOURCE_OBJECTS: frozenset = frozenset({"req", "request"})
+    _JS_TAINT_SOURCE_PROPS: frozenset = frozenset(
+        {"body", "query", "params", "headers", "cookies"}
+    )
+    _JS_PROCESS_ENV_OBJECTS: frozenset = frozenset(
+        {"process", "localStorage", "sessionStorage"}
+    )
+    _JS_CP_DANGEROUS: frozenset = frozenset(
+        {"exec", "execSync", "spawn", "spawnSync", "execFile", "execFileSync", "fork"}
+    )
+
+    # rule_id → CWE
+    _JS_RULE_CWE: Dict[str, str] = {
+        "JS001": "CWE-95",   # eval
+        "JS002": "CWE-95",   # new Function
+        "JS003": "CWE-78",   # child_process
+        "JS004": "CWE-79",   # document.write
+        "JS005": "CWE-95",   # setTimeout string
+        "JS006": "CWE-79",   # innerHTML
+        "JS007": "CWE-1321", # prototype pollution
+    }
+
+    def _js_finding(
+        self,
+        severity: str,
+        rule_id: str,
+        message: str,
+        node: Any,
+        file_ref: str,
+        evidence: str = "",
+    ) -> Dict[str, Any]:
+        loc = getattr(node, "loc", None)
+        return {
+            "id": str(uuid.uuid4()),
+            "severity": severity,
+            "rule_id": rule_id,
+            "message": message,
+            "file": file_ref,
+            "file_ref": file_ref,
+            "line": loc.start.line if loc else 0,
+            "col": loc.start.column if loc else 0,
+            "cwe": self._JS_RULE_CWE.get(rule_id, ""),
+            "evidence": evidence,
+            "taint_flow": None,
+            "type": "security",
+        }
+
+    def _js_is_taint_source(self, node: Any) -> bool:
+        if not hasattr(node, "type") or node.type != "MemberExpression":
+            return False
+        obj = node.object
+        prop = node.property
+        obj_name = getattr(obj, "name", None)
+        prop_name = getattr(prop, "name", None)
+        if obj_name in self._JS_TAINT_SOURCE_OBJECTS and prop_name in self._JS_TAINT_SOURCE_PROPS:
+            return True
+        if obj_name in self._JS_PROCESS_ENV_OBJECTS:
+            return True
+        if obj_name == "document" and prop_name == "cookie":
+            return True
+        # process.env.KEY (nested MemberExpression)
+        if getattr(obj, "type", "") == "MemberExpression":
+            inner_obj = getattr(obj.object, "name", None)
+            inner_prop = getattr(obj.property, "name", None)
+            if inner_obj == "process" and inner_prop == "env":
+                return True
+        return False
+
+    def _js_walk(  # noqa: C901
+        self,
+        node: Any,
+        symbols: List[Dict[str, Any]],
+        imports: List[Dict[str, Any]],
+        findings: List[Dict[str, Any]],
+        file_ref: str,
+    ) -> None:
+        """Recursively walk an esprima AST node, collecting symbols and findings."""
+        if node is None or not hasattr(node, "type"):
+            return
+        ntype = node.type
+
+        # --- Symbol extraction -------------------------------------------
+        if ntype == "FunctionDeclaration":
+            name = getattr(node.id, "name", "<anonymous>") if node.id else "<anonymous>"
+            loc = getattr(node, "loc", None)
+            symbols.append({
+                "symbol_type": "function",
+                "symbol_name": name,
+                "file_ref": file_ref,
+                "start_line": loc.start.line if loc else 0,
+                "end_line": loc.end.line if loc else 0,
+                "metadata": {
+                    "async": getattr(node, "async", False),
+                    "generator": getattr(node, "generator", False),
+                    "language": "javascript",
+                },
+            })
+
+        elif ntype == "ClassDeclaration":
+            name = getattr(node.id, "name", "<anonymous>") if node.id else "<anonymous>"
+            loc = getattr(node, "loc", None)
+            super_name = getattr(node.superClass, "name", "") if node.superClass else ""
+            symbols.append({
+                "symbol_type": "class",
+                "symbol_name": name,
+                "file_ref": file_ref,
+                "start_line": loc.start.line if loc else 0,
+                "end_line": loc.end.line if loc else 0,
+                "metadata": {"superClass": super_name, "language": "javascript"},
+            })
+
+        elif ntype == "VariableDeclaration":
+            for decl in (getattr(node, "declarations", None) or []):
+                init = getattr(decl, "init", None)
+                id_node = getattr(decl, "id", None)
+                var_name = getattr(id_node, "name", "") if id_node else ""
+                if init is None:
+                    continue
+                init_type = getattr(init, "type", "")
+                # CommonJS: const x = require("mod")
+                if init_type == "CallExpression":
+                    callee = getattr(init, "callee", None)
+                    if getattr(callee, "name", "") == "require":
+                        args = getattr(init, "arguments", []) or []
+                        mod = getattr(args[0], "value", "") if args else ""
+                        loc = getattr(node, "loc", None)
+                        imports.append({
+                            "import_type": "commonjs",
+                            "module": mod,
+                            "binding": var_name,
+                            "file_ref": file_ref,
+                            "line": loc.start.line if loc else 0,
+                        })
+                elif init_type == "FunctionExpression" and var_name:
+                    loc = getattr(node, "loc", None)
+                    symbols.append({
+                        "symbol_type": "function",
+                        "symbol_name": var_name,
+                        "file_ref": file_ref,
+                        "start_line": loc.start.line if loc else 0,
+                        "end_line": loc.end.line if loc else 0,
+                        "metadata": {
+                            "async": getattr(init, "async", False),
+                            "expression": True,
+                            "language": "javascript",
+                        },
+                    })
+                elif init_type == "ArrowFunctionExpression" and var_name:
+                    loc = getattr(node, "loc", None)
+                    symbols.append({
+                        "symbol_type": "function",
+                        "symbol_name": var_name,
+                        "file_ref": file_ref,
+                        "start_line": loc.start.line if loc else 0,
+                        "end_line": loc.end.line if loc else 0,
+                        "metadata": {
+                            "async": getattr(init, "async", False),
+                            "arrow": True,
+                            "language": "javascript",
+                        },
+                    })
+
+        elif ntype == "ImportDeclaration":
+            mod = getattr(node.source, "value", "")
+            loc = getattr(node, "loc", None)
+            specifiers: List[Dict[str, Any]] = []
+            for sp in (getattr(node, "specifiers", None) or []):
+                sp_type = getattr(sp, "type", "")
+                local_name = getattr(getattr(sp, "local", None), "name", "")
+                imported_name = getattr(getattr(sp, "imported", None), "name", local_name)
+                specifiers.append({
+                    "type": (
+                        "default" if sp_type == "ImportDefaultSpecifier"
+                        else "namespace" if sp_type == "ImportNamespaceSpecifier"
+                        else "named"
+                    ),
+                    "local": local_name,
+                    "imported": imported_name,
+                })
+            imports.append({
+                "import_type": "es6",
+                "module": mod,
+                "specifiers": specifiers,
+                "file_ref": file_ref,
+                "line": loc.start.line if loc else 0,
+            })
+
+        elif ntype == "ExportDefaultDeclaration":
+            decl = getattr(node, "declaration", None)
+            loc = getattr(node, "loc", None)
+            name = "<default>"
+            if decl and getattr(decl, "type", "") in ("FunctionDeclaration", "ClassDeclaration"):
+                name = getattr(getattr(decl, "id", None), "name", "<default>") or "<default>"
+            symbols.append({
+                "symbol_type": "export_default",
+                "symbol_name": name,
+                "file_ref": file_ref,
+                "start_line": loc.start.line if loc else 0,
+                "end_line": loc.end.line if loc else 0,
+                "metadata": {"language": "javascript"},
+            })
+
+        elif ntype == "ExportNamedDeclaration":
+            loc = getattr(node, "loc", None)
+            decl = getattr(node, "declaration", None)
+            if decl and getattr(decl, "type", "") == "FunctionDeclaration":
+                fn_name = getattr(getattr(decl, "id", None), "name", "") or ""
+                if fn_name:
+                    symbols.append({
+                        "symbol_type": "export_named",
+                        "symbol_name": fn_name,
+                        "file_ref": file_ref,
+                        "start_line": loc.start.line if loc else 0,
+                        "end_line": loc.end.line if loc else 0,
+                        "metadata": {"language": "javascript"},
+                    })
+            for sp in (getattr(node, "specifiers", None) or []):
+                local_name = getattr(getattr(sp, "local", None), "name", "")
+                if local_name:
+                    symbols.append({
+                        "symbol_type": "export_named",
+                        "symbol_name": local_name,
+                        "file_ref": file_ref,
+                        "start_line": loc.start.line if loc else 0,
+                        "end_line": loc.end.line if loc else 0,
+                        "metadata": {"language": "javascript"},
+                    })
+
+        # --- Security sink detection -------------------------------------
+        elif ntype == "CallExpression":
+            callee = getattr(node, "callee", None)
+            args = getattr(node, "arguments", []) or []
+            callee_type = getattr(callee, "type", "")
+            callee_name = getattr(callee, "name", "")
+
+            if callee_type == "Identifier" and callee_name == "eval":
+                findings.append(self._js_finding(
+                    "HIGH", "JS001", "eval() call — code injection sink",
+                    node, file_ref, evidence="eval()"
+                ))
+            elif callee_type == "Identifier" and callee_name == "Function":
+                findings.append(self._js_finding(
+                    "HIGH", "JS002", "Function() call — indirect eval sink",
+                    node, file_ref, evidence="Function()"
+                ))
+            elif callee_type == "MemberExpression":
+                obj_name = getattr(callee.object, "name", "")
+                method_name = getattr(callee.property, "name", "")
+
+                if obj_name == "child_process" and method_name in self._JS_CP_DANGEROUS:
+                    findings.append(self._js_finding(
+                        "CRITICAL", "JS003",
+                        f"child_process.{method_name}() — OS command injection",
+                        node, file_ref, evidence=f"child_process.{method_name}()"
+                    ))
+
+                # require('child_process').exec(...)
+                obj_node = callee.object
+                if getattr(obj_node, "type", "") == "CallExpression":
+                    inner_callee = getattr(obj_node, "callee", None)
+                    if getattr(inner_callee, "name", "") == "require":
+                        req_args = getattr(obj_node, "arguments", []) or []
+                        if req_args and getattr(req_args[0], "value", "") == "child_process":
+                            if method_name in self._JS_CP_DANGEROUS:
+                                findings.append(self._js_finding(
+                                    "CRITICAL", "JS003",
+                                    f"child_process.{method_name}() — OS command injection",
+                                    node, file_ref,
+                                    evidence=f"require('child_process').{method_name}()"
+                                ))
+
+                if obj_name == "document" and method_name == "write":
+                    findings.append(self._js_finding(
+                        "HIGH", "JS004", "document.write() — XSS sink",
+                        node, file_ref, evidence="document.write()"
+                    ))
+
+                if obj_name == "Object" and method_name == "assign":
+                    if len(args) >= 2 and self._js_is_taint_source(args[1]):
+                        findings.append(self._js_finding(
+                            "HIGH", "JS007",
+                            "Object.assign() with tainted arg — prototype pollution risk",
+                            node, file_ref, evidence="Object.assign(target, userInput)"
+                        ))
+
+            # setTimeout/setInterval with string literal
+            bare_name = (
+                callee_name if callee_type == "Identifier"
+                else getattr(getattr(callee, "property", None), "name", "")
+            )
+            if bare_name in ("setTimeout", "setInterval") and args:
+                first = args[0]
+                if getattr(first, "type", "") == "Literal" and isinstance(
+                    getattr(first, "value", None), str
+                ):
+                    val = first.value
+                    ev = val[:40] + "..." if len(val) > 40 else val
+                    findings.append(self._js_finding(
+                        "MEDIUM", "JS005",
+                        f"{bare_name}() with string arg — eval-like sink",
+                        node, file_ref, evidence=f"{bare_name}('{ev}')"
+                    ))
+
+        elif ntype == "NewExpression":
+            callee = getattr(node, "callee", None)
+            if getattr(callee, "type", "") == "Identifier" and getattr(callee, "name", "") == "Function":
+                findings.append(self._js_finding(
+                    "HIGH", "JS002", "new Function() — code injection sink",
+                    node, file_ref, evidence="new Function()"
+                ))
+
+        elif ntype == "AssignmentExpression":
+            left = getattr(node, "left", None)
+            if left and getattr(left, "type", "") == "MemberExpression":
+                prop_name = getattr(left.property, "name", "")
+                if prop_name == "innerHTML":
+                    findings.append(self._js_finding(
+                        "HIGH", "JS006", ".innerHTML assignment — XSS sink",
+                        node, file_ref, evidence=".innerHTML ="
+                    ))
+                elif prop_name == "outerHTML":
+                    findings.append(self._js_finding(
+                        "MEDIUM", "JS006", ".outerHTML assignment — XSS sink",
+                        node, file_ref, evidence=".outerHTML ="
+                    ))
+                elif prop_name == "__proto__":
+                    findings.append(self._js_finding(
+                        "HIGH", "JS007", "__proto__ assignment — prototype pollution",
+                        node, file_ref, evidence="obj.__proto__ ="
+                    ))
+
+        # --- Recurse -----------------------------------------------------
+        if hasattr(node, "__dict__"):
+            for child in vars(node).values():
+                if child is None:
+                    continue
+                if hasattr(child, "type"):
+                    self._js_walk(child, symbols, imports, findings, file_ref)
+                elif isinstance(child, list):
+                    for item in child:
+                        if item is not None and hasattr(item, "type"):
+                            self._js_walk(item, symbols, imports, findings, file_ref)
+
+    def _analyze_javascript_source(
+        self, source: str, rel_path: str
+    ) -> Dict[str, Any]:
+        """Parse JS/JSX source with esprima, return symbols + security findings.
+
+        Return shape is consistent with Python and TypeScript analyzers:
+          symbols[]  — functions, classes, exports
+          imports[]  — ES6 import + CommonJS require
+          findings[] — security issues with severity/rule_id/line/cwe
+          endpoints  — always [] (JS route extraction is heuristic-only)
+          models     — always []
+        """
+        try:
+            import esprima  # type: ignore[import]
+        except ImportError:
+            _logger.warning("esprima not installed — JS analysis skipped for %s", rel_path)
+            return {"symbols": [], "imports": [], "findings": [], "endpoints": [], "models": []}
+
+        symbols: List[Dict[str, Any]] = []
+        imports: List[Dict[str, Any]] = []
+        findings: List[Dict[str, Any]] = []
+
+        parse_kwargs: Dict[str, Any] = dict(tolerant=True, loc=True, range=False)
+        tree = None
+        for parse_fn in (esprima.parseScript, esprima.parseModule):
+            try:
+                tree = parse_fn(source, **parse_kwargs)
+                break
+            except Exception:
+                continue
+
+        if tree is None:
+            _logger.debug("DCA JS parse failure (script+module both failed): %s", rel_path)
+            return {"symbols": [], "imports": [], "findings": [], "endpoints": [], "models": []}
+
+        self._js_walk(tree, symbols, imports, findings, rel_path)
+        return {
+            "symbols": symbols,
+            "imports": imports,
+            "findings": findings,
+            "endpoints": [],
+            "models": [],
+        }
+
     def _analyze_javascript(self, file_path: Path) -> Dict[str, Any]:
-        # JS shares the TypeScript grammar (tree-sitter-typescript includes JS).
+        """Public entry-point: parse a .js/.jsx file from disk using esprima."""
         source = file_path.read_text(encoding="utf-8", errors="replace")
-        return self._analyze_typescript_source(source, str(file_path), is_tsx=False)
+        return self._analyze_javascript_source(source, str(file_path))
 
     def _analyze_java(self, file_path: Path) -> Dict[str, Any]:  # noqa: C901
         """Parse a Java source file with javalang and extract security-relevant artefacts.

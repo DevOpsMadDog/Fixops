@@ -117,20 +117,27 @@ class TestAnalysis:
         analyses = eng.list_analyses("org-b")
         assert len(analyses) >= 1
 
-    def test_ts_stub_raises(self, tmp_data_dir, tmp_path):
+    def test_ts_analyzer_returns_dict(self, tmp_data_dir, tmp_path):
+        """_analyze_typescript now uses tree-sitter (when available) or falls back gracefully."""
         eng = _engine()
         ts_file = tmp_path / "x.ts"
         ts_file.write_text("export const x = 1;")
-        # Call the private stub method
-        with pytest.raises((NotImplementedError, Exception)):
-            eng._analyze_typescript(ts_file)
+        # Must return a dict (real tree-sitter) or raise NotImplementedError (no native ext)
+        try:
+            result = eng._analyze_typescript(ts_file)
+            assert isinstance(result, dict)
+        except NotImplementedError:
+            pass  # acceptable when tree-sitter C extension not available
 
-    def test_java_stub_raises(self, tmp_data_dir, tmp_path):
+    def test_java_analyzer_returns_dict(self, tmp_data_dir, tmp_path):
+        """_analyze_java now uses javalang — returns a real dict, not NotImplementedError."""
         eng = _engine()
         j = tmp_path / "X.java"
         j.write_text("public class X {}")
-        with pytest.raises((NotImplementedError, Exception)):
-            eng._analyze_java(j)
+        result = eng._analyze_java(j)
+        assert isinstance(result, dict)
+        assert "symbols" in result
+        assert "findings" in result
 
 
 class TestOrgIsolation:
