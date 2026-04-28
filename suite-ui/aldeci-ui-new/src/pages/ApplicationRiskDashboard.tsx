@@ -1,3 +1,4 @@
+// FOLDED into AssetGraph 2026-04-27 — preserve for git history
 /**
  * Application Risk - Live API
  * API: GET /api/v1/app-risk/applications

@@ -1,3 +1,4 @@
+// FOLDED into Brain 2026-04-27 — preserve for git history
 /**
  * Alert Enrichment - Live API
  * API: GET /api/v1/alert-enrichment/alerts

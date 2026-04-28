@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   ArrowUpCircle,
   Box,
+  Cpu,
   Crown,
   Database,
   Download,
@@ -71,6 +72,10 @@ const UpgradePathExplorer = lazy(() => import("@/pages/UpgradePathExplorer"));
 const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
 // P3 fold-in — ServiceCatalogDashboard → AssetGraph hero "catalog" tab
 const ServiceCatalogDashboard = lazy(() => import("@/pages/ServiceCatalogDashboard"));
+// Wave 2 Phase 3 fold-ins (2026-04-27)
+const AttackSurfaceDashboard = lazy(() => import("@/pages/AttackSurfaceDashboard"));
+const IoTSecurityDashboard = lazy(() => import("@/pages/IoTSecurityDashboard"));
+const ApplicationRiskDashboard = lazy(() => import("@/pages/ApplicationRiskDashboard"));
 // P4 fold-in — SecurityToolInventoryDashboard → AssetGraph hero "tool-inventory" tab
 const SecurityToolInventoryDashboard = lazy(() => import("@/pages/SecurityToolInventoryDashboard"));
 
@@ -122,7 +127,10 @@ type TabKey =
   | "sbom"
   | "upgrade-paths"
   | "catalog"
-  | "tool-inventory";
+  | "tool-inventory"
+  | "attack-surface"
+  | "iot-security"
+  | "app-risk";
 
 interface TabSpec {
   key: TabKey;
@@ -146,6 +154,9 @@ const TABS: TabSpec[] = [
   { key: "upgrade-paths", label: "Upgrade Paths", icon: ArrowUpCircle, endpoint: "/api/v1/components/upgrade-paths", description: "P2 fold-in (S21) — safe-upgrade resolver per pURL. Shows next-secure version, breaking-change risk, and dependency-mapping impact." },
   { key: "catalog", label: "Service Catalog", icon: Package, endpoint: "/api/v1/service-catalog/services", description: "P3 fold-in — security service catalog with SLA tracking, request management, and availability monitoring. Folded from ServiceCatalogDashboard 2026-04-27." },
   { key: "tool-inventory", label: "Tool Inventory", icon: Wrench, endpoint: "/api/v1/tool-inventory/stats", description: "P4 fold-in — security tool portfolio: coverage, cost, effectiveness, and utilization tracking across all deployed tools. Folded from SecurityToolInventoryDashboard 2026-04-27." },
+  { key: "attack-surface", label: "Attack Surface", icon: Target,  endpoint: "/api/v1/attack-surface/exposures", description: "Wave 2 Phase 3 fold-in — external attack surface exposures: open ports, misconfigs, public endpoints, EASM findings. Folded from AttackSurfaceDashboard 2026-04-27." },
+  { key: "iot-security",   label: "IoT Security",   icon: Cpu,     endpoint: "/api/v1/iot/devices",              description: "Wave 2 Phase 3 fold-in — IoT/OT device inventory, firmware risk, protocol exposure, network segmentation. Folded from IoTSecurityDashboard 2026-04-27." },
+  { key: "app-risk",       label: "App Risk",       icon: Shield,  endpoint: "/api/v1/application-risk/summary", description: "Wave 2 Phase 3 fold-in — application risk scoring: top risky apps, component exposure, reachable vulns. Folded from ApplicationRiskDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -400,6 +411,18 @@ export default function AssetGraph() {
             ) : t.key === "tool-inventory" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
                 <SecurityToolInventoryDashboard />
+              </Suspense>
+            ) : t.key === "attack-surface" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <AttackSurfaceDashboard />
+              </Suspense>
+            ) : t.key === "iot-security" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <IoTSecurityDashboard />
+              </Suspense>
+            ) : t.key === "app-risk" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <ApplicationRiskDashboard />
               </Suspense>
             ) : (
             <>

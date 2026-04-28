@@ -1,3 +1,4 @@
+// FOLDED into Compliance 2026-04-27 — preserve for git history
 /**
  * Cloud Posture - Live API
  * API: GET /api/v1/cloud-posture/findings

@@ -78,6 +78,9 @@ const FAILEngine = lazy(() => import("@/pages/validate/FAILEngine"));
 const IncidentTimelineDashboard = lazy(() => import("@/pages/IncidentTimelineDashboard"));
 // Wave 1 Phase 3 fold-in (2026-04-27)
 const SecurityChaosDashboard = lazy(() => import("@/pages/SecurityChaosDashboard"));
+// Wave 2 Phase 3 fold-ins (2026-04-27)
+const AlertEnrichmentDashboard = lazy(() => import("@/pages/AlertEnrichmentDashboard"));
+const AttackChainDashboard = lazy(() => import("@/pages/AttackChainDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 12-step Brain Pipeline canon (from CTEM_PLUS_IDENTITY.md + brain_pipeline.py)
@@ -337,6 +340,8 @@ export default function Brain() {
           <TabsTrigger value="learning-loop">Learning Loop</TabsTrigger>
           <TabsTrigger value="incident-timeline">Incident Timeline</TabsTrigger>
           <TabsTrigger value="chaos">Security Chaos</TabsTrigger>
+          <TabsTrigger value="alert-enrichment">Alert Enrichment</TabsTrigger>
+          <TabsTrigger value="attack-chain">Attack Chain</TabsTrigger>
         </TabsList>
 
         {/* ───────────────────────────────── PIPELINE TAB ─────────────────────── */}
@@ -681,6 +686,20 @@ export default function Brain() {
         <TabsContent value="chaos" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
             <SecurityChaosDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── ALERT ENRICHMENT TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="alert-enrichment" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <AlertEnrichmentDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── ATTACK CHAIN TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="attack-chain" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <AttackChainDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

@@ -71,6 +71,8 @@ const RiskTreatmentDashboard = lazy(() => import("@/pages/RiskTreatmentDashboard
 const PatchManagementDashboard = lazy(() => import("@/pages/PatchManagementDashboard"));
 const PostureAdvisor = lazy(() => import("@/pages/PostureAdvisor"));
 const ScheduledReportsDashboard = lazy(() => import("@/pages/ScheduledReportsDashboard"));
+// Wave 2 Phase 3 fold-ins (2026-04-27)
+const AutonomousRemediationDashboard = lazy(() => import("@/pages/AutonomousRemediationDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -121,7 +123,7 @@ interface AutoFixStats {
   applied_this_week?: number;
 }
 
-type TabKey = "suggested" | "queue" | "approval" | "closed" | "waivers" | "workflows" | "center" | "risk-register" | "risk-treatment" | "patch" | "posture-advisor" | "scheduled-reports";
+type TabKey = "suggested" | "queue" | "approval" | "closed" | "waivers" | "workflows" | "center" | "risk-register" | "risk-treatment" | "patch" | "posture-advisor" | "scheduled-reports" | "autonomous-remediation";
 
 interface TabSpec {
   key: TabKey;
@@ -144,6 +146,7 @@ const TABS: TabSpec[] = [
   { key: "patch",              label: "Patch Mgmt",         icon: Activity,     description: "Wave 1 Phase 3 fold-in — patch management lifecycle: pending, in-progress, applied patches by severity. /api/v1/patch-management." },
   { key: "posture-advisor",    label: "Posture Advisor",    icon: Lightbulb,    description: "Wave 1 Phase 3 fold-in — AI-driven posture recommendations, prioritized roadmap, quick-win actions. /api/v1/posture-advisor." },
   { key: "scheduled-reports",  label: "Scheduled Reports",  icon: FileCheck,    description: "Wave 1 Phase 3 fold-in — report schedules, delivery history, templates, Slack/email delivery. /api/v1/scheduled-reports." },
+  { key: "autonomous-remediation", label: "Autonomous",    icon: Sparkles,     description: "Wave 2 Phase 3 fold-in — autonomous remediation engine: auto-applied fixes, success rates, rollback log. /api/v1/autonomous-remediation. Folded from AutonomousRemediationDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -603,6 +606,11 @@ export default function Remediate() {
 
         <TabsContent value="scheduled-reports">
           <Suspense fallback={<TabSkeleton />}><ScheduledReportsDashboard /></Suspense>
+        </TabsContent>
+
+        {/* ─────────── AUTONOMOUS REMEDIATION TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="autonomous-remediation">
+          <Suspense fallback={<TabSkeleton />}><AutonomousRemediationDashboard /></Suspense>
         </TabsContent>
       </Tabs>
 

@@ -811,7 +811,7 @@ export default function App() {
             <Route path="/sca" element={<SCADashboard />} />
             <Route path="/service-account-audit" element={<ServiceAccountAuditDashboard />} />
             <Route path="/threat-intel-platform" element={<ThreatIntelPlatformDashboard />} />
-            <Route path="/attack-surface-dashboard" element={<AttackSurfaceDashboard />} />
+            <Route path="/attack-surface-dashboard" element={<Navigate to="/assets?tab=attack-surface" replace />} />
 
             {/* New standalone pages */}
             <Route path="/threat-intel" element={<ThreatIntelDashboardPage />} />
@@ -838,7 +838,7 @@ export default function App() {
             <Route path="/network-analysis" element={<NetworkAnalysis />} />
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
-            <Route path="/cspm" element={<CSPMDashboard />} />
+            <Route path="/cspm" element={<Navigate to="/compliance?tab=cspm" replace />} />
             <Route path="/pentest" element={<PentestManagement />} />
             <Route path="/deception" element={<DeceptionEngine />} />
             <Route path="/cert-manager" element={<CertificateManager />} />
@@ -957,7 +957,7 @@ export default function App() {
             {/* Wave 18 domain dashboards */}
             <Route path="/ai-governance" element={<AIGovernanceDashboard />} />
             <Route path="/digital-identity" element={<DigitalIdentityDashboard />} />
-            <Route path="/attack-chains" element={<AttackChainDashboard />} />
+            <Route path="/attack-chains" element={<Navigate to="/brain?tab=attack-chain" replace />} />
             <Route path="/threat-exposure" element={<ThreatExposureDashboard />} />
             <Route path="/license-security" element={<SoftwareLicenseDashboard />} />
             <Route path="/cloud-identity" element={<CloudIdentityDashboard />} />
@@ -980,13 +980,13 @@ export default function App() {
 
             {/* Wave 21 domain dashboards */}
             <Route path="/firmware-security" element={<FirmwareSecurityDashboard />} />
-            <Route path="/iot-security" element={<IoTSecurityDashboard />} />
+            <Route path="/iot-security" element={<Navigate to="/assets?tab=iot-security" replace />} />
             <Route path="/mobile-app-security" element={<MobileAppSecurityDashboard />} />
             <Route path="/supply-chain-attacks" element={<SupplyChainAttackDashboard />} />
             <Route path="/cwp" element={<CloudWorkloadProtectionDashboard />} />
 
             {/* Wave 22 domain dashboards */}
-            <Route path="/autonomous-remediation" element={<AutonomousRemediationDashboard />} />
+            <Route path="/autonomous-remediation" element={<Navigate to="/remediate?tab=autonomous-remediation" replace />} />
             <Route path="/vuln-correlation" element={<VulnerabilityCorrelationDashboard />} />
             <Route path="/posture-benchmarking" element={<PostureBenchmarkingDashboard />} />
             <Route path="/quantum-crypto" element={<QuantumCryptoDashboard />} />
@@ -1004,7 +1004,7 @@ export default function App() {
             {/* Wave 24 domain dashboards */}
             <Route path="/network-forensics" element={<NetworkForensicsDashboard />} />
             <Route path="/malware-analysis" element={<MalwareAnalysisDashboard />} />
-            <Route path="/application-risk" element={<ApplicationRiskDashboard />} />
+            <Route path="/application-risk" element={<Navigate to="/assets?tab=app-risk" replace />} />
             <Route path="/pag" element={<PAGDashboard />} />
             <Route path="/security-gamification" element={<SecurityGamificationDashboard />} />
             <Route path="/vuln-prioritization" element={<VulnPrioritizationDashboard />} />
@@ -1012,7 +1012,7 @@ export default function App() {
             {/* Wave 25 domain dashboards */}
             <Route path="/threat-deception" element={<ThreatDeceptionDashboard />} />
             <Route path="/posture-scoring" element={<PostureScoringDashboard />} />
-            <Route path="/cloud-posture" element={<CloudPostureDashboard />} />
+            <Route path="/cloud-posture" element={<Navigate to="/compliance?tab=cloud-posture-dash" replace />} />
             <Route path="/api-threat-protection" element={<APIThreatProtectionDashboard />} />
             <Route path="/risk-register-engine" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/change-management" element={<ChangeManagementDashboard />} />
@@ -1026,7 +1026,7 @@ export default function App() {
             <Route path="/data-pipeline" element={<DataPipelineDashboard />} />
 
             {/* Wave 27 domain dashboards */}
-            <Route path="/alert-triage" element={<AlertTriageDashboard />} />
+            <Route path="/alert-triage" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/awareness-metrics" element={<AwarenessMetricsDashboard />} />
             <Route path="/patch-management" element={<PatchManagementDashboard />} />
             <Route path="/container-posture" element={<ContainerPostureDashboard />} />
@@ -1099,7 +1099,7 @@ export default function App() {
             {/* Wave 38 domain dashboards */}
             <Route path="/sbom-export" element={<SBOMExportDashboard />} />
             <Route path="/gap-analysis" element={<GapAnalysisDashboard />} />
-            <Route path="/alert-enrichment" element={<AlertEnrichmentDashboard />} />
+            <Route path="/alert-enrichment" element={<Navigate to="/brain?tab=alert-enrichment" replace />} />
             <Route path="/security-baselines" element={<SecurityBaselineDashboard />} />
             <Route path="/threat-response" element={<ThreatResponseDashboard />} />
             <Route path="/awareness-program" element={<AwarenessProgramDashboard />} />

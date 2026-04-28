@@ -1,3 +1,4 @@
+// FOLDED into Compliance 2026-04-27 — preserve for git history
 /**
  * CSPM - Live API
  * API: GET /api/v1/cspm/findings

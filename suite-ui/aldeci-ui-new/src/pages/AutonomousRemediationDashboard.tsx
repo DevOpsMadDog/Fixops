@@ -1,3 +1,4 @@
+// FOLDED into Remediate 2026-04-27 — preserve for git history
 /**
  * Autonomous Remediation Dashboard
  *

@@ -1,3 +1,4 @@
+// FOLDED into AssetGraph 2026-04-27 — preserve for git history
 /**
  * IoT Security Dashboard
  *

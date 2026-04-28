@@ -1,3 +1,4 @@
+// FOLDED into Brain 2026-04-27 — preserve for git history
 /**
  * Attack Chains - Live API
  * API: GET /api/v1/attack-chains/chains

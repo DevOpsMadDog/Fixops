@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Cloud,
+  Cpu,
   Database,
   DollarSign,
   Download,
@@ -56,6 +57,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldOff,
+  Target,
   Timer,
   TrendingUp,
   Vault,
@@ -118,6 +120,10 @@ const TprmExchangeDashboard = lazy(() => import("@/pages/TprmExchangeDashboard")
 const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
 // P4 fold-in — PostureReportingDashboard → Compliance hero "posture-reports" tab
 const PostureReportingDashboard = lazy(() => import("@/pages/PostureReportingDashboard"));
+// Wave 2 Phase 3 fold-ins (2026-04-27)
+const CSPMDashboard = lazy(() => import("@/pages/CSPMDashboard"));
+const EvidenceVaultDashboard = lazy(() => import("@/pages/EvidenceVaultDashboard"));
+const CloudPostureDashboard = lazy(() => import("@/pages/CloudPostureDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Frameworks canon (NIST 800-53 / ISO 27001 / SOC2 / HIPAA / PCI-DSS / FedRAMP / SCIF)
@@ -504,6 +510,15 @@ export default function Compliance() {
           </TabsTrigger>
           <TabsTrigger value="regulatory-tracker" className="flex items-center gap-1.5">
             <ScrollText className="h-3.5 w-3.5" />Regulatory Tracker
+          </TabsTrigger>
+          <TabsTrigger value="cspm" className="flex items-center gap-1.5">
+            <Target className="h-3.5 w-3.5" />CSPM
+          </TabsTrigger>
+          <TabsTrigger value="evidence-vault-dash" className="flex items-center gap-1.5">
+            <Vault className="h-3.5 w-3.5" />Evidence Vault
+          </TabsTrigger>
+          <TabsTrigger value="cloud-posture-dash" className="flex items-center gap-1.5">
+            <Cpu className="h-3.5 w-3.5" />Cloud Posture+
           </TabsTrigger>
         </TabsList>
 
@@ -1051,6 +1066,27 @@ export default function Compliance() {
         <TabsContent value="regulatory-tracker" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
             <RegulatoryTrackerDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── CSPM TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="cspm" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <CSPMDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── EVIDENCE VAULT DASHBOARD TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="evidence-vault-dash" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <EvidenceVaultDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── CLOUD POSTURE TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="cloud-posture-dash" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <CloudPostureDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>
