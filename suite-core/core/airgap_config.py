@@ -33,6 +33,47 @@ from typing import Any, Dict, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+# ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
@@ -430,6 +471,7 @@ class OfflineVulnDBManager:
         )
         self._save_db_info(db_info)
         logger.info("Imported vuln DB: %d CVEs, version=%s", cve_count, db_info.version)
+        _emit_event("airgap.vuln_db_imported", {"version": db_info.version, "cve_count": cve_count, "bundle_path": bundle_path})
         return db_info
 
     def _validate_db_file(self, db_file: Path) -> Tuple[int, List[str]]:
@@ -486,6 +528,7 @@ class OfflineVulnDBManager:
             zf.writestr(self.MANIFEST_FILENAME, manifest_bytes)
 
         logger.info("Exported vuln DB bundle to %s", output_file)
+        _emit_event("airgap.vuln_db_exported", {"output_path": str(output_file)})
         return str(output_file)
 
     # ---- State persistence ----
@@ -1436,6 +1479,7 @@ class AirGapConfigEngine:
         self._config.last_configured = _utcnow()
         self._save_state()
         logger.info("Air-gap configuration updated: mode=%s", self._config.mode)
+        _emit_event("airgap.config_updated", {"mode": str(self._config.mode)})
         return self._config
 
     def detect_isolation(self) -> NetworkIsolationStatus:

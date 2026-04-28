@@ -24,6 +24,47 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 try:
     import yaml as _yaml
     _HAS_YAML = True
@@ -469,6 +510,7 @@ class ContainerImageScanner:
             by_cat[f.category] = by_cat.get(f.category, 0) + 1
 
         elapsed = (time.time() - t0) * 1000
+        _emit_event("container.dockerfile_scanned", {"target": filename, "finding_count": len(findings), "elapsed_ms": round(elapsed, 1)})
         return ContainerScanResult(
             scan_id=f"cont-{uuid.uuid4().hex[:12]}",
             target=filename,
@@ -610,6 +652,7 @@ class ContainerImageScanner:
             by_cat[f.category] = by_cat.get(f.category, 0) + 1
 
         elapsed = (time.time() - t0) * 1000
+        _emit_event("container.image_scanned", {"target": image_ref, "finding_count": len(findings), "elapsed_ms": round(elapsed, 1)})
         return ContainerScanResult(
             scan_id=f"cont-{uuid.uuid4().hex[:12]}",
             target=image_ref,
