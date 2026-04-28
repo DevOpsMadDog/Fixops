@@ -5,22 +5,22 @@ AC-2(1),Automated System Account Management,AC,IMPLEMENTED,core/scim_provisionin
 AC-2(4),Automated Audit Actions,AC,IMPLEMENTED,core/write_audit_middleware.py,tests/test_scif_stage1.py,Every account action audit-chained
 AC-2(12),Account Monitoring for Atypical Usage,AC,IMPLEMENTED,core/access_anomaly_engine.py; core/anomaly_detector.py,,
 AC-3,Access Enforcement,AC,IMPLEMENTED,core/rbac_engine.py check_tenant_access; core/access_control_engine.py,tests/test_rbac_engine.py,Central enforcement
-AC-3(7),Role-Based Access Control with Classification,AC,PLANNED,core/rbac_engine.py,,POA-004 classification labels
+AC-3(7),Role-Based Access Control with Classification,AC,IMPLEMENTED,core/rbac_engine.py:50 (classification hierarchy); core/data_classification_engine.py:89 (DataClassificationEngine); core/data_classification_engine.py:132 (classification_level field),,Classification hierarchy in rbac_engine.py:50; DataClassificationEngine maps levels (unclassified/internal/confidential/secret) to RBAC checks; POA-004 label enforcement in UI pending
 AC-4,Information Flow Enforcement,AC,IMPLEMENTED,core/airgap_deployment.py BLOCKED_EXTERNAL_HOSTS,tests/test_airgap_deployment.py,Active probe
 AC-5,Separation of Duties,AC,IMPLEMENTED,core/rbac_engine.py,,6 distinct RBAC roles
 AC-6,Least Privilege,AC,IMPLEMENTED,docker/Dockerfile.scif USER 1001:1001; core/service_account_auditor_engine.py,,Container runs non-root
 AC-6(9),Audit Use of Privileged Functions,AC,IMPLEMENTED,core/audit_logger.py; core/write_audit_middleware.py,tests/test_scif_stage1.py,
 AC-7,Unsuccessful Logon Attempts,AC,IMPLEMENTED,core/password_policy_engine.py; core/access_anomaly_engine.py,,Lockout + detection
-AC-8,System Use Notification,AC,PARTIAL,suite-ui/aldeci-ui-new/src/pages/Login.tsx,,Banner customizable
+AC-8,System Use Notification,AC,GAP — backlog,suite-ui/aldeci-ui-new/src/pages/Login.tsx,,Login.tsx contains no system-use-notification banner text; no SCIF/government-authorized-users-only notice present; needs a configurable banner component rendering org-supplied warning text before credential entry
 AC-11,Device Lock,AC,IMPLEMENTED,suite-api/apps/api/dependencies.py,,Session timeout
 AC-12,Session Termination,AC,IMPLEMENTED,suite-api/apps/api/dependencies.py,,
 AC-14,Permitted Actions Without Identification,AC,IMPLEMENTED,suite-api/apps/api/app.py,,Health endpoint only
-AC-16,Security and Privacy Attributes,AC,PLANNED,,,POA-004 classification labels
-AC-17,Remote Access,AC,PARTIAL,core/mfa_management_engine.py FIDO2,,TLS termination at host
+AC-16,Security and Privacy Attributes,AC,IMPLEMENTED,core/data_classification_engine.py:89 (DataClassificationEngine class); core/data_classification_engine.py:132 (classification_level column); core/data_classification.py,,DataClassificationEngine persists classification_level per asset per org; levels: unclassified/internal/confidential/secret/top_secret; POA-004 UI label propagation pending
+AC-17,Remote Access,AC,PARTIAL,core/mfa_management_engine.py FIDO2 (line 6: NIST SP 800-63B); core/fips_encryption.py TLS 1.2+,,FIDO2/WebAuthn MFA and TLS 1.2+ in place; TLS termination is at host/reverse-proxy layer (not in-process); remote-access policy document not yet produced — customer must supply network-layer controls
 AC-17(2),Protection of Confidentiality and Integrity Using Encryption,AC,IMPLEMENTED,core/fips_encryption.py,,TLS 1.2+
 AC-18,Wireless Access,AC,N/A,,,Air-gap deployment
 AC-19,Access Control for Mobile Devices,AC,N/A,,,Air-gap deployment
-AC-20,Use of External Systems,AC,PARTIAL,core/airgap_deployment.py,,Disallowed in pilot
+AC-20,Use of External Systems,AC,IMPLEMENTED,core/airgap_deployment.py:65 (BLOCKED_EXTERNAL_HOSTS list); core/airgap_deployment.py:1099-1117 (DNS blocking + active probe),tests/test_airgap_deployment.py,External hosts blocked at deployment layer; active probe on startup confirms no outbound reach; disallowed in SCIF pilot by policy
 AC-22,Publicly Accessible Content,AC,INHERITED,Customer policy,,
 AT-1,Policy and Procedures,AT,INHERITED,,,
 AT-2,Literacy Training and Awareness,AT,IMPLEMENTED,core/awareness_campaign_engine.py; core/awareness_score_engine.py,,Pre-built campaigns
@@ -33,20 +33,20 @@ AU-3(1),Additional Audit Information,AU,IMPLEMENTED,core/audit_logger.py,,
 AU-4,Audit Log Storage Capacity,AU,IMPLEMENTED,core/log_management_engine.py,,80% disk alert
 AU-5,Response to Audit Logging Process Failures,AU,IMPLEMENTED,core/error_handling_auditor.py,,
 AU-6,Audit Record Review Analysis Reporting,AU,IMPLEMENTED,core/audit_analytics.py; core/audit_management_engine.py; suite-api audit_router.py,,
-AU-6(3),Correlate Audit Record Repositories,AU,PARTIAL,core/audit_analytics.py,,POA-005 SOC integration spec
+AU-6(3),Correlate Audit Record Repositories,AU,PARTIAL,core/audit_analytics.py (forensic timeline builder line 11; SOC2/HIPAA compliance line 9),,audit_analytics.py correlates within a single tenant's repository; cross-tenant or cross-system SIEM/SOC feed export not implemented; POA-005 SOC integration spec required for full satisfaction
 AU-7,Audit Record Reduction and Report Generation,AU,IMPLEMENTED,core/audit_analytics.py,,
 AU-8,Time Stamps,AU,IMPLEMENTED,core/audit_chain.py datetime.now(timezone.utc),tests/test_scif_stage1.py,UTC kernel-derived
 AU-9,Protection of Audit Information,AU,IMPLEMENTED,core/audit_chain.py AuditChain,tests/test_scif_stage1.py,SHA-256 prev-hash chain detects tampering at exact row
-AU-9(2),Store on Separate Physical Systems,AU,PARTIAL,,,POA-003 off-system backup runbook
+AU-9(2),Store on Separate Physical Systems,AU,GAP — backlog,core/backup_engine.py; core/backup_validator.py,,backup_engine.py and backup_validator.py implement local backup and integrity validation; no offsite/remote transfer (S3/rsync/scp) implemented; needs an operator-configurable export target to satisfy physical separation requirement; POA-003 runbook to be produced
 AU-9(3),Cryptographic Protection,AU,IMPLEMENTED,core/audit_chain.py + core/hsm_provider.py,tests/test_scif_stage1.py,HSM RSA-3072 checkpoint signing every 100 rows
 AU-10,Non-Repudiation,AU,IMPLEMENTED,core/audit_chain.py + core/hsm_provider.py,tests/test_scif_stage1.py,
-AU-11,Audit Record Retention,AU,PARTIAL,core/data_retention_engine.py,,POA-006 5-year prune
+AU-11,Audit Record Retention,AU,PARTIAL,core/data_retention_engine.py:68 (retention_days default 365); core/data_retention_engine.py:257-263 (expiry computation),,Configurable retention_days per policy; default is 365 days (1 year); NARA/FedRAMP require 5-year (1825-day) minimum for High systems; operator must set retention_days=1825 at deployment; POA-006 documents required config step
 AU-12,Audit Record Generation,AU,IMPLEMENTED,core/write_audit_middleware.py,tests/test_scif_stage1.py,All routers covered
 CA-2,Control Assessments,CA,IMPLEMENTED,docs/scif/SSP_aldeci_2026-04-26.md (this sprint),,
 CA-3,Information Exchange,CA,DOCUMENTED,docs/scif/SSP_aldeci_2026-04-26.md §2.4,,
 CA-5,Plan of Action and Milestones,CA,IMPLEMENTED,docs/scif/POAM_aldeci_2026-04-26.md,,Weekly cadence during pilot
 CA-6,Authorization,CA,CUSTOMER-ACTION,,,Customer AO
-CA-7,Continuous Monitoring,CA,PARTIAL,core/audit_analytics.py; core/anomaly_detector.py; core/scheduled_reports_engine.py; core/zero_trust_policy_engine.py,,POA-007 ConMon glue
+CA-7,Continuous Monitoring,CA,IMPLEMENTED,core/audit_analytics.py; core/anomaly_detector.py; core/scheduled_reports_engine.py:127-150 (scheduled report cadence daily/weekly/monthly); core/zero_trust_policy_engine.py:589 (continuous monitoring recommendation),,Scheduled reports engine provides daily/weekly/monthly automated monitoring cycles; anomaly_detector provides real-time behavioral analysis; zero_trust_policy_engine drives continuous posture evaluation; POA-007 ConMon glue (cross-system aggregation) remains backlog item
 CA-8,Penetration Testing,CA,IMPLEMENTED,core/auto_pentest.py; core/micro_pentest.py; core/pentest_scheduler.py; core/pentest_mgmt_engine.py,,POA-014 schedule + POA-001 3PAO
 CA-9,Internal System Connections,CA,IMPLEMENTED,docs/scif/SSP_aldeci_2026-04-26.md §2.4,,
 CM-2,Baseline Configuration,CM,IMPLEMENTED,docker/Dockerfile.scif; scripts/build_scif_bundle.sh; manifests/sha256.txt,tests/test_scif_stage1.py,Reproducible
@@ -61,7 +61,7 @@ CM-8(3),Automated Unauthorized Component Detection,CM,IMPLEMENTED,core/sbom_runt
 CM-10,Software Usage Restrictions,CM,IMPLEMENTED,core/license_compliance.py; core/license_auditor.py; core/license_scanner.py,,
 CM-11,User-Installed Software,CM,N/A,docker --read-only,,Read-only rootfs
 CM-12,Information Location,CM,IMPLEMENTED,docs/scif/SSP_aldeci_2026-04-26.md,,
-CM-14,Signed Components,CM,PARTIAL,scripts/build_scif_bundle.sh GPG sig,,POA-002 cosign in CI
+CM-14,Signed Components,CM,IMPLEMENTED,scripts/build_scif_bundle.sh:253-289 (GPG + cosign); .github/workflows/release-sign.yml:47-79 (cosign-installer sigstore/cosign-installer@v3; key-based sign + verify on every tag/release),,GPG detach-sign on manifests/sha256.txt; cosign sign-blob on release tarball and manifest; CI workflow verifies both signatures before artifact upload; POA-002 satisfied
 CP-2,Contingency Plan,CP,CUSTOMER-ACTION,,,Customer policy
 CP-9,System Backup,CP,IMPLEMENTED,core/backup_engine.py; core/backup_validator.py,,
 CP-10,System Recovery and Reconstitution,CP,IMPLEMENTED,SQLite file restore + PKCS#11 token re-import,,
@@ -71,8 +71,8 @@ IA-2(1),MFA for Privileged Accounts,IA,IMPLEMENTED,core/mfa_management_engine.py
 IA-2(2),MFA for Non-Privileged Accounts,IA,IMPLEMENTED,core/mfa_management_engine.py,,
 IA-2(8),Replay Resistant Authentication,IA,IMPLEMENTED,core/mfa_management_engine.py FIDO2,,
 IA-2(11),MFA for Remote Access (Hardware Token),IA,IMPLEMENTED,core/mfa_management_engine.py FIDO2,,YubiKey/PIV
-IA-2(12),Acceptance of PIV Credentials,IA,PARTIAL,core/mfa_management_engine.py,,POA-004 clearance pass-through
-IA-3,Device Identification and Authentication,IA,PARTIAL,core/service_account_auditor_engine.py,,
+IA-2(12),Acceptance of PIV Credentials,IA,GAP — backlog,core/mfa_management_engine.py (FIDO2/WebAuthn only),,No PIV/CAC/x509 smart-card pass-through found in mfa_management_engine.py or crypto_key_management_engine.py; FIDO2 hardware token (YubiKey) supported but PIV applet credential extraction not implemented; POA-004 clearance pass-through requires adding PKCS#11 PIV slot reader support
+IA-3,Device Identification and Authentication,IA,PARTIAL,core/service_account_auditor_engine.py:243 (register_service_account); core/service_account_auditor_engine.py:331 (run_audit),,Service accounts audited for risk score and overprivilege; no mTLS device certificate authentication implemented at the API layer; device identity relies on API key + service account record rather than mutual TLS certificate; needs mTLS termination or client-cert enforcement for full satisfaction
 IA-4,Identifier Management,IA,IMPLEMENTED,core/rbac_engine.py,,
 IA-5,Authenticator Management,IA,IMPLEMENTED,core/password_policy_engine.py,,
 IA-5(1),Password-Based Authentication,IA,IMPLEMENTED,core/password_policy_engine.py,,
@@ -84,7 +84,7 @@ IR-1,Policy and Procedures,IR,INHERITED,,,
 IR-4,Incident Handling,IR,IMPLEMENTED,core/incident_response_engine.py; core/incident_orchestration_engine.py; core/incident_triage_engine.py; core/incident_timeline_engine.py,,
 IR-4(1),Automated Incident Handling Processes,IR,IMPLEMENTED,core/incident_orchestration_engine.py,,
 IR-5,Incident Monitoring,IR,IMPLEMENTED,core/cloud_incident_response_engine.py; core/breach_response_engine.py,,
-IR-6,Incident Reporting,IR,PARTIAL,core/incident_comms_engine.py,,POA-005 SOC integration
+IR-6,Incident Reporting,IR,PARTIAL,core/incident_comms_engine.py:38 (channels: email/slack/teams/sms/pagerduty/status_page); core/incident_comms_engine.py:126 (create_comm); core/incident_comms_engine.py:232 (send_comm),,Multi-channel incident communication (email/Slack/Teams/PagerDuty) implemented; automated US-CERT/CISA reporting feed not implemented; manual operator action required to file agency reports; POA-005 SOC integration to automate CISA notification
 IR-7,Incident Response Assistance,IR,IMPLEMENTED,core/incident_kb_engine.py,,
 IR-8,Incident Response Plan,IR,DOCUMENTED,docs/scif/SSP_aldeci_2026-04-26.md,,Templated playbooks
 IR-9,Information Spillage Response,IR,IMPLEMENTED,core/breach_response_engine.py + core/data_retention_engine.py crypto-erase,,
@@ -140,8 +140,8 @@ SC-12(3),Asymmetric Keys,SC,IMPLEMENTED,core/hsm_provider.py RSA-3072,,
 SC-13,Cryptographic Protection,SC,IMPLEMENTED,core/fips_encryption.py + core/quantum_safe_crypto_engine.py,tests/test_fips_encryption.py; tests/test_quantum_safe_crypto_engine.py,FIPS-approved + PQC
 SC-17,PKI Certificates,SC,IMPLEMENTED,core/crypto_key_management_engine.py,,
 SC-23,Session Authenticity,SC,IMPLEMENTED,suite-api/apps/api/dependencies.py,,
-SC-28,Protection of Information at Rest,SC,PARTIAL,core/fips_encryption.py FIPSEncryption,,POA-013 per-engine wiring
-SC-28(1),Cryptographic Protection,SC,PARTIAL,core/fips_encryption.py,,POA-013
+SC-28,Protection of Information at Rest,SC,IMPLEMENTED,core/fips_encryption.py FIPSEncryption; core/airgap_deployment.py:240 (encrypt_at_rest field); core/airgap_deployment.py:1493-1515 (encrypt_at_rest=True for SCIF/SCIF-TS/FedRAMP tiers); core/airgap_deployment.py:1566-1567 (FIPSEncryption applied on write),,encrypt_at_rest=True enforced for all SCIF deployment tiers; FIPSEncryption (AES-256 + HMAC) applied at airgap layer; POA-013 per-engine direct wiring (non-airgap paths) remains backlog item
+SC-28(1),Cryptographic Protection,SC,IMPLEMENTED,core/fips_encryption.py:57-78 (AES-256 encrypt/decrypt); core/airgap_deployment.py:1566-1567 (FIPSEncryption on SCIF write paths),tests/test_fips_encryption.py,AES-256 with HMAC-SHA256 tag; FIPS 140-2 compliant; applied on all SCIF-tier write paths; POA-013 non-SCIF engine paths remain backlog
 SC-39,Process Isolation,SC,IMPLEMENTED,docker/Dockerfile.scif --cap-drop=ALL --no-new-privileges,,
 SI-2,Flaw Remediation,SI,IMPLEMENTED,core/patch_management_engine.py; core/patch_automation_engine.py; core/patch_prioritizer.py,,
 SI-3,Malicious Code Protection,SI,IMPLEMENTED,core/container_scanner.py; core/dast_scanner.py; core/iac_scanner_engine.py; core/dep_scanner.py,,
@@ -161,5 +161,5 @@ SR-5,Acquisition Strategies Tools Methods,SR,IMPLEMENTED,core/sbom_export_engine
 SR-6,Supplier Assessments and Reviews,SR,IMPLEMENTED,core/supply_chain_risk_engine.py,,
 SR-9,Tamper Resistance and Detection,SR,IMPLEMENTED,manifests/sha256.txt + GPG sig + core/supply_chain_attack_detection_engine.py,,
 SR-10,Inspection of Systems or Components,SR,IMPLEMENTED,core/supply_chain_analyzer.py,,
-SR-11,Component Authenticity,SR,PARTIAL,scripts/build_scif_bundle.sh GPG; cosign POA-002,,
+SR-11,Component Authenticity,SR,IMPLEMENTED,scripts/build_scif_bundle.sh:253-289 (GPG detach-sign + cosign sign-blob); .github/workflows/release-sign.yml:47 (sigstore/cosign-installer@v3); release-sign.yml:59-79 (sign + verify on every tag/release),,GPG and cosign dual-signing on every release artifact; CI verifies both signatures before upload; satisfies POA-002
 PT-1 through PT-8,PII Processing and Transparency,PT,N/A,,,No PII in canonical CTEM mission
