@@ -7910,6 +7910,13 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("tor_exit_nodes_router unavailable: %s", _e)
 
+    try:
+        from apps.api.greynoise_router import router as greynoise_router
+        app.include_router(greynoise_router)
+        _logger.info("Mounted GreyNoise router at /api/v1/greynoise")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("greynoise_router unavailable: %s", _e)
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they

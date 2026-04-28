@@ -615,6 +615,43 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: urlscan importer unavailable: %s", exc)
 
+    # ---------- GreyNoise Community ----------
+    try:
+        from feeds.greynoise.importer import (
+            bulk_import as _greynoise_bulk,
+            get_store_stats as _greynoise_stats,
+            GREYNOISE_COMMUNITY_URL as _GREYNOISE_URL,
+        )
+
+        def _refresh_greynoise() -> Dict[str, Any]:
+            # No-op bulk import with empty list — registry refresh just returns stats.
+            # Real lookups are done on-demand via the API endpoint.
+            return _greynoise_stats()
+
+        def _count_greynoise() -> int:
+            try:
+                return int(_greynoise_stats().get("total", 0))
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="greynoise",
+            display_name="GreyNoise Community IP Intelligence",
+            source_url=_GREYNOISE_URL.replace("{ip}", "<ip>"),
+            source_type="json",
+            license="GreyNoise Community API Terms of Service (free tier, no key required)",
+            refresh_interval_seconds=86_400,  # daily
+            importer_callable=_refresh_greynoise,
+            count_callable=_count_greynoise,
+            description=(
+                "GreyNoise community IP classification — benign / malicious / unknown. "
+                "Per-IP lookup with 1-day cache. GREYNOISE_API_KEY env var unlocks "
+                "the paid tier and removes rate limits."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: greynoise importer unavailable: %s", exc)
+
 
 def _ensure_discovered() -> None:
     global _discovery_done
