@@ -1,3 +1,4 @@
+// FOLDED into Compliance hero (/compliance#risk-quant) 2026-04-27 — preserve for git history but no longer routed
 /**
  * Risk Quant Dashboard
  *

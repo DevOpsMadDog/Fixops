@@ -25,14 +25,17 @@ import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
+  Award,
   BadgeCheck,
   BookOpen,
   Bot,
+  Building2,
   Calendar,
   CheckCircle2,
   ClipboardList,
   Cloud,
   Database,
+  DollarSign,
   Download,
   FileCheck,
   FileText,
@@ -107,6 +110,10 @@ const RiskRegister = lazy(() => import("@/pages/RiskRegister"));
 const RiskAcceptance = lazy(() => import("@/pages/RiskAcceptance"));
 const RiskTreatmentDashboard = lazy(() => import("@/pages/RiskTreatmentDashboard"));
 const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
+// P3 fold-ins 2026-04-27
+const RiskQuantDashboard = lazy(() => import("@/pages/RiskQuantDashboard"));
+const TprmExchangeDashboard = lazy(() => import("@/pages/TprmExchangeDashboard"));
+const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Frameworks canon (NIST 800-53 / ISO 27001 / SOC2 / HIPAA / PCI-DSS / FedRAMP / SCIF)
@@ -478,6 +485,15 @@ export default function Compliance() {
           </TabsTrigger>
           <TabsTrigger value="sla-risk" className="flex items-center gap-1.5">
             <Scale className="h-3.5 w-3.5" />SLA & Risk Register
+          </TabsTrigger>
+          <TabsTrigger value="risk-quant" className="flex items-center gap-1.5">
+            <DollarSign className="h-3.5 w-3.5" />Risk Quant
+          </TabsTrigger>
+          <TabsTrigger value="tprm" className="flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5" />Vendor Risk
+          </TabsTrigger>
+          <TabsTrigger value="scorecard" className="flex items-center gap-1.5">
+            <Award className="h-3.5 w-3.5" />Scorecard
           </TabsTrigger>
         </TabsList>
 
@@ -1000,8 +1016,62 @@ export default function Compliance() {
         <TabsContent value="sla-risk" className="space-y-4">
           <SLARiskPane />
         </TabsContent>
+
+        {/* ─────────────── RISK QUANT TAB (P3 fold-in 2026-04-27) ─────────────── */}
+        <TabsContent value="risk-quant" className="space-y-4">
+          <RiskQuantPane />
+        </TabsContent>
+
+        {/* ─────────────── VENDOR RISK / TPRM TAB (P3 fold-in 2026-04-27) ─────── */}
+        <TabsContent value="tprm" className="space-y-4">
+          <TprmPane />
+        </TabsContent>
+
+        {/* ─────────────── SCORECARD TAB (P3 fold-in 2026-04-27) ───────────────── */}
+        <TabsContent value="scorecard" className="space-y-4">
+          <ScorecardPane />
+        </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RiskQuantPane — P3 fold-in 2026-04-27 (S4 sub-tab on Compliance hero)
+// Folds: RiskQuantDashboard → /api/v1/risk-quant/scenarios (FAIR ALE/SLE)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function RiskQuantPane() {
+  return (
+    <Suspense fallback={<TabSkeleton />}>
+      <RiskQuantDashboard />
+    </Suspense>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TprmPane — P3 fold-in 2026-04-27 (Vendor Risk tab on Compliance hero)
+// Folds: TprmExchangeDashboard → /api/v1/tprm-exchange/vendors
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TprmPane() {
+  return (
+    <Suspense fallback={<TabSkeleton />}>
+      <TprmExchangeDashboard />
+    </Suspense>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ScorecardPane — P3 fold-in 2026-04-27 (Scorecard tab on Compliance hero)
+// Folds: SecurityScorecardDashboard → /api/v1/security-scorecard/
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ScorecardPane() {
+  return (
+    <Suspense fallback={<TabSkeleton />}>
+      <SecurityScorecardDashboard />
+    </Suspense>
   );
 }
 

@@ -1,3 +1,4 @@
+// FOLDED into Compliance hero (/compliance#tprm) 2026-04-27 — preserve for git history but no longer routed
 /**
  * TPRM Exchange Dashboard
  *

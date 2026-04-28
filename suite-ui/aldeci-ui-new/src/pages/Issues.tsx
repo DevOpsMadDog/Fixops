@@ -58,6 +58,8 @@ const ScoreTransparencyPanel = lazy(() => import("@/pages/ScoreTransparencyPanel
 const ReachabilityProofView = lazy(() => import("@/pages/validate/ReachabilityProof"));
 // P1 Wave 3 fold-in (S6 Issue Detail) — finding lifecycle timeline + history
 const VulnLifecycle = lazy(() => import("@/pages/VulnLifecycle"));
+// P3 fold-in — VulnIntelFusionDashboard → Issues hero "vuln-intel-fusion" tab
+const VulnIntelFusionDashboard = lazy(() => import("@/pages/VulnIntelFusionDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -99,7 +101,8 @@ type TabKey =
   | "material"
   | "pr-risk"
   | "explorer"
-  | "threat-intel";
+  | "threat-intel"
+  | "vuln-intel-fusion";
 
 interface TabSpec {
   key: TabKey;
@@ -120,6 +123,7 @@ const TABS: TabSpec[] = [
   { key: "pr-risk", label: "PR Risk", icon: GitPullRequest, endpoint: "/api/v1/pr/change-risk", description: "Inbound PR risk scores from open pull requests" },
   { key: "explorer", label: "Explorer", icon: Compass, endpoint: "/api/v1/findings", description: "Power-user view: rich filters, severity histogram, scanner facets, full-text search, CSV export" },
   { key: "threat-intel", label: "Threat Intel", icon: Rss, endpoint: "/api/v1/tip/feeds/status", description: "P2 fold-in (S14) — 28+ feed status, latest IoCs, actor tracking, confidence scoring. Cross-references findings to active threats." },
+  { key: "vuln-intel-fusion", label: "Vuln Intel Fusion", icon: ShieldAlert, endpoint: "/api/v1/vuln-intel-fusion/cves", description: "P3 fold-in — multi-source CVE intelligence fusion: CVSS, EPSS, CISA KEV, composite scoring. Folded from VulnIntelFusionDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -305,6 +309,10 @@ export default function Issues() {
               <FindingsExplorerPane onSelect={(f) => { setSelected(f); setDrawer("score"); }} />
             ) : t.key === "threat-intel" ? (
               <ThreatIntelPane />
+            ) : t.key === "vuln-intel-fusion" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <VulnIntelFusionDashboard />
+              </Suspense>
             ) : (
             <>
             <div className="flex items-center gap-2">

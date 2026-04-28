@@ -1,3 +1,4 @@
+// FOLDED into Issues hero (/issues#vuln-intel-fusion) 2026-04-27 — preserve for git history but no longer routed
 /**
  * Vulnerability Intelligence Fusion Dashboard
  *

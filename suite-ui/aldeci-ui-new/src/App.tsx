@@ -904,7 +904,8 @@ export default function App() {
             <Route path="/threat-models" element={<ThreatModelDashboard />} />
             <Route path="/security-exceptions" element={<SecurityExceptionDashboard />} />
             <Route path="/regulatory-tracker" element={<RegulatoryTrackerDashboard />} />
-            <Route path="/security-scorecard" element={<SecurityScorecardDashboard />} />
+            {/* P3 fold 2026-04-27 — SecurityScorecardDashboard folded into /compliance#scorecard */}
+            <Route path="/security-scorecard" element={<Navigate to="/compliance?tab=scorecard" replace />} />
             <Route path="/ccm" element={<CCMDashboard />} />
             <Route path="/system-health" element={<SystemHealthDashboard />} />
 
@@ -1077,19 +1078,23 @@ export default function App() {
             <Route path="/dependency-mapping" element={<DependencyMappingDashboard />} />
 
             {/* Wave 40 domain dashboards (pages for Wave 39 engines) */}
-            <Route path="/risk-quant" element={<RiskQuantDashboard />} />
+            {/* P3 fold 2026-04-27 — RiskQuantDashboard folded into /compliance#risk-quant */}
+            <Route path="/risk-quant" element={<Navigate to="/compliance?tab=risk-quant" replace />} />
             <Route path="/cyber-threat-modeling" element={<CyberThreatModelingDashboard />} />
             <Route path="/capacity-planning" element={<CapacityPlanningDashboard />} />
-            <Route path="/tprm-exchange" element={<TprmExchangeDashboard />} />
+            {/* P3 fold 2026-04-27 — TprmExchangeDashboard folded into /compliance#tprm */}
+            <Route path="/tprm-exchange" element={<Navigate to="/compliance?tab=tprm" replace />} />
             <Route path="/event-timeline" element={<EventTimelineDashboard />} />
-            <Route path="/vuln-intel-fusion" element={<VulnIntelFusionDashboard />} />
+            {/* P3 fold 2026-04-27 — VulnIntelFusionDashboard folded into /issues#vuln-intel-fusion */}
+            <Route path="/vuln-intel-fusion" element={<Navigate to="/issues?tab=vuln-intel-fusion" replace />} />
 
             {/* Wave 39 domain dashboards */}
             <Route path="/posture-reports" element={<PostureReportingDashboard />} />
             <Route path="/network-anomaly" element={<NetworkAnomalyDashboard />} />
             <Route path="/privileged-identity" element={<PrivilegedIdentityDashboard />} />
             <Route path="/hunting-automation" element={<HuntingAutomationDashboard />} />
-            <Route path="/service-catalog" element={<ServiceCatalogDashboard />} />
+            {/* P3 fold 2026-04-27 — ServiceCatalogDashboard folded into /assets#catalog */}
+            <Route path="/service-catalog" element={<Navigate to="/assets?tab=catalog" replace />} />
 
             {/* Wave 38 domain dashboards */}
             <Route path="/sbom-export" element={<SBOMExportDashboard />} />

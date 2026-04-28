@@ -68,6 +68,8 @@ import { cn } from "@/lib/utils";
 // P2 fold-in (S21) — Upgrade Paths companion dashboards
 const UpgradePathExplorer = lazy(() => import("@/pages/UpgradePathExplorer"));
 const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
+// P3 fold-in — ServiceCatalogDashboard → AssetGraph hero "catalog" tab
+const ServiceCatalogDashboard = lazy(() => import("@/pages/ServiceCatalogDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -115,7 +117,8 @@ type TabKey =
   | "inventory"
   | "attack-paths"
   | "sbom"
-  | "upgrade-paths";
+  | "upgrade-paths"
+  | "catalog";
 
 interface TabSpec {
   key: TabKey;
@@ -137,6 +140,7 @@ const TABS: TabSpec[] = [
   { key: "attack-paths", label: "Attack Paths", icon: Target, endpoint: "/api/v1/attack-paths/graph", description: "P1 Wave 2 (S12) — interactive attack-path explorer. Click a node to drill into the kill-chain through that asset." },
   { key: "sbom",         label: "SBOM",         icon: Package, endpoint: "/api/v1/sbom", description: "P1 Wave 2 (S25) — components, SLSA attestations, propagation tracking. Provenance graph for every artifact." },
   { key: "upgrade-paths", label: "Upgrade Paths", icon: ArrowUpCircle, endpoint: "/api/v1/components/upgrade-paths", description: "P2 fold-in (S21) — safe-upgrade resolver per pURL. Shows next-secure version, breaking-change risk, and dependency-mapping impact." },
+  { key: "catalog", label: "Service Catalog", icon: Package, endpoint: "/api/v1/service-catalog/services", description: "P3 fold-in — security service catalog with SLA tracking, request management, and availability monitoring. Folded from ServiceCatalogDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -384,6 +388,10 @@ export default function AssetGraph() {
               <SBOMProvenancePane />
             ) : t.key === "upgrade-paths" ? (
               <UpgradePathsPane />
+            ) : t.key === "catalog" ? (
+              <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
+                <ServiceCatalogDashboard />
+              </Suspense>
             ) : (
             <>
             <div className="flex items-center gap-2">
