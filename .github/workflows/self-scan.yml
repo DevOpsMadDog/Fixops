@@ -1,0 +1,90 @@
+name: ALDECI Public Self-Scan Dashboard
+
+on:
+  push:
+    branches:
+      - "features/intermediate-stage"
+  schedule:
+    # Nightly refresh at 02:00 UTC
+    - cron: "0 2 * * *"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  self-scan-publish:
+    name: Run Self-Scan and Publish Dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run ALDECI self-scan
+        id: self_scan
+        env:
+          PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
+          SELF_SCAN_PROJECT_ROOT: ${{ github.workspace }}
+          SELF_SCAN_MAX_SAST_FILES: "300"
+          SELF_SCAN_FAIL_ON_CRITICAL: "false"
+          FIXOPS_DISABLE_TELEMETRY: "1"
+        run: |
+          python -c "
+          import json, sys, os
+          sys.path.insert(0, 'suite-core')
+          from core.self_scanner import get_self_scan_engine
+          engine = get_self_scan_engine()
+          report = engine.run_full_scan()
+          out = json.dumps(report.model_dump(mode='json'), indent=2, default=str)
+          print(out)
+          criticals = report.findings_by_severity.get('critical', 0)
+          highs    = report.findings_by_severity.get('high', 0)
+          print(f'Grade: {report.grade}  Risk: {report.risk_score}  Findings: {len(report.findings)}  Critical: {criticals}  High: {highs}', file=sys.stderr)
+          " > self-scan-results.json
+
+      - name: Render HTML dashboard
+        run: |
+          mkdir -p self-scan
+          python scripts/render_self_scan_html.py self-scan-results.json --out self-scan/index.html
+          cp self-scan-results.json self-scan/results.json
+
+      - name: Verify HTML size
+        run: |
+          size=$(wc -c < self-scan/index.html)
+          echo "HTML size: ${size} bytes"
+          if [ "$size" -gt 51200 ]; then
+            echo "WARNING: HTML exceeds 50 KB (${size} bytes)" >&2
+          fi
+
+      - name: Upload scan artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aldeci-self-scan-${{ github.sha }}
+          path: |
+            self-scan-results.json
+            self-scan/index.html
+          retention-days: 90
+
+      - name: Deploy to GitHub Pages (gh-pages branch)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./self-scan
+          destination_dir: self-scan
+          keep_files: true
+          commit_message: "chore(self-scan): refresh public dashboard [${{ github.sha }}]"

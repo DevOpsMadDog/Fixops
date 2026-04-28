@@ -1,5 +1,61 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-04-27 00:00] devops-engineer — PUBLIC_SELF_SCAN_DASHBOARD
+- **What**: Wired hidden-leverage L7 — ALDECI self-scan public dashboard. Created GitHub Actions workflow (self-scan.yml) that runs SelfScanEngine on every push to features/intermediate-stage + nightly cron, renders static HTML via render_self_scan_html.py, deploys to gh-pages /self-scan/. 19 tests written and passing.
+- **Files touched**: `.github/workflows/self-scan.yml` (new), `scripts/render_self_scan_html.py` (new), `tests/test_self_scan_html_render.py` (new), `docs/PUBLIC_SELF_SCAN.md` (new)
+- **Outcome**: SUCCESS — 19/19 tests pass, Beast Mode 753 baseline preserved
+- **Pillar(s) served**: V1 (dogfood reference customer), V8 (public audit evidence), V9 (air-gapped scanner output)
+
+### [2026-04-28 23:00] backend-hardener — CONNECTOR_ADAPTERS_WAVE1
+- **What**: Wired 4 connector adapters from empty_endpoints_triage #13/24/27 (XDR, MDM, IAM). CrowdStrikeLiveConnector (OAuth2 + paginated detection fetch), DefenderXDRLiveConnector (MSAL + Graph Security alerts_v2), OktaConnector (Users API + System Log findings), JamfConnector (Classic API XML, computers + mobiledevices, 4 finding types). All: graceful needs_credentials no-op, 1-hour TTL cache, idempotent correlation_key dedup, SecurityFindingsEngine integration.
+- **Files touched**: `suite-core/connectors/crowdstrike_live_connector.py` (new), `suite-core/connectors/defender_xdr_live_connector.py` (new), `suite-core/connectors/okta_connector.py` (new), `suite-core/connectors/jamf_connector.py` (new), `tests/test_connector_crowdstrike_live.py` (new), `tests/test_connector_defender_xdr_live.py` (new), `tests/test_connector_okta.py` (new), `tests/test_connector_jamf.py` (new)
+- **Outcome**: SUCCESS — 12 new tests passing, 4 skipped (live, no creds), Beast Mode 753/753
+- **Commits**: 59affe4c (CrowdStrike), bb2ef1c1 (Defender), db2769d5 (Okta), b9ed278e (Jamf) — pushed to features/intermediate-stage
+- **Pillar(s) served**: V5 (connector framework), V9 (enterprise integrations), V10 (CTEM full loop)
+
+### [2026-04-28 22:56] backend-hardener — TRUSTGRAPH_BATCH15
+- **What**: Wired 10 highest-LOC unwired engines with TrustGraph event bus (_emit_event helper + heartbeat + state-change emits). Engines: iac_scanner_engine (iac.scan.completed), cspm_engine (terraform + cloudformation scan events), ir_playbook_engine (incident.created + phase_advanced), sast_engine (scan.completed), airgap_deployment (nvd_feed.imported), vendor_risk_engine (vendor_risk.assessed), compliance_mapping_engine (engine.loaded), attack_simulation_engine (scenario.created), anomaly_ml_engine (zscore.detected), api_security_engine (scan.completed).
+- **Files touched**: `suite-core/core/iac_scanner_engine.py`, `cspm_engine.py`, `ir_playbook_engine.py`, `sast_engine.py`, `airgap_deployment.py`, `vendor_risk_engine.py`, `compliance_mapping_engine.py`, `attack_simulation_engine.py`, `anomaly_ml_engine.py`, `api_security_engine.py`
+- **Outcome**: SUCCESS — 753/753 Beast Mode passing, commit 033dc4db, pushed. Total wired files: 475 (up from ~438).
+- **Pillar(s) served**: V3 (TrustGraph second-brain coverage), V6 (CTEM pipeline observability)
+
+### [2026-04-27 22:50] qa-engineer — MULTILANG_DEEP_CODE_VERIFY
+- **What**: Task #5 — wrote 5 integration tests in tests/test_deep_code_analysis_multilang.py covering polyglot repo (TS+JS+Java), cross-language finding shape, symbol extraction, import parsing, empty-repo no-crash. Fixed JS import key (uses `module`, not `source`/`from`). Updated depth_audit_2026-04-27.md: section 1.1 stub→FIXED, must-fix #5 DONE, engine depth 35%→42%, overall 28%→31%.
+- **Files touched**: `tests/test_deep_code_analysis_multilang.py`, `docs/validation/depth_audit_2026-04-27.md`
+- **Outcome**: SUCCESS
+- **Commit**: 9cf42e4e pushed to features/intermediate-stage
+- **Tests**: 5 new multilang / 34 total deep-code passing / 753 Beast Mode baseline preserved
+- **Pillar(s) served**: V3 (multi-language SAST), V8 (audit evidence)
+
+### [2026-04-28 22:42] backend-hardener — JAVASCRIPT_AST_ANALYZER
+- **What**: Implemented real JavaScript AST analyzer in deep_code_analysis_engine.py using esprima (pure-Python, ES2017+, no Node dependency). Replaces 4-line tree-sitter delegation stub with standalone `_analyze_javascript_source` + `_js_walk` + `_js_is_taint_source` methods. Extracts functions, classes, CommonJS require(), ES6 imports, exports. Detects eval/JS001, new Function/JS002, child_process.exec|spawn/JS003, document.write/JS004, setTimeout(string)/JS005, innerHTML=/JS006, __proto__/Object.assign prototype pollution/JS007. Return shape consistent with Python+TS analyzers. 6 tests written and passing.
+- **Files touched**: `suite-core/core/deep_code_analysis_engine.py`, `tests/test_deep_code_analysis_javascript.py`
+- **Outcome**: SUCCESS
+- **Commit**: bee501c7 pushed to features/intermediate-stage
+- **Beast Mode**: 753 baseline preserved (flaky timing test passes in isolation)
+- **Pillar(s) served**: V3 (SAST/code analysis), V6 (air-gapped operation)
+
+### [2026-04-28 22:50] backend-hardener — TYPESCRIPT_AST_ANALYZER
+- **What**: Replaced NotImplementedError stubs in deep_code_analysis_engine.py with real tree-sitter-typescript AST analysis. Extracts functions/classes/imports/exports; detects eval, child_process.exec/spawn, innerHTML, raw SQL concat sinks; traces req.body/req.query/req.params taint flows into sinks. JS reuses same grammar. Security findings stored as symbol_type="security_finding" in dca_symbols. 5 new tests added.
+- **Files touched**: `suite-core/core/deep_code_analysis_engine.py`, `tests/test_deep_code_analysis_typescript.py`
+- **Outcome**: SUCCESS — 5/5 new tests pass, Beast Mode 753/753, commit f6d909c0 pushed
+- **Pillar(s) served**: V3 (SAST/deep code analysis), V6 (air-gapped scanners)
+
+### [2026-04-28 22:33] backend-hardener — TRUSTGRAPH_BATCH_14
+- **What**: Wired TrustGraph event bus into 10 highest-LOC unwired engines. batch-14a (6 engines): brain_pipeline, db_security, executive_reports, data_security, servicenow_sync, sandbox_verifier. batch-14b (4 engines): policy_generator, change_management, ir_playbook_runner, stage_runner.
+- **Files touched**: `suite-core/core/brain_pipeline.py`, `suite-core/core/db_security.py`, `suite-core/core/executive_reports.py`, `suite-core/core/data_security.py`, `suite-core/core/servicenow_sync.py`, `suite-core/core/sandbox_verifier.py`, `suite-core/core/policy_generator.py`, `suite-core/core/change_management.py`, `suite-core/core/ir_playbook_runner.py`, `suite-core/core/stage_runner.py`
+- **Outcome**: SUCCESS — 753 Beast Mode tests passing, routes baseline holds
+- **Coverage delta**: 446 → 456 wired / 725 total = 62.9%
+- **Commits**: ed31539e (batch-14a), e23d3ed8 (batch-14b)
+- **Pillar(s) served**: V4 (TrustGraph), V10 (CTEM Full Loop)
+
+### [2026-04-27 22:32] backend-hardener — REAL_DSSE_SIGNING
+- **What**: Replaced all placeholder/stub signing in SLSA, air-gap bundle, container runtime, and k8s with real cryptography. Created shared `dsse_signer.py` (ed25519, PAE-spec DSSE). Wired cosign shell-out with graceful fallback in container_runtime + k8s_security. 24 new tests, 992 Beast Mode passing.
+- **Files touched**: `suite-core/core/dsse_signer.py` (new), `suite-core/core/slsa_provenance_engine.py`, `suite-core/core/air_gap_bundle_engine.py`, `suite-core/core/container_runtime.py`, `suite-core/core/k8s_security.py`, `tests/test_slsa_real_signing.py` (new)
+- **Commits**: bb01d707 (SLSA DSSE), 406e8865 (air-gap bundle), 3cfa9b0d (cosign shell-out + tests) — pushed to features/intermediate-stage (remote SHA e9415477)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V4 (security), V6 (evidence integrity), V9 (enterprise trust)
+
 > **Purpose**: Every agent session appends to this log. Agent Doctor and any new agent reads this to resume exactly where work left off. This is the single source of truth for "what happened."
 >
 > **Rules**:
@@ -27,6 +83,31 @@
 ---
 
 ## Session Log
+
+### [2026-04-27 12:00] frontend-craftsman — UI_P4_FOLD_5_DASHBOARDS
+- **What**: Phase 3 P4 wave — folded 5 standalone dashboards into existing hero pages as new tabs. SecurityToolInventoryDashboard → AssetGraph "tool-inventory" tab; PostureReportingDashboard → Compliance "posture-reports" tab; IncidentTimelineDashboard → Brain "incident-timeline" tab; PrivilegedIdentityDashboard → Admin "privileged-access" tab; ThreatFeedDashboard → Issues "threat-feed" tab. Added Navigate redirects for all 5 old routes. Fixed 2 pre-existing syntax bugs in SecurityToolInventoryDashboard + PostureReportingDashboard. Zero TS errors on all 11 touched files.
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/AssetGraph.tsx, Compliance.tsx, Brain.tsx, Admin.tsx, Issues.tsx, SecurityToolInventoryDashboard.tsx, PostureReportingDashboard.tsx, IncidentTimelineDashboard.tsx, PrivilegedIdentityDashboard.tsx, ThreatFeedDashboard.tsx, src/App.tsx
+- **Outcome**: SUCCESS — commit c0946d8, pushed to features/intermediate-stage
+- **Pillar(s) served**: V3 (UX consolidation moat — 370→ fewer screens), V5 (demo-ready heroes)
+
+### [2026-04-28 20:22] data-scientist — ML_VULN_PRIORITIZER_V1
+- **What**: Trained gradient-boosted exploit-likelihood classifier (vuln prioritizer v1). GradientBoostingClassifier + isotonic calibration on CISA KEV (1,583 real labels) joined with EPSS API (2,000 high-EPSS CVEs) and NVD API (120-day window). 31-feature matrix. ROC-AUC 0.9362, F1 0.8448, Precision 0.9873, Recall 0.7382. Built inference wrapper, FastAPI router (POST /api/v1/ml/vuln-prioritizer/predict), 10 tests all passing. Beast Mode 753 baseline held.
+- **Files touched**: models/vuln_prioritizer_v1.pkl, docs/ml/vuln_prioritizer_v1_card.md, suite-core/core/ml/vuln_prioritizer.py, suite-api/apps/api/ml_vuln_prioritizer_router.py, suite-api/apps/api/app.py, tests/test_ml_vuln_prioritizer.py, scripts/train_vuln_prioritizer.py
+- **Outcome**: SUCCESS — commit e5f23eb0, pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (autonomous ML), V3 (ML risk scoring moat), V4 (CTEM+ Brain Pipeline Step 7)
+
+### [2026-04-27 00:45] technical-writer — NIST_800-53_CONTROL_MATRIX_COMPLETE
+- **What**: Resolved all 16 PARTIAL/PLANNED cells in docs/scif/nist_800-53_control_matrix_2026-04-26.csv. Verified every claim against real file:line evidence via grep. 10 cells promoted to IMPLEMENTED, 3 cells kept PARTIAL with precise gap descriptions, 3 cells marked GAP — backlog.
+- **Files touched**: docs/scif/nist_800-53_control_matrix_2026-04-26.csv
+- **Outcome**: SUCCESS — commit 03d42dfc, pushed to features/intermediate-stage
+- **Decisions made**: AC-20 promoted to IMPLEMENTED (airgap_deployment.py:65 BLOCKED_EXTERNAL_HOSTS + active DNS probe is sufficient); CA-7 promoted to IMPLEMENTED (scheduled_reports + anomaly_detector + zero_trust covers continuous monitoring — cross-system SOC aggregation deferred to POA-007 backlog); SC-28/SC-28(1) promoted to IMPLEMENTED (encrypt_at_rest=True enforced for all SCIF tiers in airgap_deployment.py:1493-1567); IA-2(12)/AU-9(2)/AC-8 marked GAP — backlog (no fabrication — implementations genuinely absent)
+- **Pillar(s) served**: V9 (federal/SCIF GTM), V3 (compliance proof), V5 (investor/auditor readiness)
+
+### [2026-04-27] technical-writer — INVESTOR_TEAM_ASK_DRAFT
+- **What**: Drafted §7 Team and §8 Ask in docs/investor/MASTER_INVESTOR_PACK_2026-04-27.md. §7: Founder placeholder with [founder fills] prompts; AI-native CTO model section with engineering velocity table; GTM hire plan (2 AEs + 1 federal capture + 1 SE); 4-profile advisory board template. §8: $8M Series A framing; 5-bucket use-of-funds (40% eng / 25% GTM / 15% federal / 10% marketing / 10% ops); back-of-envelope headcount check; Series B triggers at month 18 ($5M ARR, 3 federal pilots, 50+ enterprise, 95% TrustGraph, FedRAMP Moderate In Process); Why Now narrative (Gartner CTEM curve, NSM-10/EO 14028, MCP unclaimed category). All subsections marked [FOUNDER REVIEW].
+- **Files touched**: docs/investor/MASTER_INVESTOR_PACK_2026-04-27.md
+- **Outcome**: SUCCESS — commit 213ce5ca, pushed (remote c110fa31)
+- **Pillar(s) served**: V5 (investor readiness), V9 (federal/SCIF GTM)
 
 ### [2026-04-27] technical-writer — INVESTOR_TAM_SAM_SOM
 - **What**: Filled §4 Market Size in docs/investor/MASTER_INVESTOR_PACK_2026-04-27.md. Replaced 5 [CITATION NEEDED] stubs with cited analyst figures: ASPM $2.1B→$5.6B (Gartner G00812774), CTEM $1.8B→$5.0B (Gartner G00798367), CSPM $5.4B→$13.0B (IDC US51471325). Added SAM ($2.8B, 30% of TAM), SOM (~$2.8M ARR at 0.1% capture), competitor Series A benchmarks (Wiz, Apiiro, Snyk), and federal SCIF revenue track model. Federal spend row left [CITATION NEEDED — analyst search ongoing]. §7 and §8 remain TBD-FOUNDER.
@@ -5509,3 +5590,96 @@
 - **Files touched**: suite-api/apps/api/sub_apps/ctem_app.py (new, 1164 lines), suite-api/apps/api/app.py (+4 lines hook)
 - **Outcome**: SUCCESS — 753/753 Beast Mode tests passing, route count 7461 pre=post, commit 43ff2f89
 - **Pillar(s) served**: V1 (platform stability), V3 (maintainability)
+
+### [2026-04-27 12:01] backend-hardener — REFACTOR
+- **What**: Wave 4 — extracted GRC sub-app registrar from app.py. Created suite-api/apps/api/sub_apps/grc_app.py with register_grc_routers() covering 134 include_router calls (121 GRC-classified per plan + late-bound variants). Wired into create_app() after register_ctem_routers().
+- **Files touched**: suite-api/apps/api/sub_apps/grc_app.py (new, 529 LOC), suite-api/apps/api/app.py (+6 lines wiring)
+- **Outcome**: SUCCESS — Beast Mode 753/753, commit 355c9c17, pushed
+- **Pillar(s) served**: V1 (platform stability), V4 (maintainability)
+
+### [2026-04-27 00:00] backend-hardener — REFACTOR
+- **What**: Wave 5 (FINAL) — extracted ~70 Platform-classified routers from app.py into suite-api/apps/api/sub_apps/platform_app.py using the registrar pattern (register_platform_routers). Mirrors ASPM/CSPM/CTEM/GRC pattern. Resolved 41 unmerged UI files from prior stash pop conflict.
+- **Files touched**: suite-api/apps/api/app.py (9501→8025 LOC), suite-api/apps/api/sub_apps/platform_app.py (created, 970 LOC, 111 include_router calls, 876 routes), 41 UI pages in suite-ui/aldeci-ui-new/src/pages/, suite-ui/aldeci-ui-new/src/stores/index.ts
+- **Outcome**: SUCCESS
+- **Commit**: 833b8c74 pushed to features/intermediate-stage
+- **Route count**: 9414 → 8908 (506 fewer = duplicate registrations eliminated by registrar pattern)
+- **Beast Mode tests**: 753 passed, 0 failed
+- **Pillar(s) served**: V1 (platform stability), V3 (maintainability)
+
+### [2026-04-27 20:20] frontend-craftsman — UI_P3_FOLD
+- **What**: P3 UX consolidation wave — folded 5 standalone dashboards into existing hero screens. RiskQuantDashboard → /compliance#risk-quant; SecurityScorecardDashboard → /compliance#scorecard; TprmExchangeDashboard → /compliance#tprm; VulnIntelFusionDashboard → /issues#vuln-intel-fusion; ServiceCatalogDashboard → /assets#catalog. Added lazy imports + TabKey union extensions + TABS array entries + TabsContent blocks + pane functions. Old routes replaced with Navigate redirects. Old files tombstoned with FOLDED comment.
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/Compliance.tsx, Issues.tsx, AssetGraph.tsx, App.tsx, RiskQuantDashboard.tsx (tombstoned), SecurityScorecardDashboard.tsx (tombstoned), VulnIntelFusionDashboard.tsx (tombstoned), TprmExchangeDashboard.tsx (tombstoned), ServiceCatalogDashboard.tsx (tombstoned), docs/ui-snapshots/walkthrough_2026-04-27-evening/ (5 screenshots)
+- **Outcome**: SUCCESS
+- **Commit**: a2fa7cfc
+- **Pillar(s) served**: V3 (UX consolidation — 370 pages → target 25-40), V1 (demo-ready)
+
+### [2026-04-28 20:20] backend-hardener — TRUSTGRAPH_WIRING
+- **What**: TrustGraph batch-9 — wired 10 highest-LOC unwired engines to the second brain
+- **Files touched**: suite-core/core/attack_surface_manager.py, pentest_manager.py, ide_backend_engine.py, deployment_manager.py, sla_manager.py, sbom_manager.py, feed_manager.py, patch_manager.py, org_engine.py, tag_manager.py
+- **Emit events added**: asset_registered, discovery_complete, scan_complete, engagement_created, engagement_status_updated, repo_tree_built, snapshot_taken, health_checked, finding_tracked, sbom_imported, feed_registered, patch_deployed, org_created, tag_created + engine.loaded on all 10
+- **Commit**: 583d82f4 (pushed to features/intermediate-stage)
+- **Coverage**: 448 files wired / 1677 total non-test Python = 26.7% (was ~25.8% pre-batch-9); 168 total emit-site calls
+- **Beast Mode**: 752 passed, 1 pre-existing perf flake (test_100_findings_ingest_under_1_second — passes when run solo, timing flake in suite)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (Decision Intelligence — TrustGraph second brain now observes 10 more critical engines)
+
+### [2026-04-27 21:30] backend-hardener — PERF_FIX
+- **What**: Verified predict_batch() already implemented in risk_scorer.py (lines 568-661) and wired in brain_pipeline.py Step 7 (line 2701). Added missing single-finding edge-case test to tests/test_risk_scorer_batch_predict.py. All 5 required tests present and passing (length, numerical equivalence 1e-6, wall-time <50ms for 50 findings, empty input, single finding).
+- **Files touched**: tests/test_risk_scorer_batch_predict.py
+- **Outcome**: SUCCESS — commit 4d1a795b pushed. Beast Mode 753/753. Batch predict ~30ms vs 527ms baseline (17x speedup confirmed by test_predict_batch_speedup_vs_per_finding_loop).
+- **Pillar(s) served**: V7 (Decision Intelligence / ML risk scoring performance)
+
+### [2026-04-27 22:00] qa-engineer — TEST_COVERAGE
+- **What**: Wave 3 persona workflow tests — 6 personas (SOC T2 P4, Pen Tester P8, Audit Manager P13, Platform Engineer P16, Security SRE P26, SecOps Tech Lead P30). 69 new tests across 8 classes (persona workflows, RBAC boundaries, integration sanity). Fixed mock routing bug (system/health branch order). Beast Mode total: 889 passing.
+- **Files touched**: tests/test_persona_workflows_wave3.py, .claude/agent-memory/qa-engineer/persona_coverage_wave3_2026-04-27.md, .claude/agent-memory/qa-engineer/MEMORY.md
+- **Outcome**: SUCCESS — commit 7e6a0cf0 pushed to features/intermediate-stage
+- **Pillar(s) served**: V3 (Multi-Persona Intelligence), V5 (RBAC/Access Control)
+
+### [2026-04-28 21:42] backend-hardener — TRUSTGRAPH_WIRING
+- **What**: TrustGraph batch-11 — wired 10 engines. All top-LOC engine/manager/service files at maxdepth 1 were already wired (438 files total). Found unwired candidates in non-_engine.py modules. Wired: license_compliance (audit_complete, policy_added/deleted), mitre_navigator (coverage_layer_created, threat_group_layer_created), network_security (asset_registered, firewall_rule_added, zero_trust_score_computed), airgap_config (vuln_db_imported/exported, config_updated), compliance_automation (task_scheduled, task_completed), container_scanner (dockerfile_scanned, image_scanned), cve_tester (test_completed), waf_generator (rules_generated, virtual_patch_generated), self_learning (feedback_stored), integration_hub (registered). Total wired files: 438.
+- **Files touched**: suite-core/core/license_compliance.py, suite-core/core/mitre_navigator.py, suite-core/core/network_security.py, suite-core/core/airgap_config.py, suite-core/core/compliance_automation.py, suite-core/core/container_scanner.py, suite-core/core/cve_tester.py, suite-core/core/waf_generator.py, suite-core/core/self_learning.py, suite-core/core/integration_hub.py
+- **Outcome**: SUCCESS — commits 30358696 (11a), 34ea9d83 (11b), c957659b (11c) pushed to features/intermediate-stage. Beast Mode: 752 passed, zero regressions.
+- **Pillar(s) served**: V2 (TrustGraph Second Brain), V6 (AI-Native Intelligence)
+
+### [2026-04-28 22:05] backend-hardener — WAVE6_LOOP_REFACTOR
+- **What**: Extracted all loop-bound routers deferred from Waves 1-5. Replaced 5 loop blocks in app.py (_core_routers 40 entries, _attack_extra_routers 8, inline MPTE loop 5, _evidence_routers 7, _integration_routers 5, _extra_apps_routers 68) with explicit individual include_router calls in the appropriate sub-app registrar wave-6 sections. Total 133 loop entries extracted into ASPM/CSPM/CTEM/GRC/Platform buckets.
+- **Files touched**: suite-api/apps/api/app.py, suite-api/apps/api/sub_apps/aspm_app.py, suite-api/apps/api/sub_apps/cspm_app.py, suite-api/apps/api/sub_apps/ctem_app.py, suite-api/apps/api/sub_apps/grc_app.py, suite-api/apps/api/sub_apps/platform_app.py
+- **Outcome**: SUCCESS — commit 7e3c42c9, pushed to features/intermediate-stage. Route count: 8922 → 8922 (exact match). Beast Mode: 968/968 passed. app.py: 8057 → 7875 LOC (-182).
+- **Decisions made**: Platform sub-app absorbed Brain/ML core routers (llm, ml, predictions, copilot, agents, etc.) as they are infrastructure-layer. CTEM absorbed all attack:execute routers (sast, dast, container, mpte, api_fuzzer, malware). GRC absorbed all evidence-risk loop routers with /api/v1 prefix preserved.
+- **Pillar(s) served**: V1 (ASPM), V3 (CTEM), V5 (GRC), V7 (CSPM), V10 (Platform)
+
+### [2026-04-27 22:10] backend-hardener — CODE_QUALITY
+- **What**: Legacy violations cleanup pass 2 — ruff auto-fixes (unused imports, bare f-strings, formatting) across suite-attack/api/ and suite-core/
+- **Files touched**: 267 files (suite-attack/api/*.py, suite-core/api/*.py, suite-core/core/*.py, suite-core/agents/*.py, suite-core/trustgraph/*.py)
+- **Outcome**: SUCCESS — commit 94b217ba, pushed to features/intermediate-stage. 267 files changed, +280/-470 lines (net -190). Beast Mode: 968/968 passed pre- and post-change. 0 files reverted.
+- **Pillar(s) served**: V10 (Platform — code quality / maintainability)
+
+### [2026-04-28 22:20] backend-hardener — TRUSTGRAPH_WIRING_BATCH13
+- **What**: TrustGraph batch-13 — wired 10 highest-LOC unwired engines: dep_scanner, secrets_scanner, secret_scanner, license_scanner, iac_scanner, trust_center, bug_bounty, playbook_runner, audit_analytics, cspm. Added _tg_emit() helper + import block to each. Emit sites: scan_requirements, scan_package_json, scan_installed, scan_content (builtin+external), scan_text, mark_rotated, mark_false_positive, configure, add_badge, create_program, submit_vulnerability, execute_completed, insert_entry, sync_resources, run_security_checks.
+- **Files touched**: suite-core/core/dep_scanner.py, secrets_scanner.py, secret_scanner.py, license_scanner.py, iac_scanner.py, trust_center.py, bug_bounty.py, playbook_runner.py, audit_analytics.py, cspm.py
+- **Outcome**: SUCCESS — commits 80838a19 (13a), 699dd506 (13b), 268166dd (13c) pushed. Beast Mode: 753/753 passed all 3 batches. TrustGraph coverage: GREEN 30.4% / total wired 42.9% (was 65.3% per prior session note — visualizer now uses 121,501 node baseline vs prior 119,765).
+- **Pillar(s) served**: V2 (TrustGraph Second Brain), V6 (AI-Native Intelligence)
+
+### [2026-04-27 22:15] backend-hardener — SECURITY_HARDENING
+- **What**: SAST remediation — top-3 findings from aldeci_self_scan_2026-04-27 (commit 6246aee9). (1) SHA1→SHA256 in wave_a_code_intel_router.py:1560 (Bandit B324). (2) SQL injection hardening in llm_loop_metrics_router.py — added _ALLOWED_TABLES frozenset + _validate_table() guard blocking arbitrary table injection in _safe_count()/_last_created(). nosec annotations added to security_query_language_engine.py (table from internal allowlist at line 720). (3) PGP "key" in secrets_manager.py:562 — VERDICT: FALSE POSITIVE — it is a regex detection pattern, not a real key; added # nosec B105 annotation.
+- **Files touched**: suite-api/apps/api/wave_a_code_intel_router.py, suite-core/core/secrets_manager.py, suite-api/apps/api/llm_loop_metrics_router.py, suite-core/core/security_query_language_engine.py, tests/test_sast_remediation.py (new, 9 tests)
+- **Outcome**: SUCCESS — commit d7de78e1, pushed. Beast Mode: 977/977 passed (968 baseline + 9 new remediation tests). Zero regressions.
+- **Pillar(s) served**: V4 (Security — input validation, injection prevention), V10 (Platform quality)
+
+### [2026-04-27 00:00] frontend-craftsman — UI_PHASE3_WAVE1_10_FOLDS
+- **What**: Phase 3 Wave 1 — folded 10 standalone dashboard pages into 4 hero tabs. Batch 1 (Remediate hero): RiskRegisterDashboard, RiskTreatmentDashboard, PatchManagementDashboard, PostureAdvisor, ScheduledReportsDashboard. Batch 2 (Brain/Admin/Compliance heroes): SecurityChaosDashboard, SecurityAwareness, SecurityChampionsDashboard, ScopeManager, RegulatoryTrackerDashboard. All 10 source files tombstoned with FOLDED comment + tab path anchor. 20 total tombstones (10 prior + 10 new). 372 pages remaining (target 30).
+- **Files touched**: Remediate.tsx, Brain.tsx, Admin.tsx, Compliance.tsx (heroes updated); 10 source pages tombstoned
+- **Outcome**: SUCCESS — zero TS errors in modified heroes, 2 commits (1120d94d + 686582f6), pushed to features/intermediate-stage
+- **Pillar(s) served**: V2 (UX consolidation), V5 (enterprise demo readiness)
+
+### [2026-04-28 22:22] backend-hardener — LLM_COUNCIL_MULTI_PROVIDER_WIRING
+- **What**: Wired multi-provider LLM council with status endpoint, startup warning, and 4 tests. New `llm_council_router.py` at GET /api/v1/llm/council/status returns configured_providers, member_count, consensus_enabled, warning. 7-provider registry (anthropic/openai/gemini/openrouter/mulerouter/ollama/vllm) auto-activates on env-var presence. Missing key logs warning, never crashes. Startup hook `_check_llm_council_composition` warns if <2 members. Wired into platform_app.py alongside council_enhanced_router.
+- **Files touched**: suite-api/apps/api/llm_council_router.py (new), suite-api/apps/api/sub_apps/platform_app.py, suite-api/apps/api/app.py, tests/test_llm_council_multi_provider.py (new), docs/llm_council_setup.md (new)
+- **Outcome**: SUCCESS — 4/4 new tests pass, Beast Mode 753/753 held, commit 56ce4a95, pushed
+- **Pillar(s) served**: V1 (AI-native council), V3 (multi-LLM consensus moat), V4 (CTEM+ Step 9)
+
+### [2026-04-27 00:00] frontend-craftsman — SCAFFOLD
+- **What**: VS Code extension scaffold — buildable + sideload-able, calls /api/v1/scan/file + /api/v1/scan/workspace
+- **Files touched**: ide-plugins/vscode/{package.json,tsconfig.json,.vscodeignore,README.md,src/extension.ts,src/scan.ts,src/dashboard.ts,aldeci-security-0.0.1.vsix}, tests/test_ide_vscode_scaffold.py
+- **Outcome**: SUCCESS — 23 tests pass, npm run compile clean, VSIX 12.46 KB produced
+- **Pillar(s) served**: V1 (developer adoption), V5 (IDE-native security)
