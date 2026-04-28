@@ -8,8 +8,7 @@ and suppression statistics.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth

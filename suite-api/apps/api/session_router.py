@@ -17,7 +17,7 @@ Provides 8 endpoints for user session lifecycle management:
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from core.session_manager import Session, SessionManager, get_session_manager

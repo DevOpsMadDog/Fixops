@@ -12,8 +12,8 @@ import os
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from core.regulatory_tracker import Regulation, RegulatoryImpact, RegulatoryTracker
-from fastapi import APIRouter, Depends, HTTPException, Query
+from core.regulatory_tracker import Regulation, RegulatoryTracker
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/regulatory", tags=["regulatory"])

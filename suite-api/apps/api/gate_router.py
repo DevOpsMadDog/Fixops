@@ -15,11 +15,10 @@ Competitive target: Match Aikido's "one-click CI/CD integration" experience.
 """
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 import structlog
 from apps.api.auth_deps import api_key_auth
@@ -235,7 +234,6 @@ def _evaluate_gate(
     thresholds: PolicyThresholds,
 ) -> tuple[bool, str, List[GateCheckDetail], List[Dict[str, Any]]]:
     """Core gate evaluation logic. Returns (passed, reason, checks, violations)."""
-    import time
     checks: List[GateCheckDetail] = []
     violations: List[Dict[str, Any]] = []
     passed = True

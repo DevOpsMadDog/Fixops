@@ -145,7 +145,7 @@ def add_exposure(
 ):
     """Add an exposure to a CTEM cycle."""
     try:
-        from core.ctem_engine import Exposure, CTEMStage
+        from core.ctem_engine import Exposure
 
         # Verify cycle exists and get org_id from it if not provided
         cycle = _get_engine().get_cycle(cycle_id)

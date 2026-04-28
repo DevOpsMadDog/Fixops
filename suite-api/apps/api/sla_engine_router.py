@@ -16,14 +16,14 @@ Compliance: SOC2 CC7.2, ISO27001 A.12.6.1, PCI-DSS Req 6.3
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
-from core.sla_engine import SLAEngine, SLAPolicy, SLAStatus, SLATracking, SLAStatusEnum
+from core.sla_engine import SLAEngine, SLAPolicy, SLAStatus, SLATracking
 
 logger = logging.getLogger(__name__)
 

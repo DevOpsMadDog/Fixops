@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
-from core.webhook_dlq import DeliveryStatus, RetryPolicy, WebhookDelivery, WebhookDLQ
+from core.webhook_dlq import DeliveryStatus, WebhookDelivery, WebhookDLQ
 
 logger = logging.getLogger(__name__)
 

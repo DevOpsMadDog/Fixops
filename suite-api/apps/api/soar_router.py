@@ -30,10 +30,8 @@ except ImportError:
     _AUTH_DEP = []
 
 from core.soar_engine import (
-    ExecutionStatus,
     PlaybookStats,
     PlaybookTrigger,
-    SOARAction,
     SOAREngine,
     SOARExecution,
     SOARPlaybook,

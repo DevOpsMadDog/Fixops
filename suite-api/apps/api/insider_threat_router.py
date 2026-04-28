@@ -31,11 +31,9 @@ except ImportError:
 
 from core.insider_threat import (
     ActivityRecord,
-    AlertLevel,
     DetectionStats,
     InsiderThreatDetector,
     RiskDistribution,
-    ThreatIndicator,
     UserRiskProfile,
 )
 

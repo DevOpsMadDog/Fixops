@@ -25,8 +25,6 @@ from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 from core.self_scanner import (
     ScanCategory,
-    SelfScanFinding,
-    SelfScanReport,
     get_self_scan_engine,
 )
 

@@ -22,25 +22,20 @@ Security: All endpoints require API key auth + RBAC permission checks
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import time
 import uuid
-from datetime import datetime, timedelta, timezone
-from enum import Enum
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, Body
 from pydantic import BaseModel, Field, field_validator
 
 # Import core pipeline components
 from suite_core.core.pipeline_orchestrator import (
     PipelineOrchestrator,
     PipelineStage,
-    ProcessingStatus,
 )
 from suite_core.core.rbac import RBACManager, Permission
-from suite_core.core.event_streaming import EventBus
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/pipeline", tags=["pipeline"])

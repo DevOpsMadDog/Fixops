@@ -7,7 +7,7 @@ and maps it to SOC2 / PCI-DSS / HIPAA controls.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel

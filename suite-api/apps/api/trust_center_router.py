@@ -33,14 +33,10 @@ from core.trust_center import (
     ComplianceBadge,
     DocumentRequest,
     ExtendedTrustCenterManager,
-    FAQItem,
     SecurityControl,
-    SecurityPractice,
-    SignedAgreement,
     SubprocessorEntry,
     TrustCenterData,
     TrustCenterManager,
-    TrustDocument,
     TrustPageConfig,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -346,7 +342,6 @@ async def get_compliance(
     mgr: ExtendedTrustCenterManager = Depends(_get_manager),
 ) -> Dict[str, Any]:
     """Return compliance badges and certifications — no auth required."""
-    from core.trust_center import _DEFAULT_SECURITY_PRACTICES
     badges = mgr.list_badges(org_id) if mgr.get_config(org_id) else []
     return {
         "frameworks": [

@@ -8,7 +8,6 @@ Auth is applied centrally by app.py (Depends(_verify_api_key)).
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query

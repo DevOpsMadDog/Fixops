@@ -31,7 +31,6 @@ from core.attack_surface_manager import (
     AttackPath,
     AttackSurfaceManager,
     CertificateRecord,
-    ChangeType,
     ExposureZone,
     ManagedAsset,
     RiskTier,

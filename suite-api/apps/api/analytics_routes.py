@@ -18,7 +18,6 @@ Compliance: SOC2 CC7.2 (System monitoring)
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -51,7 +50,6 @@ except ImportError:
     sys.path.insert(0, "suite-core")
     from core.analytics_engine import (
         AnalyticsEngine,
-        DashboardMetric,
         MetricType,
         PersonaDashboard,
         TimeWindow,

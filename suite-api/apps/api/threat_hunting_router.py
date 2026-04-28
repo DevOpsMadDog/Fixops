@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from apps.api.auth_deps import api_key_auth, require_role
+from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)

@@ -16,8 +16,6 @@ Endpoints:
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import logging
 import time
 import uuid
@@ -378,7 +376,7 @@ def _build_check_run_summary(evaluation: EvaluateResponse) -> str:
     if evaluation.blocking_findings:
         lines.extend(["", "### Blocking Findings", ""])
         for f in evaluation.blocking_findings[:20]:
-            loc = f""
+            loc = ""
             if f.get("file_path"):
                 loc = f" — `{f['file_path']}"
                 if f.get("line_number"):

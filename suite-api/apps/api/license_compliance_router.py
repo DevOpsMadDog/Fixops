@@ -15,14 +15,8 @@ from pydantic import BaseModel, Field
 
 from core.license_compliance import (
     CompatibilityResult,
-    ComplianceReport,
-    DependencyRiskScore,
-    DualLicenseInfo,
     LicenseCategory,
-    LicenseInfo,
     LicensePolicy,
-    ObligationItem,
-    PolicyAction,
     SBOMComponent,
     get_engine,
     normalize_license_id,

@@ -21,7 +21,6 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.questionnaire_engine import (
     QuestionCategory,
-    Questionnaire,
     QuestionnaireEngine,
     get_questionnaire_engine,
 )

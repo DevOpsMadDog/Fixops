@@ -23,14 +23,14 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
-from core.sla_manager import SLAManager, SLAPolicy, SLARecord, SLAStatus
+from core.sla_manager import SLAManager, SLAPolicy, SLARecord
 
 logger = logging.getLogger(__name__)
 

@@ -19,7 +19,7 @@ Compliance: SOC2 CC6.8, NIST CSF DE.CM-1
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -27,7 +27,6 @@ from core.runtime_protection import (
     EventType,
     HostRuntimeEngine,
     PolicyAction,
-    RuntimeAlert,
     RuntimeEvent,
     RuntimePolicy,
     ThreatLevel,

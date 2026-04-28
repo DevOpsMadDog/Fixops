@@ -17,12 +17,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from core.mitre_navigator import (
-    ALDECIEngine,
-    CoverageLevel,
-    LayerColor,
     get_mitre_navigator_engine,
 )
 from fastapi import APIRouter, HTTPException, Query

@@ -5,7 +5,6 @@ This module provides real bulk operations that interact with the DeduplicationSe
 for cluster management and external connectors for ticket creation.
 """
 
-import glob
 import logging
 import os
 import uuid
@@ -1274,7 +1273,8 @@ async def bulk_status():
     """Bulk operations status — running jobs, completed, failed."""
     jobs: list = []
     try:
-        import glob, json as _json
+        import glob
+        import json as _json
         job_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "bulk_jobs")
         if os.path.isdir(job_dir):
             for fp in sorted(glob.glob(os.path.join(job_dir, "*.json")))[-50:]:

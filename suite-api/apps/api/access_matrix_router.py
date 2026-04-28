@@ -6,7 +6,7 @@ effective-permission lookup, and access statistics.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 from core.access_matrix import (
     AccessLevel,
     AccessMatrix,
-    AccessRule,
     ResourceType,
     get_access_matrix,
 )

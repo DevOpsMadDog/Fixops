@@ -12,7 +12,6 @@ IR Playbook Runner Router — Playbook execution engine endpoints.
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -28,10 +27,8 @@ except ImportError:
     _AUTH_DEP = []
 
 from core.ir_playbook_runner import (
-    ExecutionStatus,
     PlaybookDef,
     PlaybookExecution,
-    StepResult,
     get_playbook_runner,
 )
 

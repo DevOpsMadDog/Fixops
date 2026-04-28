@@ -14,7 +14,7 @@ router holding tenant state.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException

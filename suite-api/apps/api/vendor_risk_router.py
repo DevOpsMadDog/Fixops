@@ -33,11 +33,8 @@ except ImportError:
 
 from core.vendor_risk import (
     CertificationRecord,
-    ComplianceCert,
-    ContractRisk,
     DataAccessLevel,
     FourthPartyMap,
-    FourthPartyRisk,
     QuestionnaireResponse,
     RiskSignal,
     RiskSignalSeverity,
@@ -46,11 +43,8 @@ from core.vendor_risk import (
     SLATerms,
     TieringOverview,
     Vendor,
-    VendorAssessment,
     VendorContact,
-    VendorScorecard,
     VendorTier,
-    get_engine,
 )
 
 logger = logging.getLogger(__name__)

@@ -35,7 +35,6 @@ except ImportError:
 from core.remediation_board import (
     BoardColumn,
     CardComment,
-    CardPriority,
     RemediationBoard,
     RemediationCard,
 )

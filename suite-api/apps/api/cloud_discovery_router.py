@@ -23,8 +23,6 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.cloud_discovery import (
-    CloudAsset,
-    CloudAssetType,
     CloudDiscovery,
     get_cloud_discovery,
 )

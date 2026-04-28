@@ -9,7 +9,7 @@ Protected with API key authentication via ``api_key_auth`` dependency.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 

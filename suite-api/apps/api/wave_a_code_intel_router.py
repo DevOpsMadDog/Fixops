@@ -45,7 +45,6 @@ import hashlib
 import json
 import logging
 import os
-import sqlite3
 import time
 import uuid
 from datetime import datetime, timezone

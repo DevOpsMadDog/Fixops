@@ -29,8 +29,6 @@ from core.audit_analytics import (
     AuditAnalyticsEngine,
     AuditAnomaly,
     AuditEntry,
-    AuditSeverity,
-    EntryStatus,
     ForensicTimeline,
     LogFormat,
     RetentionPolicy,

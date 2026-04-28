@@ -46,12 +46,10 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, Request
-from fastapi.responses import Response
 from fastapi.security import APIKeyHeader
 
 logger = logging.getLogger(__name__)

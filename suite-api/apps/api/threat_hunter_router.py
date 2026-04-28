@@ -46,7 +46,6 @@ from core.threat_hunter import (
     ThreatActorProfile,
     ThreatHunter,
     export_iocs_to_stix,
-    parse_sigma_rule,
 )
 
 logger = logging.getLogger(__name__)

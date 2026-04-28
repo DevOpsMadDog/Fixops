@@ -34,7 +34,7 @@ from core.sso_provider import (
     validate_sso_jwt,
 )
 from fastapi import APIRouter, Form, Header, HTTPException, Query, Request
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)

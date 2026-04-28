@@ -13,10 +13,9 @@ import os
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import jwt
-from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
 from core.persistent_store import get_persistent_store
 from core.user_db import UserDB

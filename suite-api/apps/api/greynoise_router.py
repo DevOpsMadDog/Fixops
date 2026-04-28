@@ -17,7 +17,6 @@ Auth: none (public-tier data). Set GREYNOISE_API_KEY in the environment to
 from __future__ import annotations
 
 import logging
-import os
 import sys
 import time
 from pathlib import Path

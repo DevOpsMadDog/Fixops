@@ -18,7 +18,6 @@ Auth is applied centrally by app.py (Depends(_verify_api_key)).
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 

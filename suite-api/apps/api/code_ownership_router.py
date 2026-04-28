@@ -22,7 +22,6 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.code_ownership import (
-    AssignedFinding,
     CodeOwnership,
     Owner,
     OwnershipRule,

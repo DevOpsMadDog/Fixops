@@ -11,7 +11,7 @@ continue to work without modification.
 
 from typing import Optional
 
-from fastapi import Header, Query, Request
+from fastapi import Request
 
 # Re-export from org_middleware — single source of truth for org_id resolution.
 # Callers can import from either module; behaviour is identical.

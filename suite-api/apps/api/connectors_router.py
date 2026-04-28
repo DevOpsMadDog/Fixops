@@ -23,8 +23,7 @@ import re
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Path, Depends
-from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)

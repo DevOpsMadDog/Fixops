@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 import os
-import tempfile
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -22,7 +21,6 @@ from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 from core.cicd_integration import (
     CICDPolicyEngine,
-    PolicyAction,
     PolicyRule,
     ScanResult,
 )

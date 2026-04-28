@@ -29,18 +29,11 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.security_metrics import (
-    DORAMetrics,
-    KeyResult,
     Objective,
-    OKRStatus,
     ReportType,
-    ROICalculation,
     SecurityEvent,
     SecurityMetricsEngine,
-    SecurityReport,
     Severity,
-    SLACompliance,
-    TrendDataPoint,
     TrendPeriod,
 )
 

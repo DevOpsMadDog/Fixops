@@ -26,8 +26,6 @@ Security: All endpoints require RBAC permission checks
 
 from __future__ import annotations
 
-import csv
-import io
 import logging
 from datetime import datetime, timezone, timedelta
 from enum import Enum
@@ -35,9 +33,8 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from apps.api.dependencies import get_org_id
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/findings", tags=["findings"])

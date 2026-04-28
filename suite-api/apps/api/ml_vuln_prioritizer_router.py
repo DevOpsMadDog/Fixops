@@ -169,8 +169,6 @@ def model_info() -> ModelInfoResponse:
     metrics = artifact.get("metrics", {})
     feat_cols = artifact.get("feature_cols", [])
 
-    import os
-    from pathlib import Path
     model_path = str(engine._path) if hasattr(engine, "_path") else "unknown"
 
     return ModelInfoResponse(

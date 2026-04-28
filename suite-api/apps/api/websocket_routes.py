@@ -18,7 +18,6 @@ Includes:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -41,8 +40,6 @@ except ImportError:
 from suite_core.core.event_streaming import (
     EventBus,
     EventHistory,
-    StreamEvent,
-    EventType,
 )
 
 _logger = logging.getLogger(__name__)

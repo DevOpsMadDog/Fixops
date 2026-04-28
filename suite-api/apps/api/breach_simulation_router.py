@@ -13,11 +13,10 @@ REST API for breach simulation capabilities:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from core.breach_simulation import (
     AttackScenario,
-    BreachSimulator,
     DefenseCoverage,
     GapAnalysis,
     SimulationResult,

@@ -15,7 +15,6 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
 from core.marketplace import (
-    AppStatus,
     InstalledApp,
     IntegrationCategory,
     Marketplace,

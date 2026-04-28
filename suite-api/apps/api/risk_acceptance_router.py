@@ -19,7 +19,7 @@ Auth: protected via get_org_id (API-key backed) on every endpoint.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

@@ -26,7 +26,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from apps.api.auth_deps import api_key_auth
 from core.data_retention_engine import DataRetentionEngine

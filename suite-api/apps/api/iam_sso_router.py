@@ -156,8 +156,6 @@ def ingest_vendor(req: IngestVendorRequest) -> Dict[str, Any]:
         _login_to_anomaly_event,
         _safe_import_findings_engine,
         _safe_import_anomaly_engine,
-        KC_LOGIN_EVENTS_HIGH,
-        KC_ADMIN_EVENTS_HIGH,
     )
 
     findings_engine = _safe_import_findings_engine()

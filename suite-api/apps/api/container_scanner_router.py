@@ -238,7 +238,7 @@ def clear_history(
     org_id: str = Query("default", description="Organisation ID to clear"),
 ) -> Dict[str, Any]:
     """Delete all scan history for *org_id*. Irreversible."""
-    import sqlite3, os as _os
+    import sqlite3
 
     scanner = _get_scanner()
     try:

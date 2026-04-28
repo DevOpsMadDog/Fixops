@@ -18,10 +18,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.risk_register import (
-    BoardReport,
-    HeatMapCell,
     KRIRecord,
-    KRIStatus,
     Risk,
     RiskAppetite,
     RiskCategory,

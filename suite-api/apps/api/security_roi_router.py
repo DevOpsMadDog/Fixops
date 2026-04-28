@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -117,7 +117,6 @@ def list_investments(
 ) -> Dict[str, Any]:
     """List all recorded investments for the organization."""
     try:
-        import sqlite3
         import os
 
         db_path = os.environ.get("SECURITY_ROI_DB", "security_roi.db")

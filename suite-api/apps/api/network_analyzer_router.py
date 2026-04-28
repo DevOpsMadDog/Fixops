@@ -16,11 +16,6 @@ from pydantic import BaseModel, Field
 
 from core.network_analyzer import (
     FlowDirection,
-    NetworkAnalyzer,
-    NetworkFlow,
-    NetworkZone,
-    SegmentationViolation,
-    ViolationSeverity,
     ZoneType,
     get_network_analyzer,
 )

@@ -14,7 +14,7 @@ Vulnerability Prioritization Router — ALDECI.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -30,12 +30,10 @@ except ImportError:
     _AUTH_DEP = []
 
 from core.vuln_prioritizer import (
-    BusinessContext,
     EPSSScore,
     PrioritizationSummary,
     PrioritizeRequest,
     PrioritizedVuln,
-    ReachabilityLevel,
     ReachabilityResult,
     RiskBucket,
     SLAStatus,

@@ -3874,7 +3874,6 @@ async def sbom_correlate(request: Request):
       CorrelationResult as JSON — matched/unmatched components, risk deltas,
       shadow dependency alert.
     """
-    import io
 
     content_type = request.headers.get("content-type", "")
 

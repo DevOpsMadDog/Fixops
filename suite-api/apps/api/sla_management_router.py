@@ -25,7 +25,6 @@ from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
 from core.sla_management import (
-    EscalationLevel,
     EscalationRule,
     ExceptionStatus,
     ExceptionType,
@@ -34,9 +33,7 @@ from core.sla_management import (
     SLAManagement,
     SLAPolicyV2,
     SLAReport,
-    SLAStatusV2,
     TeamMetrics,
-    TrendDirection,
 )
 
 logger = logging.getLogger(__name__)

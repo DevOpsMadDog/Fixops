@@ -263,7 +263,7 @@ async def check_drift(body: DriftCheckRequest) -> Dict[str, Any]:
     for fname in body.filenames:
         try:
             content = Path(fname).read_text(errors="replace")
-            from core.iac_scanner_engine import detect_iac_format, IaCFormat
+            from core.iac_scanner_engine import detect_iac_format
             fmt = detect_iac_format(fname, content)
             parsed = engine._parse(content, fname, fmt)
             resources.extend(parsed)

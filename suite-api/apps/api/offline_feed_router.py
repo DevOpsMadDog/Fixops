@@ -18,7 +18,6 @@ Auth: `api_key_auth` via `dependencies=[Depends(api_key_auth)]`.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query

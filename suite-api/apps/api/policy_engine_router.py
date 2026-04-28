@@ -21,7 +21,6 @@ from apps.api.dependencies import get_org_id
 from core.policy_engine import (
     Policy,
     PolicyDecision,
-    PolicyEvaluation,
     PolicyLanguage,
     PolicyScope,
     get_policy_engine,

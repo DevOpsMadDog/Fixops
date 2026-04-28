@@ -15,9 +15,7 @@ from pydantic import BaseModel, Field
 from apps.api.dependencies import get_org_id
 from core.compliance_planner import (
     CompliancePlanner,
-    GapRemediation,
     ImplementationStatus,
-    RemediationPlan,
     RemediationPriority,
 )
 

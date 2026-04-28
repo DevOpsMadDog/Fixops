@@ -102,7 +102,7 @@ def _make_node(d: Dict[str, Any]):
 )
 async def get_classifications():
     """Return the full catalog of supported data classification types and their patterns."""
-    from core.data_security import _PATTERNS, DataCategory, SensitivityLevel
+    from core.data_security import _PATTERNS
 
     catalog: List[Dict[str, Any]] = []
     for data_type, (pattern, category, sensitivity, confidence) in _PATTERNS.items():
@@ -404,7 +404,7 @@ async def assess_breach_impact(payload: BreachPayload):
     try:
         from core.data_security import BreachImpactRequest, DataCategory, Region
         import uuid as _uuid
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         cats = [DataCategory(c) for c in payload.data_categories]
         regions = [Region(r) for r in (payload.storage_regions or [])]

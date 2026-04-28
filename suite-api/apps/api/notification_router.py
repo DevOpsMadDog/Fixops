@@ -25,7 +25,6 @@ from core.notifications import (
     AlertRule,
     Channel,
     DigestFrequency,
-    Notification,
     NotificationEngine,
     NotificationPreference,
 )

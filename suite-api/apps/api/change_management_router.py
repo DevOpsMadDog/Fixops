@@ -7,7 +7,7 @@ management, and metrics.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -18,7 +18,6 @@ from core.change_management import (
     CABApproval,
     ChangeAdvisoryBoard,
     ChangeCategory,
-    ChangeManagementDB,
     ChangeRiskLevel,
     FreezePeriod,
     ImpactAnalysis,

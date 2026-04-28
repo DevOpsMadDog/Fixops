@@ -13,9 +13,8 @@ from app.py — same pattern as kpi_router, connector_routes, etc.).
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
