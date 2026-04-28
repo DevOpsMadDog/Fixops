@@ -39,9 +39,7 @@ except ImportError:
 import jwt
 
 # ── PLATFORM CORE — Auth, Users, Teams, Admin, SLA, Workflows ─────────────────
-from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
-from apps.api.change_management_router import router as change_management_router
 
 # Evidence Chain router — tamper-proof cryptographic audit trail
 evidence_chain_router: Optional[APIRouter] = None
@@ -58,12 +56,7 @@ try:
     logging.getLogger(__name__).info("Loaded Unified Triage router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Triage router not available: %s", e)
-from apps.api.auth_router import router as auth_router
-from apps.api.bulk_router import router as bulk_router
-from apps.api.collaboration_router import router as collaboration_router
 from apps.api.fail_router import router as fail_router
-from apps.api.sla_router import router as sla_router
-from apps.api.sla_engine_router import router as sla_engine_router
 
 # APP_ID Configuration router (app registration, classification, lifecycle)
 app_config_router: Optional[APIRouter] = None
@@ -167,7 +160,6 @@ except ImportError as e:
     logging.getLogger(__name__).warning("ServiceNow Sync router not available: %s", e)
 
 # ── CICD / GATE / INVENTORY ───────────────────────────────────────────────────
-from apps.api.gate_router import router as gate_router
 from apps.api.inventory_router import router as inventory_router
 
 # PR Gate & CI/CD Gate router (PR gating, check runs, CI exit-code gate)
@@ -199,17 +191,8 @@ try:
 except ImportError as _hooks_err:
     hooks_router = None
     logging.getLogger(__name__).warning("Hooks router not available: %s", _hooks_err)
-from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
 # ── ADMIN / SYSTEM / USERS ────────────────────────────────────────────────────
-from apps.api.admin_router import router as admin_router
-from apps.api.system_router import router as system_router
-from apps.api.metrics_router import router as metrics_router
-from apps.api.platform_router import router as platform_router
-from apps.api.teams_router import router as teams_router
-from apps.api.users_router import router as users_router
-from apps.api.users_router import public_router as users_public_router
-from apps.api.workflows_router import router as workflows_router
 
 # Enterprise SSO router (SAML 2.0 + OIDC — Okta, Azure AD, Google)
 sso_router: Optional[APIRouter] = None
@@ -1011,7 +994,6 @@ from fastapi import (
     File,
     HTTPException,
     Query,
-    Request,
     UploadFile,
 )
 from fastapi.middleware.cors import CORSMiddleware
@@ -7916,6 +7898,13 @@ def create_app() -> FastAPI:
         _logger.info("Mounted GreyNoise router at /api/v1/greynoise")
     except Exception as _e:  # noqa: BLE001
         _logger.warning("greynoise_router unavailable: %s", _e)
+
+    try:
+        from apps.api.censys_router import router as censys_router
+        app.include_router(censys_router)
+        _logger.info("Mounted Censys router at /api/v1/censys")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("censys_router unavailable: %s", _e)
 
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------

@@ -691,6 +691,46 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: securitytrails importer unavailable: %s", exc)
 
+    # ---------- Censys CVE Host Search ----------
+    try:
+        from feeds.censys.importer import (
+            run_import as _censys_run,
+            get_store_stats as _censys_stats,
+            total_count as _censys_count,
+            CENSYS_SEARCH_URL as _CENSYS_URL,
+        )
+
+        def _refresh_censys() -> Dict[str, Any]:
+            # Registry-level refresh is a no-op stats call; real CVE searches
+            # are triggered on-demand via POST /api/v1/censys/search.
+            return _censys_stats()
+
+        def _count_censys() -> int:
+            try:
+                return _censys_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="censys",
+            display_name="Censys CVE Host Search",
+            source_url=_CENSYS_URL,
+            source_type="json",
+            license="Censys Search API Terms of Service (community tier free with registration; CENSYS_API_ID + CENSYS_API_SECRET required)",
+            refresh_interval_seconds=86_400,  # 1 day per CVE query
+            importer_callable=_refresh_censys,
+            count_callable=_count_censys,
+            description=(
+                "Censys Search API v2 — find hosts exposed on the internet that are "
+                "vulnerable to a given CVE. Returns IP, services, location, ASN, and "
+                "cve_ids. Requires CENSYS_API_ID and CENSYS_API_SECRET env vars "
+                "(community tier free at https://search.censys.io/account). "
+                "Results cached 1 day per CVE query."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: censys importer unavailable: %s", exc)
+
 
 def _ensure_discovered() -> None:
     global _discovery_done
