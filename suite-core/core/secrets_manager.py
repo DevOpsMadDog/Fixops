@@ -559,7 +559,7 @@ SECRET_PATTERNS: List[Dict[str, Any]] = [
         "category": SecretCategory.PGP,
         "severity": SecretSeverity.CRITICAL,
         "name": "PGP Private Key Block",
-        "pattern": r"-----BEGIN PGP PRIVATE KEY BLOCK-----",
+        "pattern": r"-----BEGIN PGP PRIVATE KEY BLOCK-----",  # nosec B105 — detection regex, not a real key
         "compliance": ["SOC2-CC6.1", "PCI-DSS-3.4"],
     },
 

@@ -70,21 +70,35 @@ def _connect_ro(path: str) -> Optional[sqlite3.Connection]:
         return None
 
 
+_ALLOWED_TABLES = frozenset({"council_verdicts", "feedback_pairs"})
+
+_SAFE_TABLE_RE = __import__("re").compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+
+
+def _validate_table(table: str) -> str:
+    """Return the table name if it is in the explicit allowlist, raise ValueError otherwise."""
+    if table not in _ALLOWED_TABLES:
+        raise ValueError(f"llm-loop metrics: disallowed table name: {table!r}")
+    return table
+
+
 def _safe_count(conn: sqlite3.Connection, table: str) -> int:
     try:
-        row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+        t = _validate_table(table)
+        row = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()  # nosec B608 — table validated by allowlist
         return int(row[0]) if row else 0
-    except sqlite3.Error:
+    except (sqlite3.Error, ValueError):
         return 0
 
 
 def _last_created(conn: sqlite3.Connection, table: str) -> Optional[str]:
     try:
+        t = _validate_table(table)
         row = conn.execute(
-            f"SELECT created_at FROM {table} ORDER BY created_at DESC LIMIT 1"
+            f"SELECT created_at FROM {t} ORDER BY created_at DESC LIMIT 1"  # nosec B608 — table validated by allowlist
         ).fetchone()
         return row[0] if row else None
-    except sqlite3.Error:
+    except (sqlite3.Error, ValueError):
         return None
 
 

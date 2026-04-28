@@ -1557,7 +1557,7 @@ def graph_affected_nodes(
                             or item.get("service")
                             or item.get("engine")
                             or item.get("layer")
-                            or hashlib.sha1(
+                            or hashlib.sha256(
                                 json.dumps(item, sort_keys=True).encode()
                             ).hexdigest()[:12]
                         )

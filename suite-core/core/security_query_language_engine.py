@@ -728,15 +728,16 @@ class SqliteProvider:
             con.row_factory = sqlite3.Row
             cur = con.cursor()
             # Discover which columns exist; filter by org_id if present.
-            cur.execute(f"PRAGMA table_info({table})")
+            # table name is validated against _DEFAULT_MAP allowlist before this point (line 720).
+            cur.execute(f"PRAGMA table_info({table})")  # nosec B608 — table from internal allowlist only
             cols = [r["name"] for r in cur.fetchall()]
             if not cols:
                 con.close()
                 return []
             if "org_id" in cols:
-                cur.execute(f"SELECT * FROM {table} WHERE org_id = ? LIMIT 10000", (org_id,))
+                cur.execute(f"SELECT * FROM {table} WHERE org_id = ? LIMIT 10000", (org_id,))  # nosec B608 — table from internal allowlist only
             else:
-                cur.execute(f"SELECT * FROM {table} LIMIT 10000")
+                cur.execute(f"SELECT * FROM {table} LIMIT 10000")  # nosec B608 — table from internal allowlist only
             rows = [dict(r) for r in cur.fetchall()]
             con.close()
             return rows
