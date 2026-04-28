@@ -339,7 +339,7 @@ export default function VendorRiskDashboard() {
     }).finally(() => setDataLoading(false));
   }, []);
 
-  const vendors = liveData?.vendors ?? MOCK_VENDORS;
+  const vendors: Vendor[] = (liveData?.vendors as Vendor[] | undefined) ?? MOCK_VENDORS;
 
   // Calculate stats
   const totalVendors = vendors.length;

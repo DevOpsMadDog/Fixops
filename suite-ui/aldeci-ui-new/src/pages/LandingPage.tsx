@@ -593,12 +593,12 @@ export default function LandingPage() {
             gap: "2rem",
           }}
         >
-          <StatCounter value={344}   title="Engines"   trigger={statsInView} />
-          <StatCounter value={574}   title="API Routers" trigger={statsInView} />
-          <StatCounter value={8910}  title="Tests Passing" trigger={statsInView} />
-          <StatCounter value={296}   title="Frontend Pages" trigger={statsInView} />
-          <StatCounter value={30}    title="Personas"   trigger={statsInView} />
-          <StatCounter value={35}    title="$/month"    suffix="$" trigger={statsInView} />
+          <StatCounter value={344}   label="Engines"   trigger={statsInView} />
+          <StatCounter value={574}   label="API Routers" trigger={statsInView} />
+          <StatCounter value={8910}  label="Tests Passing" trigger={statsInView} />
+          <StatCounter value={296}   label="Frontend Pages" trigger={statsInView} />
+          <StatCounter value={30}    label="Personas"   trigger={statsInView} />
+          <StatCounter value={35}    label="$/month"    suffix="$" trigger={statsInView} />
         </div>
       </section>
 

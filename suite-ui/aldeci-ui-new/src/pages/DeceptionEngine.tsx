@@ -164,7 +164,7 @@ export default function DeceptionEngine() {
             <div key={a.id} className="flex items-center gap-4 px-6 py-3 hover:bg-red-500/5 transition-colors">
               <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 animate-pulse" />
               <span className="text-xs font-mono text-slate-500 w-36 flex-shrink-0">{a.ts}</span>
-              <Badge className={cn("text-xs border flex-shrink-0", TRIGGER_BADGE[a.type])}>{TRIGGER_LABEL[a.type]}</Badge>
+              <Badge className={cn("text-xs border flex-shrink-0", TRIGGER_BADGE[a.type as TriggerType])}>{TRIGGER_LABEL[a.type as TriggerType]}</Badge>
               <span className="font-mono text-sm text-slate-300 w-32 flex-shrink-0">{a.ip}</span>
               <span className="text-sm flex-shrink-0">{a.geo}</span>
               <span className="text-sm text-slate-400 flex-1 truncate">{a.asset}</span>
@@ -229,7 +229,7 @@ export default function DeceptionEngine() {
               {(liveData?.canaries ?? CANARIES).map((c: any) => (
                 <TableRow key={c.id} className={cn("border-b border-slate-700/50", c.triggered ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-slate-800/30")}>
                   <TableCell className="text-slate-200 font-medium text-sm">
-                    <div className="flex items-center gap-2">{CANARY_ICON[c.type]}{c.name}</div>
+                    <div className="flex items-center gap-2">{CANARY_ICON[c.type as CanaryType]}{c.name}</div>
                   </TableCell>
                   <TableCell>
                     <Badge className="bg-slate-700/50 text-slate-300 border-slate-600 text-xs uppercase">{c.type.replace("_", " ")}</Badge>

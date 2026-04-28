@@ -341,28 +341,28 @@ export default function VulnHeatmap() {
             value={d.total_vulnerabilities.toLocaleString()}
             description="Across all monitored assets"
             icon={AlertTriangle}
-            trend={{ value: 12, label: "vs last week" }}
+            trend="up"
           />
           <KpiCard
             title="Critical Assets Exposed"
             value={d.critical_assets_exposed}
             description="Risk score ≥ 9.0"
             icon={Shield}
-            trend={{ value: -3, label: "vs last week" }}
+            trend="down"
           />
           <KpiCard
             title="Avg Risk Score"
             value={d.avg_risk_score.toFixed(1)}
             description="Across all assets"
             icon={Activity}
-            trend={{ value: -0.2, label: "vs last week" }}
+            trend="down"
           />
           <KpiCard
             title="Patched This Week"
             value={d.patched_this_week}
             description="Remediated vulnerabilities"
             icon={CheckCircle2}
-            trend={{ value: 18, label: "vs last week" }}
+            trend="up"
           />
         </div>
       </motion.div>

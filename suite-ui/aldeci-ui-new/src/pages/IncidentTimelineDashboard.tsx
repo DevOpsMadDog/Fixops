@@ -339,10 +339,10 @@ export default function IncidentTimelineDashboard() {
                     {/* Timeline line */}
                     <div className="flex flex-col items-center">
                       <div className={cn("w-2.5 h-2.5 rounded-full mt-1 shrink-0 border", EVENT_COLORS[ev.type])} />
-                      {i < events.length - 1 && <div className="w-px flex-1 bg-border/40 my-0.5" />}
+                      {i < displayEvents.length - 1 && <div className="w-px flex-1 bg-border/40 my-0.5" />}
                     </div>
                     {/* Content */}
-                    <div className={cn("pb-3 flex-1", i === events.length - 1 && "pb-0")}>
+                    <div className={cn("pb-3 flex-1", i === displayEvents.length - 1 && "pb-0")}>
                       <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                         <Badge className={cn("text-[10px] border capitalize px-1.5", EVENT_COLORS[ev.type])}>{ev.type}</Badge>
                         <span className="text-[10px] font-medium">{ev.actor}</span>

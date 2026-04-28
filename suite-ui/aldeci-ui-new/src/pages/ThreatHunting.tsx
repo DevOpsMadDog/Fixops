@@ -97,7 +97,6 @@ export default function ThreatHuntingPage() {
       <PageHeader
         title="Threat Hunting"
         description="Proactive hypothesis-driven threat detection"
-        icon={<Crosshair className="h-6 w-6 text-primary" />}
         actions={<Button size="sm" variant="outline" onClick={load} className="gap-2"><RefreshCw className="w-3.5 h-3.5" /> Refresh</Button>}
       />
 
@@ -105,10 +104,10 @@ export default function ThreatHuntingPage() {
         : hunts.length === 0 ? <EmptyState icon={Crosshair} title="No active hunts" description="Start a threat hunt with a hypothesis below." />
         : <>
           <motion.div className="grid grid-cols-2 gap-4 md:grid-cols-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <KpiCard title="Active Hunts" value={String(activeCount)} icon={<Activity className="h-4 w-4" />} trend="neutral" />
+            <KpiCard title="Active Hunts" value={String(activeCount)} icon={<Activity className="h-4 w-4" />} trend="flat" />
             <KpiCard title="Total Hunts" value={String(hunts.length)} icon={<CheckCircle2 className="h-4 w-4" />} trend="up" />
             <KpiCard title="IOCs Discovered" value={String(iocs.length)} icon={<Search className="h-4 w-4" />} trend="up" />
-            <KpiCard title="Findings" value={String(findings)} icon={<Clock className="h-4 w-4" />} trend="neutral" />
+            <KpiCard title="Findings" value={String(findings)} icon={<Clock className="h-4 w-4" />} trend="flat" />
           </motion.div>
 
           <Card>

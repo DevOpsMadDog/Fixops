@@ -13,6 +13,15 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string): Promise<unknown> {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import {
   Award,
   BarChart3,
@@ -133,17 +142,6 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
   const colors = gradeColor(grade);
   return (
     <div className="flex flex-col items-center gap-3">
-    {error && (
-      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-        <p className="text-red-400 text-sm">{error}</p>
-        <button
-          onClick={() => { setError(null); window.location.reload(); }}
-          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-        >
-          Retry
-        </button>
-      </div>
-    )}
       <div
         className={cn(
           "w-36 h-36 rounded-full border-8 flex flex-col items-center justify-center shadow-lg transition-all",
@@ -179,7 +177,8 @@ export default function SecurityScorecardDashboard() {
 
   useEffect(() => {
     apiFetch(`/api/v1/security-scorecard/?org_id=${ORG_ID}`).then((d) => {
-      if (d?.overall_score !== undefined) setScorecard(d);
+      const data = d as ScorecardData | null;
+      if (data?.overall_score !== undefined) setScorecard(data);
     }).catch(() => { setError('Failed to load data'); });
   }, []);
   const [generated, setGenerated] = useState(false);

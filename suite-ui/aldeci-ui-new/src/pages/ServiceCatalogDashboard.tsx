@@ -114,17 +114,6 @@ function AvailabilityGauge({ pct }: { pct: number }) {
   const offset = circ - (pct / 100) * circ;
   return (
     <div className="flex items-center gap-1.5">
-    {error && (
-      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
-        <p className="text-red-400 text-sm">{error}</p>
-        <button
-          onClick={() => { setError(null); window.location.reload(); }}
-          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-        >
-          Retry
-        </button>
-      </div>
-    )}
       <svg width="30" height="30" viewBox="0 0 30 30">
         <circle cx="15" cy="15" r={r} fill="none" stroke="#374151" strokeWidth="3" />
         <circle cx="15" cy="15" r={r} fill="none" stroke={strokeColor} strokeWidth="3"

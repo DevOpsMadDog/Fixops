@@ -119,7 +119,7 @@ function DeploymentBadge({ type }: { type: string }) {
   );
 }
 
-function scoreBar(value: number): JSX.Element {
+function scoreBar(value: number) {
   const color = value >= 80 ? "bg-green-500" : value >= 60 ? "bg-amber-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">

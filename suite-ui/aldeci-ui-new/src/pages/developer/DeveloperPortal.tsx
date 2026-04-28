@@ -610,9 +610,9 @@ function ReposTable({ repos }: { repos: Repo[] }) {
           <CardTitle className="text-sm font-semibold">My Repositories</CardTitle>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             Sort:
-            <SortBtn k="grade" title="Score" />
-            <SortBtn k="findings" title="Findings" />
-            <SortBtn k="lastScan" title="Last Scan" />
+            <SortBtn k="grade" label="Score" />
+            <SortBtn k="findings" label="Findings" />
+            <SortBtn k="lastScan" label="Last Scan" />
           </div>
         </div>
       </CardHeader>
@@ -670,7 +670,7 @@ function ReposTable({ repos }: { repos: Repo[] }) {
                       : `${Math.round((now.getTime() - repo.lastScan.getTime()) / 86_400_000)}d ago`}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <TrendIcon trend={repo.trend} trendLabel={repo.trendDelta} />
+                    <TrendIcon trend={repo.trend} delta={repo.trendDelta} />
                   </td>
                 </motion.tr>
               ))}
@@ -752,8 +752,8 @@ function FindingsTable({
           </CardTitle>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             Sort:
-            <SortBtn k="severity" title="Severity" />
-            <SortBtn k="age" title="Age" />
+            <SortBtn k="severity" label="Severity" />
+            <SortBtn k="age" label="Age" />
           </div>
         </div>
       </CardHeader>
