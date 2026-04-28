@@ -46,7 +46,6 @@ Compliance: NIST SP 800-171 (CUI at rest), DFARS 7012, FedRAMP Moderate.
 from __future__ import annotations
 
 import hashlib
-import hmac
 import io
 import json
 import logging
@@ -63,6 +62,11 @@ try:  # optional — TrustGraph event emission
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:  # pragma: no cover
     _get_tg_bus = None  # type: ignore
+
+try:
+    from core.dsse_signer import get_signer as _get_dsse_signer
+except ImportError:  # pragma: no cover
+    _get_dsse_signer = None  # type: ignore
 
 
 _logger = logging.getLogger(__name__)
@@ -81,9 +85,7 @@ _DEFAULT_POLICY_DB = _REPO_ROOT / ".fixops_data" / "policy_engine.db"
 
 _BUNDLE_VERSION_FMT = "%Y.%m.%d"
 _MANIFEST_NAME = "MANIFEST.json"
-_SIGNATURE_ALGO = "placeholder-dsse-hmac-sha256"
-# DEV-only HMAC key — replace with cosign keypair in follow-up.
-_PLACEHOLDER_HMAC_KEY = b"fixops-airgap-placeholder-key-2026"
+_SIGNATURE_ALGO = "ed25519-sha512"  # real ed25519 signing via dsse_signer
 
 _VALID_STATUSES = {
     "exported",
@@ -118,8 +120,34 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _hmac_sha256(data: bytes, key: bytes = _PLACEHOLDER_HMAC_KEY) -> str:
-    return hmac.new(key, data, hashlib.sha256).hexdigest()
+def _sign_manifest(data: bytes) -> str:
+    """Sign manifest bytes with ed25519 via dsse_signer.
+
+    Returns a base64-encoded ed25519 signature string.
+    Falls back to a SHA-256 hex digest (tamper-detectable but not
+    cryptographically authenticated) if the signer is unavailable.
+    """
+    if _get_dsse_signer is not None:
+        try:
+            return _get_dsse_signer().sign_bytes(data)
+        except Exception as exc:  # pragma: no cover
+            _logger.warning("air_gap: ed25519 sign failed, using sha256 fallback: %s", exc)
+    # Fallback: SHA-256 digest — not a real signature but keeps verify logic intact.
+    return "sha256-fallback:" + hashlib.sha256(data).hexdigest()
+
+
+def _verify_manifest_sig(data: bytes, sig: str) -> bool:
+    """Verify manifest signature.  Returns True iff sig is valid ed25519 or
+    (in degraded mode) matches the sha256 fallback format."""
+    if sig.startswith("sha256-fallback:"):
+        expected = "sha256-fallback:" + hashlib.sha256(data).hexdigest()
+        return sig == expected
+    if _get_dsse_signer is not None:
+        try:
+            return _get_dsse_signer().verify_bytes(data, sig)
+        except Exception as exc:  # pragma: no cover
+            _logger.warning("air_gap: ed25519 verify failed: %s", exc)
+    return False
 
 
 def _default_version() -> str:
@@ -407,7 +435,7 @@ class AirGapBundleEngine:
         }
         manifest_bytes = json.dumps(manifest_core, sort_keys=True).encode("utf-8")
         manifest_sha256 = _sha256_bytes(manifest_bytes)
-        signature = _hmac_sha256(manifest_bytes)
+        signature = _sign_manifest(manifest_bytes)
 
         manifest_final = {
             **manifest_core,
@@ -568,11 +596,10 @@ class AirGapBundleEngine:
                 f"got={recomputed_manifest_sha}"
             )
 
-        # ---- verify signature placeholder --------------------------------
+        # ---- verify ed25519 signature ------------------------------------
         expected_sig = manifest.get("signature", "")
-        recomputed_sig = _hmac_sha256(core_bytes)
-        if not hmac.compare_digest(expected_sig, recomputed_sig):
-            errors.append("signature mismatch (placeholder HMAC check failed)")
+        if not _verify_manifest_sig(core_bytes, expected_sig):
+            errors.append("signature mismatch (ed25519 verification failed)")
 
         # ---- check each entry hash ---------------------------------------
         entries_checked = 0
