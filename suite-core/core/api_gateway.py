@@ -29,9 +29,7 @@ Environment:
 
 from __future__ import annotations
 
-import hashlib
 import ipaddress
-import json
 import logging
 import os
 import secrets
@@ -50,6 +48,47 @@ from pydantic import BaseModel, Field, field_validator
 
 _logger = structlog.get_logger(__name__)
 _log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
 
 _DB_ENV = "FIXOPS_DATA_DIR"
 _DEFAULT_DB_DIR = ".fixops_data"
@@ -1286,7 +1325,7 @@ class APIGatewayEngine:
                 client_type="ip",
             )
 
-        return {
+        result = {
             "allowed": True,
             "reason": None,
             "ip_check": ip_result.model_dump(),
@@ -1294,6 +1333,8 @@ class APIGatewayEngine:
             "validation": val_result.model_dump(),
             "deprecation_alert": deprecation_alert,
         }
+        _emit_event("api_gateway.request_processed", {"endpoint": endpoint, "method": method, "allowed": True, "tier": plan_tier.value if hasattr(plan_tier, "value") else str(plan_tier)})
+        return result
 
 
 # ---------------------------------------------------------------------------
