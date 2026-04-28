@@ -18,6 +18,22 @@ from typing import Any, Dict, Iterable, Mapping, Optional
 
 from apps.api.normalizers import InputNormalizer, NormalizedSARIF, NormalizedSBOM
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 def _current_utc_timestamp() -> str:
     """Return an ISO8601 timestamp with optional test overrides."""
@@ -218,6 +234,12 @@ class StageRunner:
         if verbose:
             print(f"Stage '{stage_key}' complete for {context.app_id}/{context.run_id}")
 
+        _tg_emit("stage_runner.stage_complete", {
+            "stage": stage_key,
+            "app_id": context.app_id,
+            "run_id": context.run_id,
+            "verified": verified,
+        })
         return StageSummary(
             stage=stage_key,
             app_id=context.app_id,

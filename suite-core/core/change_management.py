@@ -28,6 +28,22 @@ from typing import Any, Dict, List, Optional, Tuple
 import structlog
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 _logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -425,6 +441,13 @@ class ChangeManagementDB:
                     ),
                 )
                 conn.commit()
+                _tg_emit("change_management.change_created", {
+                    "change_id": change.id,
+                    "status": change.status.value,
+                    "risk_level": change.risk_level.value,
+                    "category": change.category.value,
+                    "requestor_id": change.requestor_id,
+                })
                 return change
             finally:
                 conn.close()

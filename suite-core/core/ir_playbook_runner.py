@@ -28,6 +28,22 @@ import sqlite3
 import threading
 import uuid
 from dataclasses import dataclass, field, asdict
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -644,6 +660,13 @@ class IRPlaybookRunner:
             steps_completed=execution.steps_completed,
             steps_total=execution.steps_total,
         )
+        _tg_emit("ir_playbook_runner.execution_finished", {
+            "execution_id": exec_id,
+            "playbook_id": execution.playbook_id,
+            "status": execution.status.value if hasattr(execution.status, "value") else str(execution.status),
+            "steps_completed": execution.steps_completed,
+            "steps_total": execution.steps_total,
+        })
 
         return execution
 

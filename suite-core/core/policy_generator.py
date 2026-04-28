@@ -29,6 +29,22 @@ from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -812,6 +828,7 @@ class PolicyGenerator:
                     conn.close()
 
         _logger.info("Generated policy type=%s id=%s org=%s", type_val, policy.id, org_id)
+        _tg_emit("policy_generator.policy_generated", {"policy_id": policy.id, "org_id": org_id, "type": type_val})
         return policy
 
     def list_policies(self, org_id: str = "default") -> List[PolicyDocument]:
