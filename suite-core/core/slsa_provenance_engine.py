@@ -51,6 +51,11 @@ try:
 except ImportError:  # pragma: no cover - optional wiring
     _get_tg_bus = None
 
+try:
+    from core.dsse_signer import get_signer as _get_dsse_signer
+except ImportError:  # pragma: no cover - fallback if cryptography not installed
+    _get_dsse_signer = None  # type: ignore
+
 
 _logger = logging.getLogger(__name__)
 
@@ -67,19 +72,13 @@ _DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
 _VALID_SLSA_LEVELS = frozenset({1, 2, 3, 4})
 _VALID_VERIFIER_VERDICTS = frozenset({"pass", "fail"})
 
-# TODO(real-signing): Integrate sigstore-python/cosign for real DSSE signing.
-#   1. Load signing key from KMS (AWS KMS, GCP KMS, HashiCorp Vault) OR
-#      Sigstore Fulcio (keyless OIDC-gated signing).
-#   2. Canonicalise the payload via JSON Canonicalization Scheme (RFC 8785).
-#   3. Build PAE: "DSSEv1" + len(payloadType) + payloadType + len(payload) + payload.
-#   4. Sign PAE with ECDSA-P256 + SHA-256 (Sigstore default).
-#   5. Append {"keyid": <fingerprint>, "sig": <base64-sig>} to envelope.signatures.
-#   6. Upload signed envelope to Rekor transparency log and store the
-#      log-inclusion proof (SET) in the attestation record.
-# For v0, signature + keyid are fixed placeholders so the envelope shape is
-# spec-compliant but downstream verifiers will correctly reject it as unsigned.
-_PLACEHOLDER_KEYID = "placeholder-keyid-v0"
-_PLACEHOLDER_SIG = "placeholder-signature-v0-not-for-production-use"
+# Real DSSE signing via ed25519 (cryptography package).
+# Key is generated/loaded from data/keys/slsa_signing.pem (0600, gitignored).
+# PAE: "DSSEv1" SP LEN(type) SP type SP LEN(body) SP body
+# Signature: ed25519 over PAE bytes → base64-encoded in envelope.signatures[].sig
+# keyid: SHA-256 hex fingerprint of DER-encoded public key.
+# Fallback: if dsse_signer unavailable, we fall back to a clearly-labelled
+# placeholder so the envelope shape stays spec-compliant.
 
 
 def _now_iso() -> str:
@@ -221,15 +220,29 @@ class SLSAProvenanceEngine:
 
     @staticmethod
     def _wrap_dsse(payload_obj: Dict[str, Any]) -> Dict[str, Any]:
-        """Wrap a payload object in a DSSE envelope with a placeholder signature.
+        """Wrap a payload object in a real DSSE envelope signed with ed25519.
 
         Shape (per DSSE spec):
             {
               "payloadType": "application/vnd.in-toto+json",
-              "payload": "<base64(payload_json_bytes)>",
-              "signatures": [{"keyid": ..., "sig": ...}]
+              "payload": "<base64(canonical_json)>",
+              "signatures": [{"keyid": <sha256-fingerprint>, "sig": <base64-ed25519>}]
             }
+
+        Falls back to a labelled placeholder if the signing module is
+        unavailable (e.g. cryptography not installed), so the envelope shape
+        stays spec-compliant even in degraded environments.
         """
+        if _get_dsse_signer is not None:
+            try:
+                signer = _get_dsse_signer()
+                return signer.sign_dsse(_DSSE_PAYLOAD_TYPE, payload_obj)
+            except Exception as exc:  # pragma: no cover - signer init failure
+                _logger.warning(
+                    "dsse_signer unavailable, falling back to placeholder: %s", exc
+                )
+
+        # Graceful fallback — shape-compliant, clearly labelled as unsigned.
         payload_bytes = json.dumps(
             payload_obj, sort_keys=True, separators=(",", ":")
         ).encode("utf-8")
@@ -238,8 +251,8 @@ class SLSAProvenanceEngine:
             "payload": _b64(payload_bytes),
             "signatures": [
                 {
-                    "keyid": _PLACEHOLDER_KEYID,
-                    "sig": _PLACEHOLDER_SIG,
+                    "keyid": "unsigned-fallback-keyid",
+                    "sig": "unsigned-fallback-signature-not-for-production-use",
                 }
             ],
         }
@@ -357,7 +370,7 @@ class SLSAProvenanceEngine:
                         json.dumps(invocation, sort_keys=True),
                         json.dumps(materials, sort_keys=True),
                         json.dumps(metadata, sort_keys=True),
-                        _PLACEHOLDER_SIG,
+                        json.dumps(envelope.get("signatures", []), sort_keys=True),
                         json.dumps(envelope, sort_keys=True),
                         lvl,
                         now,
@@ -525,19 +538,29 @@ class SLSAProvenanceEngine:
         if not checks["slsa_level_valid"]:
             details.append("slsa_level is not in {1,2,3,4}")
 
-        # 6. Signature placeholder (informational only in v0)
-        checks["signature_placeholder_marker"] = (
-            row["signature_placeholder"] == _PLACEHOLDER_SIG
-        )
-        # We do NOT fail verification on this — it's informational: v0 always
-        # produces placeholder sigs. Real cosign signatures will flip this to
-        # False, at which point the real crypto-verify branch takes over.
+        # 6. Real cryptographic signature verification (ed25519 DSSE).
+        if _get_dsse_signer is not None and checks.get("envelope_parsable") and isinstance(envelope, dict):
+            try:
+                signer = _get_dsse_signer()
+                sig_valid = signer.verify_dsse(envelope)
+            except Exception as exc:  # pragma: no cover - signer failure is non-fatal
+                _logger.warning("dsse verify failed: %s", exc)
+                sig_valid = False
+        else:
+            # Fallback: if signer unavailable, pass through without crypto check
+            sig_valid = None  # type: ignore
 
-        # Verdict: pass iff every *structural* check passes.
-        structural_keys = [
-            k for k in checks.keys() if k != "signature_placeholder_marker"
-        ]
-        all_pass = all(checks[k] for k in structural_keys)
+        if sig_valid is not None:
+            checks["signature_crypto_valid"] = sig_valid
+            if not sig_valid:
+                details.append("ed25519 DSSE signature verification failed")
+
+        # Verdict: pass iff every structural check passes AND (if crypto checked) sig valid.
+        all_pass = all(
+            checks[k]
+            for k in checks
+            if k != "signature_crypto_valid" or sig_valid is not None
+        )
         verdict = "pass" if all_pass else "fail"
         verdict_detail = "; ".join(details) if details else "all structural checks passed"
 
