@@ -2665,28 +2665,55 @@ class BrainPipeline:
         asset_lookup: Dict[str, Dict[str, Any]] = {
             a.get("id", ""): a for a in ctx.get("assets", []) if a.get("id")
         }
-        for f in ctx.get("findings", []):
-            # Resolve asset criticality from pre-built lookup (O(1) per finding)
-            asset_info = asset_lookup.get(f.get("canonical_asset_id", ""), {})
-            asset_criticality = asset_info.get("criticality", 0.5)
-            network_exposure = asset_info.get(
-                "exposure", asset_info.get("network_exposure", "unknown")
-            )
+        findings_list = ctx.get("findings", [])
 
-            if ml_available and risk_model is not None:
-                # ML prediction with confidence interval
-                vuln_data = {
+        # Build per-finding context (asset criticality / exposure) once so
+        # both the ML batch path and the fallback path can reuse it without
+        # re-resolving the asset lookup.
+        finding_ctxs: List[Dict[str, Any]] = []
+        for f in findings_list:
+            asset_info = asset_lookup.get(f.get("canonical_asset_id", ""), {})
+            finding_ctxs.append({
+                "asset_criticality": asset_info.get("criticality", 0.5),
+                "network_exposure": asset_info.get(
+                    "exposure", asset_info.get("network_exposure", "unknown")
+                ),
+            })
+
+        # Batch ML predictions: one sklearn predict() over an (N, F) matrix
+        # instead of N individual calls (perf fix #2 — risk_scorer.py:507).
+        ml_preds: List[Any] = []
+        ml_vuln_data: List[Dict[str, Any]] = []
+        if ml_available and risk_model is not None and findings_list:
+            for f, fctx in zip(findings_list, finding_ctxs):
+                ml_vuln_data.append({
                     "cvss_score": f.get("cvss_score", 5.0),
                     "epss_score": f.get("epss_score", 0.1),
                     "in_kev": f.get("in_kev", False),
-                    "asset_criticality": asset_criticality,
-                    "network_exposure": network_exposure,
+                    "asset_criticality": fctx["asset_criticality"],
+                    "network_exposure": fctx["network_exposure"],
                     "exploit_available": f.get("exploit_available", False),
                     "exploit_maturity": f.get("exploit_maturity", "none"),
                     "reachable": f.get("reachable", True),
                     "chain_cves": f.get("chain_cves"),
-                }
-                pred = risk_model.predict(vuln_data)
+                })
+            try:
+                ml_preds = risk_model.predict_batch(ml_vuln_data)
+            except (OSError, ValueError, KeyError, RuntimeError) as batch_err:
+                logger.warning(
+                    "Batched risk prediction failed (%s); falling back to per-finding",
+                    type(batch_err).__name__,
+                )
+                ml_preds = []
+
+        for idx, f in enumerate(findings_list):
+            fctx = finding_ctxs[idx]
+            asset_criticality = fctx["asset_criticality"]
+            network_exposure = fctx["network_exposure"]
+
+            if ml_available and risk_model is not None and idx < len(ml_preds):
+                vuln_data = ml_vuln_data[idx]
+                pred = ml_preds[idx]
                 risk = round(pred.risk_score / 100.0, 4)  # Normalize to 0-1
                 f["risk_score"] = risk
                 f["risk_priority"] = pred.priority

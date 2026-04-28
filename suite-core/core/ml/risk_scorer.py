@@ -566,18 +566,99 @@ class RiskScoringModel:
         )
 
     def predict_batch(self, vulns: List[Dict[str, Any]]) -> List[PredictionResult]:
-        """Predict risk scores for a batch of vulnerabilities.
+        """Predict risk scores for a batch of vulnerabilities (vectorized).
 
-        Parameters
-        ----------
-        vulns : list of dict
-            List of vulnerability data dictionaries.
-
-        Returns
-        -------
-        list of PredictionResult
+        Performance: a single sklearn ``predict`` call over an (N, F) matrix
+        (one ``validate_data`` pass) instead of N per-finding calls. Bootstrap
+        CI and SHAP-like feature contributions are likewise batched —
+        contributions use a (F*N, F) "interventional" matrix in a single
+        ``predict``. Numerically identical to ``predict()`` per finding.
         """
-        return [self.predict(v) for v in vulns]
+        if not vulns:
+            return []
+
+        t0 = time.monotonic()
+        n = len(vulns)
+
+        # (N, F) feature matrix
+        features_matrix = np.array(
+            [extract_features(v) for v in vulns], dtype=np.float64
+        )
+
+        if self.is_trained and self._scaler is not None:
+            X = self._scaler.transform(features_matrix)  # (N, F)
+
+            raw_scores = np.asarray(self._model.predict(X), dtype=np.float64)  # (N,)
+
+            if self._bootstrap_models:
+                # (n_boot, N) — one predict per bootstrap model on the full batch
+                boot_preds = np.array(
+                    [m.predict(X) for m in self._bootstrap_models], dtype=np.float64
+                )
+                ci_low_arr = np.percentile(boot_preds, 5, axis=0) * 100.0
+                ci_high_arr = np.percentile(boot_preds, 95, axis=0) * 100.0
+            else:
+                ci_low_arr = raw_scores * 100.0 - 10.0
+                ci_high_arr = raw_scores * 100.0 + 10.0
+
+            risk_scores = np.clip(raw_scores * 100.0, 0.0, 100.0)
+            ci_low_arr = np.clip(ci_low_arr, 0.0, 100.0)
+            ci_high_arr = np.clip(ci_high_arr, 0.0, 100.0)
+
+            # Interventional contributions: build (F*N, F) "feature-zeroed" matrix.
+            # Block i (rows i*N..(i+1)*N) is X with column i zeroed in scaled space.
+            n_features = len(FEATURE_NAMES)
+            X_modified = np.tile(X, (n_features, 1))  # (F*N, F)
+            for i in range(n_features):
+                X_modified[i * n:(i + 1) * n, i] = 0.0
+            modified_preds = np.asarray(
+                self._model.predict(X_modified), dtype=np.float64
+            ).reshape(n_features, n)
+            # contribs[i, j] = (raw_scores[j] - modified[i, j]) * 100
+            contribs_matrix = (raw_scores[np.newaxis, :] - modified_preds) * 100.0
+
+            total_ms = (time.monotonic() - t0) * 1000.0
+            per_call_ms = total_ms / n
+
+            results: List[PredictionResult] = []
+            for j in range(n):
+                contributions = {
+                    FEATURE_NAMES[i]: float(contribs_matrix[i, j])
+                    for i in range(n_features)
+                }
+                rs = float(risk_scores[j])
+                ci_lo = float(ci_low_arr[j])
+                ci_hi = float(ci_high_arr[j])
+                results.append(
+                    PredictionResult(
+                        risk_score=rs,
+                        confidence_interval=(ci_lo, ci_hi),
+                        confidence_width=ci_hi - ci_lo,
+                        priority=_score_to_priority(rs),
+                        feature_contributions=contributions,
+                        model_version=MODEL_VERSION,
+                        prediction_time_ms=per_call_ms,
+                    )
+                )
+            return results
+
+        # Fallback path: deterministic formula has no batchable cost.
+        results = []
+        for v in vulns:
+            features = extract_features(v)
+            risk_score, ci_low, ci_high, contributions = self._fallback_score(features)
+            results.append(
+                PredictionResult(
+                    risk_score=risk_score,
+                    confidence_interval=(ci_low, ci_high),
+                    confidence_width=ci_high - ci_low,
+                    priority=_score_to_priority(risk_score),
+                    feature_contributions=contributions,
+                    model_version="fallback-1.0",
+                    prediction_time_ms=(time.monotonic() - t0) * 1000.0 / n,
+                )
+            )
+        return results
 
     def explain_prediction(self, vuln: Dict[str, Any]) -> ExplanationResult:
         """Generate SHAP-like feature explanations for a risk score prediction.
