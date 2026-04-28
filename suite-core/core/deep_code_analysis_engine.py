@@ -26,6 +26,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# ---------------------------------------------------------------------------
+# Tree-sitter TypeScript — optional, imported lazily so the engine still
+# works in environments where the native extension is unavailable.
+# ---------------------------------------------------------------------------
+try:
+    import tree_sitter_typescript as _tst
+    from tree_sitter import Language as _TSLanguage, Parser as _TSParser
+
+    _TS_LANGUAGE: Optional[Any] = _TSLanguage(_tst.language_typescript())
+    _TSX_LANGUAGE: Optional[Any] = _TSLanguage(_tst.language_tsx())
+except Exception:  # pragma: no cover — fallback when C extension missing
+    _TS_LANGUAGE = None
+    _TSX_LANGUAGE = None
+
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
 except ImportError:  # pragma: no cover - bus optional
@@ -167,26 +181,562 @@ class DeepCodeAnalysisEngine:
             )
 
     # ------------------------------------------------------------------
-    # Stubs for non-Python languages
+    # TypeScript / JavaScript AST analysis (tree-sitter)
     # ------------------------------------------------------------------
 
+    # --- taint sources and sinks -----------------------------------------
+    _TS_TAINT_SOURCES: Dict[str, str] = {
+        # Express / Node request object properties
+        "req.body": "user-controlled HTTP body",
+        "req.query": "user-controlled query string",
+        "req.params": "user-controlled URL parameters",
+        "req.headers": "user-controlled HTTP headers",
+        "req.cookies": "user-controlled cookies",
+        # process.env reads — treated as taint source (secrets/config leak)
+        "process.env": "environment variable (potential secret)",
+    }
+
+    _TS_SINK_PATTERNS: List[Dict[str, Any]] = [
+        {
+            "id": "eval",
+            "label": "eval() call",
+            "severity": "HIGH",
+            "cwe": "CWE-95",
+            "match_call": re.compile(r"^eval$"),
+        },
+        {
+            "id": "function_constructor",
+            "label": "Function() constructor (indirect eval)",
+            "severity": "HIGH",
+            "cwe": "CWE-95",
+            "match_call": re.compile(r"^Function$"),
+        },
+        {
+            "id": "child_process_exec",
+            "label": "child_process.exec — OS command injection",
+            "severity": "CRITICAL",
+            "cwe": "CWE-78",
+            "match_call": re.compile(r"^exec$"),
+        },
+        {
+            "id": "child_process_spawn",
+            "label": "child_process.spawn — OS command injection",
+            "severity": "HIGH",
+            "cwe": "CWE-78",
+            "match_call": re.compile(r"^spawn$"),
+        },
+        {
+            "id": "innerHTML",
+            "label": "innerHTML assignment — XSS",
+            "severity": "HIGH",
+            "cwe": "CWE-79",
+            "match_call": None,  # detected via assignment pattern
+            "match_text": re.compile(r"\.innerHTML\s*="),
+        },
+        {
+            "id": "raw_sql_concat",
+            "label": "Raw SQL string concatenation — SQLi",
+            "severity": "HIGH",
+            "cwe": "CWE-89",
+            "match_call": None,
+            "match_text": re.compile(
+                r'(["\'`])\s*(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE)\b.+\+',
+                re.IGNORECASE,
+            ),
+        },
+    ]
+
+    def _ts_node_text(self, node: Any, source: bytes) -> str:
+        """Return UTF-8 text for a tree-sitter node."""
+        return source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+
+    def _ts_walk_findings(
+        self, node: Any, source: bytes, rel_path: str
+    ) -> List[Dict[str, Any]]:
+        """Recursively walk the AST and collect security findings."""
+        findings: List[Dict[str, Any]] = []
+        raw_text = self._ts_node_text(node, source)
+
+        # --- sink detection via call_expression nodes -------------------
+        if node.type == "call_expression":
+            func_node = node.child_by_field_name("function")
+            if func_node is not None:
+                func_text = self._ts_node_text(func_node, source)
+                for sink in self._TS_SINK_PATTERNS:
+                    if sink.get("match_call") and sink["match_call"].match(
+                        func_text.split(".")[-1]
+                    ):
+                        findings.append(
+                            {
+                                "id": str(uuid.uuid4()),
+                                "file": rel_path,
+                                "line": node.start_point[0] + 1,
+                                "severity": sink["severity"],
+                                "type": "security",
+                                "rule_id": sink["id"],
+                                "message": f"{sink['label']} at line "
+                                f"{node.start_point[0] + 1} in {rel_path}",
+                                "cwe": sink.get("cwe", ""),
+                                "sink": func_text,
+                                "taint_flow": None,
+                            }
+                        )
+
+        # --- innerHTML assignment and SQL concat (text-pattern sinks) ---
+        if node.type in ("assignment_expression", "augmented_assignment_expression"):
+            node_text = raw_text
+            for sink in self._TS_SINK_PATTERNS:
+                if sink.get("match_text") and sink["match_text"].search(node_text):
+                    findings.append(
+                        {
+                            "id": str(uuid.uuid4()),
+                            "file": rel_path,
+                            "line": node.start_point[0] + 1,
+                            "severity": sink["severity"],
+                            "type": "security",
+                            "rule_id": sink["id"],
+                            "message": f"{sink['label']} at line "
+                            f"{node.start_point[0] + 1} in {rel_path}",
+                            "cwe": sink.get("cwe", ""),
+                            "sink": node_text[:120],
+                            "taint_flow": None,
+                        }
+                    )
+
+        # --- taint flow: source → sink in same call argument ------------
+        if node.type == "call_expression":
+            func_node = node.child_by_field_name("function")
+            args_node = node.child_by_field_name("arguments")
+            if func_node is not None and args_node is not None:
+                func_text = self._ts_node_text(func_node, source)
+                args_text = self._ts_node_text(args_node, source)
+                sink_match = None
+                for sink in self._TS_SINK_PATTERNS:
+                    if sink.get("match_call") and sink["match_call"].match(
+                        func_text.split(".")[-1]
+                    ):
+                        sink_match = sink
+                        break
+                if sink_match:
+                    for src_key, src_desc in self._TS_TAINT_SOURCES.items():
+                        if src_key in args_text:
+                            # Remove the generic finding already added and
+                            # replace it with the taint-flow enriched one.
+                            findings = [
+                                f
+                                for f in findings
+                                if not (
+                                    f["rule_id"] == sink_match["id"]
+                                    and f["line"] == node.start_point[0] + 1
+                                    and f.get("taint_flow") is None
+                                )
+                            ]
+                            findings.append(
+                                {
+                                    "id": str(uuid.uuid4()),
+                                    "file": rel_path,
+                                    "line": node.start_point[0] + 1,
+                                    "severity": sink_match["severity"],
+                                    "type": "taint_flow",
+                                    "rule_id": f"taint_{sink_match['id']}",
+                                    "message": (
+                                        f"Taint flow: {src_desc} ({src_key}) "
+                                        f"flows into {sink_match['label']} at "
+                                        f"line {node.start_point[0] + 1} in {rel_path}"
+                                    ),
+                                    "cwe": sink_match.get("cwe", ""),
+                                    "sink": func_text,
+                                    "taint_flow": {
+                                        "source": src_key,
+                                        "source_desc": src_desc,
+                                        "sink": func_text,
+                                    },
+                                }
+                            )
+
+        # Recurse into all children
+        for child in node.children:
+            findings.extend(self._ts_walk_findings(child, source, rel_path))
+
+        return findings
+
+    def _ts_extract_symbols(
+        self, node: Any, source: bytes, rel_path: str
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Extract functions, classes, imports, exports from the AST."""
+        symbols: List[Dict[str, Any]] = []
+        imports: List[Dict[str, Any]] = []
+        exports: List[Dict[str, Any]] = []
+
+        def _walk(n: Any) -> None:
+            t = n.type
+
+            # --- function declarations -----------------------------------
+            if t in ("function_declaration", "function", "arrow_function",
+                     "method_definition"):
+                name_node = n.child_by_field_name("name")
+                name = (
+                    self._ts_node_text(name_node, source) if name_node else "<anonymous>"
+                )
+                # parameters
+                params_node = n.child_by_field_name("parameters")
+                params: List[str] = []
+                if params_node:
+                    for p in params_node.children:
+                        if p.type not in (",", "(", ")", "comment"):
+                            params.append(
+                                self._ts_node_text(p, source).strip()
+                            )
+                # return type (TS-specific)
+                ret_node = n.child_by_field_name("return_type")
+                return_type = (
+                    self._ts_node_text(ret_node, source).lstrip(":").strip()
+                    if ret_node
+                    else ""
+                )
+                symbols.append(
+                    {
+                        "symbol_type": "function",
+                        "symbol_name": name,
+                        "file_ref": rel_path,
+                        "start_line": n.start_point[0] + 1,
+                        "end_line": n.end_point[0] + 1,
+                        "metadata": {
+                            "params": [p for p in params if p],
+                            "return_type": return_type,
+                            "language": "typescript",
+                        },
+                    }
+                )
+
+            # --- class declarations --------------------------------------
+            elif t == "class_declaration":
+                name_node = n.child_by_field_name("name")
+                class_name = (
+                    self._ts_node_text(name_node, source) if name_node else "<anon>"
+                )
+                body_node = n.child_by_field_name("body")
+                methods: List[str] = []
+                fields: List[str] = []
+                if body_node:
+                    for child in body_node.children:
+                        if child.type == "method_definition":
+                            mn = child.child_by_field_name("name")
+                            if mn:
+                                methods.append(self._ts_node_text(mn, source))
+                        elif child.type in (
+                            "public_field_definition",
+                            "field_definition",
+                        ):
+                            fn = child.child_by_field_name("name")
+                            if fn:
+                                fields.append(self._ts_node_text(fn, source))
+                symbols.append(
+                    {
+                        "symbol_type": "class",
+                        "symbol_name": class_name,
+                        "file_ref": rel_path,
+                        "start_line": n.start_point[0] + 1,
+                        "end_line": n.end_point[0] + 1,
+                        "metadata": {
+                            "methods": methods,
+                            "fields": fields,
+                            "language": "typescript",
+                        },
+                    }
+                )
+
+            # --- import statements ---------------------------------------
+            elif t == "import_statement":
+                from_clause = ""
+                named: List[str] = []
+                for child in n.children:
+                    if child.type == "string":
+                        from_clause = (
+                            self._ts_node_text(child, source).strip("'\"` ")
+                        )
+                    elif child.type == "import_clause":
+                        for ic in child.children:
+                            if ic.type == "named_imports":
+                                for ni in ic.children:
+                                    if ni.type == "import_specifier":
+                                        nn = ni.child_by_field_name("name")
+                                        if nn:
+                                            named.append(
+                                                self._ts_node_text(nn, source)
+                                            )
+                imports.append(
+                    {
+                        "from": from_clause,
+                        "named": named,
+                        "line": n.start_point[0] + 1,
+                        "file_ref": rel_path,
+                    }
+                )
+
+            # --- export statements ---------------------------------------
+            elif t in ("export_statement", "export_default_declaration"):
+                decl_node = n.child_by_field_name("declaration")
+                exported_name = ""
+                if decl_node:
+                    nn = decl_node.child_by_field_name("name")
+                    if nn:
+                        exported_name = self._ts_node_text(nn, source)
+                exports.append(
+                    {
+                        "name": exported_name or "<default>",
+                        "line": n.start_point[0] + 1,
+                        "file_ref": rel_path,
+                    }
+                )
+
+            for child in n.children:
+                _walk(child)
+
+        _walk(node)
+        return {"symbols": symbols, "imports": imports, "exports": exports}
+
+    def _analyze_typescript_source(
+        self, source: str, rel_path: str, is_tsx: bool = False
+    ) -> Dict[str, Any]:
+        """Parse TypeScript/TSX source and return symbols + security findings.
+
+        Returns a dict with keys:
+          symbols   — list of symbol dicts (compatible with _analyze_python_file)
+          findings  — list of security finding dicts
+          imports   — list of import dicts
+          exports   — list of export dicts
+          endpoints — always [] (TS route extraction is heuristic-only for now)
+          models    — always [] (Pydantic-style models not common in TS)
+        """
+        if _TS_LANGUAGE is None:
+            raise RuntimeError(
+                "tree-sitter-typescript native extension not available"
+            )
+
+        lang = _TSX_LANGUAGE if is_tsx else _TS_LANGUAGE
+        parser = _TSParser(lang)  # type: ignore[arg-type]
+        encoded = source.encode("utf-8", errors="replace")
+        tree = parser.parse(encoded)
+
+        sym_data = self._ts_extract_symbols(tree.root_node, encoded, rel_path)
+        findings = self._ts_walk_findings(tree.root_node, encoded, rel_path)
+
+        return {
+            "symbols": sym_data["symbols"],
+            "findings": findings,
+            "imports": sym_data["imports"],
+            "exports": sym_data["exports"],
+            "endpoints": [],
+            "models": [],
+        }
+
     def _analyze_typescript(self, file_path: Path) -> Dict[str, Any]:
-        # TODO(NEW-G070): implement TS/TSX AST extraction via tree-sitter
-        raise NotImplementedError(
-            "TypeScript analysis is a stub — tracked under NEW-G070"
-        )
+        """Public entry-point: parse a .ts/.tsx file from disk."""
+        is_tsx = file_path.suffix.lower() == ".tsx"
+        source = file_path.read_text(encoding="utf-8", errors="replace")
+        return self._analyze_typescript_source(source, str(file_path), is_tsx=is_tsx)
 
     def _analyze_javascript(self, file_path: Path) -> Dict[str, Any]:
-        # TODO(NEW-G070): implement JS/JSX AST extraction via esprima / tree-sitter
-        raise NotImplementedError(
-            "JavaScript analysis is a stub — tracked under NEW-G070"
+        # JS shares the TypeScript grammar (tree-sitter-typescript includes JS).
+        source = file_path.read_text(encoding="utf-8", errors="replace")
+        return self._analyze_typescript_source(source, str(file_path), is_tsx=False)
+
+    def _analyze_java(self, file_path: Path) -> Dict[str, Any]:  # noqa: C901
+        """Parse a Java source file with javalang and extract security-relevant artefacts.
+
+        Returns a dict with keys:
+          - symbols:  list of class/method/field dicts
+          - findings: list of taint/sink vulnerability dicts
+          - package:  str
+          - imports:  list[str]
+
+        Taint sources: request.getParameter(), request.getHeader(),
+          System.getenv(), request.getInputStream().
+
+        Sinks:
+          - SQL injection: executeQuery/executeUpdate with string concatenation
+          - Command injection: Runtime.getRuntime().exec(), ProcessBuilder
+          - XXE: DocumentBuilderFactory without disallow-doctype-decl setFeature
+          - Path traversal: new File(userInput), Files.newInputStream(Paths.get(...))
+        """
+        try:
+            import javalang  # type: ignore
+        except ImportError as exc:
+            raise ImportError(
+                "javalang is required for Java analysis: pip install javalang"
+            ) from exc
+
+        rel_path = str(file_path)
+        result: Dict[str, Any] = {
+            "symbols": [],
+            "findings": [],
+            "package": "",
+            "imports": [],
+        }
+
+        try:
+            source = file_path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            _logger.debug("DCA Java read failure %s: %s", rel_path, exc)
+            return result
+
+        try:
+            tree = javalang.parse.parse(source)
+        except Exception as exc:  # javalang.parser.JavaSyntaxError and friends
+            _logger.debug("DCA Java parse failure %s: %s", rel_path, exc)
+            return result
+
+        # ---- Package & imports ----------------------------------------
+        if tree.package:
+            result["package"] = tree.package.name
+        result["imports"] = [imp.path for imp in (tree.imports or [])]
+
+        # ---- Taint source patterns ------------------------------------
+        _TAINT_SOURCE_PATTERNS = [
+            re.compile(r"request\.getParameter\s*\("),
+            re.compile(r"request\.getHeader\s*\("),
+            re.compile(r"System\.getenv\s*\("),
+            re.compile(r"request\.getInputStream\s*\("),
+        ]
+
+        # ---- Sink patterns --------------------------------------------
+        _SQL_SINK = re.compile(
+            r"\.(executeQuery|executeUpdate|execute)\s*\([^)]*\+[^)]*\)"
+        )
+        _CMD_SINK = re.compile(
+            r"(Runtime\.getRuntime\(\)\s*\.exec|new\s+ProcessBuilder)\s*\("
+        )
+        _XXE_FACTORY = re.compile(r"DocumentBuilderFactory\s*\.\s*newInstance\s*\(")
+        _XXE_SAFE_FEATURE = re.compile(
+            r'setFeature\s*\(\s*"http://apache\.org/xml/features/disallow-doctype-decl"'
+        )
+        _PATH_SINK = re.compile(
+            r"(new\s+File\s*\(|Files\s*\.\s*newInputStream\s*\(\s*Paths\s*\.\s*get\s*\()"
         )
 
-    def _analyze_java(self, file_path: Path) -> Dict[str, Any]:
-        # TODO(NEW-G070): implement Java AST extraction via javalang / tree-sitter
-        raise NotImplementedError(
-            "Java analysis is a stub — tracked under NEW-G070"
-        )
+        lines = source.splitlines()
+
+        def _line_has_taint(line: str) -> bool:
+            return any(p.search(line) for p in _TAINT_SOURCE_PATTERNS)
+
+        file_has_taint = any(_line_has_taint(ln) for ln in lines)
+
+        # ---- XXE: DocumentBuilderFactory without safe setFeature -----
+        if _XXE_FACTORY.search(source) and not _XXE_SAFE_FEATURE.search(source):
+            for i, ln in enumerate(lines, 1):
+                if _XXE_FACTORY.search(ln):
+                    result["findings"].append({
+                        "type": "XXE",
+                        "severity": "MEDIUM",
+                        "file_ref": rel_path,
+                        "line": i,
+                        "detail": (
+                            "DocumentBuilderFactory.newInstance() without "
+                            "setFeature(disallow-doctype-decl, true) — XXE risk"
+                        ),
+                        "cwe": "CWE-611",
+                    })
+                    break
+
+        # ---- Line-level sink scanning ---------------------------------
+        for i, ln in enumerate(lines, 1):
+            if _SQL_SINK.search(ln):
+                result["findings"].append({
+                    "type": "SQL_INJECTION",
+                    "severity": "HIGH",
+                    "file_ref": rel_path,
+                    "line": i,
+                    "detail": (
+                        "String concatenation inside SQL execute call — "
+                        "potential SQL injection"
+                    ),
+                    "cwe": "CWE-89",
+                })
+
+            if _CMD_SINK.search(ln) and file_has_taint:
+                result["findings"].append({
+                    "type": "COMMAND_INJECTION",
+                    "severity": "HIGH",
+                    "file_ref": rel_path,
+                    "line": i,
+                    "detail": (
+                        "Runtime.exec() or ProcessBuilder in file with taint "
+                        "sources — potential command injection"
+                    ),
+                    "cwe": "CWE-78",
+                })
+
+            if _PATH_SINK.search(ln) and file_has_taint:
+                result["findings"].append({
+                    "type": "PATH_TRAVERSAL",
+                    "severity": "HIGH",
+                    "file_ref": rel_path,
+                    "line": i,
+                    "detail": (
+                        "File/Paths.get() in file with taint sources — "
+                        "potential path traversal"
+                    ),
+                    "cwe": "CWE-22",
+                })
+
+        # ---- Symbol extraction via javalang AST ----------------------
+        for _path_node, node in tree:
+            if isinstance(node, javalang.tree.ClassDeclaration):
+                extends = node.extends.name if node.extends else None
+                implements = [iface.name for iface in (node.implements or [])]
+                result["symbols"].append({
+                    "symbol_type": "class",
+                    "symbol_name": node.name,
+                    "file_ref": rel_path,
+                    "start_line": node.position.line if node.position else 0,
+                    "end_line": node.position.line if node.position else 0,
+                    "metadata": {
+                        "extends": extends,
+                        "implements": implements,
+                        "modifiers": list(node.modifiers or []),
+                    },
+                })
+
+            elif isinstance(node, javalang.tree.MethodDeclaration):
+                annotations = [a.name for a in (node.annotations or [])]
+                params = []
+                for p in (node.parameters or []):
+                    type_name = p.type.name if hasattr(p.type, "name") else str(p.type)
+                    params.append(f"{type_name} {p.name}")
+                result["symbols"].append({
+                    "symbol_type": "method",
+                    "symbol_name": node.name,
+                    "file_ref": rel_path,
+                    "start_line": node.position.line if node.position else 0,
+                    "end_line": node.position.line if node.position else 0,
+                    "metadata": {
+                        "return_type": (
+                            node.return_type.name if node.return_type else "void"
+                        ),
+                        "parameters": params,
+                        "annotations": annotations,
+                        "modifiers": list(node.modifiers or []),
+                    },
+                })
+
+            elif isinstance(node, javalang.tree.FieldDeclaration):
+                for decl in (node.declarators or []):
+                    result["symbols"].append({
+                        "symbol_type": "field",
+                        "symbol_name": decl.name,
+                        "file_ref": rel_path,
+                        "start_line": node.position.line if node.position else 0,
+                        "end_line": node.position.line if node.position else 0,
+                        "metadata": {
+                            "field_type": (
+                                node.type.name if node.type else "unknown"
+                            ),
+                            "modifiers": list(node.modifiers or []),
+                        },
+                    })
+
+        return result
 
     # ------------------------------------------------------------------
     # Python AST analysis
@@ -453,8 +1003,67 @@ class DeepCodeAnalysisEngine:
                 total_files += 1
                 lang = _STUB_EXTS[ext]
                 languages[lang] = languages.get(lang, 0) + 1
-                # Analyzers are stubs — do not call, just count. When called
-                # directly via _analyze_typescript/_javascript/_java they raise.
+                # TypeScript / JavaScript: real AST extraction via tree-sitter.
+                if ext in (".ts", ".tsx", ".js", ".jsx") and _TS_LANGUAGE is not None:
+                    try:
+                        source = path.read_text(encoding="utf-8", errors="replace")
+                        is_tsx = ext in (".tsx", ".jsx")
+                        extracted_ts = self._analyze_typescript_source(
+                            source, rel, is_tsx=is_tsx
+                        )
+                        all_symbols.extend(extracted_ts["symbols"])
+                        all_endpoints.extend(extracted_ts["endpoints"])
+                        all_models.extend(extracted_ts["models"])
+                        # Security findings are stored in symbols table as
+                        # symbol_type="security_finding" for cross-engine access.
+                        for finding in extracted_ts.get("findings", []):
+                            all_symbols.append(
+                                {
+                                    "symbol_type": "security_finding",
+                                    "symbol_name": finding["rule_id"],
+                                    "file_ref": finding["file"],
+                                    "start_line": finding["line"],
+                                    "end_line": finding["line"],
+                                    "metadata": {
+                                        "severity": finding["severity"],
+                                        "message": finding["message"],
+                                        "cwe": finding.get("cwe", ""),
+                                        "type": finding.get("type", "security"),
+                                        "taint_flow": finding.get("taint_flow"),
+                                    },
+                                }
+                            )
+                    except OSError as exc:
+                        _logger.debug("DCA read failure %s: %s", rel, exc)
+                    except Exception as exc:  # pragma: no cover
+                        _logger.warning("DCA TS analysis failed %s: %s", rel, exc)
+
+                # Java: real AST extraction via javalang.
+                elif ext == ".java":
+                    try:
+                        extracted_java = self._analyze_java(path)
+                        all_symbols.extend(extracted_java["symbols"])
+                        # Java findings stored as security_finding symbols
+                        for finding in extracted_java.get("findings", []):
+                            all_symbols.append(
+                                {
+                                    "symbol_type": "security_finding",
+                                    "symbol_name": finding["type"],
+                                    "file_ref": finding["file_ref"],
+                                    "start_line": finding["line"],
+                                    "end_line": finding["line"],
+                                    "metadata": {
+                                        "severity": finding["severity"],
+                                        "message": finding["detail"],
+                                        "cwe": finding.get("cwe", ""),
+                                        "type": finding["type"],
+                                    },
+                                }
+                            )
+                    except ImportError:
+                        _logger.debug("javalang not available; skipping Java file %s", rel)
+                    except Exception as exc:
+                        _logger.warning("DCA Java analysis failed %s: %s", rel, exc)
 
         # Persist
         with self._lock, self._conn() as conn:
