@@ -5477,6 +5477,12 @@
 - **Emit sites**: 405 wired engine files post-batch (was ~400 pre-batch, +10 this wave)
 - **Commit**: 4cc413e7 pushed to features/intermediate-stage
 - **Decisions made**: Task #1 never produced docs/trustgraph_batch7_targets_2026-04-27.md — used autonomous ranking (import fan-in + LOC scoring on 330 unwired files)
+
+### [2026-04-27 09:30] qa-engineer — PERSONA_WORKFLOW_COVERAGE
+- **What**: Expanded tests/test_persona_workflows.py with 5 dedicated persona workflow test classes (+37 tests, 111→148 collected). Personas: P17 Threat Intel Analyst, P14 IR Lead, P9 Risk Manager, P22 Supply Chain Security, P27 Threat Modeler.
+- **Files touched**: tests/test_persona_workflows.py, .claude/agent-memory/qa-engineer/MEMORY.md, .claude/agent-memory/qa-engineer/persona_coverage_2026-04-27.md
+- **Outcome**: SUCCESS — 148/148 persona tests pass, no Beast Mode regressions
+- **Pillar(s) served**: V4 (test coverage), V7 (persona-driven workflows)
 - **Pillar(s) served**: V1 (platform stability), V3 (TrustGraph second-brain coverage)
 
 ### [2026-04-27 09:30] security-analyst — DEPENDABOT_FINAL_WAVE
@@ -5485,3 +5491,15 @@
 - **Outcome**: SUCCESS — commit 9e0699de, pushed. Beast Mode 753 passed, zero regressions.
 - **Decisions made**: authlib/pygments/nbconvert/pillow/diskcache NOT in active requirements.txt (only in archived worktree requirements-todel.txt) — skipped as not project deps. pytest-asyncio upper bound kept at <1.0; upgraded to 0.26.0 to fix collection crash with pytest 9.x. GitHub still shows 116 vulns on default branch (not features/intermediate-stage) — those are on main and require a merge + dependabot auto-PRs on default branch.
 - **Pillar(s) served**: V1 (security hygiene), V7 (enterprise audit-readiness)
+
+### [2026-04-27 00:00] frontend-craftsman — TYPE_TIGHTENING
+- **What**: Reduced TypeScript errors in suite-ui/aldeci-ui-new from 29 → 0. Fixed prop name mismatches (title→label on FieldRow/MetricBar, trendLabel→delta on TrendIndicator), implicit-any map params across 7 pages, unknown-in-JSX conditional in BrainVisualization, missing `.get` method on analyticsApi in CISODashboard (switched to default api export with typed cast), duplicate spread keys in CISODashboard queryFn.
+- **Files touched**: BrainVisualization.tsx, ComplianceScannerDashboard.tsx, CWPPDashboard.tsx, SLADashboard.tsx, SocialEngineering.tsx, UBADashboard.tsx, XDRDashboard.tsx, CISODashboard.tsx, ExecutiveView.tsx, Settings.tsx, VendorManagement.tsx
+- **Outcome**: SUCCESS — 0 TS errors, build passes in 4.41s, commit fbe1262c pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (platform quality)
+
+### [2026-04-27 09:33] backend-hardener — REFACTOR
+- **What**: Wave 3 app.py refactor — extracted CTEM sub-app routers to suite-api/apps/api/sub_apps/ctem_app.py using registrar pattern (mirrors Wave-1 ASPM, Wave-2 CSPM)
+- **Files touched**: suite-api/apps/api/sub_apps/ctem_app.py (new, 1164 lines), suite-api/apps/api/app.py (+4 lines hook)
+- **Outcome**: SUCCESS — 753/753 Beast Mode tests passing, route count 7461 pre=post, commit 43ff2f89
+- **Pillar(s) served**: V1 (platform stability), V3 (maintainability)
