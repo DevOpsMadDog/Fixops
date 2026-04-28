@@ -1,0 +1,90 @@
+{
+  "name": "aldeci-security",
+  "displayName": "ALDECI Security",
+  "description": "ALDECI CTEM+ security scanning inside VS Code — real-time findings, diagnostics, and dashboard.",
+  "version": "0.0.1",
+  "publisher": "aldeci",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DevOpsMadDog/Fixops.git",
+    "directory": "ide-plugins/vscode"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Linters", "Other"],
+  "keywords": ["security", "SAST", "DAST", "CTEM", "vulnerability"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "ALDECI Security",
+      "properties": {
+        "aldeci.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Base URL of the ALDECI API server."
+        },
+        "aldeci.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for authenticating with the ALDECI API."
+        },
+        "aldeci.dashboardUrl": {
+          "type": "string",
+          "default": "http://localhost:5173",
+          "description": "URL of the ALDECI web dashboard."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "aldeci.scanFile",
+        "title": "ALDECI: Scan This File",
+        "category": "ALDECI"
+      },
+      {
+        "command": "aldeci.scanWorkspace",
+        "title": "ALDECI: Scan Workspace",
+        "category": "ALDECI"
+      },
+      {
+        "command": "aldeci.openDashboard",
+        "title": "ALDECI: Open Dashboard",
+        "category": "ALDECI"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "aldeci.scanFile",
+          "when": "resourceScheme == file",
+          "group": "aldeci@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "aldeci.scanFile",
+          "when": "editorFocus",
+          "group": "aldeci@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/vsce": "^2.24.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0"
+  }
+}
