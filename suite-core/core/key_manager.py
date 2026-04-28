@@ -25,6 +25,48 @@ Environment variables:
 
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
 import hashlib
 import logging
 import os
@@ -210,6 +252,13 @@ class KeyManager:
 
         self._log_action(key_id, "created", user_id, f"TTL={ttl}d, role={role}")
         _logger.info("Created API key %s for user %s (expires %s)", key_id, user_id, expires.isoformat())  # nosemgrep: python-logger-credential-disclosure
+        _emit_event("key_manager.key_created", {
+            "key_id": key_id,
+            "user_id": user_id,
+            "role": role,
+            "ttl_days": ttl,
+            "expires_at": expires.isoformat(),
+        })
         return record, plaintext
 
     def rotate_key(self, key_id: str, performed_by: str = "system") -> tuple:
@@ -252,6 +301,13 @@ class KeyManager:
             "Rotated key %s → %s (old key grace period until %s)",
             key_id, new_record.id, grace_end.isoformat(),
         )
+        _emit_event("key_manager.key_rotated", {
+            "old_key_id": key_id,
+            "new_key_id": new_record.id,
+            "user_id": old_key.user_id,
+            "performed_by": performed_by,
+            "grace_until": grace_end.isoformat(),
+        })
         return new_record, new_plaintext
 
     def revoke_key(self, key_id: str, performed_by: str = "system") -> bool:
@@ -268,6 +324,11 @@ class KeyManager:
 
         self._log_action(key_id, "revoked", performed_by)
         _logger.info("Revoked API key %s", key_id)  # nosemgrep: python-logger-credential-disclosure
+        _emit_event("key_manager.key_revoked", {
+            "key_id": key_id,
+            "performed_by": performed_by,
+            "revoked_at": now.isoformat(),
+        })
         return True
 
     def get_key(self, key_id: str) -> Optional[ManagedKey]:

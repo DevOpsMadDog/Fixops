@@ -20,6 +20,48 @@ Graceful fallback:
 
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
 import json
 import logging
 import queue
@@ -360,6 +402,7 @@ class LocalQueueManager(BaseQueueManager):
             return len(self._workers)
 
     def register_worker(self, worker_id: str) -> None:
+        is_new = False
         with self._lock:
             now = time.time()
             if worker_id not in self._workers:
@@ -367,13 +410,24 @@ class LocalQueueManager(BaseQueueManager):
                     "worker_id": worker_id,
                     "registered_at": now,
                 }
+                is_new = True
             self._workers[worker_id]["last_heartbeat"] = now
         logger.debug("local register_worker worker_id=%s", worker_id)
+        if is_new:
+            _emit_event("queue_manager.worker_registered", {
+                "worker_id": worker_id,
+                "backend": "local",
+            })
 
     def deregister_worker(self, worker_id: str) -> None:
         with self._lock:
-            self._workers.pop(worker_id, None)
+            removed = self._workers.pop(worker_id, None)
         logger.debug("local deregister_worker worker_id=%s", worker_id)
+        if removed is not None:
+            _emit_event("queue_manager.worker_deregistered", {
+                "worker_id": worker_id,
+                "backend": "local",
+            })
 
     def list_workers(self) -> List[Dict[str, Any]]:
         with self._lock:
