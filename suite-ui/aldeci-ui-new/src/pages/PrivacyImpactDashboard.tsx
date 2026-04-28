@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Privacy Impact Assessment Dashboard - Live API
  * Route: /privacy-impact

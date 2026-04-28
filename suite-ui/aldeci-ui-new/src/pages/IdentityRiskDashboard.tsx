@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Identity Risk - Live API
  * API: GET /api/v1/identity-risk/identities

@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Security Training Effectiveness Dashboard - Live API
  * Route: /training-effectiveness

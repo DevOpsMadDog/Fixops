@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Security Data Pipeline - Live API
  * API: GET /api/v1/data-pipeline/sources

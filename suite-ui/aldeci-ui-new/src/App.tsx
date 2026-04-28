@@ -5,6 +5,8 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import NotFound from "@/pages/NotFound";
 import { RequireAuth, RequireRole } from "@/lib/auth";
+import { GenericDashboard } from "@/components/GenericDashboard";
+import { DASHBOARD_ROUTES } from "@/config/dashboardRoutes";
 
 // Auth
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
@@ -1313,6 +1315,11 @@ export default function App() {
 
             {/* Legacy: BrainVisualization preserved under explicit alias for the Neural Map view */}
             <Route path="/brain/neural" element={<BrainVisualization />} />
+
+            {/* ── GenericDashboard routes — 69 homogeneous pages collapsed 2026-04-27 ── */}
+            {DASHBOARD_ROUTES.map(({ path, props }) => (
+              <Route key={path} path={path} element={<GenericDashboard {...props} />} />
+            ))}
 
             {/* Main Overview Dashboard */}
             <Route path="/dashboard" element={<Navigate to="/" replace />} />

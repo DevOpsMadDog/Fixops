@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * PAG (Privileged Access Governance) Dashboard - Live API
  * Route: /pag

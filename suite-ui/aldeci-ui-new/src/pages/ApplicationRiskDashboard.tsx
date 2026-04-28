@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 // FOLDED into AssetGraph 2026-04-27 — preserve for git history
 /**
  * Application Risk - Live API

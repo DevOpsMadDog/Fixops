@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Data Discovery - Live API
  * API: GET /api/v1/data-discovery/datastores

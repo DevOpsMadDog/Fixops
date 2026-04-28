@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Quantum Cryptography Dashboard - Live API
  * Route: /quantum-crypto

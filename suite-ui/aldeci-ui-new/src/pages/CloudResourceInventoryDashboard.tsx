@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Cloud Resource Inventory - Live API
  * API: GET /api/v1/cloud-inventory/resources

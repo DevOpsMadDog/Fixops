@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Zero Trust Policy Dashboard - Live API
  * Route: /zero-trust-policy

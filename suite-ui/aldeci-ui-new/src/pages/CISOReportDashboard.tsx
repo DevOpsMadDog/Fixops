@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * CISO Report - Live API
  * API: GET /api/v1/ciso-report/sections

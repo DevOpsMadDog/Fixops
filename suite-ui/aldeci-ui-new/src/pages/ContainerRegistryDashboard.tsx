@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Container Registry - Live API
  * API: GET /api/v1/container-registry-security/images

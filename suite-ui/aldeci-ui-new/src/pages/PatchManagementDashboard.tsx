@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 // FOLDED into Remediate hero 2026-04-27 — preserve for git history
 // Tab path: /remediate?tab=patch
 /**

@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Gap Analysis - Live API
  * API: GET /api/v1/gap-analysis/analyses

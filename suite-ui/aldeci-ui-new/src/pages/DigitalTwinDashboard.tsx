@@ -1,3 +1,4 @@
+// REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Digital Twin Security - Live API
  * API: GET /api/v1/digital-twin/twins
