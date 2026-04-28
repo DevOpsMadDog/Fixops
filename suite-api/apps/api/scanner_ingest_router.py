@@ -135,6 +135,37 @@ def _serialize_findings(findings: list) -> List[Dict]:
     return result
 
 
+def _dedupe_findings(
+    findings_dicts: List[Dict[str, Any]],
+    org_id: str,
+) -> Dict[str, Any]:
+    """Run SmartDedup over serialized findings; return canonical-only list.
+
+    Collapses cross-scanner duplicates (exact CVE / file:line / fuzzy title /
+    package@version) before findings hit the storage layer. Returns a dict
+    with: canonical (surviving findings), duplicate_count, groups (count of
+    dedup groups created). Falls back to no-op on engine errors.
+    """
+    if not findings_dicts:
+        return {"canonical": findings_dicts, "duplicate_count": 0, "groups": 0}
+    try:
+        from core.smart_dedup import SmartDedup
+    except ImportError:
+        return {"canonical": findings_dicts, "duplicate_count": 0, "groups": 0}
+    try:
+        engine = SmartDedup()
+        result = engine.deduplicate(findings_dicts, org_id=org_id or "")
+        canonical = result.get("canonical_findings") or findings_dicts
+        return {
+            "canonical": canonical,
+            "duplicate_count": int(result.get("duplicate_count", 0)),
+            "groups": len(result.get("groups", []) or []),
+        }
+    except (RuntimeError, ValueError, KeyError, OSError, AttributeError) as e:
+        logger.warning("smart-dedup at ingest failed: %s", type(e).__name__)
+        return {"canonical": findings_dicts, "duplicate_count": 0, "groups": 0}
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # POST /upload — File upload (multipart form-data)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -225,6 +256,13 @@ async def upload_scanner_output(
     scanner_stats["files"] += 1
     scanner_stats["findings"] += len(findings)
 
+    # Gap 4: cross-scanner dedup at storage layer — collapse exact CVE,
+    # file:line, fuzzy-title, and package@version overlaps before findings
+    # are persisted. Falls back to no-op when the engine is unavailable.
+    findings_dicts_full = _serialize_findings(findings) if findings else []
+    dedup_summary = _dedupe_findings(findings_dicts_full, org_id)
+    canonical_dicts = dedup_summary["canonical"]
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -232,9 +270,8 @@ async def upload_scanner_output(
             from core.brain_pipeline import BrainPipeline, PipelineInput
 
             bp = BrainPipeline()
-            findings_dicts = _serialize_findings(findings)
             pipe_input = PipelineInput(
-                findings=findings_dicts,
+                findings=canonical_dicts,
                 assets=[],
                 source=f"scanner-ingest:{detected}",
             )
@@ -275,6 +312,8 @@ async def upload_scanner_output(
         "component": component or None,
         "findings": _serialize_findings(findings[:100]),  # Cap response at 100
         "total_findings": len(findings),
+        "deduped_count": len(canonical_dicts),
+        "duplicates_removed": dedup_summary["duplicate_count"],
         "pipeline_result": pipeline_result,
     }
 
@@ -343,6 +382,11 @@ async def webhook_ingest(
     scanner_stats["files"] += 1
     scanner_stats["findings"] += len(findings)
 
+    # Gap 4: cross-scanner dedup at storage layer (webhook path).
+    findings_dicts_full = _serialize_findings(findings) if findings else []
+    dedup_summary = _dedupe_findings(findings_dicts_full, org_id)
+    canonical_dicts = dedup_summary["canonical"]
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -350,9 +394,8 @@ async def webhook_ingest(
             from core.brain_pipeline import BrainPipeline, PipelineInput
 
             bp = BrainPipeline()
-            findings_dicts = _serialize_findings(findings)
             pipe_input = PipelineInput(
-                findings=findings_dicts,
+                findings=canonical_dicts,
                 assets=[],
                 source=f"webhook:{scanner}",
             )
@@ -391,6 +434,8 @@ async def webhook_ingest(
         "app_id": app_id or None,
         "findings": _serialize_findings(findings[:100]),
         "total_findings": len(findings),
+        "deduped_count": len(canonical_dicts),
+        "duplicates_removed": dedup_summary["duplicate_count"],
         "pipeline_result": pipeline_result,
     }
 
