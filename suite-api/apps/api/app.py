@@ -3049,6 +3049,12 @@ def create_app() -> FastAPI:
     # routers (predictions, mpte tuples) remain in _extra_apps_routers.
     from apps.api.sub_apps.ctem_app import register_ctem_routers as _reg_ctem
     _reg_ctem(app, _verify_api_key, _require_scope, _logger)
+    # ── GRC — Governance, Risk, and Compliance ────────────────────────────────
+    # Wave-4 extraction: all standalone GRC include_router blocks moved to
+    # suite-api/apps/api/sub_apps/grc_app.py (registrar pattern). Loop-bound
+    # routers in _extra_apps_routers and evidence-risk loops remain in app.py.
+    from apps.api.sub_apps.grc_app import register_grc_routers as _reg_grc
+    _reg_grc(app, _verify_api_key, _require_scope, _logger)
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     # Enterprise reachability analysis API
     if reachability_router:
@@ -3056,35 +3062,14 @@ def create_app() -> FastAPI:
 
     app.include_router(inventory_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))])
 
-    # ── Identity / Auth / Admin ────────────────────────────────────────────────
-    # Login endpoint — public (no auth required)
-    app.include_router(users_public_router)
-    # User management — admin only
-    app.include_router(
-        users_router,
-        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-    )
-    app.include_router(
-        teams_router,
-        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-    )
-    # Admin-prefixed routes for Platform Admin (Hasan) persona
-    app.include_router(
-        admin_router,
-        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-    )
-    # Tenant management — multi-tenancy isolation admin endpoints
-    if tenant_router is not None:
-        app.include_router(tenant_router, dependencies=[Depends(_verify_api_key)])
-    # System administration routes — health, info, config
-    app.include_router(
-        system_router,
-        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-    )
-    # Prometheus-compatible metrics endpoint for Grafana/monitoring
-    app.include_router(metrics_router, dependencies=[Depends(_verify_api_key)])
-    # Platform health dashboard — comprehensive at-a-glance snapshot
-    app.include_router(platform_router, dependencies=[Depends(_verify_api_key)])
+    # ── Platform — Auth / Users / Admin / Tenancy / System / MCP / Ingestion / Webhooks ──
+    # Wave-5 extraction: all standalone Platform include_router blocks moved to
+    # suite-api/apps/api/sub_apps/platform_app.py (registrar pattern).
+    # Note: Wave 4 (GRC) had not yet landed when Wave 5 was sequenced; GRC
+    # registrar is already wired above.
+    from apps.api.sub_apps.platform_app import register_platform_routers as _reg_platform  # noqa: PLC0415
+    _reg_platform(app, _verify_api_key, _require_scope, _logger)
+
     app.include_router(
         policies_router,
         dependencies=[
@@ -3092,129 +3077,6 @@ def create_app() -> FastAPI:
             Depends(_require_scope("write:findings")),
         ],
     )
-
-    # ── Analytics / Anomaly Detection / AI ────────────────────────────────────
-    app.include_router(analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-
-    if anomaly_router:
-        app.include_router(
-            anomaly_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Anomaly Detection router")
-
-    # Anomaly ML Engine — behavioral analytics, UEBA, isolation forest, feedback loop
-    if anomaly_ml_router:
-        app.include_router(
-            anomaly_ml_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Anomaly ML Engine router")
-
-
-    if ai_orchestrator_router:
-        app.include_router(
-            ai_orchestrator_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted AI Orchestrator router")
-
-    # GAP-044: AI Teammates router (suggest-fix, draft-exception, auto-triage)
-    try:
-        from apps.api.ai_orchestrator_router import teammates_router as _teammates_router
-        app.include_router(_teammates_router)
-        _logger.info("Mounted AI Teammates router at /api/v1/teammates (GAP-044)")
-    except ImportError as _exc:
-        _logger.warning("AI Teammates router not available: %s", _exc)
-
-    # GAP-043: Formula Transparency router (scoring breakdown + change history)
-    try:
-        from apps.api.formula_transparency_router import router as _formula_router
-        app.include_router(_formula_router)
-        _logger.info("Mounted Formula Transparency router at /api/v1/formula (GAP-043)")
-    except ImportError as _exc:
-        _logger.warning("Formula Transparency router not available: %s", _exc)
-
-    # ── Real-Time Streaming / WebSocket / EventBus ─────────────────────────────
-    # Phase 10: New E2E pipeline routers
-    # WebSocket router for real-time event streaming (EventBus, pipeline events)
-    if websocket_router:
-        app.include_router(
-            websocket_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted WebSocket router")
-
-    # WebSocket Alerts router — real-time security alert feed (/ws/alerts) + test-broadcast
-    # Note: WebSocket endpoint auth is handled internally via ?token= query param.
-    # The REST test-broadcast endpoint uses its own Depends(api_key_auth).
-    if websocket_alerts_router:
-        app.include_router(websocket_alerts_router)
-        _logger.info("Mounted WebSocket Alerts router")
-
-    # WS Events router — unified security event stream at /api/v1/ws/events
-    # Auth is handled internally via ?api_key= query param (before accept()).
-    # The REST test-publish endpoint uses its own Depends(api_key_auth).
-    if ws_events_router:
-        app.include_router(ws_events_router)
-        _logger.info("Mounted WS Events router")
-
-    # Event Stream router — SSE + WebSocket live dashboards (/api/v1/stream/*)
-    if event_stream_router:
-        app.include_router(
-            event_stream_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Event Stream router (SSE + WebSocket)")
-
-    # MCP/GraphRAG router for knowledge graph and decision memory
-    if mcp_router:
-        app.include_router(
-            mcp_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted MCP/GraphRAG router")
-
-    # Playbook automation router for orchestrated remediation
-    if playbook_router:
-        app.include_router(
-            playbook_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
-        _logger.info("Mounted Playbook automation router")
-
-    # Purple Team Exercise Engine — red+blue exercises, MITRE ATT&CK, after-action reports
-    if purple_team_router:
-        app.include_router(
-            purple_team_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
-        _logger.info("Mounted Purple Team router")
-
-    # ── TrustGraph Knowledge Graph ─────────────────────────────────────────────
-    # TrustGraph knowledge graph — 5 Knowledge Cores, entity management, MCP tools
-    if trustgraph_router:
-        app.include_router(
-            trustgraph_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
-        )
-        _logger.info("Mounted TrustGraph router")
-
-    # TrustGraph Quality Monitor — coverage, orphans, backfill, stats, issues
-    if trustgraph_quality_router:
-        app.include_router(
-            trustgraph_quality_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
-        )
-        _logger.info("Mounted TrustGraph Quality router")
-
-    # TrustGraph Maintenance — integrity sweep, core health, auto-fix, issues
-    if trustgraph_maintenance_router:
-        app.include_router(
-            trustgraph_maintenance_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
-        )
-        _logger.info("Mounted TrustGraph Maintenance router")
 
     # ── Findings / Vuln Lifecycle / Risk Register ──────────────────────────────
     # Findings lifecycle management — status, assignment, SLA, bulk ops, export
