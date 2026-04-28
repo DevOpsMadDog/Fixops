@@ -42,6 +42,25 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph integration
+# ---------------------------------------------------------------------------
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Pipeline data types
@@ -366,6 +385,12 @@ class BrainPipeline:
                 for k in oldest_keys:
                     del self._runs[k]
         result.status = PipelineStatus.RUNNING
+        _tg_emit("brain_pipeline.run_started", {
+            "run_id": result.run_id,
+            "org_id": inp.org_id,
+            "findings_count": len(inp.findings),
+            "assets_count": len(inp.assets),
+        })
 
         # Shared context passed between steps
         ctx: Dict[str, Any] = {
@@ -566,6 +591,13 @@ class BrainPipeline:
                 self._metrics = self._metrics[-100:]
 
         self._emit_event(result)
+        _tg_emit("brain_pipeline.run_completed", {
+            "run_id": result.run_id,
+            "org_id": inp.org_id,
+            "status": result.status,
+            "findings_out": len(ctx.get("findings", [])),
+            "exposure_cases": len(ctx.get("exposure_cases", [])),
+        })
 
         # ----------------------------------------------------------------
         # Persist PipelineRun to enterprise DatabaseManager (Sprint 2).

@@ -30,6 +30,22 @@ from pydantic import BaseModel, Field
 
 _logger = structlog.get_logger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 _DEFAULT_DB_PATH = "data/executive_reports.db"
 
 # Compliance frameworks tracked by ALDECI
@@ -942,6 +958,12 @@ class ExecutiveReportEngine:
             type=type.value,
             org_id=org_id,
         )
+        _tg_emit("executive_reports.report_generated", {
+            "report_id": report.id,
+            "org_id": org_id,
+            "type": type.value,
+            "sections_count": len(report.sections),
+        })
         return report
 
     def _persist_report(self, report: ExecutiveReport) -> None:
@@ -1123,6 +1145,12 @@ class ExecutiveReportEngine:
             report_type=report_type.value,
             org_id=org_id,
         )
+        _tg_emit("executive_reports.schedule_created", {
+            "schedule_id": schedule.id,
+            "org_id": org_id,
+            "report_type": report_type.value,
+            "frequency": frequency.value,
+        })
         return schedule
 
     def list_schedules(self, org_id: str = "default") -> List[ReportSchedule]:

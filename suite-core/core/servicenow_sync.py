@@ -44,6 +44,22 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -1157,6 +1173,12 @@ class ServiceNowSyncEngine:
                 synced_at=synced_at,
             )
         )
+        _tg_emit("servicenow_sync.synced", {
+            "finding_id": finding_id,
+            "direction": direction.value,
+            "status": status.value,
+            "sn_incident_number": sn_incident_number,
+        })
         return SyncResult(
             finding_id=finding_id,
             sn_incident_number=sn_incident_number,

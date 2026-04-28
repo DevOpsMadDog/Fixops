@@ -21,6 +21,22 @@ import structlog
 
 log = structlog.get_logger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
@@ -492,6 +508,7 @@ class DatabaseInventory:
         )
         self._databases[db_id] = entry
         log.info("db_inventory_add", db_id=db_id, name=name, db_type=db_type.value)
+        _tg_emit("db_security.database_added", {"db_id": db_id, "name": name, "db_type": db_type.value, "host": host})
         return entry
 
     def get_database(self, db_id: str) -> Optional[DatabaseEntry]:
@@ -557,6 +574,7 @@ class CISBenchmarkChecker:
                 ))
 
         log.info("cis_benchmark_complete", db_id=db.db_id, findings=len(findings))
+        _tg_emit("db_security.cis_benchmark_complete", {"db_id": db.db_id, "findings_count": len(findings)})
         return findings
 
     def _evaluate_check(self, check_id: str, db: DatabaseEntry) -> Tuple[CheckStatus, str]:
@@ -699,6 +717,7 @@ class UserPrivilegeAuditor:
             ))
 
         log.info("privilege_audit_complete", db_id=db_id, users=len(results))
+        _tg_emit("db_security.privilege_audit_complete", {"db_id": db_id, "users_audited": len(results)})
         return results
 
     def _check_overprivileged(

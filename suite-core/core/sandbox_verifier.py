@@ -39,6 +39,22 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Data models
@@ -311,11 +327,17 @@ class SandboxVerifier:
         if last_result:
             self._results_store.append(last_result)
 
-        return last_result or VerificationResult(
+        final = last_result or VerificationResult(
             status=VerificationStatus.ERROR,
             finding_id=finding_id,
             error_message="No execution attempted",
         )
+        _tg_emit("sandbox_verifier.verification_complete", {
+            "finding_id": finding_id,
+            "status": final.status.value if hasattr(final.status, "value") else str(final.status),
+            "cve_id": poc.cve_id,
+        })
+        return final
 
     def _execute_in_sandbox(
         self,

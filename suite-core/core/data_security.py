@@ -21,6 +21,23 @@ import structlog
 
 log = structlog.get_logger(__name__)
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:
+    _get_tg_bus = None  # type: ignore
+
+
+def _tg_emit(event_type: str, payload: dict) -> None:
+    try:
+        if _get_tg_bus is None:
+            return
+        bus = _get_tg_bus()
+        if bus:
+            bus.emit(event_type, payload)
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
@@ -522,6 +539,7 @@ class DataClassifier:
             scanned_at=datetime.now(timezone.utc),
         )
         log.info("data_classifier.classified", content_id=cid, matches=len(matches), categories=list(categories_found))
+        _tg_emit("data_security.classified", {"content_id": cid, "matches": len(matches), "sensitivity": result.sensitivity_level.value if hasattr(result, "sensitivity_level") else "unknown"})
         return result
 
     @staticmethod
@@ -843,6 +861,11 @@ class DataDiscoveryScanner:
             matches=len(matches),
             column_hits=len(column_hits),
         )
+        _tg_emit("data_security.scan_complete", {
+            "scan_id": scan_id,
+            "source": request.source_path,
+            "matches": len(matches),
+        })
         return result
 
 
