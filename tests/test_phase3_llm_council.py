@@ -467,14 +467,28 @@ class TestCouncilFactory:
     """Test CouncilFactory preset configurations."""
 
     def test_factory_create_security_council(self):
-        """Test factory creates security-focused council."""
-        factory = CouncilFactory()
-        council = factory.create_security_council()
+        """Test factory creates security-focused council.
 
-        assert isinstance(council, LLMCouncilEngine)
-        assert len(council.members) == 5
-        assert council.confidence_threshold == 0.75
-        assert any(m.expertise == "vulnerability_assessment" for m in council.members)
+        Uses FIXOPS_COUNCIL_PRESET=full to test the legacy 5-member path.
+        In normal deployment (auto preset + free-tier keys) the council returns
+        2 real members (mulerouter+openrouter) — tested in test_llm_council_real_2member.py.
+        """
+        import os
+        old_preset = os.environ.get("FIXOPS_COUNCIL_PRESET")
+        os.environ["FIXOPS_COUNCIL_PRESET"] = "full"
+        try:
+            factory = CouncilFactory()
+            council = factory.create_security_council()
+
+            assert isinstance(council, LLMCouncilEngine)
+            assert len(council.members) == 5
+            assert council.confidence_threshold == 0.75
+            assert any(m.expertise == "vulnerability_assessment" for m in council.members)
+        finally:
+            if old_preset is None:
+                os.environ.pop("FIXOPS_COUNCIL_PRESET", None)
+            else:
+                os.environ["FIXOPS_COUNCIL_PRESET"] = old_preset
 
     def test_factory_create_compliance_council(self):
         """Test factory creates compliance-focused council."""
@@ -498,19 +512,28 @@ class TestCouncilFactory:
         assert council.max_disagreement == 1
 
     def test_deepseek_in_security_council(self):
-        """Test DeepSeek R1 is included in the security council."""
-        factory = CouncilFactory()
-        council = factory.create_security_council()
+        """Test DeepSeek R1 is included in the full security council (preset=full)."""
+        import os
+        old_preset = os.environ.get("FIXOPS_COUNCIL_PRESET")
+        os.environ["FIXOPS_COUNCIL_PRESET"] = "full"
+        try:
+            factory = CouncilFactory()
+            council = factory.create_security_council()
 
-        assert len(council.members) == 5
-        deepseek_members = [
-            m for m in council.members
-            if "DeepSeek" in (m.name or "") or m.expertise == "vulnerability_research"
-        ]
-        assert len(deepseek_members) == 1
-        assert deepseek_members[0].name == "Vulnerability Researcher (DeepSeek R1)"
-        assert deepseek_members[0].weight == 0.9
-        assert council.max_workers == 5
+            assert len(council.members) == 5
+            deepseek_members = [
+                m for m in council.members
+                if "DeepSeek" in (m.name or "") or m.expertise == "vulnerability_research"
+            ]
+            assert len(deepseek_members) == 1
+            assert deepseek_members[0].name == "Vulnerability Researcher (DeepSeek R1)"
+            assert deepseek_members[0].weight == 0.9
+            assert council.max_workers == 5
+        finally:
+            if old_preset is None:
+                os.environ.pop("FIXOPS_COUNCIL_PRESET", None)
+            else:
+                os.environ["FIXOPS_COUNCIL_PRESET"] = old_preset
 
     def test_deepseek_in_full_council(self):
         """Test DeepSeek R1 is included in the full council with correct position and weight."""

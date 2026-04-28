@@ -1088,6 +1088,75 @@ class CouncilFactory:
             model="claude-opus-4-1-20250805",
         )
 
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _provider_has_key(self, provider_name: str) -> bool:
+        """Return True if the named provider has a real API key configured.
+
+        Checks the provider's ``api_key`` attribute (set during __init__ via
+        _resolve_api_key).  Providers without keys return an empty string / None
+        and will fall through to BaseLLMProvider.analyse() → confidence=0.5.
+        """
+        try:
+            provider = self.manager.get_provider(provider_name)
+            api_key = getattr(provider, "api_key", None)
+            return bool(api_key)
+        except Exception:
+            return False
+
+    def _available_providers_ordered(
+        self, preference_order: List[str]
+    ) -> List[str]:
+        """Return subset of *preference_order* that have real API keys, in order."""
+        return [p for p in preference_order if self._provider_has_key(p)]
+
+    # ------------------------------------------------------------------
+    # Preset: mulerouter + openrouter (env-var driven, 2-member real council)
+    # ------------------------------------------------------------------
+
+    def create_mulerouter_council(
+        self,
+        *,
+        confidence_threshold: float = 0.75,
+        max_disagreement: int = 1,
+    ) -> LLMCouncilEngine:
+        """Create a 2-member real council using MULEROUTER_API_KEY + OPENROUTER_API_KEY.
+
+        This is the default preset when neither OpenAI/Anthropic/Gemini keys are
+        present (the common air-gapped / free-tier deployment).
+
+        Members:
+        - Primary Analyst (MuleRouter/Qwen3-6b-Max): vulnerability + threat modeling
+        - Code Analyst (OpenRouter/DeepSeek-free): code analysis + adversary modeling
+
+        Chairman: MuleRouter (highest weight).
+        """
+        members = [
+            CouncilMember(
+                provider=self.manager.get_provider("mulerouter"),
+                expertise="vulnerability_assessment",
+                weight=1.0,
+                name="Primary Analyst (MuleRouter/Qwen3)",
+            ),
+            CouncilMember(
+                provider=self.manager.get_provider("openrouter"),
+                expertise="code_analysis",
+                weight=0.9,
+                name="Code Analyst (OpenRouter/DeepSeek)",
+            ),
+        ]
+        chairman = self.manager.get_provider("mulerouter")
+        return LLMCouncilEngine(
+            members=members,
+            chairman=chairman,
+            escalation_provider=self.opus,
+            confidence_threshold=confidence_threshold,
+            max_disagreement=max_disagreement,
+            max_workers=2,
+        )
+
     def create_security_council(
         self,
         *,
@@ -1096,11 +1165,26 @@ class CouncilFactory:
     ) -> LLMCouncilEngine:
         """Create a security-focused council for vulnerability triage.
 
-        Members:
+        Provider selection is driven by ``FIXOPS_COUNCIL_PRESET`` env-var:
+
+        - ``mulerouter+openrouter``: 2-member real council (MuleRouter + OpenRouter).
+          Use this when only MULEROUTER_API_KEY / OPENROUTER_API_KEY are set.
+        - ``auto`` (default): inspect which providers have real API keys and build
+          the best possible council, preferring mulerouter/openrouter over keyless
+          cloud providers that would silently fall back to confidence=0.5.
+        - ``full``: use all five original members regardless of key availability
+          (legacy behaviour — some members may be deterministic).
+
+        Members when preset=auto and only free-tier keys present:
+        - Primary Analyst (MuleRouter): vulnerability assessment
+        - Code Analyst (OpenRouter): technical depth
+
+        Members when preset=auto and cloud keys present:
         - Vulnerability Analyst (GPT-5): CVE/vulnerability assessment
         - Threat Modeler (Claude): Attack vectors and exploitation
         - Compliance Expert (Gemini): Regulatory/compliance impact
         - Code Analyst (OpenRouter): Technical depth and implementation
+        - Vulnerability Researcher (DeepSeek R1): vulnerability research
 
         Args:
             confidence_threshold: Escalation threshold for confidence
@@ -1109,6 +1193,82 @@ class CouncilFactory:
         Returns:
             LLMCouncilEngine configured for security analysis
         """
+        import os as _os
+
+        preset = _os.environ.get("FIXOPS_COUNCIL_PRESET", "auto").lower().strip()
+
+        # Explicit preset: mulerouter+openrouter
+        if preset == "mulerouter+openrouter":
+            return self.create_mulerouter_council(
+                confidence_threshold=confidence_threshold,
+                max_disagreement=min(max_disagreement, 1),
+            )
+
+        # Auto preset: prefer providers with real keys; fall back to mulerouter council
+        if preset == "auto":
+            # Priority order: free-tier keys first (always present), then cloud keys
+            preferred_order = [
+                "mulerouter",
+                "openrouter",
+                "deepseek",
+                "openai",
+                "anthropic",
+                "gemini",
+            ]
+            available = self._available_providers_ordered(preferred_order)
+
+            if not available:
+                # Absolute last resort: deterministic council (legacy)
+                logger.warning(
+                    "CouncilFactory: no providers with API keys found — "
+                    "falling back to full deterministic council. "
+                    "Set MULEROUTER_API_KEY or OPENROUTER_API_KEY for real consensus."
+                )
+            elif set(available).issubset({"mulerouter", "openrouter", "deepseek"}):
+                # Only free-tier keys — use the 2-member real council
+                return self.create_mulerouter_council(
+                    confidence_threshold=confidence_threshold,
+                    max_disagreement=min(max_disagreement, 1),
+                )
+            else:
+                # Cloud keys present — build best available council
+                # Always include free-tier providers at the back for diversity
+                all_specs = [
+                    ("openai", "vulnerability_assessment", 1.0,
+                     "Vulnerability Analyst (GPT-5)"),
+                    ("anthropic", "threat_modeling", 0.95,
+                     "Threat Modeler (Claude)"),
+                    ("gemini", "compliance_mapping", 0.9,
+                     "Compliance Expert (Gemini)"),
+                    ("mulerouter", "code_analysis", 0.88,
+                     "Code Analyst (MuleRouter)"),
+                    ("openrouter", "adversary_modeling", 0.85,
+                     "Adversary Modeler (OpenRouter)"),
+                    ("deepseek", "vulnerability_research", 0.9,
+                     "Vulnerability Researcher (DeepSeek R1)"),
+                ]
+                members = []
+                for pname, expertise, weight, display in all_specs:
+                    if self._provider_has_key(pname):
+                        members.append(CouncilMember(
+                            provider=self.manager.get_provider(pname),
+                            expertise=expertise,
+                            weight=weight,
+                            name=display,
+                        ))
+                if members:
+                    chairman = members[0].provider
+                    return LLMCouncilEngine(
+                        members=members,
+                        chairman=chairman,
+                        escalation_provider=self.opus,
+                        confidence_threshold=confidence_threshold,
+                        max_disagreement=max_disagreement,
+                        max_workers=min(5, len(members)),
+                    )
+
+        # Preset == "full" or fallthrough: legacy hard-coded 5-member council
+        # (some members may produce deterministic results if keys are missing)
         members = [
             CouncilMember(
                 provider=self.manager.get_provider("openai"),
