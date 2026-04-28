@@ -19,6 +19,47 @@ Stdlib only — no third-party deps.
 """
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 import hashlib
 import json
 import logging
@@ -435,6 +476,12 @@ class IDEBackendEngine:
                     record,
                 )
 
+        _emit_event("ide_backend_engine.repo_tree_built", {
+            "id": record["id"],
+            "org_id": org_id,
+            "repo_ref": repo_ref,
+            "commit_sha": commit_sha,
+        })
         return {
             "id": record["id"],
             "org_id": org_id,
@@ -683,6 +730,15 @@ class IDEBackendEngine:
                     record,
                 )
 
+        _emit_event("ide_backend_engine.snapshot_taken", {
+            "id": record["id"],
+            "org_id": org_id,
+            "repo_ref": repo_ref,
+            "scan_id": scan_id_val,
+            "total_violations": total_violations,
+            "total_files": total_files,
+            "highest_severity": highest_severity,
+        })
         # Return without the raw JSON blob — include parsed counts_by_path.
         return {
             "id": record["id"],

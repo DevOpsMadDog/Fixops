@@ -12,6 +12,47 @@ Usage:
 
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 import json
 import os
 import sqlite3
@@ -362,6 +403,11 @@ class TagManager:
         tag = Tag(name=name, color=color, description=description, parent_id=parent_id, org_id=org_id)
         self._db.insert_tag(tag)
         logger.info("Tag created", tag_id=tag.id, name=name, org_id=org_id)
+        _emit_event("tag_manager.tag_created", {
+            "tag_id": tag.id,
+            "org_id": org_id,
+            "name": name,
+        })
         return tag
 
     def get_tag(self, tag_id: str) -> Optional[Tag]:

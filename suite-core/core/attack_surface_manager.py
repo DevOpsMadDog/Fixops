@@ -12,6 +12,47 @@ Usage:
 
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 import hashlib
 import json
 import os
@@ -797,6 +838,15 @@ class AttackSurfaceManager:
             "Asset registered", asset_id=asset.id, name=asset.name,
             zone=asset.exposure_zone.value, score=asset.risk_score,
         )
+        _emit_event("attack_surface_manager.asset_registered", {
+            "asset_id": asset.id,
+            "org_id": asset.org_id,
+            "name": asset.name,
+            "category": asset.category.value,
+            "exposure_zone": asset.exposure_zone.value,
+            "risk_score": asset.risk_score,
+            "risk_tier": asset.risk_tier.value if asset.risk_tier else None,
+        })
         return asset
 
     def get_asset(self, asset_id: str) -> Optional[ManagedAsset]:
@@ -845,6 +895,10 @@ class AttackSurfaceManager:
                     discovered.append(registered)
 
         logger.info("Discovery complete", count=len(discovered), org_id=org_id)
+        _emit_event("attack_surface_manager.discovery_complete", {
+            "org_id": org_id,
+            "asset_count": len(discovered),
+        })
         return discovered
 
     def _parse_discovery_item(
@@ -1499,6 +1553,16 @@ class AttackSurfaceManager:
             "ASM scan complete", scan_id=scan.id, status=scan.status.value,
             assets=scan.assets_discovered, score=scan.overall_score,
         )
+        _emit_event("attack_surface_manager.scan_complete", {
+            "scan_id": scan.id,
+            "org_id": org_id,
+            "status": scan.status.value,
+            "assets_discovered": scan.assets_discovered,
+            "shadow_it_count": scan.shadow_it_count,
+            "changes_detected": scan.changes_detected,
+            "overall_score": scan.overall_score,
+            "critical_count": scan.critical_count,
+        })
         return scan
 
     def get_latest_scan(self, org_id: str) -> Optional[ScanResult]:
