@@ -305,7 +305,8 @@ export default function AssetGroupsDashboard() {
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
         </div>
       </div>

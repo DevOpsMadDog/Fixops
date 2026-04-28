@@ -288,7 +288,8 @@ export default function IdentityAnalyticsDashboard() {
                     <TableCell className="py-2.5"><TierBadge tier={row.tier} /></TableCell>
                     <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.last}</TableCell>
                   </TableRow>
-                ))}
+                ))
+          )}
               </TableBody>
             </Table>
           </div>

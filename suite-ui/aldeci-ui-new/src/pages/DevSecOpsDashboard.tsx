@@ -327,7 +327,8 @@ export default function DevSecOpsDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+          )}
               </TableBody>
             </Table>
           </div>

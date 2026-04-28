@@ -306,7 +306,8 @@ export default function ThreatHuntingDashboard() {
                           : <span className="text-[10px] text-muted-foreground">—</span>}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+          )}
                 </TableBody>
               </Table>
             </div>

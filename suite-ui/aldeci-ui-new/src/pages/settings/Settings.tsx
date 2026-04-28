@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePreferences } from "@/hooks/use-preferences";
 import {
   Settings2,
   Bell,
@@ -56,6 +57,15 @@ import {
   Webhook,
   BarChart3,
   Terminal,
+  Sliders,
+  LayoutGrid,
+  List as ListIcon,
+  Star,
+  StarOff,
+  Building,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

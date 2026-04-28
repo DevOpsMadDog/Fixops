@@ -3242,10 +3242,7 @@ def create_app() -> FastAPI:
     # FAIL Engine — expanded fault injection, drill grading, neglect zones (Pillar V2)
     app.include_router(fail_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
 
-    # IAM/SSO Connector — Keycloak-backed; replaces Okta/Auth0/Entra/OneLogin/Google stubs
-    if iam_sso_router:
-        app.include_router(iam_sso_router)
-        _logger.info("Mounted IAM/SSO Connector router (Keycloak)")
+    # IAM/SSO Connector — moved to platform_app.py (Wave 5)
 
     # PR Gate & CI/CD Gate — evaluate findings, post to GitHub PRs, CI exit-code gating
     if pr_gate_router:
@@ -3280,80 +3277,17 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Container Security Connector router")
 
-    # Universal Connectors — Jira + GitHub + Slack fan-out (Pillar V1)
-    if connectors_router:
-        app.include_router(
-            connectors_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
-        )
-        _logger.info("Mounted Universal Connectors router")
+    # Universal Connectors — moved to platform_app.py (Wave 5)
 
-    # Org Management — multi-tenancy CRUD (was missing — surfaced by onboarding test 2026-04-25)
-    if org_router:
-        app.include_router(
-            org_router,
-            dependencies=[Depends(_verify_api_key)],
-        )
-        _logger.info("Mounted Org Management router")
-
-    # ServiceNow Bidirectional Sync router (SSRF-VULN-03)
-    if servicenow_sync_router:
-        app.include_router(
-            servicenow_sync_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
-        )
-        _logger.info("Mounted ServiceNow Sync router")
-    if servicenow_sync_webhook_router:
-        app.include_router(servicenow_sync_webhook_router)
-        _logger.info("Mounted ServiceNow Sync Webhook router (no auth)")
-
-    # ── Evidence / Audit / Workflows / SSO ────────────────────────────────────
+    # ── Evidence / Audit (non-Platform domain — stays inline) ─────────────────
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
-    # Wave C: mount /api/v1/changes/material BEFORE change_management_router
-    # to avoid being shadowed by its GET /{change_id} catch-all.
-    app.include_router(change_management_router, dependencies=[Depends(_verify_api_key)])
     if evidence_chain_router:
         app.include_router(evidence_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Evidence Chain router")
-    app.include_router(workflows_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
 
-    app.include_router(
-        auth_router,
-        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-    )
-
-    # Enterprise SSO — public endpoints (part of login flow, no auth dependency)
-    if sso_router:
-        app.include_router(sso_router)
-        _logger.info("Mounted Enterprise SSO router (SAML 2.0 + OIDC)")
-
-    app.include_router(
-        bulk_router,
-        dependencies=[
-            Depends(_verify_api_key),
-            Depends(_require_scope("write:findings")),
-        ],
-    )
-
-    # CI/CD Pipeline Gate — binary pass/fail for CI systems (Tier 2.1)
-    # Enterprise features - Remediation, Collaboration, SLA
-    app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-    app.include_router(sla_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-    app.include_router(sla_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     app.include_router(policy_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
     _logger.info("Mounted Policy Engine router at /api/v1/policy-engine")
-
-    # Wave D — 22 Multica integrations/AI/policy endpoints
-    if wave_d_integrations_router:
-        app.include_router(wave_d_integrations_router)
-        _logger.info("Mounted Wave D integrations router (22 endpoints)")
-
-    # Wave A — 19 Multica code / architecture intel endpoints
-    # Hooks router — POST /api/v1/hooks/uninstall (Multica 5894d7d7)
-    if hooks_router is not None:
-        app.include_router(hooks_router)
-        _logger.info("Mounted Hooks router (POST /api/v1/hooks/uninstall)")
 
     # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
     if scanner_ingest_router:
@@ -3362,38 +3296,6 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted Scanner Ingest router")
-
-    # Webhook Subscriptions — push-based event notifications (Aikido parity)
-    if webhook_subscriptions_router:
-        app.include_router(
-            webhook_subscriptions_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
-        )
-        _logger.info("Mounted Webhook Subscriptions router")
-
-    # Webhook DLQ — dead letter queue for failed webhook deliveries
-    if webhook_dlq_router:
-        app.include_router(
-            webhook_dlq_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
-        )
-        _logger.info("Mounted Webhook DLQ router")
-
-    # Webhook Notifications — configurable outbound event notifications
-    if webhook_notifications_router:
-        app.include_router(
-            webhook_notifications_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
-        )
-        _logger.info("Mounted Webhook Notifications router")
-
-    # Webhook Verifier — incoming webhook signature verification
-    if webhook_verifier_router:
-        app.include_router(
-            webhook_verifier_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
-        )
-        _logger.info("Mounted Webhook Verifier router")
 
     # Dependency-Track — SBOM analysis via OWASP Dependency-Track
     if dtrack_router:
@@ -3413,37 +3315,6 @@ def create_app() -> FastAPI:
             ],
         )
         _logger.info("Mounted Sandbox PoC Verifier router")
-
-    # Validation router - compatibility checking for security tool outputs
-    # Enterprise marketplace API
-    if marketplace_router:
-        app.include_router(
-            marketplace_router,
-            prefix="/api/v1/marketplace",
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-        )
-
-    # Integration Marketplace API (scanner/ticketing/notification/cloud installs)
-    if integration_marketplace_router:
-        app.include_router(integration_marketplace_router)
-        _logger.info("Mounted Integration Marketplace router at /api/v1/integrations")
-
-    # Customer onboarding wizard
-    if onboarding_wizard_router:
-        app.include_router(
-            onboarding_wizard_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-        )
-        _logger.info("Mounted Onboarding Wizard router")
-
-    # First-login wizard (admin) — NO auth dependency: a freshly installed
-    # admin who has not yet provisioned an API key MUST be able to GET the
-    # wizard state, otherwise the modal can never render and we are back to
-    # the empty-Command-hero bug we are fixing. The endpoint exposes only the
-    # boolean completion flag plus completed-step list; no secrets, no PII.
-    if admin_wizard_router:
-        app.include_router(admin_wizard_router)
-        _logger.info("Mounted Admin First-Login Wizard router (no auth — first-login flow)")
 
     # Suite-Attack routers (offensive security) — require attack:execute scope
     for _r, _name in [
@@ -3489,26 +3360,8 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted AutoFix router with write:findings scope guard")
 
-    # Queue status router (horizontal scaling visibility)
-    try:
-        from apps.api.queue_router import router as queue_router
-
-        app.include_router(queue_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Loaded Queue status router")
-    except ImportError as e:
-        _logger.warning("Queue router not available: %s", e)
-
-    # Cache management router — stats + flush endpoints (admin-protected)
-    try:
-        from apps.api.cache_router import router as cache_router
-
-        app.include_router(
-            cache_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-        )
-        _logger.info("Loaded Cache management router")
-    except ImportError as _cache_err:
-        _logger.warning("Cache router not available: %s", _cache_err)
+    # Queue status router — moved to platform_app.py (Wave 5)
+    # Cache management router — moved to platform_app.py (Wave 5)
 
     # Profiling metrics router — GET /api/v1/metrics/performance (no extra scope needed)
     try:
@@ -3651,10 +3504,7 @@ def create_app() -> FastAPI:
             )
             _logger.info("Mounted %s router from suite-integrations", _name)
 
-    # Webhooks receiver — no API key auth (uses signature verification)
-    if webhooks_receiver_router:
-        app.include_router(webhooks_receiver_router)
-        _logger.info("Mounted Webhooks Receiver router (no API key auth)")
+    # Webhooks receiver — moved to platform_app.py (Wave 5)
 
     # OSS Tools — needs /api/v1 prefix normalization
     if oss_tools_router:
@@ -5349,15 +5199,7 @@ def create_app() -> FastAPI:
         _logger.warning("Auto Evidence Collection router not loaded: %s", exc)
 
     # ------------------------------------------------------------------
-    # Deployment Manager router (health, status, initialize, config)
-    # ------------------------------------------------------------------
-    try:
-        from apps.api.deployment_router import router as deployment_router
-
-        app.include_router(deployment_router)
-        _logger.info("Mounted Deployment Manager router at /api/v1/deployment")
-    except ImportError as exc:
-        _logger.warning("Deployment Manager router not loaded: %s", exc)
+    # Deployment Manager router — moved to platform_app.py (Wave 5)
 
     # ------------------------------------------------------------------
     # MCP Auto-Discovery router (must be mounted after all other routers
@@ -5786,15 +5628,7 @@ def create_app() -> FastAPI:
     except ImportError as _iot_err:
         _logger.warning("IoT/OT Security Scanner router not available: %s", _iot_err)
 
-    # -----------------------------------------------------------------------
-    # TrustGraph Integration — universal finding indexer, GraphRAG queries
-    # -----------------------------------------------------------------------
-    try:
-        from apps.api.trustgraph_integration_router import router as trustgraph_integration_router
-        app.include_router(trustgraph_integration_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted TrustGraph Integration router")
-    except ImportError as _tgi_err:
-        _logger.warning("TrustGraph Integration router not available: %s", _tgi_err)
+    # TrustGraph Integration router — moved to platform_app.py (Wave 5)
 
     # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
@@ -6044,20 +5878,9 @@ def create_app() -> FastAPI:
     except ImportError as _n8n_err:
         _logger.warning("n8n Management router not available: %s", _n8n_err)
 
-    # Webhooks — inbound webhooks (Okta verify endpoint is unauthenticated by design)
-    try:
-        from apps.api.webhook_router import router as webhook_router
-        app.include_router(webhook_router)
-        _logger.info("Mounted Webhook router")
-    except ImportError as _wh_err:
-        _logger.warning("Webhook router not available: %s", _wh_err)
+    # webhook_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.report_scheduler_router import router as report_scheduler_router
-        app.include_router(report_scheduler_router)
-        _logger.info("Mounted Report Scheduler router")
-    except Exception as e:
-        _logger.warning(f"Report scheduler router not loaded: {e}")
+    # report_scheduler_router — moved to platform_app.py (Wave 5)
 
     # IGA — Identity Governance & Administration (access reviews, orphan detection, SoD)
     try:
@@ -6212,13 +6035,7 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"UBA router not loaded: {e}")
 
-    # CMDB — Configuration Management Database, CIs, relationships, changes
-    try:
-        from apps.api.cmdb_router import router as cmdb_router
-        app.include_router(cmdb_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted CMDB router at /api/v1/cmdb")
-    except Exception as e:
-        _logger.warning(f"CMDB router not loaded: {e}")
+    # cmdb_router — moved to platform_app.py (Wave 5)
 
     # Supply Chain Risk — suppliers, components, risks, SBOM import
     # Cyber Insurance — policies, assessments, claims, portfolio stats
@@ -6313,13 +6130,7 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Asset Risk Calculator router not loaded: {e}")
 
-    # Security Health Engine — health checks, snapshots, and incident lifecycle
-    try:
-        from apps.api.security_health_router import router as security_health_router
-        app.include_router(security_health_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Security Health router at /api/v1/security-health")
-    except Exception as e:
-        _logger.warning(f"Security Health router not loaded: {e}")
+    # security_health_router — moved to platform_app.py (Wave 5)
 
     # DuckDB cross-domain analytics — unified risk intelligence across all SQLite engines
     try:
@@ -6570,12 +6381,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.nl_graph_router import router as nl_graph_router
-        app.include_router(nl_graph_router)
-        _logger.info("Mounted NL Graph Assistant router at /api/v1/nl-graph (GAP-029)")
-    except ImportError:
-        pass
+    # nl_graph_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.vuln_prioritization_router import router as vuln_prioritization_router
@@ -6788,12 +6594,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_automation_router import router as security_automation_router
-        app.include_router(security_automation_router)
-        _logger.info("Mounted Security Automation router at /api/v1/security-automation")
-    except ImportError:
-        pass
+    # security_automation_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.incident_orchestration_router import router as incident_orchestration_router
@@ -6827,12 +6628,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.alerting_notification_router import router as alerting_notification_router
-        app.include_router(alerting_notification_router)
-        _logger.info("Mounted Alerting Notification router at /api/v1/alerting")
-    except ImportError:
-        pass
+    # alerting_notification_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.risk_aggregator_router import router as risk_aggregator_router
@@ -6887,12 +6683,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.log_management_router import router as log_management_router
-        app.include_router(log_management_router)
-        _logger.info("Mounted Log Management router at /api/v1/log-management")
-    except ImportError:
-        pass
+    # log_management_router — moved to platform_app.py (Wave 5)
 
 
     try:
@@ -7133,12 +6924,7 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.security_tool_inventory_router import router as security_tool_inventory_router
-        app.include_router(security_tool_inventory_router)
-        _logger.info("Mounted Security Tool Inventory router at /api/v1/tool-inventory")
-    except ImportError:
-        pass
+    # security_tool_inventory_router — moved to platform_app.py (Wave 5)
 
     # Wave 21 routers
     try:
@@ -7199,12 +6985,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_metrics_aggregator_router import router as security_metrics_aggregator_router
-        app.include_router(security_metrics_aggregator_router)
-        _logger.info("Mounted Security Metrics Aggregator router at /api/v1/metrics-aggregator")
-    except ImportError:
-        pass
+    # security_metrics_aggregator_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.endpoint_threat_hunting_router import router as endpoint_threat_hunting_router
@@ -7311,12 +7092,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_data_pipeline_router import router as security_data_pipeline_router
-        app.include_router(security_data_pipeline_router)
-        _logger.info("Mounted Security Data Pipeline router at /api/v1/data-pipeline")
-    except ImportError:
-        pass
+    # security_data_pipeline_router — moved to platform_app.py (Wave 5)
 
     # GAP-034 + GAP-035 — Universal ingest (field mapping + SIEM forwarding)
     # Wave 27 routers
@@ -7432,13 +7208,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    # GAP-005 — Sonatype-parity org hierarchy (tree + policy/waiver inheritance)
-    try:
-        from apps.api.org_hierarchy_router import router as org_hierarchy_router
-        app.include_router(org_hierarchy_router)
-        _logger.info("Mounted Org Hierarchy router at /api/v1/orgs")
-    except ImportError:
-        pass
+    # org_hierarchy_router — moved to platform_app.py (Wave 5)
 
     # Wave 31 routers
     try:
@@ -7659,12 +7429,7 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.security_operations_metrics_router import router as security_operations_metrics_router
-        app.include_router(security_operations_metrics_router)
-        _logger.info("Mounted Security Operations Metrics router at /api/v1/soc-metrics")
-    except ImportError:
-        pass
+    # security_operations_metrics_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.vulnerability_age_router import router as vulnerability_age_router
@@ -7688,28 +7453,11 @@ def create_app() -> FastAPI:
     # PR webhook so findings produce actionable patch suggestions in PR review.
     # GAP-018 SLSA Provenance — in-toto v0.2 attestations + DSSE envelope (placeholder sig)
     # GAP-007: upgrade_path_resolver_engine (CVE-aware version walker)
-    try:
-        from apps.api.upgrade_path_router import router as upgrade_path_router
-        app.include_router(upgrade_path_router)
-        _logger.info("Mounted Upgrade Path Resolver router at /api/v1/upgrade-path")
-    except ImportError:
-        pass
+    # upgrade_path_router — moved to platform_app.py (Wave 5)
 
-    # GAP-001 Air-Gap Bundle (Sonatype SAGE parity) — signed offline intel bundles
-    try:
-        from apps.api.air_gap_bundle_router import router as air_gap_bundle_router
-        app.include_router(air_gap_bundle_router)
-        _logger.info("Mounted Air-Gap Bundle router at /api/v1/air-gap")
-    except ImportError:
-        pass
+    # air_gap_bundle_router — moved to platform_app.py (Wave 5)
 
-    # GAP-024 Security Query Language Engine — RQL-style DSL over cloud/audit/IAM
-    try:
-        from apps.api.security_query_router import router as security_query_router
-        app.include_router(security_query_router)
-        _logger.info("Mounted Security Query Language router")
-    except ImportError:
-        pass
+    # security_query_router — moved to platform_app.py (Wave 5)
 
     # Backend Wave B (Multica 2026-04-26) — 15 findings/risk/scoring endpoints
     # ce6b3221, 71432602, a3d3443d, 9fafda03, fdf4d765, bacdd8bf, 7e62f6c6,
@@ -7726,12 +7474,7 @@ def create_app() -> FastAPI:
 
     # GAP-063 Findings Lifecycle — firstSeenAt/previousViolationId/resolvedAt chain
     # GAP-064 Local File Store — .fixops/ zero-infra store for npx fixops analyze
-    try:
-        from apps.api.local_file_store_router import router as local_file_store_router
-        app.include_router(local_file_store_router)
-        _logger.info("Mounted Local File Store router")
-    except ImportError:
-        pass
+    # local_file_store_router — moved to platform_app.py (Wave 5)
 
 
     try:
@@ -7953,12 +7696,7 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.sse_router import router as sse_router
-        app.include_router(sse_router)
-        _logger.info("Mounted SSE event stream router at /api/v1/events/stream")
-    except ImportError:
-        pass
+    # sse_router — moved to platform_app.py (Wave 5)
 
     # Wave C — 21 endpoints: compliance/org/system/admin/tokens/cspm/skills/rules/llm
     # Wave 42 pre-wiring
@@ -8038,12 +7776,7 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.jira_sync_router import router as jira_sync_router
-        app.include_router(jira_sync_router)
-        _logger.info("Mounted Jira Sync router at /api/v1/jira-sync")
-    except ImportError:
-        pass
+    # jira_sync_router — moved to platform_app.py (Wave 5)
 
 
     try:
@@ -8060,40 +7793,15 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.n8n_router import router as n8n_router
-        app.include_router(n8n_router)
-        _logger.info("Mounted n8n router at /api/v1/n8n")
-    except ImportError:
-        pass
+    # n8n_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.observability_router import router as observability_router
-        app.include_router(observability_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Observability router at /api/v1/observability")
-    except ImportError:
-        pass
+    # observability_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.pagerduty_router import router as pagerduty_router
-        app.include_router(pagerduty_router)
-        _logger.info("Mounted PagerDuty router at /api/v1/pagerduty")
-    except ImportError:
-        pass
+    # pagerduty_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.playbook_marketplace_router import router as playbook_marketplace_router
-        app.include_router(playbook_marketplace_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Playbook Marketplace router at /playbook-marketplace")
-    except ImportError:
-        pass
+    # playbook_marketplace_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.rbac_router import router as rbac_router
-        app.include_router(rbac_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted RBAC router at /api/v1/rbac")
-    except ImportError:
-        pass
+    # rbac_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.red_team_router import router as red_team_router
@@ -8116,19 +7824,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.session_router import router as session_router
-        app.include_router(session_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Session router at /api/v1/sessions")
-    except ImportError:
-        pass
+    # session_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.sla_management_router import router as sla_management_router
-        app.include_router(sla_management_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted SLA Management router at /api/v1/sla-management")
-    except ImportError:
-        pass
+    # sla_management_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.threat_model_router import router as threat_model_router
@@ -8144,19 +7842,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.trustgraph_backbone_router import router as trustgraph_backbone_router
-        app.include_router(trustgraph_backbone_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted TrustGraph Backbone router at /api/v1/graph")
-    except ImportError:
-        pass
+    # trustgraph_backbone_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.trustgraph_migrator_router import router as trustgraph_migrator_router
-        app.include_router(trustgraph_migrator_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted TrustGraph Migrator router at /api/v1/trustgraph/migrate")
-    except ImportError:
-        pass
+    # trustgraph_migrator_router — moved to platform_app.py (Wave 5)
 
     try:
         from apps.api.vuln_enricher_router import router as vuln_enricher_router
@@ -8172,37 +7860,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.slack_notifier_router import router as slack_notifier_router
-        app.include_router(slack_notifier_router)
-        _logger.info("Mounted Slack Notifier router at /api/v1/integrations/slack")
-    except ImportError:
-        pass
+    # slack_notifier_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.export_router import router as export_router
-        app.include_router(export_router)
-        _logger.info("Mounted Data Export router at /api/v1/export")
-    except ImportError:
-        pass
+    # export_router — moved to platform_app.py (Wave 5)
 
-    # ServiceNow bidirectional connector (CMDB + incident + change management)
-    try:
-        from servicenow.servicenow_router import router as servicenow_router
-        app.include_router(servicenow_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted ServiceNow connector at /api/v1/servicenow")
-    except ImportError:
-        pass
+    # servicenow_router — moved to platform_app.py (Wave 5)
 
 
-    # GAP-008: Binary Fingerprint Engine (Sonatype ABF-style)
-    # OAuth2 client credentials token endpoint (public — no api_key_auth wrapper)
-    try:
-        from apps.api.oauth2_router import router as oauth2_router
-        app.include_router(oauth2_router)
-        _logger.info("Mounted OAuth2 token endpoint at /api/v1/oauth2/token")
-    except ImportError:
-        pass
+    # oauth2_router — moved to platform_app.py (Wave 5)
 
     # GAP-002: Offline Feed Router (air-gapped threat-intel bundle ingestion)
     try:

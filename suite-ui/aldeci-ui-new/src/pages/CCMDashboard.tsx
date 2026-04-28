@@ -293,7 +293,8 @@ export default function CCMDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

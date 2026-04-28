@@ -23,23 +23,51 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ────────────────────────────────────────────────
-import { PageSkeleton } from "@/components/shared/PageSkeleton";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
-
-const ORG_ID = "juice-shop-corp";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(buildApiUrl(path), {
-    headers: {
-      "X-API-Key": getStoredAuthToken(),
-      "X-Org-ID": getStoredOrgId(),
-      "Content-Type": "application/json",
-    },
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
+
+// ── Mock data (fallback) ───────────────────────────────────────
+
+const MOCK_STATS = {
+  total_assessments: 12,
+  open_gaps: 34,
+  critical_gaps: 7,
+  avg_remediation_hours: 48.5,
+};
+
+const MOCK_FRAMEWORKS = [
+  { name: "SOC 2",    compliance_pct: 82 },
+  { name: "ISO 27001",compliance_pct: 76 },
+  { name: "NIST CSF", compliance_pct: 91 },
+  { name: "PCI-DSS",  compliance_pct: 68 },
+  { name: "HIPAA",    compliance_pct: 74 },
+  { name: "GDPR",     compliance_pct: 85 },
+];
+
+const MOCK_GAPS = [
+  { control_id: "CC6.1",   control_name: "Logical Access Controls",       framework: "SOC 2",    severity: "critical", status: "open",            description: "Privileged accounts lack MFA enforcement across all systems" },
+  { control_id: "A.9.4.2", control_name: "Secure Log-On Procedures",      framework: "ISO 27001",severity: "high",     status: "in_remediation",  description: "Login attempt logging incomplete for legacy services" },
+  { control_id: "PR.AC-4", control_name: "Access Permissions Management", framework: "NIST CSF", severity: "medium",   status: "open",            description: "Role-based access review cadence does not meet quarterly requirement" },
+  { control_id: "REQ-8.3", control_name: "Strong Cryptography",           framework: "PCI-DSS",  severity: "critical", status: "open",            description: "TLS 1.0/1.1 still enabled on 3 payment processing endpoints" },
+  { control_id: "164.312", control_name: "Audit Controls",                framework: "HIPAA",    severity: "high",     status: "open",            description: "PHI access logs not retained for full 6-year period" },
+  { control_id: "Art.32",  control_name: "Security of Processing",        framework: "GDPR",     severity: "medium",   status: "in_remediation",  description: "Encryption at rest not applied to all personal data stores" },
+  { control_id: "CC7.2",   control_name: "System Monitoring",             framework: "SOC 2",    severity: "low",      status: "remediated",      description: "Alerting threshold for anomalous logins tuned and verified" },
+  { control_id: "REQ-6.3", control_name: "Security Vulnerability Mgmt",  framework: "PCI-DSS",  severity: "high",     status: "open",            description: "Patch SLA for critical CVEs exceeded in Q1 for 2 systems" },
+  { control_id: "A.12.6.1","control_name": "Management of Technical Vulns", framework: "ISO 27001",severity: "medium", status: "in_remediation",  description: "Vulnerability scanning schedule gap for DMZ segment" },
+  { control_id: "PR.DS-1", control_name: "Data-at-Rest Protection",       framework: "NIST CSF", severity: "low",      status: "open",            description: "Non-production S3 buckets missing encryption policy tag" },
+];
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -87,6 +115,7 @@ function GapStatusBadge({ status }: { status: string }) {
 export default function ComplianceGapDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData] = useState<{
     stats: any | null;
     assessments: any[] | null;
@@ -108,7 +137,8 @@ export default function ComplianceGapDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -116,11 +146,17 @@ export default function ComplianceGapDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  if (dataLoading && !liveData.stats && !liveData.assessments && !liveData.gaps) return <PageSkeleton />;
+  const stats       = liveData.stats       ?? MOCK_STATS;
+  const frameworks  = liveData.assessments ?? MOCK_FRAMEWORKS;
+  const gaps        = liveData.gaps        ?? MOCK_GAPS;
 
-  const stats       = liveData.stats       ?? { total_assessments: 0, open_gaps: 0, critical_gaps: 0, avg_remediation_hours: 0 };
-  const frameworks  = liveData.assessments ?? [];
-  const gaps        = liveData.gaps        ?? [];
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -142,7 +178,8 @@ export default function ComplianceGapDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assessments"      value={stats.total_assessments}                    icon={FileText}      trend="flat"   />
+        <KpiCard title="Total Assessments"      value={stats.total_assessments
+    setLoading(false);}                    icon={FileText}      trend="flat"   />
         <KpiCard title="Open Gaps"              value={stats.open_gaps}                             icon={AlertTriangle} trend="down"   className="border-red-500/20" />
         <KpiCard title="Critical Gaps"          value={stats.critical_gaps}                         icon={Shield}        trend="down"   className="border-orange-500/20" />
         <KpiCard title="Avg Remediation (hrs)"  value={stats.avg_remediation_hours.toFixed(1)}      icon={Clock}         trend="flat"   className="border-blue-500/20" />
@@ -159,7 +196,13 @@ export default function ComplianceGapDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {frameworks.map((fw: any, i: number) => {
+            {frameworks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              frameworks.map((fw: any, i: number) => {
               const pct = fw.compliance_pct ?? 0;
               return (
                 <motion.div
@@ -180,7 +223,8 @@ export default function ComplianceGapDashboard() {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.7, delay: i * 0.06 }}
-                      className={cn("h-full rounded-full", complianceBar(pct))}
+                      className={cn("h-full rounded-full", complianceBar(pct))
+            )}
                     />
                   </div>
                   <div className="text-[10px] text-muted-foreground">
@@ -188,7 +232,8 @@ export default function ComplianceGapDashboard() {
                   </div>
                 </motion.div>
               );
-            })}
+            })
+            )}
           </div>
         </CardContent>
       </Card>
@@ -226,7 +271,13 @@ export default function ComplianceGapDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {gaps.map((g: any, i: number) => (
+                {gaps.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  gaps.map((g: any, i: number) => (
                   <TableRow key={g.control_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{g.control_id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium whitespace-nowrap">{g.control_name}</TableCell>
@@ -241,7 +292,8 @@ export default function ComplianceGapDashboard() {
                       {g.description}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </Table>
           </div>

@@ -411,7 +411,8 @@ export default function ThreatActorDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+          )}
               </TableBody>
             </Table>
           </div>

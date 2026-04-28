@@ -301,7 +301,8 @@ export default function PostureReportingDashboard() {
                         <td className="py-2 flex justify-center"><TrendIcon trend={m.trend} /></td>
                         <td className="py-2 text-right text-zinc-500 font-mono">{m.benchmark_value}{m.unit}</td>
                       </tr>
-                    ))}
+                    ))
+          )}
                   </tbody>
                 </table>
               </div>

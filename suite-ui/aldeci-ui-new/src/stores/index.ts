@@ -1,16 +1,18 @@
 import { create } from "zustand";
+import {
+  loadPreferences,
+  savePreferences,
+  applyTheme,
+  PREFERENCES_DEFAULTS,
+} from "@/lib/preferences";
+import type { UserPreferences as ExtendedPreferences } from "@/lib/preferences";
 
-interface UserPreferences {
+// Internal store preferences: superset of ExtendedPreferences + legacy fields
+interface UserPreferences extends ExtendedPreferences {
   role: string;
   homeSpace: string;
-  theme: "dark" | "light" | "system";
   copilotOpen: boolean;
-  sidebarCollapsed: boolean;
   onboardingComplete: boolean;
-  defaultOrgId: string;
-  dashboardLayout: "grid" | "list";
-  itemsPerPage: number;
-  favoritePages: string[];
 }
 
 interface AppState {
@@ -45,41 +47,79 @@ function safeHydrate<T>(key: string, fallback: T): T {
 }
 
 const DEFAULTS: UserPreferences = {
+  // Legacy fields
   role: "",
   homeSpace: "/mission-control",
-  theme: "dark",
   copilotOpen: false,
-  sidebarCollapsed: false,
   onboardingComplete: false,
-  defaultOrgId: "default",
-  dashboardLayout: "grid",
-  itemsPerPage: 25,
-  favoritePages: [],
+  // Extended preference fields (merged from preferences lib)
+  ...PREFERENCES_DEFAULTS,
 };
 
+// Hydrate: merge legacy aldeci-prefs store + new aldeci-user-prefs store
+function hydratePreferences(): UserPreferences {
+  const legacyStored = safeHydrate<Partial<UserPreferences>>(STORAGE_KEY, {});
+  const extendedStored = loadPreferences(); // from aldeci-user-prefs key
+  return { ...DEFAULTS, ...legacyStored, ...extendedStored };
+}
+
+// Apply theme on initial load
+const initialPrefs = hydratePreferences();
+applyTheme(initialPrefs.theme);
+
 export const useAppStore = create<AppState>()((set, get) => ({
-  preferences: safeHydrate<UserPreferences>("aldeci-prefs", DEFAULTS),
+  preferences: initialPrefs,
   setPreferences: (p) => {
     set((s) => {
       const next = { ...s.preferences, ...p };
-      safePersist("aldeci-prefs", next);
+      safePersist(STORAGE_KEY, next);
+      // Also persist extended preferences to the dedicated key
+      savePreferences({
+        theme: next.theme,
+        defaultOrgId: next.defaultOrgId,
+        dashboardLayout: next.dashboardLayout,
+        itemsPerPage: next.itemsPerPage,
+        sidebarCollapsed: next.sidebarCollapsed,
+        favoritePages: next.favoritePages,
+      });
       return { preferences: next };
     });
   },
   toggleCopilot: () => {
     const next = { ...get().preferences, copilotOpen: !get().preferences.copilotOpen };
-    set({ preferences: next }); safePersist("aldeci-prefs", next);
+    set({ preferences: next }); safePersist(STORAGE_KEY, next);
   },
   toggleSidebar: () => {
     const next = { ...get().preferences, sidebarCollapsed: !get().preferences.sidebarCollapsed };
-    set({ preferences: next }); safePersist("aldeci-prefs", next);
+    set({ preferences: next });
+    safePersist(STORAGE_KEY, next);
+    savePreferences({
+      theme: next.theme,
+      defaultOrgId: next.defaultOrgId,
+      dashboardLayout: next.dashboardLayout,
+      itemsPerPage: next.itemsPerPage,
+      sidebarCollapsed: next.sidebarCollapsed,
+      favoritePages: next.favoritePages,
+    });
   },
   toggleTheme: () => {
-    const next = { ...get().preferences, theme: get().preferences.theme === "dark" ? "light" as const : "dark" as const };
-    set({ preferences: next }); safePersist("aldeci-prefs", next);
+    const current = get().preferences.theme;
+    // Legacy toggle: dark ↔ light (system handled via cycleTheme in usePreferences)
+    const next = { ...get().preferences, theme: current === "dark" ? "light" as const : "dark" as const };
+    applyTheme(next.theme);
+    set({ preferences: next });
+    safePersist(STORAGE_KEY, next);
+    savePreferences({
+      theme: next.theme,
+      defaultOrgId: next.defaultOrgId,
+      dashboardLayout: next.dashboardLayout,
+      itemsPerPage: next.itemsPerPage,
+      sidebarCollapsed: next.sidebarCollapsed,
+      favoritePages: next.favoritePages,
+    });
   },
   completeOnboarding: () => {
     const next = { ...get().preferences, onboardingComplete: true };
-    set({ preferences: next }); safePersist("aldeci-prefs", next);
+    set({ preferences: next }); safePersist(STORAGE_KEY, next);
   },
 }));

@@ -276,7 +276,8 @@ export default function AwarenessScoreDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><TierBadge tier={emp.tier} /></TableCell>
                   </TableRow>
-                ))}
+                ))
+          )}
               </TableBody>
             </Table>
           </div>
@@ -395,7 +396,8 @@ export default function AwarenessScoreDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+            )}
               </TableBody>
             </Table>
           </div>
