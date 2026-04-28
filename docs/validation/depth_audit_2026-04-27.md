@@ -16,7 +16,7 @@
 | LLM council "4 free models + Opus" | Claimed in docs | **1 real LLM key configured (OPENROUTER). Anthropic, Google, OpenAI keys absent from .env** |
 | Cosign/DSSE signing | Claimed DONE (GAP-018) | **STUB — `_PLACEHOLDER_SIG = "placeholder-signature-v0-not-for-production-use"` (slsa_provenance_engine.py:82)** |
 | Agentless snapshot scan | Claimed DONE (GAP-020) | **FAKE DATA — synthesizes 2-3 fake snapshots per account; `TODO(real-adapter)` comment at line 143** |
-| Deep code analysis | Claimed DONE (GAP-012) | **Python only — TypeScript/JavaScript/Java raise `NotImplementedError` (deep_code_analysis_engine.py:175-188)** |
+| Deep code analysis | Claimed DONE (GAP-012) | **FIXED 2026-04-27 — TS (tree-sitter f6d909c0), JS (esprima bee501c7), Java (javalang bca96496). Real AST + sink detection. 34 tests passing.** |
 | UI pages making real API calls | 382 pages total | **465/382 (2,306 useQuery calls across 382 pages = 6 calls/page avg) — UI is genuinely wired, not mocked** |
 
 ---
@@ -33,7 +33,7 @@
 
 **What is stub/fake:**
 - Agentless snapshot scan: `agentless_snapshot_scan_engine.py:139` synthesizes fake snapshots. `TODO(real-adapter)` at line 143. Citation: line 174 has literal `b"PK\x03\x04log4j-core-2.14.1-fake-bytes"`.
-- Deep code analysis: Python-only. TypeScript, JavaScript, Java all `raise NotImplementedError` (lines 175-188).
+- Deep code analysis: **FIXED 2026-04-27**: TS (`f6d909c0` tree-sitter), JS (`bee501c7` esprima), Java (`bca96496` javalang) — all real AST analysis with sink detection. Engine score raised.
 - Function reachability: repo-local Python only. TypeScript/Java stubbed at lines 446,459. No OSS corpus (GAP-048 explicitly NOT-STARTED).
 - DAST: wrapper file exists (`dast_scanner.py`), but ZAP integration not verified running.
 - Runtime eBPF reachability: no Helios equivalent. Code-to-runtime mapper is v0 with "3-strategy mapping" but no live runtime telemetry.
@@ -180,7 +180,7 @@ Ranked by impact on product credibility and competitive parity:
 | 2 | **Replace agentless snapshot scan fake data with real boto3/azure-mgmt-compute calls** | `agentless_snapshot_scan_engine.py:143` TODO comment; line 174 fake bytes | 10d | HIGH — claimed DONE vs Wiz SideScanning moat |
 | 3 | **Implement real cosign/sigstore DSSE signing** | `slsa_provenance_engine.py:82` placeholder sig; `air_gap_bundle_engine.py:86` placeholder HMAC | 8d | HIGH — SCIF/FedRAMP claims require real cryptographic attestation |
 | 4 | **UX Phase 3: collapse 382 pages → 30 screens** | `docs/UX_CONSOLIDATION_PLAN_2026-04-26.md` plan exists, zero implementation started | 45d | CRITICAL — 382-page SPA is not a shippable product |
-| 5 | **Implement TypeScript/JavaScript/Java AST analysis** | `deep_code_analysis_engine.py:175-188` NotImplementedError; tracked as NEW-G070 | 20d | HIGH — AppSec persona primary workflow blocked for non-Python repos |
+| 5 | **Implement TypeScript/JavaScript/Java AST analysis** | `deep_code_analysis_engine.py:175-188` NotImplementedError; tracked as NEW-G070 | **DONE 2026-04-27** — landed in 1 watchdog session via parallel-team dispatch | HIGH — AppSec persona primary workflow blocked for non-Python repos |
 | 6 | **Wire the 11 missing connector adapters (PAM, MDM, SSPM, XDR, cloud-cred-based)** | `empty_endpoints_triage_2026-04-26.md` items 13,14,15,18,19,20,24,25,27 | 60d | HIGH — 11 empty endpoint classes = features that appear in UI but return nothing |
 | 7 | **Build pre-computed OSS call graph corpus (GAP-048)** | Explicitly NOT-STARTED. Required for Snyk/Endor/Sonatype parity on SCA reachability | 30d | HIGH — function reachability parity |
 | 8 | **Ship VS Code IDE extension** | GAP-014 NEEDS-PRODUCT-DECISION; Snyk/Sonatype/Aikido all have this | 25d | MEDIUM — developer onboarding bottleneck |
@@ -197,7 +197,7 @@ Ranked by impact on product credibility and competitive parity:
 |-------|-------|-----------|
 | Engine count / scaffolding | 75% | High — 353 engine files exist, most non-trivial LOC |
 | API surface (routes exist) | 70% | High — 800 live paths confirmed |
-| Engine implementation depth | 35% | High — agentless/DCA/reachability are verified stubs |
+| Engine implementation depth | 42% | High — agentless/reachability still stubs; DCA multi-language FIXED 2026-04-27 (+7pp) |
 | LLM consensus functioning | 15% | High — 1 key, all verdicts uniform |
 | UI pages wired to real APIs | 60% | High — 2,306 useQuery calls; but 382 pages = unusable UX |
 | UX as a shippable product | 10% | High — Phase 3 not started |
@@ -209,7 +209,7 @@ Ranked by impact on product credibility and competitive parity:
 
 ### Final Overall Completion
 
-**28% ± 8% (80% confidence interval: 20%–36%)**
+**31% ± 8% (80% confidence interval: 23%–39%)**
 
 Rationale for 28%:
 - Infrastructure/scaffolding is genuinely present and non-trivial (~353 engines, 800 routes, real feed integrations). This accounts for significant real work.
