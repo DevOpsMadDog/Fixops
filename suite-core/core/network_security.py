@@ -34,6 +34,47 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / "data" / "network_security.db"
 )
@@ -535,6 +576,7 @@ class NDREngine:
                 )
                 conn.commit()
         logger.info("network_asset_registered", id=asset.id, type=asset.asset_type)
+        _emit_event("network.asset_registered", {"id": asset.id, "type": asset.asset_type.value, "org_id": asset.org_id})
         return asset
 
     def get_assets(
@@ -784,6 +826,7 @@ class NDREngine:
                     ),
                 )
                 conn.commit()
+        _emit_event("network.firewall_rule_added", {"id": rule.id, "name": rule.rule_name, "action": rule.action, "org_id": rule.org_id})
         return rule
 
     def audit_firewall_rules(
@@ -1576,6 +1619,9 @@ class NDREngine:
             "zero_trust_score_computed",
             org_id=org, segment=segment, score=overall, grade=grade,
         )
+        _emit_event("network.zero_trust_score_computed", {
+            "org_id": org, "segment": segment, "score": overall, "grade": grade,
+        })
         return zt
 
     def get_zero_trust_scores(

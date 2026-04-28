@@ -25,6 +25,47 @@ import structlog
 
 _logger = structlog.get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 # ============================================================================
 # ENUMS
@@ -1600,6 +1641,13 @@ def audit_sbom(
     }
 
     log.info("license_audit_complete", violation_count=len(violations), project_risk=project_risk)
+    _emit_event("license.audit_complete", {
+        "report_id": report_id,
+        "component_count": len(components),
+        "violation_count": len(violations),
+        "project_risk_score": project_risk,
+        "policy_id": policy.policy_id,
+    })
 
     return ComplianceReport(
         report_id=report_id,
@@ -1669,6 +1717,7 @@ class LicenseComplianceEngine:
     def add_policy(self, policy: LicensePolicy) -> None:
         self._policies[policy.policy_id] = policy
         _logger.info("license_policy_added", policy_id=policy.policy_id)
+        _emit_event("license.policy_added", {"policy_id": policy.policy_id, "name": policy.name})
 
     def get_policy(self, policy_id: str) -> Optional[LicensePolicy]:
         return self._policies.get(policy_id)
@@ -1679,6 +1728,7 @@ class LicenseComplianceEngine:
     def delete_policy(self, policy_id: str) -> bool:
         if policy_id in self._policies:
             del self._policies[policy_id]
+            _emit_event("license.policy_deleted", {"policy_id": policy_id})
             return True
         return False
 

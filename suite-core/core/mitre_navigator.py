@@ -25,6 +25,47 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -1580,11 +1621,13 @@ class MITRENavigatorEngine:
                 enabled=True,
             ))
 
-        return NavigatorLayer(
+        layer = NavigatorLayer(
             name=name,
             description="ALDECI detection coverage mapped to MITRE ATT&CK Enterprise",
             techniques=annotations,
         )
+        _emit_event("mitre.coverage_layer_created", {"name": name, "technique_count": len(annotations)})
+        return layer
 
     def create_threat_group_layer(self, group_id: str) -> NavigatorLayer:
         """Generate a Navigator layer for a threat group's TTP coverage."""
@@ -1618,11 +1661,13 @@ class MITRENavigatorEngine:
                 enabled=True,
             ))
 
-        return NavigatorLayer(
+        layer = NavigatorLayer(
             name=f"{group.name} TTP Coverage",
             description=f"ALDECI coverage against {group.name} ({group_id}) techniques. Risk: {overlay.risk_level}",
             techniques=annotations,
         )
+        _emit_event("mitre.threat_group_layer_created", {"group_id": group_id, "technique_count": len(annotations), "risk_level": overlay.risk_level})
+        return layer
 
     def create_custom_layer(
         self,
