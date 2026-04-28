@@ -285,29 +285,189 @@ class DeduplicationService:
         org_id: str,
         source: str = "sarif",
     ) -> Dict[str, Any]:
-        """Process a batch of findings and return deduplication summary.
+        """Process a batch of findings using a single connection and executemany.
+
+        Replaces the previous per-finding INSERT loop (one sqlite3.connect +
+        commit per finding) with a single transaction that batches all new
+        cluster INSERTs, status_history INSERTs, and event INSERTs via
+        executemany — reducing SQLite round-trips from O(N) to O(1).
 
         Returns:
             Dict with total, new_count, existing_count, clusters list
         """
-        results = []
-        new_count = 0
-        existing_count = 0
+        if not findings:
+            return {
+                "total_findings": 0,
+                "unique_clusters": 0,
+                "new_clusters": 0,
+                "existing_clusters": 0,
+                "noise_reduction_percent": 0,
+                "clusters": [],
+            }
 
-        for finding in findings:
-            result = self.process_finding(finding, run_id, org_id, source)
-            results.append(result)
-            if result["is_new"]:
-                new_count += 1
-            else:
-                existing_count += 1
+        # Enrich each finding with identity resolution (CPU-only, no DB needed)
+        enriched: List[Dict[str, Any]] = []
+        for f in findings:
+            f = dict(f)  # shallow copy — do not mutate caller's list
+            if "app_id" not in f:
+                f["app_id"] = self.identity_resolver.resolve_app_id(f)
+            if "component_id" not in f:
+                f["component_id"] = self.identity_resolver.resolve_component_id(f)
+            if "asset_id" not in f:
+                f["asset_id"] = self.identity_resolver.resolve_asset_id(f)
+            f["_correlation_key"] = self.identity_resolver.compute_correlation_key(f)
+            f["_fingerprint"] = self.identity_resolver.compute_fingerprint(f)
+            enriched.append(f)
 
-        # Calculate noise reduction
+        now = datetime.now(timezone.utc).isoformat()
+
+        # Single connection for the whole batch
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        results: List[Dict[str, Any]] = []
+        new_cluster_rows: List[tuple] = []
+        status_history_rows: List[tuple] = []
+        event_rows: List[tuple] = []
+        update_rows: List[tuple] = []  # (now, new_count, fp, cluster_id)
+
+        try:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # --- Phase 1: resolve every finding against existing clusters ---
+            for f in enriched:
+                correlation_key = f["_correlation_key"]
+                fingerprint = f["_fingerprint"]
+                event_id = str(uuid.uuid4())
+
+                cursor.execute(
+                    "SELECT cluster_id, occurrence_count, first_seen, status "
+                    "FROM clusters WHERE correlation_key = ?",
+                    (correlation_key,),
+                )
+                existing = cursor.fetchone()
+
+                if existing:
+                    cluster_id = existing["cluster_id"]
+                    new_count_occ = existing["occurrence_count"] + 1
+                    update_rows.append((now, new_count_occ, fingerprint, cluster_id))
+                    event_rows.append((event_id, cluster_id, run_id, source, json.dumps(f), now))
+                    results.append({
+                        "cluster_id": cluster_id,
+                        "correlation_key": correlation_key,
+                        "fingerprint": fingerprint,
+                        "is_new": False,
+                        "occurrence_count": new_count_occ,
+                        "first_seen": existing["first_seen"],
+                        "last_seen": now,
+                        "status": existing["status"],
+                    })
+                else:
+                    cluster_id = str(uuid.uuid4())
+                    new_cluster_rows.append((
+                        cluster_id,
+                        correlation_key,
+                        fingerprint,
+                        org_id,
+                        f.get("app_id", "unknown"),
+                        f.get("component_id", "unknown"),
+                        f.get("category", source),
+                        f.get("cve_id"),
+                        f.get("rule_id"),
+                        f.get("title", f.get("message", "")),
+                        f.get("severity", "medium"),
+                        ClusterStatus.OPEN.value,
+                        now,
+                        now,
+                        1,
+                        json.dumps(f.get("metadata", {})),
+                    ))
+                    status_history_rows.append((cluster_id, ClusterStatus.OPEN.value, "Initial discovery", now))
+                    event_rows.append((event_id, cluster_id, run_id, source, json.dumps(f), now))
+                    results.append({
+                        "cluster_id": cluster_id,
+                        "correlation_key": correlation_key,
+                        "fingerprint": fingerprint,
+                        "is_new": True,
+                        "occurrence_count": 1,
+                        "first_seen": now,
+                        "last_seen": now,
+                        "status": ClusterStatus.OPEN.value,
+                    })
+
+            # --- Phase 2: flush all writes in one transaction ---
+            if new_cluster_rows:
+                # Deduplicate within-batch: if two findings share the same
+                # correlation_key (both appeared "new" during the read phase),
+                # keep only the first occurrence to avoid UNIQUE constraint on
+                # clusters.correlation_key.  Subsequent occurrences were already
+                # recorded in results as is_new=True with their own cluster_id;
+                # we patch them to reference the winning cluster_id.
+                seen_corr: Dict[str, str] = {}  # correlation_key -> cluster_id
+                deduped_cluster_rows: List[tuple] = []
+                for row in new_cluster_rows:
+                    ckey = row[1]  # index 1 = correlation_key
+                    if ckey not in seen_corr:
+                        seen_corr[ckey] = row[0]  # index 0 = cluster_id
+                        deduped_cluster_rows.append(row)
+                # Re-map results and event_rows that lost the race to the winner's cluster_id.
+                # Build old_cluster_id -> winner_cluster_id from the losers in new_cluster_rows.
+                if len(deduped_cluster_rows) < len(new_cluster_rows):
+                    # old_cid_to_winner: maps a loser cluster_id to the winner's cluster_id
+                    old_cid_to_winner: Dict[str, str] = {}
+                    for row in new_cluster_rows:
+                        old_cid = row[0]
+                        ckey = row[1]
+                        winner_cid = seen_corr[ckey]
+                        if old_cid != winner_cid:
+                            old_cid_to_winner[old_cid] = winner_cid
+
+                    for res in results:
+                        if res["cluster_id"] in old_cid_to_winner:
+                            res["cluster_id"] = old_cid_to_winner[res["cluster_id"]]
+
+                    # Patch event_rows: tuple index 1 is cluster_id
+                    event_rows = [
+                        (ev[0], old_cid_to_winner.get(ev[1], ev[1]), ev[2], ev[3], ev[4], ev[5])
+                        for ev in event_rows
+                    ]
+
+                cursor.executemany(
+                    """
+                    INSERT INTO clusters (
+                        cluster_id, correlation_key, fingerprint, org_id, app_id,
+                        component_id, category, cve_id, rule_id, title, severity,
+                        status, first_seen, last_seen, occurrence_count, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    deduped_cluster_rows,
+                )
+            if status_history_rows:
+                cursor.executemany(
+                    "INSERT INTO status_history (cluster_id, new_status, reason, timestamp) "
+                    "VALUES (?, ?, ?, ?)",
+                    status_history_rows,
+                )
+            if update_rows:
+                cursor.executemany(
+                    "UPDATE clusters SET last_seen = ?, occurrence_count = ?, fingerprint = ? "
+                    "WHERE cluster_id = ?",
+                    update_rows,
+                )
+            if event_rows:
+                cursor.executemany(
+                    "INSERT INTO events (event_id, cluster_id, run_id, source, raw_finding, timestamp) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    event_rows,
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
         total = len(findings)
         unique_clusters = len(set(r["cluster_id"] for r in results))
-        noise_reduction = (
-            round((1 - unique_clusters / total) * 100, 1) if total > 0 else 0
-        )
+        new_count = sum(1 for r in results if r["is_new"])
+        existing_count = total - new_count
+        noise_reduction = round((1 - unique_clusters / total) * 100, 1) if total > 0 else 0
 
         return {
             "total_findings": total,

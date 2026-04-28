@@ -272,6 +272,21 @@ class BrainPipeline:
         self._cancelled: set = set()  # Run IDs that have been cancelled
         # Queue mode: "local" (default) or "redis" (FIXOPS_QUEUE_MODE env var)
         self._queue_mode: str = os.environ.get("FIXOPS_QUEUE_MODE", "local").lower().strip()
+        # Persistent single-worker pool reused across all steps — avoids the
+        # ~5-10ms OS thread-spawn overhead incurred by per-step context managers.
+        self._exec: concurrent.futures.ThreadPoolExecutor = (
+            concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="bp_step")
+        )
+
+    def close(self) -> None:
+        """Shut down the persistent step executor gracefully."""
+        self._exec.shutdown(wait=False, cancel_futures=True)
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:  # noqa: BLE001
+            pass
 
     # Maximum depth for nested sanitization to prevent stack overflow
     MAX_SANITIZE_DEPTH = 5
@@ -2025,9 +2040,8 @@ class BrainPipeline:
                 )
 
             try:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    future = pool.submit(_do_dedup)
-                    batch = future.result(timeout=self.STEP_TIMEOUT_S)
+                future = self._exec.submit(_do_dedup)
+                batch = future.result(timeout=self.STEP_TIMEOUT_S)
             except concurrent.futures.TimeoutError:
                 logger.warning(
                     "Dedup step timed out after %ds for %d findings, using local fallback",
