@@ -1,3 +1,5 @@
+// REPLACED by FindingsExplorerView config 2026-04-27
+// Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * Snapshot Findings View — kick off a CSPM snapshot scan and view findings (Wave 3)
  * Route: /snapshot-findings

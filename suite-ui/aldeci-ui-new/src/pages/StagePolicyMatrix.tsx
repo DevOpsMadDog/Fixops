@@ -1,3 +1,5 @@
+// REPLACED by FindingsExplorerView config 2026-04-27
+// Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * Stage Policy Matrix — Live API
  * Multica: 932eab7f-3d8c-4ec3-af19-a8743319f89a

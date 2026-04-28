@@ -1,3 +1,5 @@
+// REPLACED by FindingsExplorerView config 2026-04-27
+// Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * Waivers Explorer — Live API
  * Multica: 70b1b89d-359d-4038-95f8-16cd2534c5e8

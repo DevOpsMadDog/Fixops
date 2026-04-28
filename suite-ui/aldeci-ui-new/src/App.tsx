@@ -7,6 +7,8 @@ import NotFound from "@/pages/NotFound";
 import { RequireAuth, RequireRole } from "@/lib/auth";
 import { GenericDashboard } from "@/components/GenericDashboard";
 import { DASHBOARD_ROUTES } from "@/config/dashboardRoutes";
+import { FindingsExplorerView } from "@/components/FindingsExplorerView";
+import { FINDINGS_EXPLORER_ROUTES } from "@/config/findingsExplorerRoutes";
 
 // Auth
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
@@ -801,17 +803,17 @@ export default function App() {
             {/* Crypto Key, Certificate, Privilege Escalation, Security Automation */}
             <Route path="/crypto-keys" element={<CryptoKeyDashboard />} />
             <Route path="/certificates" element={<CertificateDashboard />} />
-            <Route path="/privilege-escalation" element={<PrivilegeEscalationDashboard />} />
+            {/* /privilege-escalation → FindingsExplorerView (Pattern-2 2026-04-27) */}
             <Route path="/security-automation" element={<SecurityAutomationDashboard />} />
 
             {/* Secret Scanner, Threat Intel Platform, Attack Surface Dashboard */}
-            <Route path="/secret-scanner" element={<SecretScannerDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/dast" element={<DASTDashboard />} />
             <Route path="/ir-playbook" element={<IRPlaybookDashboard />} />
             <Route path="/container-registry" element={<ContainerRegistryDashboard />} />
             <Route path="/network-monitoring" element={<NetworkMonitoringDashboard />} />
             <Route path="/sca" element={<SCADashboard />} />
-            <Route path="/service-account-audit" element={<ServiceAccountAuditDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/threat-intel-platform" element={<ThreatIntelPlatformDashboard />} />
             <Route path="/attack-surface-dashboard" element={<Navigate to="/assets?tab=attack-surface" replace />} />
 
@@ -832,7 +834,7 @@ export default function App() {
             <Route path="/security-awareness" element={<SecurityAwareness />} />
             <Route path="/supply-chain" element={<SupplyChainSecurity />} />
             <Route path="/zero-trust" element={<Navigate to="/asset-graph?tab=zero-trust" replace />} />
-            <Route path="/threat-modeling" element={<ThreatModeling />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/attack-paths" element={<AttackPathAnalysis />} />
             <Route path="/incident-timeline" element={<IncidentTimeline />} />
             <Route path="/identity-governance" element={<IdentityGovernance />} />
@@ -998,22 +1000,22 @@ export default function App() {
 
             {/* Wave 23 domain dashboards */}
             <Route path="/threat-intel-automation" element={<ThreatIntelAutomation />} />
-            <Route path="/metrics-aggregator" element={<MetricsAggregatorDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/endpoint-hunting" element={<EndpointHuntingDashboard />} />
             <Route path="/cloud-security-analytics" element={<CloudSecurityAnalyticsDashboard />} />
             <Route path="/identity-risk" element={<IdentityRiskDashboard />} />
             <Route path="/ot-security" element={<OTSecurityDashboard />} />
 
             {/* Wave 24 domain dashboards */}
-            <Route path="/network-forensics" element={<NetworkForensicsDashboard />} />
-            <Route path="/malware-analysis" element={<MalwareAnalysisDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/application-risk" element={<Navigate to="/assets?tab=app-risk" replace />} />
             <Route path="/pag" element={<PAGDashboard />} />
             <Route path="/security-gamification" element={<SecurityGamificationDashboard />} />
             <Route path="/vuln-prioritization" element={<VulnPrioritizationDashboard />} />
 
             {/* Wave 25 domain dashboards */}
-            <Route path="/threat-deception" element={<ThreatDeceptionDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/posture-scoring" element={<PostureScoringDashboard />} />
             <Route path="/cloud-posture" element={<Navigate to="/compliance?tab=cloud-posture-dash" replace />} />
             <Route path="/api-threat-protection" element={<APIThreatProtectionDashboard />} />
@@ -1041,7 +1043,7 @@ export default function App() {
             <Route path="/session-recording" element={<PrivilegedSessionRecordingDashboard />} />
             <Route path="/cloud-inventory" element={<CloudResourceInventoryDashboard />} />
             <Route path="/security-telemetry" element={<SecurityTelemetryDashboard />} />
-            <Route path="/microsegmentation" element={<MicrosegmentationPolicyDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/third-party-vendor" element={<ThirdPartyVendorDashboard />} />
 
             {/* Wave 29 domain dashboards */}
@@ -1058,7 +1060,7 @@ export default function App() {
             <Route path="/threat-briefs" element={<ThreatBriefDashboard />} />
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
-            <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
             {/* Security Graph — Wiz-killer interactive relationship canvas */}
             {/* /security-graph → consolidated into /assets hero */}
@@ -1103,31 +1105,31 @@ export default function App() {
             <Route path="/sbom-export" element={<SBOMExportDashboard />} />
             <Route path="/gap-analysis" element={<GapAnalysisDashboard />} />
             <Route path="/alert-enrichment" element={<Navigate to="/brain?tab=alert-enrichment" replace />} />
-            <Route path="/security-baselines" element={<SecurityBaselineDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/threat-response" element={<ThreatResponseDashboard />} />
             <Route path="/awareness-program" element={<AwarenessProgramDashboard />} />
 
             {/* Wave 37 domain dashboards */}
-            <Route path="/posture-maturity" element={<SecurityPostureMaturityDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/cloud-findings" element={<Navigate to="/issues?tab=all" replace />} />
             <Route path="/soc-metrics" element={<SecurityOperationsMetricsDashboard />} />
-            <Route path="/vuln-age" element={<VulnerabilityAgeDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/ti-confidence" element={<ThreatIntelConfidenceDashboard />} />
-            <Route path="/dependency-risk" element={<SecurityDependencyRiskDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
             {/* Wave 36 domain dashboards */}
-            <Route path="/health-scorecard" element={<SecurityHealthScorecardDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/compliance-calendar" element={<ComplianceCalendarDashboard />} />
             <Route path="/cyber-resilience" element={<CyberResilienceDashboard />} />
             <Route path="/asset-criticality" element={<AssetCriticalityDashboard />} />
-            <Route path="/security-investment" element={<SecurityInvestmentDashboard />} />
-            <Route path="/threat-modeling-pipeline" element={<ThreatModelingPipelineDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
             {/* Wave 35 domain dashboards */}
             <Route path="/exception-workflow" element={<ExceptionWorkflowDashboard />} />
             <Route path="/actor-tracking" element={<Navigate to="/brain?tab=actor-tracking" replace />} />
             <Route path="/vuln-scoring" element={<VulnScoringDashboard />} />
-            <Route path="/security-benchmarks" element={<SecurityBenchmarksDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/incident-costs" element={<IncidentCostsDashboard />} />
             <Route path="/security-culture" element={<SecurityCultureDashboard />} />
 
@@ -1141,19 +1143,19 @@ export default function App() {
 
             {/* Wave 32 domain dashboards */}
             <Route path="/compliance-workflows" element={<ComplianceWorkflowDashboard />} />
-            <Route path="/threat-landscape" element={<ThreatLandscapeDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/posture-trends" element={<PostureTrendsDashboard />} />
             <Route path="/access-governance" element={<Navigate to="/asset-graph?tab=access-governance" replace />} />
             <Route path="/network-threats" element={<NetworkThreatsDashboard />} />
             <Route path="/incident-kb" element={<IncidentKBDashboard />} />
 
             {/* Wave 31 domain dashboards */}
-            <Route path="/access-reviews" element={<UserAccessReviewDashboard />} />
-            <Route path="/posture-history" element={<PostureHistoryDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/incident-lessons" element={<IncidentLessonsDashboard />} />
             <Route path="/cloud-accounts" element={<CloudAccountsDashboard />} />
             <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
-            <Route path="/security-okrs" element={<SecurityOKRDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
             {/* Connector dashboards — Prowler, ServiceNow, SIEM Output */}
             <Route path="/prowler" element={<ProwlerDashboard />} />
@@ -1161,12 +1163,12 @@ export default function App() {
             <Route path="/siem-output" element={<SIEMOutputDashboard />} />
 
             {/* Strategic engine dashboards (2026-04-25) */}
-            <Route path="/air-gap-bundle" element={<AirGapBundleDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/org-hierarchy" element={<OrgHierarchyDashboard />} />
-            <Route path="/deep-code-analysis" element={<DeepCodeAnalysisDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/agentless-snapshot" element={<AgentlessSnapshotDashboard />} />
             <Route path="/security-query" element={<SecurityQueryLanguageDashboard />} />
-            <Route path="/violation-lifecycle" element={<ViolationLifecycleDashboard />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/arch-graph" element={<ArchAwareGraphDashboard />} />
             <Route path="/ide-backend" element={<IDEBackendDashboard />} />
 
@@ -1321,6 +1323,11 @@ export default function App() {
               <Route key={path} path={path} element={<GenericDashboard {...props} />} />
             ))}
 
+            {/* ── FindingsExplorerView routes — Pattern-2 collapse 2026-04-27 (Wave 4) ── */}
+            {FINDINGS_EXPLORER_ROUTES.map(({ path, props }) => (
+              <Route key={path} path={path} element={<FindingsExplorerView {...props} />} />
+            ))}
+
             {/* Main Overview Dashboard */}
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
@@ -1330,8 +1337,8 @@ export default function App() {
             {/* /choke-points, /attack-paths/graph → consolidated into /assets hero */}
             {/* These 7 routes were consolidated into /issues + /brain heroes — see redirects above */}
             <Route path="/sbom-continuous-monitoring" element={<SBOMContinuousMonitoring />} />
-            <Route path="/snapshot-findings" element={<SnapshotFindingsView />} />
-            <Route path="/agentless-scan-status" element={<AgentlessScanStatus />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/runtime-code-trace" element={<RuntimeCodeTrace />} />
 
             {/* Frontend Wave 4 — final cleanup wave (35 screens, 2026-04-26) */}
@@ -1375,7 +1382,7 @@ export default function App() {
             {/* /waivers/* — Phase 3 P1 consolidated into /remediate?tab=waivers (S19 fold). */}
             {/* Standalone pages still render for old bookmarks; add a top-level /waivers redirect. */}
             <Route path="/waivers" element={<Navigate to="/remediate?tab=waivers" replace />} />
-            <Route path="/waivers/explorer" element={<WaiversExplorer />} />
+            {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/waivers/request" element={<WaiverRequestModal />} />
             <Route path="/waivers/auto-rules" element={<AutoWaiverRules />} />
             <Route path="/policies/inheritance" element={<PolicyInheritanceView />} />

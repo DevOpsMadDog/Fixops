@@ -1,3 +1,5 @@
+// REPLACED by FindingsExplorerView config 2026-04-27
+// Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * Stale Baseline Banner — show when findings drift from baseline
  * Route: /findings/drift

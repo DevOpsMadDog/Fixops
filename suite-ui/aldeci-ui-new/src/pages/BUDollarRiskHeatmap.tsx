@@ -1,3 +1,5 @@
+// REPLACED by FindingsExplorerView config 2026-04-27
+// Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * BU Dollar Risk Heatmap — cross-BU dollar exposure heatmap (Wave 3)
  * Route: /bu-dollar-heatmap
