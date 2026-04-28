@@ -135,6 +135,98 @@ def _serialize_findings(findings: list) -> List[Dict]:
     return result
 
 
+def _promote_findings_to_issues(
+    findings_dicts: List[Dict[str, Any]],
+    scanner: str,
+    org_id: str,
+) -> int:
+    """Promote ingested scanner findings to /api/v1/issues queue.
+
+    Bridges scanner-ingest output into SecurityFindingsEngine — the table
+    the unified Issues federation reads from. Each finding becomes an open
+    row deduped by correlation_key (scanner|rule_or_cve|asset). Returns
+    the number of findings successfully promoted (best-effort: never raises;
+    individual record failures are skipped).
+    """
+    if not findings_dicts:
+        return 0
+    try:
+        from core.security_findings_engine import SecurityFindingsEngine
+    except ImportError:
+        logger.warning("issue promotion skipped — security_findings_engine unavailable")
+        return 0
+
+    engine = SecurityFindingsEngine()
+    promoted = 0
+    for f in findings_dicts:
+        try:
+            title = (f.get("title") or f.get("rule_id") or f.get("id") or "scanner-finding")[:500]
+            description = (f.get("description") or "")[:2000]
+            severity = str(f.get("severity") or "medium").lower()
+            if severity not in {"critical", "high", "medium", "low", "info"}:
+                severity = "medium"
+            cvss = f.get("cvss_score") or f.get("cvss") or 0.0
+            try:
+                cvss = float(cvss)
+            except (TypeError, ValueError):
+                cvss = 0.0
+            asset_id = (
+                f.get("asset_id")
+                or f.get("file_path")
+                or f.get("package_name")
+                or f.get("component")
+                or scanner
+            )
+            asset_type = (
+                f.get("asset_type")
+                or ("dependency" if f.get("package_name") else "code")
+            )
+            finding_type = (
+                f.get("finding_type")
+                or ("vulnerability" if f.get("cve_id") else "weakness")
+            )
+            remediation = (
+                f.get("recommendation")
+                or f.get("remediation")
+                or ""
+            )[:1000]
+            corr_key = (
+                f.get("correlation_key")
+                or f"{scanner}|{f.get('rule_id') or f.get('cve_id') or title}|{asset_id}"
+            )
+            engine.record_finding(
+                org_id=org_id or "default",
+                title=title,
+                finding_type=str(finding_type),
+                source_tool=scanner,
+                severity=severity,
+                cvss_score=cvss,
+                asset_id=str(asset_id),
+                asset_type=str(asset_type),
+                description=description,
+                remediation=remediation,
+                correlation_key=corr_key,
+            )
+            promoted += 1
+        except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
+            logger.debug("issue promotion record failed for one finding: %s", type(e).__name__)
+            continue
+
+    if promoted:
+        # Bump federation refresh epoch so /api/v1/issues sees new rows.
+        try:
+            from core.event_bus import EventType, get_event_bus
+            bus = get_event_bus()
+            if hasattr(bus, "publish"):
+                bus.publish(
+                    EventType.FINDINGS_INDEX_REFRESH,
+                    {"source": f"scanner-ingest:{scanner}", "findings_mirrored": promoted},
+                )
+        except (ImportError, AttributeError, RuntimeError):
+            pass  # bridge is best-effort
+    return promoted
+
+
 def _dedupe_findings(
     findings_dicts: List[Dict[str, Any]],
     org_id: str,
@@ -263,6 +355,10 @@ async def upload_scanner_output(
     dedup_summary = _dedupe_findings(findings_dicts_full, org_id)
     canonical_dicts = dedup_summary["canonical"]
 
+    # Gap 2: promote canonical findings to /api/v1/issues federation by
+    # writing them into SecurityFindingsEngine (security_findings table).
+    promoted_count = _promote_findings_to_issues(canonical_dicts, detected, org_id)
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -314,6 +410,7 @@ async def upload_scanner_output(
         "total_findings": len(findings),
         "deduped_count": len(canonical_dicts),
         "duplicates_removed": dedup_summary["duplicate_count"],
+        "promoted_to_issues": promoted_count,
         "pipeline_result": pipeline_result,
     }
 
@@ -387,6 +484,9 @@ async def webhook_ingest(
     dedup_summary = _dedupe_findings(findings_dicts_full, org_id)
     canonical_dicts = dedup_summary["canonical"]
 
+    # Gap 2: promote canonical findings to /api/v1/issues federation.
+    promoted_count = _promote_findings_to_issues(canonical_dicts, scanner, org_id)
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -436,6 +536,7 @@ async def webhook_ingest(
         "total_findings": len(findings),
         "deduped_count": len(canonical_dicts),
         "duplicates_removed": dedup_summary["duplicate_count"],
+        "promoted_to_issues": promoted_count,
         "pipeline_result": pipeline_result,
     }
 
