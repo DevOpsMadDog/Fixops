@@ -1,3 +1,5 @@
+// FOLDED into Admin hero 2026-04-27 — preserve for git history
+// Tab path: /admin?tab=awareness
 /**
  * Security Awareness Training Tracker
  *

@@ -1,3 +1,5 @@
+// FOLDED into Compliance hero 2026-04-27 — preserve for git history
+// Tab path: /compliance?tab=regulatory-tracker
 /**
  * RegulatoryTrackerDashboard
  *

@@ -76,6 +76,8 @@ const MPTEConsole = lazy(() => import("@/pages/validate/MPTEConsole"));
 const FAILEngine = lazy(() => import("@/pages/validate/FAILEngine"));
 // P4 fold-in — IncidentTimelineDashboard → Brain hero "incident-timeline" tab
 const IncidentTimelineDashboard = lazy(() => import("@/pages/IncidentTimelineDashboard"));
+// Wave 1 Phase 3 fold-in (2026-04-27)
+const SecurityChaosDashboard = lazy(() => import("@/pages/SecurityChaosDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 12-step Brain Pipeline canon (from CTEM_PLUS_IDENTITY.md + brain_pipeline.py)
@@ -334,6 +336,7 @@ export default function Brain() {
           <TabsTrigger value="fail">FAIL Chaos</TabsTrigger>
           <TabsTrigger value="learning-loop">Learning Loop</TabsTrigger>
           <TabsTrigger value="incident-timeline">Incident Timeline</TabsTrigger>
+          <TabsTrigger value="chaos">Security Chaos</TabsTrigger>
         </TabsList>
 
         {/* ───────────────────────────────── PIPELINE TAB ─────────────────────── */}
@@ -671,6 +674,13 @@ export default function Brain() {
         <TabsContent value="incident-timeline" className="space-y-4">
           <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>}>
             <IncidentTimelineDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── SECURITY CHAOS TAB (Wave 1 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="chaos" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <SecurityChaosDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

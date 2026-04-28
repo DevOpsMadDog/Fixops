@@ -90,6 +90,8 @@ const ComplianceGapDashboard = lazy(() => import("@/pages/ComplianceGapDashboard
 const EvidenceVault = lazy(() => import("@/pages/comply/EvidenceVault"));
 const EvidenceBundles = lazy(() => import("@/pages/comply/EvidenceBundles"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
+// Wave 1 Phase 3 fold-in (2026-04-27)
+const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerDashboard"));
 // P2 fold-ins (S20 Waivers, S26 Policies)
 const WaiversExplorer = lazy(() => import("@/pages/WaiversExplorer"));
 const AutoWaiverRules = lazy(() => import("@/pages/AutoWaiverRules"));
@@ -499,6 +501,9 @@ export default function Compliance() {
           </TabsTrigger>
           <TabsTrigger value="posture-reports" className="flex items-center gap-1.5">
             <FileText className="h-3.5 w-3.5" />Posture Reports
+          </TabsTrigger>
+          <TabsTrigger value="regulatory-tracker" className="flex items-center gap-1.5">
+            <ScrollText className="h-3.5 w-3.5" />Regulatory Tracker
           </TabsTrigger>
         </TabsList>
 
@@ -1040,6 +1045,13 @@ export default function Compliance() {
         {/* ─────────── POSTURE REPORTS TAB (P4 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="posture-reports" className="space-y-4">
           <PostureReportsPane />
+        </TabsContent>
+
+        {/* ─────────── REGULATORY TRACKER TAB (Wave 1 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="regulatory-tracker" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <RegulatoryTrackerDashboard />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </motion.div>

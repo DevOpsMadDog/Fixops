@@ -1,3 +1,5 @@
+// FOLDED into Brain hero 2026-04-27 — preserve for git history
+// Tab path: /brain?tab=chaos
 /**
  * Security Chaos Dashboard
  *

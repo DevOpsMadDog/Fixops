@@ -69,6 +69,10 @@ import { cn } from "@/lib/utils";
 const MCPToolRegistry = lazy(() => import("@/pages/ai/MCPToolRegistry"));
 // P4 fold-in — PrivilegedIdentityDashboard → Admin hero "privileged-access" tab
 const PrivilegedIdentityDashboard = lazy(() => import("@/pages/PrivilegedIdentityDashboard"));
+// Wave 1 Phase 3 fold-ins (2026-04-27)
+const SecurityAwareness = lazy(() => import("@/pages/SecurityAwareness"));
+const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsDashboard"));
+const ScopeManager = lazy(() => import("@/pages/ScopeManager"));
 const ClaudeSkillsRegistry = lazy(() => import("@/pages/ClaudeSkillsRegistry"));
 const SkillsInstallPrompt = lazy(() => import("@/pages/SkillsInstallPrompt"));
 const OpenClawDashboard = lazy(() => import("@/pages/OpenClawDashboard"));
@@ -172,7 +176,10 @@ type TabKey =
   | "system"
   | "mcp"
   | "system-health"
-  | "privileged-access";
+  | "privileged-access"
+  | "awareness"
+  | "champions"
+  | "scopes";
 
 interface TabSpec {
   key: TabKey;
@@ -193,6 +200,9 @@ const TABS: TabSpec[] = [
   { key: "mcp", label: "MCP Gateway", icon: Zap, description: "P2 fold-in (S28) — 650+ tool registry, Claude Skills, OpenClaw agents, air-gap bundles. The full agent toolchain." },
   { key: "system-health", label: "System Health", icon: HeartPulse, description: "P2 fold-in (S30) — detailed metrics, capacity planning, FIPS attestation, local-store status, telemetry pipelines." },
   { key: "privileged-access", label: "Privileged Access", icon: Shield, description: "P4 fold-in — privileged account lifecycle, session monitoring, MFA status, password rotation tracking, and access certification. Folded from PrivilegedIdentityDashboard 2026-04-27." },
+  { key: "awareness",  label: "Security Awareness",  icon: Users,    description: "Wave 1 Phase 3 fold-in — phishing simulations, training completion, human risk scores by department. /api/v1/security-awareness." },
+  { key: "champions",  label: "Security Champions",  icon: Shield,   description: "Wave 1 Phase 3 fold-in — champion leaderboard, certifications, campaigns, level distribution. /api/v1/security-champions." },
+  { key: "scopes",     label: "Scopes",              icon: Layers,   description: "Wave 1 Phase 3 fold-in — org/repo/asset scope management: list, create, deactivate. /api/v1/scopes." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -624,6 +634,25 @@ export default function Admin() {
         <TabsContent value="privileged-access" className="space-y-4">
           <Suspense fallback={<AdminTabSkeleton />}>
             <PrivilegedIdentityDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ── Wave 1 Phase 3 fold-ins (2026-04-27) ── */}
+        <TabsContent value="awareness" className="space-y-4">
+          <Suspense fallback={<AdminTabSkeleton />}>
+            <SecurityAwareness />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="champions" className="space-y-4">
+          <Suspense fallback={<AdminTabSkeleton />}>
+            <SecurityChampionsDashboard />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="scopes" className="space-y-4">
+          <Suspense fallback={<AdminTabSkeleton />}>
+            <ScopeManager />
           </Suspense>
         </TabsContent>
       </Tabs>
