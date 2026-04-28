@@ -1,0 +1,9 @@
+https://krebsonsecurity.com/feed/
+https://thehackernews.com/feeds/posts/default
+https://www.bleepingcomputer.com/feed/
+https://www.darkreading.com/rss.xml
+https://www.schneier.com/blog/atom.xml
+https://www.securityweek.com/feed/
+https://msrc.microsoft.com/blog/rss/
+https://googleprojectzero.blogspot.com/feeds/posts/default
+https://www.ncsc.gov.uk/api/1/services/v1/all-rss-feed.xml
