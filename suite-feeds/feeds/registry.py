@@ -577,6 +577,45 @@ def _discover() -> None:
         logger.warning("feed_registry: security_blogs importer unavailable: %s", exc)
 
 
+    # ---------- URLscan.io ----------
+    try:
+        from feeds.urlscan.importer import (
+            run_import as _urlscan_run,
+            get_store_stats as _urlscan_stats,
+            total_count as _urlscan_count,
+            URLSCAN_SEARCH_URL as _URLSCAN_URL,
+            DEFAULT_QUERY as _URLSCAN_DEFAULT_QUERY,
+        )
+
+        def _refresh_urlscan() -> Dict[str, Any]:
+            return _urlscan_run(query=_URLSCAN_DEFAULT_QUERY)
+
+        def _count_urlscan() -> int:
+            try:
+                return _urlscan_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="urlscan",
+            display_name="URLscan.io Public Scan Feed",
+            source_url=_URLSCAN_URL,
+            source_type="json",
+            license="Public (no auth required; URLSCAN_API_KEY unlocks higher rate limits)",
+            refresh_interval_seconds=3_600,  # hourly
+            importer_callable=_refresh_urlscan,
+            count_callable=_count_urlscan,
+            description=(
+                "URLscan.io public scan results — URL, domain, country, scan method, "
+                "tags, and overall malicious verdict/score. Defaults to "
+                "task.tags:phishing query; URLSCAN_API_KEY env var unlocks "
+                "higher rate limits."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: urlscan importer unavailable: %s", exc)
+
+
 def _ensure_discovered() -> None:
     global _discovery_done
     with _discovery_lock:
