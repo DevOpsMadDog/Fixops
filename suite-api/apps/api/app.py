@@ -5956,6 +5956,17 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Vulnerability Risk Scoring router not loaded: {e}")
 
+    # Risk Scoring & Exposure — score/rank/summary/exposure (CVSS+EPSS+KEV+criticality)
+    try:
+        from apps.api.risk_scoring_router import router as risk_scoring_router
+        app.include_router(
+            risk_scoring_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Risk Scoring router at /api/v1/risk-scoring (Gap 3)")
+    except Exception as e:
+        _logger.warning(f"Risk Scoring router not loaded: {e}")
+
 
     # Application Security (AppSec) — SAST/DAST scans, findings, OWASP tracking
     # Endpoint Security / EDR — endpoint inventory, alerts, policies

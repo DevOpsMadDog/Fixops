@@ -2,11 +2,12 @@
 Risk Scoring & Exposure REST API — ALDECI.
 
 Endpoints:
-  POST /api/v1/risk/score              Score a single finding
-  POST /api/v1/risk/rank               Rank a list of findings by composite risk
-  GET  /api/v1/risk/exposure/org       Organisation-wide exposure score
-  GET  /api/v1/risk/exposure/{asset_id} Asset-level exposure score
-  GET  /api/v1/risk/exposure/trend     30-day exposure trend (configurable)
+  POST /api/v1/risk-scoring/score              Score a single finding
+  POST /api/v1/risk-scoring/rank               Rank a list of findings
+  GET  /api/v1/risk-scoring/summary            Org-wide risk summary (rollup)
+  GET  /api/v1/risk-scoring/exposure/org       Organisation exposure score
+  GET  /api/v1/risk-scoring/exposure/{asset_id} Asset-level exposure score
+  GET  /api/v1/risk-scoring/exposure/trend     30-day exposure trend
 
 Scoring factors:
   CVSS base score   40%
@@ -28,7 +29,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/risk", tags=["Risk Scoring"])
+router = APIRouter(prefix="/api/v1/risk-scoring", tags=["Risk Scoring"])
 
 # ---------------------------------------------------------------------------
 # Auth (graceful degradation — app.py may wrap with dependencies instead)
@@ -159,7 +160,57 @@ def rank_findings(body: RankFindingsRequest) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# GET /api/v1/risk/exposure/org
+# GET /api/v1/risk-scoring/summary
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/summary",
+    summary="Org-wide risk-scoring rollup",
+    description=(
+        "Aggregate risk-scoring summary for a tenant: open finding count by "
+        "tier, weighted-risk average, distinct assets at risk, and overall "
+        "exposure score. Drives dashboard cards that don't need per-finding "
+        "detail."
+    ),
+    dependencies=_AUTH_DEP,
+)
+def risk_scoring_summary(
+    org_id: str = Query(default="default", description="Tenant org_id"),
+) -> Dict[str, Any]:
+    scorer = _get_scorer()
+    try:
+        org = scorer.calculate_org_exposure(org_id=org_id, snapshot=False)
+        org_dict = org.model_dump()
+        total = (
+            int(org_dict.get("critical_count", 0))
+            + int(org_dict.get("high_count", 0))
+            + int(org_dict.get("medium_count", 0))
+            + int(org_dict.get("low_count", 0))
+        ) or int(org_dict.get("open_findings_count", 0))
+        return {
+            "org_id": org_id,
+            "exposure_score": org_dict.get("exposure_score", 0.0),
+            "rating": org_dict.get("rating"),
+            "weighted_risk_avg": org_dict.get("weighted_risk_avg", 0.0),
+            "open_findings_count": org_dict.get("open_findings_count", 0),
+            "by_tier": {
+                "critical": org_dict.get("critical_count", 0),
+                "high": org_dict.get("high_count", 0),
+                "medium": org_dict.get("medium_count", 0),
+                "low": org_dict.get("low_count", 0),
+            },
+            "assets_at_risk": org_dict.get("assets_at_risk", 0),
+            "patch_velocity_score": org_dict.get("patch_velocity_score", 0.0),
+            "total_scored": total,
+        }
+    except Exception as exc:
+        logger.error("risk_scoring_summary error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/risk-scoring/exposure/org
 # ---------------------------------------------------------------------------
 
 
