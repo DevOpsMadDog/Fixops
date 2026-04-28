@@ -28,6 +28,8 @@ import {
   Code2,
   FileCheck,
   GitPullRequest,
+  Lightbulb,
+  ListChecks,
   PlayCircle,
   RefreshCw,
   Search,
@@ -63,6 +65,12 @@ const AutoWaiverRules = lazy(() => import("@/pages/AutoWaiverRules"));
 const WaiverRequestModal = lazy(() => import("@/pages/WaiverRequestModal"));
 const RemediationCenter = lazy(() => import("@/pages/remediate/RemediationCenter"));
 const Workflows = lazy(() => import("@/pages/remediate/Workflows"));
+// Wave 1 Phase 3 fold-ins (2026-04-27)
+const RiskRegisterDashboard = lazy(() => import("@/pages/RiskRegisterDashboard"));
+const RiskTreatmentDashboard = lazy(() => import("@/pages/RiskTreatmentDashboard"));
+const PatchManagementDashboard = lazy(() => import("@/pages/PatchManagementDashboard"));
+const PostureAdvisor = lazy(() => import("@/pages/PostureAdvisor"));
+const ScheduledReportsDashboard = lazy(() => import("@/pages/ScheduledReportsDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -113,7 +121,7 @@ interface AutoFixStats {
   applied_this_week?: number;
 }
 
-type TabKey = "suggested" | "queue" | "approval" | "closed" | "waivers" | "workflows" | "center";
+type TabKey = "suggested" | "queue" | "approval" | "closed" | "waivers" | "workflows" | "center" | "risk-register" | "risk-treatment" | "patch" | "posture-advisor" | "scheduled-reports";
 
 interface TabSpec {
   key: TabKey;
@@ -128,9 +136,14 @@ const TABS: TabSpec[] = [
   { key: "queue",     label: "Auto-Apply Queue",  icon: PlayCircle,      status: "queued",           description: "Fixes scheduled for autonomous application — gated by AutoWaiver rules + risk threshold." },
   { key: "approval",  label: "Approval Workflow", icon: ClipboardCheck,  status: "pending_approval", description: "Multi-stage human approval queue — waivers, RBAC sign-off, exec approval." },
   { key: "closed",    label: "Closed",            icon: CheckCircle2,    status: "applied",          description: "Historical — applied, rejected, or waived. Provides audit trail for SOC2 / SOX." },
-  { key: "waivers",   label: "Waivers",           icon: ShieldOff,       description: "WaiversExplorer + AutoWaiverRules side-by-side. Manage exception policies and active waivers." },
-  { key: "workflows", label: "Workflows",         icon: Settings2,       description: "Existing Workflows screen — multi-step remediation playbooks and SOAR automations." },
-  { key: "center",    label: "Center",            icon: Wrench,          description: "Legacy Remediation Center deep-dive (cases, bulk operations, ticket integration)." },
+  { key: "waivers",            label: "Waivers",            icon: ShieldOff,    description: "WaiversExplorer + AutoWaiverRules side-by-side. Manage exception policies and active waivers." },
+  { key: "workflows",          label: "Workflows",          icon: Settings2,    description: "Existing Workflows screen — multi-step remediation playbooks and SOAR automations." },
+  { key: "center",             label: "Center",             icon: Wrench,       description: "Legacy Remediation Center deep-dive (cases, bulk operations, ticket integration)." },
+  { key: "risk-register",      label: "Risk Register",      icon: ListChecks,   description: "Wave 1 Phase 3 fold-in — enterprise risk register with likelihood/impact scoring and lifecycle tracking. /api/v1/risk-register-engine." },
+  { key: "risk-treatment",     label: "Risk Treatment",     icon: ClipboardCheck, description: "Wave 1 Phase 3 fold-in — risk treatment workflow tracking: progress, overdue items, owner accountability. /api/v1/risk-treatment." },
+  { key: "patch",              label: "Patch Mgmt",         icon: Activity,     description: "Wave 1 Phase 3 fold-in — patch management lifecycle: pending, in-progress, applied patches by severity. /api/v1/patch-management." },
+  { key: "posture-advisor",    label: "Posture Advisor",    icon: Lightbulb,    description: "Wave 1 Phase 3 fold-in — AI-driven posture recommendations, prioritized roadmap, quick-win actions. /api/v1/posture-advisor." },
+  { key: "scheduled-reports",  label: "Scheduled Reports",  icon: FileCheck,    description: "Wave 1 Phase 3 fold-in — report schedules, delivery history, templates, Slack/email delivery. /api/v1/scheduled-reports." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -569,6 +582,27 @@ export default function Remediate() {
 
         <TabsContent value="center">
           <Suspense fallback={<TabSkeleton />}><RemediationCenter /></Suspense>
+        </TabsContent>
+
+        {/* ── Wave 1 Phase 3 fold-ins (2026-04-27) ── */}
+        <TabsContent value="risk-register">
+          <Suspense fallback={<TabSkeleton />}><RiskRegisterDashboard /></Suspense>
+        </TabsContent>
+
+        <TabsContent value="risk-treatment">
+          <Suspense fallback={<TabSkeleton />}><RiskTreatmentDashboard /></Suspense>
+        </TabsContent>
+
+        <TabsContent value="patch">
+          <Suspense fallback={<TabSkeleton />}><PatchManagementDashboard /></Suspense>
+        </TabsContent>
+
+        <TabsContent value="posture-advisor">
+          <Suspense fallback={<TabSkeleton />}><PostureAdvisor /></Suspense>
+        </TabsContent>
+
+        <TabsContent value="scheduled-reports">
+          <Suspense fallback={<TabSkeleton />}><ScheduledReportsDashboard /></Suspense>
         </TabsContent>
       </Tabs>
 

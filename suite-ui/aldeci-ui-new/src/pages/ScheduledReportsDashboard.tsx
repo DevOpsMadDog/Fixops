@@ -1,3 +1,5 @@
+// FOLDED into Remediate hero 2026-04-27 — preserve for git history
+// Tab path: /remediate?tab=scheduled-reports
 /**
  * Scheduled Reports Dashboard
  *
