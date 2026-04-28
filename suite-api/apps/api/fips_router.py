@@ -119,6 +119,20 @@ def get_fips_status(org_id: str = Query(...)) -> Dict[str, Any]:
     return _get_engine().get_fips_status(org_id=org_id)
 
 
+@router.get("/runtime-status")
+def get_runtime_fips_status() -> Dict[str, Any]:
+    """Return live OpenSSL FIPS boundary status (no org scope required).
+
+    Response always contains:
+      - ``enabled``            — bool: True only when OpenSSL FIPS module is active
+      - ``openssl_version``    — str: e.g. "OpenSSL 3.0.7 1 Nov 2022"
+      - ``validated_module``   — str | None: populated only when enabled=True
+      - ``algorithms_allowed`` — list[str]: FIPS 140-3 approved algorithms (MD5/SHA1 excluded)
+    """
+    from core.fips_boot import get_runtime_fips_status as _runtime_status
+    return _runtime_status()
+
+
 @router.get("/stats")
 def stats(org_id: str = Query(...)) -> Dict[str, Any]:
     return _get_engine().stats(org_id=org_id)

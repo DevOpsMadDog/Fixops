@@ -1,4 +1,11 @@
-"""FIPS 140-2 compliant encryption + air-gap mode for SCIF deployment."""
+"""FIPS 140-2 compliant encryption + air-gap mode for SCIF deployment.
+
+Crypto operations use the ``cryptography`` library (pyca/cryptography) which
+delegates to the system OpenSSL.  When the system OpenSSL is a FIPS-validated
+build (e.g. RHEL 9 FIPS mode, Iron Bank base image) every call here is
+automatically FIPS-validated.  stdlib AES is intentionally NOT used — it is
+not covered by any FIPS 140 certificate regardless of the underlying OpenSSL.
+"""
 
 import hashlib
 import hmac
@@ -10,6 +17,16 @@ from enum import Enum
 from typing import Dict, List
 
 from pydantic import BaseModel
+
+# ---------------------------------------------------------------------------
+# ``cryptography`` library — FIPS-friendly AES-256-GCM
+# ---------------------------------------------------------------------------
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
+    _CRYPTOGRAPHY_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _CRYPTOGRAPHY_AVAILABLE = False
+    _AESGCM = None  # type: ignore[assignment,misc]
 
 
 class EncryptionMode(str, Enum):
@@ -53,8 +70,19 @@ class FIPSEncryption:
         return hmac.compare_digest(expected, signature)
 
     def encrypt(self, data: bytes, key: bytes) -> bytes:
+        """Encrypt using AES-256-GCM via ``cryptography`` lib (FIPS-friendly).
+
+        Wire format: ``nonce(12) | ciphertext+tag(len(data)+16)``.
+        Falls back to the legacy XOR+HMAC path only when the ``cryptography``
+        package is not installed — legacy path is NOT FIPS-certified.
+        """
         if len(key) != self.KEY_SIZE:
             raise ValueError(f"Key must be {self.KEY_SIZE} bytes")
+        if _CRYPTOGRAPHY_AVAILABLE:
+            nonce = os.urandom(self.NONCE_SIZE)
+            ct_and_tag = _AESGCM(key).encrypt(nonce, data, None)
+            return nonce + ct_and_tag
+        # Legacy fallback (non-FIPS, development only)
         nonce = os.urandom(self.NONCE_SIZE)
         derived = hashlib.sha256(key + nonce).digest()
         encrypted = bytes(a ^ b for a, b in zip(data, (derived * ((len(data) // 32) + 1))[:len(data)]))
@@ -62,10 +90,23 @@ class FIPSEncryption:
         return nonce + tag + encrypted
 
     def decrypt(self, data: bytes, key: bytes) -> bytes:
+        """Decrypt AES-256-GCM ciphertext produced by :meth:`encrypt`."""
         if len(key) != self.KEY_SIZE:
             raise ValueError(f"Key must be {self.KEY_SIZE} bytes")
         if len(data) < self.NONCE_SIZE + self.TAG_SIZE:
             raise ValueError("Data too short")
+        if _CRYPTOGRAPHY_AVAILABLE:
+            nonce = data[:self.NONCE_SIZE]
+            ct_and_tag = data[self.NONCE_SIZE:]
+            try:
+                from cryptography.exceptions import InvalidTag
+                try:
+                    return _AESGCM(key).decrypt(nonce, ct_and_tag, None)
+                except InvalidTag:
+                    raise ValueError("Authentication failed — data tampered")
+            except ImportError:
+                raise ValueError("Authentication failed — data tampered")
+        # Legacy fallback (non-FIPS)
         nonce = data[:self.NONCE_SIZE]
         tag = data[self.NONCE_SIZE:self.NONCE_SIZE + self.TAG_SIZE]
         encrypted = data[self.NONCE_SIZE + self.TAG_SIZE:]
@@ -96,11 +137,34 @@ class FIPSEncryption:
         return out_path
 
     def verify_fips_mode(self) -> bool:
+        """Return True only when the runtime OpenSSL is operating in FIPS mode.
+
+        Checks (in order):
+        1. ``ssl.OPENSSL_VERSION`` contains the string ``"fips"`` (case-insensitive)
+           — present when built against an explicit FIPS-enabled OpenSSL (e.g.
+           ``OpenSSL 3.0.x fips`` on RHEL 9).
+        2. Linux kernel ``/proc/sys/crypto/fips_enabled`` == ``"1"`` — the kernel
+           enforces FIPS at the OS level, which implies the OpenSSL FIPS provider
+           is also loaded.
+
+        Note: a ``True`` result here means the *module boundary* is enforced.
+        ``False`` means FIPS validation is NOT active — the caller should treat
+        all crypto as unvalidated.
+        """
         try:
-            h = hashlib.sha256(b"test")
-            return h.hexdigest() == hashlib.sha256(b"test").hexdigest()
+            import ssl
+            if "fips" in ssl.OPENSSL_VERSION.lower():
+                return True
         except Exception:
-            return False
+            pass
+        try:
+            from pathlib import Path
+            p = Path("/proc/sys/crypto/fips_enabled")
+            if p.exists() and p.read_text().strip() == "1":
+                return True
+        except Exception:
+            pass
+        return False
 
     def set_mode(self, mode: EncryptionMode):
         with self._lock:
