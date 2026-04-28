@@ -1,3 +1,5 @@
+// FOLDED into Brain hero 2026-04-27 — access via /brain?tab=actor-tracking
+// Wave 3 Phase 3 UX consolidation fold (target: 30 screens)
 /**
  * Threat Actor Tracking - Live API
  * API: GET /api/v1/actor-tracking/actors

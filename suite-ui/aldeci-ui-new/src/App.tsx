@@ -845,7 +845,8 @@ export default function App() {
             <Route path="/firewall" element={<FirewallAnalyzer />} />
             <Route path="/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/playbooks" element={<PlaybookLibraryPage />} />
-            <Route path="/bug-bounty" element={<BugBounty />} />
+            <Route path="/bug-bounty" element={<Navigate to="/brain?tab=bug-bounty" replace />} />
+            <Route path="/mitre" element={<Navigate to="/brain?tab=mitre" replace />} />
             <Route path="/cloud-iam" element={<CloudIAM />} />
             <Route path="/email-security" element={<EmailSecurity />} />
             <Route path="/sla-dashboard" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
@@ -955,7 +956,7 @@ export default function App() {
             <Route path="/compliance-gaps" element={<ComplianceGapDashboard />} />
 
             {/* Wave 18 domain dashboards */}
-            <Route path="/ai-governance" element={<AIGovernanceDashboard />} />
+            <Route path="/ai-governance" element={<Navigate to="/brain?tab=ai-governance" replace />} />
             <Route path="/digital-identity" element={<DigitalIdentityDashboard />} />
             <Route path="/attack-chains" element={<Navigate to="/brain?tab=attack-chain" replace />} />
             <Route path="/threat-exposure" element={<ThreatExposureDashboard />} />
@@ -1122,7 +1123,7 @@ export default function App() {
 
             {/* Wave 35 domain dashboards */}
             <Route path="/exception-workflow" element={<ExceptionWorkflowDashboard />} />
-            <Route path="/actor-tracking" element={<ActorTrackingDashboard />} />
+            <Route path="/actor-tracking" element={<Navigate to="/brain?tab=actor-tracking" replace />} />
             <Route path="/vuln-scoring" element={<VulnScoringDashboard />} />
             <Route path="/security-benchmarks" element={<SecurityBenchmarksDashboard />} />
             <Route path="/incident-costs" element={<IncidentCostsDashboard />} />

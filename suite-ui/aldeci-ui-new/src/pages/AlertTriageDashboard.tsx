@@ -1,3 +1,5 @@
+// FOLDED into Brain hero 2026-04-27 — access via /brain?tab=alert-triage
+// Wave 3 Phase 3 UX consolidation fold (target: 30 screens)
 /**
  * Alert Triage - Live API
  * API: GET /api/v1/alert-triage/alerts

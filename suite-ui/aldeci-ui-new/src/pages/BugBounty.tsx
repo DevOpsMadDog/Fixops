@@ -1,3 +1,5 @@
+// FOLDED into Brain hero 2026-04-27 — access via /brain?tab=bug-bounty
+// Wave 3 Phase 3 UX consolidation fold (target: 30 screens)
 /**
  * Bug Bounty - Live API
  * API: GET /api/v1/bounty/submissions

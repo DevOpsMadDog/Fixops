@@ -81,6 +81,12 @@ const SecurityChaosDashboard = lazy(() => import("@/pages/SecurityChaosDashboard
 // Wave 2 Phase 3 fold-ins (2026-04-27)
 const AlertEnrichmentDashboard = lazy(() => import("@/pages/AlertEnrichmentDashboard"));
 const AttackChainDashboard = lazy(() => import("@/pages/AttackChainDashboard"));
+// Wave 3 Phase 3 fold-ins (2026-04-27)
+const MITREAttackDashboard = lazy(() => import("@/pages/MITREAttackDashboard"));
+const BugBounty = lazy(() => import("@/pages/BugBounty"));
+const AlertTriageDashboard = lazy(() => import("@/pages/AlertTriageDashboard"));
+const AIGovernanceDashboard = lazy(() => import("@/pages/AIGovernanceDashboard"));
+const ActorTrackingDashboard = lazy(() => import("@/pages/ActorTrackingDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 12-step Brain Pipeline canon (from CTEM_PLUS_IDENTITY.md + brain_pipeline.py)
@@ -342,6 +348,11 @@ export default function Brain() {
           <TabsTrigger value="chaos">Security Chaos</TabsTrigger>
           <TabsTrigger value="alert-enrichment">Alert Enrichment</TabsTrigger>
           <TabsTrigger value="attack-chain">Attack Chain</TabsTrigger>
+          <TabsTrigger value="mitre">MITRE ATT&amp;CK</TabsTrigger>
+          <TabsTrigger value="bug-bounty">Bug Bounty</TabsTrigger>
+          <TabsTrigger value="alert-triage">Alert Triage</TabsTrigger>
+          <TabsTrigger value="ai-governance">AI Governance</TabsTrigger>
+          <TabsTrigger value="actor-tracking">Actor Tracking</TabsTrigger>
         </TabsList>
 
         {/* ───────────────────────────────── PIPELINE TAB ─────────────────────── */}
@@ -700,6 +711,41 @@ export default function Brain() {
         <TabsContent value="attack-chain" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
             <AttackChainDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── MITRE ATT&CK TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="mitre" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <MITREAttackDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── BUG BOUNTY TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="bug-bounty" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <BugBounty />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── ALERT TRIAGE TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="alert-triage" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <AlertTriageDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── AI GOVERNANCE TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="ai-governance" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <AIGovernanceDashboard />
+          </Suspense>
+        </TabsContent>
+
+        {/* ─────────── ACTOR TRACKING TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
+        <TabsContent value="actor-tracking" className="space-y-4">
+          <Suspense fallback={<TabSkeleton />}>
+            <ActorTrackingDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

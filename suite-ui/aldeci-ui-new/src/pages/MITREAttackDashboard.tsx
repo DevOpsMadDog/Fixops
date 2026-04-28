@@ -1,3 +1,5 @@
+// FOLDED into Brain hero 2026-04-27 — access via /brain?tab=mitre
+// Wave 3 Phase 3 UX consolidation fold (target: 30 screens)
 /**
  * MITRE ATT&CK Dashboard
  *
@@ -382,8 +384,7 @@ export default function MITREAttackDashboard() {
               <span className="text-xs text-muted-foreground">{item.label}</span>
             </CardContent>
           </Card>
-        ))
-                )}
+        ))}
       </div>
     </div>
   );
