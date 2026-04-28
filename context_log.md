@@ -48,6 +48,12 @@
 - **Decisions made**: §4 TAM left as CITATION NEEDED — no analyst TAM numbers found in any source doc. §7 Team and §8 Ask preserved as TBD-FOUNDER. §8 includes the $8M Series A framework from prior pack as a starting point.
 - **Pillar(s) served**: V1 (product clarity), V3 (investor readiness), V9 (federal/SCIF GTM)
 
+### [2026-04-27 11:56] data-scientist — LLM_PHASE2_KICKOFF
+- **What**: Kicked off LLM Phase 2 distillation. Ran curator against learning_signals.db (5196 verdicts, all Opus-escalated) → 5196/5196 DPO pairs + 5196/5196 SFT pairs, 0 dropped, 0 dedupes. Ran trainer dry-run: 5196 valid SFT + DPO, device=mps, elapsed=1.43s. No CUDA — training deferred to remote GPU box. Produced kickoff doc with hyperparameters, GPU wall-clock estimates, and inference router wiring plan.
+- **Files touched**: data/distill_train.jsonl, data/distill_sft.jsonl, data/distill_dataset_manifest.json, data/distill_adapter_20260428T015624Z/trainer_trace.json, docs/llm_phase2_kickoff_2026-04-27.md
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V4 (Multi-LLM Consensus — student replaces Opus escalation slot), V9 (Air-Gapped inference — self-hosted Qwen student)
+
 ### [2026-04-27 00:00] sales-engineer — CUSTOMER_ONBOARDING_NONTECH_PLAYBOOK
 - **What**: Wrote 9,168-word non-technical click-by-click customer onboarding playbook for 4-app + 8-integration scenario. Covers Day 0 (deploy, SHA-256 verify, scif_pilot_day1_install.sh --dev-mode, health check, password rotation) through Day 5+ (bulk triage, evidence vault export, Multi-LLM escalation). Includes connector wiring for Snyk, SonarQube, JIRA, ServiceNow, CrowdStrike Falcon, AWS IAM Role, Tenable, and Splunk HEC. Walkthrough of all 6 hero screens with non-technical language. Competitive positioning vs Apiiro/Aikido/Wiz/Tenable. 5-section troubleshooting appendix (port conflicts, OAuth failures, slow syncs, missing scopes, Splunk timestamp drift).
 - **Files touched**: docs/sales/CUSTOMER_ONBOARDING_NONTECH_PLAYBOOK.md (created, 1026 lines)
