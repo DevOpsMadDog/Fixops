@@ -540,6 +540,42 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: sans_isc importer unavailable: %s", exc)
 
+    # ---------- Security Blogs RSS ----------
+    try:
+        from feeds.security_blogs.importer import (
+            run_import as _security_blogs_run,
+            total_count as _security_blogs_count,
+            SOURCES_URL as _SECURITY_BLOGS_URL,
+        )
+
+        def _refresh_security_blogs() -> Dict[str, Any]:
+            return _security_blogs_run()
+
+        def _count_security_blogs() -> int:
+            try:
+                return _security_blogs_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="security_blogs",
+            display_name="Security Blog RSS Aggregator",
+            source_url=_SECURITY_BLOGS_URL,
+            source_type="xml",
+            license="Public (no API key required; per-blog copyright applies)",
+            refresh_interval_seconds=3_600,  # hourly
+            importer_callable=_refresh_security_blogs,
+            count_callable=_count_security_blogs,
+            description=(
+                "Aggregated RSS/Atom posts from canonical security blogs: "
+                "Krebs on Security, The Hacker News, BleepingComputer, "
+                "Dark Reading, Schneier on Security, SecurityWeek, "
+                "Microsoft MSRC, Google Project Zero, NCSC UK."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: security_blogs importer unavailable: %s", exc)
+
 
 def _ensure_discovered() -> None:
     global _discovery_done
