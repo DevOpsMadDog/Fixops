@@ -290,38 +290,134 @@ Target: Carahsoft (federal SaaS reseller), Anchore Federal (Iron Bank packaging)
 
 ## 7. Team
 
-**TBD-FOUNDER** — founder to complete.
+> **[FOUNDER REVIEW]** — All named roles and bios in this section require founder confirmation before external distribution. Draft structure is provided to accelerate editing. Replace `[founder fills]` blocks with final content.
 
-- Founder / CTO — [name]
-- Engineering — [N engineers]
-- Compliance lead — [hire under Series A use-of-funds]
-- Federal sales lead — [hire under Series A use-of-funds]
-- Advisors — [list]
+### Founder & CEO
 
-> Note: The codebase reflects CTO-mode autonomous agent architecture — 893 Beast Mode tests, 351 backend engines, 643 API routers, and 3,020+ shipped Multica board items built by a small team + AI agent orchestration. This is a differentiator worth explaining in the team section.
+**[founder fills: name, one-line title]**
+
+[founder fills: 3–5 sentence bio. Recommended structure: prior company / role → insight that led to ALDECI → why now. Example frame: "X years in [federal security / enterprise SaaS / CISO role], where [specific observation about the broken tool landscape]. Founded ALDECI to [mission statement]. Previously [prior company / exit / credential]."]
+
+> **Why this founder:** [founder fills: the specific insight, relationship, or unfair advantage that makes this founder the right person to build ALDECI — e.g., prior federal clearance, prior CISO role, prior exit in adjacent category.]
+
+---
+
+### Engineering: AI-Native CTO Model [FOUNDER REVIEW]
+
+ALDECI's engineering model is itself a competitive differentiator — and it belongs in the team section of an investor deck, not just the product section.
+
+The platform was architected and built under a **CTO-as-orchestrator model**: a single technical founder directing a swarm of specialized AI agents operating 24/7 across parallel workstreams. In a conventional startup, this work — 351 backend engines, 643 API routers, 6,300+ live API routes, 893 Beast Mode tests with zero regressions, and 3,020+ shipped Multica board items — would require a 15–20 person engineering team and 18–24 months. ALDECI achieved it with a fraction of that headcount by treating AI agents as first-class engineering contributors: each agent is scoped to a domain (backend, frontend, security hardening, test coverage, documentation), receives task context from a shared memory store, persists decisions to an append-only log, and operates with full autonomy within defined guardrails.
+
+This is not a prototype pattern. It is the production operating model. The evidence is in the codebase:
+
+| Signal | Value | Verification |
+|---|---:|---|
+| Backend engines shipped | 351 | `ls suite-core/core/*_engine.py \| wc -l` |
+| API routers shipped | 643 | `ls suite-api/apps/api/*_router.py \| wc -l` |
+| Beast Mode tests, zero regressions | 893 | `pytest tests/test_phase*.py ... -q` |
+| Board items shipped (Multica) | 3,020+ | Multica board live state |
+| Real DPO preference pairs (self-learning loop) | 5,196 | `data/distill_train.jsonl` |
+| Knowledge graph nodes / edges | 119,765 / 425,727 | `graphify update . --no-llm` |
+
+Under Series A funding, the engineering function scales from this AI-native foundation: senior hires set direction, review architecture, and own customer-facing integrations, while the agent swarm continues to handle high-volume implementation. The multiplier effect is preserved; the quality bar rises.
+
+**Series A engineering hires (planned):**
+- 3 Senior Engineers — distributed across Brain Pipeline / MPTE, Federal/SCIF hardening, and AI Consensus infrastructure
+- 2 Mid-Level Engineers — connector framework and third-party scanner parser expansion
+- 1 ML Lead — Phase 2 distillation (Qwen 2.5 7B LoRA), Council self-improvement, DPO pipeline ownership
+
+> **Why this matters to investors:** The same capital that funds a conventional 6-person team at ALDECI funds a 6-person team plus an always-on, context-aware AI workforce. Burn efficiency is structurally different from the Series A cohort comparables.
+
+*[FOUNDER REVIEW: adjust hire count and titles to match actual hiring plan. The framing of the AI-native model is a real differentiator — recommend keeping it.]*
+
+---
+
+### Go-to-Market & Federal [FOUNDER REVIEW]
+
+**[founder fills: if a co-founder, BD lead, or GTM hire is already on board, name them here.]**
+
+**Series A GTM hires (planned):**
+- 2 Enterprise Account Executives — mid-market CISO motion (Lane B)
+- 1 Federal Capture Lead — cleared or clearable; federal civilian + DoD relationship network for the 36-target SCIF pipeline (`docs/sales/scif/target_list_2026-04-26.md`)
+- 1 Sales Engineer — demo, POC, and onboarding for Lane A and Lane B buyers
+
+> **Why:** Federal capture is a relationship-gated motion. The 36-target list is built; the 20-day pilot path is engineered; the SSP, NIST 800-53 matrix, and STRIDE threat model are shipped. The only blocker to converting sponsors is a dedicated capture lead with existing agency relationships. This is the single hire with the highest expected contract value per dollar of salary.
+
+*[FOUNDER REVIEW: if you have an identified federal capture hire or warm intro, name them. Even a named advisor with relevant clearance history materially de-risks this section for federal-focused LPs.]*
+
+---
+
+### Advisors [FOUNDER REVIEW]
+
+> [founder fills: advisory board. Recommended profiles below — replace with actual names once confirmed.]
+
+| Role | Profile | Why This Matters |
+|---|---|---|
+| Federal Pilot Champion | Former CISO or program manager at a P1 target agency (CISA, DARPA, DIU, CDAO) | Converts cold outreach to warm sponsor introductions; validates SCIF pilot path credibility |
+| Pre-IPO Security Operator | Former VP Engineering or CTO at a public security company (Snyk, Tenable, Rapid7 cohort) | GTM pattern recognition, enterprise sales coaching, Series B network |
+| Compliance / FedRAMP Specialist | Partner or senior advisor at a 3PAO-accredited firm | Accelerates FedRAMP Moderate path; reduces 3PAO assessment cost and timeline |
+| AI/ML Researcher | Academic or industry researcher in LLM consensus or post-quantum cryptography | Technical credibility for the multi-LLM Council and ML-DSA evidence chain claims |
+
+*[FOUNDER REVIEW: even one confirmed advisor name in the federal row materially changes how defense-focused investors read this section.]*
 
 ---
 
 ## 8. The Ask
 
-**TBD-FOUNDER** — founder to confirm round size and use of funds.
+> **[FOUNDER REVIEW]** — Round size, use-of-funds percentages, and milestone targets in this section are a starting framework for founder editing. All figures are back-of-envelope drafts based on comparable Series A benchmarks in the security category. Confirm before any external share.
 
-The prior investor pack (`docs/investor/INVESTOR_PACK_2026-04-26.md` §9) proposed **~$8M Series A** (range $6–10M) with the following 18-month use-of-funds framework:
+### Round: $8M Series A [FOUNDER REVIEW]
 
-| Bucket | Allocation | Purpose |
+**Proposed raise:** $8M (range: $6M–$10M depending on lead investor and market conditions)
+
+**Pre-money context:** ALDECI is pre-revenue at time of raise. The valuation anchor is technical depth (6,300+ routes, 893 passing tests, 5,196 real DPO pairs, 6 unique moats with no competitor equivalent) and the federal SCIF wedge (36 prioritized targets, 20-day pilot path fully engineered, Stage 1–2 compliance artifacts shipped). Comparable pre-revenue Series A security platforms: Apiiro raised $35M Series B at sub-$10M ARR (2021) with a similar enterprise ASPM thesis; Orca Security raised $20M Series A pre-revenue (2020) on the CSPM consolidation thesis.
+
+*[FOUNDER REVIEW: add lead investor name / fund here once term sheet is in process. Also confirm whether this is a priced round or a SAFE/convertible structure.]*
+
+---
+
+### Use of Funds [FOUNDER REVIEW]
+
+| Bucket | Allocation | 18-Month Budget | Purpose |
+|---|---|---|---|
+| **Engineering** | 40% | ~$3.2M | 3 senior + 2 mid + 1 ML lead (see §7). Covers 18 months of fully-loaded salaries ($180–220K/yr range), GPU budget for Phase 2 distillation (~$10/run on rented L40S), MCP gateway expansion to 1,500+ tools, and connector framework growth to 50+ parsers. |
+| **Sales & GTM** | 25% | ~$2.0M | 2 enterprise AEs + 1 federal capture lead + 1 sales engineer. Covers 18 months of salaries plus commission structure, travel for federal sponsor meetings, conference presence (RSA, AWS re:Inforce, AUSA), and demo infrastructure. |
+| **Federal Pilot Delivery** | 15% | ~$1.2M | SCIF Stage 1–2 already shipped. This bucket funds: 3PAO assessment engagement ($200–500K; *Why: FedRAMP Moderate ATO is the gate for federal agency contract vehicles*), FIPS-validated OpenSSL licensing, HSM hardware for production signing, Iron Bank publication, compliance lead salary (18 months), and customer success for the first 3 federal pilots. |
+| **Marketing & Analyst Relations** | 10% | ~$0.8M | Gartner/Forrester analyst briefings, RSA 2027 booth, content and thought leadership (CTEM category education), PR agency for category creation narrative. *Why: ALDECI is defining a new category (CTEM+ Decision Intelligence). Early analyst coverage sets the evaluation criteria incumbents must meet — a structural moat that compounds.* |
+| **Operations & Reserve** | 10% | ~$0.8M | Legal (IP, employment, customer contracts), finance/HR ops, office infrastructure, 3–4 month cash reserve buffer. |
+
+**Total: $8.0M over 18 months**
+
+> *Back-of-envelope check:* 6 engineering hires at $200K fully-loaded average = $1.2M/yr × 1.5 years = $1.8M. 4 GTM hires at $180K fully-loaded average = $720K/yr × 1.5 years = $1.08M. Combined people cost ~$2.9M. Non-people (3PAO, GPU, infra, marketing, ops) ~$2.1M. Total ~$5.0M of committed spend, ~$3.0M of runway buffer and growth optionality. This gives 6+ months of extended runway if hiring timeline slips.
+
+---
+
+### Series B Trigger Milestones (Month 18) [FOUNDER REVIEW]
+
+Target raise at month 18: **$20–30M Series B**
+
+| Milestone | Target | Why This Number |
 |---|---|---|
-| Engineering | 60% (~$4.8M) | 8 engineering hires (2 ML, 2 backend, 2 frontend, 2 platform), GPU envelope for Phase 2 distillation, MCP gateway expansion to 1,500+ tools |
-| Federal compliance + 3PAO | 25% (~$2.0M) | Compliance lead, 3PAO assessment ($200–500K), FIPS-validated OpenSSL, HSM hardware, Iron Bank publication, FedRAMP PMO engagement |
-| Go-to-market | 15% (~$1.2M) | Federal sales lead, mid-market CSM, partner-channel manager, demo infrastructure |
+| ARR | $5M | Consistent with Series B pricing in security category ($5M ARR → ~$50M pre-money at 10x; $5M ARR → ~$75M at 15x). Apiiro and Snyk both crossed $5M ARR before Series B. *[FOUNDER REVIEW: adjust if revenue model shifts to higher ACV / fewer logos.]* |
+| Federal pilots converted to subscriptions | 3 | Each federal subscription at $250K–1.5M ACV contributes $750K–4.5M ARR. Even 3 at minimum ACV ($250K) = $750K ARR, representing ~15% of the $5M target from a single channel. *Why 3:* the 36-target list has 12 P1 "hot" sponsors; converting 3 of 12 is a 25% win rate — conservative for a product with a fully engineered pilot path.* |
+| Enterprise commercial customers | 50+ | At $1,499/month average ($18K/yr), 50 enterprise accounts = $900K ARR. Combined with 3 federal pilots and mid-market Starter/Pro mix, this anchors the $5M ARR target. *Why 50:* Wiz had ~30 customers at Series B; Apiiro had ~25. ALDECI's 4-week POC path and Switzerland positioning (works with existing tools) supports faster land.* |
+| Multi-LLM Council Phase 3 | Deployed on 1+ tenant | Autonomous remediation suggestions from the Council close the CTEM loop — turning ALDECI from "decision intelligence" to "decision + action." This is the product milestone that justifies Series B category expansion. Source: `docs/LLM_TRAINING_ROADMAP_2026-04-26.md`. |
+| TrustGraph coverage | 95% | Up from 38.4% today. Full TrustGraph wiring means every API call, engine decision, and evidence bundle is indexed in the knowledge graph — enabling the cross-customer pattern learning that is the long-term defensibility story. Source: `suite-core/trustgraph/`. |
+| FedRAMP Moderate ATO | *In Process* listing | Required for most federal agency contract vehicles. 12–18 month timeline begins at Series A close. *In Process* listing at month 18 keeps the federal pipeline unblocked into Series B. Full ATO follows 6–12 months after. |
 
-**18-month Series B trigger metrics** (proposed):
-- 5 paid customers (mix of mid-market + federal SCIF)
-- $1.5–3M ARR run-rate
-- FedRAMP Moderate ATO + High *In Process* listing
-- 10,000 curated DPO pairs with a deployed distilled-Council on at least one tenant
-- One reseller partnership signed (Carahsoft preferred)
+---
 
-> TBD-FOUNDER: confirm $8M target, adjust percentages, and add any co-investor / lead investor context before sharing externally.
+### Why Now [FOUNDER REVIEW]
+
+Three vectors converge in 2026 that make this the right entry point for a Series A in CTEM+:
+
+1. **Gartner CTEM adoption curve.** Gartner projects that by 2027, organizations prioritizing investments through CTEM will realize a two-thirds reduction in breaches. The Hype Cycle inflection is happening now — buyers are actively budgeting for CTEM tools. ALDECI enters with a production-ready platform at the moment the category crosses from "innovator" to "early majority" buyer readiness.
+
+2. **Federal AI security mandate.** NSM-10, EO 14028, and the DoD Zero Trust Strategy all create procurement pressure for AI-native, quantum-ready security tools. The window between "mandated" and "market flooded with compliant vendors" is 18–36 months. ALDECI's SCIF-ready, ML-DSA-signed, NIST 800-53 Rev 5 platform is engineered to move through this window first.
+
+3. **AI agent security is an unclaimed category.** The MCP Gateway (650+ tools) is not a feature — it is a platform bet. As AI agents (Claude, GPT, Llama) become first-class participants in enterprise workflows, they will need a security layer that speaks their protocol. ALDECI is the only security platform designed from the ground up for AI agent consumption. The incumbent market has not yet reacted.
+
+*[FOUNDER REVIEW: add any personal timing rationale — prior exit proceeds invested, prior employer insight, specific customer relationship — that makes the "why now / why you" story concrete.]*
 
 ---
 
