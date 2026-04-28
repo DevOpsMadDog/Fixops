@@ -24,6 +24,47 @@ import structlog
 log = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
+# TrustGraph second-brain wiring
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except Exception:  # noqa: BLE001
+    _get_tg_bus = None  # type: ignore[assignment]
+
+
+def _emit_event(event_type: str, payload: dict) -> None:
+    """Emit to TrustGraph event bus. Never raises."""
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover
+        pass
+
+
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+# ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
 
@@ -1283,7 +1324,9 @@ class ContainerRuntimeSecurityEngine:
         manifest: Optional[Dict[str, Any]] = None,
         config: Optional[Dict[str, Any]] = None,
     ) -> ImageAnalysisResult:
-        return self.image_analyzer.analyse(image_ref, manifest, config)
+        result = self.image_analyzer.analyse(image_ref, manifest, config)
+        _emit_event("container.image_analysed", {"image_ref": image_ref, "vuln_count": len(result.vulnerabilities) if hasattr(result, "vulnerabilities") else 0})
+        return result
 
     def evaluate_policy(
         self,
@@ -1291,7 +1334,9 @@ class ContainerRuntimeSecurityEngine:
         analysis: ImageAnalysisResult,
         policy_id: Optional[str] = None,
     ) -> List[PolicyEvaluationResult]:
-        return self.policy_engine.evaluate(image_ref, analysis, policy_id)
+        results = self.policy_engine.evaluate(image_ref, analysis, policy_id)
+        _emit_event("container.policy_evaluated", {"image_ref": image_ref, "policy_id": policy_id, "violation_count": sum(1 for r in results if r.violations)})
+        return results
 
     def detect_drift(
         self,
@@ -1300,7 +1345,9 @@ class ContainerRuntimeSecurityEngine:
         image_analysis: ImageAnalysisResult,
         runtime_state: Dict[str, Any],
     ) -> DriftReport:
-        return self.drift_detector.detect(container_id, image_ref, image_analysis, runtime_state)
+        report = self.drift_detector.detect(container_id, image_ref, image_analysis, runtime_state)
+        _emit_event("container.drift_detected", {"container_id": container_id, "image_ref": image_ref, "drifted": getattr(report, "has_drift", False)})
+        return report
 
     def map_vulnerabilities(
         self,
