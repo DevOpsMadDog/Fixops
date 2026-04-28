@@ -652,6 +652,45 @@ def _discover() -> None:
     except ImportError as exc:
         logger.warning("feed_registry: greynoise importer unavailable: %s", exc)
 
+    # ---------- SecurityTrails Passive DNS ----------
+    try:
+        from feeds.securitytrails.importer import (
+            run_import as _securitytrails_run,
+            get_store_stats as _securitytrails_stats,
+            total_count as _securitytrails_count,
+            SECURITYTRAILS_BASE_URL as _ST_BASE_URL,
+        )
+
+        def _refresh_securitytrails() -> Dict[str, Any]:
+            # Registry-level refresh is a no-op stats call; real enumeration
+            # is triggered per-domain via POST /api/v1/securitytrails/enumerate.
+            return _securitytrails_stats()
+
+        def _count_securitytrails() -> int:
+            try:
+                return _securitytrails_count()
+            except Exception:  # noqa: BLE001
+                return 0
+
+        _register(FeedDefinition(
+            id="securitytrails",
+            display_name="SecurityTrails Passive DNS",
+            source_url=_ST_BASE_URL,
+            source_type="json",
+            license="SecurityTrails API Terms of Service (free tier: 50 calls/month; SECURITYTRAILS_API_KEY required)",
+            refresh_interval_seconds=604_800,  # 7 days — subdomain data is stable
+            importer_callable=_refresh_securitytrails,
+            count_callable=_count_securitytrails,
+            description=(
+                "SecurityTrails passive DNS feed — subdomain enumeration, "
+                "A-record history (ip, first_seen, last_seen), and reverse DNS "
+                "lookups. Requires SECURITYTRAILS_API_KEY env var. "
+                "Free tier: 50 API calls/month. Results cached 7 days."
+            ),
+        ))
+    except ImportError as exc:
+        logger.warning("feed_registry: securitytrails importer unavailable: %s", exc)
+
 
 def _ensure_discovered() -> None:
     global _discovery_done
