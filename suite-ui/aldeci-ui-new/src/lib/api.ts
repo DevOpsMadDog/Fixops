@@ -223,20 +223,22 @@ export const changesApi = {
 };
 
 export const mpteApi = {
-  verify: (data: unknown) => api.post("/api/v1/mpte/verify", data),
-  status: () => api.get("/api/v1/mpte/status"),
-  stats: () => api.get("/api/v1/mpte/stats"),
-  results: (params?: Record<string, string>) => api.get("/api/v1/mpte/results", { params }),
+  // Path corrections 2026-04-29: UI was calling routes that don't exist on the backend
+  // (verify, status, stats, results, verifications). Mapped to the real registered paths.
+  verify: (data: unknown) => api.post("/api/v1/mpte/requests", data),
+  status: () => api.get("/api/v1/mpte/health"),
+  stats: () => api.get("/api/v1/mpte/monitoring"),
+  results: (params?: Record<string, string>) => api.get("/api/v1/mpte/requests", { params }),
   requests: (params?: Record<string, string>) => api.get("/api/v1/mpte/requests", { params }),
   getRequest: (id: string) => api.get(`/api/v1/mpte/requests/${id}`),
   startRequest: (id: string) => api.post(`/api/v1/mpte/requests/${id}/start`),
   cancelRequest: (id: string) => api.post(`/api/v1/mpte/requests/${id}/cancel`),
-  verifications: (params?: Record<string, string>) => api.get("/api/v1/mpte/verifications", { params }),
-  getVerification: (id: string) => api.get(`/api/v1/mpte/verifications/${id}`),
+  verifications: (params?: Record<string, string>) => api.get("/api/v1/mpte/requests", { params }),
+  getVerification: (id: string) => api.get(`/api/v1/mpte/requests/${id}`),
   configs: () => api.get("/api/v1/mpte/configs"),
   monitoring: () => api.get("/api/v1/mpte/monitoring"),
   health: () => api.get("/api/v1/mpte/health"),
-  comprehensiveScan: (data: unknown) => api.post("/api/v1/mpte/scan/comprehensive", data),
+  comprehensiveScan: (data: unknown) => api.post("/api/v1/mpte/campaigns", data),
   orchestratorRun: (data: unknown) => api.post("/api/v1/mpte-orchestrator/run", data),
   orchestratorSimulate: (data: unknown) => api.post("/api/v1/mpte-orchestrator/simulate", data),
   orchestratorStatus: (id: string) => api.get(`/api/v1/mpte-orchestrator/status/${id}`),
