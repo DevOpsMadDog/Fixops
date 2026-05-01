@@ -191,7 +191,8 @@ const SecurityPostureDashboard = lazy(() => import("@/pages/SecurityPostureDashb
 const ExecutiveBriefing = lazy(() => import("@/pages/ExecutiveBriefing"));
 const ThreatFeedDashboard = lazy(() => import("@/pages/ThreatFeedDashboard"));
 const CWPPDashboard = lazy(() => import("@/pages/CWPPDashboard"));
-const DigitalForensicsDashboard = lazy(() => import("@/pages/DigitalForensicsDashboard"));
+// FOLDED 2026-05-02 → ForensicsHub#digital. Hub re-imports lazily.
+// const DigitalForensicsDashboard = lazy(() => import("@/pages/DigitalForensicsDashboard"));
 const GRCAssessment = lazy(() => import("@/pages/GRCAssessment"));
 const DataGovernanceDashboard = lazy(() => import("@/pages/DataGovernanceDashboard"));
 const SecurityRoadmap = lazy(() => import("@/pages/SecurityRoadmap"));
@@ -344,8 +345,10 @@ const IdentityRiskDashboard = lazy(() => import("@/pages/IdentityRiskDashboard")
 const OTSecurityDashboard = lazy(() => import("@/pages/OTSecurityDashboard"));
 
 // Wave 24 domain dashboards
-const NetworkForensicsDashboard = lazy(() => import("@/pages/NetworkForensicsDashboard"));
-const MalwareAnalysisDashboard = lazy(() => import("@/pages/MalwareAnalysisDashboard"));
+// FOLDED 2026-05-02 → ForensicsHub uses FindingsExplorerView from FINDINGS_EXPLORER_ROUTES.
+// Standalone dashboards retained on disk for git history; previously unrouted.
+// const NetworkForensicsDashboard = lazy(() => import("@/pages/NetworkForensicsDashboard"));
+// const MalwareAnalysisDashboard = lazy(() => import("@/pages/MalwareAnalysisDashboard"));
 const ApplicationRiskDashboard = lazy(() => import("@/pages/ApplicationRiskDashboard"));
 const PAGDashboard = lazy(() => import("@/pages/PAGDashboard"));
 const SecurityGamificationDashboard = lazy(() => import("@/pages/SecurityGamificationDashboard"));
@@ -533,6 +536,7 @@ const BRSExecutiveDashboard = lazy(() => import("@/pages/BRSExecutiveDashboard")
 const BUDollarRiskHeatmap = lazy(() => import("@/pages/BUDollarRiskHeatmap"));
 // Phase 3 UX consolidation S2 — Executive Brief Finance/Investment hub (2026-05-02)
 const FinanceHub = lazy(() => import("@/pages/FinanceHub"));
+const ForensicsHub = lazy(() => import("@/pages/ForensicsHub"));
 const ChokePointDashboard = lazy(() => import("@/pages/ChokePointDashboard"));
 const AttackPathInteractiveGraph = lazy(() => import("@/pages/AttackPathInteractiveGraph"));
 const ToxicCombinationIssueView = lazy(() => import("@/pages/ToxicCombinationIssueView"));
@@ -901,7 +905,7 @@ export default function App() {
             <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/threat-feeds" element={<Navigate to="/issues?tab=threat-feed" replace />} />
             <Route path="/cwpp" element={<CWPPDashboard />} />
-            <Route path="/digital-forensics" element={<DigitalForensicsDashboard />} />
+            {/* S22 fold 2026-05-02: /digital-forensics → ForensicsHub#digital (canonical mounted later) */}
             <Route path="/grc-assessment" element={<GRCAssessment />} />
             <Route path="/data-governance" element={<DataGovernanceDashboard />} />
             <Route path="/security-roadmap" element={<SecurityRoadmap />} />
@@ -1346,10 +1350,20 @@ export default function App() {
               <Route key={path} path={path} element={<GenericDashboard {...props} />} />
             ))}
 
-            {/* ── FindingsExplorerView routes — Pattern-2 collapse 2026-04-27 (Wave 4) ── */}
-            {FINDINGS_EXPLORER_ROUTES.map(({ path, props }) => (
-              <Route key={path} path={path} element={<FindingsExplorerView {...props} />} />
-            ))}
+            {/* ── FindingsExplorerView routes — Pattern-2 collapse 2026-04-27 (Wave 4) ──
+                NB: /network-forensics and /malware-analysis are filtered out below;
+                they are folded into ForensicsHub at /remediate/forensics (S22 fold 2026-05-02). */}
+            {FINDINGS_EXPLORER_ROUTES
+              .filter(({ path }) => path !== "/network-forensics" && path !== "/malware-analysis")
+              .map(({ path, props }) => (
+                <Route key={path} path={path} element={<FindingsExplorerView {...props} />} />
+              ))}
+
+            {/* S22 Forensics hub — folded 2026-05-02. Canonical hub + 3 legacy redirects. */}
+            <Route path="/remediate/forensics" element={<ForensicsHub />} />
+            <Route path="/digital-forensics" element={<Navigate to="/remediate/forensics?tab=digital" replace />} />
+            <Route path="/network-forensics" element={<Navigate to="/remediate/forensics?tab=network" replace />} />
+            <Route path="/malware-analysis" element={<Navigate to="/remediate/forensics?tab=malware" replace />} />
 
             {/* Main Overview Dashboard */}
             <Route path="/dashboard" element={<Navigate to="/" replace />} />

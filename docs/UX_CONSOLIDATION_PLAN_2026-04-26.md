@@ -411,6 +411,8 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `SecurityDependencyRiskDashboard` | `/api/v1/deps/risk` | tab |
 
 ### 2.22 → S22 Incident Response
+**Forensics sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 forensics surfaces folded into ForensicsHub.tsx at `/remediate/forensics` (DigitalForensicsDashboard, NetworkForensics-via-FindingsExplorerView, MalwareAnalysis-via-FindingsExplorerView). Old routes (`/digital-forensics`, `/network-forensics`, `/malware-analysis`) redirect with `?tab=`.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `IncidentResponse` / `IncidentResponseDashboard` | `/api/v1/incidents` | hero |
