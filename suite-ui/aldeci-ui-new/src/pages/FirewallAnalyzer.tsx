@@ -1,3 +1,4 @@
+// FOLDED into NetworkSegmentationHub at /discover/network-segmentation?tab=firewall
 /**
  * Firewall Analyzer - Live API
  * API: GET /api/v1/firewall-policy/rules

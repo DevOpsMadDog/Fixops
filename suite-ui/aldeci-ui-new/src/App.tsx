@@ -409,6 +409,8 @@ const PrivilegedAccessHub = lazy(() => import("@/pages/PrivilegedAccessHub"));
 const CloudResourceInventoryDashboard = lazy(() => import("@/pages/CloudResourceInventoryDashboard"));
 const SecurityTelemetryDashboard = lazy(() => import("@/pages/SecurityTelemetryDashboard"));
 const MicrosegmentationPolicyDashboard = lazy(() => import("@/pages/MicrosegmentationPolicyDashboard"));
+// Phase 3 UX consolidation — Network Segmentation hub (folds Microseg + FirewallAnalyzer + FirewallPolicy, 2026-05-02)
+const NetworkSegmentationHub = lazy(() => import("@/pages/NetworkSegmentationHub"));
 const ThirdPartyVendorDashboard = lazy(() => import("@/pages/ThirdPartyVendorDashboard"));
 
 // Wave 29 domain dashboards
@@ -922,7 +924,9 @@ export default function App() {
             <Route path="/deception" element={<Navigate to="/brain/fail/deception?tab=engine" replace />} />
             <Route path="/threat-deception" element={<Navigate to="/brain/fail/deception?tab=decoys" replace />} />
             <Route path="/cert-manager" element={<Navigate to="/discover/crypto?tab=manager" replace />} />
-            <Route path="/firewall" element={<FirewallAnalyzer />} />
+            <Route path="/discover/network-segmentation" element={<NetworkSegmentationHub />} />
+            <Route path="/firewall" element={<Navigate to="/discover/network-segmentation?tab=firewall" replace />} />
+            <Route path="/microsegmentation" element={<Navigate to="/discover/network-segmentation?tab=microseg" replace />} />
             <Route path="/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/playbooks" element={<PlaybookLibraryPage />} />
             <Route path="/bug-bounty" element={<Navigate to="/brain?tab=bug-bounty" replace />} />
@@ -1062,7 +1066,7 @@ export default function App() {
             <Route path="/vuln-intelligence" element={<Navigate to="/discover/vuln-intel?tab=vuln-intel" replace />} />
 
             {/* Firewall Policy, Network Segmentation */}
-            <Route path="/firewall-policy" element={<FirewallPolicyDashboard />} />
+            <Route path="/firewall-policy" element={<Navigate to="/discover/network-segmentation?tab=policy" replace />} />
             <Route path="/network-segmentation" element={<NetworkSegmentationDashboard />} />
 
             {/* MFA Management, Threat Scores, Security Budget, Compliance Gaps */}

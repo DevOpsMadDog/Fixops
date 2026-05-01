@@ -1,3 +1,4 @@
+// FOLDED into NetworkSegmentationHub at /discover/network-segmentation?tab=microseg
 // REPLACED by FindingsExplorerView config 2026-04-27
 // Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**

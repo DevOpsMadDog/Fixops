@@ -1,3 +1,4 @@
+// FOLDED into NetworkSegmentationHub at /discover/network-segmentation?tab=policy
 /**
  * Firewall Policy Dashboard
  *
