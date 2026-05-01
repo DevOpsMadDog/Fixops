@@ -360,6 +360,29 @@ class AWSSecurityHubClient:
                     "region": self._region,
                 },
             )
+
+            # Emit each normalized finding to the TrustGraph event bus
+            # so Brain pipeline / UI receive per-finding events (not just
+            # the aggregate findings_imported event above).
+            try:
+                from core.trustgraph_event_bus import get_event_bus
+                bus = get_event_bus()
+                for f in findings:
+                    bus.emit("finding.created", {
+                        "org_id": org_id,
+                        "engine": "aws_security_hub",
+                        "id": f.get("id") or f.get("finding_id"),
+                        "cve_id": f.get("cve_id"),
+                        "severity": f.get("severity", "unknown"),
+                        "title": f.get("title") or f.get("name"),
+                        "asset_id": f.get("asset_id"),
+                        "cvss": f.get("cvss"),
+                        "epss": f.get("epss"),
+                        "is_mock": f.get("is_mock", not is_configured),
+                        **f,
+                    })
+            except Exception:
+                pass
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Security Hub import failed for org=%s: %s",

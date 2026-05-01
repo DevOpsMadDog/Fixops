@@ -455,7 +455,26 @@ class PagerDutyClient:
             logger.warning(
                 "PagerDuty token not configured — returning mock incident list."
             )
-            return list(_MOCK_INCIDENTS)
+            mock_incidents = list(_MOCK_INCIDENTS)
+            # Emit mock incidents as incident.created too (is_mock=True flag)
+            try:
+                from core.trustgraph_event_bus import get_event_bus
+                bus = get_event_bus()
+                for f in mock_incidents:
+                    bus.emit("incident.created", {
+                        "org_id": "default",
+                        "engine": "pagerduty",
+                        "id": f.get("id") or f.get("incident_id"),
+                        "cve_id": f.get("cve_id"),
+                        "severity": f.get("urgency") or f.get("severity", "unknown"),
+                        "title": f.get("title") or f.get("description"),
+                        "asset_id": f.get("asset_id"),
+                        "is_mock": True,
+                        **f,
+                    })
+            except Exception:
+                pass
+            return mock_incidents
 
         params: Dict[str, Any] = {"limit": min(limit, 100)}
         if statuses:
@@ -465,8 +484,30 @@ class PagerDutyClient:
 
         data = self._get("/incidents", params=params)
         if not data:
-            return []
-        return data.get("incidents", []) if isinstance(data, dict) else []
+            incidents: List[Dict[str, Any]] = []
+        else:
+            incidents = data.get("incidents", []) if isinstance(data, dict) else []
+
+        # Emit each incident as incident.created on the TrustGraph event bus
+        try:
+            from core.trustgraph_event_bus import get_event_bus
+            bus = get_event_bus()
+            for f in incidents:
+                bus.emit("incident.created", {
+                    "org_id": "default",
+                    "engine": "pagerduty",
+                    "id": f.get("id") or f.get("incident_id"),
+                    "cve_id": f.get("cve_id"),
+                    "severity": f.get("urgency") or f.get("severity", "unknown"),
+                    "title": f.get("title") or f.get("description"),
+                    "asset_id": f.get("asset_id"),
+                    "is_mock": f.get("is_mock", False),
+                    **f,
+                })
+        except Exception:
+            pass
+
+        return incidents
 
     def get_incident(self, incident_id: str) -> Dict[str, Any]:
         """

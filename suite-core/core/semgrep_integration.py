@@ -386,6 +386,27 @@ class SemgrepScanner:
             # Optionally push into Brain Pipeline
             self._try_ingest_to_pipeline(findings, org_id, scan_id)
 
+            # Emit each normalized finding to the TrustGraph event bus
+            try:
+                from core.trustgraph_event_bus import get_event_bus
+                bus = get_event_bus()
+                for f in findings:
+                    bus.emit("finding.created", {
+                        "org_id": org_id,
+                        "engine": "semgrep",
+                        "id": f.get("id") or f.get("finding_id"),
+                        "cve_id": f.get("cve_id"),
+                        "severity": f.get("severity", "unknown"),
+                        "title": f.get("title") or f.get("name"),
+                        "asset_id": f.get("asset_id"),
+                        "cvss": f.get("cvss"),
+                        "epss": f.get("epss"),
+                        "is_mock": f.get("is_mock", is_mock),
+                        **f,
+                    })
+            except Exception:
+                pass
+
         except Exception as exc:
             logger.error("Semgrep scan failed for %r: %s", path, exc, exc_info=True)
             entry = {

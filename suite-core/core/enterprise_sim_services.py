@@ -272,6 +272,30 @@ class WazuhSIEMConnector(_LocalConnector):
             if resp.status_code == 200:
                 data = resp.json().get("data", {})
                 alerts = data.get("affected_items", [])
+
+                # Emit each alert as finding.created on the TrustGraph event bus
+                try:
+                    from core.trustgraph_event_bus import get_event_bus
+                    bus = get_event_bus()
+                    for f in alerts:
+                        if not isinstance(f, dict):
+                            continue
+                        bus.emit("finding.created", {
+                            "org_id": "default",
+                            "engine": "wazuh",
+                            "id": f.get("id") or f.get("finding_id"),
+                            "cve_id": f.get("cve_id"),
+                            "severity": f.get("severity") or str(f.get("rule", {}).get("level", "unknown")) if isinstance(f.get("rule"), dict) else f.get("severity", "unknown"),
+                            "title": f.get("title") or f.get("description") or (f.get("rule", {}) or {}).get("description"),
+                            "asset_id": f.get("asset_id") or (f.get("agent", {}) or {}).get("id"),
+                            "cvss": f.get("cvss"),
+                            "epss": f.get("epss"),
+                            "is_mock": f.get("is_mock", False),
+                            **f,
+                        })
+                except Exception:
+                    pass
+
                 return ConnectorOutcome(
                     "fetched",
                     {"alerts": alerts, "count": len(alerts), "total": data.get("total_affected_items", 0)},
@@ -502,11 +526,35 @@ class TheHiveConnector(_LocalConnector):
             resp = self._post("/api/v1/case", json=payload, headers=self._headers())
             if resp.status_code in (200, 201):
                 data = resp.json()
+                case_id = data.get("_id", "")
+                case_number = data.get("number", 0)
+
+                # Emit case as incident.created on the TrustGraph event bus
+                try:
+                    from core.trustgraph_event_bus import get_event_bus
+                    bus = get_event_bus()
+                    bus.emit("incident.created", {
+                        "org_id": "default",
+                        "engine": "thehive",
+                        "id": case_id or f"case_{case_number}",
+                        "cve_id": None,
+                        "severity": str(severity),
+                        "title": title,
+                        "description": description,
+                        "asset_id": None,
+                        "tlp": tlp,
+                        "tags": tags or ["aldeci"],
+                        "case_number": case_number,
+                        "is_mock": False,
+                    })
+                except Exception:
+                    pass
+
                 return ConnectorOutcome(
                     "created",
                     {
-                        "case_id": data.get("_id", ""),
-                        "case_number": data.get("number", 0),
+                        "case_id": case_id,
+                        "case_number": case_number,
                         "title": title,
                     },
                 )
