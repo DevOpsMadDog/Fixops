@@ -246,6 +246,140 @@ class SecurityPostureBenchmarkingEngine:
 
         return dict(row) if row else None
 
+    def list_benchmarks_with_cis_fallback(
+        self,
+        org_id: str,
+        framework: Optional[str] = None,
+        status: Optional[str] = None,
+        cis_db_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """List org-registered benchmarks; if none, project the imported CIS
+        Benchmark catalog as a derived benchmark library.
+
+        - source="org_registered" when the org has registered its own benchmarks.
+        - source="cis-benchmark-derived" when the response is projected from the
+          imported CIS XCCDF catalog (real public data, not seeded).
+        - source="empty" when neither side has any data.
+
+        Each CIS-derived row is shaped to match the spb_benchmarks contract so
+        the UI renders the same component. framework defaults to "cis"; category
+        defaults to "compliance"; total_controls is the rule count;
+        score/percentile are 0 (assessment not yet run for this org).
+
+        Returns:
+            {"benchmarks": [...], "total": N, "source": str, "cis_total_controls": N}
+        """
+        rows = self.list_benchmarks(org_id, framework=framework, status=status)
+        if rows:
+            return {"benchmarks": rows, "total": len(rows), "source": "org_registered"}
+
+        # Engine has no rows for this org — try real CIS Benchmark side-DB.
+        from pathlib import Path as _Path
+
+        if cis_db_path is None:
+            cis_db_path = str(_Path("data") / "cis_benchmark.db")
+        if not _Path(cis_db_path).exists():
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/posture-benchmarking/import-cis to populate the CIS Benchmark catalog, "
+                        "or create a benchmark manually via POST /api/v1/posture-benchmarking/benchmarks.",
+            }
+
+        # If the caller filtered for a non-CIS framework, the CIS fallback
+        # cannot satisfy it — return structured empty.
+        if framework and framework != "cis":
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": (
+                    f"No org benchmarks registered for framework={framework!r}. "
+                    f"CIS Benchmark catalog is the only available public-source fallback "
+                    f"(call POST /api/v1/posture-benchmarking/import-cis first)."
+                ),
+            }
+
+        try:
+            with sqlite3.connect(cis_db_path) as cis_conn:
+                cis_conn.row_factory = sqlite3.Row
+                cis_rows = cis_conn.execute(
+                    """
+                    SELECT benchmark_id,
+                           benchmark_version,
+                           benchmark_title,
+                           COUNT(*) AS total_controls,
+                           MAX(imported_at) AS last_imported
+                    FROM cis_controls
+                    GROUP BY benchmark_id, benchmark_version, benchmark_title
+                    ORDER BY benchmark_id
+                    """
+                ).fetchall()
+                total_controls_global = cis_conn.execute(
+                    "SELECT COUNT(*) FROM cis_controls"
+                ).fetchone()[0]
+        except sqlite3.Error as exc:
+            _logger.warning(
+                "CIS-fallback read failed for %s: %s", cis_db_path, exc
+            )
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/posture-benchmarking/import-cis to populate the CIS Benchmark catalog.",
+            }
+
+        if not cis_rows:
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/posture-benchmarking/import-cis to populate the CIS Benchmark catalog.",
+            }
+
+        derived: List[Dict[str, Any]] = []
+        for r in cis_rows:
+            bench_id_raw = (r["benchmark_id"] or "").strip()
+            if not bench_id_raw:
+                continue
+            inferred_framework = "cis"
+            if status and "draft" != status:
+                # Derived rows have no assessment results yet — only "draft"
+                # matches. Caller filtered to a different status.
+                continue
+            derived.append({
+                "id": f"cis:{bench_id_raw}",
+                "org_id": org_id,
+                "benchmark_name": (r["benchmark_title"] or bench_id_raw)[:500],
+                "framework": inferred_framework,
+                "version": (r["benchmark_version"] or "")[:50],
+                "category": "compliance",
+                "total_controls": int(r["total_controls"] or 0),
+                "passed_controls": 0,
+                "score": 0.0,
+                "industry_avg_score": 0.0,
+                "percentile": 0,
+                "status": "draft",
+                "last_assessed": None,
+                "created_at": r["last_imported"] or "",
+                "source": "cis-benchmark",
+                "source_benchmark_id": bench_id_raw,
+            })
+
+        return {
+            "benchmarks": derived,
+            "total": len(derived),
+            "source": "cis-benchmark-derived",
+            "cis_total_controls": int(total_controls_global or 0),
+            "hint": (
+                "Derived from imported CIS Benchmark catalog. Run an assessment via "
+                "POST /api/v1/posture-benchmarking/benchmarks to record your own "
+                "scores, or POST /api/v1/posture-benchmarking/controls to record "
+                "individual control results."
+            ),
+        }
+
     # ------------------------------------------------------------------
     # Controls
     # ------------------------------------------------------------------

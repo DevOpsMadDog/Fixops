@@ -117,16 +117,18 @@ def list_benchmarks(
     framework: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """List benchmarks for the org, optionally filtered."""
+    """List benchmarks for the org, falling back to imported CIS catalog if empty.
+
+    Resolution order:
+      1. Org-registered benchmarks (status=org_registered)
+      2. Imported CIS Benchmark catalog projected as derived rows
+         (source=cis-benchmark-derived) — real public data, no mocks
+      3. Structured empty with import hint (source=empty)
+    """
     try:
-        rows = _get_engine().list_benchmarks(org_id, framework=framework, status=status)
-        if not rows:
-            return {
-                "benchmarks": [],
-                "total": 0,
-                "hint": "Import CIS/NIST benchmark definitions via POST /api/v1/posture-benchmarking/import-cis, or create one manually via POST /api/v1/posture-benchmarking/benchmarks.",
-            }
-        return {"benchmarks": rows, "total": len(rows)}
+        return _get_engine().list_benchmarks_with_cis_fallback(
+            org_id, framework=framework, status=status
+        )
     except Exception as exc:
         _logger.exception("list_benchmarks failed")
         raise HTTPException(status_code=500, detail=str(exc))
