@@ -1,3 +1,4 @@
+// FOLDED into EmailThreatProtectionHub hero (email tab) 2026-05-02 — preserve for git history
 /**
  * Email Security - Live API
  * API: GET /api/v1/email-filtering/threats

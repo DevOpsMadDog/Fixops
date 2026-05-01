@@ -156,6 +156,7 @@ const PlaybookLibraryPage = lazy(() => import("@/pages/PlaybookLibrary"));
 const BugBounty = lazy(() => import("@/pages/BugBounty"));
 const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
 const EmailSecurity = lazy(() => import("@/pages/EmailSecurity"));
+const EmailThreatProtectionHub = lazy(() => import("@/pages/EmailThreatProtectionHub"));
 const SLADashboardPage = lazy(() => import("@/pages/SLADashboard"));
 const SecurityMetricsDashboard = lazy(() => import("@/pages/SecurityMetricsDashboard"));
 const MobileSecurity = lazy(() => import("@/pages/MobileSecurity"));
@@ -902,7 +903,9 @@ export default function App() {
             <Route path="/bug-bounty" element={<Navigate to="/brain?tab=bug-bounty" replace />} />
             <Route path="/mitre" element={<Navigate to="/brain?tab=mitre" replace />} />
             <Route path="/cloud-iam" element={<CloudIAM />} />
-            <Route path="/email-security" element={<EmailSecurity />} />
+            {/* S11 Email & Threat Protection hub — folded 2026-05-02 (FOLDED EmailSecurity, PhishingSimulation, RansomwareProtectionDashboard) */}
+            <Route path="/discover/threat-protection" element={<EmailThreatProtectionHub />} />
+            <Route path="/email-security" element={<Navigate to="/discover/threat-protection?tab=email" replace />} />
             <Route path="/sla-dashboard" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/security-metrics" element={<SecurityMetricsDashboard />} />
             <Route path="/vuln-risk" element={<VulnRiskQueue />} />
@@ -929,7 +932,8 @@ export default function App() {
             <Route path="/uba" element={<Navigate to="/mission-control/behavior?tab=uba" replace />} />
             <Route path="/cmdb" element={<CMDBDashboard />} />
             <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/phishing" element={<PhishingSimulation />} />
+            {/* S11 Email & Threat Protection hub — folded 2026-05-02 (FOLDED PhishingSimulation) */}
+            <Route path="/phishing" element={<Navigate to="/discover/threat-protection?tab=phishing" replace />} />
             <Route path="/api-sec" element={<APISecurityPage />} />
             <Route path="/data-classification" element={<DataClassificationDashboard />} />
             <Route path="/security-training" element={<SecurityTrainingDashboard />} />
@@ -1147,7 +1151,8 @@ export default function App() {
             <Route path="/privacy-impact" element={<Navigate to="/comply/privacy?tab=impact" replace />} />
             {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatIndicatorDashboard) */}
             <Route path="/threat-indicators" element={<Navigate to="/attack/intel/actors?tab=indicators" replace />} />
-            <Route path="/ransomware-protection" element={<RansomwareProtectionDashboard />} />
+            {/* S11 Email & Threat Protection hub — folded 2026-05-02 (FOLDED RansomwareProtectionDashboard) */}
+            <Route path="/ransomware-protection" element={<Navigate to="/discover/threat-protection?tab=ransomware" replace />} />
             <Route path="/access-anomaly" element={<Navigate to="/asset-graph?tab=access-anomaly" replace />} />
             <Route path="/training-effectiveness" element={<TrainingEffectivenessDashboard />} />
             <Route path="/cost-optimization" element={<CloudCostOptimizationDashboard />} />

@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into EmailThreatProtectionHub hero (ransomware tab) 2026-05-02 — preserve for git history
 /**
  * Ransomware Protection Dashboard - Live API
  * Route: /ransomware-protection

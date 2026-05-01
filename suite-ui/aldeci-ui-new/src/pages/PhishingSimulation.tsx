@@ -1,3 +1,4 @@
+// FOLDED into EmailThreatProtectionHub hero (phishing tab) 2026-05-02 — preserve for git history
 /**
  * Phishing Simulation
  *
