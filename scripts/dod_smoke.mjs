@@ -44,10 +44,10 @@ const PAGES = [
     anyOf: ["Live", "Disconnected", "Real-time"],
     note: "FEATURE-3 LiveFeed — WS Live/Disconnected/Real-time badge",
   },
-  // 3. DoD-5 CTEM Cycles tab inside Mission-Control ComplianceDashboard.
-  { id: "compliance-dashboard",  url: "/mission-control/compliance-dashboard",
+  // 3. DoD-5 CTEM Cycles tab inside Mission-Control ComplianceDashboard (canonical mount per App.tsx:742).
+  { id: "compliance-dashboard",  url: "/mission-control/ctem",
     mustContain: ["CTEM Cycles"],
-    note: "DoD-5 ComplianceDashboard — CTEM Cycles tab present",
+    note: "DoD-5 ComplianceDashboard — CTEM Cycles tab at canonical /mission-control/ctem",
   },
   // 4. DoD-6 IaCScanning page — Terraform scan panel.
   { id: "iac",                   url: "/discover/iac",
@@ -59,20 +59,20 @@ const PAGES = [
     anyOf: ["Connect repository", "GitHub", "Code Scanning"],
     note: "DoD-7 CodeScanning — Connect repository / GitHub panel present",
   },
-  // 6. DoD-8 FindingsExplorer — Related findings panel (TrustGraph-backed).
-  { id: "findings-explorer",     url: "/findings/explorer",
+  // 6. DoD-8 FindingsExplorer — Related findings panel (TrustGraph-backed). Canonical mount per App.tsx:862.
+  { id: "findings-explorer",     url: "/findings",
     anyOf: ["Related findings", "Findings", "Explorer"],
-    note: "DoD-8 FindingsExplorer — Related findings (TrustGraph) panel present",
+    note: "DoD-8 FindingsExplorer — Related findings (TrustGraph) panel at canonical /findings",
   },
   // 7. BUG-3.1 IncidentResponse — must NOT contain MOCK_INCIDENTS signature.
   { id: "incidents",             url: "/incidents",
     anyOf: ["Incidents", "Incident", "Response"],
     note: "BUG-3.1 IncidentResponse — no MOCK_INCIDENTS in DOM",
   },
-  // 8. BUG-3 BrowserSecurityDashboard — must NOT contain SuperVPN Pro mock.
-  { id: "browser-security",      url: "/dashboards/browser-security",
-    anyOf: ["Browser", "Security", "Extensions"],
-    note: "BUG-3 BrowserSecurityDashboard — no SuperVPN Pro / mock data",
+  // 8. BUG-3 Browser security folded into AppLayerSecurityHub#browser per S10 fold (App.tsx:1167 redirect).
+  { id: "browser-security",      url: "/discover/app-security?tab=browser",
+    anyOf: ["Browser", "Security", "Extensions", "App Layer"],
+    note: "BUG-3 BrowserSecurity folded into AppLayerSecurityHub#browser — no SuperVPN Pro / mock data",
   },
   // 9. AssetInventoryHub — 8 tabs render (Hub-pattern).
   { id: "asset-inventory",       url: "/discover/assets/inventory",
