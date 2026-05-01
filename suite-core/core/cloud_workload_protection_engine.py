@@ -215,6 +215,236 @@ class CloudWorkloadProtectionEngine:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
+    # ------------------------------------------------------------------
+    # Connector fallback — ContainerSecurityConnector → derived workloads
+    # ------------------------------------------------------------------
+
+    def list_workloads_with_container_fallback(
+        self,
+        org_id: str,
+        workload_type: Optional[str] = None,
+        cloud_provider: Optional[str] = None,
+        risk_level: Optional[str] = None,
+        container_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List CWP workloads; when org has zero rows AND the
+        ``ContainerSecurityConnector`` has produced scan history (Trivy +
+        Grype + Dockle results per tenant image), project each scanned
+        image as a derived ``container`` workload.
+
+        Behaviour:
+            - Org-registered rows always take precedence (returns
+              ``source="org_registered"``).
+            - When org has none AND the container connector exposes scan
+              history for ``org_id``, each ``TenantScanResult`` produces one
+              derived workload row (workload_type=container,
+              cloud_provider=on_prem). Risk score derives from severity
+              breakdown: critical/high counts dominate.
+            - Each derived row carries provenance: ``source="container_oss"``,
+              ``scan_id``, ``image``, ``tenant``.
+            - When the connector has no scan history AND its toolchain is
+              not configured (no docker/trivy/grype/dockle binaries on PATH
+              AND no tenant repos under ``tenants_root``), returns
+              ``{"workloads": [], "source": "needs_credentials", "hint": ...}``.
+            - Filters apply against derived rows.
+
+        Args:
+            org_id:               Tenant identifier.
+            workload_type:        Optional filter (vm|container|...).
+            cloud_provider:       Optional filter (aws|azure|gcp|on_prem|...).
+            risk_level:           Optional filter (critical|high|medium|low).
+            container_connector:  Override for testing — must expose
+                                  ``get_scan_history(org_id)`` (module-level
+                                  helper from container_security_connector)
+                                  and optionally ``tool_status()``.
+
+        Returns:
+            ``{workloads, total, source, hint?, scans_seen?}``.
+        """
+        rows = self.list_workloads(
+            org_id,
+            workload_type=workload_type,
+            cloud_provider=cloud_provider,
+            risk_level=risk_level,
+        )
+        if rows:
+            return {
+                "workloads": rows,
+                "total": len(rows),
+                "source": "org_registered",
+            }
+
+        # Lazy-import container connector helpers.
+        scan_history: List[Dict[str, Any]] = []
+        connector_obj: Any = None
+        if container_connector is None:
+            try:
+                from connectors.container_security_connector import (
+                    get_scan_history as _get_scan_history,
+                    get_container_security_connector as _get_connector,
+                )
+                connector_obj = _get_connector()
+                scan_history = _get_scan_history(org_id, limit=200) or []
+            except (ImportError, Exception) as exc:  # noqa: BLE001
+                _logger.warning(
+                    "cwp: ContainerSecurityConnector unavailable: %s", exc,
+                )
+                return {
+                    "workloads": [],
+                    "total": 0,
+                    "source": "needs_credentials",
+                    "hint": (
+                        "Install docker + trivy/grype/dockle on the host, "
+                        "place tenant repos under FIXOPS_CONTAINER_TENANTS_ROOT "
+                        "(default /tmp/aspm-repos), then POST "
+                        "/api/v1/container-security/scan to populate scan "
+                        "history; or POST /api/v1/cwp/workloads to register "
+                        "manually."
+                    ),
+                }
+        else:
+            connector_obj = container_connector
+            try:
+                if hasattr(container_connector, "get_scan_history"):
+                    scan_history = container_connector.get_scan_history(
+                        org_id, limit=200
+                    ) or []
+            except (ValueError, RuntimeError, OSError) as exc:
+                _logger.warning(
+                    "cwp: container_connector.get_scan_history failed: %s",
+                    exc,
+                )
+                scan_history = []
+
+        if not scan_history:
+            # Distinguish "configured but no scans yet" vs "not configured".
+            tool_state: Dict[str, bool] = {}
+            try:
+                if connector_obj is not None and hasattr(
+                    connector_obj, "tool_status"
+                ):
+                    tool_state = connector_obj.tool_status() or {}
+            except (ValueError, RuntimeError, OSError):
+                tool_state = {}
+            any_tool = any(tool_state.values())
+            tenants_present = False
+            try:
+                if connector_obj is not None and hasattr(
+                    connector_obj, "list_tenants"
+                ):
+                    tenants_present = bool(connector_obj.list_tenants())
+            except (ValueError, RuntimeError, OSError):
+                tenants_present = False
+            if not any_tool or not tenants_present:
+                return {
+                    "workloads": [],
+                    "total": 0,
+                    "source": "needs_credentials",
+                    "hint": (
+                        f"Container scanner toolchain present={tool_state}; "
+                        f"tenant repos detected={tenants_present}. Install "
+                        "docker + trivy/grype/dockle, place tenant repos "
+                        "under FIXOPS_CONTAINER_TENANTS_ROOT, then POST "
+                        "/api/v1/container-security/scan. Or POST "
+                        "/api/v1/cwp/workloads to register manually."
+                    ),
+                    "tool_status": tool_state,
+                    "tenants_present": tenants_present,
+                }
+            return {
+                "workloads": [],
+                "total": 0,
+                "source": "needs_scan",
+                "hint": (
+                    "Container scanner is configured but no scans have run "
+                    "for this org yet. POST /api/v1/container-security/scan "
+                    "to populate workloads."
+                ),
+                "tool_status": tool_state,
+            }
+
+        # Collapse history by image — keep most recent scan per image.
+        seen_images: set = set()
+        ordered = sorted(
+            scan_history,
+            key=lambda r: r.get("started_at") or "",
+            reverse=True,
+        )
+        derived: List[Dict[str, Any]] = []
+        scans_projected = 0
+        for scan in ordered:
+            image = scan.get("image") or ""
+            if not image or image in seen_images:
+                continue
+            seen_images.add(image)
+            sev = scan.get("severity_breakdown") or {}
+            critical = int(sev.get("critical") or 0)
+            high = int(sev.get("high") or 0)
+            medium = int(sev.get("medium") or 0)
+            # Risk scoring: critical=10pt, high=5pt, medium=2pt, capped 0..100
+            raw_score = critical * 10 + high * 5 + medium * 2
+            risk_score_v = float(min(100, raw_score))
+            if critical > 0 or risk_score_v >= 80:
+                derived_risk = "critical"
+            elif high > 0 or risk_score_v >= 50:
+                derived_risk = "high"
+            elif medium > 0 or risk_score_v >= 20:
+                derived_risk = "medium"
+            else:
+                derived_risk = "low"
+
+            # Build canonical workload values
+            derived_workload_type = "container"
+            derived_provider = "on_prem"
+            findings_recorded = int(scan.get("findings_recorded") or 0)
+            protection_status = "protected" if findings_recorded == 0 else (
+                "partial" if (high + critical) == 0 else "unprotected"
+            )
+
+            # Apply filters against derived shape
+            if workload_type is not None and workload_type != derived_workload_type:
+                continue
+            if cloud_provider is not None and cloud_provider != derived_provider:
+                continue
+            if risk_level is not None and risk_level != derived_risk:
+                continue
+
+            derived.append({
+                "id": f"container:{scan.get('scan_id', '')}",
+                "org_id": org_id,
+                "workload_name": image,
+                "workload_type": derived_workload_type,
+                "cloud_provider": derived_provider,
+                "region": "",
+                "account_id": scan.get("tenant", ""),
+                "risk_score": risk_score_v,
+                "risk_level": derived_risk,
+                "protection_status": protection_status,
+                "last_assessed": scan.get("completed_at")
+                or scan.get("started_at"),
+                "created_at": scan.get("started_at"),
+                # Provenance fields
+                "source": "container_oss",
+                "scan_id": scan.get("scan_id", ""),
+                "image": image,
+                "tenant": scan.get("tenant", ""),
+                "findings_recorded": findings_recorded,
+                "severity_breakdown": sev,
+            })
+            scans_projected += 1
+
+        return {
+            "workloads": derived,
+            "total": len(derived),
+            "source": "container_oss",
+            "scans_seen": scans_projected,
+            "hint": (
+                "Workloads projected from ContainerSecurityConnector scan "
+                "history (trivy/grype/dockle). Org-registered rows take "
+                "precedence — POST /api/v1/cwp/workloads to override."
+            ),
+        }
+
     def get_workload(self, org_id: str, workload_id: str) -> Optional[Dict[str, Any]]:
         """Fetch a single workload scoped to org_id, or None if not found."""
         with self._connect() as conn:

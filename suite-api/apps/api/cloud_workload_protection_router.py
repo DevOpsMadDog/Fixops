@@ -114,9 +114,15 @@ def list_workloads(
     workload_type: Optional[str] = Query(None),
     cloud_provider: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
+    """List CWP workloads with optional filters.
+
+    Falls back to live ``ContainerSecurityConnector`` scan history (trivy +
+    grype + dockle on tenant images) when the org has no registered
+    workloads. Returns ``{workloads, total, source, hint?, scans_seen?}``.
+    """
     try:
-        return _get_engine().list_workloads(
+        return _get_engine().list_workloads_with_container_fallback(
             org_id,
             workload_type=workload_type,
             cloud_provider=cloud_provider,
