@@ -1130,7 +1130,8 @@ export default function App() {
             <Route path="/dark-web" element={<Navigate to="/attack/intel/external?tab=darkweb" replace />} />
             <Route path="/itdr" element={<Navigate to="/discover/detect-respond?tab=itdr" replace />} />
             <Route path="/container-runtime" element={<Navigate to="/discover/container-security?tab=runtime" replace />} />
-            <Route path="/api-discovery" element={<APIDiscoveryDashboard />} />
+            {/* S10 fold 2026-05-02: APIDiscoveryDashboard → APISecurityHub#discovery */}
+            <Route path="/api-discovery" element={<Navigate to="/discover/api-security?tab=discovery" replace />} />
             <Route path="/security-chaos" element={<SecurityChaosDashboard />} />
             {/* S22 fold 2026-05-02: IncidentMetricsDashboard → IncidentKnowledgeHub#metrics */}
             <Route path="/remediate/incidents/knowledge" element={<IncidentKnowledgeHub />} />

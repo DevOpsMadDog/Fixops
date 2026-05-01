@@ -1,3 +1,4 @@
+// FOLDED into APISecurityHub hero (inventory tab) 2026-05-02 — preserve for git history
 /**
  * API Security Dashboard
  *
