@@ -2573,6 +2573,7 @@ class BrainPipeline:
             result = enricher.enrich_findings(ctx["findings"])
             ctx["_enrich_source"] = "live_api"
             self._fuse_vuln_intel(ctx)
+            self._apply_reachability_verdicts(ctx)
             return result
         except (ImportError, Exception) as e:
             logger.warning(
@@ -2633,6 +2634,7 @@ class BrainPipeline:
         ctx["_enrich_source"] = feed_source
         ctx["_enrich_feed_hits"] = feed_hits
         self._fuse_vuln_intel(ctx)
+        self._apply_reachability_verdicts(ctx)
         return {
             "enriched": enriched,
             "unique_cves": len(set(cve_ids)),
@@ -2674,6 +2676,147 @@ class BrainPipeline:
             ctx["fused_vulns"] = pq
         except Exception as e:
             logger.warning("fusion enrichment skipped: %s", e)
+
+    def _apply_reachability_verdicts(self, ctx: Dict[str, Any]) -> None:
+        """Wave 3A — apply FunctionReachabilityEngine verdicts to findings.
+
+        For every finding with a CVE id, query the reachability engine and
+        annotate the finding with ``reachable``, ``reachable_callers``, and
+        ``reachability_verdict``. Persists verdict to per-finding store when
+        a finding id is present. Downgrades ``consensus_priority`` for
+        unreachable findings (Apiiro-style noise reduction).
+
+        Pipeline never fails when the engine is unavailable.
+        """
+        try:
+            from core.function_reachability_engine import get_engine as get_reach_engine
+            reach_engine = get_reach_engine()
+            for f in ctx["findings"]:
+                if not f.get("cve_id"):
+                    continue
+                pattern = f.get("dependency_fqn_pattern") or (
+                    f"{f.get('package_name', '')}.%" if f.get("package_name") else ""
+                )
+                if not pattern.replace(".%", ""):
+                    continue
+                try:
+                    callers = reach_engine.vulnerable_reachability(
+                        ctx["org_id"], f["cve_id"], pattern
+                    )
+                except Exception as q_exc:  # noqa: BLE001 - per-finding isolation
+                    logger.debug("reachability query skipped for %s: %s", f.get("cve_id"), q_exc)
+                    continue
+                f["reachable"] = bool(callers)
+                f["reachable_callers"] = callers[:5]
+                f["reachability_verdict"] = "reachable" if callers else "unreachable"
+                if f.get("id"):
+                    try:
+                        reach_engine.record_finding_verdict(
+                            ctx["org_id"], f["id"], f["cve_id"], pattern,
+                            f["reachability_verdict"], callers,
+                        )
+                    except Exception:  # noqa: BLE001 - persistence is best-effort
+                        pass
+                # Downgrade priority (higher number = lower priority) for unreachable
+                if not callers and "consensus_priority" in f:
+                    try:
+                        f["consensus_priority"] = min(4, int(f["consensus_priority"]) + 1)
+                    except (ValueError, TypeError):
+                        pass
+        except Exception as exc:  # noqa: BLE001 - reachability is optional
+            logger.warning("reachability verdicts skipped: %s", exc)
+
+    def _run_attack_graph_gnn(self, ctx: Dict[str, Any]) -> None:
+        """Wave 3B — build SecurityGraph and run GraphNeuralPredictor.
+
+        Builds a SERVICE+VULNERABILITY graph from current ctx findings and
+        assets, propagates risk via GNN, computes attack paths, and emits
+        ``threat.detected`` events for the top 3 attack paths.
+
+        Pipeline never fails when the GNN module is unavailable.
+        """
+        try:
+            from core.attack_graph_gnn import (
+                SecurityGraph, NodeType, EdgeType, GraphNeuralPredictor,
+            )
+            import uuid as _uuid
+            graph = SecurityGraph()
+            entry_points: List[str] = []
+            vuln_ids: List[str] = []
+            for asset in ctx.get("assets", []):
+                aid = str(asset.get("id") or _uuid.uuid4())
+                graph.add_node(
+                    aid, NodeType.SERVICE,
+                    properties=asset,
+                    risk_score=float(asset.get("criticality_score", 0.5)),
+                )
+                entry_points.append(aid)
+            for f in ctx.get("findings", []):
+                vuln_id = str(f.get("id") or _uuid.uuid4())
+                try:
+                    cvss_val = float(f.get("cvss") or f.get("cvss_score") or 5.0)
+                except (TypeError, ValueError):
+                    cvss_val = 5.0
+                graph.add_node(
+                    vuln_id, NodeType.VULNERABILITY,
+                    properties=f,
+                    risk_score=cvss_val / 10.0,
+                )
+                vuln_ids.append(vuln_id)
+                if f.get("asset_id") and f["asset_id"] in graph.nodes:
+                    try:
+                        graph.add_edge(f["asset_id"], vuln_id, EdgeType.AFFECTS)
+                    except Exception:
+                        pass
+            predictor = GraphNeuralPredictor()
+            try:
+                predictor.propagate_risk(graph, iterations=3)
+            except Exception:  # noqa: BLE001 - propagation is best-effort
+                pass
+            paths: List[Any] = []
+            try:
+                paths = predictor.find_attack_paths(
+                    graph,
+                    entry_points=entry_points or list(graph.nodes.keys())[:5],
+                    targets=vuln_ids or list(graph.nodes.keys())[-5:],
+                    max_paths=10,
+                )
+            except Exception:  # noqa: BLE001 - path finding is best-effort
+                paths = []
+            ctx["attack_paths"] = [
+                p.to_dict() if hasattr(p, "to_dict") else p for p in paths
+            ]
+            ctx["graph_nodes"] = len(graph.nodes)
+            ctx["graph_edges"] = len(graph.edges)
+
+            # Emit threat.detected events for top 3 paths (async-safe)
+            try:
+                from core.trustgraph_event_bus import get_event_bus
+                import asyncio as _asyncio
+                bus = get_event_bus()
+
+                async def _emit_paths():
+                    for path in ctx["attack_paths"][:3]:
+                        await bus.emit("threat.detected", {
+                            "org_id": ctx["org_id"],
+                            "engine": "attack_graph_gnn",
+                            "id": str(_uuid.uuid4()),
+                            "title": f"Attack path: {path.get('summary', path.get('entry', 'unknown'))}",
+                            "severity": "high",
+                            "entity_type": "attack_path",
+                            "path": path.get("path", []),
+                            "score": path.get("probability", 0.0) * path.get("impact_score", 0.0),
+                        })
+
+                try:
+                    _asyncio.get_running_loop()
+                    _asyncio.ensure_future(_emit_paths())
+                except RuntimeError:
+                    _asyncio.run(_emit_paths())
+            except Exception as bus_e:  # noqa: BLE001 - event emission is best-effort
+                logger.warning("attack graph event emission skipped: %s", bus_e)
+        except Exception as exc:  # noqa: BLE001 - GNN is optional
+            logger.warning("attack graph GNN skipped: %s", exc)
 
     @staticmethod
     def _load_local_feeds() -> tuple:
@@ -2995,6 +3138,13 @@ class BrainPipeline:
                     "SBOM correlation failed (non-fatal): %s", type(sbom_exc).__name__
                 )
                 result["sbom_correlation"] = {"error": type(sbom_exc).__name__}
+
+        # Wave 3B — Attack graph GNN (after risk scoring + SBOM correlation)
+        self._run_attack_graph_gnn(ctx)
+        if ctx.get("attack_paths") is not None:
+            result["attack_paths_count"] = len(ctx["attack_paths"])
+            result["graph_nodes"] = ctx.get("graph_nodes", 0)
+            result["graph_edges"] = ctx.get("graph_edges", 0)
 
         return result
 
