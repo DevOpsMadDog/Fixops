@@ -28,9 +28,14 @@ Storage
 
 Security notes
 --------------
-- `signature_placeholder` is a sha256-over-manifest-bytes HMAC with a fixed
-  development key. **This is not cryptographic attestation**. Real cosign/DSSE
-  signing is a follow-up (see TODO at the bottom of this file).
+- All bundle signing uses ed25519 DSSE attestation — sha256 fallback removed
+  2026-05-02. Bundle creation fails loudly if signer unavailable. The
+  ``signature_placeholder`` column is retained for schema compatibility but
+  now stores a real base64-encoded ed25519 signature produced by
+  ``core.dsse_signer``.
+- Verification rejects any signature beginning with the legacy
+  ``sha256-fallback:`` prefix — bundles produced by the prior degraded
+  signer must be re-signed with ed25519 before they will verify.
 - Tampered manifest or tampered entries → verify_bundle returns ok=False with
   the failing entry listed.
 - Apply never runs on an un-verified bundle — verify is a gate.
@@ -67,6 +72,22 @@ try:
     from core.dsse_signer import get_signer as _get_dsse_signer
 except ImportError:  # pragma: no cover
     _get_dsse_signer = None  # type: ignore
+
+try:  # optional — TrustGraph EmitEvent for bundle_signed broadcast
+    from core.trustgraph_event_bus import EmitEvent as _EmitEvent  # type: ignore
+except ImportError:  # pragma: no cover
+    _EmitEvent = None  # type: ignore
+
+# ed25519 primitives for ensure_signing_key bootstrap (real keys, not a
+# fallback — bootstraps the same ed25519 material the DSSE signer expects).
+try:
+    from cryptography.hazmat.primitives import serialization as _crypto_serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+        Ed25519PrivateKey as _Ed25519PrivateKey,
+    )
+except ImportError:  # pragma: no cover — cryptography is a core dependency
+    _crypto_serialization = None  # type: ignore
+    _Ed25519PrivateKey = None  # type: ignore
 
 
 _logger = logging.getLogger(__name__)
@@ -120,34 +141,101 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+_AIRGAP_SIGNING_KEY_PATH = _REPO_ROOT / "data" / "keys" / "airgap_signing.ed25519"
+_AIRGAP_SIGNING_PUB_PATH = _REPO_ROOT / "data" / "keys" / "airgap_signing.pub"
+_LEGACY_SHA256_PREFIX = "sha256-fallback:"
+
+
+def ensure_signing_key(
+    private_path: Path = _AIRGAP_SIGNING_KEY_PATH,
+    public_path: Path = _AIRGAP_SIGNING_PUB_PATH,
+) -> Path:
+    """Bootstrap a real ed25519 signing key for air-gap bundles.
+
+    NOT a fallback — this generates the same ed25519 material the DSSE signer
+    uses, persisted at ``data/keys/airgap_signing.ed25519`` (mode 0600). The
+    public key is written to ``data/keys/airgap_signing.pub``. Existing keys
+    are left untouched.
+
+    Returns the absolute path to the private key.
+    """
+    if _Ed25519PrivateKey is None or _crypto_serialization is None:
+        raise RuntimeError(
+            "ensure_signing_key requires the `cryptography` package — "
+            "install it with `pip install cryptography`."
+        )
+    if private_path.exists():
+        return private_path
+    private_path.parent.mkdir(parents=True, exist_ok=True)
+    priv = _Ed25519PrivateKey.generate()
+    priv_pem = priv.private_bytes(
+        encoding=_crypto_serialization.Encoding.PEM,
+        format=_crypto_serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=_crypto_serialization.NoEncryption(),
+    )
+    private_path.write_bytes(priv_pem)
+    private_path.chmod(0o600)
+
+    pub_pem = priv.public_key().public_bytes(
+        encoding=_crypto_serialization.Encoding.PEM,
+        format=_crypto_serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    public_path.write_bytes(pub_pem)
+    public_path.chmod(0o644)
+    _logger.info(
+        "air_gap: bootstrapped ed25519 signing key private=%s public=%s",
+        private_path,
+        public_path,
+    )
+    return private_path
+
+
 def _sign_manifest(data: bytes) -> str:
     """Sign manifest bytes with ed25519 via dsse_signer.
 
-    Returns a base64-encoded ed25519 signature string.
-    Falls back to a SHA-256 hex digest (tamper-detectable but not
-    cryptographically authenticated) if the signer is unavailable.
+    Returns a base64-encoded ed25519 signature string. Raises RuntimeError if
+    the DSSE signer is unavailable — sha256 fallback removed 2026-05-02 for
+    SCIF deployments. Loud failure > silent degradation.
     """
-    if _get_dsse_signer is not None:
-        try:
-            return _get_dsse_signer().sign_bytes(data)
-        except Exception as exc:  # pragma: no cover
-            _logger.warning("air_gap: ed25519 sign failed, using sha256 fallback: %s", exc)
-    # Fallback: SHA-256 digest — not a real signature but keeps verify logic intact.
-    return "sha256-fallback:" + hashlib.sha256(data).hexdigest()
+    if _get_dsse_signer is None:
+        raise RuntimeError(
+            "Air-gap bundle signing requires ed25519 dsse_signer — "
+            "sha256 fallback removed for SCIF deployments. Install "
+            "cryptography or sigstore-python and configure DSSE signer keys."
+        )
+    try:
+        return _get_dsse_signer().sign_bytes(data)
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError(
+            "Air-gap bundle signing requires ed25519 dsse_signer — "
+            "sha256 fallback removed for SCIF deployments. Install "
+            f"cryptography or sigstore-python and configure DSSE signer keys. ({exc})"
+        ) from exc
 
 
-def _verify_manifest_sig(data: bytes, sig: str) -> bool:
-    """Verify manifest signature.  Returns True iff sig is valid ed25519 or
-    (in degraded mode) matches the sha256 fallback format."""
-    if sig.startswith("sha256-fallback:"):
-        expected = "sha256-fallback:" + hashlib.sha256(data).hexdigest()
-        return sig == expected
-    if _get_dsse_signer is not None:
-        try:
-            return _get_dsse_signer().verify_bytes(data, sig)
-        except Exception as exc:  # pragma: no cover
-            _logger.warning("air_gap: ed25519 verify failed: %s", exc)
-    return False
+def _verify_manifest_sig(data: bytes, sig: str) -> Tuple[bool, str]:
+    """Verify manifest signature with ed25519.
+
+    Refuses any signature carrying the legacy ``sha256-fallback:`` prefix —
+    such bundles must be re-signed with ed25519. Returns ``(ok, reason)``;
+    ``reason`` is empty on success.
+    """
+    if not sig:
+        return False, "missing signature"
+    if sig.startswith(_LEGACY_SHA256_PREFIX):
+        return (
+            False,
+            "legacy sha256 fallback signature — bundle must be re-signed with ed25519",
+        )
+    if _get_dsse_signer is None:
+        return False, "ed25519 dsse_signer unavailable — cannot verify signature"
+    try:
+        ok = _get_dsse_signer().verify_bytes(data, sig)
+    except Exception as exc:  # pragma: no cover
+        return False, f"ed25519 verification raised: {exc}"
+    if not ok:
+        return False, "ed25519 signature mismatch"
+    return True, ""
 
 
 def _default_version() -> str:
@@ -436,6 +524,16 @@ class AirGapBundleEngine:
         manifest_bytes = json.dumps(manifest_core, sort_keys=True).encode("utf-8")
         manifest_sha256 = _sha256_bytes(manifest_bytes)
         signature = _sign_manifest(manifest_bytes)
+        self._emit_event(
+            "airgap.bundle_signed",
+            {
+                "bundle_id": bundle_id,
+                "org_id": org_id,
+                "manifest_sha256": manifest_sha256,
+                "signature_algo": _SIGNATURE_ALGO,
+                "signature_prefix": signature[:16],
+            },
+        )
 
         manifest_final = {
             **manifest_core,
@@ -598,8 +696,9 @@ class AirGapBundleEngine:
 
         # ---- verify ed25519 signature ------------------------------------
         expected_sig = manifest.get("signature", "")
-        if not _verify_manifest_sig(core_bytes, expected_sig):
-            errors.append("signature mismatch (ed25519 verification failed)")
+        sig_ok, sig_reason = _verify_manifest_sig(core_bytes, expected_sig)
+        if not sig_ok:
+            errors.append(sig_reason or "signature mismatch (ed25519 verification failed)")
 
         # ---- check each entry hash ---------------------------------------
         entries_checked = 0
@@ -1161,7 +1260,17 @@ class AirGapBundleEngine:
             if bus is None:
                 return
             if hasattr(bus, "emit"):
-                bus.emit(event_type, payload)
+                result = bus.emit(event_type, payload)
+                # EventBus.emit is async — schedule on the running loop or run
+                # to completion in a fresh loop so we never leak a coroutine.
+                import asyncio
+                import inspect
+                if inspect.iscoroutine(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        asyncio.run(result)
             elif hasattr(bus, "publish"):
                 bus.publish(event_type, payload)
         except Exception as exc:  # noqa: BLE001
@@ -1183,17 +1292,23 @@ def get_engine() -> AirGapBundleEngine:
 
 
 # ---------------------------------------------------------------------------
-# TODO — real cosign signing
+# Signing notes — real ed25519 DSSE attestation (delivered 2026-05-02)
 # ---------------------------------------------------------------------------
-# 1. Replace `_hmac_sha256(manifest_bytes)` with a DSSE envelope signed by an
-#    offline cosign keypair. Key material lives in a sealed KMS (AWS KMS,
-#    HSM, or `cosign generate-key-pair` output) and is never on the producer
-#    box at signing time — we pipe to an air-gapped signer service.
+# Bundles are signed via ``core.dsse_signer`` using ed25519 (PKCS8 PEM key in
+# ``data/keys/slsa_signing.pem``). The legacy sha256-fallback signature path
+# was removed — bundle creation now fails loudly if the signer is unavailable
+# and verification refuses any signature carrying the ``sha256-fallback:``
+# prefix.
+#
+# Future hardening (open):
+# 1. KMS / HSM-resident keys (AWS KMS, YubiHSM) for the producer site so the
+#    private key is never on the build host. Pipe PAE bytes to an air-gapped
+#    signer service that returns the signature.
 # 2. Publish the public verification key via TUF or a stable HTTPS endpoint
 #    bundled into the Fixops installer, so air-gapped verifiers can validate
 #    without phoning home.
 # 3. Add Rekor transparency log URL to the manifest (for internet-connected
 #    producers — air-gapped consumers verify offline from the log snapshot
 #    shipped inside the bundle itself).
-# 4. Support detached signatures in addition to embedded, so large bundles
-#    can be re-signed without re-transferring the whole archive.
+# 4. Support detached signatures so large bundles can be re-signed without
+#    re-transferring the whole archive.
