@@ -392,6 +392,8 @@ const PatchManagementDashboard = lazy(() => import("@/pages/PatchManagementDashb
 const ContainerPostureDashboard = lazy(() => import("@/pages/ContainerPostureDashboard"));
 // Phase 3 UX consolidation — Container Security hub (folds image + runtime + posture, 2026-05-02)
 const ContainerSecurityHub = lazy(() => import("@/pages/ContainerSecurityHub"));
+// Phase 3 UX consolidation — Detect & Respond hub (folds XDR + EDR + ITDR, 2026-05-02)
+const DetectAndRespondHub = lazy(() => import("@/pages/DetectAndRespondHub"));
 const CyberThreatIntelDashboard = lazy(() => import("@/pages/CyberThreatIntelDashboard"));
 const DigitalTwinDashboard = lazy(() => import("@/pages/DigitalTwinDashboard"));
 
@@ -996,11 +998,13 @@ export default function App() {
 
             {/* NDR / XDR / Awareness / EDR */}
             <Route path="/ndr" element={<NDRDashboard />} />
-            <Route path="/xdr" element={<XDRDashboard />} />
+            {/* Phase 3 UX consolidation — Detect & Respond hub (folds 3 pages, 2026-05-02) */}
+            <Route path="/discover/detect-respond" element={<DetectAndRespondHub />} />
+            <Route path="/xdr" element={<Navigate to="/discover/detect-respond?tab=xdr" replace />} />
             {/* Awareness hub — folded 2026-05-02. Canonical route + 4 redirects. */}
             <Route path="/comply/awareness" element={<AwarenessHub />} />
             <Route path="/awareness-score" element={<Navigate to="/comply/awareness?tab=score" replace />} />
-            <Route path="/edr" element={<EDRDashboard />} />
+            <Route path="/edr" element={<Navigate to="/discover/detect-respond?tab=edr" replace />} />
 
             {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
             <Route path="/identity-analytics" element={<IdentityAnalyticsDashboard />} />
@@ -1063,7 +1067,7 @@ export default function App() {
 
             {/* Wave 19 domain dashboards */}
             <Route path="/dark-web" element={<DarkWebMonitoringDashboard />} />
-            <Route path="/itdr" element={<ITDRDashboard />} />
+            <Route path="/itdr" element={<Navigate to="/discover/detect-respond?tab=itdr" replace />} />
             <Route path="/container-runtime" element={<Navigate to="/discover/container-security?tab=runtime" replace />} />
             <Route path="/api-discovery" element={<APIDiscoveryDashboard />} />
             <Route path="/security-chaos" element={<SecurityChaosDashboard />} />

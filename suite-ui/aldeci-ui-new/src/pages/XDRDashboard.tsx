@@ -1,3 +1,4 @@
+// FOLDED into DetectAndRespondHub hero (xdr tab) 2026-05-02 — preserve for git history
 /**
  * XDR Dashboard
  *

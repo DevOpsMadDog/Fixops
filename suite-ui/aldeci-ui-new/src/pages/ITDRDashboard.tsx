@@ -1,3 +1,4 @@
+// FOLDED into DetectAndRespondHub hero (itdr tab) 2026-05-02 — preserve for git history
 /**
  * ITDR Dashboard — Identity Threat Detection & Response
  *
