@@ -43,6 +43,13 @@ from core.openclaw_engine import OpenClawEngine, get_openclaw_engine
 
 logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "openclaw_engine",
+    "real_integration_required": "/api/v1/connectors/pentest/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(
     prefix="/api/v1/openclaw",
     tags=["openclaw"],
@@ -153,7 +160,8 @@ def advance_phase(
     """Advance the campaign to the next MITRE ATT&CK phase."""
     engine = _get_engine(org_id)
     try:
-        return engine.advance_phase(org_id, campaign_id)
+        result = engine.advance_phase(org_id, campaign_id)
+        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

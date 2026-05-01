@@ -1,4 +1,21 @@
-"""OpenClaw Autonomous Pentest Swarm Engine — ALDECI.
+"""
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine simulates autonomous pentest campaigns for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- Task execution (line 896) uses random.random() < success_prob to decide
+  exploit success — no real network probes or exploit payloads are executed.
+- Operator "swarm" consists of virtual state machine agents, not real tools.
+- Real implementation requires: Metasploit RPC, Nuclei, custom exploit runners,
+  or integration with PentestGPT/Pentera/Cymulate.
+  Configure via /api/v1/connectors/pentest/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
+OpenClaw Autonomous Pentest Swarm Engine — ALDECI.
 
 Orchestrates coordinated red team campaigns aligned to MITRE ATT&CK, with
 up to 5 virtual operators running tasks across reconnaissance, initial access,
@@ -35,6 +52,11 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
+_logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — pentest task outcomes use random.random() < success_prob; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/pentest/configure",
+    __name__,
+)
 
 _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
 
