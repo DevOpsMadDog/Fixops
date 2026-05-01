@@ -1,3 +1,4 @@
+// FOLDED into DataDiscoveryHub at /discover/dspm?tab=classification
 /**
  * Data Classification Dashboard
  *

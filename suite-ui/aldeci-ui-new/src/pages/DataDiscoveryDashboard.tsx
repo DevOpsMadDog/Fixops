@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into DataDiscoveryHub at /discover/dspm?tab=discovery
 /**
  * Data Discovery - Live API
  * API: GET /api/v1/data-discovery/datastores

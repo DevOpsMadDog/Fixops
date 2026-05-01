@@ -1,3 +1,4 @@
+// FOLDED into DataDiscoveryHub at /discover/dspm?tab=exfiltration
 /**
  * Data Exfiltration Dashboard
  *
