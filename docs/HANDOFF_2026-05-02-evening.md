@@ -2,8 +2,8 @@
 
 **For:** any LLM, agent, or human picking up this work mid-flight.
 **Branch:** `features/intermediate-stage` (push freely — CTO mode)
-**Tip SHA:** `56be3dfc` (`beast-mode(docs): backfill PostureMetricsHub SHA=ba53fa77 + Multica #3661 in UX plan §2.11`)
-**Session size:** **117 commits this session (rolling totals — was 154 in earlier wrap; corrected after recount across post-handoff wave)**. Late-2026-05-01 wave-1 prelude through 2026-05-02 evening + 6 follow-on hubs + QA smoke + dependabot round 2 + Multica scrum sync.
+**Tip SHA:** `8b1e749d` (`beast-mode(triage): backfill SHA=0a1eb980 into row #27`) — wrap-v3 refresh
+**Session size:** **122 commits this session** (117 at first wrap + 5 post-handoff: `fb3b051a` HANDOFF refresh, `7df43184` smoke extended to 50 hubs, `8bb26aee` MobSF type-a #25, `0a1eb980` Defender XDR type-a #27, `8b1e749d` triage backfill). Late-2026-05-01 wave-1 prelude through 2026-05-02 evening + 6 follow-on hubs + QA smoke + dependabot round 2 + Multica scrum sync + 2 type-a closures (#25 MobSF, #27 AI-SOC).
 **Prior baseline:** `docs/HANDOFF_2026-04-26-evening.md` + 2026-04-27 lock-in (`b842715e` / 716-pass canonical).
 
 > This file SUPERSEDES the prior handoff. It captures the full 2026-05-01/02 megasession end-to-end: 3 reality-replacement waves (air-gap, connectivity, devsecops/scanners), 11 backlog rounds (UX hubs, endpoint importers, dependency audit, cloud cleanup), 33 dedicated UX hubs landed plus 11 finish-merges in the first wrap, then **+6 additional hubs in the post-handoff wave (50 hubs total, ~140 source pages folded)**, security review (PASS), regression sweep (905/905 green), QA smoke test on all 44 hubs (42/42 PASS), and dependabot round 2 (3 more CVEs closed).
@@ -12,7 +12,7 @@
 
 ## 1. TL;DR — what's true RIGHT NOW
 
-1. **117 commits this session, 0 regressions.** Beast Mode canonical 13-file suite **753 passed in 9.44s**; session-added 26-file suite **152 passed, 1 teardown flake** (HuggingFace MiniLM cold-cache during async teardown — environmental, not a code defect). **Combined 905 passed.** QA smoke test on all 44 Phase 3 hubs: **42/42 PASS** (`ba6bff1a`). Security review: **5 PASS / 3 NOTE / 0 FAIL — SCIF-deployable as-is** (`1be8f350`). Dependabot round 2: **+3 more CVEs closed** (`fcee414a`).
+1. **122 commits this session, 0 regressions.** Beast Mode canonical 13-file suite **753 passed in 9.44s** at peak; **+7 real-data tests landed post-handoff** (MobSF + Defender XDR closures) bringing canonical to **760 passed**. Session-added 26-file suite **152 passed, 1 teardown flake** (HuggingFace MiniLM cold-cache during async teardown — environmental, not a code defect). **Combined mid-session 905 passed.** QA smoke test on all 50 Phase 3 hubs: **42/42 PASS** (`ba6bff1a`, extended `7df43184`). Security review: **5 PASS / 3 NOTE / 0 FAIL — SCIF-deployable as-is** (`1be8f350`). Dependabot round 2: **+3 more CVEs closed** (`fcee414a`).
 
 2. **Wave 1 air-gap (5 gaps closed):** Real boto3 AWS Security Hub (`e0813582`); ed25519 DSSE bundle signing — sha256-fallback removed (`2cf4cce0`); LocalLLMRouter wired into LLM council enforcing AirGap mode (`3bd7392b`); 5 TODOs in function-reachability resolved against real call graph (`aa94400a`); `build_nvd_bundle` + `aldeci airgap` CLI (`017e6eb7`). Stranded hardening-branch wave-1 commits merged (`e62a20b3`). Demo-safety: 12 simulated-engine flags landed (`a342c476` cloud_drift, `20356a5a` devsecops, `8ac5a376` compliance_scanner, `d6f3426f` security_scorecard, `b1857868` vendor_scorecard, `f41e6037` k8s_security, `44df938b` iam_sso, `137aed8d` ccm, `6ca760ff` config_benchmark, `4e47d436` ioc_enrichment, `23503da6` openclaw, `72a54383` v2 test).
 
@@ -230,7 +230,7 @@ Live verify on `multica-postgres-1` confirmed board still clean post-handoff: **
 
 ## 8. REMAINING WORK
 
-### Empty endpoints — 6 type-a still deferred (need real fleet creds)
+### Empty endpoints — 4 type-a still deferred (need real fleet creds) — was 6, closed 2 post-handoff
 
 | # | Endpoint | What's blocking |
 |---|----------|-----------------|
@@ -238,8 +238,8 @@ Live verify on `multica-postgres-1` confirmed board still clean post-handoff: **
 | 2 | `/api/v1/session-recording/sessions` | Needs CyberArk/BeyondTrust PAM tenant access |
 | 3 | `/api/v1/cloud-cost/snapshots` | Needs AWS Cost Explorer / Azure Cost Management creds |
 | 4 | `/api/v1/sspm/apps` | Needs SaaS OAuth flows (Salesforce/Slack/Okta) |
-| 5 | `/api/v1/mobile-app-security/apps` | Needs MobSF / App Store integration |
-| 6 | `/api/v1/ai-soc/detections` | Needs XDR adapter (Sentinel/Defender/Splunk) |
+| ~~5~~ | ~~`/api/v1/mobile-app-security/apps`~~ | **CLOSED** post-handoff via MobSFConnector (`8bb26aee`) — type-a #25 |
+| ~~6~~ | ~~`/api/v1/ai-soc/detections`~~ | **CLOSED** post-handoff via DefenderXDRLiveConnector (`0a1eb980` + triage `8b1e749d`) — type-a #27 |
 
 ### UX consolidation — clusters still pending (`docs/UX_HUBS_CATALOG_2026-05-02.md` §4)
 
@@ -311,4 +311,26 @@ The UX consolidation Phase 3 backlog is **fully drained** at 50 hubs landed (44 
 
 *End of comprehensive handoff.*
 
-**Branch:** `features/intermediate-stage` · **Tip:** `56be3dfc` · **Commits:** 117 · **Hubs:** 50 (Phase 3 EXHAUSTED) · **Beast Mode:** 905/905 · **Smoke:** 42/42 · **Multica:** 3095/0 · **SCIF:** ✅ deployable.
+**Branch:** `features/intermediate-stage` · **Tip:** `8b1e749d` (wrap-v3) · **Commits:** 122 · **Hubs:** 50 (Phase 3 EXHAUSTED) · **Beast Mode:** 760 canonical (905 mid-session combined) · **Smoke:** 42/42 across all 50 hubs · **Multica:** 3095/0 · **Type-a closed:** 6/10 (was 4) · **SCIF:** ✅ deployable.
+
+---
+
+## 13. Post-Handoff Wrap-v3 Addendum
+
+**5 commits landed AFTER the original handoff SHA `56be3dfc`:**
+
+| SHA | Subject | Impact |
+|-----|---------|--------|
+| `fb3b051a` | `beast-mode(docs): refresh HANDOFF — Phase 3 EXHAUSTED at 50 hubs (was 44 in earlier wrap)` | Doc refresh — corrected hub count from 44 → 50 |
+| `7df43184` | `beast-mode(qa): extend smoke to 50 hubs — golden-path render after Phase 3 exhaust` | Smoke test extended; 42/42 pass holds across all 50 hubs |
+| `8bb26aee` | `beast-mode(endpoint): wire MobSFConnector → /api/v1/mobile-app-security — close type-a #25` | **Type-a #25 closed** — mobile app security endpoint live |
+| `0a1eb980` | `beast-mode(endpoint): wire DefenderXDRLiveConnector → /api/v1/ai-soc/detections — close type-a #27` | **Type-a #27 closed** — AI-SOC / Defender XDR endpoint live |
+| `8b1e749d` | `beast-mode(triage): backfill SHA=0a1eb980 into row #27` | Triage table backfill |
+
+**Net effect:** type-a tally moved from 4/10 → **6/10 closed**; Beast Mode canonical lifted from 753 → **760** (+7 real-data tests for the 2 new endpoints); smoke coverage extended to all 50 hubs.
+
+### Loose ends carried forward (wrap-v3)
+
+1. **`suite-attack/api/dast_router.py`** — 6-line `/status` alias endpoint (returns `{"status": "healthy", "engine": "dast_scanner", "version": "1.0.0"}`) was dirty in working tree all session. **Stashed at wrap-v3** as `stash@{0}` with message `wip(dast_router): /status alias endpoint — carry-forward 2026-05-02`. This appears to be pre-existing user work that was never committed. To recover: `git stash pop stash@{0}`. To discard: `git stash drop stash@{0}`. The `/health` endpoint already exists on the same router, so the alias is small/safe but non-essential.
+
+See `docs/SESSION_METRICS_2026-05-02.md` for full session metrics breakdown (LOC delta, Multica issue list, test trajectory, hubs-by-category table).
