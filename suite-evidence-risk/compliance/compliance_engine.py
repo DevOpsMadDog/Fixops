@@ -627,6 +627,18 @@ class ComplianceDB:
                 CREATE INDEX IF NOT EXISTS idx_posture_framework ON posture_history(framework, evaluated_at);
             """)
 
+    def _ensure_schema(self) -> None:
+        """Defensive idempotent schema guard — call before any read.
+
+        Hardens BUG-1: prevents HTTP 500 on /api/v1/compliance-engine/audit-bundle
+        if the SQLite DB is deleted/corrupted between process start and first request.
+        CREATE TABLE IF NOT EXISTS is a no-op when tables already exist.
+        """
+        try:
+            self._init_db()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError):
+            pass
+
     def upsert_assessment(self, assessment: ControlAssessment, app_id: str = "") -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
@@ -682,6 +694,7 @@ class ComplianceDB:
             ))
 
     def get_assessments(self, framework: str, app_id: str = "") -> List[Dict[str, Any]]:
+        self._ensure_schema()
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
@@ -691,6 +704,7 @@ class ComplianceDB:
             return [dict(r) for r in rows]
 
     def get_evidence_for_control(self, control_id: str, framework: str) -> List[Dict[str, Any]]:
+        self._ensure_schema()
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
@@ -700,6 +714,7 @@ class ComplianceDB:
             return [dict(r) for r in rows]
 
     def get_posture_trend(self, framework: str, limit: int = 30) -> List[Dict[str, Any]]:
+        self._ensure_schema()
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(

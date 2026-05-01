@@ -127,6 +127,20 @@ class DetailedLogStore:
         )
         c.close()
 
+    def _ensure_schema(self):
+        """Defensive idempotent schema guard — call at top of every public read.
+
+        Hardens BUG-1: prevents HTTP 500 on /api/v1/logs if the SQLite DB
+        is deleted/corrupted between process start and first request.
+        CREATE TABLE IF NOT EXISTS is a no-op when tables already exist.
+        """
+        try:
+            self._init_schema()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError):
+            # If schema init itself fails (e.g., DB locked), let the caller
+            # surface the real error rather than mask it.
+            pass
+
     def insert(self, r: dict):
         try:
             c = self._c()
@@ -189,6 +203,7 @@ class DetailedLogStore:
         since=None,
         search=None,
     ):
+        self._ensure_schema()
         c = self._c()
         w, p = [], []
         if method:
@@ -224,12 +239,14 @@ class DetailedLogStore:
         return [self._to_dict(r) for r in rows]
 
     def count(self):
+        self._ensure_schema()
         c = self._c()
         n = c.execute("SELECT COUNT(*) FROM api_logs").fetchone()[0]
         c.close()
         return n
 
     def stats(self):
+        self._ensure_schema()
         c = self._c()
         total = c.execute("SELECT COUNT(*) FROM api_logs").fetchone()[0]
         errs = c.execute(

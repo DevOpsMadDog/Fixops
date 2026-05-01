@@ -179,6 +179,18 @@ class RiskPostureEngine:
             finally:
                 conn.close()
 
+    def _ensure_schema(self) -> None:
+        """Defensive idempotent schema guard — call at top of every public read.
+
+        Hardens BUG-1: prevents HTTP 500 if SQLite DB is deleted/corrupted
+        between process start and first request. CREATE TABLE IF NOT EXISTS
+        is a no-op when tables already exist.
+        """
+        try:
+            self._init_db()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError):
+            pass
+
     def record_finding(
         self,
         finding_id: str,
@@ -255,6 +267,7 @@ class RiskPostureEngine:
         """
         category_scores: Dict[RiskCategory, float] = {}
         factors: List[str] = []
+        self._ensure_schema()
 
         with self._lock:
             conn = sqlite3.connect(self.db_path)
@@ -383,6 +396,7 @@ class RiskPostureEngine:
             List of RiskPosture ordered by timestamp
         """
         postures = []
+        self._ensure_schema()
 
         with self._lock:
             conn = sqlite3.connect(self.db_path)

@@ -139,7 +139,7 @@ class AnalyticsEngine:
         self._init_db()
 
     def _init_db(self) -> None:
-        """Initialize SQLite schema."""
+        """Initialize SQLite schema (idempotent — safe to re-call)."""
         with self._lock:
             conn = sqlite3.connect(self.db_path)
             try:
@@ -180,6 +180,21 @@ class AnalyticsEngine:
             finally:
                 conn.close()
 
+    def _ensure_schema(self) -> None:
+        """Defensive idempotent schema guard — call at top of every public read.
+
+        Hardens BUG-1: prevents HTTP 500 if SQLite DB is deleted/corrupted
+        between process start and first request, or if the engine is
+        re-imported in a stale process. CREATE TABLE IF NOT EXISTS is a no-op
+        when tables already exist.
+        """
+        try:
+            self._init_db()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError):
+            # If schema init itself fails (e.g., DB locked), let the caller
+            # surface the real error rather than mask it.
+            pass
+
     def record_metric(
         self,
         name: str,
@@ -205,6 +220,7 @@ class AnalyticsEngine:
             timestamp = datetime.now(timezone.utc)
 
         dimensions_json = json.dumps(dimensions or {})
+        self._ensure_schema()
 
         with self._lock:
             conn = sqlite3.connect(self.db_path)
@@ -262,6 +278,7 @@ class AnalyticsEngine:
         now = datetime.now(timezone.utc)
         delta = self._time_window_delta(time_window)
         start_time = now - delta
+        self._ensure_schema()
 
         with self._lock:
             conn = sqlite3.connect(self.db_path)
@@ -343,6 +360,7 @@ class AnalyticsEngine:
         """
         trend = []
         delta = self._time_window_delta(window)
+        self._ensure_schema()
 
         for i in range(periods):
             period_end = datetime.now(timezone.utc) - (delta * i)
@@ -405,6 +423,7 @@ class AnalyticsEngine:
         now = datetime.now(timezone.utc)
         delta = self._time_window_delta(time_window)
         start_time = now - delta
+        self._ensure_schema()
 
         with self._lock:
             conn = sqlite3.connect(self.db_path)
@@ -457,6 +476,7 @@ class AnalyticsEngine:
             Dict of metric_name -> value
         """
         metrics = {}
+        self._ensure_schema()
 
         # These would be populated by the CTEM pipeline
         # For now, query what's in the database
