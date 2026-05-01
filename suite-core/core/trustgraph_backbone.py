@@ -38,6 +38,7 @@ __all__ = [
     "TrustGraphBackbone",
     "GraphRAGEnhanced",
     "RelationshipType",
+    "KnowledgeBrainAdapter",
     "get_backbone",
     "get_graphrag_enhanced",
 ]
@@ -99,6 +100,231 @@ def _rel_id() -> str:
 
 
 # ---------------------------------------------------------------------------
+# KnowledgeBrainAdapter — fallback store when external `trustgraph` is missing
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeBrainAdapter:
+    """Adapter that exposes the ``KnowledgeStore`` API on top of ``KnowledgeBrain``.
+
+    Why this exists:
+        Production deployments may not ship the external ``trustgraph`` PyPI
+        package (air-gapped installs, OSS-only customers, dev laptops without
+        the optional dep). Without this adapter, ``TrustGraphBackbone`` would
+        silently no-op every emit — guaranteeing the second-brain stays empty.
+
+        ``KnowledgeBrain`` (SQLite + NetworkX, thread-safe via ``RLock``,
+        WAL+checkpointing) is already wired and well-tested. This adapter
+        lets the backbone use it as a drop-in store without rewriting any
+        of the index_* methods upstream.
+
+    Methods exposed (matching ``trustgraph.knowledge_store.KnowledgeStore``):
+        - ``ingest(entity)`` — upsert entity → ``KnowledgeBrain.upsert_node``
+        - ``add_relationship(rel)`` — write edge → ``KnowledgeBrain.add_edge``
+        - ``get_entity(entity_id)`` — read entity (returns object with ``.to_dict``)
+        - ``get_relationships(entity_id=...)`` — read edges
+        - ``get_neighbors(entity_id=..., depth=...)`` — N-hop traversal
+        - ``core_stats(core_id)`` — per-core entity/relationship counts
+        - ``search(core_id, query_text, filters, limit)`` — name+properties LIKE
+        - ``_get_conn()`` / ``_row_to_entity()`` — used by GraphRAGEnhanced
+                                                   semantic_search LIKE fallback
+
+    Thread safety:
+        Inherits ``KnowledgeBrain``'s ``_conn_lock`` (re-entrant) and SQLite
+        WAL mode. Safe for concurrent FastAPI request workers.
+    """
+
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        org_id: str = "default",
+    ) -> None:
+        from core.knowledge_brain import (  # local import — avoid cycle at module load
+            EdgeType,
+            EntityType,
+            GraphEdge,
+            GraphNode,
+            get_brain,
+        )
+
+        self._GraphNode = GraphNode
+        self._GraphEdge = GraphEdge
+        self._EntityType = EntityType
+        self._EdgeType = EdgeType
+        self._org_id = org_id
+        # Use the project-wide singleton when no explicit db_path is given so all
+        # suites share one brain. When a db_path is supplied (tests), build a
+        # dedicated KnowledgeBrain so test isolation is preserved.
+        if db_path is None:
+            self._brain = get_brain()
+        else:
+            from core.knowledge_brain import KnowledgeBrain
+
+            self._brain = KnowledgeBrain(db_path=db_path)
+
+    # ---------- internal helpers ----------
+
+    def _coerce_entity_type(self, entity_type: str) -> Any:
+        """Map free-form entity_type string to ``EntityType`` enum (best effort)."""
+        try:
+            return self._EntityType(entity_type.lower())
+        except (ValueError, AttributeError):
+            # Unknown type — keep as raw string; KnowledgeBrain accepts both.
+            return entity_type
+
+    def _coerce_edge_type(self, rel_type: str) -> Any:
+        try:
+            return self._EdgeType(rel_type.lower())
+        except (ValueError, AttributeError):
+            return rel_type
+
+    # ---------- KnowledgeStore-compatible surface ----------
+
+    def ingest(self, entity: Any) -> Any:
+        """Upsert a KnowledgeEntity into the brain. Idempotent."""
+        props = dict(getattr(entity, "properties", {}) or {})
+        # Stamp identity-related fields into properties so consumers can read
+        # them back even though KnowledgeBrain has no first-class 'core_id' column.
+        props.setdefault("core_id", getattr(entity, "core_id", None))
+        props.setdefault("entity_type", getattr(entity, "entity_type", "unknown"))
+        props.setdefault("name", getattr(entity, "name", entity.entity_id))
+        node = self._GraphNode(
+            node_id=entity.entity_id,
+            node_type=self._coerce_entity_type(getattr(entity, "entity_type", "unknown")),
+            org_id=getattr(entity, "org_id", None) or self._org_id,
+            properties=props,
+        )
+        return self._brain.upsert_node(node)
+
+    def add_relationship(self, rel: Any) -> Any:
+        """Add a KnowledgeRelationship as a brain edge. Idempotent on (src, tgt, type)."""
+        edge = self._GraphEdge(
+            source_id=rel.source_id,
+            target_id=rel.target_id,
+            edge_type=self._coerce_edge_type(getattr(rel, "rel_type", "references")),
+            properties=dict(getattr(rel, "properties", {}) or {}),
+            confidence=float(getattr(rel, "confidence", 1.0)),
+        )
+        return self._brain.add_edge(edge)
+
+    def get_entity(self, entity_id: str) -> Optional[Any]:
+        """Return an entity-like object exposing ``.entity_id``, ``.name``,
+        ``.entity_type``, ``.core_id``, ``.properties``, ``.to_dict()``.
+        """
+        node = self._brain.get_node(entity_id)
+        if node is None:
+            return None
+        return _AdaptedEntity(node)
+
+    def get_relationships(self, entity_id: Optional[str] = None) -> List[Any]:
+        """Return relationship-like objects with ``.source_id``, ``.target_id``,
+        ``.rel_type``, ``.confidence``, ``.properties``, ``.rel_id``, ``.to_dict()``.
+        """
+        if entity_id is None:
+            return []
+        edges = self._brain.get_edges(entity_id, direction="both")
+        return [_AdaptedRelationship(e) for e in edges]
+
+    def get_neighbors(self, entity_id: str, depth: int = 1) -> List[Any]:
+        result = self._brain.get_neighbors(entity_id, depth=depth)
+        # Strip the center node — backbone callers expect strictly outbound
+        # neighbors, not the seed itself.
+        return [_AdaptedEntity(n) for n in result.nodes if n["node_id"] != entity_id]
+
+    def core_stats(self, core_id: int) -> Dict[str, Any]:
+        """Approximate per-core stats. KnowledgeBrain has no native concept of
+        cores, so we count nodes whose properties.core_id matches.
+        """
+        stats = self._brain.stats()
+        # Conservative approximation: cannot filter by JSON-embedded core_id
+        # without a full scan. Return totals — callers chiefly use this to know
+        # "graph not empty". Per-core breakdown is best-effort.
+        return {
+            "core_id": core_id,
+            "entity_count": stats.get("total_nodes", 0),
+            "relationship_count": stats.get("total_edges", 0),
+        }
+
+    def search(
+        self,
+        core_id: int,
+        query_text: str,
+        filters: Optional[Dict[str, Any]] = None,
+        limit: int = 10,
+    ) -> List[Any]:
+        org_id = (filters or {}).get("org_id")
+        result = self._brain.query_nodes(org_id=org_id, search=query_text, limit=limit)
+        return [_AdaptedEntity(n) for n in result.nodes]
+
+    def _get_conn(self):
+        """Expose underlying SQLite connection for ``GraphRAGEnhanced`` LIKE fallback."""
+        return self._brain._conn
+
+    def _row_to_entity(self, row: Any) -> Any:
+        """Best-effort row→entity converter for the LIKE-fallback path."""
+        # The LIKE fallback in GraphRAGEnhanced.semantic_search assumes the
+        # external store schema (entities table). KnowledgeBrain rows differ;
+        # return a minimal adapted entity so the path doesn't crash.
+        try:
+            node_id = row[0] if isinstance(row, (list, tuple)) else row["node_id"]
+        except (KeyError, IndexError, TypeError):
+            return None
+        node = self._brain.get_node(node_id)
+        return _AdaptedEntity(node) if node else None
+
+
+class _AdaptedEntity:
+    """Entity façade matching the ``KnowledgeEntity`` shape backbone code expects."""
+
+    __slots__ = ("entity_id", "core_id", "entity_type", "name", "properties", "org_id")
+
+    def __init__(self, node: Dict[str, Any]) -> None:
+        props = dict(node.get("properties", {}) or {})
+        self.entity_id = node["node_id"]
+        self.core_id = props.get("core_id")
+        self.entity_type = props.get("entity_type") or node.get("node_type", "unknown")
+        self.name = props.get("name") or node["node_id"]
+        self.properties = props
+        self.org_id = node.get("org_id")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "entity_id": self.entity_id,
+            "core_id": self.core_id,
+            "entity_type": self.entity_type,
+            "name": self.name,
+            "properties": self.properties,
+            "org_id": self.org_id,
+        }
+
+
+class _AdaptedRelationship:
+    """Relationship façade matching the ``KnowledgeRelationship`` shape."""
+
+    __slots__ = ("rel_id", "source_id", "target_id", "rel_type", "properties", "confidence")
+
+    def __init__(self, edge: Dict[str, Any]) -> None:
+        self.source_id = edge["source_id"]
+        self.target_id = edge["target_id"]
+        self.rel_type = edge.get("edge_type", "references")
+        self.properties = dict(edge.get("properties", {}) or {})
+        self.confidence = float(edge.get("confidence", 1.0))
+        # Synthesize a stable rel_id from the tuple — KnowledgeBrain's UNIQUE
+        # constraint means (src, tgt, type) is the natural key.
+        self.rel_id = f"rel_{abs(hash((self.source_id, self.target_id, self.rel_type))) & 0xFFFFFFFF:08x}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "rel_id": self.rel_id,
+            "source_id": self.source_id,
+            "target_id": self.target_id,
+            "rel_type": self.rel_type,
+            "properties": self.properties,
+            "confidence": self.confidence,
+        }
+
+
+# ---------------------------------------------------------------------------
 # TrustGraphBackbone
 # ---------------------------------------------------------------------------
 
@@ -128,7 +354,17 @@ class TrustGraphBackbone:
         self._init_store()
 
     def _init_store(self) -> None:
-        """Lazy-load KnowledgeStore; degrade gracefully on failure."""
+        """Lazy-load KnowledgeStore; degrade to KnowledgeBrain adapter on failure.
+
+        Resolution order:
+          1. External ``trustgraph.knowledge_store.KnowledgeStore`` package (preferred).
+          2. ``KnowledgeBrainAdapter`` wrapping the in-tree ``KnowledgeBrain``
+             SQLite+NetworkX store. Always available — no silent no-op.
+
+        After this method, ``self._store`` is never ``None`` and
+        ``self._available`` is always ``True`` unless even the in-tree
+        KnowledgeBrain failed to initialize (e.g. disk full / permission denied).
+        """
         try:
             from trustgraph.knowledge_store import KnowledgeStore
 
@@ -136,10 +372,30 @@ class TrustGraphBackbone:
             if self._db_path is not None:
                 kwargs["db_path"] = self._db_path
             self._store = KnowledgeStore(**kwargs)
+            self._available = True
             logger.info("TrustGraphBackbone: KnowledgeStore initialized")
+            return
         except Exception as exc:
-            logger.warning(
-                "TrustGraphBackbone: KnowledgeStore unavailable — graph features disabled: %s",
+            logger.info(
+                "TrustGraphBackbone: external KnowledgeStore unavailable (%s) — "
+                "falling back to KnowledgeBrain adapter",
+                exc,
+            )
+
+        # Fallback: wrap the in-tree KnowledgeBrain so every emit lands somewhere.
+        try:
+            self._store = KnowledgeBrainAdapter(
+                db_path=self._db_path, org_id=self.org_id
+            )
+            self._available = True
+            logger.info(
+                "TrustGraphBackbone: KnowledgeBrain fallback active (db=%s)",
+                self._db_path or "default",
+            )
+        except Exception as exc:  # pragma: no cover — disk/permission failure
+            logger.error(
+                "TrustGraphBackbone: KnowledgeBrain fallback ALSO failed (%s) — "
+                "graph features disabled",
                 exc,
             )
             self._store = None
@@ -153,17 +409,32 @@ class TrustGraphBackbone:
         name: str,
         properties: Optional[Dict[str, Any]] = None,
     ) -> Any:
-        """Create a KnowledgeEntity."""
-        from trustgraph.knowledge_store import KnowledgeEntity
+        """Create a KnowledgeEntity (or adapter-compatible stand-in)."""
+        try:
+            from trustgraph.knowledge_store import KnowledgeEntity
 
-        return KnowledgeEntity(
-            entity_id=entity_id,
-            core_id=core_id,
-            entity_type=entity_type,
-            name=name,
-            properties=properties or {},
-            org_id=self.org_id,
-        )
+            return KnowledgeEntity(
+                entity_id=entity_id,
+                core_id=core_id,
+                entity_type=entity_type,
+                name=name,
+                properties=properties or {},
+                org_id=self.org_id,
+            )
+        except Exception:
+            # External package missing — return a duck-typed object that the
+            # KnowledgeBrainAdapter.ingest() reads via getattr.
+            return _AdaptedEntity({
+                "node_id": entity_id,
+                "node_type": entity_type,
+                "org_id": self.org_id,
+                "properties": {
+                    **(properties or {}),
+                    "core_id": core_id,
+                    "entity_type": entity_type,
+                    "name": name,
+                },
+            })
 
     def _make_rel(
         self,
@@ -173,17 +444,26 @@ class TrustGraphBackbone:
         confidence: float = 0.95,
         properties: Optional[Dict[str, Any]] = None,
     ) -> Any:
-        """Create a KnowledgeRelationship."""
-        from trustgraph.knowledge_store import KnowledgeRelationship
+        """Create a KnowledgeRelationship (or adapter-compatible stand-in)."""
+        try:
+            from trustgraph.knowledge_store import KnowledgeRelationship
 
-        return KnowledgeRelationship(
-            rel_id=_rel_id(),
-            source_id=source_id,
-            target_id=target_id,
-            rel_type=rel_type,
-            properties=properties or {},
-            confidence=confidence,
-        )
+            return KnowledgeRelationship(
+                rel_id=_rel_id(),
+                source_id=source_id,
+                target_id=target_id,
+                rel_type=rel_type,
+                properties=properties or {},
+                confidence=confidence,
+            )
+        except Exception:
+            return _AdaptedRelationship({
+                "source_id": source_id,
+                "target_id": target_id,
+                "edge_type": rel_type,
+                "properties": properties or {},
+                "confidence": confidence,
+            })
 
     def _safe_ingest(self, entity: Any) -> bool:
         """Ingest entity, returning True on success."""
