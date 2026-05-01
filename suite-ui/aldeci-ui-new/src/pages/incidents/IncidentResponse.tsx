@@ -9,7 +9,9 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Siren,
   ShieldAlert,
@@ -198,306 +200,11 @@ const TYPE_META: Record<
 };
 
 // ═══════════════════════════════════════════════════════════
-// Mock data
+// Time helpers
 // ═══════════════════════════════════════════════════════════
 
 const now = new Date();
-const minsAgo = (m: number) => new Date(now.getTime() - m * 60_000);
-const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000);
-const hoursFromNow = (h: number) => new Date(now.getTime() + h * 3_600_000);
 
-const MOCK_INCIDENTS: Incident[] = [
-  {
-    id: "INC-2024-0041",
-    title: "XZ Utils Backdoor: Active Exploitation Attempt on prod-api-01",
-    type: "supply_chain",
-    severity: "critical",
-    state: "CONTAINING",
-    summary:
-      "CVE-2024-3094 actively exploited against prod-api-01. Attacker established C2 channel via liblzma.so backdoor. SSH brute-force traffic observed from 185.220.101.x. Container quarantined; lateral movement to prod-db-02 suspected.",
-    affectedAssets: ["prod-api-01", "aldeci-api:v2.3.1", "prod-db-02 (suspected)"],
-    owner: "jsmith",
-    team: ["jsmith", "mchen", "t.okonkwo"],
-    detectedAt: minsAgo(112),
-    updatedAt: minsAgo(8),
-    sla_breach_at: hoursFromNow(2),
-    mttr_est_hours: 6,
-    tags: ["supply-chain", "rce", "c2", "critical-path"],
-    checklist: [
-      { id: "c1", label: "Isolate affected container from network", assignee: "jsmith", done: true, phase: "CONTAINING" },
-      { id: "c2", label: "Revoke compromised SSH keys", assignee: "mchen", done: true, phase: "CONTAINING" },
-      { id: "c3", label: "Block C2 IPs at perimeter (185.220.101.0/24)", assignee: "jsmith", done: false, phase: "CONTAINING" },
-      { id: "c4", label: "Forensic memory dump of prod-api-01", assignee: "t.okonkwo", done: false, phase: "CONTAINING" },
-      { id: "c5", label: "Scan all containers for xz-utils 5.6.0-5.6.1", assignee: "mchen", done: false, phase: "ERADICATING" },
-      { id: "c6", label: "Rebuild base images from debian:bookworm-slim", assignee: "jsmith", done: false, phase: "ERADICATING" },
-      { id: "c7", label: "Validate prod-db-02 integrity", assignee: "t.okonkwo", done: false, phase: "ERADICATING" },
-      { id: "c8", label: "Restore prod-api-01 from clean image", assignee: "jsmith", done: false, phase: "RECOVERING" },
-      { id: "c9", label: "24-hour enhanced monitoring post-restore", assignee: "mchen", done: false, phase: "RECOVERING" },
-      { id: "c10", label: "Draft post-mortem and lessons learned", assignee: "t.okonkwo", done: false, phase: "CLOSED" },
-    ],
-    timeline: [
-      { id: "t1", ts: minsAgo(112), actor: "Trivy Scanner", action: "CVE-2024-3094 detected in aldeci-api:v2.3.1", type: "detection" },
-      { id: "t2", ts: minsAgo(105), actor: "ALDECI Brain", action: "LLM Council verdict: BLOCK (98% confidence)", detail: "4/4 models in agreement. Immediate isolation recommended.", type: "escalation" },
-      { id: "t3", ts: minsAgo(98), actor: "jsmith", action: "Incident declared INC-2024-0041 — Severity CRITICAL", type: "action" },
-      { id: "t4", ts: minsAgo(91), actor: "jsmith", action: "Container prod-api-01 quarantined", detail: "Network policy applied. Container isolated in quarantine namespace.", type: "action" },
-      { id: "t5", ts: minsAgo(84), actor: "mchen", action: "SSH key rotation initiated", detail: "17 keys revoked across production fleet.", type: "action" },
-      { id: "t6", ts: minsAgo(67), actor: "Network IDS", action: "C2 traffic detected from prod-api-01 → 185.220.101.42:4444", detail: "Beaconing at 5-minute intervals. Consistent with XZ backdoor C2 protocol.", type: "detection" },
-      { id: "t7", ts: minsAgo(58), actor: "jsmith", action: "Escalated to CISO — active exploitation confirmed", type: "escalation" },
-      { id: "t8", ts: minsAgo(32), actor: "t.okonkwo", action: "Lateral movement indicators on prod-db-02", detail: "Unusual auth attempts from quarantined prod-api-01 IP prior to isolation.", type: "update" },
-      { id: "t9", ts: minsAgo(8), actor: "mchen", action: "State advanced: TRIAGING → CONTAINING", type: "update" },
-    ],
-    findings: [
-      { id: "ALT-0041", title: "CVE-2024-3094: XZ Utils Backdoor in Base Image", severity: "critical", source: "Trivy", cve: "CVE-2024-3094" },
-      { id: "ALT-0036", title: "Suspicious outbound C2 traffic on port 4444", severity: "critical", source: "Network IDS" },
-      { id: "ALT-0033", title: "Unauthorized auth attempts on prod-db-02", severity: "high", source: "SIEM" },
-    ],
-  },
-  {
-    id: "INC-2024-0040",
-    title: "Hardcoded AWS Credentials Exposed — Active Key Detected in Prod",
-    type: "credential_compromise",
-    severity: "critical",
-    state: "ERADICATING",
-    summary:
-      "AWS_SECRET_ACCESS_KEY found in plaintext in production Dockerfile. Key confirmed active with S3:* and EC2:* permissions. GitLeaks scan shows key committed 23 days ago. Rotation completed; auditing for unauthorized access in CloudTrail.",
-    affectedAssets: ["services/api/Dockerfile", "AWS IAM key AKIA3X7ZL2Q9", "S3://aldeci-prod-backups"],
-    owner: "mchen",
-    team: ["mchen", "jsmith"],
-    detectedAt: hoursAgo(4),
-    updatedAt: minsAgo(23),
-    sla_breach_at: hoursFromNow(8),
-    mttr_est_hours: 4,
-    tags: ["secrets", "iam", "aws", "data-exposure"],
-    checklist: [
-      { id: "c1", label: "Rotate compromised AWS key immediately", assignee: "mchen", done: true, phase: "CONTAINING" },
-      { id: "c2", label: "Revoke all sessions for AKIA3X7ZL2Q9", assignee: "mchen", done: true, phase: "CONTAINING" },
-      { id: "c3", label: "Remove secret from Dockerfile + git history", assignee: "jsmith", done: true, phase: "ERADICATING" },
-      { id: "c4", label: "Audit CloudTrail for unauthorized API calls", assignee: "mchen", done: false, phase: "ERADICATING" },
-      { id: "c5", label: "Verify S3 bucket ACLs and access logs", assignee: "jsmith", done: false, phase: "ERADICATING" },
-      { id: "c6", label: "Migrate secret to AWS Secrets Manager", assignee: "mchen", done: false, phase: "RECOVERING" },
-      { id: "c7", label: "Add pre-commit hook for secret scanning", assignee: "jsmith", done: false, phase: "RECOVERING" },
-    ],
-    timeline: [
-      { id: "t1", ts: hoursAgo(4), actor: "Semgrep", action: "Hardcoded credential pattern detected in Dockerfile", type: "detection" },
-      { id: "t2", ts: hoursAgo(3.8), actor: "ALDECI Brain", action: "LLM Council: BLOCK (99% confidence). Active key confirmed via AWS STS GetCallerIdentity.", type: "escalation" },
-      { id: "t3", ts: hoursAgo(3.5), actor: "mchen", action: "Key rotated — new key provisioned via Vault", type: "action" },
-      { id: "t4", ts: hoursAgo(2.5), actor: "jsmith", action: "Git history rewritten with BFG Repo Cleaner", detail: "Force-pushed to all branches. GitHub informed for cache purge.", type: "action" },
-      { id: "t5", ts: minsAgo(23), actor: "mchen", action: "CloudTrail audit in progress — 3 suspicious GetObject calls identified", type: "update" },
-    ],
-    findings: [
-      { id: "ALT-0040", title: "Hardcoded AWS Credentials in Production Dockerfile", severity: "critical", source: "Semgrep" },
-      { id: "ALT-0029", title: "S3 bucket aldeci-prod-backups: 3 unexpected GetObject", severity: "high", source: "CloudTrail" },
-    ],
-  },
-  {
-    id: "INC-2024-0039",
-    title: "Suspected Insider Data Exfiltration — HR Records",
-    type: "insider_threat",
-    severity: "high",
-    state: "TRIAGING",
-    summary:
-      "Anomalous bulk export of HR records (2,847 employee records) detected by DLP. User account u.patel accessed /api/v1/hr/bulk-export 14 times in 6 hours — 400x above baseline. Account suspended; legal hold initiated.",
-    affectedAssets: ["HR DB", "u.patel (account suspended)", "/api/v1/hr/bulk-export"],
-    owner: "t.okonkwo",
-    team: ["t.okonkwo", "legal-team", "hr-security"],
-    detectedAt: hoursAgo(7),
-    updatedAt: hoursAgo(1),
-    sla_breach_at: hoursFromNow(17),
-    mttr_est_hours: 24,
-    tags: ["insider", "dlp", "pii", "legal-hold"],
-    checklist: [
-      { id: "c1", label: "Suspend u.patel account and terminate sessions", assignee: "t.okonkwo", done: true, phase: "CONTAINING" },
-      { id: "c2", label: "Initiate legal hold on u.patel workstation", assignee: "legal-team", done: true, phase: "TRIAGING" },
-      { id: "c3", label: "Pull SIEM logs for all u.patel activity (90 days)", assignee: "t.okonkwo", done: false, phase: "TRIAGING" },
-      { id: "c4", label: "Identify all data accessed and exfiltration vectors", assignee: "t.okonkwo", done: false, phase: "TRIAGING" },
-      { id: "c5", label: "Notify DPO — potential GDPR breach", assignee: "legal-team", done: false, phase: "TRIAGING" },
-    ],
-    timeline: [
-      { id: "t1", ts: hoursAgo(7), actor: "DLP Engine", action: "Bulk HR record export anomaly — 2,847 records in 6h", type: "detection" },
-      { id: "t2", ts: hoursAgo(6.5), actor: "SIEM", action: "UBA alert: 400x API call rate anomaly for u.patel", type: "detection" },
-      { id: "t3", ts: hoursAgo(6), actor: "t.okonkwo", action: "Account u.patel suspended, all sessions revoked", type: "action" },
-      { id: "t4", ts: hoursAgo(5), actor: "t.okonkwo", action: "Legal team notified, legal hold initiated", type: "escalation" },
-      { id: "t5", ts: hoursAgo(1), actor: "t.okonkwo", action: "Log extraction complete, analysis in progress", type: "update" },
-    ],
-    findings: [
-      { id: "UBA-0012", title: "Anomalous bulk export: 2,847 HR records", severity: "high", source: "DLP" },
-      { id: "UBA-0011", title: "API rate anomaly: 400x baseline for u.patel", severity: "high", source: "SIEM" },
-    ],
-  },
-  {
-    id: "INC-2024-0037",
-    title: "DDoS: ALB Under Volumetric Attack — 3.2Gbps Sustained",
-    type: "ddos",
-    severity: "high",
-    state: "RECOVERING",
-    summary:
-      "Application Load Balancer receiving 3.2Gbps sustained UDP flood from 47 source ASNs. AWS Shield Advanced mitigating ~85%. Origin IPs partially exposed. Cloudflare WAF rules deployed. Traffic normalizing.",
-    affectedAssets: ["aldeci-prod-alb", "api.aldeci.io", "Cloudflare WAF"],
-    owner: "jsmith",
-    team: ["jsmith", "cloud-ops"],
-    detectedAt: hoursAgo(9),
-    updatedAt: minsAgo(45),
-    sla_breach_at: hoursFromNow(3),
-    mttr_est_hours: 2,
-    tags: ["ddos", "availability", "aws-shield", "cloudflare"],
-    checklist: [
-      { id: "c1", label: "Enable AWS Shield Advanced rate limiting", assignee: "jsmith", done: true, phase: "CONTAINING" },
-      { id: "c2", label: "Deploy Cloudflare WAF volumetric rules", assignee: "cloud-ops", done: true, phase: "CONTAINING" },
-      { id: "c3", label: "Geo-block 12 high-volume source countries", assignee: "jsmith", done: true, phase: "CONTAINING" },
-      { id: "c4", label: "Scale ALB capacity +200%", assignee: "cloud-ops", done: true, phase: "RECOVERING" },
-      { id: "c5", label: "Monitor traffic for 4h post-mitigation", assignee: "jsmith", done: false, phase: "RECOVERING" },
-      { id: "c6", label: "File AWS abuse report for bot ASNs", assignee: "cloud-ops", done: false, phase: "RECOVERING" },
-    ],
-    timeline: [
-      { id: "t1", ts: hoursAgo(9), actor: "AWS CloudWatch", action: "ALB 5xx rate exceeded 40% — DDoS suspected", type: "detection" },
-      { id: "t2", ts: hoursAgo(8.5), actor: "AWS Shield", action: "Volumetric attack confirmed: 3.2Gbps UDP flood from 47 ASNs", type: "detection" },
-      { id: "t3", ts: hoursAgo(8), actor: "jsmith", action: "AWS Shield Advanced rules activated", type: "action" },
-      { id: "t4", ts: hoursAgo(7), actor: "cloud-ops", action: "Cloudflare WAF rules deployed — blocking 60% of malicious traffic", type: "action" },
-      { id: "t5", ts: hoursAgo(5), actor: "jsmith", action: "Geo-blocking applied to 12 source countries", type: "action" },
-      { id: "t6", ts: minsAgo(45), actor: "cloud-ops", action: "Traffic normalizing — ALB error rate below 2%", type: "update" },
-    ],
-    findings: [
-      { id: "NET-0019", title: "Volumetric UDP flood: 3.2Gbps to ALB", severity: "high", source: "AWS Shield" },
-      { id: "NET-0018", title: "ALB 5xx rate spike: 42% error rate", severity: "high", source: "CloudWatch" },
-    ],
-  },
-  {
-    id: "INC-2024-0035",
-    title: "Zero-Day: Remote Code Execution in OpenSSH 9.7p1",
-    type: "zero_day",
-    severity: "critical",
-    state: "CLOSED",
-    summary:
-      "CVE-2024-6387 (regreSSHion) exploited against 3 legacy jump hosts. Unauthenticated RCE achieved via race condition in signal handler. All affected hosts patched and re-imaged. No data exfiltration confirmed.",
-    affectedAssets: ["jump-01 (patched)", "jump-02 (patched)", "jump-03 (patched)"],
-    owner: "mchen",
-    team: ["mchen", "jsmith", "t.okonkwo"],
-    detectedAt: hoursAgo(48),
-    updatedAt: hoursAgo(6),
-    sla_breach_at: hoursAgo(40),
-    mttr_est_hours: 8,
-    tags: ["zero-day", "rce", "openssh", "jump-host"],
-    checklist: [
-      { id: "c1", label: "Emergency patch OpenSSH to 9.8p1 on all hosts", assignee: "mchen", done: true, phase: "ERADICATING" },
-      { id: "c2", label: "Re-image all 3 affected jump hosts", assignee: "jsmith", done: true, phase: "ERADICATING" },
-      { id: "c3", label: "Rotate all SSH credentials fleet-wide", assignee: "mchen", done: true, phase: "RECOVERING" },
-      { id: "c4", label: "Enable login_grace_time 0 as temporary mitigation", assignee: "jsmith", done: true, phase: "CONTAINING" },
-      { id: "c5", label: "Post-mortem published to security@", assignee: "t.okonkwo", done: true, phase: "CLOSED" },
-    ],
-    timeline: [
-      { id: "t1", ts: hoursAgo(48), actor: "Threat Intel Feed", action: "CVE-2024-6387 PoC published — regreSSHion", type: "detection" },
-      { id: "t2", ts: hoursAgo(46), actor: "SIEM", action: "Exploit attempt pattern matched on jump-01/02/03", type: "detection" },
-      { id: "t3", ts: hoursAgo(44), actor: "mchen", action: "Temporary mitigation: login_grace_time 0 applied fleet-wide", type: "action" },
-      { id: "t4", ts: hoursAgo(36), actor: "mchen", action: "Patch deployed — OpenSSH 9.8p1 on all hosts", type: "action" },
-      { id: "t5", ts: hoursAgo(24), actor: "jsmith", action: "Jump hosts re-imaged and validated", type: "action" },
-      { id: "t6", ts: hoursAgo(6), actor: "t.okonkwo", action: "Post-mortem published. Incident CLOSED.", type: "resolution" },
-    ],
-    findings: [
-      { id: "ALT-0035", title: "CVE-2024-6387: regreSSHion on jump-01/02/03", severity: "critical", source: "Threat Intel", cve: "CVE-2024-6387" },
-    ],
-  },
-  {
-    id: "INC-2024-0034",
-    title: "Lateral Movement: Compromised Service Account Pivoting in EKS",
-    type: "lateral_movement",
-    severity: "high",
-    state: "DETECTED",
-    summary:
-      "Service account aldeci-scanner-sa exhibiting anomalous kubectl exec commands across 6 pods. RBAC permissions far exceed least privilege. Active investigation underway.",
-    affectedAssets: ["aldeci-scanner-sa", "EKS cluster prod-k8s-01", "6 pods (suspected)"],
-    owner: "t.okonkwo",
-    team: ["t.okonkwo"],
-    detectedAt: minsAgo(18),
-    updatedAt: minsAgo(5),
-    sla_breach_at: hoursFromNow(6),
-    mttr_est_hours: 3,
-    tags: ["lateral-movement", "kubernetes", "rbac", "service-account"],
-    checklist: [
-      { id: "c1", label: "Revoke aldeci-scanner-sa token immediately", assignee: "t.okonkwo", done: false, phase: "CONTAINING" },
-      { id: "c2", label: "Capture pod logs before termination", assignee: "t.okonkwo", done: false, phase: "TRIAGING" },
-      { id: "c3", label: "Audit RBAC permissions for all service accounts", assignee: "t.okonkwo", done: false, phase: "ERADICATING" },
-    ],
-    timeline: [
-      { id: "t1", ts: minsAgo(18), actor: "Falco", action: "Anomalous kubectl exec detected from aldeci-scanner-sa", type: "detection" },
-      { id: "t2", ts: minsAgo(12), actor: "ALDECI Brain", action: "Lateral movement pattern confirmed — 6 pods affected", type: "escalation" },
-      { id: "t3", ts: minsAgo(5), actor: "t.okonkwo", action: "Incident INC-2024-0034 declared — investigation started", type: "action" },
-    ],
-    findings: [
-      { id: "K8S-0007", title: "Anomalous kubectl exec: aldeci-scanner-sa across 6 pods", severity: "high", source: "Falco" },
-    ],
-  },
-  {
-    id: "INC-2024-0031",
-    title: "Ransomware Precursor: Cobalt Strike Beacon on dev-workstation-07",
-    type: "ransomware",
-    severity: "critical",
-    state: "ERADICATING",
-    summary:
-      "CrowdStrike detected Cobalt Strike beacon on dev-workstation-07. C2 communication established to known ransomware-as-a-service infrastructure (Lockbit 3.0). Machine isolated. No encryption observed yet.",
-    affectedAssets: ["dev-workstation-07", "developer d.rivera account"],
-    owner: "jsmith",
-    team: ["jsmith", "mchen", "endpoint-team"],
-    detectedAt: hoursAgo(6),
-    updatedAt: hoursAgo(1),
-    sla_breach_at: hoursFromNow(1),
-    mttr_est_hours: 8,
-    tags: ["ransomware", "cobalt-strike", "c2", "endpoint"],
-    checklist: [
-      { id: "c1", label: "Isolate dev-workstation-07 from network", assignee: "jsmith", done: true, phase: "CONTAINING" },
-      { id: "c2", label: "Block Lockbit C2 IPs at perimeter", assignee: "mchen", done: true, phase: "CONTAINING" },
-      { id: "c3", label: "Forensic image of workstation disk", assignee: "endpoint-team", done: true, phase: "TRIAGING" },
-      { id: "c4", label: "Kill beacon process and remove persistence", assignee: "endpoint-team", done: false, phase: "ERADICATING" },
-      { id: "c5", label: "Scan all developer machines for IOCs", assignee: "jsmith", done: false, phase: "ERADICATING" },
-      { id: "c6", label: "Re-image dev-workstation-07", assignee: "endpoint-team", done: false, phase: "RECOVERING" },
-    ],
-    timeline: [
-      { id: "t1", ts: hoursAgo(6), actor: "CrowdStrike", action: "Cobalt Strike beacon detected — Lockbit 3.0 IOC match", type: "detection" },
-      { id: "t2", ts: hoursAgo(5.8), actor: "jsmith", action: "Workstation isolated from network", type: "action" },
-      { id: "t3", ts: hoursAgo(4), actor: "endpoint-team", action: "Forensic disk image captured", type: "action" },
-      { id: "t4", ts: hoursAgo(1), actor: "mchen", action: "Perimeter C2 blocks confirmed active", type: "action" },
-    ],
-    findings: [
-      { id: "EDR-0004", title: "Cobalt Strike beacon: Lockbit 3.0 IOC match", severity: "critical", source: "CrowdStrike" },
-      { id: "NET-0016", title: "C2 beaconing to 91.92.251.x (Lockbit infrastructure)", severity: "critical", source: "Network IDS" },
-    ],
-  },
-  {
-    id: "INC-2024-0028",
-    title: "Data Breach: Customer PII Exposed via Misconfigured S3 Bucket",
-    type: "data_breach",
-    severity: "high",
-    state: "CLOSED",
-    summary:
-      "S3 bucket aldeci-customer-exports left publicly accessible for 11 days. Contains customer names, emails, and subscription data for 12,400 accounts. Bucket secured. GDPR 72-hour notification sent. Customers notified.",
-    affectedAssets: ["S3://aldeci-customer-exports", "12,400 customer records"],
-    owner: "mchen",
-    team: ["mchen", "legal-team", "customer-success"],
-    detectedAt: hoursAgo(72),
-    updatedAt: hoursAgo(24),
-    sla_breach_at: hoursAgo(48),
-    mttr_est_hours: 16,
-    tags: ["data-breach", "s3", "pii", "gdpr", "customer-data"],
-    checklist: [
-      { id: "c1", label: "Set S3 bucket to private + block public access", assignee: "mchen", done: true, phase: "CONTAINING" },
-      { id: "c2", label: "Audit S3 access logs for external access", assignee: "mchen", done: true, phase: "TRIAGING" },
-      { id: "c3", label: "GDPR 72-hour DPA notification filed", assignee: "legal-team", done: true, phase: "ERADICATING" },
-      { id: "c4", label: "Customer breach notification sent", assignee: "customer-success", done: true, phase: "RECOVERING" },
-      { id: "c5", label: "S3 public access audit across all buckets", assignee: "mchen", done: true, phase: "ERADICATING" },
-      { id: "c6", label: "Post-mortem + policy update", assignee: "mchen", done: true, phase: "CLOSED" },
-    ],
-    timeline: [
-      { id: "t1", ts: hoursAgo(72), actor: "AWS Config", action: "S3 bucket aldeci-customer-exports marked public — rule violation", type: "detection" },
-      { id: "t2", ts: hoursAgo(71), actor: "mchen", action: "Bucket secured — public access disabled", type: "action" },
-      { id: "t3", ts: hoursAgo(60), actor: "mchen", action: "Access log analysis: 3 external IPs accessed bucket during exposure", type: "update" },
-      { id: "t4", ts: hoursAgo(48), actor: "legal-team", action: "GDPR DPA notification filed", type: "action" },
-      { id: "t5", ts: hoursAgo(24), actor: "customer-success", action: "12,400 customer notifications sent. Incident CLOSED.", type: "resolution" },
-    ],
-    findings: [
-      { id: "CSP-0009", title: "S3 bucket publicly accessible: aldeci-customer-exports", severity: "critical", source: "AWS Config" },
-      { id: "CSP-0008", title: "3 external IPs accessed PII during 11-day exposure", severity: "high", source: "S3 Access Logs" },
-    ],
-  },
-];
 
 // ═══════════════════════════════════════════════════════════
 // Helper components
@@ -1090,15 +797,15 @@ function mapApiIncident(raw: Record<string, unknown>): Incident | null {
 }
 
 export default function IncidentResponse() {
-  const [incidents, setIncidents] = useState<Incident[]>(MOCK_INCIDENTS);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(MOCK_INCIDENTS[0].id);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterState, setFilterState] = useState<IRState | "ALL">("ALL");
   const [filterSeverity, setFilterSeverity] = useState<Severity | "ALL">("ALL");
 
-  // Fetch incidents from real API, fall back to MOCK_INCIDENTS
+  // Fetch incidents from real API; empty state renders when none
   useEffect(() => {
     let cancelled = false;
     async function fetchIncidents() {
@@ -1119,7 +826,6 @@ export default function IncidentResponse() {
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load incidents");
-          // Keep MOCK_INCIDENTS as fallback — already set as initial state
         }
       } finally {
         if (!cancelled) setLoading(false);
