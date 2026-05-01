@@ -142,22 +142,21 @@ def list_findings(
     status: Optional[str] = Query(default=None),
     resource_type: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """List cloud posture findings with optional filters."""
+    """List cloud posture findings with optional filters.
+
+    Falls back to live ``CSPMConnector`` output (Prowler/Checkov/Trivy/
+    CloudSploit/agentless) when the org has no recorded cp_findings AND
+    those scanners have produced rows in ``SecurityFindingsEngine``.
+    Returns ``{findings, total, source, hint?, projected_from?}``.
+    """
     try:
-        rows = _get_engine().list_findings(
+        return _get_engine().list_findings_with_cspm_fallback(
             org_id,
             provider=provider,
             severity=severity,
             status=status,
             resource_type=resource_type,
         )
-        if not rows:
-            return {
-                "findings": [],
-                "total": 0,
-                "hint": "Cloud posture findings require real cloud credentials (AWS, Azure, GCP). Configure cloud account credentials then register via POST /api/v1/cloud-posture/accounts and POST /api/v1/cloud-posture/findings.",
-            }
-        return {"findings": rows, "total": len(rows)}
     except Exception as exc:
         _logger.exception("list_findings failed")
         raise HTTPException(status_code=500, detail=str(exc))

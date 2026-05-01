@@ -254,6 +254,198 @@ class CloudPostureEngine:
                 rows = conn.execute(query, params).fetchall()
         return [self._row(r) for r in rows]
 
+    # ------------------------------------------------------------------
+    # Connector fallback — CSPMConnector → projects scanner findings
+    # ------------------------------------------------------------------
+
+    def list_findings_with_cspm_fallback(
+        self,
+        org_id: str,
+        provider: Optional[str] = None,
+        severity: Optional[str] = None,
+        status: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        cspm_connector: Any = None,
+        findings_engine: Any = None,
+    ) -> Dict[str, Any]:
+        """List cp_findings; when org has zero rows AND a CSPM tool was
+        previously executed (Prowler / Checkov / Trivy / CloudSploit /
+        agentless), project the resulting SecurityFindingsEngine rows whose
+        ``source_tool`` starts with ``cspm_via_`` into the cp_findings shape.
+
+        Behaviour:
+            - Org-recorded rows always take precedence (returns
+              ``source="org_recorded"``).
+            - When org has none AND the connector has produced findings in
+              ``SecurityFindingsEngine`` (because someone POSTed to
+              /api/v1/cspm/scan), those rows are projected one-per-finding,
+              tagged ``source="cspm_connector"`` plus ``cspm_tool`` for
+              provenance.
+            - When neither org rows nor connector rows exist, returns
+              ``{"findings": [], "source": "needs_credentials", "hint": ...}``.
+            - Filters (provider/severity/status/resource_type) apply to the
+              projected rows too.
+
+        Args:
+            org_id:           Tenant identifier.
+            provider/severity/status/resource_type:  Optional filters.
+            cspm_connector:   Override for testing (unused here; reserved for
+                              future is_configured() gates).
+            findings_engine:  Override for testing — must expose
+                              ``.list_findings(org_id=..., source_tool=...)``.
+
+        Returns:
+            ``{findings, total, source, hint?, projected_from?}``.
+        """
+        rows = self.list_findings(
+            org_id,
+            provider=provider,
+            severity=severity,
+            status=status,
+            resource_type=resource_type,
+        )
+        if rows:
+            return {
+                "findings": rows,
+                "total": len(rows),
+                "source": "org_recorded",
+            }
+
+        # Lazy-resolve SecurityFindingsEngine (where CSPMConnector mirrors
+        # everything it scrapes from Prowler / Checkov / Trivy / CloudSploit).
+        if findings_engine is None:
+            try:
+                from core.security_findings_engine import SecurityFindingsEngine
+                findings_engine = SecurityFindingsEngine()
+            except (ImportError, Exception) as exc:  # noqa: BLE001
+                _logger.warning(
+                    "cloud_posture: SecurityFindingsEngine unavailable: %s",
+                    exc,
+                )
+                return {
+                    "findings": [],
+                    "total": 0,
+                    "source": "needs_credentials",
+                    "hint": (
+                        "Configure cloud account credentials and run "
+                        "POST /api/v1/cspm/scan (Prowler/Checkov/Trivy/"
+                        "CloudSploit/agentless) to populate findings, "
+                        "or POST /api/v1/cloud-posture/findings to record "
+                        "manually."
+                    ),
+                }
+
+        # Pull every CSPM-tagged finding for the org. We can't scope by
+        # source_tool exact match because CSPMConnector emits 5 distinct tags
+        # (cspm_via_prowler, cspm_via_checkov, cspm_via_trivy,
+        # cspm_via_cloudsploit, cspm_via_agentless), so we list all and
+        # filter in Python.
+        try:
+            all_findings = findings_engine.list_findings(org_id=org_id) or []
+        except (ValueError, RuntimeError, OSError) as exc:
+            _logger.warning(
+                "cloud_posture: SecurityFindingsEngine.list_findings failed "
+                "for org=%s: %s", org_id, exc,
+            )
+            return {
+                "findings": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Configure cloud account credentials and run "
+                    "POST /api/v1/cspm/scan to populate findings."
+                ),
+            }
+
+        cspm_findings = [
+            f for f in all_findings
+            if str(f.get("source_tool") or "").startswith("cspm_via_")
+        ]
+        if not cspm_findings:
+            return {
+                "findings": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "No CSPM scanner findings recorded for this org. "
+                    "Configure cloud account credentials (AWS, Azure, GCP) "
+                    "and run POST /api/v1/cspm/scan to invoke "
+                    "Prowler/Checkov/Trivy/CloudSploit/agentless. Or POST "
+                    "/api/v1/cloud-posture/findings to record manually."
+                ),
+            }
+
+        derived: List[Dict[str, Any]] = []
+        # Map asset_type → cp resource_type vocabulary
+        _RTYPE_MAP = {
+            "cloud_resource": "compute",
+            "iac_resource": "compute",
+            "container_image": "container",
+            "kubernetes_cluster": "container",
+            "snapshot": "storage",
+        }
+        # Map SecurityFindings severity vocabulary back to cp_findings vocab.
+        # SF uses "informational"; cp_findings uses "info".
+        _SEV_MAP = {
+            "critical": "critical",
+            "high": "high",
+            "medium": "medium",
+            "low": "low",
+            "informational": "info",
+            "info": "info",
+        }
+        for f in cspm_findings:
+            sf_sev = str(f.get("severity") or "medium").lower()
+            cp_sev = _SEV_MAP.get(sf_sev, "medium")
+            asset_type = str(f.get("asset_type") or "cloud_resource").lower()
+            rtype = _RTYPE_MAP.get(asset_type, "compute")
+            cspm_tool = str(f.get("source_tool") or "").replace("cspm_via_", "")
+            # Apply filters against derived shape
+            if provider is not None and provider != "aws":
+                # CSPMConnector currently supports aws/azure/gcp; we don't
+                # store provider on SF row, default to aws (matches
+                # ProwlerNormalizer + cspm_connector default).
+                continue
+            if severity is not None and severity != cp_sev:
+                continue
+            if status is not None and status != "open":
+                continue
+            if resource_type is not None and resource_type != rtype:
+                continue
+            derived.append({
+                "id": f"cspm:{f.get('id', '')}",
+                "org_id": org_id,
+                "cloud_account_id": str(f.get("asset_id", ""))[:255],
+                "resource_id": str(f.get("asset_id", ""))[:255],
+                "resource_type": rtype,
+                "provider": "aws",  # CSPMConnector default; future: parse cor_key
+                "severity": cp_sev,
+                "title": str(f.get("title", ""))[:500],
+                "description": str(f.get("description", ""))[:4000],
+                "remediation": str(f.get("remediation", ""))[:2000],
+                "status": "open",
+                "detected_at": f.get("first_seen") or f.get("created_at"),
+                "resolved_at": None,
+                "notes": "",
+                # Provenance fields — not in cp_findings columns but UI badges.
+                "source": "cspm_connector",
+                "cspm_tool": cspm_tool,
+                "correlation_key": f.get("correlation_key", ""),
+            })
+
+        return {
+            "findings": derived,
+            "total": len(derived),
+            "source": "cspm_connector",
+            "projected_from": "SecurityFindingsEngine",
+            "hint": (
+                "Findings projected from CSPMConnector scanner output "
+                "(Prowler/Checkov/Trivy/CloudSploit/agentless). "
+                "Org-recorded rows take precedence — POST "
+                "/api/v1/cloud-posture/findings to override."
+            ),
+        }
+
     def update_finding_status(
         self, org_id: str, finding_id: str, status: str, notes: str = ""
     ) -> Dict[str, Any]:
