@@ -1,3 +1,7 @@
+// FOLDED into IncidentExtensionsHub at /remediate/incidents/extensions?tab=breach
+// Phase 3 UX consolidation 2026-05-02 — see docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.22
+// Legacy route /breach-response now redirects to the unified hub. This file is kept
+// and lazy-loaded inside IncidentExtensionsHub so behavior + API calls are preserved.
 /**
  * Breach Response
  *

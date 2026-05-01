@@ -1,3 +1,7 @@
+// FOLDED into IncidentExtensionsHub at /remediate/incidents/extensions?tab=cloud
+// Phase 3 UX consolidation 2026-05-02 — see docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.22
+// Legacy route /cloud-ir now redirects to the unified hub. This file is kept and
+// lazy-loaded inside IncidentExtensionsHub so behavior + API calls are preserved.
 import { useState, useEffect } from "react";
 const _API_BASE = "/api/v1/cloud-ir";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });

@@ -1,3 +1,7 @@
+// FOLDED into IncidentExtensionsHub at /remediate/incidents/extensions?tab=comms
+// Phase 3 UX consolidation 2026-05-02 — see docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.22
+// Legacy route /incident-comms now redirects to the unified hub. This file is kept and
+// lazy-loaded inside IncidentExtensionsHub so behavior + API calls are preserved.
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Incident Comms - Live API

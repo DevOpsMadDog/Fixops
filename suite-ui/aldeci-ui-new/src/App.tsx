@@ -659,6 +659,8 @@ const BehaviorAnalyticsHub = lazy(() => import("@/pages/BehaviorAnalyticsHub"));
 const PrivacyComplianceHub = lazy(() => import("@/pages/PrivacyComplianceHub"));
 // Phase 3 §2.20 (Exceptions sub-cluster) — ExceptionsHub at /remediate/exceptions
 const ExceptionsHub = lazy(() => import("@/pages/ExceptionsHub"));
+// Phase 3 §2.22 (Incident Extensions sub-cluster) — IncidentExtensionsHub at /remediate/incidents/extensions
+const IncidentExtensionsHub = lazy(() => import("@/pages/IncidentExtensionsHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -918,7 +920,8 @@ export default function App() {
             <Route path="/threat-correlation" element={<ThreatCorrelation />} />
             <Route path="/supply-chain-risk" element={<Navigate to="/discover/supply-chain?tab=risk" replace />} />
             <Route path="/cloud-security" element={<CloudSecurityDashboard />} />
-            <Route path="/breach-response" element={<BreachResponse />} />
+            {/* S22 fold 2026-05-02: BreachResponse → IncidentExtensionsHub#breach */}
+            <Route path="/breach-response" element={<Navigate to="/remediate/incidents/extensions?tab=breach" replace />} />
             <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/watchlist" element={<WatchlistManager />} />
             <Route path="/uba" element={<Navigate to="/mission-control/behavior?tab=uba" replace />} />
@@ -1129,7 +1132,8 @@ export default function App() {
             <Route path="/compliance-mapping" element={<ComplianceMappingDashboard />} />
             <Route path="/vuln-scans" element={<VulnScanDashboard />} />
             <Route path="/threat-briefs" element={<ThreatBriefDashboard />} />
-            <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
+            {/* S22 fold 2026-05-02: IncidentCommsDashboard → IncidentExtensionsHub#comms */}
+            <Route path="/incident-comms" element={<Navigate to="/remediate/incidents/extensions?tab=comms" replace />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
@@ -1152,7 +1156,10 @@ export default function App() {
             <Route path="/hunting-playbooks" element={<HuntingPlaybookDashboard />} />
             {/* S23 fold 2026-05-02: ProgramMaturityDashboard → MaturityHub#program */}
             <Route path="/program-maturity" element={<Navigate to="/comply/maturity?tab=program" replace />} />
-            <Route path="/cloud-ir" element={<CloudIRDashboard />} />
+            {/* Phase 3 §2.22 — Incident Extensions sub-cluster folded into IncidentExtensionsHub */}
+            <Route path="/remediate/incidents/extensions" element={<IncidentExtensionsHub />} />
+            {/* S22 fold 2026-05-02: CloudIRDashboard → IncidentExtensionsHub#cloud */}
+            <Route path="/cloud-ir" element={<Navigate to="/remediate/incidents/extensions?tab=cloud" replace />} />
             <Route path="/identity-lifecycle" element={<IdentityLifecycleDashboard />} />
             {/* S21 fold 2026-05-02: was DependencyMappingDashboard */}
             <Route path="/dependency-mapping" element={<Navigate to="/remediate/upgrade?tab=dep-map" replace />} />
