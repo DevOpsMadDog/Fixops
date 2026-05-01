@@ -314,7 +314,7 @@
 | `PAGDashboard` (Predicted Attack Graph) | `/api/v1/pag` | tab |
 
 ### 2.13 → S13 MPTE Console
-**Pentest / Red Team / Social Engineering sub-cluster: DONE-2026-05-02 SHA=ec21abed** — 3 offensive-validation pages folded into OffensiveValidationHub.tsx at `/validate/offensive` (PentestManagement, RedTeamStatus, SocialEngineering). Old routes (`/pentest`, `/red-team`, `/social-engineering`) and the alias `/pentest-mgmt` (PentestManagementDashboard) all redirect with `?tab=`. Real APIs: `/api/v1/pentest-mgmt/*`, `/api/v1/red-team/*`, `/api/v1/phishing/*`. AttackSimulation stays at `/validate/simulation` (RoleGuarded BAS surface); BugBounty stays inside Brain.tsx (already folded).
+**Pentest / Red Team / Social Engineering sub-cluster: DONE-2026-05-02 SHA=62e9f1d3** — 3 offensive-validation pages folded into OffensiveValidationHub.tsx at `/validate/offensive` (PentestManagement, RedTeamStatus, SocialEngineering). Old routes (`/pentest`, `/red-team`, `/social-engineering`) and the alias `/pentest-mgmt` (PentestManagementDashboard) all redirect with `?tab=`. Real APIs: `/api/v1/pentest-mgmt/*`, `/api/v1/red-team/*`, `/api/v1/phishing/*`. AttackSimulation stays at `/validate/simulation` (RoleGuarded BAS surface); BugBounty stays inside Brain.tsx (already folded).
 
 | Source | Endpoint | As |
 |---|---|---|
