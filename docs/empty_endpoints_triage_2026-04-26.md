@@ -42,12 +42,12 @@ Legend for **Class**:
 | 2 | `/api/v1/vuln-correlation/assets` | b | CISA KEV catalog (real CVE list) | **DONE-2026-05-02 SHA=933e27d1** — `list_assets()` now falls back to imported CISA KEV (1,583 real entries) and projects vendor+product as derived asset library; org-registered rows take precedence. 5 new tests. |
 | 3 | `/api/v1/asset-criticality/assets` | a | Native CMDB / inventory connector + Brain Pipeline emit | DEFERRED — engine exists (`asset_criticality_engine.py`) but no connector wires Brain Pipeline `asset.discovered` event into criticality scorer. |
 | 4 | `/api/v1/threat-vectors/vectors` | b | MITRE ATT&CK techniques → vector taxonomy mapping | **DONE-2026-05-02 SHA=1d0894fc** — `list_vectors()` now falls back to imported MITRE ATT&CK (835 real techniques) and projects each top-level technique as a derived vector with deterministic tactic→{vector_type,severity} mapping. 4 new tests. |
-| 5 | `/api/v1/ti-automation/feeds` | a | `feeds_service.py` already lists 28+ real feeds | DEFERRED — endpoint reads a per-org `feeds` table; need wiring from global feed registry → per-org enrolled-feeds table. |
+| 5 | `/api/v1/ti-automation/feeds` | b | `feeds_service.py` already lists 28+ real feeds | **DONE-2026-05-02 SHA=8f8449cb** — `POST /feeds/import-global` now bulk-registers every entry from the 7 global catalogs (AUTHORITATIVE/NATIONAL_CERT/EXPLOIT/THREAT_ACTOR/SUPPLY_CHAIN/CLOUD_RUNTIME/EARLY_SIGNAL) into per-org `tia_feeds` with deterministic format/feed_type normalisation. Idempotent (skips by feed_name). 6 new tests. |
 | 6 | `/api/v1/intel-enrichment/requests` | c | n/a — request log; empty IS correct for fresh tenants | Empty is correct; should return `{requests: [], hint: "submit POST /requests to enrich an IOC"}`. |
 | 7 | `/api/v1/posture-reports/reports` | c | Compliance scan output | Empty is correct until a posture scan is run. Endpoint should return `{reports: [], hint: "trigger via POST /posture/scan"}`. |
-| 8 | `/api/v1/posture-benchmarking/benchmarks` | b | CIS/NIST control catalogs (public XML/JSON) | DEFERRED — needs CIS Benchmark XML importer. |
+| 8 | `/api/v1/posture-benchmarking/benchmarks` | b | CIS/NIST control catalogs (public XML/JSON) | **DONE-2026-05-02 SHA=64c66dc8** — `list_benchmarks()` now falls back to imported CIS Benchmark XCCDF catalog (data/cis_benchmark.db, populated by `feeds.cis_benchmark.importer.CisBenchmarkImporter`) and projects each distinct benchmark_id as a derived `spb_benchmark` (framework=cis, status=draft, total_controls=COUNT). 5 new tests. |
 | 9 | `/api/v1/risk-treatment/treatments` | c | Manual/policy-driven entries | Correct empty. Improve empty response only. |
-| 10 | `/api/v1/security-benchmarks/benchmarks` | b | SANS / Verizon DBIR public stats | DEFERRED — needs DBIR PDF/CSV importer. |
+| 10 | `/api/v1/security-benchmarks/benchmarks` | b | SANS / Verizon DBIR public stats | **DONE-2026-05-02 SHA=a21bf607** — `list_benchmarks()` now falls back to imported Verizon DBIR/VCDB incident corpus (data/dbir.db, populated by `feeds.dbir.importer.run_import()`) and projects each (sector, action_pattern) bucket as a derived benchmark_definition with linear-interpolated p25/p50/p75/p90 anchors over the bucket-count population. NAICS-2 prefix mapped to ALDECI sector via census.gov table. 5 new tests. |
 | 11 | `/api/v1/security-budget/allocations` | c | Manual finance entry; no public source | Correct empty. Improve response. |
 | 12 | `/api/v1/access-requests/requests` | c | User-driven workflow | Correct empty. |
 | 13 | `/api/v1/pag/accounts` | a | Identity provider connector (Okta/AzureAD) | DEFERRED — connector framework supports IdPs, no PAG-specific adapter. |
@@ -70,8 +70,8 @@ Legend for **Class**:
 | 30 | `/api/v1/gdpr/activities` | c | Manual data-mapping entry | Correct empty. |
 
 ### Class tally
-- **(a) — connector missing**: 11 endpoints (need real adapters: PAM, MDM, SSPM, XDR, cloud creds, identity, k8s, etc.)
-- **(b) — public-source importer missing**: 7 endpoints (3 DONE: CISA KEV via vuln-correlation/assets [SHA=933e27d1], MITRE techniques via threat-vectors/vectors [SHA=1d0894fc], SigmaHQ rules via hunting-playbooks/playbooks [SHA=3225e0a4]; intrusion-set MITRE [DONE prior]; remaining: CIS Benchmark, SANS DBIR, MITRE D3FEND)
+- **(a) — connector missing**: 10 endpoints (need real adapters: PAM, MDM, SSPM, XDR, cloud creds, identity, k8s, etc.). Endpoint #5 (ti-automation/feeds) reclassified to (b) and DONE.
+- **(b) — public-source importer missing**: 8 endpoints (6 DONE: CISA KEV via vuln-correlation/assets [SHA=933e27d1], MITRE techniques via threat-vectors/vectors [SHA=1d0894fc], SigmaHQ rules via hunting-playbooks/playbooks [SHA=3225e0a4], CIS Benchmark via posture-benchmarking/benchmarks [SHA=64c66dc8], Verizon DBIR via security-benchmarks/benchmarks [SHA=a21bf607], global feed registry via ti-automation/feeds [SHA=8f8449cb]; intrusion-set MITRE [DONE prior]; remaining: MITRE D3FEND)
 - **(c) — empty IS correct for fresh tenant**: 12 endpoints (manual/policy-driven; only fix is structured empty-response copy)
 
 ---
