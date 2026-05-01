@@ -1468,3 +1468,88 @@ def register_platform_routers(
         pass
 
     _logger.info("Platform sub-app: wave-6 loop-bound routers registered")
+
+    # ------------------------------------------------------------------
+    # Wave-7: Live connector routers (PAM / MDM / SSPM / SOAR / EDR)
+    # 11 routers: CrowdStrike-live, Defender-XDR-live, Okta-live,
+    # Jamf-live, Vault-live, CyberArk-live, Intune-live,
+    # WorkspaceOne-live, AppOmni-live, AdaptiveShield-live, SplunkSOAR-live
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.crowdstrike_live_connector_router import router as crowdstrike_live_router  # noqa: PLC0415
+        app.include_router(crowdstrike_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted CrowdStrike live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.defender_xdr_live_connector_router import router as defender_xdr_live_router  # noqa: PLC0415
+        app.include_router(defender_xdr_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Defender XDR live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.okta_live_connector_router import router as okta_live_router  # noqa: PLC0415
+        app.include_router(okta_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Okta live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.jamf_live_connector_router import router as jamf_live_router  # noqa: PLC0415
+        app.include_router(jamf_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Jamf live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vault_live_connector_router import router as vault_live_router  # noqa: PLC0415
+        app.include_router(vault_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted HashiCorp Vault live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cyberark_live_connector_router import router as cyberark_live_router  # noqa: PLC0415
+        app.include_router(cyberark_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted CyberArk live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.intune_live_connector_router import router as intune_live_router  # noqa: PLC0415
+        app.include_router(intune_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Microsoft Intune live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.workspace_one_live_connector_router import router as workspace_one_live_router  # noqa: PLC0415
+        app.include_router(workspace_one_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted VMware Workspace ONE live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.appomni_live_connector_router import router as appomni_live_router  # noqa: PLC0415
+        app.include_router(appomni_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted AppOmni live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.adaptive_shield_live_connector_router import router as adaptive_shield_live_router  # noqa: PLC0415
+        app.include_router(adaptive_shield_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Adaptive Shield live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.splunk_soar_live_connector_router import router as splunk_soar_live_router  # noqa: PLC0415
+        app.include_router(splunk_soar_live_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Splunk SOAR live connector router (wave-7)")
+    except ImportError:
+        pass
+
+    _logger.info("Platform sub-app: wave-7 live connector routers registered (11 connectors)")
