@@ -19,6 +19,13 @@ from core.compliance_scanner_engine import ComplianceScannerEngine
 
 _logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "compliance_scanner_engine",
+    "real_integration_required": "/api/v1/connectors/compliance/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(
     prefix="/api/v1/compliance-scanner",
     tags=["Compliance Scanner"],
@@ -94,7 +101,8 @@ def get_profile(org_id: str, profile_id: str) -> dict:
 def start_scan(org_id: str, profile_id: str) -> dict:
     """Trigger a compliance scan for a profile."""
     try:
-        return _get_engine().start_scan(org_id, profile_id)
+        result = _get_engine().start_scan(org_id, profile_id)
+        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

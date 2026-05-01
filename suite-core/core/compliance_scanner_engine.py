@@ -1,4 +1,20 @@
-"""Compliance Scanner Engine — ALDECI.
+"""
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates randomized compliance check outcomes for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- Compliance checks use unseeded random.Random() (line 348) — outcomes change
+  each run and are not derived from real control evidence.
+- Real implementation requires: evidence collection via audit connectors,
+  policy-as-code evaluation (OPA/Conftest), and real control testing.
+  Configure via /api/v1/connectors/compliance/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
+Compliance Scanner Engine — ALDECI.
 
 Automated compliance scanning across SOC2, ISO 27001, NIST CSF, PCI DSS,
 HIPAA, GDPR, and CIS frameworks. Generates scan profiles, runs checks,
@@ -26,6 +42,11 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
+_logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — output is randomized; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/",
+    __name__,
+)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "compliance_scanner.db"
