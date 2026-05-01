@@ -1,3 +1,4 @@
+// FOLDED into AICopilotAgentsHub hero (console tab) 2026-05-02 — preserve for git history
 /**
  * AI Agents Console
  *

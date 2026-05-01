@@ -1,3 +1,4 @@
+// FOLDED into AICopilotAgentsHub hero (tasks tab) 2026-05-02 — preserve for git history
 /**
  * Agent Task Queue
  *

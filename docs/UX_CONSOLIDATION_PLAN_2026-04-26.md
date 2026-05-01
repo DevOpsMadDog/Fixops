@@ -398,6 +398,8 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `DeceptionEngine` / `DeceptionAnalyticsDashboard` / `ThreatDeceptionDashboard` | `/api/v1/deception/*` | tab |
 
 ### 2.18 → S18 AI Copilot
+**AI Copilot Agents sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 AI-agent surfaces folded into AICopilotAgentsHub.tsx at `/ai/agents` (AIAgentsConsole, AgentTaskQueue, ShadowAIInventory). Old routes (`/ai/agents-console`, `/ai/agent-tasks`, `/ai/shadow-inventory`) redirect with `?tab=`. Real APIs: `POST /api/v1/agents/{role}/task`, `GET /api/v1/agents/tasks`, `GET /api/v1/ai-exposure/shadow`. Tabs: `console|tasks|shadow`.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `Copilot` / `CopilotDashboard` / `CopilotGraphChat` / `CopilotGraphChatRoot` | `/api/v1/copilot/*` | hero |
@@ -551,6 +553,8 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `DataPipelineDashboard` | `/api/v1/data-pipeline` | widget |
 
 ### 2.28 → S28 MCP Gateway (HERO)
+**Air-Gap operational sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 air-gap operational pages folded into AirGapHub.tsx at `/connect/mcp/air-gap` (AirGapBundleConsole, OfflineFeedRegistry, OfflineUpdateStatus). Old routes (`/air-gap/feed-status`, `/air-gap/feeds`, `/air-gap/update-status`) redirect with `?tab=` (feed-status|feeds|update-status). Real APIs: `GET /api/v1/air-gap/feed-status`, `GET /api/v1/air-gap/feeds`, `GET /api/v1/air-gap/update-status`. Tabs: `feed-status|feeds|update-status`. Hub serves DevOps/SRE/Automation Engineer personas managing disconnected deployments — proves CTEM+ air-gap moat in one screen.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `MCPToolRegistry` | `/api/v1/mcp/tools` | hero (650+ tools) |

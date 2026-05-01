@@ -1,3 +1,4 @@
+// FOLDED into AICopilotAgentsHub hero (shadow tab) 2026-05-02 — preserve for git history
 /**
  * Shadow AI Inventory
  *

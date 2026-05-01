@@ -137,6 +137,7 @@ const SupplyChainSecurity = lazy(() => import("@/pages/SupplyChainSecurity"));
 const DLPDashboard = lazy(() => import("@/pages/DLPDashboard"));
 const APIAbuseDashboard = lazy(() => import("@/pages/APIAbuseDashboard"));
 const ThreatModeling = lazy(() => import("@/pages/ThreatModeling"));
+const ThreatModelingHub = lazy(() => import("@/pages/ThreatModelingHub"));
 const AttackPathAnalysis = lazy(() => import("@/pages/AttackPathAnalysis"));
 const IncidentTimeline = lazy(() => import("@/pages/IncidentTimeline"));
 const IdentityGovernance = lazy(() => import("@/pages/IdentityGovernance"));
@@ -622,11 +623,14 @@ const AgentTaskQueue = lazy(() => import("@/pages/ai/AgentTaskQueue"));
 const Copilot = lazy(() => import("@/pages/ai/Copilot"));
 const CopilotGraphChat = lazy(() => import("@/pages/ai/CopilotGraphChat"));
 const TraversalExplanationPanel = lazy(() => import("@/pages/ai/TraversalExplanationPanel"));
+const AICopilotAgentsHub = lazy(() => import("@/pages/AICopilotAgentsHub"));
 
 // Frontend Wave 4 — final cleanup wave (35 screens, 2026-04-26)
 const AirGapBundleConsole = lazy(() => import("@/pages/AirGapBundleConsole"));
 const OfflineFeedRegistry = lazy(() => import("@/pages/OfflineFeedRegistry"));
 const OfflineUpdateStatus = lazy(() => import("@/pages/OfflineUpdateStatus"));
+// Phase 3 §2.28 (Air-Gap operational sub-cluster) — AirGapHub at /connect/mcp/air-gap
+const AirGapHub = lazy(() => import("@/pages/AirGapHub"));
 const ClaudeSkillsRegistry = lazy(() => import("@/pages/ClaudeSkillsRegistry"));
 const SkillsInstallPrompt = lazy(() => import("@/pages/SkillsInstallPrompt"));
 const LocalStoreStatus = lazy(() => import("@/pages/LocalStoreStatus"));
@@ -820,11 +824,13 @@ export default function App() {
             <Route path="/rules-catalog" element={<Navigate to="/compliance?tab=policies" replace />} />
             <Route path="/auto-waiver-rules" element={<Navigate to="/compliance?tab=waivers" replace />} />
             {/* Wave 1 — AI */}
-            <Route path="/ai/shadow-inventory" element={<ShadowAIInventory />} />
+            {/* AICopilotAgentsHub fold (Phase 3 §2.18, 2026-05-02) — canonical hub + 3 redirects */}
+            <Route path="/ai/agents" element={<AICopilotAgentsHub />} />
+            <Route path="/ai/shadow-inventory" element={<Navigate to="/ai/agents?tab=shadow" replace />} />
             <Route path="/ai/attack-paths" element={<AIAttackPathView />} />
             <Route path="/ai/mcp-registry" element={<MCPToolRegistry />} />
-            <Route path="/ai/agents-console" element={<AIAgentsConsole />} />
-            <Route path="/ai/agent-tasks" element={<AgentTaskQueue />} />
+            <Route path="/ai/agents-console" element={<Navigate to="/ai/agents?tab=console" replace />} />
+            <Route path="/ai/agent-tasks" element={<Navigate to="/ai/agents?tab=tasks" replace />} />
             <Route path="/ai/copilot" element={<Copilot />} />
             <Route path="/ai/copilot-chat" element={<CopilotGraphChat />} />
             <Route path="/ai/copilot-trace" element={<TraversalExplanationPanel />} />
@@ -1222,7 +1228,8 @@ export default function App() {
             {/* Wave 40 domain dashboards (pages for Wave 39 engines) */}
             {/* P3 fold 2026-04-27 — RiskQuantDashboard folded into /compliance#risk-quant */}
             <Route path="/risk-quant" element={<Navigate to="/compliance?tab=risk-quant" replace />} />
-            <Route path="/cyber-threat-modeling" element={<CyberThreatModelingDashboard />} />
+            {/* S12 fold 2026-05-02: CyberThreatModelingDashboard → ThreatModelingHub (cyber tab) */}
+            <Route path="/cyber-threat-modeling" element={<Navigate to="/attack/threat-modeling?tab=cyber" replace />} />
             <Route path="/capacity-planning" element={<CapacityPlanningDashboard />} />
             {/* P3 fold 2026-04-27 — TprmExchangeDashboard folded into /compliance#tprm */}
             <Route path="/tprm-exchange" element={<Navigate to="/compliance?tab=tprm" replace />} />
@@ -1509,9 +1516,11 @@ export default function App() {
             <Route path="/runtime-code-trace" element={<RuntimeCodeTrace />} />
 
             {/* Frontend Wave 4 — final cleanup wave (35 screens, 2026-04-26) */}
-            <Route path="/air-gap/feed-status" element={<AirGapBundleConsole />} />
-            <Route path="/air-gap/feeds" element={<OfflineFeedRegistry />} />
-            <Route path="/air-gap/update-status" element={<OfflineUpdateStatus />} />
+            {/* Phase 3 §2.28 fold 2026-05-02 — AirGapHub at /connect/mcp/air-gap (Air-Gap operational triad sub-cluster) */}
+            <Route path="/connect/mcp/air-gap" element={<AirGapHub />} />
+            <Route path="/air-gap/feed-status" element={<Navigate to="/connect/mcp/air-gap?tab=feed-status" replace />} />
+            <Route path="/air-gap/feeds" element={<Navigate to="/connect/mcp/air-gap?tab=feeds" replace />} />
+            <Route path="/air-gap/update-status" element={<Navigate to="/connect/mcp/air-gap?tab=update-status" replace />} />
             <Route path="/skills" element={<ClaudeSkillsRegistry />} />
             <Route path="/skills/install" element={<SkillsInstallPrompt />} />
             <Route path="/local-store/status" element={<LocalStoreStatus />} />
