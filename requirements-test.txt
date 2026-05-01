@@ -4,7 +4,7 @@
 -r requirements.txt
 
 # Core Testing Framework
-pytest>=7.4.0
+pytest>=9.0.3   # CVE-2025-71176 — vulnerable tmpdir handling fixed in 9.0.3
 pytest-cov>=4.1.0
 pytest-asyncio>=0.21.0
 pytest-mock>=3.11.0
