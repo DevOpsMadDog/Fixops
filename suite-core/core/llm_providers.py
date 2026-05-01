@@ -1526,6 +1526,212 @@ def _extract_json_from_text(text: str) -> Optional[str]:
     return None
 
 
+class AirGapLLMProvider(BaseLLMProvider):
+    """Air-gapped LLM provider — routes ALL requests through a LocalLLMRouter.
+
+    Used when ``AirGapMode`` is CONFIGURED or ENFORCED so that the LLM council
+    NEVER reaches out to api.openai.com / api.anthropic.com / etc. The constructor
+    probes for an available local backend (Ollama / vLLM / llama.cpp) and refuses
+    to initialise if none is detected — preserving the "fail closed, never silently
+    degrade" rule for air-gapped deployments.
+
+    The provider speaks the OpenAI-compatible chat-completions protocol against the
+    detected backend (Ollama uses /api/chat with its native schema; vLLM and
+    llama.cpp use /v1/chat/completions). It returns the same LLMResponse shape as
+    every other BaseLLMProvider so it is a drop-in replacement.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        local_llm_router: Any,
+        style: str = "consensus",
+        focus: Sequence[str] | None = None,
+        model: Optional[str] = None,
+        timeout: float = 60.0,
+        max_tokens: int = 1024,
+    ) -> None:
+        super().__init__(name, style=style, focus=focus)
+        self.timeout = timeout
+        self.max_tokens = max_tokens
+        self._session = requests.Session()
+
+        if local_llm_router is None:
+            raise RuntimeError(
+                "Air-gap LLM provider requires a LocalLLMRouter instance — got None."
+            )
+
+        # Detect available backend at construction time. If none is reachable,
+        # we MUST fail closed: callers in CONFIGURED/ENFORCED modes are
+        # responsible for handling the RuntimeError (degrade vs. abort).
+        detected = local_llm_router.detect_available_backend()
+        if not getattr(detected, "available", False):
+            raise RuntimeError(
+                "Air-gap LLM provider requires a local backend "
+                "(Ollama/vLLM/llama.cpp) — none detected."
+            )
+
+        # Bind the router to its detected configuration for build_chat_payload().
+        local_llm_router.config = detected
+        self._router = local_llm_router
+        self._backend_config = detected
+        self.backend = detected.backend
+        self.endpoint = detected.endpoint
+        self.model = model or detected.model_name
+
+        logger.info(
+            "AirGapLLMProvider %s initialised: backend=%s endpoint=%s model=%s",
+            self.name, self.backend, self.endpoint, self.model,
+        )
+
+    _DEFAULT_SYSTEM_PROMPT = (
+        "You are a security decision assistant running in air-gapped mode. "
+        "Return a JSON object with keys: recommended_action, confidence, reasoning, "
+        "mitre_techniques, compliance_concerns, attack_vectors."
+    )
+
+    def chat(
+        self,
+        messages: Sequence[Mapping[str, str]],
+        *,
+        model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Send a chat-completion request to the local backend.
+
+        Builds the URL+payload via the bound LocalLLMRouter, POSTs, and returns the
+        backend's JSON response unchanged. Retries once on connection error; raises
+        on the second failure so air-gap callers see the failure (no silent fallback).
+        """
+        url, payload = self._router.build_chat_payload(
+            messages=[dict(m) for m in messages],
+            model=model or self.model,
+            max_tokens=max_tokens or self.max_tokens,
+        )
+        last_exc: Optional[Exception] = None
+        for attempt in (1, 2):
+            try:
+                response = self._session.post(
+                    url,
+                    json=payload,
+                    timeout=self.timeout,
+                    headers={"Content-Type": "application/json"},
+                )
+                response.raise_for_status()
+                return response.json()
+            except (requests.ConnectionError, requests.Timeout) as exc:
+                last_exc = exc
+                logger.warning(
+                    "AirGapLLMProvider %s attempt %d/2 to %s failed: %s",
+                    self.name, attempt, url, type(exc).__name__,
+                )
+                if attempt == 2:
+                    raise RuntimeError(
+                        f"Air-gap LLM backend unreachable at {url}: {exc}"
+                    ) from exc
+        # Unreachable but mypy needs it
+        raise RuntimeError(f"Air-gap LLM unreachable: {last_exc}")  # pragma: no cover
+
+    def _extract_content(self, response_json: Mapping[str, Any]) -> str:
+        """Pull the assistant message text out of the backend response.
+
+        Handles both Ollama-native (/api/chat: {"message": {"content": ...}}) and
+        OpenAI-compatible (/v1/chat/completions: {"choices":[{"message":{"content":...}}]}).
+        """
+        if "choices" in response_json:
+            choices = response_json.get("choices") or []
+            if not choices:
+                raise ValueError("Air-gap LLM response missing choices")
+            content = (choices[0].get("message") or {}).get("content")
+        elif "message" in response_json:
+            content = (response_json.get("message") or {}).get("content", "")
+        else:
+            content = response_json.get("response", "")  # llama.cpp /completion
+        if not content:
+            raise ValueError("Air-gap LLM response missing message content")
+        return content
+
+    def analyse(
+        self,
+        *,
+        prompt: str,
+        context: Mapping[str, Any],
+        default_action: str,
+        default_confidence: float,
+        default_reasoning: str,
+        mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
+    ) -> LLMResponse:
+        messages = [
+            {"role": "system", "content": system_prompt or self._DEFAULT_SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+        start = time.perf_counter()
+        try:
+            response_json = self.chat(messages)
+            content = self._extract_content(response_json)
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError:
+                # Tolerate plain-text replies from local models — wrap into schema
+                extracted = _extract_json_from_text(content)
+                if extracted:
+                    parsed = json.loads(extracted)
+                else:
+                    parsed = {
+                        "recommended_action": default_action,
+                        "confidence": default_confidence,
+                        "reasoning": content[:2000],
+                    }
+        except Exception as exc:  # noqa: BLE001 - air-gap fallback path
+            logger.warning(
+                "AirGapLLMProvider %s failed (%s) — returning deterministic fallback (still air-gapped)",
+                self.name, type(exc).__name__,
+            )
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": type(exc).__name__,
+                "backend": self.backend,
+                "endpoint": self.endpoint,
+                "model": self.model,
+                "air_gapped": True,
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[Air-gap LLM fallback: {type(exc).__name__}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        duration = (time.perf_counter() - start) * 1000
+        return _response_from_payload(
+            parsed,
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
+            mitigation_hints=mitigation_hints,
+            metadata={
+                "mode": "air-gapped",
+                "provider": self.name,
+                "model": self.model,
+                "backend": self.backend,
+                "endpoint": self.endpoint,
+                "duration_ms": round(duration, 2),
+                "air_gapped": True,
+            },
+        )
+
+
 class SentinelCyberProvider(BaseLLMProvider):
     """Specialised fallback provider for domain-specific tuning."""
 
@@ -1676,6 +1882,7 @@ class LLMProviderManager:
 
 
 __all__ = [
+    "AirGapLLMProvider",
     "AnthropicMessagesProvider",
     "BaseLLMProvider",
     "DeterministicLLMProvider",

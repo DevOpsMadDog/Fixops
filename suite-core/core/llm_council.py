@@ -1214,6 +1214,14 @@ class CouncilFactory:
 
         Args:
             manager: LLMProviderManager instance (defaults to creating new instance)
+
+        If air-gap mode is CONFIGURED or ENFORCED (via FIXOPS_AIRGAP_MODE env-var
+        or persisted state), the factory swaps every external provider in the
+        manager (openai/anthropic/gemini/openrouter/mulerouter/deepseek) for an
+        AirGapLLMProvider that routes through LocalLLMRouter. ENFORCED mode with
+        no detected local backend raises RuntimeError; CONFIGURED logs critical
+        and leaves the manager with an empty external set so we never silently
+        degrade to api.openai.com.
         """
         # Import here to avoid circular dependency
         from core.llm_providers import (
@@ -1225,6 +1233,127 @@ class CouncilFactory:
         self.opus = AnthropicMessagesProvider(
             "claude-opus",
             model="claude-opus-4-1-20250805",
+        )
+
+        # Air-gap enforcement: replace external-API providers with AirGapLLMProvider
+        # so the council cannot reach api.openai.com / api.anthropic.com / etc.
+        try:
+            self._enforce_air_gap_providers()
+        except RuntimeError:
+            # ENFORCED + no local backend → propagate. Caller MUST handle.
+            raise
+        except Exception as exc:  # noqa: BLE001 - resilience for non-airgap deployments
+            logger.debug(
+                "CouncilFactory: air-gap enforcement check skipped (%s)",
+                type(exc).__name__,
+            )
+
+    def _enforce_air_gap_providers(self) -> None:
+        """Swap external-API providers for AirGapLLMProvider when air-gap is active.
+
+        Behaviour matrix:
+          - DISABLED / DETECTED: no-op. External providers remain as-is.
+          - CONFIGURED + local backend available: replace ALL external providers
+            with AirGapLLMProvider. Escalation provider (Opus) also replaced.
+          - CONFIGURED + no local backend: log CRITICAL, set external providers to
+            an air-gap stub that always raises (NEVER silently call out). The
+            council will surface the error rather than degrading.
+          - ENFORCED + local backend available: same as CONFIGURED-with-backend.
+          - ENFORCED + no local backend: raise RuntimeError — refuse to start.
+        """
+        from core.airgap_config import (  # local import → avoid cold-start cost
+            AirGapMode,
+            LocalLLMRouter,
+            get_air_gap_mode,
+        )
+        from core.llm_providers import AirGapLLMProvider
+
+        mode = get_air_gap_mode()
+        if mode not in (AirGapMode.CONFIGURED, AirGapMode.ENFORCED):
+            return  # internet-connected operation — no swap needed
+
+        # Names that talk to external APIs and must be swapped/disabled.
+        EXTERNAL_PROVIDER_NAMES = (
+            "openai",
+            "anthropic",
+            "gemini",
+            "openrouter",
+            "mulerouter",
+            "deepseek",
+        )
+
+        router = LocalLLMRouter()
+        try:
+            detected = router.detect_available_backend()
+        except Exception as exc:  # noqa: BLE001 - probe must not raise
+            logger.warning("Air-gap probe error: %s", exc)
+            detected = None
+
+        backend_available = bool(detected and getattr(detected, "available", False))
+
+        if mode == AirGapMode.ENFORCED and not backend_available:
+            raise RuntimeError(
+                "AirGapMode.ENFORCED but no local LLM backend available — "
+                "refusing to start council. Install Ollama / vLLM / llama.cpp "
+                "on the air-gapped host."
+            )
+
+        if not backend_available:
+            # CONFIGURED + no backend: critical-log and clear externals so the
+            # council surfaces the missing-backend condition instead of silently
+            # routing to api.openai.com.
+            logger.critical(
+                "Air-gap mode CONFIGURED but no local LLM backend detected — "
+                "ALL external LLM providers DISABLED. Council will operate with "
+                "deterministic fallbacks only. Install Ollama / vLLM to restore."
+            )
+            for pname in EXTERNAL_PROVIDER_NAMES:
+                if pname in self.manager.providers:
+                    self.manager.providers.pop(pname, None)
+            # Also disable cloud-Opus escalation in air-gap.
+            self.opus = None  # type: ignore[assignment]
+            return
+
+        # Backend available — build per-name air-gap providers preserving identity.
+        replaced: List[str] = []
+        for pname in EXTERNAL_PROVIDER_NAMES:
+            existing = self.manager.providers.get(pname)
+            if existing is None:
+                continue
+            try:
+                # Each provider gets its OWN router so per-provider model overrides
+                # don't bleed across.
+                router_for_provider = LocalLLMRouter()
+                self.manager.providers[pname] = AirGapLLMProvider(
+                    name=existing.name,
+                    local_llm_router=router_for_provider,
+                    style=getattr(existing, "style", "consensus"),
+                    focus=list(getattr(existing, "focus", []) or []),
+                )
+                replaced.append(pname)
+            except RuntimeError as exc:
+                # detect_available_backend() agreed at the top, but a per-provider
+                # router can still race to false → drop this provider rather than
+                # leaving the external version live.
+                logger.error(
+                    "Air-gap swap for %s failed (%s) — disabling provider.", pname, exc,
+                )
+                self.manager.providers.pop(pname, None)
+
+        # Escalation provider must also route via air-gap, not api.anthropic.com.
+        try:
+            self.opus = AirGapLLMProvider(
+                name="claude-opus-airgap",
+                local_llm_router=LocalLLMRouter(),
+                style="analyst",
+            )
+        except RuntimeError as exc:
+            logger.error("Air-gap escalation provider unavailable: %s", exc)
+            self.opus = None  # type: ignore[assignment]
+
+        logger.info(
+            "Air-gap mode %s enforced — swapped %d external providers (%s) for AirGapLLMProvider",
+            mode.value, len(replaced), ", ".join(replaced),
         )
 
     # ------------------------------------------------------------------
