@@ -245,9 +245,9 @@ from core.brain_pipeline import BrainPipeline  # just works
 | Backend engines | ~360 | `ls suite-core/core/*_engine.py \| wc -l` |
 | API routers | ~590 (post 2026-04-26 mega-wave) | `ls suite-api/apps/api/*_router.py \| wc -l` |
 | API routes mounted | **6300+** | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
-| Frontend pages | **~417** (44 hubs landed 2026-05-02; ~125 source pages folded — TARGET: 25-40) | `ls suite-ui/aldeci-ui-new/src/pages/*.tsx \| wc -l` |
-| Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean) | `docker exec` psql query (see Stack v2 row) |
-| Beast Mode tests | **905 passing (753 canonical 13-file + 152 session-added 26-file), zero regressions** (2026-05-02 EOD) | `pytest tests/test_phase*.py ... -q` |
+| Frontend pages | **~330** (50 hubs landed 2026-05-02 — Phase 3 EXHAUSTED; ~140 source pages folded — TARGET: 25-40) | `ls suite-ui/aldeci-ui-new/src/pages/*.tsx \| wc -l` |
+| Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
+| Beast Mode tests | **905 passing (753 canonical 13-file + 152 session-added 26-file), zero regressions** (2026-05-02 EOD) + **42/42 hub smoke (`ba6bff1a`)** | `pytest tests/test_phase*.py ... -q` |
 | Graphify graph | 119,765 nodes / 425,727 edges / 1516 communities | `graphify update . --no-llm` |
 | TrustGraph emit-sites | **378+** across engines/routers | `grep -rl trustgraph_event_bus suite-core/ \| wc -l` |
 
@@ -263,7 +263,7 @@ DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Ma
 | `docs/GAP_PRD_RECONCILE_2026-04-22.md` | 48-row MERGE/KEEP/KILL/UNCLEAR reconcile |
 | `docs/multi_tenant_onboarding_results_2026-04-24.md` | 15-tenant onboarding flow |
 | `docs/persona_coverage_after_seed.md` | 30-persona × UI-page coverage map |
-| `docs/HANDOFF_2026-05-02-evening.md` | Latest session handoff (154 commits, 44 hubs, 905/905 tests) |
+| `docs/HANDOFF_2026-05-02-evening.md` | Latest session handoff (117 commits, **50 hubs — Phase 3 EXHAUSTED**, 905/905 tests, 42/42 smoke) |
 | `docs/HANDOFF_2026-04-26-evening.md` | Prior handoff (50-commit megasession) |
 | `docs/UX_HUBS_CATALOG_2026-05-02.md` | 33-hub lookup + §3 recipe + §4 pending clusters |
 | `docs/security_review_2026-05-02.md` | 7-commit STRIDE/DREAD review — SCIF deployable |

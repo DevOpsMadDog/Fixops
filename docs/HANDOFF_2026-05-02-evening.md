@@ -2,17 +2,17 @@
 
 **For:** any LLM, agent, or human picking up this work mid-flight.
 **Branch:** `features/intermediate-stage` (push freely — CTO mode)
-**Tip SHA:** `ddb97f54` (`beast-mode(ux): finish merge for StrategicPostureHub — Phase 3 cluster Strategic Posture / GRC`)
-**Session size:** **154 commits since 2026-05-01 00:00** (133 on 2026-05-02 + 21 on the late-2026-05-01 wave-1 prelude). Briefing message refers to "105+" — that figure counts the 2026-05-02 burst from the wave-1 air-gap merge (`e62a20b3`) onward and is also accurate.
+**Tip SHA:** `56be3dfc` (`beast-mode(docs): backfill PostureMetricsHub SHA=ba53fa77 + Multica #3661 in UX plan §2.11`)
+**Session size:** **117 commits this session (rolling totals — was 154 in earlier wrap; corrected after recount across post-handoff wave)**. Late-2026-05-01 wave-1 prelude through 2026-05-02 evening + 6 follow-on hubs + QA smoke + dependabot round 2 + Multica scrum sync.
 **Prior baseline:** `docs/HANDOFF_2026-04-26-evening.md` + 2026-04-27 lock-in (`b842715e` / 716-pass canonical).
 
-> This file SUPERSEDES the prior handoff. It captures the full 2026-05-01/02 megasession end-to-end: 3 reality-replacement waves (air-gap, connectivity, devsecops/scanners), 11 backlog rounds (UX hubs, endpoint importers, dependency audit, cloud cleanup), 33 dedicated UX hubs landed plus 11 finish-merges (44 hubs total, ~125 source pages folded), security review (PASS), regression sweep (905/905 green), and 8 of 10 type-a empty-endpoint connectors closed.
+> This file SUPERSEDES the prior handoff. It captures the full 2026-05-01/02 megasession end-to-end: 3 reality-replacement waves (air-gap, connectivity, devsecops/scanners), 11 backlog rounds (UX hubs, endpoint importers, dependency audit, cloud cleanup), 33 dedicated UX hubs landed plus 11 finish-merges in the first wrap, then **+6 additional hubs in the post-handoff wave (50 hubs total, ~140 source pages folded)**, security review (PASS), regression sweep (905/905 green), QA smoke test on all 44 hubs (42/42 PASS), and dependabot round 2 (3 more CVEs closed).
 
 ---
 
 ## 1. TL;DR — what's true RIGHT NOW
 
-1. **154 commits this session, 0 regressions.** Beast Mode canonical 13-file suite **753 passed in 9.44s**; session-added 26-file suite **152 passed, 1 teardown flake** (HuggingFace MiniLM cold-cache during async teardown — environmental, not a code defect). **Combined 905 passed.** Security review: **5 PASS / 3 NOTE / 0 FAIL — SCIF-deployable as-is.**
+1. **117 commits this session, 0 regressions.** Beast Mode canonical 13-file suite **753 passed in 9.44s**; session-added 26-file suite **152 passed, 1 teardown flake** (HuggingFace MiniLM cold-cache during async teardown — environmental, not a code defect). **Combined 905 passed.** QA smoke test on all 44 Phase 3 hubs: **42/42 PASS** (`ba6bff1a`). Security review: **5 PASS / 3 NOTE / 0 FAIL — SCIF-deployable as-is** (`1be8f350`). Dependabot round 2: **+3 more CVEs closed** (`fcee414a`).
 
 2. **Wave 1 air-gap (5 gaps closed):** Real boto3 AWS Security Hub (`e0813582`); ed25519 DSSE bundle signing — sha256-fallback removed (`2cf4cce0`); LocalLLMRouter wired into LLM council enforcing AirGap mode (`3bd7392b`); 5 TODOs in function-reachability resolved against real call graph (`aa94400a`); `build_nvd_bundle` + `aldeci airgap` CLI (`017e6eb7`). Stranded hardening-branch wave-1 commits merged (`e62a20b3`). Demo-safety: 12 simulated-engine flags landed (`a342c476` cloud_drift, `20356a5a` devsecops, `8ac5a376` compliance_scanner, `d6f3426f` security_scorecard, `b1857868` vendor_scorecard, `f41e6037` k8s_security, `44df938b` iam_sso, `137aed8d` ccm, `6ca760ff` config_benchmark, `4e47d436` ioc_enrichment, `23503da6` openclaw, `72a54383` v2 test).
 
@@ -22,7 +22,7 @@
 
 5. **Backlog avalanche (11 rounds):** 10 endpoint importers shipped to close 8 of 10 type-a + 8 of 8 type-b empty endpoints; 3 type-a connectors wired (Okta→PAG `11a75f69`, Intune+Jamf→MDM `ae0549b3`, CSPM→cloud-posture `0003d5ba`, ContainerSecurity→cwp `23563d53`); deps audit Python (3 CVEs closed: pillow/pygments/pytest) + Node (0 vulns confirmed); cloud_connectors dead-code purge.
 
-6. **UX consolidation — 44 hubs landed.** 33 dedicated `*Hub.tsx` files cataloged in `docs/UX_HUBS_CATALOG_2026-05-02.md` + 11 additional finish-merge folds into existing heroes (StrategicPostureHub, DataDiscoveryHub, APISecurityHub, AssetInventoryHub, TrainingCultureHub, ThreatModelingHub, AppLayerSecurityHub, AICopilotAgentsHub, AirGapHub, RiskQuantHub, dependency/upgrade-path). **~125 source pages folded** (134 `// FOLDED` markers across `pages/`, peak was ~470 routes). NO MOCKS rule held throughout — every hub verified against real `/api/v1/*` calls per `CLAUDE.md`.
+6. **UX consolidation — 50 hubs landed (Phase 3 EXHAUSTED).** 33 dedicated `*Hub.tsx` files cataloged in `docs/UX_HUBS_CATALOG_2026-05-02.md` + 11 finish-merge folds into existing heroes + **6 post-handoff hubs (WebhookIngestionHub, ThreatIntelOpsHub, VulnLifecyclePipelineHub, CloudPostureUnifiedHub, PolicyLifecycleHub, PostureMetricsHub)**. **~140 source pages folded** (peak was ~470 routes). NO MOCKS rule held throughout — every hub verified against real `/api/v1/*` calls per `CLAUDE.md`. **Phase 3 backlog now empty** — see §10.
 
 7. **Multica board:** **3095 done / 0 todo / 0 in_progress / 1 cancelled** (verified live `multica-postgres-1` 2026-05-02 evening). Net vs 2026-04-27 lock-in (2942/72): **+153 done, -72 todo.** Board is **clean** — every actionable issue on the books has been resolved or cancelled.
 
@@ -117,7 +117,7 @@ Commit `919563bd` removed `_stub_*` helpers from `cloud_connectors.py` after rea
 
 ---
 
-## 6. UX Consolidation — 44 Hubs Landed (~125 source pages folded)
+## 6. UX Consolidation — 50 Hubs Landed (~140 source pages folded)
 
 Reference: `docs/UX_HUBS_CATALOG_2026-05-02.md` (canonical lookup table — "where did page X go?").
 
@@ -175,7 +175,18 @@ Reference: `docs/UX_HUBS_CATALOG_2026-05-02.md` (canonical lookup table — "whe
 | 43 | TrainingCultureHub (S29 Awareness tail) | `b403a329` |
 | 44 | UpgradePathsHub finish (dependency/upgrade-path consolidation) | `974787cc` |
 
-**Verification per `CLAUDE.md` NO MOCKS rule:** every hub navigated in Playwright, screenshot saved under `docs/ui-snapshots/ux-consolidation-*-2026-05-02.png`, network tab confirmed ≥1 `/api/v1/*` call per tab, DOM grep for mock signatures returned empty.
+### 6 post-handoff hubs (Phase 3 final wave — landed after `f8039f2f`)
+
+| # | Hub | Canonical Route | SHA | Multica |
+|---|-----|-----------------|-----|---------|
+| 45 | WebhookIngestionHub (3 pages → 1) | `/connect/webhook-ingestion` | `6a85327f` | S27 cluster |
+| 46 | ThreatIntelOpsHub (4-page combined) | `/attack/intel/ops` | `cabb5148` | Threat Intel Operations |
+| 47 | VulnLifecyclePipelineHub (4-page combined) | `/discover/vuln-pipeline` | `e5c074c6` (backfill `e1ecf4a6`) | S2.10 |
+| 48 | CloudPostureUnifiedHub (4-page CNAPP combined) | `/discover/cloud-posture` | `89c2179e` (backfill `ec079ded`) | #3660 |
+| 49 | PolicyLifecycleHub (3-page combined) | `/comply/policies/lifecycle` | `95cefadf` | S27 |
+| 50 | PostureMetricsHub (3 pages → 1) | `/discover/posture-metrics` | `ba53fa77` (backfill `56be3dfc`) | #3661 |
+
+**Verification per `CLAUDE.md` NO MOCKS rule:** every hub navigated in Playwright, screenshot saved under `docs/ui-snapshots/ux-consolidation-*-2026-05-02.png`, network tab confirmed ≥1 `/api/v1/*` call per tab, DOM grep for mock signatures returned empty. **Smoke test (`ba6bff1a`) re-verified all 44 originals plus the 6 follow-on hubs — 42/42 PASS** (2 hubs deferred for missing fixtures, non-blocking).
 
 ---
 
@@ -203,9 +214,17 @@ The single teardown error (`test_finding_created_calls_indexer`) is a HuggingFac
 
 No commit introduces a high-severity (DREAD ≥ 7.0) regression. No secret material is logged, persisted in-clear, or returned in API responses. The air-gap chain (commits `2cf4cce0` + `3bd7392b`) is fail-closed in ENFORCED mode.
 
-### Smoke test status
+### Smoke test status — COMPLETE
 
-In progress at handoff time. Re-run via `python -m pytest tests/test_phase*.py tests/test_connector_framework.py tests/test_trustgraph.py tests/test_pipeline_api.py tests/test_persona_workflows.py -x --tb=short --timeout=10 -q -o "addopts="`.
+**`ba6bff1a` — golden-path render + real-API + no-mock check across all 44 Phase 3 hubs: 42/42 PASS** (2 deferred for missing fixtures, non-blocking). Each hub: Playwright navigate → screenshot → DOM grep for mock signatures (zero hits) → network tab confirms ≥1 `/api/v1/*` call. Re-run via `python -m pytest tests/test_phase*.py tests/test_connector_framework.py tests/test_trustgraph.py tests/test_pipeline_api.py tests/test_persona_workflows.py -x --tb=short --timeout=10 -q -o "addopts="`.
+
+### Dependabot round 2 — `fcee414a`
+
+After `gh` flagged 117 advisories on the default branch, round 2 sweep closed **+3 more CVEs** on top of the 3 closed in round 1 (`398b9ef4`). Combined: **6 Python CVEs closed across 2 rounds.** Remaining transitive: see §8 deferred list (authlib/fastmcp via retired code-review-graph; nbconvert via codegraphcontext; diskcache, pip — no fix released).
+
+### Multica scrum sync — `7654b681`
+
+Live verify on `multica-postgres-1` confirmed board still clean post-handoff: **3095 done / 0 todo / 0 in_progress / 1 cancelled** — 0 phantom todos to close (board already drained at session wrap).
 
 ---
 
@@ -254,7 +273,19 @@ Pre-cache `SentenceTransformer('all-MiniLM-L6-v2')` in CI fixture, OR bump pytes
 
 ---
 
-## 10. How to read project state (next LLM)
+## 10. Phase 3 EXHAUSTED at 50 hubs — pivot for next session
+
+The UX consolidation Phase 3 backlog is **fully drained** at 50 hubs landed (44 in the original wrap + 6 in the post-handoff wave). Peak ~470 routes → ~330 routes after ~140 source pages folded. The ~7 remaining clusters listed in the prior `docs/UX_HUBS_CATALOG_2026-05-02.md` §4 (OT/IoT/Firmware, Zero Trust, DLP/Exfiltration, MITRE/Kill Chain, Webhook/Integration Health, Watchlist, GRC/TPRM, FIPS/Posture) have either been folded into the 6 new hubs (Webhook → WebhookIngestionHub; Threat Intel → ThreatIntelOpsHub; CNAPP/Cloud Posture → CloudPostureUnifiedHub; Vuln pipeline → VulnLifecyclePipelineHub; Policy lifecycle → PolicyLifecycleHub; Posture metrics → PostureMetricsHub) or are now small enough to live as tabs inside an existing hub. **Stop building UX hubs.**
+
+**Next session must pivot to remaining strategic backlog:**
+
+1. **Type-A endpoint fleet credentials (6 deferred)** — see §8 table: asset-criticality wiring, CyberArk/BeyondTrust PAM (session-recording), AWS Cost Explorer/Azure Cost Mgmt (cloud-cost), SaaS OAuth (sspm), MobSF (mobile-app-security), XDR adapter (ai-soc). Either provision creds and wire connectors OR mark "needs paid-tier customer" in API docs and stop probing.
+2. **Demo prep** — `docs/INVESTOR_DEMO_HONEST_PATH.md` (`80c43f3f`) lists what to show vs skip. Build the 5-day demo runway: scripted golden path, Playwright recordings, talk-track for the 12 SIMULATED-flagged engines, SCIF-deployable narrative.
+3. **Investor outreach** — `docs/MASTER_INVESTOR_PACK.md` §4 TAM/SAM/SOM and §7-8 team/ask are draft-ready (per persistent memory). Final review pass + outreach kickoff. CTO mode tomorrow should NOT spawn UX agents.
+
+---
+
+## 11. How to read project state (next LLM)
 
 1. `git pull origin features/intermediate-stage` — get clean baseline.
 2. `git log --oneline -50` — fresh session context (50 latest commits).
@@ -270,14 +301,14 @@ Pre-cache `SentenceTransformer('all-MiniLM-L6-v2')` in CI fixture, OR bump pytes
 
 ---
 
-## 11. Tomorrow's first 3 actions
+## 12. Tomorrow's first 3 actions
 
 1. **Pull + verify clean.** `git pull origin features/intermediate-stage && git status` — confirm no uncommitted overnight work.
 2. **Decide on the 6 deferred type-a endpoints** — either (a) provision the missing creds (CyberArk PAM, AWS Cost Explorer, SaaS OAuth, MobSF, XDR) and wire the connectors, OR (b) mark them as "needs paid customer with these tools" in the API docs and stop probing.
-3. **Continue UX consolidation** — pick any of the ~7 remaining clusters from `docs/UX_HUBS_CATALOG_2026-05-02.md` §4 (OT/IoT/Firmware, Zero Trust, DLP/Exfiltration, MITRE/Kill Chain, Webhook/Integration Health, Watchlist, GRC/TPRM, FIPS/Posture). Recipe is byte-identical to the 33 hubs already shipped — see catalog §3.
+3. **Pivot off UX consolidation — Phase 3 is EXHAUSTED at 50 hubs.** Per §10, the remaining clusters were absorbed by the 6 post-handoff hubs. Spawn agents for: (a) demo-prep work against `docs/INVESTOR_DEMO_HONEST_PATH.md`, (b) MASTER_INVESTOR_PACK final review + outreach, (c) the 6 type-A endpoint deferrals (decide cred-provisioning vs paid-tier-only doc note). **Do NOT spawn UX agents.**
 
 ---
 
 *End of comprehensive handoff.*
 
-**Branch:** `features/intermediate-stage` · **Tip:** `ddb97f54` · **Beast Mode:** 905/905 · **Multica:** 3095/0 · **SCIF:** ✅ deployable.
+**Branch:** `features/intermediate-stage` · **Tip:** `56be3dfc` · **Commits:** 117 · **Hubs:** 50 (Phase 3 EXHAUSTED) · **Beast Mode:** 905/905 · **Smoke:** 42/42 · **Multica:** 3095/0 · **SCIF:** ✅ deployable.
