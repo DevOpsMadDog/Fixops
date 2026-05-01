@@ -1,4 +1,19 @@
 """
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates hash-derived vendor security scores for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- _auto_assess() (lines 392-420) derives scores from domain name hash — not
+  from real SSL probes, DNS checks, or vulnerability scans.
+- Real implementation requires: ssl, requests, dnspython probes against live
+  vendor domains, or integration with SecurityScorecard/BitSight APIs.
+  Configure via /api/v1/connectors/vendor-risk/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
 Vendor Security Scorecard for ALDECI.
 
 Provides third-party vendor risk scoring, assessment tracking, and supply
@@ -23,6 +38,11 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — output is hash-derived; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/",
+    __name__,
+)
 
 
 # ---------------------------------------------------------------------------

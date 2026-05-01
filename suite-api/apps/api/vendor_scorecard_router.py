@@ -35,6 +35,13 @@ from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "vendor_scorecard",
+    "real_integration_required": "/api/v1/connectors/vendor-risk/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(
     prefix="/api/v1/vendors",
     tags=["vendor-scorecard"],
@@ -252,7 +259,7 @@ async def auto_assess(vendor_id: str) -> Dict[str, Any]:
         assessment = _get_scorecard().auto_assess(vendor_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    return assessment.model_dump()
+    return {"data": assessment.model_dump(), "_simulation_warning": _SIMULATION_WARNING}
 
 
 @router.get("/{vendor_id}/history", summary="Assessment history")
