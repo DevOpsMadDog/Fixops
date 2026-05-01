@@ -1,4 +1,5 @@
-// FOLDED into Compliance hero (/compliance#risk-quant) 2026-04-27 — preserve for git history but no longer routed
+// FOLDED into RiskQuantHub at /comply/risk-quant?tab=dashboard 2026-05-02 — preserve for git history
+// (previous fold marker 2026-04-27 → /compliance#risk-quant superseded — that hub never materialized)
 /**
  * Risk Quant Dashboard
  *

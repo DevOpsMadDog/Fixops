@@ -194,6 +194,10 @@ const CyberInsuranceDashboard = lazy(() => import("@/pages/CyberInsuranceDashboa
 const ExecutiveReportingDashboard = lazy(() => import("@/pages/ExecutiveReportingDashboard"));
 const VulnerabilityScanner = lazy(() => import("@/pages/VulnerabilityScanner"));
 const RiskQuantification = lazy(() => import("@/pages/RiskQuantification"));
+// P3 fold 2026-05-02 — Risk Quant cluster hub (folds RiskQuantification, RiskQuantDashboard, RiskScenarioDashboard)
+const RiskQuantHub = lazy(() => import("@/pages/RiskQuantHub"));
+// P3 fold 2026-05-02 — Strategic Posture cluster hub (folds SecurityPostureDashboard, SecurityRoadmap, GRCAssessment)
+const StrategicPostureHub = lazy(() => import("@/pages/StrategicPostureHub"));
 const AttackSimulationPage = lazy(() => import("@/pages/AttackSimulation"));
 const VulnerabilityScannerPage = lazy(() => import("@/pages/VulnerabilityScannerPage"));
 const SecurityPostureDashboard = lazy(() => import("@/pages/SecurityPostureDashboard"));
@@ -404,6 +408,8 @@ const ContainerPostureDashboard = lazy(() => import("@/pages/ContainerPostureDas
 const ContainerSecurityHub = lazy(() => import("@/pages/ContainerSecurityHub"));
 // Phase 3 UX consolidation — Detect & Respond hub (folds XDR + EDR + ITDR, 2026-05-02)
 const DetectAndRespondHub = lazy(() => import("@/pages/DetectAndRespondHub"));
+// Phase 3 UX consolidation — API Security hub (folds inventory + management + discovery, 2026-05-02)
+const APISecurityHub = lazy(() => import("@/pages/APISecurityHub"));
 const CyberThreatIntelDashboard = lazy(() => import("@/pages/CyberThreatIntelDashboard"));
 const DigitalTwinDashboard = lazy(() => import("@/pages/DigitalTwinDashboard"));
 
@@ -693,6 +699,8 @@ const ExceptionsHub = lazy(() => import("@/pages/ExceptionsHub"));
 const IncidentExtensionsHub = lazy(() => import("@/pages/IncidentExtensionsHub"));
 // Phase 3 §2.23 (Compliance Coverage / Gap sub-cluster) — ComplianceCoverageHub at /comply/coverage
 const ComplianceCoverageHub = lazy(() => import("@/pages/ComplianceCoverageHub"));
+// Phase 3 Data Discovery / DSPM sub-cluster — DataDiscoveryHub at /discover/dspm (2026-05-02)
+const DataDiscoveryHub = lazy(() => import("@/pages/DataDiscoveryHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -967,7 +975,9 @@ export default function App() {
             {/* S19 fold 2026-05-02: SOARDashboard → AutomationOrchestrationHub#soar */}
             <Route path="/soar" element={<Navigate to="/remediate/automation?tab=soar" replace />} />
             <Route path="/grc" element={<GRCDashboard />} />
-            <Route path="/api-security" element={<APISecurityDashboard />} />
+            {/* S10 fold 2026-05-02: APISecurityDashboard → APISecurityHub#inventory */}
+            <Route path="/discover/api-security" element={<APISecurityHub />} />
+            <Route path="/api-security" element={<Navigate to="/discover/api-security?tab=inventory" replace />} />
             <Route path="/threat-correlation" element={<ThreatCorrelation />} />
             <Route path="/supply-chain-risk" element={<Navigate to="/discover/supply-chain?tab=risk" replace />} />
             <Route path="/cloud-security" element={<CloudSecurityDashboard />} />
@@ -981,7 +991,9 @@ export default function App() {
             {/* S11 Email & Threat Protection hub — folded 2026-05-02 (FOLDED PhishingSimulation) */}
             <Route path="/phishing" element={<Navigate to="/discover/threat-protection?tab=phishing" replace />} />
             <Route path="/api-sec" element={<APISecurityPage />} />
-            <Route path="/data-classification" element={<DataClassificationDashboard />} />
+            {/* Phase 3 DSPM hub — Data Discovery / Classification / Exfiltration sub-cluster (2026-05-02): 3 pages folded */}
+            <Route path="/discover/dspm" element={<DataDiscoveryHub />} />
+            <Route path="/data-classification" element={<Navigate to="/discover/dspm?tab=classification" replace />} />
             {/* S29 Training & Culture hub — Phase 3 cluster (2026-05-02): 3 pages folded */}
             <Route path="/admin/training-culture" element={<TrainingCultureHub />} />
             <Route path="/security-training" element={<Navigate to="/admin/training-culture?tab=training" replace />} />
@@ -993,17 +1005,22 @@ export default function App() {
             <Route path="/cyber-insurance-legacy" element={<CyberInsurance />} />
             <Route path="/executive-reporting" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/vuln-scanner" element={<VulnerabilityScanner />} />
-            <Route path="/risk-quantification" element={<RiskQuantification />} />
+            {/* P3 fold 2026-05-02: RiskQuantification → RiskQuantHub#fair */}
+            <Route path="/risk-quantification" element={<Navigate to="/comply/risk-quant?tab=fair" replace />} />
+            {/* Canonical Risk Quant hub route */}
+            <Route path="/comply/risk-quant" element={<RiskQuantHub />} />
             <Route path="/attack-simulation" element={<AttackSimulationPage />} />
             <Route path="/vuln-scanner-mgmt" element={<VulnerabilityScannerPage />} />
-            <Route path="/security-posture" element={<SecurityPostureDashboard />} />
+            {/* Phase 3 Strategic Posture hub — Comply space (2026-05-02): 3 pages folded */}
+            <Route path="/comply/strategic-posture" element={<StrategicPostureHub />} />
+            <Route path="/security-posture" element={<Navigate to="/comply/strategic-posture?tab=posture" replace />} />
             <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/threat-feeds" element={<Navigate to="/issues?tab=threat-feed" replace />} />
             <Route path="/cwpp" element={<CWPPDashboard />} />
             {/* S22 fold 2026-05-02: /digital-forensics → ForensicsHub#digital (canonical mounted later) */}
-            <Route path="/grc-assessment" element={<GRCAssessment />} />
+            <Route path="/grc-assessment" element={<Navigate to="/comply/strategic-posture?tab=grc" replace />} />
             <Route path="/data-governance" element={<DataGovernanceDashboard />} />
-            <Route path="/security-roadmap" element={<SecurityRoadmap />} />
+            <Route path="/security-roadmap" element={<Navigate to="/comply/strategic-posture?tab=roadmap" replace />} />
             <Route path="/threat-hunting-dashboard" element={<ThreatHuntingDashboard />} />
             <Route path="/compliance-scanner" element={<ComplianceScannerDashboard />} />
             <Route path="/asset-risk" element={<AssetRiskDashboard />} />
@@ -1085,7 +1102,8 @@ export default function App() {
             <Route path="/endpoint-compliance" element={<Navigate to="/comply/coverage?tab=endpoint" replace />} />
 
             {/* API Security Management + Vuln Intelligence */}
-            <Route path="/api-security-mgmt" element={<APISecurityMgmtDashboard />} />
+            {/* S10 fold 2026-05-02: APISecurityMgmtDashboard → APISecurityHub#management */}
+            <Route path="/api-security-mgmt" element={<Navigate to="/discover/api-security?tab=management" replace />} />
             <Route path="/vuln-intelligence" element={<Navigate to="/discover/vuln-intel?tab=vuln-intel" replace />} />
 
             {/* Firewall Policy, Network Segmentation */}
@@ -1123,7 +1141,7 @@ export default function App() {
             <Route path="/security-tabletop" element={<SecurityTabletopDashboard />} />
             {/* S10 fold 2026-05-02: BrowserSecurityDashboard → AppLayerSecurityHub#browser */}
             <Route path="/browser-security" element={<Navigate to="/discover/app-security?tab=browser" replace />} />
-            <Route path="/data-exfiltration" element={<DataExfiltrationDashboard />} />
+            <Route path="/data-exfiltration" element={<Navigate to="/discover/dspm?tab=exfiltration" replace />} />
             <Route path="/pki-management" element={<Navigate to="/discover/crypto?tab=pki" replace />} />
             <Route path="/tool-inventory" element={<Navigate to="/assets?tab=tool-inventory" replace />} />
 
@@ -1199,7 +1217,7 @@ export default function App() {
             <Route path="/threat-vectors" element={<ThreatVectorDashboard />} />
             <Route path="/awareness-campaigns" element={<Navigate to="/comply/awareness?tab=campaigns" replace />} />
             <Route path="/risk-treatment" element={<RiskTreatmentDashboard />} />
-            <Route path="/data-discovery" element={<DataDiscoveryDashboard />} />
+            <Route path="/data-discovery" element={<Navigate to="/discover/dspm?tab=discovery" replace />} />
 
             {/* Wave 30 domain dashboards */}
             <Route path="/compliance-mapping" element={<ComplianceMappingDashboard />} />
@@ -1240,8 +1258,8 @@ export default function App() {
             <Route path="/dependency-mapping" element={<Navigate to="/remediate/upgrade?tab=dep-map" replace />} />
 
             {/* Wave 40 domain dashboards (pages for Wave 39 engines) */}
-            {/* P3 fold 2026-04-27 — RiskQuantDashboard folded into /compliance#risk-quant */}
-            <Route path="/risk-quant" element={<Navigate to="/compliance?tab=risk-quant" replace />} />
+            {/* P3 fold 2026-05-02 — RiskQuantDashboard → RiskQuantHub#dashboard (supersedes 2026-04-27 dangling redirect) */}
+            <Route path="/risk-quant" element={<Navigate to="/comply/risk-quant?tab=dashboard" replace />} />
             {/* S12 fold 2026-05-02: CyberThreatModelingDashboard → ThreatModelingHub (cyber tab) */}
             <Route path="/cyber-threat-modeling" element={<Navigate to="/attack/threat-modeling?tab=cyber" replace />} />
             <Route path="/capacity-planning" element={<CapacityPlanningDashboard />} />
@@ -1298,7 +1316,8 @@ export default function App() {
 
             {/* Wave 34 domain dashboards */}
             <Route path="/security-questionnaires" element={<SecurityQuestionnaireDashboard />} />
-            <Route path="/risk-scenarios" element={<RiskScenarioDashboard />} />
+            {/* P3 fold 2026-05-02: RiskScenarioDashboard → RiskQuantHub#scenarios */}
+            <Route path="/risk-scenarios" element={<Navigate to="/comply/risk-quant?tab=scenarios" replace />} />
             <Route path="/feed-subscriptions" element={<FeedSubscriptionsDashboard />} />
             {/* P3 fold 2026-05-02 — AssetGroupsDashboard folded into AssetInventoryHub */}
             <Route path="/asset-groups" element={<Navigate to="/discover/assets/inventory?tab=groups" replace />} />

@@ -382,7 +382,7 @@ These clusters are explicitly named in `UX_CONSOLIDATION_PLAN_2026-04-26.md` §2
 
 | Cluster | Plan §  | Source pages awaiting hub | Owner |
 |---|---|---|---|
-| Risk Quantification (FAIR / scenario / treatment) | §2.4 | RiskQuantification, RiskQuantDashboard, RiskScenarioDashboard, RiskTreatmentDashboard | ux-architect |
+| ~~Risk Quantification (FAIR / scenario / treatment)~~ **DONE-2026-05-02 → RiskQuantHub at /comply/risk-quant** (Multica #3653; folds RiskQuantification + RiskQuantDashboard + RiskScenarioDashboard. RiskTreatmentDashboard remains standalone for separate fold.) | §2.4 | ~~RiskQuantification, RiskQuantDashboard, RiskScenarioDashboard~~, RiskTreatmentDashboard | frontend-craftsman |
 | API Security family | §2.10 | APISecurityDashboard, APISecurityPage, APISecurityMgmtDashboard, APIAbuseDashboard, APIThreatProtectionDashboard | ux-architect |
 | App / Mobile / Browser Sec | §2.10 | AppSecurity, MobileSecurity, MobileAppSecurityDashboard, BrowserSecurityDashboard | ux-architect |
 | Data Discovery & Classification | §2.9 | DataDiscoveryDashboard, DataClassificationDashboard, DataGovernanceDashboard, PIIFieldInventory | ux-architect |

@@ -1,3 +1,4 @@
+// FOLDED into RiskQuantHub at /comply/risk-quant?tab=fair 2026-05-02 — preserve for git history
 /**
  * Risk Quantification
  *
