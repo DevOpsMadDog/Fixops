@@ -712,65 +712,6 @@ class AWSProvider(CloudProvider):
             raw=raw,
         )
 
-    # --- stubs (returned when boto3 unavailable or API call fails) ---
-
-    def _stub_resources(self, resource_type: Optional[ResourceType]) -> List[CloudResource]:
-        types = [resource_type] if resource_type else [ResourceType.COMPUTE, ResourceType.STORAGE]
-        stubs = []
-        for rt in types:
-            stubs.append(CloudResource(
-                resource_id=f"stub-aws-{rt.value}-{self.credentials.account_id}",
-                provider=CloudProviderType.AWS,
-                resource_type=rt,
-                name=f"stub-{rt.value}-instance",
-                region=self._region,
-                account_id=self.credentials.account_id,
-                tags={"Environment": "stub"},
-                public_exposure=(rt == ResourceType.STORAGE),
-                metadata={"stub": True},
-            ))
-        return stubs
-
-    def _stub_single_resource(self, resource_id: str) -> Optional[CloudResource]:
-        return CloudResource(
-            resource_id=resource_id,
-            provider=CloudProviderType.AWS,
-            resource_type=ResourceType.COMPUTE,
-            name=f"stub-{resource_id}",
-            region=self._region,
-            account_id=self.credentials.account_id,
-            metadata={"stub": True},
-        )
-
-    def _stub_findings(self, severity_filter: Optional[FindingSeverity]) -> List[CloudFinding]:
-        sevs = [severity_filter] if severity_filter else [FindingSeverity.HIGH, FindingSeverity.MEDIUM]
-        return [
-            CloudFinding(
-                provider=CloudProviderType.AWS,
-                source_service="security-hub",
-                title=f"Stub AWS finding [{sev.value}]",
-                description="Stub finding — boto3 unavailable",
-                severity=sev,
-                account_id=self.credentials.account_id,
-                region=self._region,
-            )
-            for sev in sevs
-        ]
-
-    def _stub_posture(self) -> PostureReport:
-        return PostureReport(
-            provider=CloudProviderType.AWS,
-            account_id=self.credentials.account_id,
-            region=self._region,
-            score=72.0,
-            total_controls=100,
-            passed_controls=72,
-            failed_controls=28,
-            frameworks=["cis-aws-foundations-benchmark"],
-            details={"stub": True},
-        )
-
-
 # ---------------------------------------------------------------------------
 # Azure provider
 # ---------------------------------------------------------------------------
