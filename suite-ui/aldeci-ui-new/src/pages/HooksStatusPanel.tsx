@@ -1,3 +1,4 @@
+// FOLDED into PolicyAuthoringHub (hooks-status tab) 2026-05-02 — preserve for git history
 /**
  * Hooks Status Panel
  * Route: /hooks/status

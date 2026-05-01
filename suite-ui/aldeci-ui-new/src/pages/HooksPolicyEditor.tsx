@@ -1,3 +1,4 @@
+// FOLDED into PolicyAuthoringHub (hooks-policy tab) 2026-05-02 — preserve for git history
 /**
  * Hooks Policy Editor
  * Route: /hooks/policy

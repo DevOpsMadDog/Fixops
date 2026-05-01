@@ -235,6 +235,9 @@ const EDRDashboard = lazy(() => import("@/pages/EDRDashboard"));
 // Awareness hub (Phase 3 fold 2026-05-02 — folds 4 awareness dashboards)
 const AwarenessHub = lazy(() => import("@/pages/AwarenessHub"));
 
+// Training & Culture hub (Phase 3 fold 2026-05-02 — folds 3 training/culture dashboards)
+const TrainingCultureHub = lazy(() => import("@/pages/TrainingCultureHub"));
+
 // New Beast Mode pages — Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel
 const IdentityAnalyticsDashboard = lazy(() => import("@/pages/IdentityAnalyticsDashboard"));
 const CNAPPDashboard = lazy(() => import("@/pages/CNAPPDashboard"));
@@ -470,6 +473,7 @@ const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptim
 
 // Phase 3 UX consolidation hubs (2026-05-02)
 const ThreatActorsHub = lazy(() => import("@/pages/ThreatActorsHub"));
+const PolicyAuthoringHub = lazy(() => import("@/pages/PolicyAuthoringHub"));
 const SecretsHub = lazy(() => import("@/pages/SecretsHub"));
 
 // Sales & Marketing
@@ -966,7 +970,9 @@ export default function App() {
             <Route path="/phishing" element={<Navigate to="/discover/threat-protection?tab=phishing" replace />} />
             <Route path="/api-sec" element={<APISecurityPage />} />
             <Route path="/data-classification" element={<DataClassificationDashboard />} />
-            <Route path="/security-training" element={<SecurityTrainingDashboard />} />
+            {/* S29 Training & Culture hub — Phase 3 cluster (2026-05-02): 3 pages folded */}
+            <Route path="/admin/training-culture" element={<TrainingCultureHub />} />
+            <Route path="/security-training" element={<Navigate to="/admin/training-culture?tab=training" replace />} />
             {/* Phase 3 — Privileged Access hub canonical route */}
             <Route path="/discover/privileged-access" element={<PrivilegedAccessHub />} />
             <Route path="/pam" element={<Navigate to="/discover/privileged-access?tab=pam" replace />} />
@@ -1196,7 +1202,7 @@ export default function App() {
             {/* S11 Email & Threat Protection hub — folded 2026-05-02 (FOLDED RansomwareProtectionDashboard) */}
             <Route path="/ransomware-protection" element={<Navigate to="/discover/threat-protection?tab=ransomware" replace />} />
             <Route path="/access-anomaly" element={<Navigate to="/asset-graph?tab=access-anomaly" replace />} />
-            <Route path="/training-effectiveness" element={<TrainingEffectivenessDashboard />} />
+            <Route path="/training-effectiveness" element={<Navigate to="/admin/training-culture?tab=effectiveness" replace />} />
             <Route path="/cost-optimization" element={<CloudCostOptimizationDashboard />} />
             <Route path="/competitive-comparison" element={<CompetitiveComparisonPage />} />
 
@@ -1266,7 +1272,7 @@ export default function App() {
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             {/* S2 Finance hub — folded 2026-05-02 */}
             <Route path="/incident-costs" element={<Navigate to="/mission-control/finance?tab=incident-costs" replace />} />
-            <Route path="/security-culture" element={<SecurityCultureDashboard />} />
+            <Route path="/security-culture" element={<Navigate to="/admin/training-culture?tab=culture" replace />} />
 
             {/* Wave 34 domain dashboards */}
             <Route path="/security-questionnaires" element={<SecurityQuestionnaireDashboard />} />
@@ -1525,8 +1531,9 @@ export default function App() {
             <Route path="/llm/context-tier" element={<LLMContextTierBadge />} />
             <Route path="/llm/estimate" element={<LLMPreFlightEstimateModal />} />
             <Route path="/llm/rules/edit" element={<LLMRuleContextEditor />} />
-            <Route path="/hooks/policy" element={<HooksPolicyEditor />} />
-            <Route path="/hooks/status" element={<HooksStatusPanel />} />
+            {/* S26 fold 2026-05-02: HooksPolicyEditor + HooksStatusPanel + StagePolicyMatrix → PolicyAuthoringHub */}
+            <Route path="/hooks/policy" element={<Navigate to="/comply/policies/authoring?tab=hooks-policy" replace />} />
+            <Route path="/hooks/status" element={<Navigate to="/comply/policies/authoring?tab=hooks-status" replace />} />
             <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
             <Route path="/connectors/mapping/dry-run" element={<UniversalIngestionTester />} />
             {/* S25 fold 2026-05-02: PBOMViewer/PipelineAttestationGraph/SLSAAttestationSigner → SBOMProvenanceHub */}
@@ -1542,7 +1549,9 @@ export default function App() {
             <Route path="/findings/drift" element={<StaleBaselineBanner />} />
 
             {/* Frontend Wave 2 — policy / waivers / rules / audit (14 screens, 2026-04-26) */}
-            <Route path="/policies/stage-matrix" element={<StagePolicyMatrix />} />
+            <Route path="/policies/stage-matrix" element={<Navigate to="/comply/policies/authoring?tab=stage-matrix" replace />} />
+            {/* S26 unified hero — Phase 3 cluster (2026-05-02): 3 policy/hooks pages folded into one tabbed screen */}
+            <Route path="/comply/policies/authoring" element={<PolicyAuthoringHub />} />
             <Route path="/policies/stage-editor" element={<PolicyStageEditor />} />
             {/* /waivers/* — Phase 3 P1 consolidated into /remediate?tab=waivers (S19 fold). */}
             {/* Standalone pages still render for old bookmarks; add a top-level /waivers redirect. */}
