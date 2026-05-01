@@ -1,16 +1,19 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import axios, { AxiosError } from "axios";
 import {
   Server, RefreshCw, Download, AlertTriangle, CheckCircle,
   ChevronDown, ChevronRight, Cloud, GitBranch, Settings,
-  Shield, Layers, Activity,
+  Shield, Layers, Activity, Upload, FileCode, XCircle, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -92,6 +95,30 @@ function ProviderBadge({ provider }: { provider?: string }) {
   return <Badge className={cn("border text-xs", map[p] || "bg-slate-500/10 text-slate-400 border-slate-500/20")}>{provider || "—"}</Badge>;
 }
 
+// Extract user-readable error from axios/fetch errors. Mirrors
+// OnboardingWizard.tsx pattern (single source of truth lives there;
+// duplicated locally because file-scope constraint forbids touching
+// shared lib files in this commit).
+function extractError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const ax = err as AxiosError<{ detail?: string | { msg?: string }[] }>;
+    const detail = ax.response?.data?.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg!;
+    if (ax.message) return ax.message;
+  }
+  if (err instanceof Error) return err.message;
+  return "Unknown error";
+}
+
+interface ScanResponse {
+  scan_id?: string;
+  total_findings?: number;
+  files_scanned?: number;
+  findings?: unknown[];
+  results?: unknown[];
+}
+
 const CIS_CONTROLS = [
   { id: "CIS-1", name: "Inventory and Control of Enterprise Assets", pass: 0, total: 0 },
   { id: "CIS-4", name: "Secure Configuration of Enterprise Assets", pass: 0, total: 0 },
@@ -116,6 +143,71 @@ export default function IaCScanning() {
 
   const query = useFindings(params);
   const refetch = useCallback(() => query.refetch(), [query]);
+
+  // ── Scan-a-Terraform-file panel state (DoD #6) ─────────────────────────────
+  const [scanContent, setScanContent] = useState("");
+  const [scanFilename, setScanFilename] = useState("main.tf");
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<ScanResponse | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      setScanError("File too large (max 1 MB). Use repo_path or split the file.");
+      return;
+    }
+    setScanError(null);
+    setScanFilename(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const txt = typeof reader.result === "string" ? reader.result : "";
+      setScanContent(txt);
+    };
+    reader.onerror = () => setScanError("Failed to read file");
+    reader.readAsText(file);
+  }, []);
+
+  const handleScan = useCallback(async () => {
+    if (!scanContent.trim()) {
+      setScanError("Provide Terraform/IaC content (paste or upload a file).");
+      return;
+    }
+    setScanError(null);
+    setScanResult(null);
+    setScanning(true);
+    try {
+      const baseURL = (import.meta.env.VITE_API_URL as string | undefined) || "";
+      const res = await axios.post<ScanResponse>(
+        `${baseURL}/api/v1/iac/scan`,
+        { content: scanContent, filename: scanFilename || "main.tf" },
+        { headers: { "Content-Type": "application/json" } },
+      );
+      setScanResult(res.data);
+      const count =
+        (res.data?.total_findings as number | undefined) ??
+        (Array.isArray(res.data?.findings) ? res.data.findings.length : 0);
+      toast.success(`Scan complete — ${count} finding${count === 1 ? "" : "s"}`);
+      // Refresh the findings list so the new results appear
+      refetch();
+    } catch (err) {
+      const msg = extractError(err);
+      setScanError(msg);
+      toast.error(`Scan failed: ${msg}`);
+    } finally {
+      setScanning(false);
+    }
+  }, [scanContent, scanFilename, refetch]);
+
+  const handleClearScan = useCallback(() => {
+    setScanContent("");
+    setScanFilename("main.tf");
+    setScanResult(null);
+    setScanError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
 
   const allFindings: IaCFinding[] = useMemo(() => {
     const d = query.data;
@@ -206,6 +298,158 @@ export default function IaCScanning() {
           <Download className="h-4 w-4" /> Export
         </Button>
       </PageHeader>
+
+      {/* ── Scan a Terraform file panel (DoD #6) ─────────────────────────── */}
+      <Card className="border-primary/20" id="iac-scan-panel">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileCode className="h-4 w-4 text-primary" />
+            Scan a Terraform file
+            <Badge variant="outline" className="ml-2 text-[10px] uppercase tracking-wide">
+              CSPM Engine
+            </Badge>
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Upload a <code>.tf</code>, <code>.json</code>, or <code>.yaml</code> file (or paste the content)
+            and run the native IaC scanner. Findings stream into the table below.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-2 space-y-1.5">
+              <Label htmlFor="iac-file-input" className="text-xs">
+                Upload file
+              </Label>
+              <Input
+                id="iac-file-input"
+                ref={fileInputRef}
+                type="file"
+                accept=".tf,.json,.yaml,.yml,.hcl"
+                aria-label="Upload Terraform or IaC file to scan"
+                onChange={handleFileChange}
+                disabled={scanning}
+                className="cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-muted file:text-xs file:cursor-pointer"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="iac-filename-input" className="text-xs">
+                Filename hint
+              </Label>
+              <Input
+                id="iac-filename-input"
+                value={scanFilename}
+                onChange={(e) => setScanFilename(e.target.value)}
+                placeholder="main.tf"
+                aria-label="Filename hint for format detection"
+                disabled={scanning}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="iac-content-textarea" className="text-xs">
+              …or paste IaC content
+            </Label>
+            <Textarea
+              id="iac-content-textarea"
+              value={scanContent}
+              onChange={(e) => setScanContent(e.target.value)}
+              placeholder={'resource "aws_s3_bucket" "example" {\n  bucket = "my-bucket"\n  acl    = "public-read"\n}'}
+              aria-label="Paste Terraform or IaC content to scan"
+              disabled={scanning}
+              rows={6}
+              className="font-mono text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              {scanContent.length.toLocaleString()} chars — max 1 MB
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={handleScan}
+              disabled={scanning || !scanContent.trim()}
+              className="gap-2"
+              aria-label="Run IaC security scan on provided content"
+            >
+              {scanning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Scanning…
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Scan
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearScan}
+              disabled={scanning || (!scanContent && !scanResult && !scanError)}
+              className="gap-1.5"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+            <span className="text-[11px] text-muted-foreground ml-auto">
+              POST <code>/api/v1/iac/scan</code>
+            </span>
+          </div>
+
+          {/* Result + error region — aria-live so screen readers announce updates */}
+          <div aria-live="polite" aria-atomic="true" className="min-h-0">
+            {scanError && (
+              <div className="flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-red-400">Scan failed</p>
+                  <p className="text-xs text-red-300/90 break-words">{scanError}</p>
+                </div>
+              </div>
+            )}
+            {scanResult && !scanError && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-md border border-green-500/30 bg-green-500/10 p-3 text-sm">
+                <CheckCircle className="h-5 w-5 text-green-400 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-green-400">Scan complete</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-green-200/90 mt-0.5">
+                    {scanResult.scan_id && (
+                      <span>
+                        scan_id:{" "}
+                        <code className="text-[11px] font-mono text-green-100">{scanResult.scan_id}</code>
+                      </span>
+                    )}
+                    <span>
+                      findings:{" "}
+                      <strong className="text-green-100">
+                        {scanResult.total_findings ??
+                          (Array.isArray(scanResult.findings) ? scanResult.findings.length : 0)}
+                      </strong>
+                    </span>
+                    {typeof scanResult.files_scanned === "number" && (
+                      <span>
+                        files: <strong className="text-green-100">{scanResult.files_scanned}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => query.refetch()}
+                  className="gap-1.5 shrink-0"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Refresh table
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
