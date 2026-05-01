@@ -1,4 +1,6 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into PostureMetricsHub (scoring tab) 2026-05-02 — preserve for git history
+// Tab path: /discover/posture-metrics?tab=scoring
 /**
  * Posture Scoring Dashboard - Live API
  * Route: /posture-scoring

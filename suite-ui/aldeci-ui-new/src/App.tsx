@@ -559,6 +559,8 @@ const ControlTestingDashboard = lazy(() => import("@/pages/ControlTestingDashboa
 const ComplianceWorkflowDashboard = lazy(() => import("@/pages/ComplianceWorkflowDashboard"));
 const ThreatLandscapeDashboard = lazy(() => import("@/pages/ThreatLandscapeDashboard"));
 const PostureTrendsDashboard = lazy(() => import("@/pages/PostureTrendsDashboard"));
+// Phase 3 §2.11 (Posture Metrics sub-cluster) — PostureMetricsHub at /discover/posture-metrics
+const PostureMetricsHub = lazy(() => import("@/pages/PostureMetricsHub"));
 const AccessGovernanceDashboard = lazy(() => import("@/pages/AccessGovernanceDashboard"));
 const NetworkThreatsDashboard = lazy(() => import("@/pages/NetworkThreatsDashboard"));
 const IncidentKBDashboard = lazy(() => import("@/pages/IncidentKBDashboard"));
@@ -1175,7 +1177,9 @@ export default function App() {
             {/* Wave 22 domain dashboards */}
             <Route path="/autonomous-remediation" element={<Navigate to="/remediate?tab=autonomous-remediation" replace />} />
             <Route path="/vuln-correlation" element={<VulnerabilityCorrelationDashboard />} />
-            <Route path="/posture-benchmarking" element={<PostureBenchmarkingDashboard />} />
+            {/* Phase 3 §2.11 fold 2026-05-02 — PostureMetricsHub at /discover/posture-metrics (Posture Metrics sub-cluster) */}
+            <Route path="/discover/posture-metrics" element={<PostureMetricsHub />} />
+            <Route path="/posture-benchmarking" element={<Navigate to="/discover/posture-metrics?tab=benchmarking" replace />} />
             <Route path="/quantum-crypto" element={<Navigate to="/discover/crypto?tab=quantum" replace />} />
             <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/deception-analytics" element={<Navigate to="/brain/fail/deception?tab=analytics" replace />} />
@@ -1198,7 +1202,7 @@ export default function App() {
 
             {/* Wave 25 domain dashboards */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
-            <Route path="/posture-scoring" element={<PostureScoringDashboard />} />
+            <Route path="/posture-scoring" element={<Navigate to="/discover/posture-metrics?tab=scoring" replace />} />
             <Route path="/cloud-posture" element={<Navigate to="/compliance?tab=cloud-posture-dash" replace />} />
             <Route path="/api-threat-protection" element={<APIThreatProtectionDashboard />} />
             <Route path="/risk-register-engine" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
@@ -1352,7 +1356,7 @@ export default function App() {
             {/* Wave 32 domain dashboards */}
             <Route path="/compliance-workflows" element={<ComplianceWorkflowDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
-            <Route path="/posture-trends" element={<PostureTrendsDashboard />} />
+            <Route path="/posture-trends" element={<Navigate to="/discover/posture-metrics?tab=trends" replace />} />
             <Route path="/access-governance" element={<Navigate to="/asset-graph?tab=access-governance" replace />} />
             <Route path="/network-threats" element={<Navigate to="/discover/network?tab=threats" replace />} />
             {/* S22 fold 2026-05-02: IncidentKBDashboard → IncidentKnowledgeHub#knowledge */}

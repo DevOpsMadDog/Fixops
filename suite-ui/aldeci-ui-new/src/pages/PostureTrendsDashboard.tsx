@@ -1,3 +1,5 @@
+// FOLDED into PostureMetricsHub (trends tab) 2026-05-02 — preserve for git history
+// Tab path: /discover/posture-metrics?tab=trends
 /**
  * Posture Trends Dashboard - Live API
  * Route: /posture-trends

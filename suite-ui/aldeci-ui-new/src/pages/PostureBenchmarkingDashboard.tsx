@@ -1,3 +1,5 @@
+// FOLDED into PostureMetricsHub (benchmarking tab) 2026-05-02 — preserve for git history
+// Tab path: /discover/posture-metrics?tab=benchmarking
 /**
  * Posture Benchmarking Dashboard
  *
