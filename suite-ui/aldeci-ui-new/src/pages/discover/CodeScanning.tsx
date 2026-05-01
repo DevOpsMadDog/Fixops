@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Code2, FileCode, RefreshCw, Download, ChevronRight, ChevronDown,
   Bug, Layers, Zap, AlertTriangle, CheckCircle, Filter,
+  Github, GitBranch, Lock, PlayCircle, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useFindings, useScannerParsers, useAutofix } from "@/hooks/use-api";
-import { findingsApi } from "@/lib/api";
+import api, { findingsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   BarChart,
@@ -125,6 +126,25 @@ export default function CodeScanning() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [detailFinding, setDetailFinding] = useState<Finding | null>(null);
 
+  // ── DoD #7: Connect GitHub repo + scan trigger ─────────────────────────
+  const [provider, setProvider] = useState<"github" | "gitlab">("github");
+  const [repoUrl, setRepoUrl] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [orgId, setOrgId] = useState("");
+  const [installationId, setInstallationId] = useState("");
+  const [appId, setAppId] = useState("");
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState<
+    | null
+    | {
+        ok: boolean;
+        registered?: boolean;
+        scanId?: string;
+        queuedFindings?: number;
+        message?: string;
+      }
+  >(null);
+
   const params = useMemo(() => {
     const p: Record<string, unknown> = { limit: 200, type: "sast" };
     if (scannerFilter !== "all") p.scanner = scannerFilter;
@@ -135,6 +155,73 @@ export default function CodeScanning() {
   const query = useFindings(params);
   const scannersQuery = useScannerParsers();
   const refetch = useCallback(() => query.refetch(), [query]);
+
+  const handleConnectAndScan = useCallback(async () => {
+    if (!repoUrl.trim()) {
+      toast.error("Repository URL is required");
+      return;
+    }
+    setScanLoading(true);
+    setScanResult(null);
+    try {
+      // Step 1: register installation (GitHub only — GitLab path skipped server-side until parity)
+      let registered = false;
+      if (provider === "github" && orgId && installationId && appId && accessToken) {
+        try {
+          await api.post("/api/v1/github-app/register", {
+            org_id: orgId.trim(),
+            app_id: appId.trim(),
+            installation_id: installationId.trim(),
+            webhook_secret: accessToken, // hashed server-side (sha256), never stored raw
+            app_slug: "aldeci-aspm",
+          });
+          registered = true;
+        } catch (e: unknown) {
+          // Non-fatal — proceed to scan even if registration is skipped (e.g. already registered)
+          const msg = e instanceof Error ? e.message : "registration failed";
+          toast.message(`GitHub registration skipped: ${msg}`);
+        }
+      }
+
+      // Step 2: trigger SAST/repo scan via Trivy repo endpoint (canonical git-URL → findings path)
+      const scanResp = await api.post<{
+        scan_id?: string;
+        scanId?: string;
+        findings?: unknown[];
+        results?: { findings?: unknown[] };
+        status?: string;
+      }>("/api/v1/scan/trivy/repo", {
+        repo_url: repoUrl.trim(),
+      });
+      const scanData = scanResp.data || {};
+      const scanId =
+        scanData.scan_id || scanData.scanId || `scan-${Date.now().toString(36)}`;
+      const queuedFindings =
+        (Array.isArray(scanData.findings) && scanData.findings.length) ||
+        (Array.isArray(scanData.results?.findings) && scanData.results.findings.length) ||
+        0;
+
+      setScanResult({
+        ok: true,
+        registered,
+        scanId,
+        queuedFindings,
+        message: `Scan queued for ${repoUrl.trim()}`,
+      });
+      toast.success(
+        `Scan queued · ${queuedFindings} findings ingested · scan_id=${scanId}`
+      );
+      // Refresh the findings table so new findings surface immediately
+      query.refetch();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to connect or trigger scan";
+      setScanResult({ ok: false, message: msg });
+      toast.error(msg);
+    } finally {
+      setScanLoading(false);
+    }
+  }, [provider, repoUrl, accessToken, orgId, installationId, appId, query]);
 
   const allFindings: Finding[] = useMemo(() => {
     const d = query.data;
@@ -254,6 +341,181 @@ export default function CodeScanning() {
         <KpiCard title="Rules Triggered" value={new Set(allFindings.map((f) => f.rule).filter(Boolean)).size} icon={Zap} />
         <KpiCard title="Scanners Active" value={Object.keys(stats.byScanner).length} icon={Layers} />
       </div>
+
+      {/* DoD #7 — Connect GitHub repo + scan trigger */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Github className="h-5 w-5 text-primary" aria-hidden="true" />
+              <CardTitle className="text-base">Connect repository &amp; scan</CardTitle>
+            </div>
+            <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+              ASPM Founder DoD #7
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+            <div className="lg:col-span-2">
+              <label htmlFor="dod7-provider" className="text-xs font-medium text-muted-foreground mb-1 block">
+                Provider
+              </label>
+              <Select
+                value={provider}
+                onValueChange={(v: string) => setProvider(v === "gitlab" ? "gitlab" : "github")}
+              >
+                <SelectTrigger id="dod7-provider" aria-label="Repository provider">
+                  <SelectValue placeholder="Provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="github">GitHub</SelectItem>
+                  <SelectItem value="gitlab">GitLab</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="lg:col-span-4">
+              <label htmlFor="dod7-repo-url" className="text-xs font-medium text-muted-foreground mb-1 block">
+                Repository URL
+              </label>
+              <div className="relative">
+                <GitBranch
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="dod7-repo-url"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="off"
+                  placeholder="https://github.com/org/repo.git"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  className="pl-9"
+                  aria-required="true"
+                />
+              </div>
+            </div>
+            <div className="lg:col-span-3">
+              <label htmlFor="dod7-token" className="text-xs font-medium text-muted-foreground mb-1 block">
+                Access token / webhook secret
+              </label>
+              <div className="relative">
+                <Lock
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="dod7-token"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="ghp_xxx or webhook secret"
+                  value={accessToken}
+                  onChange={(e) => setAccessToken(e.target.value)}
+                  className="pl-9 font-mono"
+                />
+              </div>
+            </div>
+            <div className="lg:col-span-3 flex justify-end">
+              <Button
+                type="button"
+                onClick={handleConnectAndScan}
+                disabled={scanLoading || !repoUrl.trim()}
+                className="gap-2 w-full sm:w-auto"
+                aria-busy={scanLoading}
+              >
+                {scanLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Scanning…
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle className="h-4 w-4" aria-hidden="true" />
+                    Connect &amp; scan
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Optional GitHub App registration fields (collapsed when GitLab) */}
+          {provider === "github" && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label htmlFor="dod7-org" className="text-[11px] font-medium text-muted-foreground mb-1 block">
+                  Org ID (optional)
+                </label>
+                <Input
+                  id="dod7-org"
+                  placeholder="acme-corp"
+                  value={orgId}
+                  onChange={(e) => setOrgId(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+              <div>
+                <label htmlFor="dod7-app-id" className="text-[11px] font-medium text-muted-foreground mb-1 block">
+                  App ID (optional)
+                </label>
+                <Input
+                  id="dod7-app-id"
+                  placeholder="123456"
+                  value={appId}
+                  onChange={(e) => setAppId(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+              <div>
+                <label htmlFor="dod7-inst-id" className="text-[11px] font-medium text-muted-foreground mb-1 block">
+                  Installation ID (optional)
+                </label>
+                <Input
+                  id="dod7-inst-id"
+                  placeholder="987654"
+                  value={installationId}
+                  onChange={(e) => setInstallationId(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Result panel — aria-live so screen readers announce */}
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            className="mt-3 min-h-[1.25rem]"
+          >
+            {scanResult && (
+              <div
+                className={cn(
+                  "rounded-md border px-3 py-2 text-sm flex items-start gap-2",
+                  scanResult.ok
+                    ? "bg-green-500/10 border-green-500/30 text-green-300"
+                    : "bg-red-500/10 border-red-500/30 text-red-300"
+                )}
+                role={scanResult.ok ? "status" : "alert"}
+              >
+                {scanResult.ok ? (
+                  <CheckCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{scanResult.message}</p>
+                  {scanResult.ok && (
+                    <p className="text-xs opacity-80 mt-0.5 font-mono break-all">
+                      {scanResult.registered ? "registered=true · " : ""}
+                      scan_id={scanResult.scanId} · queued_findings={scanResult.queuedFindings}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
