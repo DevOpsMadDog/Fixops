@@ -1,5 +1,31 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-01 21:20] backend-hardener — CONNECTOR_WAVE2_7_ROUTERS
+- **What**: Wired 7 Wave-2 connectors + 4 Wave-1 connectors with routers and platform_app registration. All 9 connector files already existed (Vault, CyberArk, Intune, WorkspaceOne, AppOmni, AdaptiveShield, SplunkSOAR from prior session + CrowdStrike/Defender/Okta/Jamf from Wave-1). Created 11 router files (GET /health + /status + POST /sync on each, plus /playbook/trigger on SplunkSOAR). Registered all 11 in platform_app.py wave-7 block. Route count: 8922 → 8968 (+46). 7 test files created (28 tests: 21 passed, 7 skipped awaiting live creds). Beast Mode 753/753 held. All 11 endpoints verified via app introspection (health=true, status=true for all slugs).
+- **Files touched**: suite-api/apps/api/{crowdstrike,defender_xdr,okta,jamf,vault,cyberark,intune,workspace_one,appomni,adaptive_shield,splunk_soar}_live_connector_router.py (11 new), suite-api/apps/api/sub_apps/platform_app.py (+wave-7 block), tests/test_connector_{vault,cyberark,intune,workspace_one,appomni,adaptive_shield,splunk_soar}_live.py (7 new)
+- **Commits**: 9d8d329c (Vault), 2aada22c (CyberArk), b6f7c5c9 (Intune), 7525e021 (WorkspaceOne), 823a7711 (AppOmni), a42769af (AdaptiveShield), bac50fa5 (SplunkSOAR), cf22c17e (Wave-1 routers + platform_app)
+- **Outcome**: SUCCESS — 11/11 connectors ROUTE-VERIFIED (introspection), pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (ASPM connectors), V3 (CTEM live ingestion), V10 (Platform integration)
+
+### [2026-04-28 23:20] backend-hardener — MUST_FIX_4_AGENTLESS_REAL_ADAPTERS
+- **What**: Replaced fake-bytes synthesis in agentless_snapshot_scan_engine.py with real boto3 + azure-mgmt-compute adapters. Removed `b"PK\x03\x04log4j-core-2.14.1-fake-bytes"` literal and `TODO(real-adapter)` comment. Added AWSEBSSnapshotConnector (EBS direct API, STS cross-account), AzureDiskSnapshotConnector (SnapshotsOperations + SAS download), _NoCredentialsAdapter (structured warning + empty list), _build_default_adapter() (auto-selects at runtime). 8 tests pass. Beast Mode 753/753.
+- **Files touched**: `suite-core/core/agentless_snapshot_scan_engine.py`, `suite-core/connectors/aws_ebs_snapshot_connector.py` (new), `suite-core/connectors/azure_disk_snapshot_connector.py` (new), `tests/test_agentless_snapshot_real.py` (new)
+- **Outcome**: SUCCESS — commit 84d37f1b pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (CTEM), V4 (cloud security/CSPM), V7 (competitive moat vs Wiz SideScanning)
+
+### [2026-04-27 12:00] frontend-craftsman — UX_PHASE3_WAVE3
+- **What**: Folded 10 dashboards into Brain/AssetGraph heroes. Fixed ~80 files with pre-existing TSX syntax corruption (non-ternary `))` + `)}` → `))}`, template literal `setLoading` splices). Fixed PageHeader to accept `icon` prop. Fixed KpiCard `delta` → `trendLabel`. Fixed Sparkline `"flat"` → `"stable"`. Fixed `JSX.Element` → `React.ReactElement`. Zero TS errors. Build passes (7.68s). Committed b05bd2a8 and pushed.
+- **Files touched**: `Brain.tsx`, `AssetGraph.tsx`, `App.tsx`, `page-header.tsx`, `SecurityKPIDashboard.tsx`, `ScheduledReportsDashboard.tsx`, `SecurityToolInventoryDashboard.tsx`, `IdentityGovernance.tsx`, `DeceptionEngine.tsx`, `VulnLifecycle.tsx`, 10 tombstoned pages, ~70 bulk-fixed pages
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (UX consolidation — 382→372 effective pages toward target 30)
+
+### [2026-04-27 00:00] frontend-craftsman — GENERIC_DASHBOARD_L2
+- **What**: Hidden-leverage L2 — built GenericDashboard component + 69 route configs. Sampled 10 Dashboard files, confirmed identical useEffect+apiFetch+stats+table pattern at ≤115 LOC. Built `GenericDashboard.tsx` (props: apiPath, itemsKey, statsPath, columns, kpis, pageSize) with real apiFetch, KPI bar, paginated table, loading/error/empty states. Built `dashboardRoutes.ts` (69 DashboardRouteEntry objects). Wired into App.tsx via 2-line import + DASHBOARD_ROUTES.map(). All 69 old files marked with REPLACED comment. TypeScript: 0 errors. Production build: exit 0.
+- **Files touched**: `suite-ui/aldeci-ui-new/src/components/GenericDashboard.tsx` (new), `suite-ui/aldeci-ui-new/src/config/dashboardRoutes.ts` (new), `suite-ui/aldeci-ui-new/src/App.tsx` (2 lines added), 69 `*Dashboard.tsx` pages (REPLACED comment prepended)
+- **Outcome**: SUCCESS — commit 6e0dee0b, pushed to features/intermediate-stage
+- **Pages collapsed**: 69. Remaining: ~186. Target: 30.
+- **Pillar(s) served**: V1 (UX consolidation), V6 (demo-ready platform)
+
 ### [2026-04-27 00:00] devops-engineer — PUBLIC_SELF_SCAN_DASHBOARD
 - **What**: Wired hidden-leverage L7 — ALDECI self-scan public dashboard. Created GitHub Actions workflow (self-scan.yml) that runs SelfScanEngine on every push to features/intermediate-stage + nightly cron, renders static HTML via render_self_scan_html.py, deploys to gh-pages /self-scan/. 19 tests written and passing.
 - **Files touched**: `.github/workflows/self-scan.yml` (new), `scripts/render_self_scan_html.py` (new), `tests/test_self_scan_html_render.py` (new), `docs/PUBLIC_SELF_SCAN.md` (new)
@@ -5683,3 +5709,15 @@
 - **Files touched**: ide-plugins/vscode/{package.json,tsconfig.json,.vscodeignore,README.md,src/extension.ts,src/scan.ts,src/dashboard.ts,aldeci-security-0.0.1.vsix}, tests/test_ide_vscode_scaffold.py
 - **Outcome**: SUCCESS — 23 tests pass, npm run compile clean, VSIX 12.46 KB produced
 - **Pillar(s) served**: V1 (developer adoption), V5 (IDE-native security)
+
+### [2026-04-27 23:07] backend-hardener — FIX
+- **What**: Fixed LLM council preset (hidden-leverage L1) — CouncilFactory.create_security_council() now detects MULEROUTER_API_KEY+OPENROUTER_API_KEY and routes to 2-member real council instead of falling to DeterministicLLMProvider (confidence=0.5/action=review)
+- **Files touched**: suite-core/core/llm_council.py, tests/test_llm_council_real_2member.py, tests/test_phase3_llm_council.py
+- **Outcome**: SUCCESS — 761 Beast Mode tests passing, commit 1aaecf27
+- **Pillar(s) served**: V3 (AI consensus), V5 (autonomous decision loop)
+
+### [2026-04-27 21:10] backend-hardener — REAL_DATA_WIRE
+- **What**: Wired Yahoo pentest report (data/pentest_report_data.json) into live findings store. Created scripts/import_yahoo_findings.py — idempotent via correlation_key. Inserted 6 findings (1 HIGH Host Header Injection CVSS 7.5, 3 MEDIUM missing headers, 1 LOW tech fingerprint, 1 HIGH CVE result) under org_id=default, scan_id=yahoo_pentest_2026_03_09. DB now has 763 total findings for default org. /api/v1/findings and /api/v1/issues will surface Yahoo data via UnifiedIssuesEngine federation on server start.
+- **Files touched**: scripts/import_yahoo_findings.py (new), .fixops_data/security_findings_engine.db (data)
+- **Outcome**: SUCCESS — 6 findings persisted, Beast Mode exit code 0, commit 770bc386 pushed
+- **Pillar(s) served**: V1 (real data), V3 (demo readiness)
