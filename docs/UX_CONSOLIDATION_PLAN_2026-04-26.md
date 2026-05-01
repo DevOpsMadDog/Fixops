@@ -325,7 +325,7 @@
 | `Reachability` / `ReachabilityProof` (drill from S6) | shared | tab (Reachability) |
 
 ### 2.14 → S14 Threat Intel
-**Actors/Indicators sub-cluster: DONE-2026-05-02 SHA=<pending>** — 5 pages folded into ThreatActorsHub.tsx at `/attack/intel/actors` (ThreatActorDashboard, ActorTrackingDashboard, ThreatAttributionDashboard, ThreatIndicatorDashboard, IOCHunter). Old routes (`/threat-actors`, `/actor-tracking`, `/threat-attribution`, `/threat-indicators`, `/ioc-hunter`) redirect with `?tab=`.
+**Actors/Indicators sub-cluster: DONE-2026-05-02 SHA=17fd2540** — 5 pages folded into ThreatActorsHub.tsx at `/attack/intel/actors` (ThreatActorDashboard, ActorTrackingDashboard, ThreatAttributionDashboard, ThreatIndicatorDashboard, IOCHunter). Old routes (`/threat-actors`, `/actor-tracking`, `/threat-attribution`, `/threat-indicators`, `/ioc-hunter`) redirect with `?tab=`.
 
 | Source | Endpoint | As |
 |---|---|---|
