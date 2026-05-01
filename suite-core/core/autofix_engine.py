@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -498,6 +499,20 @@ class AutoFixEngine:
         material_change_risk = self._check_material_changes(finding)
         graph_context["material_change_risk"] = material_change_risk
 
+        # ------------------------------------------------------------------
+        # LLMCouncil multi-model consensus for critical/high findings.
+        # Gated by FIXOPS_USE_COUNCIL=1 so default behaviour is unchanged.
+        # Council failures NEVER block fix generation.
+        # ------------------------------------------------------------------
+        council_context, council_confidence = self._maybe_council_consensus(
+            finding=finding,
+            fix_type=fix_type,
+            severity=severity,
+        )
+        if council_context:
+            graph_context["council_reasoning"] = council_context
+            graph_context["council_confidence"] = council_confidence
+
         suggestion = AutoFixSuggestion(
             fix_id=fix_id,
             finding_id=finding_id,
@@ -535,6 +550,16 @@ class AutoFixEngine:
 
             # Assign confidence (ML-powered with rule-based fallback)
             suggestion.confidence_score = self._compute_confidence(suggestion, finding)
+
+            # Boost confidence using LLMCouncil verdict for critical/high findings.
+            # Council confidence is taken as a floor: max(council, llm) so council
+            # consensus can only raise — never lower — the fix confidence.
+            if council_confidence and council_confidence > 0.0:
+                suggestion.confidence_score = max(
+                    suggestion.confidence_score, council_confidence
+                )
+                suggestion.metadata["council_confidence"] = council_confidence
+                suggestion.metadata["council_reasoning"] = council_context
 
             # Use ML classification if available, else derive from score
             ml_conf = suggestion.metadata.get("ml_confidence", {})
@@ -630,6 +655,56 @@ class AutoFixEngine:
             logger.debug("Event bus emit failed: %s", type(e).__name__)
 
         return suggestion
+
+    # ------------------------------------------------------------------
+    # LLMCouncil multi-model consensus (gated by FIXOPS_USE_COUNCIL=1)
+    # ------------------------------------------------------------------
+
+    def _maybe_council_consensus(
+        self,
+        finding: Dict[str, Any],
+        fix_type: FixType,
+        severity: str,
+    ) -> tuple:
+        """Run LLMCouncil consensus for critical/high findings when enabled.
+
+        Returns (council_reasoning, council_confidence). Empty / 0.0 when
+        the council path is disabled, the finding is medium/low, or the
+        council fails for any reason. NEVER raises.
+        """
+        if severity not in ("critical", "high"):
+            return "", 0.0
+        if os.environ.get("FIXOPS_USE_COUNCIL") != "1":
+            return "", 0.0
+
+        try:
+            from core.llm_council import CouncilFactory
+
+            council = CouncilFactory().create_security_council()
+            verdict = council.convene(
+                finding=finding,
+                context={
+                    "fix_type": fix_type.value if hasattr(fix_type, "value") else str(fix_type),
+                    "language": finding.get("language", ""),
+                    "file_path": finding.get("file_path", ""),
+                    "blast_radius": finding.get("blast_radius", 0),
+                    "reachable": finding.get("reachable", True),
+                    "reachability_verdict": finding.get("reachability_verdict", "unknown"),
+                    "consensus_priority": finding.get("consensus_priority", 3),
+                },
+                org_id=finding.get("org_id", "default"),
+            )
+            council_reasoning = getattr(verdict, "reasoning", "") or ""
+            try:
+                council_confidence = float(getattr(verdict, "confidence", 0.0) or 0.0)
+            except (TypeError, ValueError):
+                council_confidence = 0.0
+            return council_reasoning, council_confidence
+        except Exception as exc:  # noqa: BLE001 — council failure must never block
+            logger.warning(
+                "LLMCouncil consensus skipped: %s", type(exc).__name__,
+            )
+            return "", 0.0
 
     # ------------------------------------------------------------------
     # Fix type inference
@@ -947,6 +1022,14 @@ class AutoFixEngine:
         if security_context_lines:
             security_ctx_block = "\n\nSECURITY INTELLIGENCE (use this to prioritize fix quality):\n" + "\n".join(
                 f"- {line}" for line in security_context_lines
+            )
+
+        # Append LLMCouncil multi-model consensus reasoning when present
+        # (only set for critical/high severity with FIXOPS_USE_COUNCIL=1).
+        council_reasoning = graph_ctx.get("council_reasoning") or ""
+        if council_reasoning:
+            security_ctx_block += (
+                f"\n\n## Council reasoning:\n{council_reasoning[:2000]}"
             )
 
         prompt = f"""You are a senior security engineer at a Fortune 500 company. Generate a precise, production-ready code fix for this vulnerability.
