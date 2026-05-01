@@ -753,3 +753,63 @@ async def scanner_ingest_status():
         "by_source": by_source,
         "ingestion_methods": ["upload", "webhook", "auto-detect"],
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Alias router: POST /api/v1/scanners/ingest
+# The canonical prefix is /api/v1/scanner-ingest but the demo path and
+# several UI calls use /api/v1/scanners/ingest (plural, with /ingest suffix).
+# This second router provides that alias without changing the canonical routes.
+# ═══════════════════════════════════════════════════════════════════════════
+
+from pydantic import BaseModel as _BaseModel  # noqa: E402
+
+scanners_alias_router = APIRouter(
+    prefix="/api/v1/scanners",
+    tags=["scanner-ingest"],
+)
+
+
+class _IngestBody(_BaseModel):
+    scanner_type: Optional[str] = None
+    app_id: str = ""
+    org_id: str = "default"
+    findings: Optional[List[Dict[str, Any]]] = None
+    raw: Optional[Dict[str, Any]] = None
+
+
+@scanners_alias_router.post(
+    "/ingest",
+    summary="Ingest scanner findings (JSON alias for POST /api/v1/scanner-ingest/upload)",
+    description=(
+        "Accepts a JSON body with pre-parsed scanner findings or raw scanner output. "
+        "Alias for the canonical /api/v1/scanner-ingest endpoints — provided for "
+        "demo-path compatibility and UI callers that POST JSON rather than multipart."
+    ),
+)
+async def scanners_ingest_alias(body: _IngestBody, org_id: str = Depends(get_org_id)):
+    """JSON-body ingest alias. Promotes findings to issues queue and records stats."""
+    findings = body.findings or []
+    scanner = body.scanner_type or "unknown"
+    effective_org = body.org_id or org_id
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Promote to SecurityFindingsEngine (same path as upload handler)
+    promoted = _promote_findings_to_issues(findings, scanner, effective_org)
+
+    # Update in-memory stats
+    _ingest_stats["total_findings_parsed"] += len(findings)
+    scanner_stats = _ingest_stats["by_scanner"].setdefault(scanner, {"files": 0, "findings": 0})
+    if isinstance(scanner_stats, dict):
+        scanner_stats["findings"] = scanner_stats.get("findings", 0) + len(findings)
+    _ingest_stats["last_ingest_at"] = now
+
+    return {
+        "status": "ok",
+        "scanner_type": scanner,
+        "findings_received": len(findings),
+        "findings_promoted": promoted,
+        "org_id": effective_org,
+        "ingested_at": now,
+        "canonical_endpoint": "/api/v1/scanner-ingest/upload",
+    }
