@@ -1,3 +1,4 @@
+// FOLDED into PrivacyComplianceHub at /comply/privacy?tab=gdpr — kept as redirect-only stub (Phase 3 §2.23, 2026-05-02)
 /**
  * Privacy & GDPR Dashboard
  *

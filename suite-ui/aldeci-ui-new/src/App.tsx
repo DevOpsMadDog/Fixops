@@ -652,6 +652,8 @@ const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector")
 const RulesCatalogHub = lazy(() => import("@/pages/RulesCatalogHub"));
 // Phase 3 §2.23 (Maturity sub-cluster) — MaturityHub at /comply/maturity
 const MaturityHub = lazy(() => import("@/pages/MaturityHub"));
+// Phase 3 §2.23 (Privacy/Controls sub-cluster) — PrivacyComplianceHub at /comply/privacy
+const PrivacyComplianceHub = lazy(() => import("@/pages/PrivacyComplianceHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -984,12 +986,15 @@ export default function App() {
 
             {/* Phase 3 §2.23 — Maturity sub-cluster folded into MaturityHub at /comply/maturity */}
             <Route path="/comply/maturity" element={<MaturityHub />} />
+            {/* Phase 3 §2.23 — Privacy/Controls sub-cluster folded into PrivacyComplianceHub at /comply/privacy */}
+            <Route path="/comply/privacy" element={<PrivacyComplianceHub />} />
             {/* Security Maturity, Privacy/GDPR, Network Traffic, Container Security */}
             {/* S23 fold 2026-05-02: SecurityMaturityDashboard → MaturityHub#security */}
             <Route path="/security-maturity" element={<Navigate to="/comply/maturity?tab=security" replace />} />
             {/* S23 fold 2026-05-02: SecurityPostureMaturityDashboard → MaturityHub#posture */}
             <Route path="/posture-maturity" element={<Navigate to="/comply/maturity?tab=posture" replace />} />
-            <Route path="/privacy-gdpr" element={<PrivacyGDPRDashboard />} />
+            {/* S23 fold 2026-05-02: PrivacyGDPRDashboard → PrivacyComplianceHub#gdpr */}
+            <Route path="/privacy-gdpr" element={<Navigate to="/comply/privacy?tab=gdpr" replace />} />
             <Route path="/network-traffic" element={<NetworkTrafficDashboard />} />
             <Route path="/container-security" element={<ContainerSecurityDashboard />} />
 
@@ -1120,7 +1125,8 @@ export default function App() {
             {/* /security-graph → consolidated into /assets hero */}
 
             {/* Wave 42 domain dashboards (pages for Wave 41 engines) */}
-            <Route path="/privacy-impact" element={<PrivacyImpactDashboard />} />
+            {/* S23 fold 2026-05-02: PrivacyImpactDashboard → PrivacyComplianceHub#impact */}
+            <Route path="/privacy-impact" element={<Navigate to="/comply/privacy?tab=impact" replace />} />
             {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatIndicatorDashboard) */}
             <Route path="/threat-indicators" element={<Navigate to="/attack/intel/actors?tab=indicators" replace />} />
             <Route path="/ransomware-protection" element={<RansomwareProtectionDashboard />} />
@@ -1199,7 +1205,8 @@ export default function App() {
             <Route path="/feed-subscriptions" element={<FeedSubscriptionsDashboard />} />
             <Route path="/asset-groups" element={<AssetGroupsDashboard />} />
             <Route path="/security-findings" element={<Navigate to="/issues" replace />} />
-            <Route path="/control-testing" element={<ControlTestingDashboard />} />
+            {/* S23 fold 2026-05-02: ControlTestingDashboard → PrivacyComplianceHub#controls */}
+            <Route path="/control-testing" element={<Navigate to="/comply/privacy?tab=controls" replace />} />
 
             {/* Wave 32 domain dashboards */}
             <Route path="/compliance-workflows" element={<ComplianceWorkflowDashboard />} />

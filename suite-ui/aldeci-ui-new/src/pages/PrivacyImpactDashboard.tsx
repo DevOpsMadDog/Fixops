@@ -1,3 +1,4 @@
+// FOLDED into PrivacyComplianceHub at /comply/privacy?tab=impact — kept as redirect-only stub (Phase 3 §2.23, 2026-05-02)
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Privacy Impact Assessment Dashboard - Live API
