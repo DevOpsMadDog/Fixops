@@ -106,15 +106,18 @@ def list_benchmarks(
     sector: Optional[str] = Query(None),
     metric_category: Optional[str] = Query(None),
 ):
-    """List benchmarks with optional sector and category filters."""
-    rows = _get_engine().list_benchmarks(org_id, sector=sector, metric_category=metric_category)
-    if not rows:
-        return {
-            "benchmarks": [],
-            "total": 0,
-            "hint": "Import SANS/Verizon DBIR industry benchmarks via POST /api/v1/security-benchmarks/import-dbir, or create one manually via POST /api/v1/security-benchmarks/benchmarks.",
-        }
-    return {"benchmarks": rows, "total": len(rows)}
+    """List benchmarks for the org, falling back to imported DBIR catalog if empty.
+
+    Resolution order:
+      1. Org-registered benchmarks (source=org_registered)
+      2. Imported Verizon DBIR / VCDB incident corpus projected as derived
+         per-(sector, action_pattern) benchmarks (source=dbir-derived) —
+         real public data, no mocks
+      3. Structured empty with import hint (source=empty)
+    """
+    return _get_engine().list_benchmarks_with_dbir_fallback(
+        org_id, sector=sector, metric_category=metric_category
+    )
 
 
 @router.post("/import-dbir", dependencies=[Depends(api_key_auth)])

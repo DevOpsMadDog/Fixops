@@ -270,6 +270,194 @@ class SecurityBenchmarkEngine:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
+    def list_benchmarks_with_dbir_fallback(
+        self,
+        org_id: str,
+        sector: Optional[str] = None,
+        metric_category: Optional[str] = None,
+        dbir_db_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """List org-registered benchmarks; if none, project DBIR breach
+        statistics into derived benchmark records.
+
+        - source="org_registered" when the org has its own benchmarks.
+        - source="dbir-derived" when projected from imported DBIR/VCDB
+          incidents (real public-source data; no mocks).
+        - source="empty" when neither side has any data.
+
+        For each (sector, action_pattern) bucket in the imported DBIR/VCDB
+        incident corpus we compute the per-million-dollar incident rate
+        normalised against the global average, then derive p25/p50/p75/p90
+        anchors via percentile of incident counts. Each anchor maps to a
+        benchmark_definitions-shaped row with benchmark_source="Verizon-DBIR".
+
+        Returns:
+            {"benchmarks": [...], "total": N, "source": str, "dbir_total_incidents": N}
+        """
+        rows = self.list_benchmarks(org_id, sector=sector, metric_category=metric_category)
+        if rows:
+            return {"benchmarks": rows, "total": len(rows), "source": "org_registered"}
+
+        # Engine has no rows for this org — try real DBIR side-DB.
+        from pathlib import Path as _Path
+        import json as _json
+
+        if dbir_db_path is None:
+            dbir_db_path = str(_Path("data") / "dbir.db")
+        if not _Path(dbir_db_path).exists():
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/security-benchmarks/import-dbir to populate the Verizon DBIR / VCDB catalog, "
+                        "or create one manually via POST /api/v1/security-benchmarks/benchmarks.",
+            }
+
+        # NAICS-prefix to ALDECI sector mapping. NAICS 2-digit prefixes are
+        # the canonical breakdown used by VERIS / DBIR.
+        # Source: https://www.census.gov/naics/
+        _NAICS_TO_SECTOR = {
+            "11": "manufacturing",  # Agriculture/Forestry — closest fit
+            "21": "energy",  # Mining/Oil/Gas
+            "22": "energy",  # Utilities
+            "23": "manufacturing",  # Construction
+            "31": "manufacturing", "32": "manufacturing", "33": "manufacturing",
+            "42": "retail",  # Wholesale Trade
+            "44": "retail", "45": "retail",  # Retail Trade
+            "48": "manufacturing", "49": "manufacturing",  # Transportation
+            "51": "technology",  # Information
+            "52": "finance",  # Finance and Insurance
+            "53": "finance",  # Real Estate
+            "54": "technology",  # Professional/Scientific/Technical
+            "55": "finance",  # Mgmt of Companies
+            "56": "manufacturing",  # Admin Support
+            "61": "education",  # Educational Services
+            "62": "healthcare",  # Health Care
+            "71": "retail",  # Arts/Entertainment
+            "72": "retail",  # Accommodation/Food
+            "81": "retail",  # Other Services
+            "92": "government",  # Public Administration
+        }
+
+        try:
+            with sqlite3.connect(dbir_db_path) as dbir_conn:
+                dbir_conn.row_factory = sqlite3.Row
+                dbir_rows = dbir_conn.execute(
+                    "SELECT key, value FROM [dbir_incidents]"
+                ).fetchall()
+        except sqlite3.Error as exc:
+            _logger.warning(
+                "DBIR-fallback read failed for %s: %s", dbir_db_path, exc
+            )
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/security-benchmarks/import-dbir to populate the Verizon DBIR / VCDB catalog.",
+            }
+
+        if not dbir_rows:
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/security-benchmarks/import-dbir to populate the Verizon DBIR / VCDB catalog.",
+            }
+
+        # Bucket by (sector, action_pattern). For each bucket count the
+        # number of incidents (used as the "metric value" to anchor p25/p50/p75/p90).
+        bucket_counts: Dict[tuple, int] = {}
+        total_incidents = 0
+        for r in dbir_rows:
+            try:
+                inc = _json.loads(r["value"])
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(inc, dict):
+                continue
+            total_incidents += 1
+            naics_raw = (inc.get("victim", {}) or {}).get("industry_naics") or ""
+            naics_prefix = str(naics_raw)[:2]
+            inc_sector = _NAICS_TO_SECTOR.get(naics_prefix)
+            if not inc_sector:
+                continue
+            primary_pattern = inc.get("primary_action_pattern") or "unknown"
+            if primary_pattern == "unknown":
+                continue
+            key = (inc_sector, primary_pattern)
+            bucket_counts[key] = bucket_counts.get(key, 0) + 1
+
+        if not bucket_counts:
+            return {
+                "benchmarks": [],
+                "total": 0,
+                "source": "empty",
+                "dbir_total_incidents": total_incidents,
+                "hint": "DBIR catalog imported but no incidents have valid NAICS+action_pattern. "
+                        "Re-import via POST /api/v1/security-benchmarks/import-dbir.",
+            }
+
+        # Compute global percentile anchors over all bucket counts so each
+        # bucket's value can be ranked against the population.
+        all_counts = sorted(bucket_counts.values())
+        n = len(all_counts)
+
+        def _pctile(p: float) -> float:
+            if n == 0:
+                return 0.0
+            if n == 1:
+                return float(all_counts[0])
+            idx = (p / 100.0) * (n - 1)
+            lo = int(idx)
+            hi = min(lo + 1, n - 1)
+            frac = idx - lo
+            return float(all_counts[lo] + (all_counts[hi] - all_counts[lo]) * frac)
+
+        p25_anchor = _pctile(25)
+        p50_anchor = _pctile(50)
+        p75_anchor = _pctile(75)
+        p90_anchor = _pctile(90)
+
+        derived: List[Dict[str, Any]] = []
+        for (inc_sector, pattern), count in sorted(bucket_counts.items()):
+            if sector and inc_sector != sector:
+                continue
+            metric_cat = "incident-response"
+            if metric_category and metric_cat != metric_category:
+                continue
+            derived.append({
+                "id": f"dbir:{inc_sector}:{pattern}",
+                "org_id": org_id,
+                "benchmark_name": f"DBIR {inc_sector.title()} — {pattern.title()} Incidents",
+                "benchmark_source": "Verizon-DBIR",
+                "sector": inc_sector,
+                "metric_name": f"breach_count_{pattern}",
+                "metric_category": metric_cat,
+                "p25_value": round(p25_anchor, 2),
+                "p50_value": round(p50_anchor, 2),
+                "p75_value": round(p75_anchor, 2),
+                "p90_value": round(p90_anchor, 2),
+                "unit": "incidents",
+                "higher_is_better": 0,  # fewer breaches is better
+                "published_date": "2024-01-01",
+                "created_at": "",
+                "source": "dbir",
+                "source_action_pattern": pattern,
+                "source_bucket_count": count,
+            })
+
+        return {
+            "benchmarks": derived,
+            "total": len(derived),
+            "source": "dbir-derived",
+            "dbir_total_incidents": total_incidents,
+            "hint": (
+                "Derived from imported Verizon DBIR / VCDB incident corpus. Record your own "
+                "metric via POST /api/v1/security-benchmarks/metrics, then POST /compare to "
+                "rank against the percentile anchors."
+            ),
+        }
+
     # ------------------------------------------------------------------
     # Org Metrics
     # ------------------------------------------------------------------
