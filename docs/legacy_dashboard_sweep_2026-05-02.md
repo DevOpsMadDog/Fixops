@@ -72,3 +72,25 @@ Net page reduction projection if executed: ~16 of 20 → ~4-page floor (cluster 
 
 ## Source SHA
 `5767c2049ca83432fd18a7d7fa2c1f4911c60577`
+
+## Execution Update — 2026-05-02 (Cluster C absorbed)
+
+Cluster C ("AssetInventoryHub consolidation target") **EXECUTED** — all 5
+inventory pages folded into the existing hub at `/discover/assets/inventory`.
+No new hub created. Tab count 3 -> 8.
+
+| Source page | Tab | Old route -> Navigate redirect |
+|-------------|-----|-------------------------------|
+| CMDBDashboard | `cmdb` | `/cmdb` -> `?tab=cmdb` |
+| AssetRiskDashboard | `risk` | `/asset-risk` -> `?tab=risk` |
+| CloudResourceInventoryDashboard | `cloud-res` | `/cloud-inventory` -> `?tab=cloud-res` |
+| AgentlessSnapshotDashboard | `snapshot` | `/agentless-snapshot` -> `?tab=snapshot` |
+| CloudAccountsDashboard | `cloud-accts` | `/cloud-accounts` -> `?tab=cloud-accts` |
+
+- Verified Playwright `domcontentloaded`: 8 tabs render, every new tab fires
+  real `/api/v1/{cmdb,asset-risk,cloud-inventory,agentless-snapshot,cloud-accounts}/*`
+  calls. Zero mocks.
+- Screenshot: `docs/ui-snapshots/asset-inventory-hub-expanded-2026-05-02.png`
+- Commit: `494ef868`
+- Multica: `#3663`
+- Net page count: **431 -> ~426**.
