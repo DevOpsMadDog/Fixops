@@ -436,6 +436,8 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 **Awareness sub-cluster: DONE-2026-05-02 SHA=29f1aae6** — 4 awareness pages folded into AwarenessHub.tsx at `/comply/awareness` (AwarenessCampaignDashboard, AwarenessProgramDashboard, AwarenessMetricsDashboard, AwarenessScoreDashboard). Old routes (`/awareness-campaigns`, `/awareness-program`, `/awareness-metrics`, `/awareness-score`) redirect with `?tab=`. Real APIs: `/api/v1/awareness-campaigns/*`, `/api/v1/awareness-program/*`, `/api/v1/awareness-metrics/*`, `/api/v1/awareness-score/orgs/{id}/*`.
 
 ### 2.23 → S23 Compliance Dashboard
+**Maturity sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 maturity pages folded into MaturityHub.tsx at `/comply/maturity` (SecurityMaturityDashboard, SecurityPostureMaturityDashboard, ProgramMaturityDashboard). Old routes (`/security-maturity`, `/posture-maturity`, `/program-maturity`) redirect with `?tab=`. Real APIs: `/api/v1/security-maturity/{stats,assessments}`, `/api/v1/posture-maturity/overview`, `/api/v1/program-maturity/domains`.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `ComplianceDashboard` / `StandaloneComplianceDashboard` / `MissionControlComplianceDashboard` (cross-link to S1) | `/api/v1/compliance` | hero |

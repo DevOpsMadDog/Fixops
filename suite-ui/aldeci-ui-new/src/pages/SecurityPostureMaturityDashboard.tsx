@@ -1,3 +1,4 @@
+// FOLDED into MaturityHub hero (posture tab) 2026-05-02 — preserve for git history
 // REPLACED by FindingsExplorerView config 2026-04-27
 // Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**

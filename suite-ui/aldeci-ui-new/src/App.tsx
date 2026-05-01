@@ -650,6 +650,8 @@ const UnifiedRulesCatalog = lazy(() => import("@/pages/UnifiedRulesCatalog"));
 const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector"));
 // Phase 3 §2.26 (Rules sub-cluster) — RulesCatalogHub at /comply/rules
 const RulesCatalogHub = lazy(() => import("@/pages/RulesCatalogHub"));
+// Phase 3 §2.23 (Maturity sub-cluster) — MaturityHub at /comply/maturity
+const MaturityHub = lazy(() => import("@/pages/MaturityHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -980,8 +982,13 @@ export default function App() {
             <Route path="/threat-actors" element={<Navigate to="/attack/intel/actors?tab=actors" replace />} />
             <Route path="/security-champions" element={<SecurityChampionsDashboard />} />
 
+            {/* Phase 3 §2.23 — Maturity sub-cluster folded into MaturityHub at /comply/maturity */}
+            <Route path="/comply/maturity" element={<MaturityHub />} />
             {/* Security Maturity, Privacy/GDPR, Network Traffic, Container Security */}
-            <Route path="/security-maturity" element={<SecurityMaturityDashboard />} />
+            {/* S23 fold 2026-05-02: SecurityMaturityDashboard → MaturityHub#security */}
+            <Route path="/security-maturity" element={<Navigate to="/comply/maturity?tab=security" replace />} />
+            {/* S23 fold 2026-05-02: SecurityPostureMaturityDashboard → MaturityHub#posture */}
+            <Route path="/posture-maturity" element={<Navigate to="/comply/maturity?tab=posture" replace />} />
             <Route path="/privacy-gdpr" element={<PrivacyGDPRDashboard />} />
             <Route path="/network-traffic" element={<NetworkTrafficDashboard />} />
             <Route path="/container-security" element={<ContainerSecurityDashboard />} />
@@ -1125,7 +1132,8 @@ export default function App() {
             {/* Wave 41 domain dashboards (pages for Wave 40 engines) */}
             <Route path="/arch-review" element={<ArchReviewDashboard />} />
             <Route path="/hunting-playbooks" element={<HuntingPlaybookDashboard />} />
-            <Route path="/program-maturity" element={<ProgramMaturityDashboard />} />
+            {/* S23 fold 2026-05-02: ProgramMaturityDashboard → MaturityHub#program */}
+            <Route path="/program-maturity" element={<Navigate to="/comply/maturity?tab=program" replace />} />
             <Route path="/cloud-ir" element={<CloudIRDashboard />} />
             <Route path="/identity-lifecycle" element={<IdentityLifecycleDashboard />} />
             {/* S21 fold 2026-05-02: was DependencyMappingDashboard */}

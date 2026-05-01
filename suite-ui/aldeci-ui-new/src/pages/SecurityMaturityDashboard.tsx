@@ -1,3 +1,4 @@
+// FOLDED into MaturityHub hero (security tab) 2026-05-02 — preserve for git history
 /**
  * Security Maturity Dashboard
  *

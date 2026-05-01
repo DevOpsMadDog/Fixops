@@ -1,3 +1,4 @@
+// FOLDED into MaturityHub hero (program tab) 2026-05-02 — preserve for git history
 import { useState, useEffect } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
