@@ -373,7 +373,7 @@
 Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analyst persona muscle memory. No new screen, no new endpoints.
 
 ### 2.17 → S17 FAIL Chaos
-**Deception sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 deception pages folded into DeceptionHub.tsx at `/brain/fail/deception` (DeceptionEngine, DeceptionAnalyticsDashboard, ThreatDeceptionDashboard). Old routes (`/deception`, `/deception-analytics`, `/threat-deception`) redirect with `?tab=`. Real APIs: `/api/v1/deception/{stats,canaries,alerts}`, `/api/v1/deception-analytics/{stats,assets,interactions}`, `/api/v1/threat-deception/{decoys,stats}`. Tabs: `engine|analytics|decoys`. ThreatDeceptionDashboard was previously orphan-imported (no Route) — now reachable via hub.
+**Deception sub-cluster: DONE-2026-05-02 SHA=a75636d1** — 3 deception pages folded into DeceptionHub.tsx at `/brain/fail/deception` (DeceptionEngine, DeceptionAnalyticsDashboard, ThreatDeceptionDashboard). Old routes (`/deception`, `/deception-analytics`, `/threat-deception`) redirect with `?tab=`. Real APIs: `/api/v1/deception/{stats,canaries,alerts}`, `/api/v1/deception-analytics/{stats,assets,interactions}`, `/api/v1/threat-deception/{decoys,stats}`. Tabs: `engine|analytics|decoys`. ThreatDeceptionDashboard was previously orphan-imported (no Route) — now reachable via hub.
 
 | Source | Endpoint | As |
 |---|---|---|
