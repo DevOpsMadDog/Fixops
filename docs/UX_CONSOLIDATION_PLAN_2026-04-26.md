@@ -152,7 +152,7 @@
 | `ScheduledReportsDashboard` | `/api/v1/reports/scheduled` | tab |
 
 ### 2.3 → S3 SOC Operations
-**Behavior sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 pages folded into BehaviorAnalyticsHub.tsx at `/mission-control/behavior` (UBADashboard, BehavioralAnalyticsDashboard, InsiderThreatMonitor). Old routes (`/uba`, `/behavioral-analytics`, `/insider-threats`) redirect with `?tab=`. Real APIs: `/api/v1/uba/{stats,users,events,alerts}`, `/api/v1/behavioral-analytics/{anomalies,stats}`, `/api/v1/insider-threat/{alerts,stats}`.
+**Behavior sub-cluster: DONE-2026-05-02 SHA=6b87065f** — 3 pages folded into BehaviorAnalyticsHub.tsx at `/mission-control/behavior` (UBADashboard, BehavioralAnalyticsDashboard, InsiderThreatMonitor). Old routes (`/uba`, `/behavioral-analytics`, `/insider-threats`) redirect with `?tab=`. Real APIs: `/api/v1/uba/{stats,users,events,alerts}`, `/api/v1/behavioral-analytics/{anomalies,stats}`, `/api/v1/insider-threat/{alerts,stats}`.
 
 | Source | Endpoint | As |
 |---|---|---|
