@@ -1,8 +1,11 @@
+// FOLDED into SupplyChainHub at /discover/supply-chain?tab=risk — kept as redirect-only stub
+// (Phase 3 UX consolidation, 2026-05-02 — preserve for git history)
 /**
  * Supply Chain Risk Dashboard
  *
  * Third-party vendor and component risk management — detailed view.
- * (SupplyChainSecurity.tsx exists at /supply-chain; this is /supply-chain-risk)
+ * (SupplyChainSecurity.tsx exists at /supply-chain; this is /supply-chain-risk
+ *  → both now redirect into /discover/supply-chain hub)
  *   1. KPIs: Suppliers, Critical Tier, EOL Components, Open Risks
  *   2. Supplier table (12 rows)
  *   3. Component risk table (10 rows)

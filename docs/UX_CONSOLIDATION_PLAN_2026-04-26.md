@@ -182,6 +182,8 @@
 | `RiskQuantification` / `RiskQuantDashboard` | `/api/v1/risk/quant` | tab |
 | `ApplicationRiskDashboard` / `AssetRiskDashboard` / `IdentityRiskDashboard` / `VendorRiskDashboard` / `SupplyChainDashboard` / `SupplyChainSecurity` / `SecurityDependencyRiskDashboard` | `/api/v1/risk/{app,asset,identity,vendor,supply}` | tab (By Domain) |
 
+**Supply Chain sub-cluster: DONE-2026-05-02 SHA=<pending>** — 3 pages folded into `SupplyChainHub.tsx` at `/discover/supply-chain` (cross-listed with §2.10 Code Intel — Supply Chain tab). Tabs: `security` (SupplyChainSecurity), `risk` (SupplyChainDashboard), `intel` (SupplyChainIntelDashboard). Old routes `/supply-chain`, `/supply-chain-risk`, `/supply-chain-intel` redirect to canonical hub URL with `?tab=`.
+
 ### 2.5 → S5 Issues Queue (HERO)
 | Source | Endpoint | As |
 |---|---|---|

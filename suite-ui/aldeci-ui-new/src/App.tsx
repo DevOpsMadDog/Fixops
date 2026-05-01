@@ -235,6 +235,7 @@ const IdentityAnalyticsDashboard = lazy(() => import("@/pages/IdentityAnalyticsD
 const CNAPPDashboard = lazy(() => import("@/pages/CNAPPDashboard"));
 const PentestManagementDashboard = lazy(() => import("@/pages/PentestManagementDashboard"));
 const SupplyChainIntelDashboard = lazy(() => import("@/pages/SupplyChainIntelDashboard"));
+const SupplyChainHub = lazy(() => import("@/pages/SupplyChainHub"));
 
 // Governance + Executive pages
 const SecurityExceptionDashboard = lazy(() => import("@/pages/SecurityExceptionDashboard"));
@@ -872,7 +873,9 @@ export default function App() {
             <Route path="/threat-geolocation" element={<Navigate to="/discover/vuln-intel?tab=geolocation" replace />} />
             <Route path="/secrets-rotation" element={<SecretsRotation />} />
             <Route path="/security-awareness" element={<SecurityAwareness />} />
-            <Route path="/supply-chain" element={<SupplyChainSecurity />} />
+            {/* Phase 3 fold 2026-05-02 — Supply Chain Hub (S4/S10 sub-cluster) */}
+            <Route path="/discover/supply-chain" element={<SupplyChainHub />} />
+            <Route path="/supply-chain" element={<Navigate to="/discover/supply-chain?tab=security" replace />} />
             <Route path="/zero-trust" element={<Navigate to="/asset-graph?tab=zero-trust" replace />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/attack-paths" element={<AttackPathAnalysis />} />
@@ -911,7 +914,7 @@ export default function App() {
             <Route path="/grc" element={<GRCDashboard />} />
             <Route path="/api-security" element={<APISecurityDashboard />} />
             <Route path="/threat-correlation" element={<ThreatCorrelation />} />
-            <Route path="/supply-chain-risk" element={<SupplyChainDashboard />} />
+            <Route path="/supply-chain-risk" element={<Navigate to="/discover/supply-chain?tab=risk" replace />} />
             <Route path="/cloud-security" element={<CloudSecurityDashboard />} />
             <Route path="/breach-response" element={<BreachResponse />} />
             <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
@@ -977,7 +980,7 @@ export default function App() {
             <Route path="/cnapp" element={<CNAPPDashboard />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (PentestManagementDashboard alias → pentest tab) */}
             <Route path="/pentest-mgmt" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
-            <Route path="/supply-chain-intel" element={<SupplyChainIntelDashboard />} />
+            <Route path="/supply-chain-intel" element={<Navigate to="/discover/supply-chain?tab=intel" replace />} />
 
             {/* Threat Actor Intelligence + Security Champions */}
             {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatActorDashboard) */}

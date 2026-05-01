@@ -1,8 +1,10 @@
+// FOLDED into SupplyChainHub at /discover/supply-chain?tab=security — kept as redirect-only stub
+// (Phase 3 UX consolidation, 2026-05-02 — preserve for git history)
 /**
  * Supply Chain Security Dashboard
  *
  * SBOM analysis, dependency risk, license compliance, transitive dependencies.
- * Route: /supply-chain
+ * Route: /supply-chain  (now redirects to /discover/supply-chain?tab=security)
  *
  * API: GET /api/v1/supply-chain/risk-summary
  *      GET /api/v1/supply-chain/dependencies

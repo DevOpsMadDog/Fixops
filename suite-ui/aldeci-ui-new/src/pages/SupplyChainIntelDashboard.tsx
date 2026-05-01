@@ -1,7 +1,10 @@
+// FOLDED into SupplyChainHub at /discover/supply-chain?tab=intel — kept as redirect-only stub
+// (Phase 3 UX consolidation, 2026-05-02 — preserve for git history)
 /**
  * Supply Chain Intelligence Dashboard
  *
  * Package vulnerability tracking, malicious package detection, and SBOM analysis.
+ * Route: /supply-chain-intel  (now redirects to /discover/supply-chain?tab=intel)
  *   1. KPIs: Tracked Packages, Vulnerable, Malicious Flags, Critical CVEs
  *   2. Malicious package alerts (8 red warning cards)
  *   3. Vulnerable packages table (15 rows)
