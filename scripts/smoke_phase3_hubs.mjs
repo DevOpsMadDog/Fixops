@@ -86,6 +86,13 @@ const HUBS = [
   { name: "SBOMProvenanceHub",          route: "/comply/provenance" },
   { name: "PolicyAuthoringHub",         route: "/comply/policies/authoring" },
   { name: "RulesCatalogHub",            route: "/comply/rules" },
+  // 2026-05-02 v2 — 6 hubs added since the v1 baseline (42 → 48 mounted).
+  { name: "WebhookIngestionHub",        route: "/connect/webhook-ingestion" },
+  { name: "ThreatIntelOpsHub",          route: "/attack/intel/ops" },
+  { name: "VulnLifecyclePipelineHub",   route: "/discover/vuln-pipeline" },
+  { name: "CloudPostureUnifiedHub",     route: "/discover/cloud-posture" },
+  { name: "PolicyLifecycleHub",         route: "/comply/policies/lifecycle" },
+  { name: "PostureMetricsHub",          route: "/discover/posture-metrics" },
 ];
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:5173";
@@ -93,7 +100,7 @@ const HEAD_TIMEOUT_MS = 5_000;     // h1 must appear inside this window
 const POST_NAV_SETTLE_MS = 2_500;  // give /api/v1 calls time to fire after h1
 const NAV_TIMEOUT_MS = 15_000;
 const REPO_ROOT = path.resolve(new URL("..", import.meta.url).pathname);
-const JSON_OUT = "/tmp/smoke_phase3_hubs_2026-05-02.json";
+const JSON_OUT = process.env.SMOKE_JSON_OUT || "/tmp/smoke_phase3_hubs_2026-05-02_v2.json";
 const MD_OUT = path.join(REPO_ROOT, "docs/smoke_test_phase3_hubs_2026-05-02.md");
 
 const MOCK_RE = /MOCK_|lorem|Acme Corp|John Doe|svc-001|alice\.chen/i;
@@ -259,7 +266,7 @@ async function main() {
 
   mdLines.push("");
   mdLines.push("## Coverage gap vs CTO request");
-  mdLines.push("CTO requested 44 hubs. Mounted in `App.tsx` as of this run: 42. The 2 unaccounted-for clusters were folded directly into hero pages (S5/S8/S15/S19/S23) without standalone `*Hub.tsx` files — see `docs/UX_HUBS_CATALOG_2026-05-02.md` §4. They will surface in S-hero smoke tests, not this script.");
+  mdLines.push("CTO target: 50 hubs. Mounted in `App.tsx` as of this v2 run: 48. The 2 remaining clusters were folded directly into hero pages (S5/S8/S15/S19/S23) without standalone `*Hub.tsx` files — see `docs/UX_HUBS_CATALOG_2026-05-02.md` §4. They surface in S-hero smoke tests, not this script.");
   mdLines.push("");
 
   await fs.writeFile(MD_OUT, mdLines.join("\n"));
