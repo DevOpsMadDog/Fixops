@@ -414,6 +414,7 @@ const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
 const BinaryFingerprintDashboard = lazy(() => import("@/pages/BinaryFingerprintDashboard"));
 // Phase 3 UX consolidation — S21 unified hero (2026-05-02)
 const UpgradePathsHub = lazy(() => import("@/pages/UpgradePathsHub"));
+const SBOMProvenanceHub = lazy(() => import("@/pages/SBOMProvenanceHub"));
 const CodeToRuntimeDashboard = lazy(() => import("@/pages/CodeToRuntimeDashboard"));
 const PipelineBomDashboard = lazy(() => import("@/pages/PipelineBomDashboard"));
 const SlsaProvenanceDashboard = lazy(() => import("@/pages/SlsaProvenanceDashboard"));
@@ -1113,7 +1114,8 @@ export default function App() {
             <Route path="/service-catalog" element={<Navigate to="/assets?tab=catalog" replace />} />
 
             {/* Wave 38 domain dashboards */}
-            <Route path="/sbom-export" element={<SBOMExportDashboard />} />
+            {/* S25 fold 2026-05-02: SBOMExportDashboard → SBOMProvenanceHub#export */}
+            <Route path="/sbom-export" element={<Navigate to="/comply/provenance?tab=export" replace />} />
             <Route path="/gap-analysis" element={<GapAnalysisDashboard />} />
             <Route path="/alert-enrichment" element={<Navigate to="/brain?tab=alert-enrichment" replace />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
@@ -1194,8 +1196,10 @@ export default function App() {
             {/* S21 fold 2026-05-02: SecurityDependencyRiskDashboard surface restored under hub */}
             <Route path="/dependency-risk" element={<Navigate to="/remediate/upgrade?tab=dep-risk" replace />} />
             <Route path="/code-to-runtime" element={<CodeToRuntimeDashboard />} />
-            <Route path="/pipeline-bom" element={<PipelineBomDashboard />} />
-            <Route path="/slsa-provenance" element={<SlsaProvenanceDashboard />} />
+            {/* S25 fold 2026-05-02: PipelineBomDashboard → SBOMProvenanceHub#pipeline-bom */}
+            <Route path="/pipeline-bom" element={<Navigate to="/comply/provenance?tab=pipeline-bom" replace />} />
+            {/* S25 fold 2026-05-02: SlsaProvenanceDashboard → SBOMProvenanceHub#slsa */}
+            <Route path="/slsa-provenance" element={<Navigate to="/comply/provenance?tab=slsa" replace />} />
             <Route path="/fips-compliance" element={<FipsComplianceDashboard />} />
             <Route path="/local-file-store" element={<LocalFileStoreDashboard />} />
             <Route path="/dynamic-rule-dsl" element={<DynamicRuleDSLDashboard />} />
@@ -1390,9 +1394,12 @@ export default function App() {
             <Route path="/hooks/status" element={<HooksStatusPanel />} />
             <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
             <Route path="/connectors/mapping/dry-run" element={<UniversalIngestionTester />} />
-            <Route path="/pbom/propagation" element={<PBOMViewer />} />
-            <Route path="/provenance/attestation" element={<PipelineAttestationGraph />} />
-            <Route path="/provenance/sign" element={<SLSAAttestationSigner />} />
+            {/* S25 fold 2026-05-02: PBOMViewer/PipelineAttestationGraph/SLSAAttestationSigner → SBOMProvenanceHub */}
+            <Route path="/pbom/propagation" element={<Navigate to="/comply/provenance?tab=pbom-prop" replace />} />
+            <Route path="/provenance/attestation" element={<Navigate to="/comply/provenance?tab=attestation" replace />} />
+            <Route path="/provenance/sign" element={<Navigate to="/comply/provenance?tab=sign" replace />} />
+            {/* S25 unified hero — Phase 3 cluster (2026-05-02): 6 standalone pages folded into one tabbed screen */}
+            <Route path="/comply/provenance" element={<SBOMProvenanceHub />} />
             <Route path="/webhooks/event-catalogue" element={<Navigate to="/admin?tab=webhooks" replace />} />
             <Route path="/webhooks/retry-queue" element={<Navigate to="/admin?tab=webhooks" replace />} />
             <Route path="/assets/crown-jewel" element={<CrownJewelConfigurator />} />

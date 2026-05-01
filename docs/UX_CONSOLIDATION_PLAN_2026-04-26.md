@@ -458,6 +458,8 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `MetricsAggregatorDashboard` | `/api/v1/metrics/aggregate` | widget |
 
 ### 2.25 → S25 SBOM & Provenance
+**Provenance/Attestation sub-cluster: DONE-2026-05-02 SHA=<pending>** — 6 pages folded into SBOMProvenanceHub.tsx at `/comply/provenance` (SBOMExportDashboard, PipelineBomDashboard, PBOMViewer, SlsaProvenanceDashboard, PipelineAttestationGraph, SLSAAttestationSigner). Old routes (`/sbom-export`, `/pipeline-bom`, `/slsa-provenance`, `/pbom/propagation`, `/provenance/attestation`, `/provenance/sign`) redirect with `?tab=`. Inventory subset (SBOMInventory/SBOMManagement/SBOMDashboard/SBOMContinuousMonitoring) still routed under `/assets?tab=sbom` (S9 Inventory hero) — preserved for the asset-centric persona path.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `SBOMInventory` / `SBOMManagement` / `SBOMDashboard` | `/api/v1/sbom` | hero |
