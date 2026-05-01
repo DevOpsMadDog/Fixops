@@ -390,6 +390,115 @@ class NetworkIsolationDetector:
 # ---------------------------------------------------------------------------
 
 
+def build_nvd_bundle(
+    nvd_json_path: str,
+    output_zip_path: str,
+    *,
+    feed_date_range: Optional[Tuple[str, str]] = None,
+) -> Dict[str, Any]:
+    """Build an importable air-gap NVD bundle from a raw NVD 2.0 JSON feed.
+
+    The output ZIP is consumable by ``OfflineVulnDBManager.import_from_bundle``
+    without modification. Operators previously had to hand-craft these bundles
+    (gzip + manifest + ZIP) before transferring them to SCIF instances; this
+    helper collapses that workflow into a single function call.
+
+    Args:
+        nvd_json_path:    Filesystem path to the raw NVD 2.0 JSON feed. The
+                          feed must be a top-level dict containing a
+                          ``vulnerabilities`` list with at least one CVE.
+        output_zip_path:  Destination ZIP path. Parent directories are created
+                          on demand. The ZIP will contain
+                          ``OfflineVulnDBManager.MANIFEST_FILENAME`` and
+                          ``OfflineVulnDBManager.DB_FILENAME``.
+        feed_date_range:  Optional (from, to) ISO-8601 strings recording the
+                          feed coverage window. Stored verbatim in the manifest.
+
+    Returns:
+        The manifest dict that was written into the ZIP.
+
+    Raises:
+        FileNotFoundError: ``nvd_json_path`` does not exist.
+        ValueError:        Input is not valid JSON, is not the NVD 2.0 schema,
+                           or contains zero CVE entries.
+    """
+    src = Path(nvd_json_path)
+    if not src.exists():
+        raise FileNotFoundError(f"NVD JSON feed not found: {nvd_json_path}")
+
+    raw_bytes = src.read_bytes()
+    try:
+        parsed = json.loads(raw_bytes)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Invalid NVD JSON at {nvd_json_path}: {exc}. "
+            "Expected NVD 2.0 format with top-level 'vulnerabilities' list."
+        ) from exc
+
+    if not isinstance(parsed, dict):
+        raise ValueError(
+            "NVD 2.0 feed must be a JSON object with a 'vulnerabilities' "
+            f"list at the top level (got {type(parsed).__name__})."
+        )
+
+    vulnerabilities = parsed.get("vulnerabilities")
+    if not isinstance(vulnerabilities, list):
+        raise ValueError(
+            "NVD 2.0 feed missing 'vulnerabilities' list. "
+            "Expected key 'vulnerabilities: List[{cve: {...}}]'."
+        )
+    if len(vulnerabilities) == 0:
+        raise ValueError(
+            "NVD 2.0 feed contains zero CVE entries. "
+            "Refusing to build an empty bundle — verify your feed source."
+        )
+
+    # Gzip-compress the raw feed in-memory
+    gz_bytes = gzip.compress(raw_bytes)
+    checksum = hashlib.sha256(gz_bytes).hexdigest()
+
+    feed_range_payload: Optional[List[str]]
+    if feed_date_range is None:
+        feed_range_payload = None
+    else:
+        feed_range_payload = [str(feed_date_range[0]), str(feed_date_range[1])]
+
+    manifest: Dict[str, Any] = {
+        "version": "1.0",
+        "format": "NVD-2.0",
+        "cve_count": len(vulnerabilities),
+        "checksum_sha256": checksum,
+        "feed_date_range": feed_range_payload,
+        "created_at": _utcnow(),
+        "compression": "gzip",
+        "db_filename": OfflineVulnDBManager.DB_FILENAME,
+    }
+
+    output_file = Path(output_zip_path)
+    _ensure_dir(output_file.parent)
+
+    manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
+    with zipfile.ZipFile(output_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(OfflineVulnDBManager.MANIFEST_FILENAME, manifest_bytes)
+        zf.writestr(OfflineVulnDBManager.DB_FILENAME, gz_bytes)
+
+    logger.info(
+        "Built NVD bundle: %d CVEs → %s (sha256=%s)",
+        len(vulnerabilities),
+        output_file,
+        checksum[:16],
+    )
+    _emit_event(
+        "airgap.nvd_bundle_built",
+        {
+            "output_path": str(output_file),
+            "cve_count": len(vulnerabilities),
+            "checksum_sha256": checksum,
+        },
+    )
+    return manifest
+
+
 class OfflineVulnDBManager:
     """Manages a local offline copy of the NVD/CVE vulnerability database.
 
@@ -530,6 +639,78 @@ class OfflineVulnDBManager:
         logger.info("Exported vuln DB bundle to %s", output_file)
         _emit_event("airgap.vuln_db_exported", {"output_path": str(output_file)})
         return str(output_file)
+
+    def export_bundle(self, output_zip_path: str) -> Dict[str, Any]:
+        """Export the currently-imported DB as an importable ZIP bundle.
+
+        This is the inverse of :meth:`import_from_bundle` — useful for
+        SCIF-to-SCIF transfer, where one air-gapped instance has the DB and
+        needs to share it with another. The output bundle contains a fresh
+        manifest using the standard NVD-2.0 schema and is itself importable
+        via :meth:`import_from_bundle`.
+
+        Args:
+            output_zip_path: Destination ZIP path. Parent directories are
+                             created on demand.
+
+        Returns:
+            The manifest dict that was written into the ZIP.
+
+        Raises:
+            FileNotFoundError: No imported DB exists at ``self.base_path``.
+        """
+        dest_db = self.base_path / self.DB_FILENAME
+        if not dest_db.exists():
+            raise FileNotFoundError(
+                "No local vulnerability database to export — "
+                "import a bundle first via import_from_bundle()."
+            )
+
+        gz_bytes = dest_db.read_bytes()
+        checksum = hashlib.sha256(gz_bytes).hexdigest()
+
+        # Re-derive cve_count + feed metadata from any persisted db_info.json
+        db_info = self.load_db_info()
+        cve_count, _errors = self._validate_db_file(dest_db)
+        feed_range_payload: Optional[List[str]]
+        if db_info and isinstance(db_info.feed_date_range, dict) and db_info.feed_date_range:
+            feed_range_payload = [
+                db_info.feed_date_range.get("from", ""),
+                db_info.feed_date_range.get("to", ""),
+            ]
+        else:
+            feed_range_payload = None
+
+        manifest: Dict[str, Any] = {
+            "version": "1.0",
+            "format": "NVD-2.0",
+            "cve_count": cve_count,
+            "checksum_sha256": checksum,
+            "feed_date_range": feed_range_payload,
+            "created_at": _utcnow(),
+            "compression": "gzip",
+            "db_filename": self.DB_FILENAME,
+            "source_db_id": db_info.db_id if db_info else "",
+        }
+
+        output_file = Path(output_zip_path)
+        _ensure_dir(output_file.parent)
+
+        manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
+        with zipfile.ZipFile(output_file, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(self.MANIFEST_FILENAME, manifest_bytes)
+            zf.writestr(self.DB_FILENAME, gz_bytes)
+
+        logger.info(
+            "Exported transportable NVD bundle: %d CVEs → %s",
+            cve_count,
+            output_file,
+        )
+        _emit_event(
+            "airgap.nvd_bundle_exported",
+            {"output_path": str(output_file), "cve_count": cve_count},
+        )
+        return manifest
 
     # ---- State persistence ----
 
@@ -1598,3 +1779,41 @@ def get_airgap_engine() -> AirGapConfigEngine:
     if _engine_instance is None:
         _engine_instance = AirGapConfigEngine()
     return _engine_instance
+
+
+def get_air_gap_mode() -> AirGapMode:
+    """Return the currently active air-gap mode.
+
+    Resolution order:
+      1. ``FIXOPS_AIRGAP_MODE`` env-var override (disabled|detected|configured|enforced).
+      2. The persisted AirGapConfigEngine state (FIXOPS_AIRGAP_STATE).
+      3. ``AirGapMode.DISABLED`` if neither source is set or values are invalid.
+
+    The env-var path is what production deployments use to enforce air-gap from
+    systemd / Kubernetes; the persisted state is what the admin UI writes.
+    Either one MUST be honoured by downstream code (e.g. LLM council).
+    """
+    env_value = os.getenv("FIXOPS_AIRGAP_MODE", "").strip().lower()
+    if env_value:
+        try:
+            return AirGapMode(env_value)
+        except ValueError:
+            logger.warning(
+                "FIXOPS_AIRGAP_MODE=%r is not a valid AirGapMode — ignoring.", env_value
+            )
+
+    try:
+        engine = get_airgap_engine()
+        mode_str = (engine.config.mode or "").strip().lower()
+        if mode_str:
+            try:
+                return AirGapMode(mode_str)
+            except ValueError:
+                logger.warning(
+                    "Persisted air-gap mode %r is invalid — defaulting to DISABLED.",
+                    mode_str,
+                )
+    except Exception as exc:  # noqa: BLE001 - never raise from accessor
+        logger.debug("get_air_gap_mode: engine load failed: %s", exc)
+
+    return AirGapMode.DISABLED
