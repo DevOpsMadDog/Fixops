@@ -278,6 +278,10 @@ def _engine_findings_for_org(org_id: str) -> List[Dict[str, Any]]:
             "assigned_to": row.get("owner") or None,
             "assigned_team": None,
             "org_id": org_id,
+            # Pass through scan_id + description so /findings filters
+            # (?scan_id=, ?q=) work against engine-DB-mirrored rows.
+            "scan_id": row.get("scan_id") or meta.get("scan_id") or "",
+            "description": row.get("description") or meta.get("description") or row.get("title") or "",
             "_source": "engine_db",
         })
     return mirrored
@@ -293,6 +297,8 @@ async def list_findings(
     assigned_to: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
+    scan_id: Optional[str] = Query(None, description="Filter by scan_id (substring match)"),
+    q: Optional[str] = Query(None, description="Free-text search across title/description"),
     sort_by: str = Query("severity", pattern="^(severity|created_at|risk_score|last_seen)$"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -342,6 +348,17 @@ async def list_findings(
         findings = [f for f in findings if f.get("asset_id") == asset_id]
     if assigned_to:
         findings = [f for f in findings if f.get("assigned_to") == assigned_to]
+    if scan_id:
+        sid = scan_id.lower()
+        findings = [f for f in findings if sid in (f.get("scan_id") or "").lower()]
+    if q:
+        ql = q.lower()
+        findings = [
+            f for f in findings
+            if ql in (f.get("title") or "").lower()
+            or ql in (f.get("description") or "").lower()
+            or ql in (f.get("asset_id") or "").lower()
+        ]
 
     # Apply date filters
     if date_from:
