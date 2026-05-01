@@ -8,7 +8,7 @@ Auth: api_key_auth dependency
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -21,6 +21,19 @@ router = APIRouter(
     prefix="/api/v1/devsecops",
     tags=["DevSecOps Pipeline Security"],
 )
+
+_SIMULATION_WARNING: Dict[str, Any] = {
+    "is_simulated": True,
+    "engine": "devsecops_engine",
+    "real_integration_required": "/api/v1/connectors/{github,gitlab,jenkins,bitbucket}/configure",
+    "do_not_use_in_demo": True,
+}
+
+
+def _wrap(data: Any) -> Dict[str, Any]:
+    """Wrap engine output with simulation warning envelope."""
+    return {"data": data, "_simulation_warning": _SIMULATION_WARNING}
+
 
 # Lazy singleton
 _engine = None
@@ -76,7 +89,7 @@ class GatePolicyCreate(BaseModel):
 def register_pipeline(body: PipelineCreate, org_id: str = Query(default="default")):
     """Register a new CI/CD pipeline."""
     try:
-        return _get_engine().register_pipeline(org_id, body.model_dump())
+        return _wrap(_get_engine().register_pipeline(org_id, body.model_dump()))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -87,7 +100,7 @@ def list_pipelines(
     ci_platform: Optional[str] = Query(None),
 ):
     """List pipelines for an org, optionally filtered by ci_platform."""
-    return _get_engine().list_pipelines(org_id, ci_platform=ci_platform)
+    return _wrap(_get_engine().list_pipelines(org_id, ci_platform=ci_platform))
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +111,7 @@ def list_pipelines(
 def trigger_run(pipeline_id: str, body: RunTrigger, org_id: str = Query(default="default")):
     """Trigger a new security-gated pipeline run."""
     try:
-        return _get_engine().trigger_run(org_id, pipeline_id, body.model_dump())
+        return _wrap(_get_engine().trigger_run(org_id, pipeline_id, body.model_dump()))
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -111,7 +124,7 @@ def list_runs(
     limit: int = Query(default=20, ge=1, le=100),
 ):
     """List pipeline runs with optional filters."""
-    return _get_engine().list_runs(org_id, pipeline_id=pipeline_id, status=status, limit=limit)
+    return _wrap(_get_engine().list_runs(org_id, pipeline_id=pipeline_id, status=status, limit=limit))
 
 
 @router.get("/runs/{run_id}", dependencies=[Depends(api_key_auth)])
@@ -120,7 +133,7 @@ def get_run(run_id: str, org_id: str = Query(default="default")):
     result = _get_engine().get_run(org_id, run_id)
     if result is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found.")
-    return result
+    return _wrap(result)
 
 
 # ---------------------------------------------------------------------------
@@ -135,9 +148,9 @@ def list_findings(
     suppressed: bool = Query(default=False),
 ):
     """List security findings with optional filters."""
-    return _get_engine().list_findings(
+    return _wrap(_get_engine().list_findings(
         org_id, run_id=run_id, severity=severity, suppressed=suppressed
-    )
+    ))
 
 
 @router.post("/findings/{finding_id}/suppress", dependencies=[Depends(api_key_auth)])
@@ -146,7 +159,7 @@ def suppress_finding(finding_id: str, org_id: str = Query(default="default")):
     success = _get_engine().suppress_finding(org_id, finding_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found.")
-    return {"suppressed": True, "finding_id": finding_id}
+    return _wrap({"suppressed": True, "finding_id": finding_id})
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +170,7 @@ def suppress_finding(finding_id: str, org_id: str = Query(default="default")):
 def create_gate_policy(body: GatePolicyCreate, org_id: str = Query(default="default")):
     """Create a security gate policy."""
     try:
-        return _get_engine().create_gate_policy(org_id, body.model_dump())
+        return _wrap(_get_engine().create_gate_policy(org_id, body.model_dump()))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -168,7 +181,7 @@ def list_gate_policies(
     pipeline_id: Optional[str] = Query(None),
 ):
     """List gate policies, optionally filtered by pipeline_id."""
-    return _get_engine().list_gate_policies(org_id, pipeline_id=pipeline_id)
+    return _wrap(_get_engine().list_gate_policies(org_id, pipeline_id=pipeline_id))
 
 
 # ---------------------------------------------------------------------------
@@ -178,4 +191,4 @@ def list_gate_policies(
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_devsecops_stats(org_id: str = Query(default="default")):
     """Return DevSecOps aggregate statistics for an org."""
-    return _get_engine().get_devsecops_stats(org_id)
+    return _wrap(_get_engine().get_devsecops_stats(org_id))
