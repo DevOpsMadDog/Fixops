@@ -398,7 +398,7 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `DeceptionEngine` / `DeceptionAnalyticsDashboard` / `ThreatDeceptionDashboard` | `/api/v1/deception/*` | tab |
 
 ### 2.18 → S18 AI Copilot
-**AI Copilot Agents sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 AI-agent surfaces folded into AICopilotAgentsHub.tsx at `/ai/agents` (AIAgentsConsole, AgentTaskQueue, ShadowAIInventory). Old routes (`/ai/agents-console`, `/ai/agent-tasks`, `/ai/shadow-inventory`) redirect with `?tab=`. Real APIs: `POST /api/v1/agents/{role}/task`, `GET /api/v1/agents/tasks`, `GET /api/v1/ai-exposure/shadow`. Tabs: `console|tasks|shadow`.
+**AI Copilot Agents sub-cluster: DONE-2026-05-02 SHA=aaa4ba39 Multica #3646** — 3 AI-agent surfaces folded into AICopilotAgentsHub.tsx at `/ai/agents` (AIAgentsConsole, AgentTaskQueue, ShadowAIInventory). Old routes (`/ai/agents-console`, `/ai/agent-tasks`, `/ai/shadow-inventory`) redirect with `?tab=`. Real APIs: `POST /api/v1/agents/{role}/task`, `GET /api/v1/agents/tasks`, `GET /api/v1/ai-exposure/shadow`. Tabs: `console|tasks|shadow`. Verified 6 URLs via Playwright (1-3 real /api/v1 calls/tab, 0 mocks), screenshot at `docs/ui-snapshots/ux-consolidation-ai-copilot-agents-2026-05-02.png`.
 
 | Source | Endpoint | As |
 |---|---|---|
