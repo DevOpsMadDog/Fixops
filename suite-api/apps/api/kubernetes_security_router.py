@@ -16,6 +16,13 @@ from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "kubernetes_security_engine",
+    "real_integration_required": "/api/v1/connectors/kubernetes/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(prefix="/api/v1/kubernetes-security", tags=["kubernetes-security"])
 
 # ---------------------------------------------------------------------------
@@ -100,7 +107,8 @@ def run_cis_benchmark(
 ) -> Dict[str, Any]:
     """Run CIS Kubernetes Benchmark v1.8 against a cluster."""
     try:
-        return _get_engine().run_cis_benchmark(org_id=org_id, cluster_id=cluster_id)
+        result = _get_engine().run_cis_benchmark(org_id=org_id, cluster_id=cluster_id)
+        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:

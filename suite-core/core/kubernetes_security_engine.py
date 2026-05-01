@@ -1,4 +1,20 @@
 """
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates synthetic CIS Kubernetes Benchmark counts for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- CIS benchmark counts (lines 307-368) are derived from cluster_id seed — not
+  from real kubectl/kube-bench output or live cluster API calls.
+- RBAC analysis (get_rbac_analysis) uses seeded random for role/binding counts.
+- Real implementation requires: kube-bench integration, kubectl API access,
+  or managed cluster security APIs (EKS Security Hub, AKS Defender, GKE Security Command Center).
+  Configure via /api/v1/connectors/kubernetes/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
 KubernetesSecurityEngine — ALDECI.
 
 Kubernetes cluster security: misconfiguration detection, RBAC audit,
@@ -23,6 +39,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)
+_logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — CIS counts are seeded-random; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/kubernetes/configure",
+    __name__,
+)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "k8s_security.db"
