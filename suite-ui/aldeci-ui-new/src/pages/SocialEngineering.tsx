@@ -1,3 +1,4 @@
+// FOLDED into OffensiveValidationHub hero (social-eng tab) 2026-05-02 — preserve for git history
 /**
  * Social Engineering Defense
  *

@@ -1,3 +1,4 @@
+// FOLDED into OffensiveValidationHub hero (red-team tab) 2026-05-02 — preserve for git history
 /**
  * Red Team Operations
  *

@@ -145,6 +145,7 @@ const AuditLog = lazy(() => import("@/pages/AuditLog"));
 const CSPMDashboard = lazy(() => import("@/pages/CSPMDashboard"));
 const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
 const PentestManagement = lazy(() => import("@/pages/PentestManagement"));
+const OffensiveValidationHub = lazy(() => import("@/pages/OffensiveValidationHub"));
 const DeceptionEngine = lazy(() => import("@/pages/DeceptionEngine"));
 const CertificateManager = lazy(() => import("@/pages/CertificateManager"));
 const FirewallAnalyzer = lazy(() => import("@/pages/FirewallAnalyzer"));
@@ -862,7 +863,8 @@ export default function App() {
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/cspm" element={<Navigate to="/compliance?tab=cspm" replace />} />
-            <Route path="/pentest" element={<PentestManagement />} />
+            {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED PentestManagement) */}
+            <Route path="/pentest" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
             <Route path="/deception" element={<DeceptionEngine />} />
             <Route path="/cert-manager" element={<CertificateManager />} />
             <Route path="/firewall" element={<FirewallAnalyzer />} />
@@ -875,11 +877,13 @@ export default function App() {
             <Route path="/sla-dashboard" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/security-metrics" element={<SecurityMetricsDashboard />} />
             <Route path="/vuln-risk" element={<VulnRiskQueue />} />
-            <Route path="/red-team" element={<RedTeamStatus />} />
+            {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED RedTeamStatus) */}
+            <Route path="/red-team" element={<Navigate to="/validate/offensive?tab=red-team" replace />} />
             <Route path="/network-topology" element={<NetworkTopology />} />
             {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED IOCHunter) */}
             <Route path="/ioc-hunter" element={<Navigate to="/attack/intel/actors?tab=ioc-hunter" replace />} />
-            <Route path="/social-engineering" element={<SocialEngineering />} />
+            {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED SocialEngineering) */}
+            <Route path="/social-engineering" element={<Navigate to="/validate/offensive?tab=social-eng" replace />} />
             <Route path="/mobile-security" element={<MobileSecurity />} />
             <Route path="/password-policy" element={<PasswordPolicy />} />
             <Route path="/app-security" element={<AppSecurity />} />
@@ -951,12 +955,16 @@ export default function App() {
             {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
             <Route path="/identity-analytics" element={<IdentityAnalyticsDashboard />} />
             <Route path="/cnapp" element={<CNAPPDashboard />} />
-            <Route path="/pentest-mgmt" element={<PentestManagementDashboard />} />
+            {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (PentestManagementDashboard alias → pentest tab) */}
+            <Route path="/pentest-mgmt" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
             <Route path="/supply-chain-intel" element={<SupplyChainIntelDashboard />} />
 
             {/* Threat Actor Intelligence + Security Champions */}
             {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatActorDashboard) */}
             <Route path="/attack/intel/actors" element={<ThreatActorsHub />} />
+
+            {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (canonical) */}
+            <Route path="/validate/offensive" element={<OffensiveValidationHub />} />
             <Route path="/threat-actors" element={<Navigate to="/attack/intel/actors?tab=actors" replace />} />
             <Route path="/security-champions" element={<SecurityChampionsDashboard />} />
 
