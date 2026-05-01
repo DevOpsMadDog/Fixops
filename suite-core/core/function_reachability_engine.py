@@ -27,16 +27,20 @@ Compliance: informs GAP-006 (auto-waivers), GAP-063 (finding lifecycle),
 from __future__ import annotations
 
 import ast
+import asyncio
+import inspect
 import json
 import logging
 import os
+import re
 import sqlite3
 import threading
 import uuid
 from collections import deque
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
@@ -47,6 +51,82 @@ _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "function_reachability.db"
+)
+
+# Separate cache DB for repo_sha-keyed reachability verdicts (per spec).
+_DEFAULT_CACHE_DB = str(
+    Path(__file__).resolve().parents[1] / "data" / "reachability_cache.db"
+)
+
+
+# ----------------------------------------------------------------------
+# Public dataclass — what callers receive from analyse_vulnerable_symbol
+# ----------------------------------------------------------------------
+
+
+@dataclass
+class FunctionReachabilityResult:
+    """Reachability verdict for a single vulnerable function/symbol.
+
+    NOTE: distinct from ``core.vuln_prioritizer.ReachabilityResult`` (Pydantic,
+    used by the prioritisation pipeline) and ``core.sandbox_verifier.ReachabilityResult``
+    (sandbox network probe).  This one represents *static* call-graph reachability
+    from an application entry point to a CVE-vulnerable symbol.
+
+    Fields:
+        is_reachable        Conservative verdict — True if any entry point can
+                            reach the vulnerable symbol via the call graph, OR
+                            if the analysis falls back due to dynamic dispatch
+                            (so customers never silently miss a real risk).
+        call_path           BFS path of FQNs from entry-point to vuln symbol.
+                            Empty list when unreachable or fallback path used.
+        confidence          0.0–1.0 — based on call-graph completeness and
+                            whether dynamic dispatch / reflection was hit.
+        entry_point         FQN of the entry point that reaches the vuln, or
+                            None when unreachable / fallback.
+        analysis_method     "call_graph"   — clean static BFS hit
+                            "ast_static"   — partial AST inference
+                            "fallback_conservative"
+                                           — dynamic dispatch / unknown symbol
+                                             → conservatively flagged reachable
+        vuln_function_fqn   The vulnerable symbol that was analysed.
+        repo_sha            Git SHA / repo_ref the analysis was performed at.
+        cached              True when the result was served from the cache.
+    """
+
+    is_reachable: bool
+    call_path: List[str] = field(default_factory=list)
+    confidence: float = 0.0
+    entry_point: Optional[str] = None
+    analysis_method: str = "call_graph"
+    vuln_function_fqn: str = ""
+    repo_sha: str = ""
+    cached: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+# ----------------------------------------------------------------------
+# Heuristics — what counts as an "entry point" / dynamic dispatch
+# ----------------------------------------------------------------------
+
+# Entry-point name patterns — HTTP handlers, CLI commands, scheduled jobs.
+# Conservative: matches function basename or decorator hints.
+_ENTRY_POINT_NAME_PATTERNS = (
+    "handler", "handle_request", "endpoint",
+    "route", "view",                 # FastAPI/Flask/Django views
+    "main", "cli", "command",        # CLI / argparse / click
+    "task", "job", "scheduled",      # Celery / cron
+    "lambda_handler", "consume",     # AWS Lambda / Kafka consumers
+    "on_event", "on_message",        # webhook / WS
+)
+
+# Symbols that indicate dynamic dispatch — call graph cannot follow these
+# safely so we MUST fall back to the conservative-reachable verdict.
+_DYNAMIC_DISPATCH_PATTERNS = re.compile(
+    r"\b(eval|exec|getattr|setattr|__import__|importlib|"
+    r"globals|locals|compile|hasattr)\b"
 )
 
 _VALID_LANGUAGES = {"python", "typescript", "javascript", "java"}
@@ -67,12 +147,21 @@ class FunctionReachabilityEngine:
     ``org_id`` and all public methods require it as the first argument.
     """
 
-    def __init__(self, db_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        cache_db_path: Optional[str] = None,
+    ) -> None:
         # Resolve _DEFAULT_DB at call-time so tests can monkeypatch it via
         # ``monkeypatch.setattr("core.function_reachability_engine._DEFAULT_DB", ...)``.
         self.db_path = db_path if db_path is not None else _DEFAULT_DB
+        self.cache_db_path = (
+            cache_db_path if cache_db_path is not None else _DEFAULT_CACHE_DB
+        )
         self._lock = threading.RLock()
+        self._cache_lock = threading.RLock()
         self.ensure_schema()
+        self.ensure_cache_schema()
 
     # ------------------------------------------------------------------
     # DB INIT
@@ -166,6 +255,352 @@ class FunctionReachabilityEngine:
     @staticmethod
     def _now() -> str:
         return datetime.now(timezone.utc).isoformat()
+
+    # ------------------------------------------------------------------
+    # REACHABILITY CACHE  (separate SQLite DB per spec)
+    # ------------------------------------------------------------------
+
+    def ensure_cache_schema(self) -> None:
+        """Idempotent cache-DB schema. WAL + (repo_sha, vuln_function_signature) PK."""
+        Path(self.cache_db_path).parent.mkdir(parents=True, exist_ok=True)
+        with self._cache_conn() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reachability_cache (
+                    repo_sha               TEXT NOT NULL,
+                    vuln_function_signature TEXT NOT NULL,
+                    org_id                 TEXT NOT NULL DEFAULT '',
+                    is_reachable           INTEGER NOT NULL,
+                    confidence             REAL NOT NULL,
+                    entry_point            TEXT,
+                    analysis_method        TEXT NOT NULL,
+                    call_path_json         TEXT NOT NULL DEFAULT '[]',
+                    cached_at              TEXT NOT NULL,
+                    PRIMARY KEY (repo_sha, vuln_function_signature)
+                )
+                """
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_reach_cache_org "
+                "ON reachability_cache(org_id)"
+            )
+
+    def _cache_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.cache_db_path, timeout=10, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _cache_get(
+        self, repo_sha: str, vuln_function_signature: str
+    ) -> Optional[FunctionReachabilityResult]:
+        if not repo_sha or not vuln_function_signature:
+            return None
+        with self._cache_conn() as conn:
+            row = conn.execute(
+                """SELECT is_reachable, confidence, entry_point, analysis_method,
+                          call_path_json
+                   FROM reachability_cache
+                   WHERE repo_sha=? AND vuln_function_signature=?""",
+                (repo_sha, vuln_function_signature),
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            call_path = json.loads(row["call_path_json"]) or []
+        except json.JSONDecodeError:
+            call_path = []
+        return FunctionReachabilityResult(
+            is_reachable=bool(row["is_reachable"]),
+            call_path=call_path,
+            confidence=float(row["confidence"]),
+            entry_point=row["entry_point"],
+            analysis_method=row["analysis_method"],
+            vuln_function_fqn=vuln_function_signature,
+            repo_sha=repo_sha,
+            cached=True,
+        )
+
+    def _cache_put(
+        self,
+        repo_sha: str,
+        vuln_function_signature: str,
+        org_id: str,
+        result: FunctionReachabilityResult,
+    ) -> None:
+        if not repo_sha or not vuln_function_signature:
+            return
+        with self._cache_lock, self._cache_conn() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO reachability_cache
+                   (repo_sha, vuln_function_signature, org_id,
+                    is_reachable, confidence, entry_point, analysis_method,
+                    call_path_json, cached_at)
+                   VALUES (?,?,?,?,?,?,?,?,?)""",
+                (
+                    repo_sha,
+                    vuln_function_signature,
+                    org_id,
+                    1 if result.is_reachable else 0,
+                    float(result.confidence),
+                    result.entry_point,
+                    result.analysis_method,
+                    json.dumps(result.call_path or []),
+                    self._now(),
+                ),
+            )
+
+    # ------------------------------------------------------------------
+    # ENTRY-POINT DETECTION
+    # ------------------------------------------------------------------
+
+    def _is_entry_point(self, fqn: str, source_file: str = "") -> bool:
+        """Return True when the FQN looks like an application entry point.
+
+        Heuristic — matches well-known HTTP/CLI/job names.  Conservative: false
+        positives only inflate the candidate-entry set, never miss reachability.
+        """
+        if not fqn:
+            return False
+        basename = fqn.rsplit(".", 1)[-1].lower()
+        for pat in _ENTRY_POINT_NAME_PATTERNS:
+            if pat in basename:
+                return True
+        # Files under /routers/, /handlers/, /views/, /tasks/ are entry-point hubs.
+        sf = (source_file or "").lower()
+        if any(seg in sf for seg in ("/router", "/handler", "/view", "/task", "/cli")):
+            return True
+        return False
+
+    def list_entry_points(
+        self, org_id: str, repo_ref: Optional[str] = None
+    ) -> List[Dict[str, str]]:
+        """Return all callgraph nodes that match the entry-point heuristic."""
+        with self._conn() as conn:
+            if repo_ref:
+                rows = conn.execute(
+                    """SELECT function_fqn, source_file FROM callgraph_nodes
+                       WHERE org_id=? AND repo_ref=?""",
+                    (org_id, repo_ref),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT function_fqn, source_file FROM callgraph_nodes "
+                    "WHERE org_id=?",
+                    (org_id,),
+                ).fetchall()
+        return [
+            {"function_fqn": r["function_fqn"], "source_file": r["source_file"]}
+            for r in rows
+            if self._is_entry_point(r["function_fqn"], r["source_file"] or "")
+        ]
+
+    # ------------------------------------------------------------------
+    # PRIMARY API — analyse_vulnerable_symbol
+    # ------------------------------------------------------------------
+
+    def analyse_vulnerable_symbol(
+        self,
+        org_id: str,
+        repo_sha: str,
+        vuln_function_fqn: str,
+        cve_id: str = "",
+        max_depth: int = _DEFAULT_MAX_DEPTH,
+        candidate_entry_points: Optional[Iterable[str]] = None,
+    ) -> FunctionReachabilityResult:
+        """Decide whether ``vuln_function_fqn`` is reachable in ``repo_sha``.
+
+        Resolution order:
+            1. Cache lookup keyed by (repo_sha, vuln_function_fqn).
+            2. Inspect the vulnerable symbol's source body for dynamic-dispatch
+               markers (eval/getattr/...).  If present → conservative fallback.
+            3. BFS from every detected entry point to the vuln symbol.
+            4. If neither (2) nor (3) yields a verdict and the vuln symbol is
+               NOT in the call graph at all → conservative fallback (we can't
+               prove unreachability without coverage).
+            5. Emit ``reachability.analyzed`` to the TrustGraph event bus and
+               persist into the cache.
+
+        Returns a :class:`FunctionReachabilityResult` (always non-None).
+        """
+        if not org_id:
+            raise ValueError("org_id is required")
+        if not repo_sha:
+            raise ValueError("repo_sha is required")
+        if not vuln_function_fqn:
+            raise ValueError("vuln_function_fqn is required")
+
+        # 1) Cache hit?
+        cached = self._cache_get(repo_sha, vuln_function_fqn)
+        if cached is not None:
+            self._emit_reachability_analyzed(cve_id, cached)
+            return cached
+
+        # 2) Dynamic-dispatch fallback — inspect the vuln symbol's source body
+        #    if we have it indexed.
+        if self._symbol_uses_dynamic_dispatch(org_id, vuln_function_fqn):
+            result = FunctionReachabilityResult(
+                is_reachable=True,
+                call_path=[],
+                confidence=0.3,
+                entry_point=None,
+                analysis_method="fallback_conservative",
+                vuln_function_fqn=vuln_function_fqn,
+                repo_sha=repo_sha,
+            )
+            self._finalise(org_id, repo_sha, vuln_function_fqn, cve_id, result)
+            return result
+
+        # 3) Call-graph BFS from entry points.
+        if candidate_entry_points is not None:
+            entries = [e for e in candidate_entry_points if e]
+        else:
+            entries = [
+                ep["function_fqn"] for ep in self.list_entry_points(org_id)
+            ]
+
+        # 3a) If the vuln symbol isn't even in the graph, we can't prove
+        #     anything — conservative fallback.
+        with self._conn() as conn:
+            sym_present = conn.execute(
+                "SELECT 1 FROM callgraph_nodes "
+                "WHERE org_id=? AND function_fqn=? LIMIT 1",
+                (org_id, vuln_function_fqn),
+            ).fetchone()
+        if sym_present is None:
+            result = FunctionReachabilityResult(
+                is_reachable=True,
+                call_path=[],
+                confidence=0.3,
+                entry_point=None,
+                analysis_method="fallback_conservative",
+                vuln_function_fqn=vuln_function_fqn,
+                repo_sha=repo_sha,
+            )
+            self._finalise(org_id, repo_sha, vuln_function_fqn, cve_id, result)
+            return result
+
+        # 3b) Real BFS — walk every entry point.
+        for entry in entries:
+            reachable, path = self.is_reachable(
+                org_id, entry, vuln_function_fqn, max_depth=max_depth
+            )
+            if reachable and path:
+                # Confidence: 1.0 minus a small per-hop penalty (clamped 0.5..1.0)
+                confidence = max(0.5, 1.0 - 0.05 * (len(path) - 1))
+                result = FunctionReachabilityResult(
+                    is_reachable=True,
+                    call_path=path,
+                    confidence=confidence,
+                    entry_point=entry,
+                    analysis_method="call_graph",
+                    vuln_function_fqn=vuln_function_fqn,
+                    repo_sha=repo_sha,
+                )
+                self._finalise(org_id, repo_sha, vuln_function_fqn, cve_id, result)
+                return result
+
+        # 3c) Exhausted all entries with no path → genuinely unreachable.
+        result = FunctionReachabilityResult(
+            is_reachable=False,
+            call_path=[],
+            confidence=0.85,  # high — we have coverage and ran BFS over all entries
+            entry_point=None,
+            analysis_method="call_graph",
+            vuln_function_fqn=vuln_function_fqn,
+            repo_sha=repo_sha,
+        )
+        self._finalise(org_id, repo_sha, vuln_function_fqn, cve_id, result)
+        return result
+
+    # --- helpers for analyse_vulnerable_symbol -------------------------
+
+    def _symbol_uses_dynamic_dispatch(self, org_id: str, fqn: str) -> bool:
+        """Return True when the symbol's source body contains dynamic dispatch.
+
+        Reads the source file/line range from ``callgraph_nodes`` and greps the
+        body for ``eval/exec/getattr/...``.  If we can't read the file (external
+        symbol, source missing), returns False — caller has its own fallback for
+        symbols missing from the graph entirely.
+        """
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT source_file, start_line, end_line FROM callgraph_nodes "
+                "WHERE org_id=? AND function_fqn=? LIMIT 1",
+                (org_id, fqn),
+            ).fetchone()
+        if row is None:
+            return False
+        sf = row["source_file"]
+        if not sf or sf == "<external>":
+            return False
+        path = Path(sf)
+        if not path.is_absolute():
+            # relative paths are stored as-is; we don't have repo root here so
+            # attempt cwd-relative read, otherwise bail.
+            candidate = Path.cwd() / sf
+            if candidate.exists():
+                path = candidate
+            else:
+                return False
+        if not path.exists() or not path.is_file():
+            return False
+        try:
+            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            return False
+        start = max(0, int(row["start_line"] or 1) - 1)
+        end = max(start + 1, int(row["end_line"] or start + 1))
+        body = "\n".join(lines[start:end])
+        return bool(_DYNAMIC_DISPATCH_PATTERNS.search(body))
+
+    def _finalise(
+        self,
+        org_id: str,
+        repo_sha: str,
+        vuln_function_fqn: str,
+        cve_id: str,
+        result: FunctionReachabilityResult,
+    ) -> None:
+        """Cache + emit. Best-effort on emit, never raises."""
+        self._cache_put(repo_sha, vuln_function_fqn, org_id, result)
+        self._emit_reachability_analyzed(cve_id, result)
+
+    def _emit_reachability_analyzed(
+        self, cve_id: str, result: FunctionReachabilityResult
+    ) -> None:
+        """Emit ``reachability.analyzed`` to the TrustGraph event bus.
+
+        Compatible with both async ``emit`` and sync ``publish`` shapes used
+        across the platform.  Never raises.
+        """
+        if _get_tg_bus is None:
+            return
+        try:
+            bus = _get_tg_bus()
+            if bus is None:
+                return
+            payload = {
+                "cve_id": cve_id,
+                "vuln_function_fqn": result.vuln_function_fqn,
+                "repo_sha": result.repo_sha,
+                "is_reachable": result.is_reachable,
+                "entry_point": result.entry_point,
+                "confidence": result.confidence,
+                "analysis_method": result.analysis_method,
+            }
+            emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+            if emit is None:
+                return
+            res = emit("reachability.analyzed", payload)
+            if inspect.iscoroutine(res):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(res)
+                except RuntimeError:
+                    res.close()
+        except Exception:  # nosec B110 — best-effort telemetry
+            pass
 
     # ------------------------------------------------------------------
     # PYTHON AST PARSER
