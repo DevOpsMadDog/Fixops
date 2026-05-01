@@ -441,6 +441,9 @@ const AccessAnomalyDashboard = lazy(() => import("@/pages/AccessAnomalyDashboard
 const TrainingEffectivenessDashboard = lazy(() => import("@/pages/TrainingEffectivenessDashboard"));
 const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptimizationDashboard"));
 
+// Phase 3 UX consolidation hubs (2026-05-02)
+const ThreatActorsHub = lazy(() => import("@/pages/ThreatActorsHub"));
+
 // Sales & Marketing
 const CompetitiveComparisonPage = lazy(() => import("@/pages/CompetitiveComparisonPage"));
 const LandingPage = lazy(() => import("@/pages/LandingPage"));
@@ -871,7 +874,8 @@ export default function App() {
             <Route path="/vuln-risk" element={<VulnRiskQueue />} />
             <Route path="/red-team" element={<RedTeamStatus />} />
             <Route path="/network-topology" element={<NetworkTopology />} />
-            <Route path="/ioc-hunter" element={<IOCHunter />} />
+            {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED IOCHunter) */}
+            <Route path="/ioc-hunter" element={<Navigate to="/attack/intel/actors?tab=ioc-hunter" replace />} />
             <Route path="/social-engineering" element={<SocialEngineering />} />
             <Route path="/mobile-security" element={<MobileSecurity />} />
             <Route path="/password-policy" element={<PasswordPolicy />} />
@@ -946,7 +950,9 @@ export default function App() {
             <Route path="/supply-chain-intel" element={<SupplyChainIntelDashboard />} />
 
             {/* Threat Actor Intelligence + Security Champions */}
-            <Route path="/threat-actors" element={<ThreatActorDashboard />} />
+            {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatActorDashboard) */}
+            <Route path="/attack/intel/actors" element={<ThreatActorsHub />} />
+            <Route path="/threat-actors" element={<Navigate to="/attack/intel/actors?tab=actors" replace />} />
             <Route path="/security-champions" element={<SecurityChampionsDashboard />} />
 
             {/* Security Maturity, Privacy/GDPR, Network Traffic, Container Security */}
@@ -1039,7 +1045,8 @@ export default function App() {
 
             {/* Wave 26 domain dashboards */}
             <Route path="/compliance-automation" element={<ComplianceAutomationDashboard />} />
-            <Route path="/threat-attribution" element={<ThreatAttributionDashboard />} />
+            {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatAttributionDashboard) */}
+            <Route path="/threat-attribution" element={<Navigate to="/attack/intel/actors?tab=attribution" replace />} />
             <Route path="/cloud-access-security" element={<CloudAccessSecurityDashboard />} />
             <Route path="/behavioral-analytics" element={<BehavioralAnalyticsDashboard />} />
             <Route path="/vuln-workflow" element={<VulnWorkflowDashboard />} />
@@ -1082,7 +1089,8 @@ export default function App() {
 
             {/* Wave 42 domain dashboards (pages for Wave 41 engines) */}
             <Route path="/privacy-impact" element={<PrivacyImpactDashboard />} />
-            <Route path="/threat-indicators" element={<ThreatIndicatorDashboard />} />
+            {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatIndicatorDashboard) */}
+            <Route path="/threat-indicators" element={<Navigate to="/attack/intel/actors?tab=indicators" replace />} />
             <Route path="/ransomware-protection" element={<RansomwareProtectionDashboard />} />
             <Route path="/access-anomaly" element={<Navigate to="/asset-graph?tab=access-anomaly" replace />} />
             <Route path="/training-effectiveness" element={<TrainingEffectivenessDashboard />} />
@@ -1144,7 +1152,8 @@ export default function App() {
 
             {/* Wave 35 domain dashboards */}
             <Route path="/exception-workflow" element={<ExceptionWorkflowDashboard />} />
-            <Route path="/actor-tracking" element={<Navigate to="/brain?tab=actor-tracking" replace />} />
+            {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ActorTrackingDashboard, was redirected to brain) */}
+            <Route path="/actor-tracking" element={<Navigate to="/attack/intel/actors?tab=tracking" replace />} />
             <Route path="/vuln-scoring" element={<VulnScoringDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             {/* S2 Finance hub — folded 2026-05-02 */}
