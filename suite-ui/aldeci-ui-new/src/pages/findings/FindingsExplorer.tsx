@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { API_BASE_URL, API_KEY, DEFAULT_ORG_ID } from "@/lib/api-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -126,6 +127,43 @@ interface RelatedFinding {
   title: string;
   severity: Severity;
 }
+
+// TrustGraph cross-domain correlation (FEATURE-2 / DoD #8)
+// Surfaced via GET /api/v1/graph/related/{entity_id}
+// Backend: suite-core/core/trustgraph_backbone.py::query_related
+interface TrustGraphRelatedNode {
+  id: string;
+  type?: string;
+  source_engine?: string;
+  entity_type?: string;
+  severity?: Severity | string;
+  title?: string;
+  name?: string;
+  properties?: Record<string, unknown>;
+}
+
+interface TrustGraphRelatedEdge {
+  source: string;
+  target: string;
+  relationship?: string;
+  type?: string;
+  weight?: number;
+}
+
+interface TrustGraphRelatedResponse {
+  entity_id?: string;
+  depth?: number;
+  neighbors?: TrustGraphRelatedNode[];
+  edges?: TrustGraphRelatedEdge[];
+  // Some backends group nodes by type — accept both shapes
+  nodes_by_type?: Record<string, TrustGraphRelatedNode[]>;
+}
+
+type RelatedFetchState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ready"; nodes: TrustGraphRelatedNode[] }
+  | { status: "error"; message: string };
 
 interface Finding {
   id: string;
@@ -1187,13 +1225,174 @@ function SortIcon({ field, sortField, sortDir }: { field: string; sortField: str
 }
 
 // ═══════════════════════════════════════════════════════════
+// TrustGraph Related Findings Panel (DoD #8)
+// ═══════════════════════════════════════════════════════════
+//
+// Surfaces cross-domain correlations from FEATURE-2 (cb25906d):
+//   RASP / CTEM / SAST / CloudConnectors emit canonical events with
+//   `source_engine` + `entity_type`, KnowledgeBrainAdapter routes them
+//   into TrustGraph cores. This panel exposes those neighborhood links
+//   per-finding via GET /api/v1/graph/related/{entity_id}.
+
+function normalizeSeverity(raw: unknown): Severity {
+  const s = String(raw ?? "").toLowerCase().trim();
+  if (s === "critical" || s === "high" || s === "medium" || s === "low" || s === "info") {
+    return s;
+  }
+  return "info";
+}
+
+function TrustGraphRelatedPanel({
+  findingId,
+  onSelect,
+}: {
+  findingId: string;
+  onSelect?: (relatedId: string) => void;
+}) {
+  const [state, setState] = useState<RelatedFetchState>({ status: "idle" });
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ status: "loading" });
+
+    const url = `${API_BASE_URL.replace(/\/$/, "")}/api/v1/graph/related/${encodeURIComponent(
+      findingId
+    )}?depth=2&org_id=${encodeURIComponent(DEFAULT_ORG_ID)}`;
+
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (API_KEY) headers["X-API-Key"] = API_KEY;
+    if (DEFAULT_ORG_ID) headers["X-Org-ID"] = DEFAULT_ORG_ID;
+
+    fetch(url, { headers })
+      .then(async (res) => {
+        if (!res.ok) {
+          // 404 = entity not yet in TrustGraph (no correlations) — render empty
+          if (res.status === 404) {
+            return { neighbors: [] } satisfies TrustGraphRelatedResponse;
+          }
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return (await res.json()) as TrustGraphRelatedResponse;
+      })
+      .then((data) => {
+        if (cancelled) return;
+        // Normalize: backend may return `neighbors` flat OR `nodes_by_type` dict
+        let nodes: TrustGraphRelatedNode[] = [];
+        if (Array.isArray(data?.neighbors)) {
+          nodes = data.neighbors;
+        } else if (data?.nodes_by_type && typeof data.nodes_by_type === "object") {
+          nodes = Object.values(data.nodes_by_type).flat();
+        }
+        // Filter out self-references
+        nodes = nodes.filter((n) => n && n.id && n.id !== findingId);
+        setState({ status: "ready", nodes });
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setState({ status: "error", message: err.message || "Failed to fetch correlations" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [findingId]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <Layers className="h-3.5 w-3.5 text-primary" />
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+          Related findings (TrustGraph)
+        </p>
+      </div>
+
+      {state.status === "loading" && (
+        <div className="space-y-1.5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-9 rounded-md border border-border bg-muted/20 animate-pulse"
+            />
+          ))}
+        </div>
+      )}
+
+      {state.status === "error" && (
+        <div className="rounded-md border border-yellow-600/40 bg-yellow-600/10 px-3 py-2">
+          <p className="text-[11px] text-yellow-300">
+            Could not load correlations: {state.message}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            TrustGraph correlation service unavailable — findings still triageable.
+          </p>
+        </div>
+      )}
+
+      {state.status === "ready" && state.nodes.length === 0 && (
+        <div className="rounded-md border border-dashed border-border px-3 py-3">
+          <p className="text-[11px] text-muted-foreground">
+            No correlated findings yet — TrustGraph builds links as more data arrives.
+          </p>
+        </div>
+      )}
+
+      {state.status === "ready" && state.nodes.length > 0 && (
+        <div className="space-y-1.5">
+          {state.nodes.slice(0, 12).map((node) => {
+            const sev = normalizeSeverity(node.severity ?? node.properties?.["severity"]);
+            const engine = String(
+              node.source_engine ??
+                node.properties?.["source_engine"] ??
+                node.entity_type ??
+                node.type ??
+                "trustgraph"
+            );
+            const title = String(
+              node.title ??
+                node.name ??
+                node.properties?.["title"] ??
+                node.properties?.["name"] ??
+                node.id
+            );
+            return (
+              <button
+                key={node.id}
+                type="button"
+                onClick={() => onSelect?.(node.id)}
+                className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left hover:border-primary/60 hover:bg-primary/5 transition-colors"
+              >
+                <SeverityBadge severity={sev} />
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono uppercase tracking-wider border-border text-muted-foreground"
+                >
+                  {engine}
+                </Badge>
+                <span className="text-xs text-foreground truncate flex-1">{title}</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+              </button>
+            );
+          })}
+          {state.nodes.length > 12 && (
+            <p className="text-[10px] text-muted-foreground pl-1">
+              +{state.nodes.length - 12} more correlations
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
 // Detail Slide-out Panel
 // ═══════════════════════════════════════════════════════════
 
-function DetailPanel({ finding, onClose, onStatusChange }: {
+function DetailPanel({ finding, onClose, onStatusChange, onSelectRelated }: {
   finding: Finding;
   onClose: () => void;
   onStatusChange: (id: string, status: FindingStatus) => void;
+  onSelectRelated?: (relatedId: string) => void;
 }) {
   return (
     <motion.div
@@ -1351,21 +1550,11 @@ function DetailPanel({ finding, onClose, onStatusChange }: {
             </div>
           )}
 
-          {/* Related findings */}
-          {finding.related.length > 0 && (
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Related Findings</p>
-              <div className="space-y-1.5">
-                {finding.related.map((rel) => (
-                  <div key={rel.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
-                    <SeverityBadge severity={rel.severity} />
-                    <span className="text-xs font-mono text-muted-foreground">{rel.id}</span>
-                    <span className="text-xs text-foreground truncate flex-1">{rel.title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Related findings — TrustGraph cross-domain correlation (DoD #8) */}
+          <TrustGraphRelatedPanel
+            findingId={finding.id}
+            onSelect={onSelectRelated}
+          />
 
           <Separator />
 
@@ -1984,6 +2173,10 @@ export default function FindingsExplorer() {
               finding={activeDetail}
               onClose={() => setActiveDetail(null)}
               onStatusChange={handleStatusChange}
+              onSelectRelated={(relId) => {
+                const next = findings.find((f) => f.id === relId);
+                if (next) setActiveDetail(next);
+              }}
             />
           </>
         )}
