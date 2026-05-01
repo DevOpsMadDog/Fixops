@@ -110,15 +110,16 @@ def list_devices(
     platform: Optional[str] = Query(None),
     compliance_status: Optional[str] = Query(None),
 ):
-    """List enrolled devices, optionally filtered by platform and/or compliance_status."""
-    rows = _get_engine().list_devices(org_id, platform=platform, compliance_status=compliance_status)
-    if not rows:
-        return {
-            "devices": [],
-            "total": 0,
-            "hint": "MDM device enrollment requires a Jamf or Intune connector (not yet built). Enroll a device manually via POST /api/v1/mdm/devices.",
-        }
-    return {"devices": rows, "total": len(rows)}
+    """List enrolled devices, optionally filtered by platform and/or compliance_status.
+
+    Falls back to live Microsoft Intune and/or Jamf Pro sync when the org
+    has no enrolled devices AND the corresponding env vars are set
+    (``INTUNE_TENANT_ID`` / ``JAMF_BASE_URL``). Returns
+    ``{devices, total, source, hint?, intune_synced?, jamf_synced?}``.
+    """
+    return _get_engine().list_devices_with_mdm_fallback(
+        org_id, platform=platform, compliance_status=compliance_status
+    )
 
 
 @router.get("/devices/{device_id}", dependencies=[Depends(api_key_auth)])

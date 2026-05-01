@@ -241,6 +241,231 @@ class MDMEngine:
                 r["compliance_issues"] = []
         return rows
 
+    def list_devices_with_mdm_fallback(
+        self,
+        org_id: str,
+        platform: Optional[str] = None,
+        compliance_status: Optional[str] = None,
+        intune_connector: Any = None,
+        jamf_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List enrolled devices; when the org has zero rows AND an MDM
+        connector (Intune or Jamf) is configured, project the live device
+        roster into the MDM device shape.
+
+        Behaviour:
+            - Org-enrolled rows always take precedence (returns
+              ``source="org_enrolled"``).
+            - When the org has no devices, both ``IntuneConnector`` and
+              ``JamfConnector`` are invoked. Whichever returns devices is
+              projected (or both, concatenated).
+            - When neither connector is configured, returns
+              ``{"devices": [], "source": "needs_credentials", "hint": ...}``.
+            - Each derived row carries provenance fields ``source``
+              ("intune"|"jamf") and ``connector_id``.
+
+        Args:
+            org_id:             Tenant identifier.
+            platform:           Optional filter (ios|android|windows|macos).
+            compliance_status:  Optional filter — applies to org rows only;
+                                derived rows pre-set their own status from
+                                the upstream connector.
+            intune_connector:   Override for testing — must expose ``.sync()``.
+            jamf_connector:     Override for testing — must expose ``.sync()``.
+
+        Returns:
+            ``{devices, total, source, hint?, intune_synced?, jamf_synced?}``.
+        """
+        # Org-enrolled rows first.
+        rows = self.list_devices(
+            org_id, platform=platform, compliance_status=compliance_status
+        )
+        if rows:
+            return {
+                "devices": rows,
+                "total": len(rows),
+                "source": "org_enrolled",
+            }
+
+        # Lazy-import connectors only when fallback is needed.
+        if intune_connector is None:
+            try:
+                from connectors.intune_connector import get_intune_connector
+                intune_connector = get_intune_connector()
+            except ImportError:
+                intune_connector = None
+        if jamf_connector is None:
+            try:
+                from connectors.jamf_connector import get_jamf_connector
+                jamf_connector = get_jamf_connector()
+            except ImportError:
+                jamf_connector = None
+
+        derived: List[Dict[str, Any]] = []
+        intune_synced = 0
+        jamf_synced = 0
+        intune_credless = True
+        jamf_credless = True
+        errors: List[str] = []
+
+        # ---- Intune branch ----
+        if intune_connector is not None:
+            try:
+                intune_result = intune_connector.sync(org_id=org_id)
+            except (ValueError, RuntimeError, OSError) as exc:
+                _logger.warning(
+                    "MDM: Intune sync failed for org=%s: %s", org_id, exc
+                )
+                errors.append(f"intune: {exc}")
+                intune_result = {"status": "error"}
+
+            if intune_result.get("status") not in ("needs_credentials", "error"):
+                intune_credless = False
+                # The connector returns one finding per device in `findings`,
+                # so collapse on `correlation_key` device_id stem to dedupe.
+                seen: set = set()
+                for f in intune_result.get("findings") or []:
+                    cid = str(f.get("correlation_key") or "")
+                    # correlation_key shapes: intune_device|<id>, intune_noncompliant|<id>, ...
+                    if "|" not in cid:
+                        continue
+                    device_id = cid.split("|", 1)[1]
+                    if device_id in seen:
+                        continue
+                    seen.add(device_id)
+                    title = str(f.get("title") or "")
+                    # Heuristic: pull device name from "Intune ... device: <name> (..."
+                    device_name = device_id
+                    if ": " in title:
+                        rhs = title.split(": ", 1)[1]
+                        if " (" in rhs:
+                            device_name = rhs.split(" (", 1)[0]
+                        else:
+                            device_name = rhs
+                    sev = (f.get("severity") or "").lower()
+                    if sev in ("critical", "high"):
+                        compliance_state = "non_compliant"
+                    elif sev in ("medium", "low"):
+                        compliance_state = "non_compliant"
+                    else:
+                        compliance_state = "compliant"
+                    derived_platform = "windows"  # default for Intune managed
+                    title_l = title.lower()
+                    if "ios" in title_l:
+                        derived_platform = "ios"
+                    elif "android" in title_l:
+                        derived_platform = "android"
+                    elif "macos" in title_l or "mac os" in title_l:
+                        derived_platform = "macos"
+                    if platform is not None and derived_platform != platform:
+                        continue
+                    derived.append({
+                        "device_id": f"intune:{device_id}",
+                        "org_id": org_id,
+                        "device_name": device_name,
+                        "platform": derived_platform,
+                        "model": "",
+                        "serial_number": "",
+                        "owner_email": "",
+                        "enrollment_type": "corporate",
+                        "os_version": "",
+                        "compliance_status": compliance_state,
+                        "compliance_score": 0.0,
+                        "compliance_issues": (
+                            [f.get("description", "")[:200]]
+                            if compliance_state == "non_compliant"
+                            else []
+                        ),
+                        "enrolled_at": intune_result.get("ingested_at", _now_iso()),
+                        "last_checked": intune_result.get("ingested_at"),
+                        # Provenance
+                        "source": "intune",
+                        "connector_id": device_id,
+                    })
+                intune_synced = intune_result.get("devices_synced", 0)
+
+        # ---- Jamf branch ----
+        if jamf_connector is not None:
+            try:
+                jamf_result = jamf_connector.sync(org_id=org_id)
+            except (ValueError, RuntimeError, OSError) as exc:
+                _logger.warning(
+                    "MDM: Jamf sync failed for org=%s: %s", org_id, exc
+                )
+                errors.append(f"jamf: {exc}")
+                jamf_result = {"status": "error"}
+
+            if jamf_result.get("status") not in ("needs_credentials", "error"):
+                jamf_credless = False
+                for d in jamf_result.get("devices") or []:
+                    plat_raw = (d.get("platform") or "").lower()
+                    if "macos" in plat_raw or "mac" in plat_raw:
+                        derived_platform = "macos"
+                    elif "ios" in plat_raw:
+                        derived_platform = "ios"
+                    elif "android" in plat_raw:
+                        derived_platform = "android"
+                    elif "windows" in plat_raw:
+                        derived_platform = "windows"
+                    else:
+                        derived_platform = "macos"
+                    if platform is not None and derived_platform != platform:
+                        continue
+                    serial = d.get("serial_number") or d.get("device_id") or ""
+                    is_managed = bool(d.get("managed", True))
+                    derived.append({
+                        "device_id": f"jamf:{serial}",
+                        "org_id": org_id,
+                        "device_name": d.get("name", ""),
+                        "platform": derived_platform,
+                        "model": d.get("model", ""),
+                        "serial_number": serial,
+                        "owner_email": d.get("username", ""),
+                        "enrollment_type": "corporate",
+                        "os_version": d.get("os_version", ""),
+                        "compliance_status": "compliant" if is_managed else "non_compliant",
+                        "compliance_score": 100.0 if is_managed else 0.0,
+                        "compliance_issues": [] if is_managed else ["Device unmanaged"],
+                        "enrolled_at": jamf_result.get("ingested_at", _now_iso()),
+                        "last_checked": d.get("last_contact_time"),
+                        # Provenance
+                        "source": "jamf",
+                        "connector_id": str(d.get("device_id", "")),
+                    })
+                jamf_synced = jamf_result.get("devices_synced", 0)
+
+        # No creds anywhere → structured needs_credentials
+        if intune_credless and jamf_credless:
+            return {
+                "devices": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Set INTUNE_TENANT_ID + INTUNE_CLIENT_ID + INTUNE_CLIENT_SECRET "
+                    "to enable Microsoft Intune sync, or set JAMF_BASE_URL + "
+                    "JAMF_API_KEY (or JAMF_USERNAME + JAMF_PASSWORD) to enable "
+                    "Jamf Pro sync. You can also enroll devices manually via "
+                    "POST /api/v1/mdm/devices."
+                ),
+            }
+
+        return {
+            "devices": derived,
+            "total": len(derived),
+            "source": "mdm-derived" if derived else "mdm_no_devices",
+            "intune_synced": intune_synced,
+            "jamf_synced": jamf_synced,
+            "errors": errors or None,
+            "hint": (
+                None
+                if derived
+                else (
+                    "MDM connector returned 0 devices. Enroll a device "
+                    "manually via POST /api/v1/mdm/devices."
+                )
+            ),
+        }
+
     def get_device(self, org_id: str, device_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve a single device by ID."""
         import json
