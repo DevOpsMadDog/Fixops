@@ -279,6 +279,9 @@
 | `IaCScanning` | `/api/v1/iac` | tab (IaC) |
 | `DASTDashboard` | `/api/v1/dast` | tab (DAST) |
 | `APISecurityDashboard` / `APISecurityPage` / `APISecurityMgmtDashboard` / `APIAbuseDashboard` / `APIThreatProtectionDashboard` | `/api/v1/api-security/*` | tab (API Sec) |
+
+**API Security sub-cluster: DONE-2026-05-02 SHA=8fe0fe39** — 3 pages folded into `APISecurityHub.tsx` at `/discover/api-security` (S10 API Security sub-cluster). Tabs: `inventory` (APISecurityDashboard), `management` (APISecurityMgmtDashboard), `discovery` (APIDiscoveryDashboard). Old routes `/api-security`, `/api-security-mgmt`, `/api-discovery` redirect to canonical with `?tab=`. Real APIs verified: `/api/v1/api-security/{inventory,vulns,anomalies}` (7 calls), `/api/v1/api-security-engine/{stats,endpoints,abuse-events,scans}` (9 calls), `/api/v1/api-discovery/{stats,endpoints}` (5 calls). Persona target: AppSec Engineer (#10), API Owner (#16), Sec Architect (#11).
+
 | `AppSecurity` / `MobileSecurity` / `MobileAppSecurityDashboard` / `BrowserSecurityDashboard` | `/api/v1/{app,mobile,browser}-sec` | tab (App Sec) |
 | `LicenseSecurity` / `SoftwareLicenseDashboard` | `/api/v1/licenses` | tab |
 | `SupplyChainIntelDashboard` / `SupplyChainAttackDashboard` | `/api/v1/supply-chain/*` | tab (Supply Chain) |
