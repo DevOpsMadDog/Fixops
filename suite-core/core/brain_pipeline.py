@@ -1464,6 +1464,24 @@ class BrainPipeline:
         fetched_count = 0
 
         # ------------------------------------------------------------------
+        # Wave 2D Integration 3 — auto-collect via ConnectorIngestionScheduler
+        # When pipeline is invoked with no findings, attempt to self-pull from
+        # configured connectors. Wave 2F may add the scheduler module — if it
+        # is missing, we silently fall through to env-var connectors below.
+        # ------------------------------------------------------------------
+        if not ctx["findings"]:
+            try:
+                from core.connector_ingestion_scheduler import ConnectorIngestionScheduler
+                scheduler = ConnectorIngestionScheduler(ctx["org_id"])
+                collected = scheduler.collect_all_findings()
+                ctx["findings"].extend(collected)
+                logger.info("_step_connect: auto-collected %d findings", len(collected))
+            except ImportError:
+                logger.debug("ConnectorIngestionScheduler not available — skipping auto-collect")
+            except Exception as e:
+                logger.warning("_step_connect auto-collect failed: %s", e)
+
+        # ------------------------------------------------------------------
         # Resolve connector configuration
         # ------------------------------------------------------------------
         caller_cfg: Dict[str, Any] = {}
@@ -2103,6 +2121,8 @@ class BrainPipeline:
                 cluster_ids.append(cid)
             ctx["clusters"] = cluster_ids
 
+            # Wave 2D Integration 2 — also run correlator on fallback path
+            self._correlate_and_emit(ctx)
             return {
                 "total_findings": total_findings,
                 "unique_clusters": unique_count,
@@ -2110,6 +2130,7 @@ class BrainPipeline:
                 "exposure_cases_created": 0,
                 "exposure_cases_updated": 0,
                 "method": "local_fallback",
+                "correlator_cases": len(ctx.get("correlator_exposure_cases", [])),
             }
 
         # Service-based dedup succeeded — process results
@@ -2219,13 +2240,67 @@ class BrainPipeline:
             )
             cases_updated = []
 
+        # ------------------------------------------------------------------
+        # Wave 2D Integration 2 — FindingCorrelator union-find clustering
+        # Writes to ctx["correlator_exposure_cases"] so it does not clobber
+        # the dedup-service case_id list already in ctx["exposure_cases"].
+        # ------------------------------------------------------------------
+        self._correlate_and_emit(ctx)
+
         return {
             "total_findings": batch.get("total_findings", len(ctx["findings"])),
             "unique_clusters": len(cluster_ids),
             "noise_reduction_pct": batch.get("noise_reduction_percent", 0),
             "exposure_cases_created": len(ctx.get("exposure_cases", [])),
             "exposure_cases_updated": len(cases_updated),
+            "correlator_cases": len(ctx.get("correlator_exposure_cases", [])),
         }
+
+    def _correlate_and_emit(self, ctx: Dict[str, Any]) -> None:
+        """Run FindingCorrelator union-find and emit case events.
+
+        Wave 2D Integration 2 — pipeline never fails when correlator
+        or event bus unavailable. Async emit handled via asyncio.run
+        in a try/except since this method is sync.
+        """
+        try:
+            from core.finding_correlator import FindingCorrelator
+            correlator = FindingCorrelator()
+            cases = correlator.build_exposure_cases(
+                ctx["findings"], org_id=ctx["org_id"]
+            )
+            ctx["correlator_exposure_cases"] = [c.model_dump() for c in cases]
+
+            # Best-effort event emission — async bus called from sync context
+            try:
+                from core.trustgraph_event_bus import get_event_bus
+                import asyncio as _asyncio
+                bus = get_event_bus()
+
+                async def _emit_all():
+                    for case in ctx["correlator_exposure_cases"]:
+                        await bus.emit("finding.created", {
+                            "org_id": ctx["org_id"],
+                            "engine": "correlator",
+                            "id": case.get("id") or case.get("case_id") or case.get("title", ""),
+                            "title": case.get("title", ""),
+                            "severity": case.get("severity", "medium"),
+                            "entity_type": "exposure_case",
+                            "risk_score": case.get("risk_score"),
+                            "finding_count": len(case.get("findings", [])),
+                        })
+
+                try:
+                    _asyncio.get_running_loop()
+                    # Inside running loop — schedule as task
+                    _asyncio.ensure_future(_emit_all())
+                except RuntimeError:
+                    # No running loop — execute synchronously
+                    _asyncio.run(_emit_all())
+            except Exception as bus_e:
+                logger.warning("correlator event emission skipped: %s", bus_e)
+        except Exception as e:
+            logger.warning("correlator skipped: %s", e)
 
     # ------------------------------------------------------------------
     # Step 5: Build the Brain Map (Knowledge Graph)
@@ -2497,6 +2572,7 @@ class BrainPipeline:
             enricher = get_threat_enricher()
             result = enricher.enrich_findings(ctx["findings"])
             ctx["_enrich_source"] = "live_api"
+            self._fuse_vuln_intel(ctx)
             return result
         except (ImportError, Exception) as e:
             logger.warning(
@@ -2556,6 +2632,7 @@ class BrainPipeline:
 
         ctx["_enrich_source"] = feed_source
         ctx["_enrich_feed_hits"] = feed_hits
+        self._fuse_vuln_intel(ctx)
         return {
             "enriched": enriched,
             "unique_cves": len(set(cve_ids)),
@@ -2563,6 +2640,40 @@ class BrainPipeline:
             "feed_hits": feed_hits,
             "feed_misses": enriched - feed_hits,
         }
+
+    def _fuse_vuln_intel(self, ctx: Dict[str, Any]) -> None:
+        """Wire findings through VulnIntelFusionEngine for multi-source consensus.
+
+        Wave 2D Integration 1 — adds fusion_score, consensus_severity,
+        consensus_priority to every finding that has a CVE id. Pipeline
+        never fails if fusion is unavailable.
+        """
+        try:
+            from core.vuln_intel_fusion_engine import VulnIntelFusionEngine
+            fusion = VulnIntelFusionEngine()
+            for f in ctx["findings"]:
+                if f.get("cve_id"):
+                    fusion.ingest_source_feed(ctx["org_id"], {
+                        "cve_id": f["cve_id"],
+                        "source_name": f.get("engine", "pipeline"),
+                        "source_severity": f.get("severity", "unknown"),
+                        "cvss_score": float(f.get("cvss") or f.get("cvss_score") or 0.0),
+                        "epss_score": float(f.get("epss") or f.get("epss_score") or 0.0),
+                        "kev_listed": 1 if (f.get("in_kev") or f.get("kev_listed")) else 0,
+                    })
+            pq = fusion.get_priority_queue(ctx["org_id"])
+            lookup = {x["cve_id"]: x for x in pq if x.get("cve_id")}
+            for f in ctx["findings"]:
+                fused = lookup.get(f.get("cve_id"))
+                if fused:
+                    f["fusion_score"] = fused.get("fusion_score", 0.0)
+                    f["consensus_severity"] = fused.get("consensus_severity", f.get("severity"))
+                    f["consensus_priority"] = fused.get("consensus_priority", 3)
+                    f["epss_score"] = fused.get("epss_score", f.get("epss_score", 0.0))
+                    f["kev_listed"] = bool(fused.get("kev_listed", 0))
+            ctx["fused_vulns"] = pq
+        except Exception as e:
+            logger.warning("fusion enrichment skipped: %s", e)
 
     @staticmethod
     def _load_local_feeds() -> tuple:
