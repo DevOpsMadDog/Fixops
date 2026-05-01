@@ -52,11 +52,11 @@ Legend for **Class**:
 | 12 | `/api/v1/access-requests/requests` | c | User-driven workflow | Correct empty. |
 | 13 | `/api/v1/pag/accounts` | a | Identity provider connector (Okta/AzureAD) | **DONE-2026-05-02 SHA=11a75f69** — `list_privileged_accounts_with_okta_fallback()` invokes existing `OktaConnector.sync()` when org has zero rows AND `OKTA_API_KEY`/`OKTA_DOMAIN` set; projects privileged Okta users (admin/devops/sre/owner titles OR LOCKED_OUT/SUSPENDED status) as derived rows tagged `source="okta"`. Needs-credentials returns structured empty + hint, never mocks. 6 new tests. |
 | 14 | `/api/v1/session-recording/sessions` | a | PAM tool integration (CyberArk/BeyondTrust) | DEFERRED — no real PAM tenant available. |
-| 15 | `/api/v1/cloud-posture/findings` | a | Native CSPM scanner (`cspm_engine.py`) | DEFERRED — CSPM scanner needs real cloud creds for fleet tenants (none configured). |
+| 15 | `/api/v1/cloud-posture/findings` | a | Native CSPM scanner (`cspm_engine.py`) | **DONE-2026-05-02 SHA=0003d5ba** — `list_findings_with_cspm_fallback()` projects existing `SecurityFindingsEngine` rows tagged `source_tool LIKE 'cspm_via_%'` (Prowler/Checkov/Trivy/CloudSploit/agentless) into `cp_findings` shape. Org-recorded rows take precedence; needs-credentials envelope when neither org nor scanner rows exist. 7 new tests. |
 | 16 | `/api/v1/cloud-governance/policies` | c | Manual policy creation | Correct empty. |
 | 17 | `/api/v1/cloud-ir/incidents` | c | Triggered by detection events | Correct empty. |
 | 18 | `/api/v1/cloud-cost/snapshots` | a | Cloud billing API (AWS Cost Explorer / Azure Cost Management) | DEFERRED — needs cloud creds. |
-| 19 | `/api/v1/cwp/workloads` | a | Container runtime telemetry / k8s adapter | DEFERRED — k8s connector exists; not bound to fleet tenants. |
+| 19 | `/api/v1/cwp/workloads` | a | Container runtime telemetry / k8s adapter | **DONE-2026-05-02 SHA=23563d53** — `list_workloads_with_container_fallback()` invokes existing `ContainerSecurityConnector` (trivy+grype+dockle); projects each TenantScanResult into a derived workload (workload_type=container, cloud_provider=on_prem). Risk score = critical*10+high*5+medium*2 capped 100. 3-state empty envelope (`needs_credentials` / `needs_scan`). 8 new tests. |
 | 20 | `/api/v1/sspm/apps` | a | OAuth tenant scan (Salesforce/Slack/Okta) | DEFERRED — needs SaaS OAuth flows. |
 | 21 | `/api/v1/network-forensics/captures` | c | Manual/triggered packet captures | Correct empty. |
 | 22 | `/api/v1/network-segmentation/segments` | c | Manual entry / network discovery | Correct empty. |
@@ -71,7 +71,7 @@ Legend for **Class**:
 | 30 | `/api/v1/gdpr/activities` | c | Manual data-mapping entry | Correct empty. |
 
 ### Class tally
-- **(a) — connector missing**: 10 endpoints — **2 closed 2026-05-02** (Okta→PAG accounts [SHA=11a75f69], Intune+Jamf→MDM devices [SHA=ae0549b3]); **8 still deferred** (PAG #14 session-recording, #15 cloud-posture, #18 cloud-cost, #19 cwp/workloads, #20 sspm/apps, #25 mobile-app-security, #27 ai-soc/detections, #3 asset-criticality — all need real cloud creds, k8s telemetry, OAuth flows, or PAM tenant access not present in fleet).
+- **(a) — connector missing**: 10 endpoints — **4 closed 2026-05-02** (Okta→PAG accounts [SHA=11a75f69], Intune+Jamf→MDM devices [SHA=ae0549b3], CSPMConnector→cloud-posture/findings [SHA=0003d5ba], ContainerSecurityConnector→cwp/workloads [SHA=23563d53]); **6 still deferred** (PAG #14 session-recording, #18 cloud-cost, #20 sspm/apps, #25 mobile-app-security, #27 ai-soc/detections, #3 asset-criticality — all need real cloud creds, OAuth flows, or PAM tenant access not present in fleet).
 - **(b) — public-source importer missing**: 8 endpoints — **ALL CLOSED 2026-05-02** (CISA KEV via vuln-correlation/assets [SHA=933e27d1], MITRE techniques via threat-vectors/vectors [SHA=1d0894fc], SigmaHQ rules via hunting-playbooks/playbooks [SHA=3225e0a4], CIS Benchmark via posture-benchmarking/benchmarks [SHA=64c66dc8], Verizon DBIR via security-benchmarks/benchmarks [SHA=a21bf607], global feed registry via ti-automation/feeds [SHA=8f8449cb], intrusion-set MITRE via actor-tracking/actors [DONE prior], MITRE D3FEND via compliance-mapping/controls [SHA=e21638dd])
 - **(c) — empty IS correct for fresh tenant**: 12 endpoints (manual/policy-driven; only fix is structured empty-response copy)
 
