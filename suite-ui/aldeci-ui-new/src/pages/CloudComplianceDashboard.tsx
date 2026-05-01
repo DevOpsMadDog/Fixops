@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into ComplianceCoverageHub (cloud tab) at /comply/coverage 2026-05-02 — preserve for git history
 /**
  * Cloud Compliance - Live API
  * API: GET /api/v1/cloud-compliance/controls

@@ -677,6 +677,8 @@ const PrivacyComplianceHub = lazy(() => import("@/pages/PrivacyComplianceHub"));
 const ExceptionsHub = lazy(() => import("@/pages/ExceptionsHub"));
 // Phase 3 §2.22 (Incident Extensions sub-cluster) — IncidentExtensionsHub at /remediate/incidents/extensions
 const IncidentExtensionsHub = lazy(() => import("@/pages/IncidentExtensionsHub"));
+// Phase 3 §2.23 (Compliance Coverage / Gap sub-cluster) — ComplianceCoverageHub at /comply/coverage
+const ComplianceCoverageHub = lazy(() => import("@/pages/ComplianceCoverageHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -1050,8 +1052,10 @@ export default function App() {
             <Route path="/container-security" element={<Navigate to="/discover/container-security?tab=image" replace />} />
 
             {/* Cloud Compliance + Endpoint Compliance */}
-            <Route path="/cloud-compliance" element={<CloudComplianceDashboard />} />
-            <Route path="/endpoint-compliance" element={<EndpointComplianceDashboard />} />
+            {/* Phase 3 §2.23 ComplianceCoverageHub fold — canonical hub + legacy redirects */}
+            <Route path="/comply/coverage" element={<ComplianceCoverageHub />} />
+            <Route path="/cloud-compliance" element={<Navigate to="/comply/coverage?tab=cloud" replace />} />
+            <Route path="/endpoint-compliance" element={<Navigate to="/comply/coverage?tab=endpoint" replace />} />
 
             {/* API Security Management + Vuln Intelligence */}
             <Route path="/api-security-mgmt" element={<APISecurityMgmtDashboard />} />
@@ -1067,7 +1071,7 @@ export default function App() {
             <Route path="/threat-scores" element={<Navigate to="/attack/intel/external?tab=scores" replace />} />
             {/* S2 Finance hub — folded 2026-05-02 */}
             <Route path="/security-budget" element={<Navigate to="/mission-control/finance?tab=budget" replace />} />
-            <Route path="/compliance-gaps" element={<ComplianceGapDashboard />} />
+            <Route path="/compliance-gaps" element={<Navigate to="/comply/coverage?tab=gaps" replace />} />
 
             {/* Wave 18 domain dashboards */}
             <Route path="/ai-governance" element={<Navigate to="/brain?tab=ai-governance" replace />} />
@@ -1361,7 +1365,7 @@ export default function App() {
             <Route path="/comply/bundles" element={<Navigate to="/compliance?tab=bundles" replace />} />
             <Route path="/comply/audit" element={<Navigate to="/compliance?tab=audit" replace />} />
             <Route path="/compliance-mapping" element={<Navigate to="/compliance?tab=mapping" replace />} />
-            <Route path="/compliance-gaps" element={<Navigate to="/compliance?tab=gaps" replace />} />
+            {/* /compliance-gaps now folded into /comply/coverage hub (Phase 3 §2.23 ComplianceCoverageHub) */}
             <Route path="/compliance-calendar" element={<Navigate to="/compliance?tab=calendar" replace />} />
             <Route path="/compliance-workflows" element={<Navigate to="/compliance?tab=workflows" replace />} />
             <Route path="/compliance-automation" element={<Navigate to="/compliance?tab=workflows" replace />} />

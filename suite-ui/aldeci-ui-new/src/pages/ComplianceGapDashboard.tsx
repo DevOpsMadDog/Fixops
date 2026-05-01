@@ -1,3 +1,4 @@
+// FOLDED into ComplianceCoverageHub (gaps tab) at /comply/coverage 2026-05-02 — preserve for git history
 /**
  * Compliance Gap Dashboard
  *

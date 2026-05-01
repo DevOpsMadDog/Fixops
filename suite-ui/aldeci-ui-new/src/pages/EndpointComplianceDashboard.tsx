@@ -1,3 +1,4 @@
+// FOLDED into ComplianceCoverageHub (endpoint tab) at /comply/coverage 2026-05-02 — preserve for git history
 /**
  * Endpoint Compliance Dashboard
  *
