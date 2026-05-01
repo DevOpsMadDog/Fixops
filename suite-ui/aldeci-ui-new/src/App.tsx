@@ -1013,7 +1013,12 @@ export default function App() {
             <Route path="/incident-timeline-dashboard" element={<Navigate to="/brain?tab=incident-timeline" replace />} />
             <Route path="/security-metrics-live" element={<SecurityMetricsDashboard2 />} />
             <Route path="/zero-trust-policies" element={<ZeroTrustPolicyDashboard />} />
-            <Route path="/threat-models" element={<ThreatModelDashboard />} />
+            {/* S12 Threat Modeling hub — Phase 3 cluster (2026-05-02) */}
+            <Route path="/attack/threat-modeling" element={<ThreatModelingHub />} />
+            {/* S12 fold 2026-05-02: ThreatModelDashboard → ThreatModelingHub#models */}
+            <Route path="/threat-models" element={<Navigate to="/attack/threat-modeling?tab=models" replace />} />
+            {/* S12 fold 2026-05-02: ThreatModelingPipelineDashboard → ThreatModelingHub#pipeline */}
+            <Route path="/threat-modeling-pipeline" element={<Navigate to="/attack/threat-modeling?tab=pipeline" replace />} />
             {/* Phase 3 §2.20 — Exceptions sub-cluster folded into ExceptionsHub at /remediate/exceptions */}
             <Route path="/remediate/exceptions" element={<ExceptionsHub />} />
             {/* S20 fold 2026-05-02: SecurityExceptionDashboard → ExceptionsHub#exceptions */}

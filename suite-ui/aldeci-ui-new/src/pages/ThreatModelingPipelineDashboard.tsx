@@ -1,3 +1,4 @@
+// FOLDED into ThreatModelingHub at /attack/threat-modeling?tab=pipeline (Phase 3, 2026-05-02)
 // REPLACED by FindingsExplorerView config 2026-04-27
 // Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**

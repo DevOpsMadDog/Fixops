@@ -1,3 +1,4 @@
+// FOLDED into ThreatModelingHub at /attack/threat-modeling?tab=models (Phase 3, 2026-05-02)
 /**
  * Threat Model Dashboard
  *
