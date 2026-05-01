@@ -353,7 +353,7 @@
 ### 2.14 → S14 Threat Intel
 **Actors/Indicators sub-cluster: DONE-2026-05-02 SHA=17fd2540** — 5 pages folded into ThreatActorsHub.tsx at `/attack/intel/actors` (ThreatActorDashboard, ActorTrackingDashboard, ThreatAttributionDashboard, ThreatIndicatorDashboard, IOCHunter). Old routes (`/threat-actors`, `/actor-tracking`, `/threat-attribution`, `/threat-indicators`, `/ioc-hunter`) redirect with `?tab=`.
 
-**External Threat Intel sub-cluster: DONE-2026-05-02 SHA=<short>** — 3 external-intel pages folded into `ExternalThreatIntelHub.tsx` at `/attack/intel/external` (ZeroDayIntelligenceDashboard, DarkWebMonitoringDashboard, ThreatScoreDashboard). Old routes (`/zero-day`, `/dark-web`, `/threat-scores`) redirect with `?tab=`. Real APIs: `/api/v1/zero-day/{stats,vulns,threat-actors}`, `/api/v1/dark-web/{stats,mentions,credential-exposures}`, `/api/v1/threat-scores/{stats,top-threats,scores}`. Tabs: `zeroday|darkweb|scores`.
+**External Threat Intel sub-cluster: DONE-2026-05-02 SHA=0fc80796** — 3 external-intel pages folded into `ExternalThreatIntelHub.tsx` at `/attack/intel/external` (ZeroDayIntelligenceDashboard, DarkWebMonitoringDashboard, ThreatScoreDashboard). Old routes (`/zero-day`, `/dark-web`, `/threat-scores`) redirect with `?tab=`. Real APIs: `/api/v1/zero-day/{stats,vulns,threat-actors}`, `/api/v1/dark-web/{stats,mentions,credential-exposures}`, `/api/v1/threat-scores/{stats,top-threats,scores}`. Tabs: `zeroday|darkweb|scores`.
 
 | Source | Endpoint | As |
 |---|---|---|
