@@ -272,7 +272,7 @@
 | `PIIFieldInventory` (cross-link) | shared | tab |
 | `SecretsDetection` / `SecretScannerDashboard` / `SecretsRotation` | `/api/v1/secrets/*` | tab (Secrets) |
 
-**Secrets sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 pages folded into `SecretsHub.tsx` at `/discover/secrets-hub` (SecretsDetection, SecretScannerDashboard, SecretsRotation). Old routes (`/discover/secrets`, `/secrets-rotation`, `/secret-scanner`) redirect with `?tab=`. Real APIs: `/api/v1/secrets-management/{secrets,expiring,stats}`, `/api/v1/secret-scanner/{scan-jobs,findings,stats}`. Tabs: `detection|scanner|rotation`. SecretScannerDashboard was previously orphan-imported (no Route in App.tsx) — fold restores reachability.
+**Secrets sub-cluster: DONE-2026-05-02 SHA=08acb2ba** — 3 pages folded into `SecretsHub.tsx` at `/discover/secrets-hub` (SecretsDetection, SecretScannerDashboard, SecretsRotation). Old routes (`/discover/secrets`, `/secrets-rotation`, `/secret-scanner`) redirect with `?tab=`. Real APIs: `/api/v1/secrets-management/{secrets,expiring,stats}`, `/api/v1/secret-scanner/{scan-jobs,findings,stats}`. Tabs: `detection|scanner|rotation`. SecretScannerDashboard was previously orphan-imported (no Route in App.tsx) — fold restores reachability. Multica #3635.
 | `SCADashboard` | `/api/v1/sca` | tab (SCA) |
 | `IaCScanning` | `/api/v1/iac` | tab (IaC) |
 | `DASTDashboard` | `/api/v1/dast` | tab (DAST) |
