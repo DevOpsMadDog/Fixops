@@ -5621,6 +5621,29 @@ def create_app() -> FastAPI:
         except Exception as _llm_loop_err:  # noqa: BLE001 — best-effort start
             _logger.warning("LLM Learning Loop start failed: %s", _llm_loop_err)
 
+    # Connector Ingestion Scheduler — auto-pull from 10 sources every N seconds
+    @app.on_event("startup")
+    async def _start_connector_ingestion_scheduler() -> None:
+        try:
+            from core.connector_ingestion_scheduler import start_schedulers_from_env
+            started = start_schedulers_from_env()
+            if started:
+                _logger.info(
+                    "ConnectorIngestionScheduler: %d org(s) running (orgs=%s)",
+                    len(started), [s.org_id for s in started],
+                )
+        except Exception as _ing_err:  # noqa: BLE001 — best-effort start
+            _logger.warning("ConnectorIngestionScheduler start failed: %s", _ing_err)
+
+    @app.on_event("shutdown")
+    async def _stop_connector_ingestion_scheduler() -> None:
+        try:
+            from core.connector_ingestion_scheduler import stop_all_schedulers
+            stop_all_schedulers()
+            _logger.info("ConnectorIngestionScheduler stopped")
+        except Exception as _ing_stop_err:  # noqa: BLE001
+            _logger.debug("ConnectorIngestionScheduler stop error: %s", _ing_stop_err)
+
     # CIEM — Cloud Infrastructure Entitlement Management (IAM analysis, privilege escalation)
     try:
         from apps.api.ciem_router import router as ciem_router
