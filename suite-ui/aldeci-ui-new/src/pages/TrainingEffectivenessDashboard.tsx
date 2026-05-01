@@ -1,3 +1,4 @@
+// FOLDED into TrainingCultureHub at /admin/training-culture?tab=effectiveness (Phase 3, 2026-05-02)
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Security Training Effectiveness Dashboard - Live API

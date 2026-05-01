@@ -1,3 +1,4 @@
+// FOLDED into TrainingCultureHub at /admin/training-culture?tab=training (Phase 3, 2026-05-02)
 import { useState, useEffect } from "react";
 import { GraduationCap, Users, CheckCircle, Star, Clock, ChevronRight, TrendingUp } from "lucide-react";
 

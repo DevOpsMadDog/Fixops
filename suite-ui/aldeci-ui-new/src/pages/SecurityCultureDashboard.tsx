@@ -1,3 +1,4 @@
+// FOLDED into TrainingCultureHub at /admin/training-culture?tab=culture (Phase 3, 2026-05-02)
 /**
  * Security Culture Dashboard
  *
