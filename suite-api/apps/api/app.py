@@ -371,6 +371,22 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Enhanced Council router not available: %s", e)
 
+# LLM Council — status, health, composition (GET /api/v1/llm/council/status)
+llm_council_router: Optional[APIRouter] = None
+try:
+    from apps.api.llm_council_router import router as llm_council_router
+    logging.getLogger(__name__).info("Loaded LLM Council router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("LLM Council router not available: %s", e)
+
+# Risk Scoring — module-level import so create_app() silent try/except can't swallow it
+risk_scoring_router: Optional[APIRouter] = None
+try:
+    from apps.api.risk_scoring_router import router as risk_scoring_router
+    logging.getLogger(__name__).info("Loaded Risk Scoring router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Risk Scoring router not available: %s", e)
+
 # Compliance Reports — multi-framework compliance reporting
 compliance_reports_router: Optional[APIRouter] = None
 try:
@@ -1152,10 +1168,12 @@ except (ImportError, AttributeError) as e:
 # Scanner Ingest router (25+ scanner parsers — from apps/api/)
 # ---------------------------------------------------------------------------
 scanner_ingest_router: Optional[APIRouter] = None
+scanners_alias_router: Optional[APIRouter] = None
 try:
     from apps.api.scanner_ingest_router import router as scanner_ingest_router
+    from apps.api.scanner_ingest_router import scanners_alias_router as scanners_alias_router
 
-    _logger.info("Loaded Scanner Ingest router (15 new parsers)")
+    _logger.info("Loaded Scanner Ingest router (15 new parsers) + /scanners/ingest alias")
 except ImportError as e:
     _logger.warning("Scanner Ingest router not available: %s", e)
 
@@ -3101,6 +3119,22 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Enhanced Council router")
 
+    # LLM Council — status/health/composition (GET /api/v1/llm/council/status)
+    if llm_council_router:
+        app.include_router(
+            llm_council_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted LLM Council router at /api/v1/llm/council")
+
+    # Risk Scoring — module-level import ensures this is always available
+    if risk_scoring_router:
+        app.include_router(
+            risk_scoring_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Risk Scoring router at /api/v1/risk-scoring")
+
     # ── SOAR / IR Playbooks / Security Metrics ─────────────────────────────────
     # SOAR Engine — automated playbook execution and security response
     if soar_router:
@@ -3279,6 +3313,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Scanner Ingest router")
 
+    # Scanners alias — POST /api/v1/scanners/ingest (JSON-body alias for demo path)
+    if scanners_alias_router:
+        app.include_router(
+            scanners_alias_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Scanners alias router at /api/v1/scanners/ingest")
+
     # Dependency-Track — SBOM analysis via OWASP Dependency-Track
     if dtrack_router:
         app.include_router(
@@ -3302,6 +3344,14 @@ def create_app() -> FastAPI:
     # suite-api/apps/api/sub_apps/ctem_app.py (register_ctem_routers wave-6 section).
     # mpte_router, micro_pentest_router, vuln_discovery_router,
     # mpte_orchestrator_router, secrets_router all registered there.
+
+    # Feed Registry — MUST be mounted BEFORE feeds_router to avoid /{feed_id} catch-all swallowing /registry
+    if feed_registry_router:
+        app.include_router(
+            feed_registry_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))],
+        )
+        _logger.info("Mounted Feed Registry router at /api/v1/feeds/registry")
 
     # Suite-Feeds router (real-time vulnerability intelligence)
     if feeds_router:
@@ -5814,17 +5864,7 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Vulnerability Risk Scoring router not loaded: {e}")
 
-    # Risk Scoring & Exposure — score/rank/summary/exposure (CVSS+EPSS+KEV+criticality)
-    try:
-        from apps.api.risk_scoring_router import router as risk_scoring_router
-        app.include_router(
-            risk_scoring_router,
-            dependencies=[Depends(_verify_api_key)],
-        )
-        _logger.info("Mounted Risk Scoring router at /api/v1/risk-scoring (Gap 3)")
-    except Exception as e:
-        _logger.warning(f"Risk Scoring router not loaded: {e}")
-
+    # Risk Scoring — now mounted early via module-level import (see line ~3129); skip duplicate here.
 
     # Application Security (AppSec) — SAST/DAST scans, findings, OWASP tracking
     # Endpoint Security / EDR — endpoint inventory, alerts, policies
