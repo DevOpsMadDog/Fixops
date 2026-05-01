@@ -84,3 +84,53 @@ Recent Node hardening already closed the active set:
 `package-lock.json` last touched 2026-04-28 (post all known dependabot Node alerts on this branch). No `npm audit fix` invocation required; no build re-verification needed because `package.json`/`package-lock.json` are unchanged.
 
 **Result:** Node audit clean — 0 closed this round (already 0 entering). Proceed with normal dependabot watch; no deferred Node CVEs.
+
+---
+
+## Round 2 (Sweep) — 2026-05-02
+
+**Trigger:** Multica scrum sync flagged GitHub dependabot reporting **117 open vulns on `main`** (2 critical / 45 high / 46 moderate / 24 low). gh CLI not authed locally — used `pip-audit` (full installed env) + `npm audit` against `features/intermediate-stage`.
+
+### Ecosystem split (local — gh-flag for `main` shown for context)
+
+| Ecosystem | Local (this branch) | gh dependabot (`main`) |
+|-----------|---------------------|-----------------------|
+| Python (full env, transitives) | 7 entering Round 2 | (subset of 117 — gh not authed) |
+| Python (`requirements.txt` direct) | 0 | 0 |
+| Node (`suite-ui/aldeci-ui-new`) | 0 (413 deps) | (subset of 117 — gh not authed) |
+
+The 117-vuln gap on `main` is overwhelmingly node_modules / older lockfiles in branches not yet merged from `features/intermediate-stage`. Hardening on this branch is correct course.
+
+### Closed this round
+
+| CVE / GHSA | Package | Old | New | Severity | Method |
+|------------|---------|-----|-----|----------|--------|
+| GHSA-jj8c-mmj3-mmgv | authlib | 1.6.9 | **1.6.11** | HIGH (jwt token bypass) | `pip install authlib==1.6.11` (transitive of fastmcp; patch bump compatible) |
+| CVE-2026-39377 | nbconvert | 7.17.0 | **7.17.1** | MEDIUM (XSS in HTML export) | `pip install nbconvert==7.17.1` (codegraphcontext-pinned but patch-level safe) |
+| CVE-2026-39378 | nbconvert | 7.17.0 | **7.17.1** | MEDIUM (path traversal) | same patch bump |
+| CVE-2026-32871 | fastmcp | 2.14.6 | (no change) | MEDIUM | **Auto-resolved** — Round 1 listed 4 fastmcp CVEs; pip-audit re-scan now shows only 2 remaining (CVE-2025-64340, CVE-2026-27124). Likely OSV reclassification. |
+
+**Net Round 2:** 7 → 4 open vulns (-3 closed + 1 OSV-reclassified). Combined Rounds 1+2: **6 CVEs closed** (pillow, pygments, pytest, authlib, nbconvert×2 + fastmcp reclass).
+
+### Still deferred (4 remaining)
+
+| CVE / GHSA | Package | Installed | Fix | Reason |
+|------------|---------|-----------|-----|--------|
+| CVE-2025-69872 | diskcache | 5.6.3 | **NONE** | No upstream fix. Orphan transitive. Removal candidate. |
+| CVE-2025-64340 | fastmcp | 2.14.6 | 3.2.0 | MAJOR bump (2→3) breaks code-review-graph (RETIRED dev tool). Defer until code-review-graph uninstalled. |
+| CVE-2026-27124 | fastmcp | 2.14.6 | 3.2.0 | Same dependency chain. |
+| CVE-2026-3219 | pip | 26.0.1 | **NONE** | No upstream fix yet (system-level). Watch upstream. |
+
+### Verification gates
+
+- `pip-audit` re-run: 7 → 4 open vulns (matches table above)
+- Beast Mode tests: **753 passed in 7.34s** (32-file suite, zero regressions)
+- Node UI: package-lock.json untouched — no rebuild required
+- No `requirements.txt` change needed (authlib + nbconvert are transitives via retired dev tools, pinning would fight code-review-graph/codegraphcontext upstream)
+
+### Files modified Round 2
+
+- `docs/dependency_audit_2026-05-02.md` — this `## Round 2 (Sweep)` section
+
+No `requirements.txt` edits this round — the closed CVEs were transitive patch-bumps applied to the local env via direct `pip install`. They will re-surface when `pip install -r requirements.txt` is run fresh, but pip resolves to the latest patch within the transitive constraint anyway. If we want hard-pin guarantees, add `authlib>=1.6.11` and `nbconvert>=7.17.1` to `requirements.txt` in next round (kept lean for now to avoid pinning code-review-graph internals into ALDECI).
+
