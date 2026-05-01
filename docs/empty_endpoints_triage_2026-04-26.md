@@ -66,12 +66,13 @@ Legend for **Class**:
 | 26 | `/api/v1/security-chaos/experiments` | c | Manual experiment design | Correct empty. |
 | 27 | `/api/v1/ai-soc/detections` | a | XDR/SIEM connector | DEFERRED — XDR adapter not implemented. |
 | 28 | `/api/v1/hunting-playbooks/playbooks` | b | MITRE D3FEND / Sigma rule repos | **DONE-2026-05-02 SHA=3225e0a4** — `list_playbooks()` now falls back to imported SigmaHQ rule catalog and projects each Sigma rule as a derived playbook (hunt_type from attack_techniques presence, mitre_technique from first attack.t#### tag, data_sources from logsource). 6 new tests; defensive against malformed JSON. |
+| 28b | `/api/v1/compliance-mapping/controls?framework=mitre_d3fend` | b | MITRE D3FEND ontology (JSON-LD, CC-BY-4.0) | **DONE-2026-05-02 SHA=e21638dd** — built `feeds/d3fend/importer.py` (D3fendImporter, JSON-LD parser, side-DB `data/d3fend.db`, 4 fallback URLs + air-gapped file_path mode); added `compliance_mapping_engine.list_controls_with_d3fend_fallback()` that projects every imported D3-XXX technique into the engine response when org has none, badged with `source="mitre-d3fend" + source_iri + top_category + parent_id + attack_techniques`; added `POST /import-d3fend`. 6 new tests. Org-registered controls take precedence; non-D3FEND framework filters bypass fallback (no false positives). |
 | 29 | `/api/v1/awareness-gamification/challenges` | c | Manual content authoring | Correct empty. |
 | 30 | `/api/v1/gdpr/activities` | c | Manual data-mapping entry | Correct empty. |
 
 ### Class tally
 - **(a) — connector missing**: 10 endpoints (need real adapters: PAM, MDM, SSPM, XDR, cloud creds, identity, k8s, etc.). Endpoint #5 (ti-automation/feeds) reclassified to (b) and DONE.
-- **(b) — public-source importer missing**: 8 endpoints (6 DONE: CISA KEV via vuln-correlation/assets [SHA=933e27d1], MITRE techniques via threat-vectors/vectors [SHA=1d0894fc], SigmaHQ rules via hunting-playbooks/playbooks [SHA=3225e0a4], CIS Benchmark via posture-benchmarking/benchmarks [SHA=64c66dc8], Verizon DBIR via security-benchmarks/benchmarks [SHA=a21bf607], global feed registry via ti-automation/feeds [SHA=8f8449cb]; intrusion-set MITRE [DONE prior]; remaining: MITRE D3FEND)
+- **(b) — public-source importer missing**: 8 endpoints — **ALL CLOSED 2026-05-02** (CISA KEV via vuln-correlation/assets [SHA=933e27d1], MITRE techniques via threat-vectors/vectors [SHA=1d0894fc], SigmaHQ rules via hunting-playbooks/playbooks [SHA=3225e0a4], CIS Benchmark via posture-benchmarking/benchmarks [SHA=64c66dc8], Verizon DBIR via security-benchmarks/benchmarks [SHA=a21bf607], global feed registry via ti-automation/feeds [SHA=8f8449cb], intrusion-set MITRE via actor-tracking/actors [DONE prior], MITRE D3FEND via compliance-mapping/controls [SHA=e21638dd])
 - **(c) — empty IS correct for fresh tenant**: 12 endpoints (manual/policy-driven; only fix is structured empty-response copy)
 
 ---
