@@ -114,8 +114,9 @@ def aws_security_hub_status():
     """
     Return whether AWS credentials are configured.
 
-    When unconfigured all endpoints return mock data so the pipeline
-    can be exercised without real AWS credentials.
+    When unconfigured all endpoints return EMPTY data (never mock).
+    Set AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY or use the boto3 default
+    credential chain (profile, IAM role) for real Security Hub data.
     """
     client = _get_client()
     configured = client.is_configured()
@@ -125,7 +126,7 @@ def aws_security_hub_status():
         "message": (
             f"AWS credentials configured — real Security Hub data active (region: {client._region})"
             if configured
-            else "AWS credentials not set — mock data mode. "
+            else "AWS credentials not set — endpoints return empty results. "
             "Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables."
         ),
     }

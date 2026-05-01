@@ -505,7 +505,8 @@ class AWSProvider(CloudProvider):
         session = self._boto_session()
         resources: List[CloudResource] = []
         if session is None:
-            return self._stub_resources(resource_type)
+            self._log.warning("aws.list_resources.no_session — returning empty (NO MOCK DATA)")
+            return []
         try:
             if resource_type in (None, ResourceType.COMPUTE):
                 ec2 = session.client("ec2", region_name=self._region)
@@ -540,16 +541,40 @@ class AWSProvider(CloudProvider):
                         account_id=self.credentials.account_id,
                         metadata={"creation_date": str(bucket.get("CreationDate", ""))},
                     ))
+            if resource_type in (None, ResourceType.IAM):
+                try:
+                    iam = session.client("iam")
+                    iam_resp = iam.list_users()
+                    for user in iam_resp.get("Users", []):
+                        resources.append(CloudResource(
+                            resource_id=user.get("Arn", user.get("UserName", "")),
+                            provider=CloudProviderType.AWS,
+                            resource_type=ResourceType.IAM,
+                            name=user.get("UserName", ""),
+                            region="global",
+                            account_id=self.credentials.account_id,
+                            metadata={
+                                "create_date": str(user.get("CreateDate", "")),
+                                "user_id": user.get("UserId", ""),
+                            },
+                        ))
+                except Exception as iam_exc:  # noqa: BLE001
+                    self._log.warning("aws.list_resources.iam.error", error=str(iam_exc))
         except Exception as exc:  # noqa: BLE001
             self._log.warning("aws.list_resources.error", error=str(exc))
-            return self._stub_resources(resource_type)
+            # NO MOCK DATA — return whatever we collected up to the failure
+            return resources
         return resources
 
     def get_resource(self, resource_id: str) -> Optional[CloudResource]:
         self._acquire_token()
         session = self._boto_session()
         if session is None or not resource_id.startswith("i-"):
-            return self._stub_single_resource(resource_id)
+            self._log.warning(
+                "aws.get_resource.no_session_or_unsupported_id",
+                resource_id=resource_id,
+            )
+            return None
         try:
             ec2 = session.client("ec2", region_name=self._region)
             resp = ec2.describe_instances(InstanceIds=[resource_id])
@@ -573,29 +598,49 @@ class AWSProvider(CloudProvider):
         return None
 
     def list_findings(self, severity_filter: Optional[FindingSeverity] = None) -> List[CloudFinding]:
+        """Pull findings via AWSSecurityHubClient (real boto3, paginated).
+
+        NO MOCK DATA — empty list when boto3 unavailable or unconfigured.
+        """
         self._acquire_token()
-        session = self._boto_session()
-        if session is None:
-            return self._stub_findings(severity_filter)
         try:
-            hub = session.client("securityhub", region_name=self._region)
-            filters: Dict[str, Any] = {"RecordState": [{"Value": "ACTIVE", "Comparison": "EQUALS"}]}
+            from core.aws_security_hub import AWSSecurityHubClient
+            client = AWSSecurityHubClient(
+                region=self._region,
+                access_key=self.credentials.aws_access_key_id or "",
+                secret_key=self.credentials.aws_secret_access_key or "",
+            )
+            if not client.is_configured():
+                self._log.warning("aws.list_findings.unconfigured — empty (NO MOCK DATA)")
+                return []
+            filters: Dict[str, Any] = {
+                "RecordState": [{"Value": "ACTIVE", "Comparison": "EQUALS"}]
+            }
             if severity_filter:
                 label = severity_filter.value.upper()
                 if label == "INFO":
                     label = "INFORMATIONAL"
-                filters["SeverityLabel"] = [{"Value": label, "Comparison": "EQUALS"}]
-            resp = hub.get_findings(Filters=filters, MaxResults=100)
-            return [self._normalize_asff(f) for f in resp.get("Findings", [])]
+                filters["SeverityLabel"] = [
+                    {"Value": label, "Comparison": "EQUALS"}
+                ]
+            raw = client.get_findings(filters=filters)
+            return [self._normalize_asff(f) for f in raw]
         except Exception as exc:  # noqa: BLE001
             self._log.warning("aws.list_findings.error", error=str(exc))
-            return self._stub_findings(severity_filter)
+            return []
 
     def get_posture(self) -> PostureReport:
+        """Compute posture from describe_standards_controls. NO MOCK DATA."""
         self._acquire_token()
         session = self._boto_session()
+        empty = PostureReport(
+            provider=CloudProviderType.AWS,
+            account_id=self.credentials.account_id,
+            region=self._region,
+        )
         if session is None:
-            return self._stub_posture()
+            self._log.warning("aws.get_posture.no_session — empty (NO MOCK DATA)")
+            return empty
         try:
             hub = session.client("securityhub", region_name=self._region)
             standards = hub.get_enabled_standards()
@@ -609,7 +654,9 @@ class AWSProvider(CloudProvider):
                     MaxResults=100,
                 )
                 for ctrl in controls.get("Controls", []):
-                    if ctrl.get("ControlStatus") == "PASSED":
+                    status = ctrl.get("ControlStatus", "")
+                    compliance = ctrl.get("ComplianceStatus", "")
+                    if status == "ENABLED" and compliance == "PASSED":
                         passed += 1
                     else:
                         failed += 1
@@ -627,7 +674,7 @@ class AWSProvider(CloudProvider):
             )
         except Exception as exc:  # noqa: BLE001
             self._log.warning("aws.get_posture.error", error=str(exc))
-            return self._stub_posture()
+            return empty
 
     # --- normalization helpers ---
 

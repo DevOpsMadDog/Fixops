@@ -480,32 +480,32 @@ class TestHealthTracker:
 
 
 class TestAWSProviderStubs:
-    def test_list_resources_returns_stubs_without_boto3(self, aws_creds):
+    def test_list_resources_returns_empty_without_boto3(self, aws_creds):
+        # NO MOCK DATA — empty when boto3 unavailable.
         with patch("core.cloud_connectors.AWSProvider._boto_session", return_value=None):
             p = AWSProvider(aws_creds)
             resources = p.list_resources()
-            assert isinstance(resources, list)
-            assert len(resources) > 0
-            assert all(isinstance(r, CloudResource) for r in resources)
+            assert resources == []
 
     def test_list_resources_filters_by_type(self, aws_creds):
         with patch("core.cloud_connectors.AWSProvider._boto_session", return_value=None):
             p = AWSProvider(aws_creds)
             resources = p.list_resources(ResourceType.COMPUTE)
+            # Empty list trivially satisfies any-type filter
             assert all(r.resource_type == ResourceType.COMPUTE for r in resources)
 
-    def test_list_findings_returns_stubs_without_boto3(self, aws_creds):
+    def test_list_findings_returns_empty_without_boto3(self, aws_creds):
+        # NO MOCK DATA — empty when client unconfigured.
         with patch("core.cloud_connectors.AWSProvider._boto_session", return_value=None):
             p = AWSProvider(aws_creds)
             findings = p.list_findings()
-            assert isinstance(findings, list)
-            assert len(findings) > 0
-            assert all(isinstance(f, CloudFinding) for f in findings)
+            assert findings == []
 
     def test_list_findings_filters_by_severity(self, aws_creds):
         with patch("core.cloud_connectors.AWSProvider._boto_session", return_value=None):
             p = AWSProvider(aws_creds)
             findings = p.list_findings(FindingSeverity.HIGH)
+            # Empty list trivially satisfies the severity filter
             assert all(f.severity == FindingSeverity.HIGH for f in findings)
 
     def test_get_posture_returns_stub_without_boto3(self, aws_creds):

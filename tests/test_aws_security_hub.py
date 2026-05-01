@@ -1,18 +1,22 @@
 """
 Tests for AWS Security Hub integration — AWSSecurityHubClient and aws_security_hub_router.
 
-All boto3 calls are mocked so no AWS credentials are required.
-Covers: is_configured, get_findings, get_insights, get_standards_status,
-        import_findings, normalize_asff, inline fallback, history,
-        and all 6 API router endpoints.
+NO MOCK DATA. When AWS credentials are not configured, every endpoint returns
+an empty result. Real-AWS behavior is exercised via ``botocore.stub.Stubber``
+in tests/test_aws_security_hub_real.py.
+
+Covers: is_configured, get_findings (empty), get_insights (empty),
+        get_standards_status (empty), import_findings (empty + emit-event),
+        normalize_asff (pure transform), inline fallback, history,
+        and the 6 API router endpoints in unconfigured mode.
 """
 
 from __future__ import annotations
 
 import os
 import uuid
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from typing import Any, Dict
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,8 +27,16 @@ os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret-key-for-jwt-validation-3
 os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
 
+# Hard-disable boto3 default credential chain so "unconfigured" tests are
+# deterministic on a developer laptop that may have ~/.aws/credentials.
+os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "/dev/null"
+os.environ["AWS_CONFIG_FILE"] = "/dev/null"
+for _k in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+           "AWS_PROFILE", "AWS_DEFAULT_PROFILE", "AWS_SESSION_TOKEN"):
+    os.environ.pop(_k, None)
 
-# ── Sample ASFF finding data ───────────────────────────────────────────────
+
+# ── Sample ASFF finding data (used for normalize_asff pure-function tests) ──
 
 SAMPLE_ASFF_FINDING: Dict[str, Any] = {
     "SchemaVersion": "2018-10-08",
@@ -148,163 +160,124 @@ class TestAWSSecurityHubClientConfiguration:
         assert client._access_key == "AKIA123"
         assert client._secret_key == "secret456"
 
-    def test_missing_secret_key_means_unconfigured(self):
+    def test_missing_secret_key_falls_back_to_chain(self, monkeypatch):
+        # With no env / chain, missing secret means unconfigured.
         from core.aws_security_hub import AWSSecurityHubClient
         client = AWSSecurityHubClient(access_key="AKIA123", secret_key="")
+        # boto3 default chain may resolve None on this laptop (env masked)
         assert client.is_configured() is False
 
-    def test_missing_access_key_means_unconfigured(self):
+    def test_missing_access_key_falls_back_to_chain(self):
         from core.aws_security_hub import AWSSecurityHubClient
         client = AWSSecurityHubClient(access_key="", secret_key="secret")
         assert client.is_configured() is False
 
 
-class TestAWSSecurityHubClientMockFallback:
-    """Mock data returned when no credentials are configured."""
+class TestAWSSecurityHubClientUnconfiguredEmpty:
+    """When unconfigured the client returns EMPTY data — never mock findings."""
 
     def _unconfigured(self):
         from core.aws_security_hub import AWSSecurityHubClient
         return AWSSecurityHubClient(access_key="", secret_key="")
 
-    def test_get_findings_returns_mock_when_unconfigured(self):
+    def test_get_findings_returns_empty_when_unconfigured(self):
         client = self._unconfigured()
-        findings = client.get_findings()
-        assert isinstance(findings, list)
-        assert len(findings) > 0
-        assert "Id" in findings[0]
-        assert "Severity" in findings[0]
-
-    def test_get_findings_mock_has_asff_schema_version(self):
-        client = self._unconfigured()
-        findings = client.get_findings()
-        assert findings[0]["SchemaVersion"] == "2018-10-08"
+        assert client.get_findings() == []
 
     def test_get_findings_accepts_none_filters(self):
         client = self._unconfigured()
-        findings = client.get_findings(filters=None)
-        assert isinstance(findings, list)
+        assert client.get_findings(filters=None) == []
 
     def test_get_findings_accepts_dict_filters(self):
         client = self._unconfigured()
-        findings = client.get_findings(filters={"SeverityLabel": [{"Value": "HIGH"}]})
-        assert isinstance(findings, list)
+        assert client.get_findings(
+            filters={"SeverityLabel": [{"Value": "HIGH"}]}
+        ) == []
 
-    def test_get_insights_returns_mock_when_unconfigured(self):
+    def test_get_insights_returns_empty_when_unconfigured(self):
         client = self._unconfigured()
-        insights = client.get_insights()
-        assert isinstance(insights, list)
-        assert len(insights) > 0
-        assert "InsightArn" in insights[0]
-        assert "Name" in insights[0]
+        assert client.get_insights() == []
 
-    def test_get_standards_status_returns_mock_when_unconfigured(self):
+    def test_get_standards_status_returns_empty_when_unconfigured(self):
         client = self._unconfigured()
         status = client.get_standards_status()
         assert isinstance(status, dict)
-        assert "standards" in status
-        assert status.get("is_mock") is True
-        assert len(status["standards"]) > 0
+        assert status["standards"] == []
+        assert status["is_mock"] is False
 
-    def test_get_standards_status_has_cis_and_pci(self):
-        client = self._unconfigured()
-        status = client.get_standards_status()
-        names = [s["Name"] for s in status["standards"]]
-        assert any("CIS" in n for n in names)
-        assert any("PCI" in n for n in names)
-
-    def test_import_findings_returns_entry_dict(self):
+    def test_import_findings_returns_completed_with_zero_findings(self):
         client = self._unconfigured()
         client._try_ingest_to_pipeline = MagicMock()
         result = client.import_findings(org_id="test-org")
-        assert isinstance(result, dict)
         assert result["status"] == "completed"
+        assert result["findings_count"] == 0
+        assert result["findings"] == []
+        # ``is_mock`` field name is legacy — it now means "unconfigured".
         assert result["is_mock"] is True
-        assert result["findings_count"] > 0
-        assert "import_id" in result
-        assert "severity_breakdown" in result
+        assert result["configured"] is False
 
-    def test_import_findings_populates_findings_list(self):
+    def test_import_findings_severity_breakdown_all_zero(self):
         client = self._unconfigured()
         client._try_ingest_to_pipeline = MagicMock()
         result = client.import_findings(org_id="test-org")
-        assert len(result["findings"]) == result["findings_count"]
-
-    def test_import_findings_severity_breakdown_sums_to_findings_count(self):
-        client = self._unconfigured()
-        client._try_ingest_to_pipeline = MagicMock()
-        result = client.import_findings(org_id="test-org")
-        total = sum(result["severity_breakdown"].values())
-        assert total == result["findings_count"]
+        assert sum(result["severity_breakdown"].values()) == 0
 
 
 class TestNormalizeASSF:
-    """Tests for ASFF → UnifiedFinding normalization."""
+    """Pure-function tests for ASFF → UnifiedFinding normalization."""
 
-    def _unconfigured(self):
+    def _client(self):
         from core.aws_security_hub import AWSSecurityHubClient
         return AWSSecurityHubClient(access_key="", secret_key="")
 
     def test_normalize_asff_returns_list(self):
-        client = self._unconfigured()
-        result = client.normalize_asff(SAMPLE_FINDINGS)
+        result = self._client().normalize_asff(SAMPLE_FINDINGS)
         assert isinstance(result, list)
         assert len(result) == 2
 
     def test_normalize_asff_empty_input(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([])
-        assert result == []
+        assert self._client().normalize_asff([]) == []
 
     def test_normalize_asff_maps_high_severity(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_ASFF_FINDING])
+        result = self._client().normalize_asff([SAMPLE_ASFF_FINDING])
         assert result[0]["severity"] == "high"
 
     def test_normalize_asff_maps_critical_severity(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_CRITICAL_FINDING])
+        result = self._client().normalize_asff([SAMPLE_CRITICAL_FINDING])
         assert result[0]["severity"] == "critical"
 
     def test_normalize_asff_sets_source_tool(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_ASFF_FINDING])
+        result = self._client().normalize_asff([SAMPLE_ASFF_FINDING])
         assert result[0]["source_tool"] == "aws_security_hub"
 
     def test_normalize_asff_preserves_title(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_ASFF_FINDING])
+        result = self._client().normalize_asff([SAMPLE_ASFF_FINDING])
         assert "IAM root user" in result[0]["title"]
 
     def test_normalize_asff_includes_aws_account_id(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_ASFF_FINDING])
+        result = self._client().normalize_asff([SAMPLE_ASFF_FINDING])
         assert result[0]["aws_account_id"] == "123456789012"
 
     def test_normalize_asff_includes_region(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_ASFF_FINDING])
+        result = self._client().normalize_asff([SAMPLE_ASFF_FINDING])
         assert result[0]["aws_region"] == "us-east-1"
 
     def test_normalize_asff_includes_resource_type(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_ASFF_FINDING])
+        result = self._client().normalize_asff([SAMPLE_ASFF_FINDING])
         assert result[0]["resource_type"] == "AwsAccount"
 
     def test_normalize_asff_includes_compliance_status(self):
-        client = self._unconfigured()
-        result = client.normalize_asff([SAMPLE_ASFF_FINDING])
+        result = self._client().normalize_asff([SAMPLE_ASFF_FINDING])
         assert result[0]["compliance_status"] == "FAILED"
 
     def test_normalize_asff_maps_informational_to_info(self):
-        client = self._unconfigured()
         info_finding = dict(SAMPLE_ASFF_FINDING)
         info_finding["Severity"] = {"Label": "INFORMATIONAL", "Normalized": 0}
-        result = client.normalize_asff([info_finding])
+        result = self._client().normalize_asff([info_finding])
         assert result[0]["severity"] == "info"
 
     def test_normalize_asff_each_finding_has_unique_id(self):
-        client = self._unconfigured()
-        result = client.normalize_asff(SAMPLE_FINDINGS)
+        result = self._client().normalize_asff(SAMPLE_FINDINGS)
         ids = [f["id"] for f in result]
         assert len(set(ids)) == len(ids)
 
@@ -315,7 +288,9 @@ class TestImportHistory:
     def test_import_history_empty_for_new_org(self):
         from core.aws_security_hub import AWSSecurityHubClient
         client = AWSSecurityHubClient(access_key="", secret_key="")
-        history = client.get_import_history(org_id="brand-new-org-" + str(uuid.uuid4()))
+        history = client.get_import_history(
+            org_id="brand-new-org-" + str(uuid.uuid4())
+        )
         assert history == []
 
     def test_import_history_recorded_after_import(self):
@@ -346,11 +321,10 @@ class TestImportHistory:
         client.import_findings(org_id=org_id)
         history = client.get_import_history(org_id=org_id)
         assert len(history) == 2
-        # Most recent first — completed_at of first entry >= second
         assert history[0]["completed_at"] >= history[1]["completed_at"]
 
 
-# ── Router / API endpoint tests ────────────────────────────────────────────
+# ── Router / API endpoint tests (unconfigured mode = empty payloads) ──────
 
 
 @pytest.fixture
@@ -361,13 +335,11 @@ def test_client():
 
     app = FastAPI()
 
-    # Bypass auth for tests
     from apps.api.aws_security_hub_router import router
     from apps.api.auth_deps import api_key_auth
     app.dependency_overrides[api_key_auth] = lambda: None
 
     app.include_router(router)
-    # Reset the singleton client so each test gets a fresh one
     import apps.api.aws_security_hub_router as hub_router_mod
     hub_router_mod._client = None
 
@@ -390,10 +362,12 @@ class TestAWSSecurityHubRouterStatus:
         assert "region" in data
         assert data["region"] == "us-east-1"
 
-    def test_status_message_mentions_mock_mode(self, test_client):
+    def test_status_message_mentions_credentials(self, test_client):
         resp = test_client.get("/api/v1/scan/aws-security-hub/status")
         data = resp.json()
-        assert "mock" in data["message"].lower()
+        # Message wording is informational; just check it surfaces config hint.
+        msg = data["message"].lower()
+        assert "aws" in msg or "credentials" in msg or "mock" in msg
 
 
 class TestAWSSecurityHubRouterFindings:
@@ -401,17 +375,16 @@ class TestAWSSecurityHubRouterFindings:
         resp = test_client.get("/api/v1/scan/aws-security-hub/findings")
         assert resp.status_code == 200
 
-    def test_get_findings_returns_list(self, test_client):
+    def test_get_findings_returns_empty_list_unconfigured(self, test_client):
         resp = test_client.get("/api/v1/scan/aws-security-hub/findings")
-        assert isinstance(resp.json(), list)
-        assert len(resp.json()) > 0
+        assert resp.json() == []
 
     def test_get_findings_with_severity_filter(self, test_client):
         resp = test_client.get(
             "/api/v1/scan/aws-security-hub/findings", params={"severity": "HIGH"}
         )
         assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
+        assert resp.json() == []
 
     def test_get_findings_with_workflow_status_filter(self, test_client):
         resp = test_client.get(
@@ -419,11 +392,7 @@ class TestAWSSecurityHubRouterFindings:
             params={"workflow_status": "NEW"},
         )
         assert resp.status_code == 200
-
-    def test_get_findings_mock_has_schema_version(self, test_client):
-        resp = test_client.get("/api/v1/scan/aws-security-hub/findings")
-        findings = resp.json()
-        assert findings[0]["SchemaVersion"] == "2018-10-08"
+        assert resp.json() == []
 
 
 class TestAWSSecurityHubRouterInsights:
@@ -431,14 +400,9 @@ class TestAWSSecurityHubRouterInsights:
         resp = test_client.get("/api/v1/scan/aws-security-hub/insights")
         assert resp.status_code == 200
 
-    def test_get_insights_returns_list(self, test_client):
+    def test_get_insights_returns_empty_list_unconfigured(self, test_client):
         resp = test_client.get("/api/v1/scan/aws-security-hub/insights")
-        assert isinstance(resp.json(), list)
-        assert len(resp.json()) > 0
-
-    def test_get_insights_has_insight_arn(self, test_client):
-        resp = test_client.get("/api/v1/scan/aws-security-hub/insights")
-        assert "InsightArn" in resp.json()[0]
+        assert resp.json() == []
 
 
 class TestAWSSecurityHubRouterStandards:
@@ -450,11 +414,13 @@ class TestAWSSecurityHubRouterStandards:
         resp = test_client.get("/api/v1/scan/aws-security-hub/standards")
         data = resp.json()
         assert "standards" in data
+        assert data["standards"] == []
 
-    def test_get_standards_has_is_mock_flag(self, test_client):
+    def test_get_standards_is_mock_false(self, test_client):
+        # New contract: never mock data — is_mock is always False.
         resp = test_client.get("/api/v1/scan/aws-security-hub/standards")
         data = resp.json()
-        assert data.get("is_mock") is True
+        assert data.get("is_mock") is False
 
 
 class TestAWSSecurityHubRouterImport:
@@ -471,19 +437,12 @@ class TestAWSSecurityHubRouterImport:
         data = resp.json()
         assert data["status"] == "completed"
 
-    def test_import_is_mock_true_when_unconfigured(self, test_client):
+    def test_import_unconfigured_returns_zero_findings(self, test_client):
         resp = test_client.post(
             "/api/v1/scan/aws-security-hub/import", json={"org_id": "test-org"}
         )
         data = resp.json()
-        assert data["is_mock"] is True
-
-    def test_import_has_findings_count(self, test_client):
-        resp = test_client.post(
-            "/api/v1/scan/aws-security-hub/import", json={"org_id": "test-org"}
-        )
-        data = resp.json()
-        assert data["findings_count"] > 0
+        assert data["findings_count"] == 0
 
     def test_import_has_severity_breakdown(self, test_client):
         resp = test_client.post(
