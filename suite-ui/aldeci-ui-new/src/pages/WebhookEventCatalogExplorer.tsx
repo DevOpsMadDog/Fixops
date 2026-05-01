@@ -1,3 +1,4 @@
+// FOLDED into WebhookIngestionHub at /connect/webhook-ingestion?tab=catalogue — preserve for git history
 /**
  * Webhook Event Catalog Explorer
  * Route: /webhooks/event-catalogue

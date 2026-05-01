@@ -1,3 +1,4 @@
+// FOLDED into WebhookIngestionHub at /connect/webhook-ingestion?tab=retry — preserve for git history
 /**
  * Webhook Retry Console
  * Route: /webhooks/retry-queue

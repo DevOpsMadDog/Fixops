@@ -571,6 +571,8 @@ const SecurityOKRDashboard = lazy(() => import("@/pages/SecurityOKRDashboard"));
 // Connector dashboards — Prowler, ServiceNow, SIEM Output
 // FOLDED into IntegrationTargetsHub at /connect/targets (2026-05-02) — kept as lazy imports for hub composition
 const IntegrationTargetsHub = lazy(() => import("@/pages/IntegrationTargetsHub"));
+// FOLDED into WebhookIngestionHub at /connect/webhook-ingestion (2026-05-02)
+const WebhookIngestionHub = lazy(() => import("@/pages/WebhookIngestionHub"));
 
 // Neural Brain Visualization
 const BrainVisualization = lazy(() => import("@/pages/BrainVisualization"));
@@ -1352,6 +1354,9 @@ export default function App() {
             <Route path="/servicenow" element={<Navigate to="/connect/targets?tab=servicenow" replace />} />
             <Route path="/siem-output" element={<Navigate to="/connect/targets?tab=siem" replace />} />
 
+            {/* Webhook + ingestion-pipeline pages — folded into WebhookIngestionHub (Phase 3, 2026-05-02) */}
+            <Route path="/connect/webhook-ingestion" element={<WebhookIngestionHub />} />
+
             {/* Strategic engine dashboards (2026-04-25) */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/org-hierarchy" element={<OrgHierarchyDashboard />} />
@@ -1409,8 +1414,9 @@ export default function App() {
             <Route path="/users/me/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
             <Route path="/admin/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
             <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
-            <Route path="/webhooks/event-catalogue" element={<Navigate to="/admin?tab=webhooks" replace />} />
-            <Route path="/webhooks/retry-queue" element={<Navigate to="/admin?tab=webhooks" replace />} />
+            {/* Webhook + ingestion redirects — folded into WebhookIngestionHub (Phase 3, 2026-05-02) */}
+            <Route path="/webhooks/event-catalogue" element={<Navigate to="/connect/webhook-ingestion?tab=catalogue" replace />} />
+            <Route path="/webhooks/retry-queue" element={<Navigate to="/connect/webhook-ingestion?tab=retry" replace />} />
             <Route path="/organizations" element={<Navigate to="/admin?tab=orgs" replace />} />
             <Route path="/billing" element={<Navigate to="/admin?tab=billing" replace />} />
             <Route path="/settings/health" element={<Navigate to="/admin?tab=system" replace />} />
@@ -1582,15 +1588,15 @@ export default function App() {
             <Route path="/hooks/policy" element={<Navigate to="/comply/policies/authoring?tab=hooks-policy" replace />} />
             <Route path="/hooks/status" element={<Navigate to="/comply/policies/authoring?tab=hooks-status" replace />} />
             <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
-            <Route path="/connectors/mapping/dry-run" element={<UniversalIngestionTester />} />
+            <Route path="/connectors/mapping/dry-run" element={<Navigate to="/connect/webhook-ingestion?tab=dry-run" replace />} />
             {/* S25 fold 2026-05-02: PBOMViewer/PipelineAttestationGraph/SLSAAttestationSigner → SBOMProvenanceHub */}
             <Route path="/pbom/propagation" element={<Navigate to="/comply/provenance?tab=pbom-prop" replace />} />
             <Route path="/provenance/attestation" element={<Navigate to="/comply/provenance?tab=attestation" replace />} />
             <Route path="/provenance/sign" element={<Navigate to="/comply/provenance?tab=sign" replace />} />
             {/* S25 unified hero — Phase 3 cluster (2026-05-02): 6 standalone pages folded into one tabbed screen */}
             <Route path="/comply/provenance" element={<SBOMProvenanceHub />} />
-            <Route path="/webhooks/event-catalogue" element={<Navigate to="/admin?tab=webhooks" replace />} />
-            <Route path="/webhooks/retry-queue" element={<Navigate to="/admin?tab=webhooks" replace />} />
+            <Route path="/webhooks/event-catalogue" element={<Navigate to="/connect/webhook-ingestion?tab=catalogue" replace />} />
+            <Route path="/webhooks/retry-queue" element={<Navigate to="/connect/webhook-ingestion?tab=retry" replace />} />
             <Route path="/assets/crown-jewel" element={<CrownJewelConfigurator />} />
             <Route path="/organizations" element={<OrgHierarchyExplorer />} />
             <Route path="/findings/drift" element={<StaleBaselineBanner />} />

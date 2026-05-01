@@ -1,3 +1,4 @@
+// FOLDED into WebhookIngestionHub at /connect/webhook-ingestion?tab=dry-run — preserve for git history
 /**
  * Universal Ingestion Tester — dry-run a connector mapping with sample input
  * Route: /connectors/mapping/dry-run
