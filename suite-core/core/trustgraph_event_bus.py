@@ -464,73 +464,81 @@ class _OfflineQueue:
 # ---------------------------------------------------------------------------
 
 
-def _get_finding_indexer() -> Any:
-    """Lazy-load UniversalFindingIndexer."""
+def _get_finding_indexer(org_id: str = "default") -> Any:
+    """Lazy-load UniversalFindingIndexer scoped to an org."""
     from core.trustgraph_integrations import UniversalFindingIndexer
-    return UniversalFindingIndexer()
+    return UniversalFindingIndexer(org_id=org_id)
 
 
-def _get_backbone() -> Any:
-    """Lazy-load TrustGraphBackbone."""
+def _get_backbone(org_id: str = "default") -> Any:
+    """Lazy-load TrustGraphBackbone scoped to an org."""
     from core.trustgraph_backbone import TrustGraphBackbone
-    return TrustGraphBackbone()
+    return TrustGraphBackbone(org_id=org_id)
+
+
+def _payload_org_id(data: Dict[str, Any]) -> str:
+    """Extract org_id (or tenant_id) from an event payload, defaulting to 'default'."""
+    try:
+        return str(data.get("org_id") or data.get("tenant_id") or "default")
+    except Exception:
+        return "default"
 
 
 async def _handle_finding_created(data: Dict[str, Any]) -> bool:
-    """Route finding.created / finding.updated to UniversalFindingIndexer."""
+    """Route finding.created / finding.updated to UniversalFindingIndexer.
+
+    Always returns True (indicating "no retry needed"); failures are logged
+    but never raised so the bus is never destabilised.
+    """
     try:
         # Ensure engine key exists (required by FindingInput)
         if "engine" not in data:
             data = {**data, "engine": data.get("scanner", "api")}
-        indexer = _get_finding_indexer()
+        indexer = _get_finding_indexer(org_id=_payload_org_id(data))
         entity_id = indexer.index(data)
         logger.debug("event_bus: indexed finding", entity_id=entity_id)
-        return True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — handlers must never raise
         logger.warning("event_bus: finding index failed", error=str(exc))
-        return False
+    return True
 
 
 async def _handle_asset_discovered(data: Dict[str, Any]) -> bool:
     """Route asset.discovered to TrustGraphBackbone.index_asset()."""
     try:
-        backbone = _get_backbone()
+        backbone = _get_backbone(org_id=_payload_org_id(data))
         entity_id = backbone.index_asset(data)
         logger.debug("event_bus: indexed asset", entity_id=entity_id)
-        return True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("event_bus: asset index failed", error=str(exc))
-        return False
+    return True
 
 
 async def _handle_incident_created(data: Dict[str, Any]) -> bool:
     """Route incident.created to TrustGraphBackbone.index_incident()."""
     try:
-        backbone = _get_backbone()
+        backbone = _get_backbone(org_id=_payload_org_id(data))
         entity_id = backbone.index_incident(data)
         logger.debug("event_bus: indexed incident", entity_id=entity_id)
-        return True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("event_bus: incident index failed", error=str(exc))
-        return False
+    return True
 
 
 async def _handle_control_assessed(data: Dict[str, Any]) -> bool:
     """Route control.assessed to TrustGraphBackbone.index_compliance_control()."""
     try:
-        backbone = _get_backbone()
+        backbone = _get_backbone(org_id=_payload_org_id(data))
         entity_id = backbone.index_compliance_control(data)
         logger.debug("event_bus: indexed control", entity_id=entity_id)
-        return True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("event_bus: control index failed", error=str(exc))
-        return False
+    return True
 
 
 async def _handle_vendor_updated(data: Dict[str, Any]) -> bool:
     """Route vendor.updated to TrustGraphBackbone.index_vendor() if available."""
     try:
-        backbone = _get_backbone()
+        backbone = _get_backbone(org_id=_payload_org_id(data))
         if hasattr(backbone, "index_vendor"):
             entity_id = backbone.index_vendor(data)
         else:
@@ -538,28 +546,86 @@ async def _handle_vendor_updated(data: Dict[str, Any]) -> bool:
             data_copy = {**data, "type": "vendor"}
             entity_id = backbone.index_asset(data_copy)
         logger.debug("event_bus: indexed vendor", entity_id=entity_id)
-        return True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("event_bus: vendor index failed", error=str(exc))
-        return False
+    return True
 
 
 async def _handle_actor_identified(data: Dict[str, Any]) -> bool:
     """Route actor.identified to TrustGraphBackbone.index_threat_actor() if available."""
     try:
-        backbone = _get_backbone()
+        backbone = _get_backbone(org_id=_payload_org_id(data))
         if hasattr(backbone, "index_threat_actor"):
             entity_id = backbone.index_threat_actor(data)
         else:
             # Fallback: index as finding with engine=threat_intel
             data_copy = {**data, "engine": "threat_intel"}
-            indexer = _get_finding_indexer()
+            indexer = _get_finding_indexer(org_id=_payload_org_id(data))
             entity_id = indexer.index(data_copy)
         logger.debug("event_bus: indexed threat actor", entity_id=entity_id)
-        return True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("event_bus: actor index failed", error=str(exc))
-        return False
+    return True
+
+
+async def _handle_cve_discovered(data: Dict[str, Any]) -> bool:
+    """Route cve.discovered to UniversalFindingIndexer as a feed-derived finding.
+
+    CVE events come from threat-intel feeds; we surface them as findings with
+    engine=feed and entity_type=cve so they show up in dashboards alongside
+    scanner-derived findings.
+    """
+    try:
+        merged = {**data, "engine": data.get("engine") or "feed", "entity_type": "cve"}
+        indexer = _get_finding_indexer(org_id=_payload_org_id(data))
+        entity_id = indexer.index(merged)
+        logger.debug("event_bus: indexed cve", entity_id=entity_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("event_bus: cve index failed", error=str(exc))
+    return True
+
+
+async def _handle_risk_assessed(data: Dict[str, Any]) -> bool:
+    """Route risk.assessed to KnowledgeBrain as a FINDING-typed risk node.
+
+    Risk assessments are first-class entities in the brain; we add them as
+    Finding nodes so they participate in cross-domain queries. Falls back
+    to the universal indexer if the brain import fails.
+    """
+    try:
+        from core.knowledge_brain import EntityType, KnowledgeBrain
+
+        org = _payload_org_id(data)
+        brain = KnowledgeBrain(org_id=org) if "org_id" in KnowledgeBrain.__init__.__code__.co_varnames else KnowledgeBrain()
+        node_id = data.get("id") or data.get("risk_id") or f"risk_{uuid_hex()}"
+        name = data.get("title") or data.get("name") or str(node_id)
+        try:
+            brain.add_node(
+                node_id=str(node_id),
+                entity_type=EntityType.FINDING,
+                name=name,
+                properties={k: v for k, v in data.items() if k not in {"id", "name"}},
+            )
+        except TypeError:
+            # KnowledgeBrain.add_node signature varies across versions; degrade
+            # gracefully to the universal indexer below.
+            raise
+        logger.debug("event_bus: indexed risk", node_id=node_id)
+    except Exception as exc:  # noqa: BLE001 — fall back to indexer, never raise
+        logger.debug("event_bus: KnowledgeBrain risk index failed, using indexer", error=str(exc))
+        try:
+            merged = {**data, "engine": data.get("engine") or "risk_engine"}
+            indexer = _get_finding_indexer(org_id=_payload_org_id(data))
+            indexer.index(merged)
+        except Exception as exc2:  # noqa: BLE001
+            logger.warning("event_bus: risk fallback index failed", error=str(exc2))
+    return True
+
+
+def uuid_hex() -> str:
+    """Short uuid hex helper (kept module-local to avoid extra imports at load)."""
+    import uuid as _uuid
+    return _uuid.uuid4().hex[:8]
 
 
 # Default handler registry
@@ -571,6 +637,8 @@ _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
     EVENT_CONTROL_ASSESSED: _handle_control_assessed,
     EVENT_VENDOR_UPDATED: _handle_vendor_updated,
     EVENT_ACTOR_IDENTIFIED: _handle_actor_identified,
+    EVENT_CVE_DISCOVERED: _handle_cve_discovered,
+    EVENT_RISK_ASSESSED: _handle_risk_assessed,
 }
 
 
@@ -867,13 +935,32 @@ def get_event_bus() -> EventBus:
     return _bus_instance
 
 
-def _register_default_handlers(bus: EventBus) -> None:
-    """Register all default TrustGraph indexing handlers."""
+def register_default_handlers(bus: EventBus) -> None:
+    """Register all default TrustGraph indexing handlers on the given bus.
+
+    Idempotent: only attaches a default handler if no handler is already
+    registered for that event type. Safe to call multiple times.
+
+    Wired here:
+      - finding.created  → UniversalFindingIndexer.index
+      - finding.updated  → UniversalFindingIndexer.index
+      - asset.discovered → TrustGraphBackbone.index_asset
+      - incident.created → TrustGraphBackbone.index_incident
+      - control.assessed → TrustGraphBackbone.index_compliance_control
+      - vendor.updated   → TrustGraphBackbone.index_vendor (fallback: index_asset)
+      - actor.identified → TrustGraphBackbone.index_threat_actor (fallback: indexer)
+      - cve.discovered   → UniversalFindingIndexer.index (engine=feed, entity_type=cve)
+      - risk.assessed    → KnowledgeBrain.add_node (EntityType.FINDING; fallback: indexer)
+    """
     for event_type, handler in _DEFAULT_HANDLERS.items():
         # Only register if no handlers already registered for this event type
         if not bus._handlers.get(event_type):
             bus.on(event_type, handler)
-    logger.info("TrustGraph EventBus: default handlers registered")
+    logger.info("TrustGraph event bus: default handlers registered")
+
+
+# Backwards-compat alias for the previous private name
+_register_default_handlers = register_default_handlers
 
 
 # ---------------------------------------------------------------------------
@@ -1086,10 +1173,16 @@ def init_event_bus(app: Any) -> EventBus:
     app.add_middleware(ResponseInterceptorMiddleware, bus=bus)
     logger.info("TrustGraph EventBus: ResponseInterceptorMiddleware wired")
 
-    # Register handlers at startup so they're ready before requests arrive
+    # Register default handlers immediately so any synchronous emit() during
+    # startup (or in CLI / non-FastAPI contexts) is wired even before the
+    # FastAPI startup event fires.
+    register_default_handlers(bus)
+
+    # Re-register at startup (idempotent) and flush any events that were
+    # queued before TrustGraph came online.
     @app.on_event("startup")
     async def _startup_register_handlers() -> None:
-        _register_default_handlers(bus)
+        register_default_handlers(bus)
         # Flush any events queued from a previous run
         result = await bus.flush_queue()
         if result["attempted"] > 0:
@@ -1101,3 +1194,29 @@ def init_event_bus(app: Any) -> EventBus:
             )
 
     return bus
+
+
+# ---------------------------------------------------------------------------
+# Module-load registration (CLI / non-FastAPI contexts)
+# ---------------------------------------------------------------------------
+# When the module is imported in CLI mode (no FastAPI app), the singleton
+# bus is still created on first get_event_bus() call. Wire default handlers
+# at that point so emit() fires real handlers even outside a FastAPI app.
+# Skipped under FIXOPS_TEST_MODE so unit tests can exercise empty-bus paths.
+
+def _eager_register_at_module_load() -> None:
+    if os.getenv("FIXOPS_TEST_MODE", "0") == "1":
+        return
+    if os.getenv("TRUSTGRAPH_EVENT_BUS_ENABLED", "1") == "0":
+        return
+    if os.getenv("TRUSTGRAPH_EVENT_BUS_AUTO_REGISTER", "1") == "0":
+        return
+    try:
+        bus = get_event_bus()
+        if bus.enabled:
+            register_default_handlers(bus)
+    except Exception as exc:  # noqa: BLE001 — never crash on import
+        logger.debug("TrustGraph EventBus: module-load registration skipped", error=str(exc))
+
+
+_eager_register_at_module_load()
