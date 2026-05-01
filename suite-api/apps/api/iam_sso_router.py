@@ -26,6 +26,13 @@ from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "iam_sso_connector",
+    "real_integration_required": "/api/v1/connectors/iam-sso/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(
     prefix="/api/v1/connectors/iam-sso",
     tags=["IAM/SSO Connector"],
@@ -129,7 +136,7 @@ def sync(req: SyncRequest) -> Dict[str, Any]:
         logger.exception("IAM/SSO sync failed")
         raise HTTPException(status_code=500, detail=f"sync_failed: {exc}") from exc
     _last_result = result.to_dict()
-    return _last_result
+    return {"data": _last_result, "_simulation_warning": _SIMULATION_WARNING}
 
 
 @router.get("/status")

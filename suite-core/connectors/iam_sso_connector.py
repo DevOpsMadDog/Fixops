@@ -1,4 +1,21 @@
-"""IAM / SSO Real Connector — ALDECI.
+"""
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This connector generates synthetic IAM/SSO events for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- _gen_login_event / _gen_admin_event (lines 419-451) produce synthetic events
+  matching Keycloak audit JSON schema — not from a real Keycloak instance.
+- Fallback synthetic path activates when Docker/Keycloak is unavailable.
+- Real implementation requires: live Keycloak instance (self-hosted or cloud),
+  or direct Okta/Auth0/Entra API integration.
+  Configure via /api/v1/connectors/iam-sso/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
+IAM / SSO Real Connector — ALDECI.
 
 Replaces stub IAM/SSO integrations (Okta, Auth0, Microsoft Entra, OneLogin,
 Google Workspace) with a single Keycloak-backed real implementation.
@@ -53,6 +70,11 @@ import urllib.request
 from connectors._emit import emit_connector_event
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — IAM/SSO events are synthetic (Keycloak fallback); do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/iam-sso/configure",
+    __name__,
+)
 
 
 # ---------------------------------------------------------------------------
