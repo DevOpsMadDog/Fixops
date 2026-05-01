@@ -27,8 +27,10 @@ Thread-safe via RLock. Multi-tenant via org_id. WAL journal mode.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import math
+import os
 import sqlite3
 import threading
 import uuid
@@ -41,8 +43,17 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     _get_tg_bus = None
 
+try:
+    import requests as _requests  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    _requests = None  # type: ignore
+
 
 _logger = logging.getLogger(__name__)
+
+# MalwareBazaar (abuse.ch) public API — no API key required.
+_MALWAREBAZAAR_URL = "https://mb-api.abuse.ch/api/v1/"
+_SYNTHETIC_SOURCE = "seed:synthetic-placeholder"
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "binary_fingerprint.db"
@@ -56,35 +67,35 @@ _KNOWN_BAD_SEED: List[Dict[str, str]] = [
         "tlsh_hash": "T1" + "A" * 70,
         "ssdeep_hash": "3:MirA1VariantTestPlaceHolder:MirA1VariantTest",
         "threat_label": "mirai-variant-test-placeholder",
-        "source": "seed:placeholder",
+        "source": _SYNTHETIC_SOURCE,
     },
     {
         "sha256": "b" * 64,
         "tlsh_hash": "T1" + "B" * 70,
         "ssdeep_hash": "6:EmotetTestPlaceHolder:EmotetTestPH",
         "threat_label": "emotet-like-test-placeholder",
-        "source": "seed:placeholder",
+        "source": _SYNTHETIC_SOURCE,
     },
     {
         "sha256": "c" * 64,
         "tlsh_hash": "T1" + "C" * 70,
         "ssdeep_hash": "12:LokiBotTestPlaceHolder:LokiBotTestPH",
         "threat_label": "lokibot-test-placeholder",
-        "source": "seed:placeholder",
+        "source": _SYNTHETIC_SOURCE,
     },
     {
         "sha256": "d" * 64,
         "tlsh_hash": "T1" + "D" * 70,
         "ssdeep_hash": "24:TrickBotTestPlaceHolder:TrickBotTestPH",
         "threat_label": "trickbot-test-placeholder",
-        "source": "seed:placeholder",
+        "source": _SYNTHETIC_SOURCE,
     },
     {
         "sha256": "e" * 64,
         "tlsh_hash": "T1" + "E" * 70,
         "ssdeep_hash": "48:RansomNoteTestPlaceHolder:RansomTestPH",
         "threat_label": "ransomware-test-placeholder",
-        "source": "seed:placeholder",
+        "source": _SYNTHETIC_SOURCE,
     },
 ]
 
@@ -276,7 +287,19 @@ class BinaryFingerprintEngine:
         return conn
 
     def _seed_known_bad_once(self) -> None:
-        """Populate known_bad_fingerprints with 5 synthetic placeholders."""
+        """Populate known_bad_fingerprints — real feed first, synthetic fallback.
+
+        Behavior:
+            * If the table already has rows → no-op.
+            * Else if FIXOPS_AIR_GAP=1 AND MalwareBazaar is unreachable
+              (or returns no usable rows) → seed the 5 synthetic placeholders
+              tagged ``source="seed:synthetic-placeholder"``.
+            * Else (online and DB empty) → call ``sync_malwarebazaar_feed()``
+              once to populate from the real feed. No synthetic placeholders.
+            * Final fallback: if even the online sync produced 0 rows AND
+              we are running air-gapped, still seed synthetic so the engine
+              has *something* to match against in offline demos.
+        """
         if self._seeded:
             return
         with self._lock:
@@ -286,8 +309,41 @@ class BinaryFingerprintEngine:
                 existing = conn.execute(
                     "SELECT COUNT(*) FROM known_bad_fingerprints"
                 ).fetchone()[0]
-                if existing == 0:
-                    now = _now()
+            if existing > 0:
+                self._seeded = True
+                return
+
+            airgap = os.environ.get("FIXOPS_AIR_GAP", "0").strip() in {
+                "1",
+                "true",
+                "True",
+                "yes",
+            }
+
+            imported = 0
+            mb_reachable = False
+            if not airgap:
+                try:
+                    imported = self.sync_malwarebazaar_feed()
+                    mb_reachable = imported > 0
+                except Exception:  # pragma: no cover - defence in depth
+                    imported = 0
+                    mb_reachable = False
+            else:
+                # In air-gap mode we still attempt a probe so we can decide
+                # whether to fall back to synthetic — but it MUST NOT raise.
+                try:
+                    imported = self.sync_malwarebazaar_feed()
+                    mb_reachable = imported > 0
+                except Exception:  # pragma: no cover
+                    imported = 0
+                    mb_reachable = False
+
+            # Synthetic fallback only when air-gapped AND MalwareBazaar
+            # produced nothing usable.
+            if airgap and not mb_reachable:
+                now = _now()
+                with self._conn() as conn:
                     for row in _KNOWN_BAD_SEED:
                         conn.execute(
                             """INSERT OR IGNORE INTO known_bad_fingerprints
@@ -305,6 +361,194 @@ class BinaryFingerprintEngine:
                             ),
                         )
             self._seeded = True
+
+    # ------------------------------------------------------------------
+    # Known-bad feed sync (MalwareBazaar / abuse.ch)
+    # ------------------------------------------------------------------
+
+    def _upsert_known_bad(self, row: Dict[str, Any]) -> None:
+        """Insert or replace a known-bad row keyed on sha256.
+
+        Thread-safe + WAL via the engine's RLock and connection helper.
+        Silent on bad input — refuses to write if sha256 is blank.
+        """
+        sha256 = (row.get("sha256") or "").strip().lower()
+        if not sha256:
+            return
+        tlsh_hash = (row.get("tlsh_hash") or "").strip()
+        ssdeep_hash = (row.get("ssdeep_hash") or "").strip()
+        threat_label = (row.get("threat_label") or "unknown").strip() or "unknown"
+        source = (row.get("source") or "").strip() or "unknown"
+        now = _now()
+        with self._lock:
+            with self._conn() as conn:
+                # INSERT OR REPLACE keyed on sha256 unique index.
+                existing = conn.execute(
+                    "SELECT id FROM known_bad_fingerprints WHERE sha256=?",
+                    (sha256,),
+                ).fetchone()
+                if existing:
+                    conn.execute(
+                        """UPDATE known_bad_fingerprints
+                           SET tlsh_hash=?, ssdeep_hash=?, threat_label=?,
+                               source=?, added_at=?
+                           WHERE sha256=?""",
+                        (tlsh_hash, ssdeep_hash, threat_label, source, now, sha256),
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO known_bad_fingerprints
+                           (id, sha256, tlsh_hash, ssdeep_hash,
+                            threat_label, source, added_at)
+                           VALUES (?,?,?,?,?,?,?)""",
+                        (
+                            str(uuid.uuid4()),
+                            sha256,
+                            tlsh_hash,
+                            ssdeep_hash,
+                            threat_label,
+                            source,
+                            now,
+                        ),
+                    )
+
+    def sync_malwarebazaar_feed(self, limit: int = 1000) -> int:
+        """Pull the most recent N samples from MalwareBazaar (abuse.ch).
+
+        Public endpoint. As of 2024 abuse.ch requires an Auth-Key header
+        for ``get_recent`` queries — set ``MALWAREBAZAAR_API_KEY`` env var
+        to a free key from https://auth.abuse.ch/. When unset, the request
+        still goes out (returns 401, we treat as 0) so the engine remains
+        usable in air-gap test mode without leaking errors.
+
+        Returns:
+            int — number of samples successfully upserted.
+
+        Never raises — returns 0 on any network/parse/auth failure.
+        """
+        if _requests is None:
+            return 0
+        try:
+            headers = {}
+            api_key = os.environ.get("MALWAREBAZAAR_API_KEY", "").strip()
+            if api_key:
+                headers["Auth-Key"] = api_key
+            resp = _requests.post(
+                _MALWAREBAZAAR_URL,
+                data={
+                    "query": "get_recent",
+                    "selector": "time",
+                    "limit": int(max(1, min(int(limit or 1000), 1000))),
+                },
+                headers=headers,
+                timeout=30,
+            )
+            if resp.status_code != 200:
+                return 0
+            try:
+                payload = resp.json()
+            except Exception:
+                return 0
+            if not isinstance(payload, dict):
+                return 0
+            if payload.get("query_status") != "ok":
+                return 0
+            samples = payload.get("data") or []
+            if not isinstance(samples, list):
+                return 0
+            count = 0
+            for sample in samples:
+                if not isinstance(sample, dict):
+                    continue
+                sha256 = (sample.get("sha256_hash") or "").strip().lower()
+                if not sha256:
+                    continue
+                tags = sample.get("tags") or []
+                if not isinstance(tags, list):
+                    tags = []
+                threat_label = (
+                    sample.get("signature")
+                    or (tags[0] if tags else None)
+                    or "unknown"
+                )
+                try:
+                    self._upsert_known_bad(
+                        {
+                            "sha256": sha256,
+                            "tlsh_hash": sample.get("tlsh", "") or "",
+                            "ssdeep_hash": sample.get("ssdeep", "") or "",
+                            "threat_label": threat_label,
+                            "source": "malwarebazaar",
+                        }
+                    )
+                    count += 1
+                except Exception:
+                    # never abort the whole sync over one bad row
+                    continue
+            return count
+        except Exception:
+            return 0
+
+    def sync_from_local_feed(self, feed_path: str) -> int:
+        """Import a local MalwareBazaar-shaped JSON export (air-gap / USB).
+
+        Accepts either a top-level ``{"data": [...]}`` envelope OR a bare
+        list of sample dicts. Each sample uses the same field names as the
+        MalwareBazaar HTTP API (``sha256_hash``, ``tlsh``, ``ssdeep``,
+        ``signature``, ``tags``).
+
+        Returns:
+            int — number of samples successfully upserted. 0 on any error.
+
+        Never raises.
+        """
+        try:
+            path = Path(feed_path)
+            if not path.is_file():
+                return 0
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                return 0
+            if isinstance(payload, list):
+                samples = payload
+            elif isinstance(payload, dict):
+                samples = payload.get("data") or []
+            else:
+                samples = []
+            if not isinstance(samples, list):
+                return 0
+            count = 0
+            for sample in samples:
+                if not isinstance(sample, dict):
+                    continue
+                sha256 = (sample.get("sha256_hash") or "").strip().lower()
+                if not sha256:
+                    continue
+                tags = sample.get("tags") or []
+                if not isinstance(tags, list):
+                    tags = []
+                threat_label = (
+                    sample.get("signature")
+                    or (tags[0] if tags else None)
+                    or "unknown"
+                )
+                try:
+                    self._upsert_known_bad(
+                        {
+                            "sha256": sha256,
+                            "tlsh_hash": sample.get("tlsh", "") or "",
+                            "ssdeep_hash": sample.get("ssdeep", "") or "",
+                            "threat_label": threat_label,
+                            "source": "malwarebazaar:local-feed",
+                        }
+                    )
+                    count += 1
+                except Exception:
+                    continue
+            return count
+        except Exception:
+            return 0
 
     # ------------------------------------------------------------------
     # Fingerprint computation

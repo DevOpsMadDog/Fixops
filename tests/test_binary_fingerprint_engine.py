@@ -277,9 +277,16 @@ def test_check_known_bad_returns_none_for_clean_blob(engine):
     assert verdict is None
 
 
-def test_check_known_bad_seeds_registry(engine):
-    # Trigger seeding
-    engine.check_known_bad(b"nothing")
+def test_check_known_bad_seeds_registry(engine, monkeypatch):
+    # Force air-gap + unreachable MalwareBazaar so the synthetic placeholders
+    # are the seeded source-of-truth (new contract — see MalwareBazaar tests).
+    monkeypatch.setenv("FIXOPS_AIR_GAP", "1")
+    from unittest.mock import patch
+    with patch(
+        "core.binary_fingerprint_engine._requests.post",
+        side_effect=ConnectionError("offline"),
+    ):
+        engine.check_known_bad(b"nothing")
     import sqlite3
     conn = sqlite3.connect(engine.db_path)
     count = conn.execute("SELECT COUNT(*) FROM known_bad_fingerprints").fetchone()[0]
@@ -288,21 +295,19 @@ def test_check_known_bad_seeds_registry(engine):
 
 
 def test_check_known_bad_exact_match_records_event(engine):
-    # Contrive a blob whose sha256 is one of the seed sha256 values.
-    # Since seeds use synthetic "a"*64 etc., we inject a matching seed
-    # via direct DB tweak: register a real blob, then override one seed
-    # entry to carry that blob's sha256 — so we can test the exact-match path.
-    engine.check_known_bad(b"seed-me")  # force seeding
-    import sqlite3
+    # New contract: directly upsert a known-bad entry rather than relying on
+    # the auto-seed (which now defers to MalwareBazaar when online).
     blob = b"bad-artifact-v1"
     sha = hashlib.sha256(blob).hexdigest()
-    conn = sqlite3.connect(engine.db_path)
-    conn.execute(
-        "UPDATE known_bad_fingerprints SET sha256=? WHERE threat_label=?",
-        (sha, "mirai-variant-test-placeholder"),
+    engine._upsert_known_bad(
+        {
+            "sha256": sha,
+            "tlsh_hash": "T1" + "A" * 70,
+            "ssdeep_hash": "3:abc:def",
+            "threat_label": "mirai-variant-test-placeholder",
+            "source": "test:fixture",
+        }
     )
-    conn.commit()
-    conn.close()
     verdict = engine.check_known_bad(blob, org_id="orgZ", candidate_id="candZ")
     assert verdict is not None
     assert verdict["verdict"] == "known_bad"
@@ -313,19 +318,18 @@ def test_check_known_bad_exact_match_records_event(engine):
 
 
 def test_check_known_bad_approx_match_when_tlsh_close(engine):
-    # Register a near-match by updating a seed tlsh to equal blob's tlsh.
-    engine.check_known_bad(b"seed-me")  # seed
+    # New contract: seed an entry whose tlsh equals the query blob's tlsh.
     blob = b"blob-for-near-match" * 40
     tlsh = _compute_tlsh_approx(blob)
-    import sqlite3
-    conn = sqlite3.connect(engine.db_path)
-    # make the seed row's tlsh equal to the query blob's tlsh, but sha256 differ
-    conn.execute(
-        "UPDATE known_bad_fingerprints SET tlsh_hash=?, sha256=? WHERE threat_label=?",
-        (tlsh, "9" * 64, "emotet-like-test-placeholder"),
+    engine._upsert_known_bad(
+        {
+            "sha256": "9" * 64,
+            "tlsh_hash": tlsh,
+            "ssdeep_hash": "6:near:match",
+            "threat_label": "emotet-like-test-placeholder",
+            "source": "test:fixture",
+        }
     )
-    conn.commit()
-    conn.close()
     verdict = engine.check_known_bad(blob, org_id="orgA")
     assert verdict is not None
     assert verdict["match_type"] in ("exact", "tlsh_approx")
