@@ -232,6 +232,221 @@ class AIPoweredSOCEngine:
             rows = conn.execute(query, params).fetchall()
         return [self._row(r) for r in rows]
 
+    # ------------------------------------------------------------------
+    # Type-a #27 — DefenderXDR (live Microsoft Graph) fallback
+    # ------------------------------------------------------------------
+    # Mapping from Defender XDR finding_type → ALDECI source_data_type
+    _DEFENDER_TYPE_TO_SOURCE: Dict[str, str] = {
+        "malware":          "endpoint",
+        "secret-exposure":  "identity",
+        "data-leak":        "cloud",
+        "policy-violation": "logs",
+        "vulnerability":    "endpoint",
+        "anomaly":          "logs",
+    }
+
+    def _project_defender_alert_as_detection(
+        self, alert: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Project a normalized Defender XDR alert into an aisoc_detection row.
+
+        Returns None if the alert doesn't carry the required minimum (title +
+        severity in our valid set).
+        """
+        if not isinstance(alert, dict):
+            return None
+        title = str(alert.get("title") or "").strip()
+        if not title:
+            return None
+        severity = alert.get("severity")
+        if severity not in _VALID_SEVERITIES:
+            # Defender's "informational" or "info" → "low".
+            severity = "low" if severity in ("informational", "info") else None
+        if severity is None:
+            return None
+        finding_type = alert.get("finding_type") or "anomaly"
+        source_data_type = self._DEFENDER_TYPE_TO_SOURCE.get(finding_type, "logs")
+        # CVSS proxy 0..10 → confidence 0..100.
+        try:
+            cvss = float(alert.get("cvss_score") or 5.0)
+        except (TypeError, ValueError):
+            cvss = 5.0
+        confidence = self._clamp(round(cvss * 10.0, 2))
+        alert_id = str(alert.get("alert_id") or alert.get("correlation_key") or "").strip()
+        return {
+            "id":                  f"defender_xdr|{alert_id}" if alert_id else None,
+            "detection_name":      title[:255],
+            "model_type":          "rule_based",
+            "confidence_score":    confidence,
+            "severity":            severity,
+            "source_data_type":    source_data_type,
+            "status":              "new",
+            "auto_triaged":        False,
+            "triage_time_seconds": 0,
+            "created_at":          alert.get("ingested_at") or self._now(),
+            "resolved_at":         None,
+            "source":              "defender_xdr",
+            "alert_id":            alert_id,
+            "asset_id":            alert.get("asset_id", ""),
+            "asset_type":          alert.get("asset_type", ""),
+            "correlation_key":     alert.get("correlation_key", ""),
+        }
+
+    def list_detections_with_xdr_fallback(
+        self,
+        org_id: str,
+        severity: Optional[str] = None,
+        status: Optional[str] = None,
+        source_data_type: Optional[str] = None,
+        xdr_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List AI-SOC detections; fall back to Microsoft Defender XDR live alerts.
+
+        Behavior (ranked):
+
+        1. Org has registered detections → ``source="org_registered"``.
+        2. Else, if a DefenderXDR live connector is available *and* its OAuth
+           creds are present, call ``fetch_alerts()`` and project each alert
+           into an ``aps_detection`` shape → ``source="defender_xdr"``.
+        3. Else if creds *or* the SDK are missing → ``source="needs_credentials"``
+           with a structured hint. NEVER mocks.
+        4. Connector returned ``status != "ok"`` (e.g. ``api_error``) →
+           ``source="connector_error"``.
+        5. Connector OK but returned zero alerts → ``source="needs_data"``.
+
+        Filters apply against the projected rows in modes 2/4/5 too.
+        """
+        if not isinstance(org_id, str) or not org_id.strip():
+            raise ValueError("org_id is required")
+
+        org_rows = self.list_detections(
+            org_id,
+            severity=severity,
+            status=status,
+            source_data_type=source_data_type,
+        )
+        if org_rows:
+            return {
+                "detections": org_rows,
+                "total":      len(org_rows),
+                "source":     "org_registered",
+            }
+
+        # Resolve connector lazily if not injected (test seam).
+        creds_present = False
+        connector_unavailable_reason: Optional[str] = None
+        if xdr_connector is None:
+            try:
+                from connectors.defender_xdr_live_connector import (  # type: ignore
+                    _creds_present,
+                    get_defender_xdr_live_connector,
+                )
+                creds_present = bool(_creds_present())
+                if creds_present:
+                    xdr_connector = get_defender_xdr_live_connector()
+            except (ImportError, RuntimeError) as exc:
+                connector_unavailable_reason = f"connector_import_failed: {exc}"
+        else:
+            # When injected, treat creds as present so callers can drive the
+            # full path in tests.
+            creds_present = True
+
+        if not creds_present or xdr_connector is None:
+            return {
+                "detections": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Set DEFENDER_TENANT_ID, DEFENDER_CLIENT_ID, "
+                    "DEFENDER_CLIENT_SECRET to enable Microsoft Defender XDR "
+                    "live alert ingestion, or POST /api/v1/ai-soc/detections "
+                    "to record a detection manually."
+                ),
+                **({"reason": connector_unavailable_reason}
+                   if connector_unavailable_reason else {}),
+            }
+
+        try:
+            payload = xdr_connector.fetch_alerts(org_id)
+        except Exception as exc:  # noqa: BLE001 - never let connector crash list view
+            _logger.warning(
+                "DefenderXDR fetch_alerts failed for org=%s: %s", org_id, exc
+            )
+            return {
+                "detections": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(exc)[:500],
+                "hint": "DefenderXDR API call failed; retry once token/network available.",
+            }
+
+        if not isinstance(payload, dict):
+            return {
+                "detections": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": "fetch_alerts returned non-dict payload",
+            }
+
+        connector_status = payload.get("status", "ok")
+        if connector_status == "needs_credentials":
+            return {
+                "detections": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": payload.get(
+                    "hint",
+                    "DefenderXDR connector reports missing credentials.",
+                ),
+            }
+        if connector_status != "ok":
+            return {
+                "detections": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(payload.get("error", connector_status))[:500],
+            }
+
+        raw_alerts = payload.get("alerts") or []
+        derived: List[Dict[str, Any]] = []
+        seen_ids: set = set()
+        for alert in raw_alerts:
+            row = self._project_defender_alert_as_detection(alert)
+            if row is None:
+                continue
+            # Dedup on alert_id when present (defender alert_ids are stable).
+            ak = row.get("alert_id") or row.get("id") or row["detection_name"]
+            if ak in seen_ids:
+                continue
+            seen_ids.add(ak)
+            derived.append(row)
+
+        if not derived:
+            return {
+                "detections": [],
+                "total": 0,
+                "source": "needs_data",
+                "hint": (
+                    "DefenderXDR connector returned no alerts. Trigger a fresh "
+                    "pull or wait for new Microsoft Graph events."
+                ),
+            }
+
+        # Apply filters against derived rows.
+        if severity:
+            derived = [r for r in derived if r["severity"] == severity]
+        if status:
+            derived = [r for r in derived if r["status"] == status]
+        if source_data_type:
+            derived = [r for r in derived if r["source_data_type"] == source_data_type]
+
+        return {
+            "detections": derived,
+            "total":      len(derived),
+            "source":     "defender_xdr",
+            "ingested_at": payload.get("ingested_at"),
+        }
+
     def triage_detection(
         self,
         org_id: str,

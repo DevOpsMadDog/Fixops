@@ -135,17 +135,20 @@ def list_detections(
     status: Optional[str] = Query(default=None),
     source_data_type: Optional[str] = Query(default=None),
 ):
-    """List detections with optional severity/status/source filters."""
-    rows = _get_engine().list_detections(
-        org_id, severity=severity, status=status, source_data_type=source_data_type
+    """List detections with optional severity/status/source filters.
+
+    Type-a #27 wiring: when the org has no registered detections, the engine
+    will fall back to Microsoft Defender XDR live alerts (when
+    DEFENDER_TENANT_ID/CLIENT_ID/CLIENT_SECRET env vars are set). NEVER mocks;
+    returns a 5-state envelope (org_registered / defender_xdr /
+    needs_credentials / needs_data / connector_error).
+    """
+    return _get_engine().list_detections_with_xdr_fallback(
+        org_id,
+        severity=severity,
+        status=status,
+        source_data_type=source_data_type,
     )
-    if not rows:
-        return {
-            "detections": [],
-            "total": 0,
-            "hint": "AI-SOC detections are populated by XDR/SIEM connectors (not yet implemented). Record a detection manually via POST /api/v1/ai-soc/detections.",
-        }
-    return {"detections": rows, "total": len(rows)}
 
 
 @router.put("/detections/{detection_id}/triage", dependencies=[Depends(api_key_auth)])
