@@ -27,6 +27,13 @@ from core.config_benchmark_engine import ConfigBenchmarkEngine
 
 logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "config_benchmark_engine",
+    "real_integration_required": "/api/v1/connectors/config-benchmark/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(prefix="/api/v1/config-benchmark", tags=["config-benchmark"])
 
 _engine = None  # lazy-initialised on first request
@@ -124,7 +131,7 @@ async def run_assessment(
     result = _get_engine().run_assessment(org_id, profile_id, body.target_name)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
-    return result
+    return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
 
 
 @router.get("/assessments", summary="List assessments")

@@ -1,4 +1,20 @@
-"""Security Configuration Benchmark Engine — ALDECI.
+"""
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates seeded-random pass/fail benchmark results for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- Assessment results (line 296) use random.Random(result_id) with ~65% pass rate —
+  not from real CIS-CAT, OpenSCAP, or DISA-STIG scanner output.
+- Real implementation requires: CIS-CAT Pro, OpenSCAP, Lynis, or cloud-native
+  benchmark tools (AWS Security Hub, Azure Policy, GCP Security Command Center).
+  Configure via /api/v1/connectors/config-benchmark/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
+Security Configuration Benchmark Engine — ALDECI.
 
 Manages CIS/DISA-STIG/NIST 800-53/PCI-DSS benchmark profiles and checks,
 runs mock assessments, and tracks compliance scores.
@@ -24,6 +40,11 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
+_logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — benchmark pass/fail uses seeded random; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/config-benchmark/configure",
+    __name__,
+)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "config_benchmark.db"
