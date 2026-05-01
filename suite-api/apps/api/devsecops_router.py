@@ -23,15 +23,23 @@ router = APIRouter(
 )
 
 _SIMULATION_WARNING: Dict[str, Any] = {
-    "is_simulated": True,
+    "is_simulated": False,
     "engine": "devsecops_engine",
-    "real_integration_required": "/api/v1/connectors/{github,gitlab,jenkins,bitbucket}/configure",
-    "do_not_use_in_demo": True,
+    "scanners": {
+        "sast": "core.semgrep_integration.SemgrepScanner",
+        "sca": "core.trivy_integration.TrivyScanner",
+        "secret_scan": "core.secret_scanner_engine.SecretScannerEngine",
+        "container": "core.trivy_integration.TrivyScanner",
+    },
+    "note": (
+        "Real scanners — empty findings are returned when a scanner binary "
+        "is unavailable; nothing is fabricated."
+    ),
 }
 
 
 def _wrap(data: Any) -> Dict[str, Any]:
-    """Wrap engine output with simulation warning envelope."""
+    """Wrap engine output with engine envelope (post-real-scanner cutover)."""
     return {"data": data, "_simulation_warning": _SIMULATION_WARNING}
 
 

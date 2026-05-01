@@ -1,22 +1,16 @@
-"""
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates randomized example findings for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- DevSecOps pipeline metrics: requires CI integration via
-  /api/v1/connectors/{github,gitlab,jenkins,bitbucket}/configure
-- Cloud drift detection: requires CSPM connector via
-  /api/v1/connectors/cspm-{aws,azure,gcp}/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
-DevSecOps Pipeline Security Engine — ALDECI.
+"""DevSecOps Pipeline Security Engine — ALDECI.
 
 Tracks CI/CD pipeline security configurations, runs, findings, and gate policies.
 Multi-tenant via org_id. SQLite WAL + threading.RLock for concurrency safety.
+
+Run-trigger pipeline (real, no random):
+  - SAST   via core.semgrep_integration.SemgrepScanner
+  - SCA    via core.trivy_integration.TrivyScanner   (repo mode)
+  - Secrets via core.secret_scanner_engine.SecretScannerEngine
+  - Container via core.trivy_integration.TrivyScanner (image mode)
+
+If a scanner binary / engine is unavailable, the corresponding finding list is
+empty — never fabricated. Findings flow into the Brain Pipeline best-effort.
 """
 
 from __future__ import annotations
@@ -25,7 +19,6 @@ import hashlib
 import hmac
 import json
 import logging
-import random
 import sqlite3
 import threading
 import uuid
@@ -45,11 +38,6 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
-_logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — output is randomized; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/",
-    __name__,
-)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "devsecops.db"
@@ -306,10 +294,12 @@ class DevSecOpsEngine:
     def trigger_run(
         self, org_id: str, pipeline_id: str, data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Trigger a new pipeline run.
+        """Trigger a new pipeline run with REAL scanners.
 
-        Simulates scanner findings based on enabled scanner flags, evaluates
-        gate policies, and sets gate_blocked + final status accordingly.
+        Invokes Semgrep (SAST), Trivy (SCA + container), and the SecretScanner
+        engine (secrets) when enabled on the pipeline. Aggregates findings,
+        evaluates gate policies, persists everything, and best-effort feeds
+        the Brain Pipeline.
         """
         pipeline = self._get_pipeline(org_id, pipeline_id)
         if pipeline is None:
@@ -317,20 +307,95 @@ class DevSecOpsEngine:
 
         run_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
+        repo_url = pipeline.get("repo_url", "") or data.get("repo_url", "")
 
-        # Simulate findings per enabled scanner
-        sast_findings = random.randint(0, 8) if pipeline["sast_enabled"] else 0
-        sca_findings = random.randint(0, 6) if pipeline["sca_enabled"] else 0
-        secret_findings = random.randint(0, 2) if pipeline["secret_scan_enabled"] else 0
-        container_findings = random.randint(0, 4) if pipeline["container_scan_enabled"] else 0
+        sast_findings_list: List[Dict[str, Any]] = []
+        sca_findings_list: List[Dict[str, Any]] = []
+        secret_findings_list: List[Dict[str, Any]] = []
+        container_findings_list: List[Dict[str, Any]] = []
 
-        # Build finding severity breakdown
-        finding_details = self._simulate_finding_severities(
-            pipeline, sast_findings, sca_findings, secret_findings, container_findings
+        # SAST via Semgrep
+        if pipeline["sast_enabled"] and repo_url:
+            try:
+                from core.semgrep_integration import SemgrepScanner
+                scanner = SemgrepScanner()
+                if scanner.is_semgrep_available():
+                    result = scanner.scan_and_ingest(repo_url, org_id)
+                    sast_findings_list = result.get("findings", []) or []
+            except Exception as exc:  # noqa: BLE001
+                _logger.warning("SAST scan failed: %s", exc)
+
+        # SCA via Trivy (repo mode against the configured repo URL)
+        if pipeline["sca_enabled"] and repo_url:
+            try:
+                from core.trivy_integration import TrivyScanner
+                scanner = TrivyScanner()
+                if scanner.is_trivy_available():
+                    result = scanner.scan_and_ingest(repo_url, org_id, scan_type="repo")
+                    sca_findings_list = result.get("findings", []) or []
+            except Exception as exc:  # noqa: BLE001
+                _logger.warning("SCA scan failed: %s", exc)
+
+        # Secret scanning via SecretScannerEngine (per-org instance)
+        if pipeline["secret_scan_enabled"] and repo_url:
+            try:
+                from core.secret_scanner_engine import SecretScannerEngine
+                ss = SecretScannerEngine.for_org(org_id)
+                job = ss.create_scan_job(
+                    org_id, {"target_type": "git_repo", "target_path": repo_url}
+                )
+                ss.start_scan(org_id, job["id"])
+                detail = ss.get_scan_job(org_id, job["id"]) or {}
+                secret_findings_list = detail.get("findings", []) or []
+            except Exception as exc:  # noqa: BLE001
+                _logger.warning("Secret scan failed: %s", exc)
+
+        # Container scanning via Trivy (image mode)
+        if pipeline["container_scan_enabled"]:
+            try:
+                from core.trivy_integration import TrivyScanner
+                scanner = TrivyScanner()
+                if scanner.is_trivy_available():
+                    image = data.get("container_image", "") or ""
+                    if image:
+                        result = scanner.scan_and_ingest(image, org_id, scan_type="image")
+                        container_findings_list = result.get("findings", []) or []
+            except Exception as exc:  # noqa: BLE001
+                _logger.warning("Container scan failed: %s", exc)
+
+        all_findings: List[Dict[str, Any]] = (
+            sast_findings_list
+            + sca_findings_list
+            + secret_findings_list
+            + container_findings_list
         )
-        n_critical = finding_details["critical"]
-        n_high = finding_details["high"]
-        n_medium = finding_details["medium"]
+
+        def _sev(f: Dict[str, Any]) -> str:
+            return (f.get("severity") or "").lower()
+
+        n_critical = sum(1 for f in all_findings if _sev(f) == "critical")
+        n_high = sum(1 for f in all_findings if _sev(f) == "high")
+        n_medium = sum(1 for f in all_findings if _sev(f) == "medium")
+        n_low = sum(1 for f in all_findings if _sev(f) == "low")
+
+        # Build persistable rows for security_findings table
+        scanner_map = [
+            ("sast", sast_findings_list),
+            ("sca", sca_findings_list),
+            ("secret_scan", secret_findings_list),
+            ("container", container_findings_list),
+        ]
+        rows: List[Dict[str, Any]] = []
+        for scanner_type, items in scanner_map:
+            for f in items:
+                rows.append({
+                    "scanner_type": scanner_type,
+                    "severity": _sev(f) or "info",
+                    "title": f.get("title") or f.get("rule_id") or f.get("source_id") or "",
+                    "file_path": f.get("file_path") or "",
+                    "line_number": int(f.get("line_number") or 0),
+                    "cve_id": f.get("cve_id") or "",
+                })
 
         # Evaluate gate policies
         gate_blocked = False
@@ -352,10 +417,10 @@ class DevSecOpsEngine:
             "status": status,
             "started_at": now,
             "completed_at": now,
-            "sast_findings": sast_findings,
-            "sca_findings": sca_findings,
-            "secret_findings": secret_findings,
-            "container_findings": container_findings,
+            "sast_findings": len(sast_findings_list),
+            "sca_findings": len(sca_findings_list),
+            "secret_findings": len(secret_findings_list),
+            "container_findings": len(container_findings_list),
             "gate_blocked": int(gate_blocked),
             "block_reason": block_reason,
         }
@@ -378,63 +443,33 @@ class DevSecOpsEngine:
                         run["container_findings"], run["gate_blocked"], run["block_reason"],
                     ),
                 )
-                # Persist simulated findings
-                self._insert_findings(conn, org_id, run_id, pipeline_id, finding_details["rows"])
+                # Persist real findings
+                self._insert_findings(conn, org_id, run_id, pipeline_id, rows)
 
         run["finding_summary"] = {
             "critical": n_critical,
             "high": n_high,
             "medium": n_medium,
-            "low": finding_details["low"],
+            "low": n_low,
         }
+
+        # Best-effort: feed all_findings into the Brain Pipeline
+        if all_findings:
+            try:
+                from core.brain_pipeline import BrainPipeline, PipelineInput
+                BrainPipeline().run(PipelineInput(
+                    org_id=org_id,
+                    findings=all_findings,
+                    run_pentest=False,
+                    run_playbooks=True,
+                    generate_evidence=False,
+                ))
+            except Exception as exc:  # noqa: BLE001
+                _logger.warning(
+                    "BrainPipeline feed from trigger_run failed: %s", exc
+                )
+
         return run
-
-    def _simulate_finding_severities(
-        self,
-        pipeline: Dict[str, Any],
-        sast_count: int,
-        sca_count: int,
-        secret_count: int,
-        container_count: int,
-    ) -> Dict[str, Any]:
-        """Generate mock findings with severity distribution."""
-        rows: List[Dict[str, Any]] = []
-        critical = high = medium = low = 0
-
-        scanner_map = [
-            ("sast", sast_count, ["SQL Injection", "XSS", "Path Traversal", "SSRF", "RCE"]),
-            ("sca", sca_count, ["Vulnerable dependency", "Outdated package", "License violation"]),
-            ("secret_scan", secret_count, ["Hardcoded API key", "AWS credential", "Private key exposed"]),
-            ("container", container_count, ["Base image CVE", "Privileged container", "Root user"]),
-        ]
-
-        for scanner_type, count, titles in scanner_map:
-            for i in range(count):
-                sev_roll = random.random()
-                if sev_roll < 0.12:
-                    severity = "critical"
-                    critical += 1
-                elif sev_roll < 0.35:
-                    severity = "high"
-                    high += 1
-                elif sev_roll < 0.70:
-                    severity = "medium"
-                    medium += 1
-                else:
-                    severity = "low"
-                    low += 1
-
-                title = random.choice(titles)
-                rows.append({
-                    "scanner_type": scanner_type,
-                    "severity": severity,
-                    "title": title,
-                    "file_path": f"src/module_{i}.py",
-                    "line_number": random.randint(1, 500),
-                    "cve_id": f"CVE-2024-{random.randint(1000, 9999)}" if scanner_type == "sca" else "",
-                })
-
-        return {"critical": critical, "high": high, "medium": medium, "low": low, "rows": rows}
 
     def _insert_findings(
         self,
