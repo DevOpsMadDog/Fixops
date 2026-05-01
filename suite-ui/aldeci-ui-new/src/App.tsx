@@ -178,6 +178,7 @@ const APISecurityDashboard = lazy(() => import("@/pages/APISecurityDashboard"));
 const ThreatCorrelation = lazy(() => import("@/pages/ThreatCorrelation"));
 const SupplyChainDashboard = lazy(() => import("@/pages/SupplyChainDashboard"));
 const CloudSecurityDashboard = lazy(() => import("@/pages/CloudSecurityDashboard"));
+const CloudPostureUnifiedHub = lazy(() => import("@/pages/CloudPostureUnifiedHub"));
 const BreachResponse = lazy(() => import("@/pages/BreachResponse"));
 const SecurityOperationsCenter = lazy(() => import("@/pages/SecurityOperationsCenter"));
 const WatchlistManager = lazy(() => import("@/pages/WatchlistManager"));
@@ -988,7 +989,9 @@ export default function App() {
             <Route path="/api-security" element={<Navigate to="/discover/api-security?tab=inventory" replace />} />
             <Route path="/threat-correlation" element={<ThreatCorrelation />} />
             <Route path="/supply-chain-risk" element={<Navigate to="/discover/supply-chain?tab=risk" replace />} />
-            <Route path="/cloud-security" element={<CloudSecurityDashboard />} />
+            {/* S11 fold 2026-05-02: CloudSecurityDashboard → CloudPostureUnifiedHub#posture */}
+            <Route path="/cloud-security" element={<Navigate to="/discover/cloud-posture?tab=posture" replace />} />
+            <Route path="/discover/cloud-posture" element={<CloudPostureUnifiedHub />} />
             {/* S22 fold 2026-05-02: BreachResponse → IncidentExtensionsHub#breach */}
             <Route path="/breach-response" element={<Navigate to="/remediate/incidents/extensions?tab=breach" replace />} />
             <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
@@ -1027,7 +1030,8 @@ export default function App() {
             <Route path="/security-posture" element={<Navigate to="/comply/strategic-posture?tab=posture" replace />} />
             <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/threat-feeds" element={<Navigate to="/issues?tab=threat-feed" replace />} />
-            <Route path="/cwpp" element={<CWPPDashboard />} />
+            {/* S11 fold 2026-05-02: CWPPDashboard → CloudPostureUnifiedHub#platform */}
+            <Route path="/cwpp" element={<Navigate to="/discover/cloud-posture?tab=platform" replace />} />
             {/* S22 fold 2026-05-02: /digital-forensics → ForensicsHub#digital (canonical mounted later) */}
             <Route path="/grc-assessment" element={<Navigate to="/comply/strategic-posture?tab=grc" replace />} />
             <Route path="/data-governance" element={<DataGovernanceDashboard />} />
@@ -1076,7 +1080,8 @@ export default function App() {
 
             {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
             <Route path="/identity-analytics" element={<Navigate to="/discover/identity-governance?tab=analytics" replace />} />
-            <Route path="/cnapp" element={<CNAPPDashboard />} />
+            {/* S11 fold 2026-05-02: CNAPPDashboard → CloudPostureUnifiedHub#unified */}
+            <Route path="/cnapp" element={<Navigate to="/discover/cloud-posture?tab=unified" replace />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (PentestManagementDashboard alias → pentest tab) */}
             <Route path="/pentest-mgmt" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
             <Route path="/supply-chain-intel" element={<Navigate to="/discover/supply-chain?tab=intel" replace />} />
@@ -1163,7 +1168,8 @@ export default function App() {
             {/* S10 fold 2026-05-02: MobileAppSecurityDashboard → AppLayerSecurityHub#mobile */}
             <Route path="/mobile-app-security" element={<Navigate to="/discover/app-security?tab=mobile" replace />} />
             <Route path="/supply-chain-attacks" element={<SupplyChainAttackDashboard />} />
-            <Route path="/cwp" element={<CloudWorkloadProtectionDashboard />} />
+            {/* S11 fold 2026-05-02: CloudWorkloadProtectionDashboard → CloudPostureUnifiedHub#workloads */}
+            <Route path="/cwp" element={<Navigate to="/discover/cloud-posture?tab=workloads" replace />} />
 
             {/* Wave 22 domain dashboards */}
             <Route path="/autonomous-remediation" element={<Navigate to="/remediate?tab=autonomous-remediation" replace />} />

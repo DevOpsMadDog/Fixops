@@ -1,3 +1,4 @@
+// FOLDED into CloudPostureUnifiedHub at /discover/cloud-posture?tab=platform 2026-05-02 — preserve for git history
 /**
  * CWPPDashboard — Cloud Workload Protection Platform
  *

@@ -1,3 +1,4 @@
+// FOLDED into CloudPostureUnifiedHub at /discover/cloud-posture?tab=posture 2026-05-02 — preserve for git history
 /**
  * Cloud Security Posture Dashboard
  *
