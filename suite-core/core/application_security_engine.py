@@ -68,6 +68,9 @@ class ApplicationSecurityEngine:
         db_path = str(Path(db_dir) / f"{org_id}_application_security.db")
         self.db_path = db_path
         self._lock = threading.RLock()
+        # FEATURE-5: route through DBAdapter so DATABASE_URL switches to postgres.
+        from core.db_adapter import get_adapter
+        self._db = get_adapter(db_path)
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -163,7 +166,16 @@ class ApplicationSecurityEngine:
                 """
             )
 
-    def _conn(self) -> sqlite3.Connection:
+    def _conn(self):  # type: ignore[no-untyped-def]
+        """Return a fresh per-call connection.
+
+        FEATURE-5: when DATABASE_URL is set the adapter returns a psycopg2.connection
+        instead of sqlite3.Connection. Callers MUST close it (existing `with self._conn()`
+        code does — sqlite3.Connection and psycopg2.connection both support the
+        context-manager protocol with .commit()/.rollback() on exit).
+        """
+        if self._db.is_postgres:
+            return self._db._psycopg2.connect(self._db.dsn)  # type: ignore[union-attr]
         conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         return conn

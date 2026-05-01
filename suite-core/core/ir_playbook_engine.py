@@ -997,6 +997,9 @@ class IRPlaybookEngine:
         self._db_path = db_path
         self._lock = threading.Lock()
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        # FEATURE-5: route through DBAdapter so DATABASE_URL switches to postgres.
+        from core.db_adapter import get_adapter
+        self._db = get_adapter(db_path)
         self._init_db()
 
     # -----------------------------------------------------------------------
@@ -1079,7 +1082,15 @@ class IRPlaybookEngine:
                     ON ir_notifications(incident_id);
             """)
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self):  # type: ignore[no-untyped-def]
+        """Return a fresh per-call connection.
+
+        FEATURE-5: when DATABASE_URL is set the adapter returns a psycopg2.connection
+        instead of sqlite3.Connection. Both support the context-manager protocol so
+        existing `with self._connect() as conn:` callers work unchanged.
+        """
+        if self._db.is_postgres:
+            return self._db._psycopg2.connect(self._db.dsn)  # type: ignore[union-attr]
         conn = sqlite3.connect(self._db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         return conn

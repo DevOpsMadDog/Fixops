@@ -119,9 +119,12 @@ class _CTEMDB:
             os.path.dirname(db_path) if os.path.dirname(db_path) else ".",
             exist_ok=True,
         )
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA synchronous=NORMAL")
+        # FEATURE-5: route through DBAdapter so DATABASE_URL switches to postgres.
+        # When DATABASE_URL is unset, persistent_connect() returns a sqlite3.Connection
+        # with the same WAL/synchronous PRAGMAs we used to set inline.
+        from core.db_adapter import get_adapter
+        self._db = get_adapter(db_path)
+        self._conn = self._db.persistent_connect()
         self._lock = threading.Lock()
         self._init_db()
 

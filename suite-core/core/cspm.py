@@ -334,13 +334,24 @@ class CSPMEngine:
     def __init__(self, db_path: str = "data/cspm.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # FEATURE-5: route through DBAdapter so DATABASE_URL switches to postgres.
+        from core.db_adapter import get_adapter
+        self._db = get_adapter(str(self.db_path))
         self._init_tables()
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _get_conn(self) -> sqlite3.Connection:
+    def _get_conn(self):  # type: ignore[no-untyped-def]
+        """Return a fresh per-call connection.
+
+        FEATURE-5: this no longer hard-binds to sqlite3 — when DATABASE_URL is
+        set the adapter returns a psycopg2.connection instead. Callers MUST close
+        it (existing code already does so via try/finally).
+        """
+        if self._db.is_postgres:
+            return self._db._psycopg2.connect(self._db.dsn)  # type: ignore[union-attr]
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         return conn
