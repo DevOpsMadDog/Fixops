@@ -202,6 +202,165 @@ class PrivilegedAccessGovernanceEngine:
             rows = conn.execute(sql, params).fetchall()
         return [self._row(r) for r in rows]
 
+    def list_privileged_accounts_with_okta_fallback(
+        self,
+        org_id: str,
+        account_type: Optional[str] = None,
+        status: Optional[str] = None,
+        okta_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List PAG accounts; when the org has zero rows AND Okta credentials
+        are configured, project privileged Okta users (admins, locked-out
+        accounts, suspended accounts) as derived PAG account rows.
+
+        Behaviour:
+            - Org-registered rows always take precedence (returns
+              ``source="org_registered"``).
+            - When the org has no accounts AND ``OKTA_API_KEY`` /
+              ``OKTA_DOMAIN`` env vars are set, the connector is invoked
+              and **privileged** Okta users (status in {LOCKED_OUT,
+              SUSPENDED, RECOVERY, PASSWORD_EXPIRED} OR admin titles) are
+              projected one-per-account.
+            - When credentials absent, returns
+              ``{"accounts": [], "source": "needs_credentials", "hint": ...}``.
+            - Each derived row carries provenance fields ``source="okta"``
+              and ``okta_user_id`` so the UI can badge it.
+
+        Args:
+            org_id:          Tenant identifier.
+            account_type:    Optional filter (forwarded to org rows; for
+                             derived rows we set type="admin").
+            status:          Optional filter (org rows only).
+            okta_connector:  Override for testing — must expose .sync().
+
+        Returns:
+            ``{accounts, total, source, hint?, okta_users_synced?}``.
+        """
+        # Org-registered rows first.
+        rows = self.list_privileged_accounts(
+            org_id, account_type=account_type, status=status
+        )
+        if rows:
+            return {
+                "accounts": rows,
+                "total": len(rows),
+                "source": "org_registered",
+            }
+
+        # Resolve connector (lazy import — never crash on absence).
+        if okta_connector is None:
+            try:
+                from connectors.okta_connector import get_okta_connector
+                okta_connector = get_okta_connector()
+            except ImportError:
+                return {
+                    "accounts": [],
+                    "total": 0,
+                    "source": "needs_credentials",
+                    "hint": (
+                        "Install the Okta connector or register accounts "
+                        "manually via POST /api/v1/pag/accounts."
+                    ),
+                }
+
+        try:
+            sync_result = okta_connector.sync(org_id=org_id)
+        except (ValueError, RuntimeError, OSError) as exc:
+            _logger.warning(
+                "PAG: Okta connector sync failed for org=%s: %s",
+                org_id,
+                exc,
+            )
+            return {
+                "accounts": [],
+                "total": 0,
+                "source": "okta_error",
+                "hint": f"Okta sync failed: {exc}",
+            }
+
+        if sync_result.get("status") == "needs_credentials":
+            return {
+                "accounts": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": sync_result.get("hint", (
+                    "Set OKTA_API_KEY and OKTA_DOMAIN environment variables "
+                    "to enable live Okta identity integration, or register "
+                    "accounts manually via POST /api/v1/pag/accounts."
+                )),
+            }
+
+        # Project privileged Okta users to PAG account shape.
+        users = sync_result.get("users") or []
+        derived: List[Dict[str, Any]] = []
+        # Title patterns indicating privileged role
+        _PRIV_TITLE_TOKENS = (
+            "admin", "root", "sre", "devops", "owner", "operator",
+            "engineer", "security", "infra",
+        )
+        # Status values that always signal high-risk privileged accounts
+        _PRIV_STATUSES = {
+            "LOCKED_OUT", "SUSPENDED", "RECOVERY", "PASSWORD_EXPIRED"
+        }
+        now = _now_iso()
+        for u in users:
+            okta_status = (u.get("status") or "").upper()
+            title = (u.get("title") or "").lower()
+            email = u.get("email") or ""
+            is_privileged_status = okta_status in _PRIV_STATUSES
+            is_privileged_title = any(t in title for t in _PRIV_TITLE_TOKENS)
+            if not (is_privileged_status or is_privileged_title):
+                continue
+            okta_uid = u.get("okta_user_id") or ""
+            derived_type = "admin" if is_privileged_title else "service"
+            # Optional account_type filter applies to derived rows too.
+            if account_type is not None and derived_type != account_type:
+                continue
+            risk_label = u.get("risk_level", "low")
+            risk_score = {
+                "high": 80.0,
+                "medium": 60.0,
+                "low": 40.0,
+            }.get(risk_label, 50.0)
+            derived.append({
+                "id": f"okta:{okta_uid}",
+                "org_id": org_id,
+                "username": email or u.get("display_name", okta_uid),
+                "account_type": derived_type,
+                "system": "okta",
+                "owner": u.get("display_name", ""),
+                "justification": (
+                    f"Derived from Okta (status={okta_status}, "
+                    f"title={u.get('title', '')}, "
+                    f"department={u.get('department', '')})"
+                ),
+                "last_used": u.get("last_login") or None,
+                "status": "active" if okta_status == "ACTIVE" else "inactive",
+                "risk_score": risk_score,
+                "created_at": u.get("created_at") or now,
+                # Provenance fields (derived rows only)
+                "source": "okta",
+                "okta_user_id": okta_uid,
+                "okta_status": okta_status,
+                "title": u.get("title", ""),
+                "department": u.get("department", ""),
+            })
+
+        return {
+            "accounts": derived,
+            "total": len(derived),
+            "source": "okta-derived" if derived else "okta_no_privileged_users",
+            "okta_users_synced": len(users),
+            "hint": (
+                None
+                if derived
+                else (
+                    "Okta sync returned 0 privileged users. Register "
+                    "privileged accounts manually via POST /api/v1/pag/accounts."
+                )
+            ),
+        }
+
     def get_privileged_account(
         self, org_id: str, account_id: str
     ) -> Optional[Dict[str, Any]]:

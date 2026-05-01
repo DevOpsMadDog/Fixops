@@ -92,19 +92,17 @@ def list_privileged_accounts(
     account_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
-    """List privileged accounts with optional filters."""
-    rows = _get_engine().list_privileged_accounts(
+    """List privileged accounts with optional filters.
+
+    Falls back to live Okta sync (privileged users only) when the org has
+    no registered accounts AND ``OKTA_API_KEY`` / ``OKTA_DOMAIN`` env vars
+    are set. Returns ``{accounts, total, source, hint?}``.
+    """
+    return _get_engine().list_privileged_accounts_with_okta_fallback(
         org_id,
         account_type=account_type,
         status=status,
     )
-    if not rows:
-        return {
-            "accounts": [],
-            "total": 0,
-            "hint": "Connect an identity provider (Okta, AzureAD) via the connector framework to auto-populate privileged accounts, or register one manually via POST /api/v1/pag/accounts.",
-        }
-    return {"accounts": rows, "total": len(rows)}
 
 
 @router.get("/accounts/{account_id}", dependencies=[Depends(api_key_auth)])
