@@ -553,7 +553,7 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `DataPipelineDashboard` | `/api/v1/data-pipeline` | widget |
 
 ### 2.28 → S28 MCP Gateway (HERO)
-**Air-Gap operational sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 air-gap operational pages folded into AirGapHub.tsx at `/connect/mcp/air-gap` (AirGapBundleConsole, OfflineFeedRegistry, OfflineUpdateStatus). Old routes (`/air-gap/feed-status`, `/air-gap/feeds`, `/air-gap/update-status`) redirect with `?tab=` (feed-status|feeds|update-status). Real APIs: `GET /api/v1/air-gap/feed-status`, `GET /api/v1/air-gap/feeds`, `GET /api/v1/air-gap/update-status`. Tabs: `feed-status|feeds|update-status`. Hub serves DevOps/SRE/Automation Engineer personas managing disconnected deployments — proves CTEM+ air-gap moat in one screen.
+**Air-Gap operational sub-cluster: DONE-2026-05-02 SHA=46b07117 Multica #3647** — 3 air-gap operational pages folded into AirGapHub.tsx at `/connect/mcp/air-gap` (AirGapBundleConsole, OfflineFeedRegistry, OfflineUpdateStatus). Old routes (`/air-gap/feed-status`, `/air-gap/feeds`, `/air-gap/update-status`) redirect with `?tab=` (feed-status|feeds|update-status). Real APIs: `GET /api/v1/air-gap/feed-status`, `GET /api/v1/air-gap/feeds`, `GET /api/v1/air-gap/update-status`. Tabs: `feed-status|feeds|update-status`. Hub serves DevOps/SRE/Automation Engineer personas managing disconnected deployments — proves CTEM+ air-gap moat in one screen.
 
 | Source | Endpoint | As |
 |---|---|---|
