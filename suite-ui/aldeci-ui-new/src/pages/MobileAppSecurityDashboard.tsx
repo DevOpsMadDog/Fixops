@@ -1,3 +1,4 @@
+// FOLDED into AppLayerSecurityHub at /discover/app-security?tab=mobile (Phase 3, 2026-05-02)
 /**
  * Mobile App Security Dashboard
  *

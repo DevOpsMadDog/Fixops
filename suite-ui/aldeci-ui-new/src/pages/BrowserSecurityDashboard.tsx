@@ -1,3 +1,4 @@
+// FOLDED into AppLayerSecurityHub at /discover/app-security?tab=browser (Phase 3, 2026-05-02)
 /**
  * Browser Security Dashboard
  *
