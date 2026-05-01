@@ -1,6 +1,8 @@
+// FOLDED 2026-05-02 into FinanceHub.tsx — tab "incident-costs" at /mission-control/finance?tab=incident-costs
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Incident Costs - Live API
+ * Route: /incident-costs (now redirects to /mission-control/finance?tab=incident-costs)
  * API: GET /api/v1/incident-costs/costs
  */
 

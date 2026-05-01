@@ -1,8 +1,9 @@
+// FOLDED 2026-05-02 into FinanceHub.tsx — tab "bu-heatmap" at /mission-control/finance?tab=bu-heatmap
 // REPLACED by FindingsExplorerView config 2026-04-27
 // Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * BU Dollar Risk Heatmap — cross-BU dollar exposure heatmap (Wave 3)
- * Route: /bu-dollar-heatmap
+ * Route: /bu-dollar-heatmap (now redirects to /mission-control/finance?tab=bu-heatmap)
  * API:   GET /api/v1/risk/heatmap (with fallback to /api/v1/risk/brs/bu list)
  */
 

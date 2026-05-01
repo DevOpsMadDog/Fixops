@@ -1,3 +1,4 @@
+// FOLDED 2026-05-02 into FinanceHub.tsx — tab "cyber-insur" at /mission-control/finance?tab=cyber-insur
 /**
  * Cyber Insurance Dashboard
  *
@@ -7,6 +8,7 @@
  *   3. Claims table (live from /api/v1/cyber-insurance/claims)
  *   4. Coverage Assessment section (live from /api/v1/cyber-insurance/assessments + /stats)
  *
+ * Route: /cyber-insurance (now redirects to /mission-control/finance?tab=cyber-insur)
  * API: GET /api/v1/cyber-insurance/{policies,claims,assessments,stats}
  */
 

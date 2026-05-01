@@ -530,6 +530,8 @@ const MainOverviewDashboard = lazy(() => import("@/pages/MainOverviewDashboard")
 // Wave 3 — risk / dashboards / runtime (15 screens, 2026-04-26)
 const BRSExecutiveDashboard = lazy(() => import("@/pages/BRSExecutiveDashboard"));
 const BUDollarRiskHeatmap = lazy(() => import("@/pages/BUDollarRiskHeatmap"));
+// Phase 3 UX consolidation S2 — Executive Brief Finance/Investment hub (2026-05-02)
+const FinanceHub = lazy(() => import("@/pages/FinanceHub"));
 const ChokePointDashboard = lazy(() => import("@/pages/ChokePointDashboard"));
 const AttackPathInteractiveGraph = lazy(() => import("@/pages/AttackPathInteractiveGraph"));
 const ToxicCombinationIssueView = lazy(() => import("@/pages/ToxicCombinationIssueView"));
@@ -886,7 +888,8 @@ export default function App() {
             <Route path="/data-classification" element={<DataClassificationDashboard />} />
             <Route path="/security-training" element={<SecurityTrainingDashboard />} />
             <Route path="/pam" element={<PAMDashboard />} />
-            <Route path="/cyber-insurance" element={<CyberInsuranceDashboard />} />
+            {/* S2 Finance hub — folded 2026-05-02. Old route redirects below. */}
+            <Route path="/cyber-insurance" element={<Navigate to="/mission-control/finance?tab=cyber-insur" replace />} />
             <Route path="/cyber-insurance-legacy" element={<CyberInsurance />} />
             <Route path="/executive-reporting" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/vuln-scanner" element={<VulnerabilityScanner />} />
@@ -962,7 +965,8 @@ export default function App() {
             {/* MFA Management, Threat Scores, Security Budget, Compliance Gaps */}
             <Route path="/mfa-management" element={<MFAManagementDashboard />} />
             <Route path="/threat-scores" element={<ThreatScoreDashboard />} />
-            <Route path="/security-budget" element={<SecurityBudgetDashboard />} />
+            {/* S2 Finance hub — folded 2026-05-02 */}
+            <Route path="/security-budget" element={<Navigate to="/mission-control/finance?tab=budget" replace />} />
             <Route path="/compliance-gaps" element={<ComplianceGapDashboard />} />
 
             {/* Wave 18 domain dashboards */}
@@ -1137,7 +1141,8 @@ export default function App() {
             <Route path="/actor-tracking" element={<Navigate to="/brain?tab=actor-tracking" replace />} />
             <Route path="/vuln-scoring" element={<VulnScoringDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
-            <Route path="/incident-costs" element={<IncidentCostsDashboard />} />
+            {/* S2 Finance hub — folded 2026-05-02 */}
+            <Route path="/incident-costs" element={<Navigate to="/mission-control/finance?tab=incident-costs" replace />} />
             <Route path="/security-culture" element={<SecurityCultureDashboard />} />
 
             {/* Wave 34 domain dashboards */}
@@ -1347,7 +1352,10 @@ export default function App() {
 
             {/* Wave 3 — risk / dashboards / runtime (15 screens, 2026-04-26) */}
             <Route path="/brs-executive" element={<BRSExecutiveDashboard />} />
-            <Route path="/bu-dollar-heatmap" element={<BUDollarRiskHeatmap />} />
+            {/* S2 Finance hub — folded 2026-05-02. Canonical route mounted above. */}
+            <Route path="/bu-dollar-heatmap" element={<Navigate to="/mission-control/finance?tab=bu-heatmap" replace />} />
+            <Route path="/security-investment" element={<Navigate to="/mission-control/finance?tab=investment" replace />} />
+            <Route path="/mission-control/finance" element={<FinanceHub />} />
             {/* /choke-points, /attack-paths/graph → consolidated into /assets hero */}
             {/* These 7 routes were consolidated into /issues + /brain heroes — see redirects above */}
             <Route path="/sbom-continuous-monitoring" element={<SBOMContinuousMonitoring />} />

@@ -1,8 +1,9 @@
+// FOLDED 2026-05-02 into FinanceHub.tsx — tab "investment" at /mission-control/finance?tab=investment
 // REPLACED by FindingsExplorerView config 2026-04-27
 // Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * Security Investment Dashboard - Live API
- * Route: /security-investment
+ * Route: /security-investment (now redirects to /mission-control/finance?tab=investment)
  * API: GET /api/v1/security-investment/{investments,budget,outcomes}
  */
 import { useState, useEffect } from "react";

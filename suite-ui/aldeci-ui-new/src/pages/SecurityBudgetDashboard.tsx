@@ -1,3 +1,4 @@
+// FOLDED 2026-05-02 into FinanceHub.tsx — tab "budget" at /mission-control/finance?tab=budget
 /**
  * Security Budget Dashboard
  *
@@ -6,6 +7,7 @@
  *   2. Budget by Category table with utilization bars
  *   3. Recent Transactions table
  *
+ * Route: /security-budget (now redirects to /mission-control/finance?tab=budget)
  * API: GET /api/v1/security-budget/{stats,allocations,transactions}
  */
 

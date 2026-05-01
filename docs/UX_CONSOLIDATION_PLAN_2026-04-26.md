@@ -136,6 +136,8 @@
 | `ProgramMaturityDashboard` | `/api/v1/maturity/program` | widget |
 
 ### 2.2 → S2 Executive Brief
+**Finance/Investment sub-cluster: DONE-2026-05-02 SHA=PENDING** — 5 pages folded into FinanceHub.tsx at `/mission-control/finance` (BUDollarRiskHeatmap, SecurityInvestmentDashboard, SecurityBudgetDashboard, IncidentCostsDashboard, CyberInsuranceDashboard). Old routes redirect with `?tab=`.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `ExecutiveView` | `/api/v1/executive/view` | hero |
