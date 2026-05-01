@@ -427,7 +427,7 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `CyberResilienceDashboard` | `/api/v1/cyber-resilience` | widget |
 
 ### 2.22b Awareness sub-cluster
-**Awareness sub-cluster: DONE-2026-05-02 SHA=PENDING** — 4 awareness pages folded into AwarenessHub.tsx at `/comply/awareness` (AwarenessCampaignDashboard, AwarenessProgramDashboard, AwarenessMetricsDashboard, AwarenessScoreDashboard). Old routes (`/awareness-campaigns`, `/awareness-program`, `/awareness-metrics`, `/awareness-score`) redirect with `?tab=`. Real APIs: `/api/v1/awareness-campaigns/*`, `/api/v1/awareness-program/*`, `/api/v1/awareness-metrics/*`, `/api/v1/awareness-score/orgs/{id}/*`.
+**Awareness sub-cluster: DONE-2026-05-02 SHA=29f1aae6** — 4 awareness pages folded into AwarenessHub.tsx at `/comply/awareness` (AwarenessCampaignDashboard, AwarenessProgramDashboard, AwarenessMetricsDashboard, AwarenessScoreDashboard). Old routes (`/awareness-campaigns`, `/awareness-program`, `/awareness-metrics`, `/awareness-score`) redirect with `?tab=`. Real APIs: `/api/v1/awareness-campaigns/*`, `/api/v1/awareness-program/*`, `/api/v1/awareness-metrics/*`, `/api/v1/awareness-score/orgs/{id}/*`.
 
 ### 2.23 → S23 Compliance Dashboard
 | Source | Endpoint | As |
