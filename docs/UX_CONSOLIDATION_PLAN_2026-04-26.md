@@ -482,7 +482,7 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `SOC2Evidence` (cross-link to S23) | shared | tab |
 
 ### 2.26 → S26 Policies & Rules
-**Rules / DSL sub-cluster: DONE-2026-05-02 SHA=PENDING** — 4 pages folded into RulesCatalogHub.tsx at `/comply/rules` (UnifiedRulesCatalog, RuleTaxonomyInspector, RuleDSLAuthoringStudio, RuleDSLValidator). Old routes (`/rules/catalog`, `/rules/taxonomy`, `/rules/dsl/author`, `/rules/dsl/validate`) redirect with `?tab=`. Real APIs: `/api/v1/rules/unified`, `/api/v1/rules/unified/taxonomy`, `/api/v1/rules/dsl`, `POST /api/v1/rules/dsl/validate`.
+**Rules / DSL sub-cluster: DONE-2026-05-02 SHA=7f038429** — 4 pages folded into RulesCatalogHub.tsx at `/comply/rules` (UnifiedRulesCatalog, RuleTaxonomyInspector, RuleDSLAuthoringStudio, RuleDSLValidator). Old routes (`/rules/catalog`, `/rules/taxonomy`, `/rules/dsl/author`, `/rules/dsl/validate`) redirect with `?tab=`. Real APIs: `/api/v1/rules/unified`, `/api/v1/rules/unified/taxonomy`, `/api/v1/rules/dsl`, `POST /api/v1/rules/dsl/validate`.
 
 | Source | Endpoint | As |
 |---|---|---|
