@@ -1,3 +1,4 @@
+// FOLDED into ExternalThreatIntelHub hero (zeroday tab) 2026-05-02 — preserve for git history
 /**
  * Zero-Day Intelligence Dashboard
  *

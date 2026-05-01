@@ -1,3 +1,4 @@
+// FOLDED into ExternalThreatIntelHub hero (scores tab) 2026-05-02 — preserve for git history
 /**
  * Threat Score Dashboard
  *

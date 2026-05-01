@@ -1,3 +1,4 @@
+// FOLDED into ExternalThreatIntelHub hero (darkweb tab) 2026-05-02 — preserve for git history
 /**
  * Dark Web Monitoring Dashboard
  *

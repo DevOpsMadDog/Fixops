@@ -282,6 +282,7 @@ const VulnIntelligenceDashboard = lazy(() => import("@/pages/VulnIntelligenceDas
 
 // Phase 3 UX consolidation 2026-05-02 — Vuln Intelligence hub (S7 sub-cluster)
 const VulnIntelHub = lazy(() => import("@/pages/VulnIntelHub"));
+const ExternalThreatIntelHub = lazy(() => import("@/pages/ExternalThreatIntelHub"));
 
 // AI Security Advisor
 const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
@@ -1056,7 +1057,8 @@ export default function App() {
 
             {/* MFA Management, Threat Scores, Security Budget, Compliance Gaps */}
             <Route path="/mfa-management" element={<Navigate to="/discover/privileged-access?tab=mfa" replace />} />
-            <Route path="/threat-scores" element={<ThreatScoreDashboard />} />
+            <Route path="/attack/intel/external" element={<ExternalThreatIntelHub />} />
+            <Route path="/threat-scores" element={<Navigate to="/attack/intel/external?tab=scores" replace />} />
             {/* S2 Finance hub — folded 2026-05-02 */}
             <Route path="/security-budget" element={<Navigate to="/mission-control/finance?tab=budget" replace />} />
             <Route path="/compliance-gaps" element={<ComplianceGapDashboard />} />
@@ -1070,7 +1072,7 @@ export default function App() {
             <Route path="/cloud-identity" element={<CloudIdentityDashboard />} />
 
             {/* Wave 19 domain dashboards */}
-            <Route path="/dark-web" element={<DarkWebMonitoringDashboard />} />
+            <Route path="/dark-web" element={<Navigate to="/attack/intel/external?tab=darkweb" replace />} />
             <Route path="/itdr" element={<Navigate to="/discover/detect-respond?tab=itdr" replace />} />
             <Route path="/container-runtime" element={<Navigate to="/discover/container-security?tab=runtime" replace />} />
             <Route path="/api-discovery" element={<APIDiscoveryDashboard />} />
@@ -1078,7 +1080,7 @@ export default function App() {
             <Route path="/incident-metrics" element={<IncidentMetricsDashboard />} />
 
             {/* Wave 20 domain dashboards */}
-            <Route path="/zero-day" element={<ZeroDayIntelligenceDashboard />} />
+            <Route path="/zero-day" element={<Navigate to="/attack/intel/external?tab=zeroday" replace />} />
             <Route path="/security-tabletop" element={<SecurityTabletopDashboard />} />
             <Route path="/browser-security" element={<BrowserSecurityDashboard />} />
             <Route path="/data-exfiltration" element={<DataExfiltrationDashboard />} />
