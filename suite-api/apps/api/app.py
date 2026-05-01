@@ -7822,6 +7822,14 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("censys_router unavailable: %s", _e)
 
+    # Tour router — real-product-demo "tour mode" (SSE stream, no auth required)
+    try:
+        from apps.api.tour_router import router as tour_router
+        app.include_router(tour_router)
+        _logger.info("Mounted Tour router at /api/v1/tour")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("tour_router unavailable: %s", _e)
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they

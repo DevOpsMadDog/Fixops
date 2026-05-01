@@ -10,6 +10,9 @@ import { DASHBOARD_ROUTES } from "@/config/dashboardRoutes";
 import { FindingsExplorerView } from "@/components/FindingsExplorerView";
 import { FINDINGS_EXPLORER_ROUTES } from "@/config/findingsExplorerRoutes";
 
+// Tour — public demo mode (no auth)
+const Tour = lazy(() => import("@/pages/Tour"));
+
 // Auth
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const AccessDenied = lazy(() => import("@/pages/auth/AccessDenied"));
@@ -633,6 +636,7 @@ export default function App() {
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
           {/* Public routes */}
+          <Route path="/tour" element={<Tour />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingWizard />} />
           <Route path="/landing" element={<LandingPage />} />
