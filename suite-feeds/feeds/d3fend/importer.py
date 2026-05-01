@@ -89,6 +89,23 @@ _ENV_URL = os.environ.get("FIXOPS_D3FEND_URL", "").strip() or None
 
 DOWNLOAD_TIMEOUT = 60.0  # seconds
 
+# Maximum length of an ATT&CK technique id segment after the rightmost dot.
+# ATT&CK ids look like ``T1059.001`` or ``T1059`` — the trailing segment
+# (``001``) is at most 3 chars, but we allow up to 8 to absorb future
+# sub-technique numbering schemes (e.g. ``T1059.001a``) without rejecting
+# valid refs.  Anything longer is almost certainly not an ATT&CK suffix.
+_MAX_ATTACK_SUFFIX_LEN = 8
+
+# HTTP status code that signals a successful D3FEND ontology fetch.
+_HTTP_OK = 200
+
+# Minimum byte size we accept for a D3FEND ontology response.  Any payload
+# smaller than this is treated as a CDN error page / placeholder rather than
+# real JSON-LD content.  The real ontology is multiple megabytes; 100 bytes
+# comfortably rejects empty/error bodies without false-positive on legit
+# tiny test fixtures (smallest valid JSON-LD doc with one node is ~120 B).
+_MIN_RESPONSE_BYTES = 100
+
 _DEFAULT_DB = "data/d3fend.db"
 _TABLE = "d3fend_techniques"
 
@@ -296,7 +313,7 @@ def _short_attack_id(iri: str) -> str:
     if "." in short:
         # Strip a trailing prefix segment if present.
         last = short.rsplit(".", 1)[-1]
-        if last.upper().startswith("T") and len(last) <= 8:
+        if last.upper().startswith("T") and len(last) <= _MAX_ATTACK_SUFFIX_LEN:
             return short
     if short.upper().startswith("T") and any(ch.isdigit() for ch in short):
         return short
@@ -656,7 +673,7 @@ class D3fendImporter:
                 logger.debug("D3FEND source %s unreachable: %s", url, exc)
                 continue
 
-            if response.status_code != 200:
+            if response.status_code != _HTTP_OK:
                 last_error = f"{url}: HTTP {response.status_code}"
                 logger.debug(
                     "D3FEND source %s returned %s", url, response.status_code
@@ -664,7 +681,7 @@ class D3fendImporter:
                 continue
 
             content = response.content
-            if not content or len(content) < 100:
+            if not content or len(content) < _MIN_RESPONSE_BYTES:
                 last_error = f"{url}: response too small ({len(content)} bytes)"
                 continue
             return content, url
