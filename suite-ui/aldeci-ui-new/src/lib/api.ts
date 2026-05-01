@@ -119,6 +119,20 @@ export const streamApi = {
     if (types) params.types = types;
     return buildApiUrl("/api/v1/stream/events", params);
   },
+  // FEATURE-3 — TrustGraph live event WebSocket. Subscribes to the
+  // canonical TrustGraphEventBus stream at /ws/events.
+  trustGraphWsUrl: (orgId?: string) => {
+    const token = getStoredAuthToken() || import.meta.env.VITE_API_KEY || "";
+    const httpUrl = buildApiUrl(
+      "/ws/events",
+      {
+        ...(token ? { api_key: token } : {}),
+        ...(orgId ? { org_id: orgId } : {}),
+      },
+    );
+    // Convert http(s):// → ws(s)://
+    return httpUrl.replace(/^http/, "ws");
+  },
 };
 
 export const dashboardApi = {

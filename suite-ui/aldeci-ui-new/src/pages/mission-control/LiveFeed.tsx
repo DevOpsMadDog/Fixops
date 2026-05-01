@@ -150,9 +150,12 @@ export default function LiveFeed() {
   const [paused, setPaused] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [streamConnected, setStreamConnected] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   const [streamEvents, setStreamEvents] = useState<FeedEvent[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const wsReconnectAttemptRef = useRef(0);
 
   const pulse = useNervePulse();
   const state = useNerveState();
@@ -171,6 +174,135 @@ export default function LiveFeed() {
     const interval = setInterval(refetch, 30_000);
     return () => clearInterval(interval);
   }, [paused, refetch]);
+
+  // FEATURE-3 — TrustGraph WebSocket live event feed at /ws/events.
+  // Subscribes alongside the SSE stream so we receive both the legacy nerve-pulse
+  // events (SSE) and the canonical TrustGraphEventBus events (WebSocket).
+  useEffect(() => {
+    if (paused) {
+      wsRef.current?.close();
+      wsRef.current = null;
+      setWsConnected(false);
+      wsReconnectAttemptRef.current = 0;
+      return;
+    }
+
+    let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // Map TrustGraph event_type ("finding.created", "asset.discovered", etc.)
+    // to the LiveFeed `type` taxonomy already used for badges/colors.
+    const TG_TYPE_MAP: Record<string, string> = {
+      "finding.created": "finding",
+      "finding.updated": "finding",
+      "asset.discovered": "deployment",
+      "asset.updated": "deployment",
+      "incident.created": "alert",
+      "control.assessed": "policy",
+      "policy.updated": "policy",
+      "vendor.updated": "policy",
+      "actor.identified": "alert",
+      "scan.completed": "fix",
+      "cve.discovered": "finding",
+      "threat.detected": "alert",
+      "risk.assessed": "decision",
+      "evidence.collected": "decision",
+      "playbook.executed": "fix",
+      "alert.created": "alert",
+    };
+
+    const connect = () => {
+      if (cancelled) return;
+      try {
+        const url = streamApi.trustGraphWsUrl();
+        const ws = new WebSocket(url);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          if (cancelled) return;
+          setWsConnected(true);
+          wsReconnectAttemptRef.current = 0;
+          setLastUpdate(new Date());
+        };
+
+        ws.onmessage = (msg: MessageEvent<string>) => {
+          if (cancelled) return;
+          try {
+            const frame = JSON.parse(msg.data);
+            if (!frame || typeof frame !== "object") return;
+            // Server sends three frame kinds: connected, ping, event
+            if (frame.type === "ping" || frame.type === "connected") {
+              setWsConnected(true);
+              setLastUpdate(new Date());
+              return;
+            }
+            if (frame.type !== "event") return;
+
+            const tgType = String(frame.event_type ?? "");
+            const payload = (frame.payload ?? {}) as Record<string, unknown>;
+            const mappedType = TG_TYPE_MAP[tgType] ?? "alert";
+
+            const fe: FeedEvent = {
+              id: String(payload.id ?? payload.finding_id ?? payload.asset_id ?? payload.event_id ?? `${tgType}-${frame.timestamp ?? Date.now()}`),
+              type: mappedType,
+              severity: typeof payload.severity === "string" ? payload.severity : "info",
+              message: typeof payload.title === "string"
+                ? payload.title
+                : typeof payload.message === "string"
+                  ? payload.message
+                  : tgType.replace(".", " "),
+              component: typeof payload.engine === "string"
+                ? payload.engine
+                : typeof payload.source === "string" ? payload.source : tgType,
+              timestamp: typeof frame.timestamp === "string" ? frame.timestamp : new Date().toISOString(),
+              event_type: tgType,
+            };
+
+            setStreamEvents((prev) => {
+              // FIFO cap at 50 (founder spec) — newest at end.
+              const next = [...prev, fe];
+              return next.slice(-50);
+            });
+            setLastUpdate(new Date());
+          } catch {
+            // Drop malformed frames silently
+          }
+        };
+
+        ws.onerror = () => {
+          if (cancelled) return;
+          setWsConnected(false);
+        };
+
+        ws.onclose = () => {
+          if (cancelled) return;
+          setWsConnected(false);
+          wsRef.current = null;
+          // Exponential backoff: 1s → 2s → 4s → 8s → 16s → 30s cap
+          const attempt = wsReconnectAttemptRef.current;
+          const delay = Math.min(30000, 1000 * Math.pow(2, attempt));
+          wsReconnectAttemptRef.current = attempt + 1;
+          reconnectTimer = setTimeout(connect, delay);
+        };
+      } catch {
+        // Construction failed (bad URL etc.) — back off and retry
+        const attempt = wsReconnectAttemptRef.current;
+        const delay = Math.min(30000, 1000 * Math.pow(2, attempt));
+        wsReconnectAttemptRef.current = attempt + 1;
+        reconnectTimer = setTimeout(connect, delay);
+      }
+    };
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      wsRef.current?.close();
+      wsRef.current = null;
+      setWsConnected(false);
+    };
+  }, [paused]);
 
   useEffect(() => {
     if (paused) {
@@ -286,7 +418,7 @@ export default function LiveFeed() {
         badge="LIVE"
         actions={
           <div className="flex items-center gap-2">
-            <ConnectionStatus connected={streamConnected || !pulse.isError} lastUpdate={lastUpdate} />
+            <ConnectionStatus connected={wsConnected || streamConnected || !pulse.isError} lastUpdate={lastUpdate} />
             <div className="flex items-center gap-1.5">
               <Radio className={cn("h-3.5 w-3.5", !paused ? "text-green-400 animate-pulse" : "text-muted-foreground")} />
               <span className="text-xs text-muted-foreground hidden sm:block">Auto-refresh</span>
@@ -537,7 +669,9 @@ export default function LiveFeed() {
             </>
           )}
         </div>
-        <span>{streamConnected ? "SSE" : "Polling fallback"} · Updated {lastUpdate.toLocaleTimeString()}</span>
+        <span>
+          {wsConnected ? "TrustGraph WS Live" : streamConnected ? "SSE" : "Polling fallback"} · Updated {lastUpdate.toLocaleTimeString()}
+        </span>
       </motion.div>
     </motion.div>
   );

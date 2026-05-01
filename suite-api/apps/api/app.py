@@ -7630,6 +7630,16 @@ def create_app() -> FastAPI:
 
     # sse_router — moved to platform_app.py (Wave 5)
 
+    # FEATURE-3 — TrustGraph WebSocket event stream at /ws/events
+    # Subscribes directly to TrustGraphEventBus (the canonical bus that
+    # Brain Pipeline + ResponseInterceptorMiddleware emit into).
+    try:
+        from apps.api.ws_trustgraph_events_router import router as ws_trustgraph_events_router
+        app.include_router(ws_trustgraph_events_router)
+        _logger.info("Mounted TrustGraph WebSocket event stream at /ws/events")
+    except ImportError as exc:
+        _logger.warning("TrustGraph WS event stream not available: %s", exc)
+
     # Wave C — 21 endpoints: compliance/org/system/admin/tokens/cspm/skills/rules/llm
     # Wave 42 pre-wiring
     try:
