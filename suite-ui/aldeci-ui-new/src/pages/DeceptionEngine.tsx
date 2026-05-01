@@ -1,3 +1,4 @@
+// FOLDED into DeceptionHub hero (engine tab) 2026-05-02 — preserve for git history
 /**
  * Deception Engine — /deception
  * API stubs: GET /api/v1/deception/honeypots, GET /api/v1/deception/canary-tokens

@@ -370,6 +370,7 @@ const VulnPrioritizationDashboard = lazy(() => import("@/pages/VulnPrioritizatio
 
 // Wave 25 domain dashboards
 const ThreatDeceptionDashboard = lazy(() => import("@/pages/ThreatDeceptionDashboard"));
+const DeceptionHub = lazy(() => import("@/pages/DeceptionHub"));
 const PostureScoringDashboard = lazy(() => import("@/pages/PostureScoringDashboard"));
 const CloudPostureDashboard = lazy(() => import("@/pages/CloudPostureDashboard"));
 const APIThreatProtectionDashboard = lazy(() => import("@/pages/APIThreatProtectionDashboard"));
@@ -897,7 +898,9 @@ export default function App() {
             <Route path="/cspm" element={<Navigate to="/compliance?tab=cspm" replace />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED PentestManagement) */}
             <Route path="/pentest" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
-            <Route path="/deception" element={<DeceptionEngine />} />
+            <Route path="/brain/fail/deception" element={<DeceptionHub />} />
+            <Route path="/deception" element={<Navigate to="/brain/fail/deception?tab=engine" replace />} />
+            <Route path="/threat-deception" element={<Navigate to="/brain/fail/deception?tab=decoys" replace />} />
             <Route path="/cert-manager" element={<Navigate to="/discover/crypto?tab=manager" replace />} />
             <Route path="/firewall" element={<FirewallAnalyzer />} />
             <Route path="/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
@@ -1079,7 +1082,7 @@ export default function App() {
             <Route path="/posture-benchmarking" element={<PostureBenchmarkingDashboard />} />
             <Route path="/quantum-crypto" element={<Navigate to="/discover/crypto?tab=quantum" replace />} />
             <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/deception-analytics" element={<DeceptionAnalyticsDashboard />} />
+            <Route path="/deception-analytics" element={<Navigate to="/brain/fail/deception?tab=analytics" replace />} />
 
             {/* Wave 23 domain dashboards */}
             <Route path="/threat-intel-automation" element={<ThreatIntelAutomation />} />

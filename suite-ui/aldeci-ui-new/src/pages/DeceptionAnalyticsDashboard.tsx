@@ -1,3 +1,4 @@
+// FOLDED into DeceptionHub hero (analytics tab) 2026-05-02 — preserve for git history
 /**
  * Deception Analytics Dashboard
  *
