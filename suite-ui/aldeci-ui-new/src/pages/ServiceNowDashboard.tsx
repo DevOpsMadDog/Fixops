@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into IntegrationTargetsHub hero (servicenow tab) 2026-05-02 — preserve for git history
 /**
  * ServiceNow Integration Dashboard - Live API
  * Route: /servicenow

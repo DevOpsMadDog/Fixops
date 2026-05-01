@@ -537,9 +537,8 @@ const IntelEnrichmentDashboard = lazy(() => import("@/pages/IntelEnrichmentDashb
 const SecurityOKRDashboard = lazy(() => import("@/pages/SecurityOKRDashboard"));
 
 // Connector dashboards — Prowler, ServiceNow, SIEM Output
-const ProwlerDashboard = lazy(() => import("@/pages/ProwlerDashboard"));
-const ServiceNowDashboard = lazy(() => import("@/pages/ServiceNowDashboard"));
-const SIEMOutputDashboard = lazy(() => import("@/pages/SIEMOutputDashboard"));
+// FOLDED into IntegrationTargetsHub at /connect/targets (2026-05-02) — kept as lazy imports for hub composition
+const IntegrationTargetsHub = lazy(() => import("@/pages/IntegrationTargetsHub"));
 
 // Neural Brain Visualization
 const BrainVisualization = lazy(() => import("@/pages/BrainVisualization"));
@@ -1247,10 +1246,11 @@ export default function App() {
             <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
-            {/* Connector dashboards — Prowler, ServiceNow, SIEM Output */}
-            <Route path="/prowler" element={<ProwlerDashboard />} />
-            <Route path="/servicenow" element={<ServiceNowDashboard />} />
-            <Route path="/siem-output" element={<SIEMOutputDashboard />} />
+            {/* Connector dashboards — folded into IntegrationTargetsHub (Phase 3, 2026-05-02) */}
+            <Route path="/connect/targets" element={<IntegrationTargetsHub />} />
+            <Route path="/prowler" element={<Navigate to="/connect/targets?tab=prowler" replace />} />
+            <Route path="/servicenow" element={<Navigate to="/connect/targets?tab=servicenow" replace />} />
+            <Route path="/siem-output" element={<Navigate to="/connect/targets?tab=siem" replace />} />
 
             {/* Strategic engine dashboards (2026-04-25) */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}

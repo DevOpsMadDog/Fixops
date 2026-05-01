@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into IntegrationTargetsHub hero (siem tab) 2026-05-02 — preserve for git history
 /**
  * SIEM Output Dashboard - Live API
  * Route: /siem-output

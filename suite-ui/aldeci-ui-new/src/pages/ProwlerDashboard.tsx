@@ -1,3 +1,4 @@
+// FOLDED into IntegrationTargetsHub hero (prowler tab) 2026-05-02 — preserve for git history
 /**
  * Prowler Dashboard
  *
