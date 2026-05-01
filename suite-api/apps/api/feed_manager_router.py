@@ -205,6 +205,33 @@ async def list_feeds(
 
 
 # ---------------------------------------------------------------------------
+# Health / Status — MUST be before /{feed_id} catch-all
+# ---------------------------------------------------------------------------
+
+
+@router.get("/health", summary="Feed manager health check")
+async def feed_manager_health() -> Dict[str, Any]:
+    """Health check for the feed manager service."""
+    try:
+        manager = _get_manager()
+        feeds = manager.list_feeds()
+        return {
+            "status": "healthy",
+            "engine": "feed-manager",
+            "version": "1.0.0",
+            "total_feeds": len(feeds),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "degraded", "engine": "feed-manager", "error": str(exc)[:200]}
+
+
+@router.get("/status", summary="Feed manager status alias")
+async def feed_manager_status() -> Dict[str, Any]:
+    """Status alias for /health — returns feed manager operational status."""
+    return await feed_manager_health()
+
+
+# ---------------------------------------------------------------------------
 # Item routes
 # ---------------------------------------------------------------------------
 

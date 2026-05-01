@@ -108,11 +108,12 @@ async def knowledge_graph_status() -> Dict[str, Any]:
             "version": "1.0.0",
             **analytics,
         }
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except Exception as e:  # noqa: BLE001 — status endpoint must never return 500
         return {
             "status": "degraded",
             "engine": "knowledge-graph",
             "error": type(e).__name__,
+            "detail": str(e)[:200],
         }
 
 

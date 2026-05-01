@@ -259,3 +259,26 @@ def delete_resource(resource_id: str) -> Dict[str, Any]:
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Resource '{resource_id}' not found")
     return {"deleted": True, "resource_id": resource_id}
+
+
+@router.get("/health", summary="CSPM engine health check")
+def cspm_health() -> Dict[str, Any]:
+    """Health check — returns CSPM engine operational status."""
+    try:
+        engine = _engine()
+        resource_count = len(engine.get_resources())
+        return {
+            "status": "healthy",
+            "engine": "cspm",
+            "version": "1.0.0",
+            "resources_tracked": resource_count,
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("CSPM health check degraded: %s", exc)
+        return {"status": "degraded", "engine": "cspm", "error": str(exc)}
+
+
+@router.get("/status", summary="CSPM engine status alias")
+def cspm_status() -> Dict[str, Any]:
+    """Status alias for /health — returns CSPM engine operational status."""
+    return cspm_health()
