@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into ContainerSecurityHub hero (posture tab) 2026-05-02 — preserve for git history
 /**
  * Container Posture - Live API
  * API: GET /api/v1/container-posture/clusters

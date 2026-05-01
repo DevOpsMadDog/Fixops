@@ -390,6 +390,8 @@ const AlertTriageDashboard = lazy(() => import("@/pages/AlertTriageDashboard"));
 const AwarenessMetricsDashboard = lazy(() => import("@/pages/AwarenessMetricsDashboard"));
 const PatchManagementDashboard = lazy(() => import("@/pages/PatchManagementDashboard"));
 const ContainerPostureDashboard = lazy(() => import("@/pages/ContainerPostureDashboard"));
+// Phase 3 UX consolidation — Container Security hub (folds image + runtime + posture, 2026-05-02)
+const ContainerSecurityHub = lazy(() => import("@/pages/ContainerSecurityHub"));
 const CyberThreatIntelDashboard = lazy(() => import("@/pages/CyberThreatIntelDashboard"));
 const DigitalTwinDashboard = lazy(() => import("@/pages/DigitalTwinDashboard"));
 
@@ -1028,7 +1030,9 @@ export default function App() {
             {/* S23 fold 2026-05-02: PrivacyGDPRDashboard → PrivacyComplianceHub#gdpr */}
             <Route path="/privacy-gdpr" element={<Navigate to="/comply/privacy?tab=gdpr" replace />} />
             <Route path="/network-traffic" element={<NetworkTrafficDashboard />} />
-            <Route path="/container-security" element={<ContainerSecurityDashboard />} />
+            {/* Phase 3 UX consolidation — Container Security hub (folds 3 pages, 2026-05-02) */}
+            <Route path="/discover/container-security" element={<ContainerSecurityHub />} />
+            <Route path="/container-security" element={<Navigate to="/discover/container-security?tab=image" replace />} />
 
             {/* Cloud Compliance + Endpoint Compliance */}
             <Route path="/cloud-compliance" element={<CloudComplianceDashboard />} />
@@ -1060,7 +1064,7 @@ export default function App() {
             {/* Wave 19 domain dashboards */}
             <Route path="/dark-web" element={<DarkWebMonitoringDashboard />} />
             <Route path="/itdr" element={<ITDRDashboard />} />
-            <Route path="/container-runtime" element={<ContainerRuntimeSecurityDashboard />} />
+            <Route path="/container-runtime" element={<Navigate to="/discover/container-security?tab=runtime" replace />} />
             <Route path="/api-discovery" element={<APIDiscoveryDashboard />} />
             <Route path="/security-chaos" element={<SecurityChaosDashboard />} />
             <Route path="/incident-metrics" element={<IncidentMetricsDashboard />} />
@@ -1125,7 +1129,7 @@ export default function App() {
             <Route path="/alert-triage" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/awareness-metrics" element={<Navigate to="/comply/awareness?tab=metrics" replace />} />
             <Route path="/patch-management" element={<PatchManagementDashboard />} />
-            <Route path="/container-posture" element={<ContainerPostureDashboard />} />
+            <Route path="/container-posture" element={<Navigate to="/discover/container-security?tab=posture" replace />} />
             <Route path="/cyber-threat-intel" element={<CyberThreatIntelDashboard />} />
             <Route path="/digital-twin" element={<DigitalTwinDashboard />} />
 

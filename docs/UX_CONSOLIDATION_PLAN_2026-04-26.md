@@ -310,6 +310,8 @@
 | `MFAManagementDashboard` / `PAMDashboard` / `PrivilegeEscalationDashboard` / `PrivilegedIdentityDashboard` / `PrivilegedSessionRecordingDashboard` / `AccessGovernanceDashboard` / `AccessAnomalyDashboard` / `AccessRequestManagementDashboard` / `UserAccessReviewDashboard` / `ServiceAccountAuditDashboard` / `PasswordPolicy` | `/api/v1/iam/*` | tab (IAM Deep) |
 
 **Privileged Access sub-cluster: DONE-2026-05-02 SHA=1329bfee** — 3 IAM-deep pages folded into `PrivilegedAccessHub.tsx` at `/discover/privileged-access` (MFAManagementDashboard, PAMDashboard, PrivilegedSessionRecordingDashboard). Old routes (`/mfa-management`, `/pam`, `/session-recording`) redirect with `?tab=`. Real APIs: `/api/v1/mfa/{stats,enrollments,events}`, `/api/v1/pam/{stats,accounts,sessions,requests}`, `/api/v1/session-recording/{sessions,stats}`. Tabs: `mfa|pam|sessions`. Multica #3633.
+
+**Container Security sub-cluster: DONE-2026-05-02 SHA=<pending>** — 3 container pages folded into `ContainerSecurityHub.tsx` at `/discover/container-security` (ContainerSecurityDashboard, ContainerRuntimeSecurityDashboard, ContainerPostureDashboard). Old routes (`/container-security`, `/container-runtime`, `/container-posture`) redirect with `?tab=`. Real APIs: `/api/v1/containers/policies`, `/api/v1/kubernetes-security/stats`, `/api/v1/container-runtime/{stats,containers,violations}`, `/api/v1/container-posture/{clusters,stats}`. Tabs: `image|runtime|posture`.
 | `CCMDashboard` (Continuous Cloud Monitoring) | `/api/v1/ccm` | tab |
 | `PostureBenchmarkingDashboard` / `ConfigBenchmarkDashboard` / `SecurityBenchmarksDashboard` | `/api/v1/benchmarks/*` | tab (Benchmarks) |
 | `CapacityPlanningDashboard` (cross-link to S2) | shared | widget |

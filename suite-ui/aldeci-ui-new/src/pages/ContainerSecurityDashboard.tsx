@@ -1,3 +1,4 @@
+// FOLDED into ContainerSecurityHub hero (image tab) 2026-05-02 — preserve for git history
 /**
  * Container Security Dashboard
  *
