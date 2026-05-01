@@ -1,3 +1,5 @@
+// FOLDED into AutomationOrchestrationHub (soar tab) 2026-05-02 — preserve for git history
+// Tab path: /remediate/automation?tab=soar
 /**
  * SOAR Dashboard
  *

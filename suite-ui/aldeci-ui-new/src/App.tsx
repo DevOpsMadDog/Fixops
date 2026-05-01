@@ -129,6 +129,7 @@ const VendorRiskDashboard = lazy(() => import("@/pages/VendorRiskDashboard"));
 const PostureAdvisor = lazy(() => import("@/pages/PostureAdvisor"));
 const ZeroTrustDashboard = lazy(() => import("@/pages/ZeroTrustDashboard"));
 const PatchPrioritizer = lazy(() => import("@/pages/PatchPrioritizer"));
+const AutomationOrchestrationHub = lazy(() => import("@/pages/AutomationOrchestrationHub"));
 const CVESearch = lazy(() => import("@/pages/CVESearch"));
 const IPReputationDashboard = lazy(() => import("@/pages/IPReputationDashboard"));
 const SecretsRotation = lazy(() => import("@/pages/SecretsRotation"));
@@ -885,7 +886,9 @@ export default function App() {
             <Route path="/insider-threats" element={<Navigate to="/mission-control/behavior?tab=insider" replace />} />
             <Route path="/security-kpis" element={<SecurityKPIDashboard />} />
             <Route path="/posture-advisor" element={<PostureAdvisor />} />
-            <Route path="/patch-prioritizer" element={<PatchPrioritizer />} />
+            {/* Phase 3 fold 2026-05-02 — Automation & Orchestration Hub (S19 Patch+SOAR sub-cluster) */}
+            <Route path="/remediate/automation" element={<AutomationOrchestrationHub />} />
+            <Route path="/patch-prioritizer" element={<Navigate to="/remediate/automation?tab=prioritize" replace />} />
             <Route path="/vendor-risk" element={<VendorRiskDashboard />} />
             {/* Phase 3 fold 2026-05-02 — Vuln Intelligence Hub (S7 sub-cluster) */}
             <Route path="/discover/vuln-intel" element={<VulnIntelHub />} />
@@ -937,7 +940,8 @@ export default function App() {
             <Route path="/mobile-security" element={<MobileSecurity />} />
             <Route path="/password-policy" element={<PasswordPolicy />} />
             <Route path="/app-security" element={<AppSecurity />} />
-            <Route path="/soar" element={<SOARDashboard />} />
+            {/* S19 fold 2026-05-02: SOARDashboard → AutomationOrchestrationHub#soar */}
+            <Route path="/soar" element={<Navigate to="/remediate/automation?tab=soar" replace />} />
             <Route path="/grc" element={<GRCDashboard />} />
             <Route path="/api-security" element={<APISecurityDashboard />} />
             <Route path="/threat-correlation" element={<ThreatCorrelation />} />
@@ -1138,7 +1142,8 @@ export default function App() {
             {/* Wave 27 domain dashboards */}
             <Route path="/alert-triage" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/awareness-metrics" element={<Navigate to="/comply/awareness?tab=metrics" replace />} />
-            <Route path="/patch-management" element={<PatchManagementDashboard />} />
+            {/* S19 fold 2026-05-02: PatchManagementDashboard → AutomationOrchestrationHub#patch */}
+            <Route path="/patch-management" element={<Navigate to="/remediate/automation?tab=patch" replace />} />
             <Route path="/container-posture" element={<Navigate to="/discover/container-security?tab=posture" replace />} />
             <Route path="/cyber-threat-intel" element={<CyberThreatIntelDashboard />} />
             <Route path="/digital-twin" element={<DigitalTwinDashboard />} />

@@ -1,3 +1,5 @@
+// FOLDED into AutomationOrchestrationHub (prioritize tab) 2026-05-02 — preserve for git history
+// Tab path: /remediate/automation?tab=prioritize
 /**
  * Patch Prioritizer — Intelligent Patch Prioritization Dashboard
  *

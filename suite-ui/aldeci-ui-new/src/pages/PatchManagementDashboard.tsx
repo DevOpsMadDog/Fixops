@@ -1,6 +1,7 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 // FOLDED into Remediate hero 2026-04-27 — preserve for git history
-// Tab path: /remediate?tab=patch
+// FOLDED into AutomationOrchestrationHub (patch tab) 2026-05-02 — preserve for git history
+// Tab path: /remediate/automation?tab=patch
 /**
  * Patch Management Dashboard - Live API
  * Route: /patch-management
