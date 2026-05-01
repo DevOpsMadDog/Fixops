@@ -738,6 +738,8 @@ export default function App() {
             <Route path="/mission-control/soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/mission-control/soc-t1" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/mission-control/compliance" element={<Navigate to="/compliance" replace />} />
+            {/* DoD #5 — CTEM Cycles surface lives in mission-control compliance variant */}
+            <Route path="/mission-control/ctem" element={<MissionControlComplianceDashboard />} />
             <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
             <Route path="/mission-control/threat-intel" element={<ThreatIntelDashboard />} />
             <Route path="/mission-control/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />

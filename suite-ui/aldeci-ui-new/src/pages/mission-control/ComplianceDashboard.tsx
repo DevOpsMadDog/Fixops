@@ -17,7 +17,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -27,8 +27,10 @@ import {
   ShieldCheck, AlertTriangle, Clock, Download, RefreshCw,
   Filter, ChevronRight, X, CheckCircle2, XCircle, Minus,
   FileText, Calendar, TrendingUp, AlertCircle, BookOpen,
-  ChevronDown, ExternalLink, Loader2,
+  ChevronDown, ExternalLink, Loader2, Plus, Activity, Target,
+  Search, ListChecks, ShieldAlert, Megaphone,
 } from "lucide-react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +43,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { complianceApi } from "@/lib/api";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { complianceApi, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId, buildApiUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────
@@ -655,6 +658,290 @@ function GapAnalysisPanel({ gaps, frameworks }: { gaps: Gap[]; frameworks: Frame
 }
 
 // ─────────────────────────────────────────────────────────────
+// CTEM Cycles — DoD #5: 5-stage continuous threat exposure management
+// Backend: FEATURE-2 (cb25906d) wired CTEM → TrustGraph events
+// Live cycle: cycle-d250c96701bf via POST /api/v1/ctem/cycles
+// ─────────────────────────────────────────────────────────────
+
+type CtemStage = "scoping" | "discovery" | "prioritization" | "validation" | "mobilization";
+
+interface CtemCycle {
+  id: string;
+  name: string;
+  start_date?: string;
+  current_stage: CtemStage;
+  exposures?: string[];
+  completion_pct?: number;
+  org_id?: string;
+}
+
+const CTEM_STAGE_ORDER: CtemStage[] = ["scoping", "discovery", "prioritization", "validation", "mobilization"];
+
+const CTEM_STAGE_META: Record<CtemStage, { label: string; icon: React.FC<{ className?: string }>; color: string; bg: string; border: string }> = {
+  scoping:        { label: "Scoping",        icon: Target,       color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/30"   },
+  discovery:      { label: "Discovery",      icon: Search,       color: "text-cyan-400",   bg: "bg-cyan-500/10",   border: "border-cyan-500/30"   },
+  prioritization: { label: "Prioritization", icon: ListChecks,   color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+  validation:     { label: "Validation",     icon: ShieldAlert,  color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+  mobilization:   { label: "Mobilization",   icon: Megaphone,    color: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/30"  },
+};
+
+// Direct API helpers — auth headers wired manually so we keep this single-file change.
+function ctemAuthHeaders(): Record<string, string> {
+  const token = getStoredAuthToken();
+  const strategy = getStoredAuthStrategy();
+  const orgId = getStoredOrgId();
+  const headers: Record<string, string> = { "Content-Type": "application/json", "X-Org-ID": orgId };
+  if (token) {
+    if (strategy === "jwt") {
+      headers.Authorization = token.toLowerCase().startsWith("bearer ") ? token : `Bearer ${token}`;
+    } else {
+      headers["X-API-Key"] = token;
+    }
+  }
+  return headers;
+}
+
+async function listCtemCycles(orgId: string): Promise<CtemCycle[]> {
+  const url = buildApiUrl("/api/v1/ctem/cycles", { org_id: orgId });
+  const res = await axios.get<CtemCycle[]>(url, { headers: ctemAuthHeaders() });
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+async function createCtemCycle(name: string, orgId: string): Promise<CtemCycle> {
+  const url = buildApiUrl("/api/v1/ctem/cycles", { org_id: orgId });
+  const res = await axios.post<CtemCycle>(url, { name }, { headers: ctemAuthHeaders() });
+  return res.data;
+}
+
+async function advanceCtemStage(cycleId: string): Promise<CtemCycle> {
+  const url = buildApiUrl(`/api/v1/ctem/cycles/${cycleId}/advance`);
+  const res = await axios.post<CtemCycle>(url, {}, { headers: ctemAuthHeaders() });
+  return res.data;
+}
+
+function StageIndicator({ current }: { current: CtemStage }) {
+  const currentIdx = CTEM_STAGE_ORDER.indexOf(current);
+  return (
+    <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={`Current stage: ${CTEM_STAGE_META[current].label}`}>
+      {CTEM_STAGE_ORDER.map((stage, idx) => {
+        const meta = CTEM_STAGE_META[stage];
+        const Icon = meta.icon;
+        const isCompleted = idx < currentIdx;
+        const isActive = idx === currentIdx;
+        return (
+          <div key={stage} className="flex items-center gap-1">
+            <div
+              role="img"
+              aria-label={`${meta.label} ${isActive ? "(current)" : isCompleted ? "(completed)" : "(upcoming)"}`}
+              aria-current={isActive ? "step" : undefined}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium font-mono transition-all",
+                isActive
+                  ? cn(meta.color, meta.bg, meta.border, "ring-1 ring-current shadow-sm")
+                  : isCompleted
+                    ? "text-green-400 bg-green-500/5 border-green-500/20"
+                    : "text-muted-foreground bg-muted/20 border-border"
+              )}
+            >
+              <Icon className="h-3 w-3" />
+              <span className="hidden sm:inline">{meta.label}</span>
+              {isCompleted && <CheckCircle2 className="h-3 w-3 text-green-400" />}
+            </div>
+            {idx < CTEM_STAGE_ORDER.length - 1 && (
+              <ChevronRight className={cn("h-3 w-3", idx < currentIdx ? "text-green-400" : "text-muted-foreground/40")} aria-hidden />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CtemCyclesPanel() {
+  const orgId = getStoredOrgId();
+  const queryClient = useQueryClient();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const { data: cycles, isLoading, isError, refetch } = useQuery<CtemCycle[]>({
+    queryKey: ["ctem-cycles", orgId],
+    queryFn: () => listCtemCycles(orgId),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => {
+      const today = new Date().toISOString().slice(0, 10);
+      return createCtemCycle(`Cycle ${today}`, orgId);
+    },
+    onSuccess: () => {
+      setErrorMsg(null);
+      queryClient.invalidateQueries({ queryKey: ["ctem-cycles", orgId] });
+    },
+    onError: (err: unknown) => {
+      const message = axios.isAxiosError(err) ? (err.response?.data?.detail ?? err.message) : String(err);
+      setErrorMsg(`Create failed: ${message}`);
+    },
+  });
+
+  const advanceMutation = useMutation({
+    mutationFn: (cycleId: string) => advanceCtemStage(cycleId),
+    onSuccess: () => {
+      setErrorMsg(null);
+      queryClient.invalidateQueries({ queryKey: ["ctem-cycles", orgId] });
+    },
+    onError: (err: unknown) => {
+      const message = axios.isAxiosError(err) ? (err.response?.data?.detail ?? err.message) : String(err);
+      setErrorMsg(`Advance failed: ${message}`);
+    },
+  });
+
+  const handleCreate = useCallback(() => {
+    createMutation.mutate();
+  }, [createMutation]);
+
+  const cycleList = cycles ?? [];
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            CTEM Cycles
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              (Continuous Threat Exposure Management — 5 stages)
+            </span>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              className="gap-1.5"
+              aria-label="Refresh CTEM cycles"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleCreate}
+              disabled={createMutation.isPending}
+              className="gap-1.5"
+              aria-label="Create new CTEM cycle"
+            >
+              {createMutation.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Plus className="h-3.5 w-3.5" />}
+              New Cycle
+            </Button>
+          </div>
+        </div>
+        {errorMsg && (
+          <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 font-mono">
+            {errorMsg}
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="p-0">
+        {isLoading ? (
+          <div className="py-12 flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : isError ? (
+          <div className="py-8">
+            <ErrorState message="Failed to load CTEM cycles" onRetry={refetch} />
+          </div>
+        ) : cycleList.length === 0 ? (
+          <EmptyState
+            icon={Activity}
+            title="No CTEM cycles"
+            description="Create a cycle to manage continuous threat exposure across the 5 stages: Scoping → Discovery → Prioritization → Validation → Mobilization."
+            action={
+              <Button onClick={handleCreate} disabled={createMutation.isPending} className="gap-1.5">
+                {createMutation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <Plus className="h-3.5 w-3.5" />}
+                New cycle
+              </Button>
+            }
+          />
+        ) : (
+          <>
+            {/* Table header */}
+            <div className="grid grid-cols-[1.4fr_2fr_0.7fr_0.6fr_0.7fr] gap-3 px-4 py-2 border-b border-border bg-muted/20 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Cycle</span>
+              <span>Stage Progress</span>
+              <span className="text-right">Exposures</span>
+              <span className="text-right">Done %</span>
+              <span className="text-right">Action</span>
+            </div>
+            <div className="divide-y divide-border">
+              {cycleList.map((cycle, idx) => {
+                const stage = (cycle.current_stage || "scoping") as CtemStage;
+                const exposureCount = Array.isArray(cycle.exposures) ? cycle.exposures.length : 0;
+                const completionPct = typeof cycle.completion_pct === "number" ? cycle.completion_pct : 0;
+                const isFinalStage = stage === "mobilization";
+                const isAdvancingThis = advanceMutation.isPending && advanceMutation.variables === cycle.id;
+                return (
+                  <motion.div
+                    key={cycle.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="grid grid-cols-[1.4fr_2fr_0.7fr_0.6fr_0.7fr] gap-3 px-4 py-3 hover:bg-muted/20 transition-colors items-center"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{cycle.name}</p>
+                      <p className="text-xs font-mono text-muted-foreground truncate mt-0.5">
+                        {cycle.id}
+                      </p>
+                      {cycle.start_date && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Started <span className="font-mono">{cycle.start_date.slice(0, 10)}</span>
+                        </p>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <StageIndicator current={stage} />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-mono tabular-nums text-foreground">{exposureCount}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-mono tabular-nums text-foreground">
+                        {completionPct.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <Button
+                        variant={isFinalStage ? "ghost" : "outline"}
+                        size="sm"
+                        onClick={() => advanceMutation.mutate(cycle.id)}
+                        disabled={isFinalStage || isAdvancingThis}
+                        className="gap-1.5 text-xs"
+                        aria-label={isFinalStage ? `Cycle ${cycle.name} is at final stage` : `Advance ${cycle.name} to next stage`}
+                      >
+                        {isAdvancingThis
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <ChevronRight className="h-3 w-3" />}
+                        {isFinalStage ? "Complete" : "Advance"}
+                      </Button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────
 
@@ -945,6 +1232,14 @@ export default function ComplianceDashboard() {
 
       {/* ── Gap Analysis ── */}
       <GapAnalysisPanel gaps={d.gaps} frameworks={d.frameworks} />
+
+      {/* ── CTEM Cycles (DoD #5) ── */}
+      <section aria-label="CTEM Cycles">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+          Continuous Threat Exposure Management
+        </h2>
+        <CtemCyclesPanel />
+      </section>
 
       {/* ── Evidence Drawer ── */}
       <EvidenceDrawer control={selectedControl} onClose={() => setSelectedControl(null)} />
