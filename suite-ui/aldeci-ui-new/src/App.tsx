@@ -395,6 +395,8 @@ const DigitalTwinDashboard = lazy(() => import("@/pages/DigitalTwinDashboard"));
 // Wave 28 domain dashboards
 const AccessRequestManagementDashboard = lazy(() => import("@/pages/AccessRequestManagementDashboard"));
 const PrivilegedSessionRecordingDashboard = lazy(() => import("@/pages/PrivilegedSessionRecordingDashboard"));
+// Phase 3 UX consolidation — Privileged Access hub (folds MFA + PAM + Sessions, 2026-05-02)
+const PrivilegedAccessHub = lazy(() => import("@/pages/PrivilegedAccessHub"));
 const CloudResourceInventoryDashboard = lazy(() => import("@/pages/CloudResourceInventoryDashboard"));
 const SecurityTelemetryDashboard = lazy(() => import("@/pages/SecurityTelemetryDashboard"));
 const MicrosegmentationPolicyDashboard = lazy(() => import("@/pages/MicrosegmentationPolicyDashboard"));
@@ -937,7 +939,9 @@ export default function App() {
             <Route path="/api-sec" element={<APISecurityPage />} />
             <Route path="/data-classification" element={<DataClassificationDashboard />} />
             <Route path="/security-training" element={<SecurityTrainingDashboard />} />
-            <Route path="/pam" element={<PAMDashboard />} />
+            {/* Phase 3 — Privileged Access hub canonical route */}
+            <Route path="/discover/privileged-access" element={<PrivilegedAccessHub />} />
+            <Route path="/pam" element={<Navigate to="/discover/privileged-access?tab=pam" replace />} />
             {/* S2 Finance hub — folded 2026-05-02. Old route redirects below. */}
             <Route path="/cyber-insurance" element={<Navigate to="/mission-control/finance?tab=cyber-insur" replace />} />
             <Route path="/cyber-insurance-legacy" element={<CyberInsurance />} />
@@ -1032,7 +1036,7 @@ export default function App() {
             <Route path="/network-segmentation" element={<NetworkSegmentationDashboard />} />
 
             {/* MFA Management, Threat Scores, Security Budget, Compliance Gaps */}
-            <Route path="/mfa-management" element={<MFAManagementDashboard />} />
+            <Route path="/mfa-management" element={<Navigate to="/discover/privileged-access?tab=mfa" replace />} />
             <Route path="/threat-scores" element={<ThreatScoreDashboard />} />
             {/* S2 Finance hub — folded 2026-05-02 */}
             <Route path="/security-budget" element={<Navigate to="/mission-control/finance?tab=budget" replace />} />
@@ -1120,7 +1124,7 @@ export default function App() {
 
             {/* Wave 28 domain dashboards */}
             <Route path="/access-requests" element={<AccessRequestManagementDashboard />} />
-            <Route path="/session-recording" element={<PrivilegedSessionRecordingDashboard />} />
+            <Route path="/session-recording" element={<Navigate to="/discover/privileged-access?tab=sessions" replace />} />
             <Route path="/cloud-inventory" element={<CloudResourceInventoryDashboard />} />
             <Route path="/security-telemetry" element={<SecurityTelemetryDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}

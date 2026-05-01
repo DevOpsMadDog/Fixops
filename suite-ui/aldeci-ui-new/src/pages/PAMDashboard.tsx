@@ -1,3 +1,4 @@
+// FOLDED into PrivilegedAccessHub (pam tab) 2026-05-02 — preserve for git history
 /**
  * PAM Dashboard
  *

@@ -1,3 +1,4 @@
+// FOLDED into PrivilegedAccessHub (mfa tab) 2026-05-02 — preserve for git history
 /**
  * MFA Management Dashboard
  *
