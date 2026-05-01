@@ -1,3 +1,4 @@
+// FOLDED into AwarenessHub (score tab) 2026-05-02 — preserve for git history
 /**
  * Security Awareness Dashboard
  *

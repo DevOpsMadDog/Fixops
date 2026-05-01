@@ -226,6 +226,9 @@ const XDRDashboard = lazy(() => import("@/pages/XDRDashboard"));
 const AwarenessScoreDashboard = lazy(() => import("@/pages/AwarenessScoreDashboard"));
 const EDRDashboard = lazy(() => import("@/pages/EDRDashboard"));
 
+// Awareness hub (Phase 3 fold 2026-05-02 — folds 4 awareness dashboards)
+const AwarenessHub = lazy(() => import("@/pages/AwarenessHub"));
+
 // New Beast Mode pages — Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel
 const IdentityAnalyticsDashboard = lazy(() => import("@/pages/IdentityAnalyticsDashboard"));
 const CNAPPDashboard = lazy(() => import("@/pages/CNAPPDashboard"));
@@ -940,7 +943,9 @@ export default function App() {
             {/* NDR / XDR / Awareness / EDR */}
             <Route path="/ndr" element={<NDRDashboard />} />
             <Route path="/xdr" element={<XDRDashboard />} />
-            <Route path="/awareness-score" element={<AwarenessScoreDashboard />} />
+            {/* Awareness hub — folded 2026-05-02. Canonical route + 4 redirects. */}
+            <Route path="/comply/awareness" element={<AwarenessHub />} />
+            <Route path="/awareness-score" element={<Navigate to="/comply/awareness?tab=score" replace />} />
             <Route path="/edr" element={<EDRDashboard />} />
 
             {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
@@ -1054,7 +1059,7 @@ export default function App() {
 
             {/* Wave 27 domain dashboards */}
             <Route path="/alert-triage" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/awareness-metrics" element={<AwarenessMetricsDashboard />} />
+            <Route path="/awareness-metrics" element={<Navigate to="/comply/awareness?tab=metrics" replace />} />
             <Route path="/patch-management" element={<PatchManagementDashboard />} />
             <Route path="/container-posture" element={<ContainerPostureDashboard />} />
             <Route path="/cyber-threat-intel" element={<CyberThreatIntelDashboard />} />
@@ -1072,7 +1077,7 @@ export default function App() {
             <Route path="/sspm" element={<SaasSecurityPostureDashboard />} />
             <Route path="/api-inventory" element={<Navigate to="/asset-graph?tab=api-inventory" replace />} />
             <Route path="/threat-vectors" element={<ThreatVectorDashboard />} />
-            <Route path="/awareness-campaigns" element={<AwarenessCampaignDashboard />} />
+            <Route path="/awareness-campaigns" element={<Navigate to="/comply/awareness?tab=campaigns" replace />} />
             <Route path="/risk-treatment" element={<RiskTreatmentDashboard />} />
             <Route path="/data-discovery" element={<DataDiscoveryDashboard />} />
 
@@ -1132,7 +1137,7 @@ export default function App() {
             <Route path="/alert-enrichment" element={<Navigate to="/brain?tab=alert-enrichment" replace />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/threat-response" element={<ThreatResponseDashboard />} />
-            <Route path="/awareness-program" element={<AwarenessProgramDashboard />} />
+            <Route path="/awareness-program" element={<Navigate to="/comply/awareness?tab=program" replace />} />
 
             {/* Wave 37 domain dashboards */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
