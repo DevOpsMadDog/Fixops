@@ -16,6 +16,13 @@ from core.ccm_engine import get_engine
 
 _logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "ccm_engine",
+    "real_integration_required": "/api/v1/connectors/ccm/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(prefix="/api/v1/ccm", tags=["ccm"])
 
 
@@ -103,7 +110,8 @@ def add_test(org_id: str, control_id: str, req: AddTestRequest) -> Dict[str, Any
 @router.post("/orgs/{org_id}/tests/{test_id}/run", summary="Run a control test")
 def run_test(org_id: str, test_id: str) -> Dict[str, Any]:
     try:
-        return get_engine().run_test(org_id, test_id)
+        result = get_engine().run_test(org_id, test_id)
+        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:

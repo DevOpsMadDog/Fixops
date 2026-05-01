@@ -1,4 +1,19 @@
 """
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates randomized control test outcomes for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- Control test outcomes (line 287) use random.random() with 80/15/5 probability
+  roll — not from real control evidence or policy evaluation.
+- Real implementation requires: OPA/Conftest policy-as-code evaluation, real
+  audit log ingestion, and automated evidence collection from security tools.
+  Configure via /api/v1/connectors/ccm/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
 Continuous Control Monitoring Engine — ALDECI.
 
 Tracks security controls, automated/manual tests, failures, and remediation
@@ -25,6 +40,11 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
+_logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — control outcomes are randomized (80/15/5 roll); do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/ccm/configure",
+    __name__,
+)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "ccm_engine.db"
