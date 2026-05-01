@@ -269,6 +269,7 @@ const ThreatGeolocationDashboard = lazy(() => import("@/pages/ThreatGeolocationD
 const SecretScannerDashboard = lazy(() => import("@/pages/SecretScannerDashboard"));
 const ContainerRegistryDashboard = lazy(() => import("@/pages/ContainerRegistryDashboard"));
 const NetworkMonitoringDashboard = lazy(() => import("@/pages/NetworkMonitoringDashboard"));
+const NetworkMonitoringHub = lazy(() => import("@/pages/NetworkMonitoringHub"));
 const SCADashboard = lazy(() => import("@/pages/SCADashboard"));
 const ServiceAccountAuditDashboard = lazy(() => import("@/pages/ServiceAccountAuditDashboard"));
 const ThreatIntelPlatformDashboard = lazy(() => import("@/pages/ThreatIntelPlatformDashboard"));
@@ -865,7 +866,8 @@ export default function App() {
             <Route path="/dast" element={<DASTDashboard />} />
             <Route path="/ir-playbook" element={<IRPlaybookDashboard />} />
             <Route path="/container-registry" element={<ContainerRegistryDashboard />} />
-            <Route path="/network-monitoring" element={<NetworkMonitoringDashboard />} />
+            <Route path="/discover/network" element={<NetworkMonitoringHub />} />
+            <Route path="/network-monitoring" element={<Navigate to="/discover/network?tab=monitoring" replace />} />
             <Route path="/sca" element={<SCADashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/threat-intel-platform" element={<ThreatIntelPlatformDashboard />} />
@@ -1203,7 +1205,7 @@ export default function App() {
 
             {/* Wave 39 domain dashboards */}
             <Route path="/posture-reports" element={<Navigate to="/compliance?tab=posture-reports" replace />} />
-            <Route path="/network-anomaly" element={<NetworkAnomalyDashboard />} />
+            <Route path="/network-anomaly" element={<Navigate to="/discover/network?tab=anomaly" replace />} />
             <Route path="/privileged-identity" element={<Navigate to="/admin?tab=privileged-access" replace />} />
             <Route path="/hunting-automation" element={<Navigate to="/mission-control/hunt?tab=automation" replace />} />
             {/* P3 fold 2026-04-27 — ServiceCatalogDashboard folded into /assets#catalog */}
@@ -1259,7 +1261,7 @@ export default function App() {
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/posture-trends" element={<PostureTrendsDashboard />} />
             <Route path="/access-governance" element={<Navigate to="/asset-graph?tab=access-governance" replace />} />
-            <Route path="/network-threats" element={<NetworkThreatsDashboard />} />
+            <Route path="/network-threats" element={<Navigate to="/discover/network?tab=threats" replace />} />
             <Route path="/incident-kb" element={<IncidentKBDashboard />} />
 
             {/* Wave 31 domain dashboards */}

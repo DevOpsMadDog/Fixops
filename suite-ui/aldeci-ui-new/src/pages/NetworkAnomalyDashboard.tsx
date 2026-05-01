@@ -1,3 +1,4 @@
+// FOLDED into NetworkMonitoringHub hero (anomaly tab) 2026-05-02 — preserve for git history
 /**
  * Network Anomaly Dashboard
  *

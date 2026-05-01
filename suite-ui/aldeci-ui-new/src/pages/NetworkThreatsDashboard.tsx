@@ -1,3 +1,4 @@
+// FOLDED into NetworkMonitoringHub hero (threats tab) 2026-05-02 — preserve for git history
 /**
  * Network Threats Dashboard - Live API
  * Route: /network-threats
