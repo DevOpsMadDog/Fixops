@@ -486,6 +486,7 @@ const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptim
 // Phase 3 UX consolidation hubs (2026-05-02)
 const ThreatActorsHub = lazy(() => import("@/pages/ThreatActorsHub"));
 const PolicyAuthoringHub = lazy(() => import("@/pages/PolicyAuthoringHub"));
+const PolicyLifecycleHub = lazy(() => import("@/pages/PolicyLifecycleHub"));
 const SecretsHub = lazy(() => import("@/pages/SecretsHub"));
 
 // Sales & Marketing
@@ -1623,7 +1624,9 @@ export default function App() {
             <Route path="/policies/stage-matrix" element={<Navigate to="/comply/policies/authoring?tab=stage-matrix" replace />} />
             {/* S26 unified hero — Phase 3 cluster (2026-05-02): 3 policy/hooks pages folded into one tabbed screen */}
             <Route path="/comply/policies/authoring" element={<PolicyAuthoringHub />} />
-            <Route path="/policies/stage-editor" element={<PolicyStageEditor />} />
+            {/* S27 unified hero — Phase 3 cluster (2026-05-02): 3 policy lifecycle pages folded into one tabbed hub */}
+            <Route path="/comply/policies/lifecycle" element={<PolicyLifecycleHub />} />
+            <Route path="/policies/stage-editor" element={<Navigate to="/comply/policies/lifecycle?tab=stage-edit" replace />} />
             {/* /waivers/* — Phase 3 P1 consolidated into /remediate?tab=waivers (S19 fold). */}
             {/* Standalone pages still render for old bookmarks; add a top-level /waivers redirect. */}
             <Route path="/waivers" element={<Navigate to="/remediate?tab=waivers" replace />} />
@@ -1631,8 +1634,8 @@ export default function App() {
             <Route path="/waivers/request" element={<WaiverRequestModal />} />
             {/* S20 fold 2026-05-02: AutoWaiverRules → ExceptionsHub#auto-rules */}
             <Route path="/waivers/auto-rules" element={<Navigate to="/remediate/exceptions?tab=auto-rules" replace />} />
-            <Route path="/policies/inheritance" element={<PolicyInheritanceView />} />
-            <Route path="/policies/library" element={<PolicyLibraryBrowser />} />
+            <Route path="/policies/inheritance" element={<Navigate to="/comply/policies/lifecycle?tab=inheritance" replace />} />
+            <Route path="/policies/library" element={<Navigate to="/comply/policies/lifecycle?tab=library" replace />} />
             {/* Phase 3 §2.26 — Rules / DSL sub-cluster folded into RulesCatalogHub at /comply/rules */}
             <Route path="/comply/rules" element={<RulesCatalogHub />} />
             <Route path="/rules/dsl/author" element={<Navigate to="/comply/rules?tab=author" replace />} />

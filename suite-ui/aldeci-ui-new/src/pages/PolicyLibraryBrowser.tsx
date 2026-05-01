@@ -1,3 +1,4 @@
+// FOLDED into PolicyLifecycleHub at /comply/policies/lifecycle?tab=library 2026-05-02 — preserve for git history
 /**
  * Policy Library Browser — Live API
  * Multica: bd5adbfd-caec-4eb3-8b2d-a810b83638c4

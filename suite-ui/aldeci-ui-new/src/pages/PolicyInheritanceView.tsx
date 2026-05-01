@@ -1,3 +1,4 @@
+// FOLDED into PolicyLifecycleHub at /comply/policies/lifecycle?tab=inheritance 2026-05-02 — preserve for git history
 /**
  * Policy Inheritance View — Live API
  * Multica: 6ad4bf90-5dc1-4b83-ad59-808d92de5b29

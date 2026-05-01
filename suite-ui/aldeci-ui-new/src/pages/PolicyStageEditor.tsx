@@ -1,3 +1,4 @@
+// FOLDED into PolicyLifecycleHub at /comply/policies/lifecycle?tab=stage-edit 2026-05-02 — preserve for git history
 /**
  * Policy Stage Editor — Live API
  * Multica: 55e64210-3cc7-4c7d-96b9-df5794465017
