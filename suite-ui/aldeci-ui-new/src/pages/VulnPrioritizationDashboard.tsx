@@ -1,3 +1,4 @@
+// FOLDED into VulnLifecyclePipelineHub hero (prioritize tab) 2026-05-02 — preserve for git history
 /**
  * Vulnerability Prioritization Dashboard
  *

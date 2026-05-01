@@ -1,3 +1,4 @@
+// FOLDED into VulnLifecyclePipelineHub hero (lifecycle tab) 2026-05-02 — preserve for git history
 /**
  * Vulnerability Lifecycle — Kanban board
  *

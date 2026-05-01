@@ -531,6 +531,7 @@ const SecurityPostureMaturityDashboard = lazy(() => import("@/pages/SecurityPost
 const CloudSecurityFindingsDashboard = lazy(() => import("@/pages/CloudSecurityFindingsDashboard"));
 const SecurityOperationsMetricsDashboard = lazy(() => import("@/pages/SecurityOperationsMetricsDashboard"));
 const VulnerabilityAgeDashboard = lazy(() => import("@/pages/VulnerabilityAgeDashboard"));
+const VulnLifecyclePipelineHub = lazy(() => import("@/pages/VulnLifecyclePipelineHub"));
 const ThreatIntelConfidenceDashboard = lazy(() => import("@/pages/ThreatIntelConfidenceDashboard"));
 const SecurityDependencyRiskDashboard = lazy(() => import("@/pages/SecurityDependencyRiskDashboard"));
 
@@ -912,7 +913,10 @@ export default function App() {
             <Route path="/threat-intel" element={<ThreatIntelDashboardPage />} />
             {/* /assets standalone -> consolidated into /assets hero (AssetGraph) Inventory tab */}
             <Route path="/assets/inventory" element={<Navigate to="/assets?tab=inventory" replace />} />
-            <Route path="/vuln-lifecycle" element={<VulnLifecyclePage />} />
+            {/* S2.10 Vuln Lifecycle Pipeline hub — folded 2026-05-02 (combined 4-page pair) */}
+            <Route path="/discover/vuln-pipeline" element={<VulnLifecyclePipelineHub />} />
+            <Route path="/vuln-age" element={<Navigate to="/discover/vuln-pipeline?tab=age" replace />} />
+            <Route path="/vuln-lifecycle" element={<Navigate to="/discover/vuln-pipeline?tab=lifecycle" replace />} />
             {/* S3 Behavior hub — folded 2026-05-02 (FOLDED InsiderThreatMonitor) */}
             <Route path="/mission-control/behavior" element={<BehaviorAnalyticsHub />} />
             <Route path="/insider-threats" element={<Navigate to="/mission-control/behavior?tab=insider" replace />} />
@@ -1183,7 +1187,7 @@ export default function App() {
             <Route path="/application-risk" element={<Navigate to="/assets?tab=app-risk" replace />} />
             <Route path="/pag" element={<PAGDashboard />} />
             <Route path="/security-gamification" element={<SecurityGamificationDashboard />} />
-            <Route path="/vuln-prioritization" element={<VulnPrioritizationDashboard />} />
+            <Route path="/vuln-prioritization" element={<Navigate to="/discover/vuln-pipeline?tab=prioritize" replace />} />
 
             {/* Wave 25 domain dashboards */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
@@ -1199,7 +1203,7 @@ export default function App() {
             <Route path="/threat-attribution" element={<Navigate to="/attack/intel/actors?tab=attribution" replace />} />
             <Route path="/cloud-access-security" element={<CloudAccessSecurityDashboard />} />
             <Route path="/behavioral-analytics" element={<Navigate to="/mission-control/behavior?tab=behavioral" replace />} />
-            <Route path="/vuln-workflow" element={<VulnWorkflowDashboard />} />
+            <Route path="/vuln-workflow" element={<Navigate to="/discover/vuln-pipeline?tab=workflow" replace />} />
             <Route path="/data-pipeline" element={<DataPipelineDashboard />} />
 
             {/* Wave 27 domain dashboards */}

@@ -1,3 +1,4 @@
+// FOLDED into VulnLifecyclePipelineHub hero (workflow tab) 2026-05-02 — preserve for git history
 /**
  * Vulnerability Workflow Dashboard
  *
