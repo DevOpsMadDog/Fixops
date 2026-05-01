@@ -28,6 +28,13 @@ from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "ioc_enrichment_engine",
+    "real_integration_required": "/api/v1/connectors/threat-intel/configure",
+    "do_not_use_in_demo": True,
+}
+
 router = APIRouter(
     prefix="/api/v1/ioc-enrichment",
     tags=["IOC Enrichment"],
@@ -110,7 +117,7 @@ def enrich_ioc(ioc_id: str, org_id: str = Query(default="default")):
     result = _get_engine().enrich_ioc(org_id, ioc_id)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
-    return result
+    return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
 
 
 @router.get("/iocs/{ioc_id}/enrichment", dependencies=[Depends(api_key_auth)])

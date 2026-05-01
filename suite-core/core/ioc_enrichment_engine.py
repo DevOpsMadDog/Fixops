@@ -1,4 +1,20 @@
-"""IOC Enrichment Engine — ALDECI.
+"""
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates hash-derived IOC enrichment data for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- _seed() (line 153) derives enrichment from MD5 hash of IOC value — not from
+  real threat intel feeds (VirusTotal, AbuseIPDB, Shodan, MISP, OTX).
+- Campaign/malware attribution uses hardcoded _SAMPLE_CAMPAIGNS / _SAMPLE_ACTORS lists.
+- Real implementation requires: VirusTotal API, AbuseIPDB, Shodan, MISP instance,
+  or OpenCTI integration. Configure via /api/v1/connectors/threat-intel/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
+IOC Enrichment Engine — ALDECI.
 
 Manage indicators of compromise (IOCs): add, list, enrich, watchlist,
 bulk-import, and summarise statistics.
@@ -26,6 +42,11 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
+_logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — IOC enrichment is hash-derived from indicator value; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/threat-intel/configure",
+    __name__,
+)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "ioc_enrichment.db"
