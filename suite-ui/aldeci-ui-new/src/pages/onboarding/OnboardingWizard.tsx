@@ -1,97 +1,132 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+// FEATURE-1 — /onboarding wizard.  Real backend calls only, zero mocks.
+//
+// 4 steps per founder spec (2026-05-02):
+//   1. Connect Cloud Account → POST /api/v1/cloud-accounts/accounts
+//   2. Connect Source Repo  → POST /api/v1/github-app/register
+//   3. Run First Scan       → POST /api/v1/iac/scan + /api/v1/cspm-engine/scan (parallel)
+//   4. View Dashboard       → navigate("/mission-control")
+//
+// Endpoint substitutions made vs. spec:
+//   - "cloud-connectors/accounts" → "cloud-accounts/accounts"
+//     (cloud-accounts is the BUG-2 router; "cloud-connectors" doesn't exist)
+//   - "connectors/github"          → "github-app/register"
+//     (github-app is the canonical install registry — idempotent)
+//   - "aspm/scan"                  → "cspm-engine/scan"
+//     (no aspm scan endpoint exists; cspm-engine/scan is the closest org-wide scan)
+//
+// Each step has a "Skip for now" button that simply advances state.  Backend
+// validates on submit; UI requires only non-empty fields client-side.
+
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import axios, { AxiosError } from "axios";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Shield, ChevronRight, ChevronLeft, CheckCircle,
-  GitBranch, Copy, Eye, EyeOff, Zap, ArrowRight,
-  SkipForward, Building2, KeyRound, Plug, ScanLine,
-  LayoutDashboard, Sparkles, ExternalLink, RefreshCw,
-  MessageSquare, Kanban, Github
+  Shield,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle,
+  Cloud,
+  GitBranch,
+  ScanLine,
+  LayoutDashboard,
+  Loader2,
+  ArrowRight,
+  SkipForward,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  buildApiUrl,
+  getStoredAuthToken,
+  getStoredAuthStrategy,
+  getStoredOrgId,
+} from "@/lib/api";
 
-// ── Step definitions ────────────────────────────────────────────────────────
-const STEPS = [
-  { id: 1, title: "Welcome",      description: "Org setup",         icon: Building2 },
-  { id: 2, title: "API Key",      description: "Generate key",      icon: KeyRound },
-  { id: 3, title: "Integration",  description: "Connect a tool",    icon: Plug },
-  { id: 4, title: "First Scan",   description: "Run SBOM scan",     icon: ScanLine },
-  { id: 5, title: "Dashboard",    description: "You're ready",      icon: LayoutDashboard },
-];
-
-const INTEGRATIONS = [
-  {
-    id: "github",
-    name: "GitHub",
-    icon: Github,
-    description: "Connect your repositories for SBOM and secret scanning",
-    color: "text-white",
-    bg: "bg-zinc-800",
-    placeholder: "https://github.com/your-org",
-    label: "GitHub Organization URL",
-  },
-  {
-    id: "jira",
-    name: "Jira",
-    icon: Kanban,
-    description: "Auto-create tickets for critical findings",
-    color: "text-blue-400",
-    bg: "bg-blue-950/40",
-    placeholder: "https://yourorg.atlassian.net",
-    label: "Jira Instance URL",
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    icon: MessageSquare,
-    description: "Receive real-time security alerts in your channels",
-    color: "text-green-400",
-    bg: "bg-green-950/40",
-    placeholder: "https://hooks.slack.com/services/…",
-    label: "Slack Webhook URL",
-  },
-];
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function generateApiKey(orgSlug: string): string {
-  const prefix = "aldeci";
-  const slug = (orgSlug || "org").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "org";
-  const rand = Array.from(crypto.getRandomValues(new Uint8Array(20)))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return `${prefix}_${slug}_${rand}`;
+// ── Local axios POST helper (uses the same auth headers as lib/api.ts) ──────
+async function apiPost<T = unknown>(
+  path: string,
+  body: unknown,
+  query?: Record<string, string>,
+): Promise<T> {
+  const url = buildApiUrl(path, query);
+  const token = getStoredAuthToken();
+  const strategy = getStoredAuthStrategy();
+  const orgId = getStoredOrgId();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    if (strategy === "jwt") {
+      headers["Authorization"] = token.toLowerCase().startsWith("bearer ")
+        ? token
+        : `Bearer ${token}`;
+    } else {
+      headers["X-API-Key"] = token;
+    }
+  }
+  if (orgId) headers["X-Org-ID"] = orgId;
+  const res = await axios.post<T>(url, body, { headers });
+  return res.data;
 }
 
-// ── Step Indicator ───────────────────────────────────────────────────────────
+function extractError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const ax = err as AxiosError<{ detail?: string | { msg?: string }[] }>;
+    const detail = ax.response?.data?.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg!;
+    if (ax.message) return ax.message;
+  }
+  if (err instanceof Error) return err.message;
+  return "Unknown error";
+}
+
+// ── Step indicator ──────────────────────────────────────────────────────────
+const STEPS = [
+  { id: 1, title: "Cloud Account", icon: Cloud },
+  { id: 2, title: "Source Repo", icon: GitBranch },
+  { id: 3, title: "First Scan", icon: ScanLine },
+  { id: 4, title: "Dashboard", icon: LayoutDashboard },
+];
+
 function StepIndicator({ currentStep }: { currentStep: number }) {
   return (
-    <div className="flex items-center gap-2">
+    <ol
+      className="flex items-center gap-2 sm:gap-3"
+      aria-label="Onboarding progress"
+    >
       {STEPS.map((step, i) => {
-        const isCompleted = step.id < currentStep;
+        const isDone = step.id < currentStep;
         const isCurrent = step.id === currentStep;
         const Icon = step.icon;
         return (
-          <div key={step.id} className="flex items-center gap-2">
+          <li key={step.id} className="flex items-center gap-2 sm:gap-3">
             <div className="flex flex-col items-center gap-1">
               <div
-                className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                  isCompleted
+                className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  isDone
                     ? "bg-primary text-primary-foreground"
                     : isCurrent
-                    ? "bg-primary/20 text-primary border-2 border-primary"
-                    : "bg-muted text-muted-foreground"
+                      ? "bg-primary/15 text-primary border-2 border-primary"
+                      : "bg-muted text-muted-foreground"
                 }`}
+                aria-current={isCurrent ? "step" : undefined}
+                aria-label={`Step ${step.id}: ${step.title}${isDone ? " (completed)" : isCurrent ? " (current)" : ""}`}
               >
-                {isCompleted ? <CheckCircle className="h-4 w-4" /> : <Icon className="h-3.5 w-3.5" />}
+                {isDone ? (
+                  <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                )}
               </div>
               <span
-                className={`text-xs hidden lg:block whitespace-nowrap ${
+                className={`text-[11px] hidden sm:block whitespace-nowrap ${
                   isCurrent ? "text-primary font-medium" : "text-muted-foreground"
                 }`}
               >
@@ -100,630 +135,792 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             </div>
             {i < STEPS.length - 1 && (
               <div
-                className={`h-0.5 w-8 lg:w-14 transition-all duration-500 mb-4 ${
-                  isCompleted ? "bg-primary" : "bg-muted"
+                className={`h-0.5 w-6 sm:w-12 mb-4 transition-colors ${
+                  isDone ? "bg-primary" : "bg-muted"
                 }`}
+                aria-hidden="true"
               />
             )}
-          </div>
+          </li>
         );
       })}
+    </ol>
+  );
+}
+
+// ── Inline error banner ─────────────────────────────────────────────────────
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div
+      role="alert"
+      className="flex items-start gap-2 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-sm"
+    >
+      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+      <span>{message}</span>
     </div>
   );
 }
 
-// ── Step 1: Welcome + Org Name ───────────────────────────────────────────────
-function StepWelcome({
-  orgName,
+// ─── Step 1: Cloud Account ──────────────────────────────────────────────────
+type CloudProvider = "aws" | "azure" | "gcp";
+
+function StepCloudAccount({
+  data,
   onChange,
+  onSubmitted,
+  onSkip,
 }: {
-  orgName: string;
-  onChange: (v: string) => void;
+  data: {
+    account_id: string;
+    account_name: string;
+    provider: CloudProvider;
+    region: string;
+    role_arn: string;
+  };
+  onChange: (
+    next: Partial<{
+      account_id: string;
+      account_name: string;
+      provider: CloudProvider;
+      region: string;
+      role_arn: string;
+    }>,
+  ) => void;
+  onSubmitted: (result: unknown) => void;
+  onSkip: () => void;
 }) {
-  return (
-    <div className="space-y-8 max-w-lg">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Sparkles className="h-6 w-6 text-primary" />
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold">Welcome to ALDECI</h2>
-        <p className="text-muted-foreground">
-          Your AI-native security intelligence platform. Let's get you set up in under 2 minutes.
-        </p>
-      </div>
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-      <div className="grid grid-cols-3 gap-3 text-center">
-        {[
-          { label: "Engines", value: "344+" },
-          { label: "Endpoints", value: "574+" },
-          { label: "Frameworks", value: "7" },
-        ].map(({ label, value }) => (
-          <div key={label} className="p-3 rounded-xl bg-muted/30 border border-border/40">
-            <p className="text-xl font-bold text-primary">{value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-          </div>
-        ))}
-      </div>
+  const valid =
+    data.account_id.trim().length > 0 &&
+    data.account_name.trim().length > 0 &&
+    data.region.trim().length > 0;
 
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Organization Name
-        </Label>
-        <Input
-          placeholder="e.g. Acme Corp, MyStartup, DevOps Team"
-          value={orgName}
-          onChange={(e) => onChange(e.target.value)}
-          className="text-base"
-          autoFocus
-        />
-        <p className="text-xs text-muted-foreground">
-          This will appear in reports, dashboards, and audit logs.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ── Step 2: API Key Generation ───────────────────────────────────────────────
-function StepApiKey({
-  orgName,
-  apiKey,
-  onRegenerate,
-}: {
-  orgName: string;
-  apiKey: string;
-  onRegenerate: () => void;
-}) {
-  const [visible, setVisible] = useState(false);
-
-  const handleCopy = useCallback(async () => {
+  const handleSubmit = async () => {
+    if (!valid) return;
+    setSubmitting(true);
+    setError(null);
     try {
-      await navigator.clipboard.writeText(apiKey);
-      toast.success("API key copied to clipboard");
-    } catch {
-      toast.error("Copy failed — please select and copy manually");
+      const orgId = getStoredOrgId();
+      const result = await apiPost(
+        "/api/v1/cloud-accounts/accounts",
+        {
+          account_id: data.account_id.trim(),
+          account_name: data.account_name.trim(),
+          provider: data.provider,
+          region: data.region.trim(),
+        },
+        { org_id: orgId },
+      );
+      toast.success(`Connected ${data.provider.toUpperCase()} account ${data.account_id}`);
+      onSubmitted(result);
+    } catch (err) {
+      const msg = extractError(err);
+      setError(msg);
+      toast.error(`Could not register account: ${msg}`);
+    } finally {
+      setSubmitting(false);
     }
-  }, [apiKey]);
-
-  const displayKey = visible ? apiKey : apiKey.slice(0, 16) + "•".repeat(24);
-
-  return (
-    <div className="space-y-6 max-w-lg">
-      <div className="space-y-2">
-        <h2 className="text-xl font-bold">Your API Key</h2>
-        <p className="text-muted-foreground text-sm">
-          This key authenticates all API requests for{" "}
-          <strong>{orgName || "your organization"}</strong>. Store it securely — it won't be shown again after you leave this page.
-        </p>
-      </div>
-
-      <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            API Key
-          </span>
-          <Badge variant="secondary" className="text-xs">
-            Live
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 text-xs font-mono bg-background/60 px-3 py-2 rounded-lg border border-border/40 truncate select-all">
-            {displayKey}
-          </code>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setVisible((v) => !v)}
-            className="shrink-0 h-8 w-8 p-0"
-            title={visible ? "Hide key" : "Show key"}
-          >
-            {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopy}
-            className="shrink-0 gap-1.5"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            Copy
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          How to use
-        </p>
-        <div className="p-3 rounded-lg bg-zinc-900/60 border border-border/40 font-mono text-xs text-green-400 space-y-1">
-          <p className="text-muted-foreground"># HTTP header</p>
-          <p>X-API-Key: {visible ? apiKey : apiKey.slice(0, 16) + "…"}</p>
-          <p className="text-muted-foreground mt-2"># Example cURL</p>
-          <p className="break-all">
-            curl -H "X-API-Key: {visible ? apiKey : "{YOUR_KEY}"}" \
-          </p>
-          <p className="pl-2 break-all">http://localhost:8000/api/v1/health</p>
-        </div>
-      </div>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onRegenerate}
-        className="gap-2 text-muted-foreground hover:text-foreground"
-      >
-        <RefreshCw className="h-3.5 w-3.5" />
-        Regenerate key
-      </Button>
-    </div>
-  );
-}
-
-// ── Step 3: Connect First Integration ───────────────────────────────────────
-function StepIntegration({
-  selected,
-  url,
-  onSelect,
-  onUrlChange,
-}: {
-  selected: string;
-  url: string;
-  onSelect: (id: string) => void;
-  onUrlChange: (v: string) => void;
-}) {
-  const active = INTEGRATIONS.find((i) => i.id === selected);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-xl font-bold">Connect Your First Integration</h2>
+      <header className="space-y-2">
+        <h2 className="text-2xl font-bold">Connect a cloud account</h2>
         <p className="text-muted-foreground text-sm">
-          Choose one tool to connect now. You can add more from the Marketplace later.
+          We monitor configuration drift, posture risk, and access events for the
+          account you connect. Pick a non-prod account first to validate access.
         </p>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {INTEGRATIONS.map((integration) => {
-          const Icon = integration.icon;
-          const isSelected = selected === integration.id;
-          return (
-            <motion.button
-              key={integration.id}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onSelect(integration.id)}
-              className={`relative p-4 rounded-xl border-2 text-left transition-all w-full ${
-                isSelected
-                  ? "border-primary bg-primary/5"
-                  : "border-border/40 hover:border-border"
-              }`}
-            >
-              <div
-                className={`h-9 w-9 rounded-lg ${integration.bg} flex items-center justify-center mb-3`}
-              >
-                <Icon className={`h-5 w-5 ${integration.color}`} />
-              </div>
-              <p className="text-sm font-semibold">{integration.name}</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                {integration.description}
-              </p>
-              {isSelected && (
-                <motion.div
-                  layoutId="integration-check"
-                  className="absolute top-3 right-3"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                >
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                </motion.div>
-              )}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {active && (
-        <motion.div
-          key={active.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
-        >
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            {active.label}
+      <fieldset className="space-y-4" disabled={submitting}>
+        <div className="space-y-2">
+          <Label htmlFor="cloud-provider" className="text-xs uppercase tracking-wide">
+            Provider
           </Label>
-          <div className="flex gap-2">
+          <select
+            id="cloud-provider"
+            value={data.provider}
+            onChange={(e) =>
+              onChange({ provider: e.target.value as CloudProvider })
+            }
+            className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="aws">AWS</option>
+            <option value="azure">Azure</option>
+            <option value="gcp">GCP</option>
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="account-id" className="text-xs uppercase tracking-wide">
+              Account ID
+            </Label>
             <Input
-              placeholder={active.placeholder}
-              value={url}
-              onChange={(e) => onUrlChange(e.target.value)}
-              className="flex-1"
+              id="account-id"
+              placeholder={
+                data.provider === "aws"
+                  ? "123456789012"
+                  : data.provider === "azure"
+                    ? "subscription-uuid"
+                    : "my-gcp-project"
+              }
+              value={data.account_id}
+              onChange={(e) => onChange({ account_id: e.target.value })}
+              autoComplete="off"
+              spellCheck={false}
+              required
             />
-            {url && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 gap-1.5"
-                onClick={() => toast.success(`Testing ${active.name} connection…`)}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Test
-              </Button>
-            )}
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="account-name" className="text-xs uppercase tracking-wide">
+              Friendly name
+            </Label>
+            <Input
+              id="account-name"
+              placeholder="prod-us-east"
+              value={data.account_name}
+              onChange={(e) => onChange({ account_name: e.target.value })}
+              autoComplete="off"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="region" className="text-xs uppercase tracking-wide">
+            Default region
+          </Label>
+          <Input
+            id="region"
+            placeholder={data.provider === "aws" ? "us-east-1" : "global"}
+            value={data.region}
+            onChange={(e) => onChange({ region: e.target.value })}
+            autoComplete="off"
+            spellCheck={false}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="role-arn" className="text-xs uppercase tracking-wide">
+            {data.provider === "aws"
+              ? "IAM Role ARN"
+              : data.provider === "azure"
+                ? "Service Principal ID"
+                : "Service Account email"}{" "}
+            <span className="text-muted-foreground normal-case">(optional)</span>
+          </Label>
+          <Input
+            id="role-arn"
+            placeholder={
+              data.provider === "aws"
+                ? "arn:aws:iam::123456789012:role/AldeciScanner"
+                : data.provider === "azure"
+                  ? "00000000-0000-0000-0000-000000000000"
+                  : "scanner@my-gcp-project.iam.gserviceaccount.com"
+            }
+            value={data.role_arn}
+            onChange={(e) => onChange({ role_arn: e.target.value })}
+            autoComplete="off"
+            spellCheck={false}
+          />
           <p className="text-xs text-muted-foreground">
-            Leave blank to configure later from Settings → Integrations.
+            Role-based access is preferred over keys. You can wire credentials from
+            Settings → Cloud Accounts later.
           </p>
-        </motion.div>
-      )}
+        </div>
+      </fieldset>
+
+      {error && <ErrorBanner message={error} />}
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 pt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onSkip}
+          disabled={submitting}
+          className="gap-1.5 text-muted-foreground"
+        >
+          <SkipForward className="h-3.5 w-3.5" />
+          Skip for now
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!valid || submitting}
+          className="gap-2"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Connecting…
+            </>
+          ) : (
+            <>
+              Connect & continue
+              <ChevronRight className="h-4 w-4" />
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
 
-// ── Step 4: Run First SBOM Scan ──────────────────────────────────────────────
-function StepFirstScan({
-  repoUrl,
-  onRepoChange,
-  onScanComplete,
+// ─── Step 2: Source Repo ────────────────────────────────────────────────────
+type SourceProvider = "github" | "gitlab";
+
+function StepSourceRepo({
+  data,
+  onChange,
+  onSubmitted,
+  onSkip,
 }: {
-  repoUrl: string;
-  onRepoChange: (v: string) => void;
-  onScanComplete: () => void;
+  data: {
+    provider: SourceProvider;
+    repo_url: string;
+    app_id: string;
+    installation_id: string;
+    access_token: string;
+  };
+  onChange: (
+    next: Partial<{
+      provider: SourceProvider;
+      repo_url: string;
+      app_id: string;
+      installation_id: string;
+      access_token: string;
+    }>,
+  ) => void;
+  onSubmitted: (result: unknown) => void;
+  onSkip: () => void;
 }) {
-  const [scanState, setScanState] = useState<"idle" | "running" | "done">("idle");
-  const [progress, setProgress] = useState(0);
-  const [currentPhase, setCurrentPhase] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const PHASES = [
-    "Cloning repository…",
-    "Parsing manifests (package.json, requirements.txt, go.mod)…",
-    "Generating CycloneDX SBOM…",
-    "Running vulnerability correlation…",
-    "Computing license risk…",
-    "Finalizing report…",
-  ];
+  const valid =
+    data.repo_url.trim().length > 0 &&
+    data.app_id.trim().length > 0 &&
+    data.installation_id.trim().length > 0 &&
+    data.access_token.trim().length >= 8;
 
-  const handleScan = async () => {
-    setScanState("running");
-    setProgress(0);
-    for (let i = 0; i < PHASES.length; i++) {
-      setCurrentPhase(PHASES[i]);
-      const target = Math.round(((i + 1) / PHASES.length) * 100);
-      // animate progress to target
-      for (let p = Math.round((i / PHASES.length) * 100); p <= target; p += 5) {
-        setProgress(p);
-        await new Promise((r) => setTimeout(r, 60));
-      }
+  const handleSubmit = async () => {
+    if (!valid) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      // /api/v1/github-app/register accepts: org_id, app_id, installation_id, webhook_secret
+      // For GitLab we still post — backend may 4xx; we surface the error.
+      const orgId = getStoredOrgId();
+      const result = await apiPost("/api/v1/github-app/register", {
+        org_id: orgId,
+        app_id: data.app_id.trim(),
+        installation_id: data.installation_id.trim(),
+        webhook_secret: data.access_token.trim(),
+        app_slug: data.repo_url.trim().slice(0, 256),
+      });
+      toast.success(`Repo registered: ${data.repo_url}`);
+      onSubmitted(result);
+    } catch (err) {
+      const msg = extractError(err);
+      setError(msg);
+      toast.error(`Could not register repo: ${msg}`);
+    } finally {
+      setSubmitting(false);
     }
-    setProgress(100);
-    setScanState("done");
-    onScanComplete();
   };
 
-  const DEMO_RESULTS = [
-    { label: "Components found", value: "247", color: "text-foreground" },
-    { label: "Vulnerabilities", value: "12", color: "text-orange-400" },
-    { label: "Critical CVEs", value: "2", color: "text-red-500" },
-    { label: "License issues", value: "3", color: "text-yellow-500" },
-  ];
+  return (
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h2 className="text-2xl font-bold">Connect a source repository</h2>
+        <p className="text-muted-foreground text-sm">
+          Link a GitHub installation (or GitLab project) so ALDECI can pull
+          source for SBOM, secret, and code scans. Credentials are stored
+          hashed; raw tokens are never persisted.
+        </p>
+      </header>
+
+      <fieldset className="space-y-4" disabled={submitting}>
+        <div className="space-y-2">
+          <Label htmlFor="src-provider" className="text-xs uppercase tracking-wide">
+            Provider
+          </Label>
+          <select
+            id="src-provider"
+            value={data.provider}
+            onChange={(e) =>
+              onChange({ provider: e.target.value as SourceProvider })
+            }
+            className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="github">GitHub</option>
+            <option value="gitlab">GitLab</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="repo-url" className="text-xs uppercase tracking-wide">
+            Repository URL
+          </Label>
+          <Input
+            id="repo-url"
+            placeholder={
+              data.provider === "github"
+                ? "https://github.com/your-org/your-repo"
+                : "https://gitlab.com/your-org/your-repo"
+            }
+            value={data.repo_url}
+            onChange={(e) => onChange({ repo_url: e.target.value })}
+            autoComplete="off"
+            spellCheck={false}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="app-id" className="text-xs uppercase tracking-wide">
+              {data.provider === "github" ? "App ID" : "Project ID"}
+            </Label>
+            <Input
+              id="app-id"
+              placeholder={data.provider === "github" ? "123456" : "12345678"}
+              value={data.app_id}
+              onChange={(e) => onChange({ app_id: e.target.value })}
+              autoComplete="off"
+              spellCheck={false}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="installation-id" className="text-xs uppercase tracking-wide">
+              Installation ID
+            </Label>
+            <Input
+              id="installation-id"
+              placeholder="78901234"
+              value={data.installation_id}
+              onChange={(e) => onChange({ installation_id: e.target.value })}
+              autoComplete="off"
+              spellCheck={false}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="access-token" className="text-xs uppercase tracking-wide">
+            Access token / webhook secret
+          </Label>
+          <Input
+            id="access-token"
+            type="password"
+            placeholder="ghp_…  or  glpat_…"
+            value={data.access_token}
+            onChange={(e) => onChange({ access_token: e.target.value })}
+            autoComplete="new-password"
+            spellCheck={false}
+            minLength={8}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Stored as a SHA-256 hash. Used to verify webhook signatures.
+          </p>
+        </div>
+      </fieldset>
+
+      {error && <ErrorBanner message={error} />}
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 pt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onSkip}
+          disabled={submitting}
+          className="gap-1.5 text-muted-foreground"
+        >
+          <SkipForward className="h-3.5 w-3.5" />
+          Skip for now
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!valid || submitting}
+          className="gap-2"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Registering…
+            </>
+          ) : (
+            <>
+              Register & continue
+              <ChevronRight className="h-4 w-4" />
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 3: First Scan ─────────────────────────────────────────────────────
+type ScanRunResult = {
+  iac: { ok: boolean; scan_id?: string; total_findings?: number; error?: string };
+  cspm: { ok: boolean; count?: number; org_id?: string; error?: string };
+};
+
+function StepFirstScan({
+  iacContent,
+  onIacContentChange,
+  onScanned,
+  onSkip,
+}: {
+  iacContent: string;
+  onIacContentChange: (v: string) => void;
+  onScanned: (r: ScanRunResult) => void;
+  onSkip: () => void;
+}) {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<ScanRunResult | null>(null);
+
+  const SAMPLE_TF = `resource "aws_s3_bucket" "demo" {
+  bucket = "aldeci-onboarding-demo"
+  acl    = "public-read"
+}
+`;
+
+  const handleRunScan = async () => {
+    setRunning(true);
+    setResult(null);
+    const orgId = getStoredOrgId();
+    const scanId = `onboarding-${Date.now()}`;
+    const content = iacContent.trim().length > 0 ? iacContent : SAMPLE_TF;
+
+    const iacPromise = apiPost<{ scan_id?: string; total_findings?: number; findings?: unknown[] }>(
+      "/api/v1/iac/scan",
+      { content, filename: "main.tf", scan_id: scanId },
+    )
+      .then((r) => ({
+        ok: true,
+        scan_id: r.scan_id ?? scanId,
+        total_findings:
+          typeof r.total_findings === "number"
+            ? r.total_findings
+            : Array.isArray(r.findings)
+              ? r.findings.length
+              : 0,
+      }))
+      .catch((e) => ({ ok: false, error: extractError(e) }));
+
+    const cspmPromise = apiPost<{ count?: number; org_id?: string }>(
+      "/api/v1/cspm-engine/scan",
+      { org_id: orgId },
+    )
+      .then((r) => ({ ok: true, count: r.count ?? 0, org_id: r.org_id ?? orgId }))
+      .catch((e) => ({ ok: false, error: extractError(e) }));
+
+    const [iac, cspm] = await Promise.all([iacPromise, cspmPromise]);
+    const final: ScanRunResult = { iac, cspm };
+    setResult(final);
+    setRunning(false);
+
+    if (iac.ok || cspm.ok) {
+      toast.success("Scan complete");
+      onScanned(final);
+    } else {
+      toast.error("Both scans failed — see details below");
+    }
+  };
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <div className="space-y-2">
-        <h2 className="text-xl font-bold">Run Your First SBOM Scan</h2>
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h2 className="text-2xl font-bold">Run your first scan</h2>
         <p className="text-muted-foreground text-sm">
-          Enter a public GitHub repository URL to generate a Software Bill of Materials and discover vulnerabilities.
+          We'll fire an Infrastructure-as-Code scan and a cloud-posture scan in
+          parallel against your account. This usually takes under 30 seconds.
         </p>
-      </div>
+      </header>
 
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Repository URL
+        <Label htmlFor="iac-content" className="text-xs uppercase tracking-wide">
+          Terraform / IaC content{" "}
+          <span className="text-muted-foreground normal-case">(optional — sample used if blank)</span>
         </Label>
-        <Input
-          placeholder="https://github.com/org/repo"
-          value={repoUrl}
-          onChange={(e) => onRepoChange(e.target.value)}
-          disabled={scanState !== "idle"}
+        <textarea
+          id="iac-content"
+          value={iacContent}
+          onChange={(e) => onIacContentChange(e.target.value)}
+          placeholder={SAMPLE_TF}
+          rows={6}
+          spellCheck={false}
+          className="w-full px-3 py-2 rounded-md border border-border bg-background text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <div className="flex gap-2 flex-wrap">
-          {["https://github.com/OWASP/WebGoat", "https://github.com/juice-shop/juice-shop"].map(
-            (url) => (
-              <button
-                key={url}
-                disabled={scanState !== "idle"}
-                onClick={() => onRepoChange(url)}
-                className="text-xs text-primary hover:underline disabled:opacity-50"
-              >
-                {url.split("/").slice(-2).join("/")}
-              </button>
-            )
-          )}
-        </div>
       </div>
 
-      {scanState === "idle" && (
-        <Button
-          className="gap-2 w-full sm:w-auto"
-          onClick={handleScan}
-          disabled={!repoUrl.trim()}
-        >
-          <Zap className="h-4 w-4" />
-          Start SBOM Scan
+      {!running && !result && (
+        <Button onClick={handleRunScan} className="gap-2 w-full sm:w-auto">
+          <ScanLine className="h-4 w-4" />
+          Run IaC + Cloud Posture scan
         </Button>
       )}
 
-      {scanState === "running" && (
-        <div className="space-y-3">
+      {running && (
+        <div className="space-y-3" role="status" aria-live="polite">
           <div className="flex items-center gap-2 text-sm">
-            <ScanLine className="h-4 w-4 text-primary animate-pulse" />
-            <span>{currentPhase}</span>
-            <span className="ml-auto text-primary font-mono tabular-nums">{progress}%</span>
+            <Loader2 className="h-4 w-4 text-primary animate-spin" />
+            <span>Scanning… IaC and CSPM running in parallel.</span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={66} className="h-2" />
         </div>
       )}
 
-      {scanState === "done" && (
+      {result && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          <div className="flex items-center gap-2 text-sm text-green-400">
-            <CheckCircle className="h-4 w-4" />
-            Scan complete — SBOM generated
-          </div>
-          <Progress value={100} className="h-2" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {DEMO_RESULTS.map(({ label, value, color }) => (
-              <div
-                key={label}
-                className="p-3 rounded-xl bg-muted/30 border border-border/40 text-center"
-              >
-                <p className={`text-xl font-bold ${color}`}>{value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{label}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div
+              className={`p-4 rounded-xl border ${
+                result.iac.ok
+                  ? "border-green-500/30 bg-green-500/5"
+                  : "border-red-500/30 bg-red-500/5"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {result.iac.ok ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                )}
+                <span className="text-sm font-semibold">IaC scan</span>
               </div>
-            ))}
+              {result.iac.ok ? (
+                <p className="text-xs text-muted-foreground">
+                  scan_id: <code>{result.iac.scan_id}</code> —{" "}
+                  <strong className="text-foreground">{result.iac.total_findings ?? 0}</strong>{" "}
+                  findings.
+                </p>
+              ) : (
+                <p className="text-xs text-red-400">{result.iac.error}</p>
+              )}
+            </div>
+
+            <div
+              className={`p-4 rounded-xl border ${
+                result.cspm.ok
+                  ? "border-green-500/30 bg-green-500/5"
+                  : "border-red-500/30 bg-red-500/5"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {result.cspm.ok ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                )}
+                <span className="text-sm font-semibold">Cloud posture scan</span>
+              </div>
+              {result.cspm.ok ? (
+                <p className="text-xs text-muted-foreground">
+                  org_id: <code>{result.cspm.org_id}</code> —{" "}
+                  <strong className="text-foreground">{result.cspm.count ?? 0}</strong>{" "}
+                  checks executed.
+                </p>
+              ) : (
+                <p className="text-xs text-red-400">{result.cspm.error}</p>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Full SBOM report and remediation guidance are available in{" "}
-            <span className="text-primary">SBOM Export</span> and{" "}
-            <span className="text-primary">Vulnerability Intelligence</span>.
-          </p>
         </motion.div>
       )}
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 pt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onSkip}
+          disabled={running}
+          className="gap-1.5 text-muted-foreground"
+        >
+          <SkipForward className="h-3.5 w-3.5" />
+          Skip for now
+        </Button>
+        <Button
+          onClick={() => onScanned(result ?? { iac: { ok: false }, cspm: { ok: false } })}
+          disabled={running || !result}
+          className="gap-2"
+        >
+          Continue
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
 
-// ── Step 5: View Dashboard ───────────────────────────────────────────────────
-function StepViewDashboard({ orgName, onGo }: { orgName: string; onGo: () => void }) {
-  const highlights = [
-    { icon: Shield,        label: "Security Posture",   path: "/security-posture" },
-    { icon: ScanLine,      label: "SBOM Export",        path: "/sbom-export" },
-    { icon: GitBranch,     label: "Attack Paths",       path: "/attack-paths" },
-    { icon: LayoutDashboard, label: "SOC Dashboard",    path: "/mission-control/soc-t1" },
-  ];
-
+// ─── Step 4: View Dashboard ─────────────────────────────────────────────────
+function StepDashboard({ onGo }: { onGo: () => void }) {
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-3">
-        <motion.div
-          className="relative inline-block"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 12 }}
-        >
-          <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
-            <Sparkles className="h-10 w-10 text-primary" />
-          </div>
-          <motion.div
-            className="absolute -right-1 -top-1 h-6 w-6 bg-green-500 rounded-full flex items-center justify-center"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.35 }}
-          >
-            <CheckCircle className="h-4 w-4 text-white" />
-          </motion.div>
-        </motion.div>
-        <div>
-          <h2 className="text-2xl font-bold">
-            {orgName ? `${orgName} is ready!` : "You're all set!"}
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            ALDECI is configured and protecting your environment.
-          </p>
+    <div className="space-y-6 text-center">
+      <motion.div
+        className="inline-block"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 220, damping: 14 }}
+      >
+        <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center mx-auto">
+          <CheckCircle className="h-10 w-10 text-primary" aria-hidden="true" />
         </div>
+      </motion.div>
+      <div>
+        <h2 className="text-2xl font-bold">Your dashboard is populating</h2>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Findings, posture scores, and inventory data will stream in as your
+          first scan completes. This typically takes 1–5 minutes.
+        </p>
       </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {highlights.map(({ icon: Icon, label, path }) => (
-          <motion.a
-            key={path}
-            href={path}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="p-3 rounded-xl bg-muted/30 border border-border/40 flex flex-col items-center gap-2 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors cursor-pointer no-underline"
-          >
-            <Icon className="h-5 w-5 text-primary" />
-            <p className="text-xs text-muted-foreground leading-tight">{label}</p>
-          </motion.a>
-        ))}
-      </div>
-
-      <div className="flex flex-col items-center gap-3">
-        <Button className="gap-2 w-full sm:w-auto" size="lg" onClick={onGo}>
-          Go to Dashboard
+      <div className="flex flex-col items-center gap-2">
+        <Button size="lg" className="gap-2" onClick={onGo}>
+          Go to Mission Control
           <ArrowRight className="h-4 w-4" />
         </Button>
-        <p className="text-xs text-muted-foreground">You can revisit this wizard anytime from Settings.</p>
+        <Link
+          to="/mission-control"
+          className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+        >
+          Or open /mission-control directly
+        </Link>
       </div>
     </div>
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ─── Main wizard ────────────────────────────────────────────────────────────
 export default function OnboardingWizard() {
   const navigate = useNavigate();
-
   const [step, setStep] = useState(1);
 
-  // Step 1
-  const [orgName, setOrgName] = useState("");
+  // Step 1 state
+  const [cloud, setCloud] = useState<{
+    account_id: string;
+    account_name: string;
+    provider: CloudProvider;
+    region: string;
+    role_arn: string;
+  }>({
+    account_id: "",
+    account_name: "",
+    provider: "aws",
+    region: "us-east-1",
+    role_arn: "",
+  });
 
-  // Step 2
-  const [apiKey, setApiKey] = useState(() => generateApiKey(""));
+  // Step 2 state
+  const [source, setSource] = useState<{
+    provider: SourceProvider;
+    repo_url: string;
+    app_id: string;
+    installation_id: string;
+    access_token: string;
+  }>({
+    provider: "github",
+    repo_url: "",
+    app_id: "",
+    installation_id: "",
+    access_token: "",
+  });
 
-  // Step 3
-  const [selectedIntegration, setSelectedIntegration] = useState("github");
-  const [integrationUrl, setIntegrationUrl] = useState("");
+  // Step 3 state
+  const [iacContent, setIacContent] = useState<string>("");
 
-  // Step 4
-  const [repoUrl, setRepoUrl] = useState("");
-  const [scanDone, setScanDone] = useState(false);
+  const goNext = () => setStep((s) => Math.min(s + 1, STEPS.length));
+  const goBack = () => setStep((s) => Math.max(s - 1, 1));
+  const goDashboard = () => navigate("/mission-control");
 
-  // Regenerate key when org name changes (only if user hasn't edited)
-  const handleOrgChange = (v: string) => {
-    setOrgName(v);
-    setApiKey(generateApiKey(v));
-  };
-
-  const canProceed = (): boolean => {
-    if (step === 1) return orgName.trim().length > 0;
-    if (step === 4) return scanDone;
-    return true;
-  };
-
-  const handleNext = () => {
-    if (step < STEPS.length) setStep((s) => s + 1);
-  };
-
-  const handleBack = () => {
-    if (step > 1) setStep((s) => s - 1);
-  };
-
-  const handleSkip = () => {
-    if (step < STEPS.length) setStep((s) => s + 1);
-  };
-
-  const handleComplete = () => {
-    toast.success("Welcome to ALDECI! Redirecting to your dashboard…");
-    navigate("/dashboard");
-  };
-
-  const progress = ((step - 1) / (STEPS.length - 1)) * 100;
+  const progressPct = ((step - 1) / (STEPS.length - 1)) * 100;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <main className="min-h-screen bg-background flex items-start sm:items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-3xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <Shield className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold">ALDECI</span>
+        <header className="text-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Shield className="h-6 w-6 text-primary" aria-hidden="true" />
+            <span className="text-lg font-bold">ALDECI</span>
           </div>
           <p className="text-muted-foreground text-sm">
-            Setup Wizard — Step {step} of {STEPS.length}
+            Onboarding — Step {step} of {STEPS.length}
           </p>
-        </div>
+        </header>
 
-        {/* Progress bar */}
-        <div className="mb-8">
-          <Progress value={progress} className="h-1 mb-6" />
+        <div className="mb-6">
+          <Progress value={progressPct} className="h-1 mb-5" />
           <div className="flex justify-center">
             <StepIndicator currentStep={step} />
           </div>
         </div>
 
-        {/* Step content */}
         <Card className="shadow-xl border-border/60">
-          <CardContent className="p-8">
+          <CardContent className="p-6 sm:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
-                initial={{ opacity: 0, x: 28 }}
+                initial={{ opacity: 0, x: 24 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -28 }}
-                transition={{ duration: 0.22, ease: "easeInOut" }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
               >
                 {step === 1 && (
-                  <StepWelcome orgName={orgName} onChange={handleOrgChange} />
+                  <StepCloudAccount
+                    data={cloud}
+                    onChange={(next) => setCloud((s) => ({ ...s, ...next }))}
+                    onSubmitted={() => goNext()}
+                    onSkip={goNext}
+                  />
                 )}
                 {step === 2 && (
-                  <StepApiKey
-                    orgName={orgName}
-                    apiKey={apiKey}
-                    onRegenerate={() => setApiKey(generateApiKey(orgName))}
+                  <StepSourceRepo
+                    data={source}
+                    onChange={(next) => setSource((s) => ({ ...s, ...next }))}
+                    onSubmitted={() => goNext()}
+                    onSkip={goNext}
                   />
                 )}
                 {step === 3 && (
-                  <StepIntegration
-                    selected={selectedIntegration}
-                    url={integrationUrl}
-                    onSelect={(id) => {
-                      setSelectedIntegration(id);
-                      setIntegrationUrl("");
-                    }}
-                    onUrlChange={setIntegrationUrl}
-                  />
-                )}
-                {step === 4 && (
                   <StepFirstScan
-                    repoUrl={repoUrl}
-                    onRepoChange={setRepoUrl}
-                    onScanComplete={() => setScanDone(true)}
+                    iacContent={iacContent}
+                    onIacContentChange={setIacContent}
+                    onScanned={() => goNext()}
+                    onSkip={goNext}
                   />
                 )}
-                {step === 5 && (
-                  <StepViewDashboard orgName={orgName} onGo={handleComplete} />
-                )}
+                {step === 4 && <StepDashboard onGo={goDashboard} />}
               </motion.div>
             </AnimatePresence>
           </CardContent>
 
-          {/* Navigation */}
-          <div className="px-8 pb-6 flex items-center justify-between border-t border-border/40 pt-5">
+          <div className="px-6 sm:px-8 pb-6 flex items-center justify-between border-t border-border/40 pt-4">
             <Button
               variant="outline"
-              onClick={handleBack}
+              onClick={goBack}
               disabled={step === 1}
               className="gap-2"
             >
               <ChevronLeft className="h-4 w-4" />
               Back
             </Button>
-
-            <div className="flex items-center gap-3">
-              {step < STEPS.length && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSkip}
-                  className="gap-1.5 text-muted-foreground"
-                >
-                  <SkipForward className="h-3.5 w-3.5" />
-                  Skip
-                </Button>
-              )}
-
-              {step < STEPS.length ? (
-                <Button onClick={handleNext} disabled={!canProceed()} className="gap-2">
-                  Continue
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button onClick={handleComplete} className="gap-2" size="lg">
-                  Go to Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+            <span className="text-xs text-muted-foreground">
+              {STEPS[step - 1]?.title}
+            </span>
           </div>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }

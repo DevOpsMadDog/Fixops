@@ -184,6 +184,7 @@ describe("OnboardingWizard", () => {
   it("renders first step", async () => {
     const P = (await import("@/pages/onboarding/OnboardingWizard")).default;
     renderPage(<P />);
-    expect(screen.getByText(/Connect.*Security.*Tool/i)).toBeInTheDocument();
+    // Step 1 of 4 — Connect Cloud Account (FEATURE-1, 2026-05-02)
+    expect(screen.getByText(/Connect a cloud account/i)).toBeInTheDocument();
   });
 });
