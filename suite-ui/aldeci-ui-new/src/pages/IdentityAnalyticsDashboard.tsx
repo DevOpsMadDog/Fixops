@@ -1,3 +1,4 @@
+// FOLDED into IdentityGovernanceHub hero (analytics tab) 2026-05-02 — preserve for git history
 /**
  * Identity Analytics Dashboard
  *

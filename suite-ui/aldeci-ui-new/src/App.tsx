@@ -139,6 +139,7 @@ const ThreatModeling = lazy(() => import("@/pages/ThreatModeling"));
 const AttackPathAnalysis = lazy(() => import("@/pages/AttackPathAnalysis"));
 const IncidentTimeline = lazy(() => import("@/pages/IncidentTimeline"));
 const IdentityGovernance = lazy(() => import("@/pages/IdentityGovernance"));
+const IdentityGovernanceHub = lazy(() => import("@/pages/IdentityGovernanceHub"));
 const SecurityAwareness = lazy(() => import("@/pages/SecurityAwareness"));
 const ExecutiveRiskReport = lazy(() => import("@/pages/ExecutiveRiskReport"));
 const NetworkAnalysis = lazy(() => import("@/pages/NetworkAnalysis"));
@@ -900,7 +901,8 @@ export default function App() {
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/attack-paths" element={<AttackPathAnalysis />} />
             <Route path="/incident-timeline" element={<IncidentTimeline />} />
-            <Route path="/identity-governance" element={<IdentityGovernance />} />
+            <Route path="/discover/identity-governance" element={<IdentityGovernanceHub />} />
+            <Route path="/identity-governance" element={<Navigate to="/discover/identity-governance?tab=governance" replace />} />
             <Route path="/executive-report" element={<Navigate to="/?view=executive" replace />} />
             <Route path="/network-analysis" element={<NetworkAnalysis />} />
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
@@ -1009,7 +1011,7 @@ export default function App() {
             <Route path="/edr" element={<Navigate to="/discover/detect-respond?tab=edr" replace />} />
 
             {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
-            <Route path="/identity-analytics" element={<IdentityAnalyticsDashboard />} />
+            <Route path="/identity-analytics" element={<Navigate to="/discover/identity-governance?tab=analytics" replace />} />
             <Route path="/cnapp" element={<CNAPPDashboard />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (PentestManagementDashboard alias → pentest tab) */}
             <Route path="/pentest-mgmt" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
@@ -1061,7 +1063,7 @@ export default function App() {
 
             {/* Wave 18 domain dashboards */}
             <Route path="/ai-governance" element={<Navigate to="/brain?tab=ai-governance" replace />} />
-            <Route path="/digital-identity" element={<DigitalIdentityDashboard />} />
+            <Route path="/digital-identity" element={<Navigate to="/discover/identity-governance?tab=digital" replace />} />
             <Route path="/attack-chains" element={<Navigate to="/brain?tab=attack-chain" replace />} />
             <Route path="/threat-exposure" element={<ThreatExposureDashboard />} />
             <Route path="/license-security" element={<SoftwareLicenseDashboard />} />
