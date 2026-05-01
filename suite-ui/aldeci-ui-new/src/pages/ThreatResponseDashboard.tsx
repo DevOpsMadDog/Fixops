@@ -1,3 +1,6 @@
+// FOLDED into ThreatIntelOpsHub at /attack/intel/ops?tab=response
+// Phase 3 UX consolidation 2026-05-02 — see docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.14.
+// Direct route /threat-response now redirects to the hub. Component preserved and lazy-loaded by ThreatIntelOpsHub.
 /**
  * Threat Response Dashboard - Live API
  * Route: /threat-response

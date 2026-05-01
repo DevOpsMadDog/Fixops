@@ -1,3 +1,6 @@
+// FOLDED into ThreatIntelOpsHub at /attack/intel/ops?tab=watchlist
+// Phase 3 UX consolidation 2026-05-02 — see docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.14.
+// Direct route /watchlist now redirects to the hub. Component preserved and lazy-loaded by ThreatIntelOpsHub.
 /**
  * Watchlist Manager
  *

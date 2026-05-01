@@ -546,6 +546,8 @@ const ThreatModelingPipelineDashboard = lazy(() => import("@/pages/ThreatModelin
 const SecurityQuestionnaireDashboard = lazy(() => import("@/pages/SecurityQuestionnaireDashboard"));
 const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
 const FeedSubscriptionsDashboard = lazy(() => import("@/pages/FeedSubscriptionsDashboard"));
+// Phase 3 — Threat Intel Operations hero (combined 4-page fold 2026-05-02)
+const ThreatIntelOpsHub = lazy(() => import("@/pages/ThreatIntelOpsHub"));
 const AssetGroupsDashboard = lazy(() => import("@/pages/AssetGroupsDashboard"));
 const SecurityFindingsDashboard = lazy(() => import("@/pages/SecurityFindingsDashboard"));
 const ControlTestingDashboard = lazy(() => import("@/pages/ControlTestingDashboard"));
@@ -986,7 +988,10 @@ export default function App() {
             {/* S22 fold 2026-05-02: BreachResponse → IncidentExtensionsHub#breach */}
             <Route path="/breach-response" element={<Navigate to="/remediate/incidents/extensions?tab=breach" replace />} />
             <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/watchlist" element={<WatchlistManager />} />
+            {/* P3 fold 2026-05-02: WatchlistManager → ThreatIntelOpsHub#watchlist */}
+            <Route path="/watchlist" element={<Navigate to="/attack/intel/ops?tab=watchlist" replace />} />
+            {/* Canonical hub route — Threat Intel Operations (combined 4-page fold) */}
+            <Route path="/attack/intel/ops" element={<ThreatIntelOpsHub />} />
             <Route path="/uba" element={<Navigate to="/mission-control/behavior?tab=uba" replace />} />
             <Route path="/cmdb" element={<CMDBDashboard />} />
             <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
@@ -1225,7 +1230,8 @@ export default function App() {
             {/* Wave 30 domain dashboards */}
             <Route path="/compliance-mapping" element={<ComplianceMappingDashboard />} />
             <Route path="/vuln-scans" element={<VulnScanDashboard />} />
-            <Route path="/threat-briefs" element={<ThreatBriefDashboard />} />
+            {/* P3 fold 2026-05-02: ThreatBriefDashboard → ThreatIntelOpsHub#briefs */}
+            <Route path="/threat-briefs" element={<Navigate to="/attack/intel/ops?tab=briefs" replace />} />
             {/* S22 fold 2026-05-02: IncidentCommsDashboard → IncidentExtensionsHub#comms */}
             <Route path="/incident-comms" element={<Navigate to="/remediate/incidents/extensions?tab=comms" replace />} />
             {/* P3 fold 2026-05-02 — AssetTagsDashboard folded into AssetInventoryHub */}
@@ -1286,7 +1292,8 @@ export default function App() {
             <Route path="/gap-analysis" element={<GapAnalysisDashboard />} />
             <Route path="/alert-enrichment" element={<Navigate to="/brain?tab=alert-enrichment" replace />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
-            <Route path="/threat-response" element={<ThreatResponseDashboard />} />
+            {/* P3 fold 2026-05-02: ThreatResponseDashboard → ThreatIntelOpsHub#response */}
+            <Route path="/threat-response" element={<Navigate to="/attack/intel/ops?tab=response" replace />} />
             <Route path="/awareness-program" element={<Navigate to="/comply/awareness?tab=program" replace />} />
 
             {/* Wave 37 domain dashboards */}
@@ -1321,7 +1328,8 @@ export default function App() {
             <Route path="/security-questionnaires" element={<SecurityQuestionnaireDashboard />} />
             {/* P3 fold 2026-05-02: RiskScenarioDashboard → RiskQuantHub#scenarios */}
             <Route path="/risk-scenarios" element={<Navigate to="/comply/risk-quant?tab=scenarios" replace />} />
-            <Route path="/feed-subscriptions" element={<FeedSubscriptionsDashboard />} />
+            {/* P3 fold 2026-05-02: FeedSubscriptionsDashboard → ThreatIntelOpsHub#feeds */}
+            <Route path="/feed-subscriptions" element={<Navigate to="/attack/intel/ops?tab=feeds" replace />} />
             {/* P3 fold 2026-05-02 — AssetGroupsDashboard folded into AssetInventoryHub */}
             <Route path="/asset-groups" element={<Navigate to="/discover/assets/inventory?tab=groups" replace />} />
             {/* Canonical hub route — Asset metadata workspace (groups/tags/criticality) */}
