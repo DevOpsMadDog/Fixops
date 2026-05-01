@@ -1,3 +1,4 @@
+// FOLDED into ExceptionsHub hero (exceptions tab) 2026-05-02 — preserve for git history
 /**
  * SecurityExceptionDashboard
  *

@@ -1,3 +1,4 @@
+// FOLDED into ExceptionsHub hero (auto-rules tab) 2026-05-02 — preserve for git history
 /**
  * Auto Waiver Rules — Live API
  * Multica: 38f1a6bf-99b9-4272-87f0-0e8b77901827

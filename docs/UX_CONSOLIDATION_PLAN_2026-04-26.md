@@ -404,6 +404,8 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `SecurityAutomationDashboard` | `/api/v1/security-automation` | widget |
 
 ### 2.20 → S20 Waivers & Exceptions
+**Exceptions sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 pages folded into `ExceptionsHub.tsx` at `/remediate/exceptions` (SecurityExceptionDashboard, ExceptionWorkflowDashboard, AutoWaiverRules). Old routes (`/security-exceptions`, `/exception-workflow`, `/waivers/auto-rules`) redirect with `?tab=`. Real APIs: `/api/v1/security-exceptions/{list,stats}`, `/api/v1/exception-workflow/{exceptions,stats}`, `/api/v1/auto-waiver/{rules,rule}`.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `WaiversExplorer` | `/api/v1/auto-waiver/{rules,stats}` | hero |

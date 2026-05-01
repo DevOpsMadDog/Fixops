@@ -657,6 +657,8 @@ const MaturityHub = lazy(() => import("@/pages/MaturityHub"));
 const BehaviorAnalyticsHub = lazy(() => import("@/pages/BehaviorAnalyticsHub"));
 // Phase 3 §2.23 (Privacy/Controls sub-cluster) — PrivacyComplianceHub at /comply/privacy
 const PrivacyComplianceHub = lazy(() => import("@/pages/PrivacyComplianceHub"));
+// Phase 3 §2.20 (Exceptions sub-cluster) — ExceptionsHub at /remediate/exceptions
+const ExceptionsHub = lazy(() => import("@/pages/ExceptionsHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -955,7 +957,10 @@ export default function App() {
             <Route path="/security-metrics-live" element={<SecurityMetricsDashboard2 />} />
             <Route path="/zero-trust-policies" element={<ZeroTrustPolicyDashboard />} />
             <Route path="/threat-models" element={<ThreatModelDashboard />} />
-            <Route path="/security-exceptions" element={<SecurityExceptionDashboard />} />
+            {/* Phase 3 §2.20 — Exceptions sub-cluster folded into ExceptionsHub at /remediate/exceptions */}
+            <Route path="/remediate/exceptions" element={<ExceptionsHub />} />
+            {/* S20 fold 2026-05-02: SecurityExceptionDashboard → ExceptionsHub#exceptions */}
+            <Route path="/security-exceptions" element={<Navigate to="/remediate/exceptions?tab=exceptions" replace />} />
             <Route path="/regulatory-tracker" element={<RegulatoryTrackerDashboard />} />
             {/* P3 fold 2026-04-27 — SecurityScorecardDashboard folded into /compliance#scorecard */}
             <Route path="/security-scorecard" element={<Navigate to="/compliance?tab=scorecard" replace />} />
@@ -1197,7 +1202,8 @@ export default function App() {
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
             {/* Wave 35 domain dashboards */}
-            <Route path="/exception-workflow" element={<ExceptionWorkflowDashboard />} />
+            {/* S20 fold 2026-05-02: ExceptionWorkflowDashboard → ExceptionsHub#workflow */}
+            <Route path="/exception-workflow" element={<Navigate to="/remediate/exceptions?tab=workflow" replace />} />
             {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ActorTrackingDashboard, was redirected to brain) */}
             <Route path="/actor-tracking" element={<Navigate to="/attack/intel/actors?tab=tracking" replace />} />
             <Route path="/vuln-scoring" element={<VulnScoringDashboard />} />
@@ -1484,7 +1490,8 @@ export default function App() {
             <Route path="/waivers" element={<Navigate to="/remediate?tab=waivers" replace />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/waivers/request" element={<WaiverRequestModal />} />
-            <Route path="/waivers/auto-rules" element={<AutoWaiverRules />} />
+            {/* S20 fold 2026-05-02: AutoWaiverRules → ExceptionsHub#auto-rules */}
+            <Route path="/waivers/auto-rules" element={<Navigate to="/remediate/exceptions?tab=auto-rules" replace />} />
             <Route path="/policies/inheritance" element={<PolicyInheritanceView />} />
             <Route path="/policies/library" element={<PolicyLibraryBrowser />} />
             {/* Phase 3 §2.26 — Rules / DSL sub-cluster folded into RulesCatalogHub at /comply/rules */}

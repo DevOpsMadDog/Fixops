@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into ExceptionsHub hero (workflow tab) 2026-05-02 — preserve for git history
 /**
  * Exception Workflow - Live API
  * API: GET /api/v1/exception-workflow/exceptions
