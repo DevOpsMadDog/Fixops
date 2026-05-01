@@ -1,4 +1,19 @@
-"""Cloud Drift Detection Engine — ALDECI.
+"""
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates randomized example findings for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- DevSecOps pipeline metrics: requires CI integration via
+  /api/v1/connectors/{github,gitlab,jenkins,bitbucket}/configure
+- Cloud drift detection: requires CSPM connector via
+  /api/v1/connectors/cspm-{aws,azure,gcp}/configure
+
+Until real integrations are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
+Cloud Drift Detection Engine — ALDECI.
 
 Detects configuration drift in cloud infrastructure by comparing IaC-defined
 baselines (Terraform / CloudFormation / manual) against actual resource state.
@@ -25,6 +40,11 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
+_logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — output is randomized; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/",
+    __name__,
+)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "cloud_drift.db"

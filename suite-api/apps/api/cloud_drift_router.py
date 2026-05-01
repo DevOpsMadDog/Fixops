@@ -39,6 +39,18 @@ router = APIRouter(
 # ---------------------------------------------------------------------------
 _engine_cache: Dict[str, Any] = {}
 
+_SIMULATION_WARNING: Dict[str, Any] = {
+    "is_simulated": True,
+    "engine": "cloud_drift_engine",
+    "real_integration_required": "/api/v1/connectors/cspm-{aws,azure,gcp}/configure",
+    "do_not_use_in_demo": True,
+}
+
+
+def _wrap(data: Any) -> Dict[str, Any]:
+    """Wrap engine output with simulation warning envelope."""
+    return {"data": data, "_simulation_warning": _SIMULATION_WARNING}
+
 
 def _get_engine(org_id: str):
     if org_id not in _engine_cache:
@@ -90,7 +102,7 @@ def list_baselines(
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     baselines = engine.list_baselines(org_id, environment=environment)
-    return {"baselines": baselines, "total": len(baselines)}
+    return _wrap({"baselines": baselines, "total": len(baselines)})
 
 
 @router.post("/baselines", status_code=201)
@@ -99,7 +111,7 @@ def register_baseline(
     org_id: str = Query("default", description="Organization ID"),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
-    return engine.register_baseline(org_id, body.model_dump())
+    return _wrap(engine.register_baseline(org_id, body.model_dump()))
 
 
 @router.get("/drifts")
@@ -111,7 +123,7 @@ def list_drifts(
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     drifts = engine.list_drifts(org_id, severity=severity, drift_type=drift_type, status=status)
-    return {"drifts": drifts, "total": len(drifts)}
+    return _wrap({"drifts": drifts, "total": len(drifts)})
 
 
 @router.post("/drifts", status_code=201)
@@ -123,7 +135,7 @@ def record_drift(
     data = body.model_dump()
     if data.get("detected_at") is None:
         data.pop("detected_at", None)
-    return engine.record_drift(org_id, data)
+    return _wrap(engine.record_drift(org_id, data))
 
 
 @router.post("/drifts/{drift_id}/acknowledge")
@@ -136,7 +148,7 @@ def acknowledge_drift(
     result = engine.acknowledge_drift(org_id, drift_id, body.acknowledged_by, body.notes)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
-    return result
+    return _wrap(result)
 
 
 @router.post("/drifts/{drift_id}/remediate")
@@ -149,7 +161,7 @@ def remediate_drift(
     result = engine.remediate_drift(org_id, drift_id, body.remediated_by, body.method)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
-    return result
+    return _wrap(result)
 
 
 @router.post("/scan")
@@ -158,7 +170,7 @@ def run_drift_scan(
     environment: Optional[str] = Query(None, description="Filter scan to environment"),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
-    return engine.run_drift_scan(org_id, environment=environment)
+    return _wrap(engine.run_drift_scan(org_id, environment=environment))
 
 
 @router.get("/stats")
@@ -166,4 +178,4 @@ def get_drift_stats(
     org_id: str = Query("default", description="Organization ID"),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
-    return engine.get_drift_stats(org_id)
+    return _wrap(engine.get_drift_stats(org_id))
