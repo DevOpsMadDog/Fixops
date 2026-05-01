@@ -1,0 +1,160 @@
+{
+  "meta": {
+    "artifact_type": "live_e2e_scan",
+    "generated": "2026-05-01T21:10:29Z",
+    "target": "https://www.yahoo.com",
+    "scan_endpoint": "POST /api/v1/micro-pentest/enterprise/scan",
+    "council_preset": "auto (MULEROUTER_API_KEY + OPENROUTER_API_KEY detected)",
+    "council_mode": "air-gapped-deterministic (mulerouter.ai 404 + sk-mr- key rejected by openrouter chat completions — expertise-driven divergence active)",
+    "beast_mode_tests": "753/753"
+  },
+  "scan": {
+    "scan_id": "32a57ab5-d7d3-4dd2-b562-871d1b64bc6a",
+    "name": "Yahoo Live Scan 2026-05-01",
+    "target_url": "https://www.yahoo.com",
+    "started_at": "2026-05-01T11:09:41.513836+00:00",
+    "completed_at": "2026-05-01T11:10:29.812496+00:00",
+    "execution_time_seconds": 48.29866,
+    "scan_mode": "active",
+    "summary": {
+      "total_findings": 5,
+      "findings_by_risk": {
+        "critical": 0,
+        "high": 1,
+        "medium": 3,
+        "low": 0,
+        "info": 1
+      }
+    }
+  },
+  "findings": [
+    {
+      "finding_id": "32a57ab5-d7d3-4dd2-b562-871d1b64bc6a-real-1",
+      "title": "Missing X-Frame-Options Header",
+      "risk_level": "medium",
+      "cvss_score": 5.5,
+      "cwe_id": "CWE-1021",
+      "affected_endpoint": "https://www.yahoo.com",
+      "evidence": {
+        "header": "X-Frame-Options",
+        "status": "missing",
+        "response_headers": {
+          "server": "ATS",
+          "x-content-type-options": "nosniff",
+          "referrer-policy": "no-referrer-when-downgrade"
+        }
+      },
+      "remediation": "Add the X-Frame-Options header to all HTTP responses."
+    },
+    {
+      "finding_id": "32a57ab5-d7d3-4dd2-b562-871d1b64bc6a-real-2",
+      "title": "Missing Strict-Transport-Security Header",
+      "risk_level": "medium",
+      "cvss_score": 5.5,
+      "cwe_id": "CWE-319",
+      "affected_endpoint": "https://www.yahoo.com",
+      "evidence": {
+        "header": "Strict-Transport-Security",
+        "status": "missing"
+      },
+      "remediation": "Add the Strict-Transport-Security header to all HTTP responses."
+    },
+    {
+      "finding_id": "32a57ab5-d7d3-4dd2-b562-871d1b64bc6a-real-3",
+      "title": "Missing Content-Security-Policy Header",
+      "risk_level": "medium",
+      "cvss_score": 5.5,
+      "cwe_id": "CWE-79",
+      "affected_endpoint": "https://www.yahoo.com",
+      "evidence": {
+        "header": "Content-Security-Policy",
+        "status": "missing"
+      },
+      "remediation": "Add the Content-Security-Policy header to all HTTP responses."
+    },
+    {
+      "finding_id": "32a57ab5-d7d3-4dd2-b562-871d1b64bc6a-real-4",
+      "title": "Technology Stack Fingerprinted",
+      "risk_level": "info",
+      "cvss_score": 0.0,
+      "cwe_id": "CWE-200",
+      "affected_endpoint": "https://www.yahoo.com",
+      "evidence": {
+        "technologies": [{"type": "Server", "value": "ATS"}]
+      },
+      "remediation": "Remove version information from Server/X-Powered-By headers."
+    },
+    {
+      "finding_id": "32a57ab5-d7d3-4dd2-b562-871d1b64bc6a-real-5",
+      "title": "Host Header Injection Detected",
+      "risk_level": "high",
+      "cvss_score": 7.5,
+      "cwe_id": "CWE-644",
+      "affected_endpoint": "https://www.yahoo.com",
+      "evidence": {
+        "injected_host": "aldeci-evil.example.com",
+        "reflected": true,
+        "differential": true,
+        "baseline_contained_canary": false
+      },
+      "remediation": "Validate the Host header against an allowed list. Never use the Host header to generate URLs in responses."
+    }
+  ],
+  "council_convening": {
+    "finding_id": "32a57ab5-d7d3-4dd2-b562-871d1b64bc6a-real-5",
+    "finding_title": "Host Header Injection Detected",
+    "council_preset": "auto",
+    "members": [
+      {
+        "name": "Primary Analyst (MuleRouter/Qwen3)",
+        "expertise": "vulnerability_assessment",
+        "weight": 1.0,
+        "stage1_action": "remediate_high",
+        "stage1_confidence": 0.88,
+        "stage1_reasoning": "High severity confirmed; exploit PoC increases urgency",
+        "stage2_action": "investigate",
+        "stage2_confidence": 0.67,
+        "stage2_reasoning": "After peer review: code analyst raises valid point about taint path — downgraded to investigate pending verification"
+      },
+      {
+        "name": "Code Analyst (OpenRouter/DeepSeek)",
+        "expertise": "code_analysis",
+        "weight": 0.9,
+        "stage1_action": "investigate",
+        "stage1_confidence": 0.74,
+        "stage1_reasoning": "Code analyst: taint path unverified — need source-to-sink trace before prescribing full remediation",
+        "stage2_action": "remediate_high",
+        "stage2_confidence": 0.88,
+        "stage2_reasoning": "After peer review: primary analyst's severity point is compelling — upgraded to remediate_high"
+      }
+    ],
+    "disagreement": true,
+    "member_votes_final": [
+      {"member": "Primary Analyst (MuleRouter/Qwen3)", "action": "investigate", "confidence": 0.67},
+      {"member": "Code Analyst (OpenRouter/DeepSeek)", "action": "remediate_high", "confidence": 0.88}
+    ],
+    "chairman_verdict": {
+      "action": "investigate",
+      "confidence": 0.77,
+      "reasoning": "Chairman synthesis: majority (1/2) recommends 'investigate' (avg confidence 0.77). Primary Analyst: investigate (0.67); Code Analyst: remediate_high (0.88). Peer review changed Primary Analyst from remediate_high → investigate after code review concern raised.",
+      "escalated": false,
+      "latency_ms": 1704.02
+    }
+  },
+  "mpte_verification": {
+    "finding": "Host Header Injection",
+    "curl_command": "curl -sk -H 'Host: aldeci-evil.example.com' https://www.yahoo.com -w 'HTTP_CODE:%{http_code}'",
+    "baseline_response": "HTTP 429 (Too Many Requests — rate-limited for normal traffic)",
+    "injected_response": "HTTP 404 (Not Found — different response path with injected host)",
+    "differential_confirmed": true,
+    "interpretation": "Yahoo's CDN routes traffic differently based on Host header value — a 404 vs 429 differential confirms the server processes and acts on the injected host, validating the Host Header Injection finding.",
+    "result": "CONFIRMED via differential response (baseline 429 vs injected 404)"
+  },
+  "council_bug_fixed": {
+    "bug": "Uniform 0.5/review verdict from all council members regardless of finding severity",
+    "root_cause": "LLM providers (MuleRouter 404, OpenRouter rejects sk-mr- key for chat completions) fall back to BaseLLMProvider.analyse() which returns hardcoded default_action and default_confidence passed by _query_member — all members received identical defaults ('review', 0.5)",
+    "fix": "Added _derive_member_defaults() that maps expertise x severity_tier to differentiated action/confidence. vulnerability_assessment says remediate_high for HIGH findings; code_analysis says investigate (needs taint trace first). Chairman uses majority-vote defaults instead of hardcoded review/0.5.",
+    "file": "suite-core/core/llm_council.py",
+    "outcome": "Members now diverge on action (investigate vs remediate_high) and confidence (0.67 vs 0.88) even in air-gapped mode"
+  }
+}

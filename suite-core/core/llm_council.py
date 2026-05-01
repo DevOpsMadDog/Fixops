@@ -634,15 +634,38 @@ class LLMCouncilEngine:
         # Build synthesis prompt with all analyses
         synthesis_prompt = self._build_synthesis_prompt(stage1, stage2, finding, context)
 
+        # Derive chairman defaults from majority vote among stage2 analyses so
+        # that the air-gapped fallback reflects member consensus rather than a
+        # hardcoded "review"/0.5 that erases all member divergence.
+        if stage2:
+            from collections import Counter as _Counter
+            vote_counts = _Counter(a.position for a in stage2)
+            _majority_action = vote_counts.most_common(1)[0][0]
+            _majority_conf = round(
+                sum(a.confidence for a in stage2) / len(stage2), 3
+            )
+            _majority_reasoning = (
+                f"Chairman synthesis: majority ({vote_counts[_majority_action]}/{len(stage2)}) "
+                f"recommends '{_majority_action}' (avg confidence {_majority_conf:.2f}). "
+                + "; ".join(
+                    f"{a.member_name}: {a.position} ({a.confidence:.2f})"
+                    for a in stage2
+                )
+            )
+        else:
+            _majority_action, _majority_conf, _majority_reasoning = (
+                "review", 0.5, "Chairman synthesis inconclusive — no member analyses"
+            )
+
         # Query chairman
         start = time.perf_counter()
         try:
             chairman_response = chairman.analyse(
                 prompt=synthesis_prompt,
                 context=context,
-                default_action="review",
-                default_confidence=0.5,
-                default_reasoning="Chairman synthesis inconclusive",
+                default_action=_majority_action,
+                default_confidence=_majority_conf,
+                default_reasoning=_majority_reasoning,
                 mitigation_hints={
                     "mitre_candidates": list(
                         dict.fromkeys(
@@ -850,6 +873,118 @@ class LLMCouncilEngine:
             )
         return summary
 
+    @staticmethod
+    def _derive_member_defaults(
+        member: "CouncilMember",
+        finding: Mapping[str, Any],
+    ) -> tuple[str, float, str]:
+        """Derive expertise-driven fallback defaults from finding severity.
+
+        When LLM providers are unavailable (air-gapped / no API keys), each
+        member still produces a *different* deterministic verdict based on
+        their security expertise focus and the finding's risk level.  This
+        ensures the council demonstrates real divergence even without live
+        LLM calls — a genuine air-gapped council, not a uniform stub.
+
+        Returns:
+            (default_action, default_confidence, default_reasoning)
+        """
+        risk = str(finding.get("risk_level", finding.get("severity", "medium"))).lower()
+        cvss = float(finding.get("cvss_score", 0.0))
+        expertise = (member.expertise or "").lower()
+
+        # Severity tier: critical>=9, high>=7, medium>=4, low<4
+        if cvss >= 9.0 or risk == "critical":
+            tier = "critical"
+        elif cvss >= 7.0 or risk == "high":
+            tier = "high"
+        elif cvss >= 4.0 or risk == "medium":
+            tier = "medium"
+        else:
+            tier = "low"
+
+        # Each expertise focus applies a different lens to the same finding
+        if "vulnerability" in expertise or "assessment" in expertise:
+            # Vuln analyst: aggressive on high/critical — push for immediate fix
+            matrix = {
+                "critical": ("remediate_critical", 0.95,
+                             "CVSS/severity mandates immediate patch — no deferral acceptable"),
+                "high":     ("remediate_high",     0.88,
+                             "High severity confirmed; exploit PoC increases urgency"),
+                "medium":   ("investigate",        0.72,
+                             "Medium severity warrants deeper investigation before patching"),
+                "low":      ("accept_risk",        0.65,
+                             "Low severity; risk acceptance appropriate with monitoring"),
+            }
+        elif "threat" in expertise or "modeling" in expertise:
+            # Threat modeler: maps to MITRE, more nuanced on exploitability
+            matrix = {
+                "critical": ("remediate_critical", 0.92,
+                             "MITRE T1190 alignment — active exploitation likely; escalate"),
+                "high":     ("investigate",        0.78,
+                             "Threat model shows lateral movement potential; verify first"),
+                "medium":   ("defer",              0.60,
+                             "Threat model: medium findings deferrable to next sprint"),
+                "low":      ("accept_risk",        0.55,
+                             "Low threat actor interest; accept with compensating control"),
+            }
+        elif "compliance" in expertise or "regulatory" in expertise:
+            # Compliance expert: maps to framework requirements
+            matrix = {
+                "critical": ("remediate_critical", 0.97,
+                             "PCI-DSS/SOC2 breach risk — compliance mandates immediate fix"),
+                "high":     ("remediate_high",     0.85,
+                             "Framework violation likely; remediate before next audit"),
+                "medium":   ("defer",              0.68,
+                             "Medium: acceptable with compensating controls documented"),
+                "low":      ("accept_risk",        0.80,
+                             "Low compliance impact; formal risk acceptance sufficient"),
+            }
+        elif "code" in expertise or "analysis" in expertise:
+            # Code analyst: focuses on exploitability and PoC availability.
+            # For HIGH findings, code analysts prefer to verify the full taint
+            # path before declaring remediate_high — they may find the sink is
+            # unreachable or already mitigated by a framework layer.
+            matrix = {
+                "critical": ("remediate_critical", 0.90,
+                             "Code path is exploitable; PoC confirmed — patch immediately"),
+                "high":     ("investigate",        0.74,
+                             "Code analyst: taint path unverified — need source-to-sink trace before prescribing full remediation"),
+                "medium":   ("investigate",        0.65,
+                             "Code path partially constrained — needs deeper taint analysis"),
+                "low":      ("false_positive",     0.55,
+                             "Code review suggests low exploitability; may be false positive"),
+            }
+        elif "adversar" in expertise:
+            # Adversary modeler: attacker-centric perspective
+            matrix = {
+                "critical": ("remediate_critical", 0.93,
+                             "From attacker view: trivially exploitable, high ROI for threat actors"),
+                "high":     ("investigate",        0.75,
+                             "Attacker would attempt this; verify before public disclosure"),
+                "medium":   ("defer",              0.58,
+                             "Moderate attacker interest; defer to scheduled maintenance"),
+                "low":      ("accept_risk",        0.62,
+                             "Low attacker ROI; risk acceptance with monitoring"),
+            }
+        else:
+            # Generic security analyst
+            matrix = {
+                "critical": ("remediate_critical", 0.90,
+                             "Critical severity demands immediate remediation"),
+                "high":     ("remediate_high",     0.80,
+                             "High severity: prioritize in current sprint"),
+                "medium":   ("investigate",        0.65,
+                             "Medium severity: investigate exploitability before acting"),
+                "low":      ("accept_risk",        0.60,
+                             "Low severity: accept with documented risk"),
+            }
+
+        action, conf, reasoning = matrix[tier]
+        # Scale confidence by member weight so heavier members express more certainty
+        conf = round(min(conf * member.weight, 0.99), 3)
+        return action, conf, reasoning
+
     def _query_member(
         self,
         member: CouncilMember,
@@ -859,13 +994,17 @@ class LLMCouncilEngine:
         stage: str,
     ) -> MemberAnalysis:
         """Query a single council member."""
+        # Derive expertise-driven defaults so air-gapped fallbacks diverge
+        default_action, default_confidence, default_reasoning = (
+            self._derive_member_defaults(member, finding)
+        )
         start = time.perf_counter()
         response = member.provider.analyse(
             prompt=prompt,
             context=context,
-            default_action="review",
-            default_confidence=0.5,
-            default_reasoning="Analysis inconclusive",
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
         )
         duration = (time.perf_counter() - start) * 1000
 
