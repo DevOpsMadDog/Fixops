@@ -4607,6 +4607,38 @@ def _handle_playbook(args: argparse.Namespace) -> int:
         return 1
 
 
+def _handle_airgap(args: argparse.Namespace) -> int:
+    """Dispatch ``aldeci airgap …`` subcommands.
+
+    Currently routes to ``build-nvd-bundle`` which materialises an importable
+    air-gap bundle from a raw NVD 2.0 JSON feed. The bundle is consumable by
+    :class:`core.airgap_config.OfflineVulnDBManager.import_from_bundle` on the
+    receiving SCIF instance without modification.
+    """
+    sub = getattr(args, "airgap_command", None)
+    if sub == "build-nvd-bundle":
+        from core.airgap_config import build_nvd_bundle  # local import: keeps CLI startup cheap
+
+        feed_range: Optional[tuple[str, str]] = None
+        if args.feed_from or args.feed_to:
+            feed_range = (args.feed_from or "", args.feed_to or "")
+        try:
+            manifest = build_nvd_bundle(
+                str(args.input),
+                str(args.output),
+                feed_date_range=feed_range,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        json.dump(manifest, sys.stdout, indent=2, default=str)
+        sys.stdout.write("\n")
+        return 0
+
+    print("Error: missing airgap subcommand. Try 'airgap build-nvd-bundle --help'.", file=sys.stderr)
+    return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -6027,6 +6059,43 @@ def build_parser() -> argparse.ArgumentParser:
     mpte_orch_subparsers.add_parser("report-data", help="Get latest report data")
 
     mpte_orch_parser.set_defaults(func=_handle_mpte_orchestrator)
+
+    # ------------------------------------------------------------------
+    # airgap — air-gapped deployment tooling
+    # ------------------------------------------------------------------
+    airgap_parser = subparsers.add_parser(
+        "airgap",
+        help="Air-gapped deployment tooling (NVD bundle build, etc.)",
+    )
+    airgap_subparsers = airgap_parser.add_subparsers(dest="airgap_command")
+
+    build_nvd_parser = airgap_subparsers.add_parser(
+        "build-nvd-bundle",
+        help="Build an importable NVD bundle from raw NVD 2.0 JSON for transfer to air-gapped instances",
+    )
+    build_nvd_parser.add_argument(
+        "--input",
+        required=True,
+        type=Path,
+        help="Path to the raw NVD 2.0 JSON feed",
+    )
+    build_nvd_parser.add_argument(
+        "--output",
+        required=True,
+        type=Path,
+        help="Path where the importable ZIP bundle will be written",
+    )
+    build_nvd_parser.add_argument(
+        "--feed-from",
+        default=None,
+        help="Optional ISO-8601 'from' date for the manifest feed_date_range",
+    )
+    build_nvd_parser.add_argument(
+        "--feed-to",
+        default=None,
+        help="Optional ISO-8601 'to' date for the manifest feed_date_range",
+    )
+    airgap_parser.set_defaults(func=_handle_airgap)
 
     return parser
 
