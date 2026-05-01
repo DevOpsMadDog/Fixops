@@ -165,6 +165,8 @@ const SecurityMetricsDashboard = lazy(() => import("@/pages/SecurityMetricsDashb
 const MobileSecurity = lazy(() => import("@/pages/MobileSecurity"));
 const PasswordPolicy = lazy(() => import("@/pages/PasswordPolicy"));
 const AppSecurity = lazy(() => import("@/pages/AppSecurity"));
+// S10 Application Security hub — Phase 3 cluster (2026-05-02): 3 pages folded
+const AppLayerSecurityHub = lazy(() => import("@/pages/AppLayerSecurityHub"));
 const VulnRiskQueue = lazy(() => import("@/pages/VulnRiskQueue"));
 const RedTeamStatus = lazy(() => import("@/pages/RedTeamStatus"));
 const NetworkTopology = lazy(() => import("@/pages/NetworkTopology"));
@@ -957,7 +959,9 @@ export default function App() {
             <Route path="/social-engineering" element={<Navigate to="/validate/offensive?tab=social-eng" replace />} />
             <Route path="/mobile-security" element={<MobileSecurity />} />
             <Route path="/password-policy" element={<PasswordPolicy />} />
-            <Route path="/app-security" element={<AppSecurity />} />
+            {/* S10 Application Security hub — Phase 3 cluster (2026-05-02) */}
+            <Route path="/discover/app-security" element={<AppLayerSecurityHub />} />
+            <Route path="/app-security" element={<Navigate to="/discover/app-security?tab=web" replace />} />
             {/* S19 fold 2026-05-02: SOARDashboard → AutomationOrchestrationHub#soar */}
             <Route path="/soar" element={<Navigate to="/remediate/automation?tab=soar" replace />} />
             <Route path="/grc" element={<GRCDashboard />} />
@@ -1110,7 +1114,8 @@ export default function App() {
             {/* Wave 20 domain dashboards */}
             <Route path="/zero-day" element={<Navigate to="/attack/intel/external?tab=zeroday" replace />} />
             <Route path="/security-tabletop" element={<SecurityTabletopDashboard />} />
-            <Route path="/browser-security" element={<BrowserSecurityDashboard />} />
+            {/* S10 fold 2026-05-02: BrowserSecurityDashboard → AppLayerSecurityHub#browser */}
+            <Route path="/browser-security" element={<Navigate to="/discover/app-security?tab=browser" replace />} />
             <Route path="/data-exfiltration" element={<DataExfiltrationDashboard />} />
             <Route path="/pki-management" element={<Navigate to="/discover/crypto?tab=pki" replace />} />
             <Route path="/tool-inventory" element={<Navigate to="/assets?tab=tool-inventory" replace />} />
@@ -1118,7 +1123,8 @@ export default function App() {
             {/* Wave 21 domain dashboards */}
             <Route path="/firmware-security" element={<FirmwareSecurityDashboard />} />
             <Route path="/iot-security" element={<Navigate to="/assets?tab=iot-security" replace />} />
-            <Route path="/mobile-app-security" element={<MobileAppSecurityDashboard />} />
+            {/* S10 fold 2026-05-02: MobileAppSecurityDashboard → AppLayerSecurityHub#mobile */}
+            <Route path="/mobile-app-security" element={<Navigate to="/discover/app-security?tab=mobile" replace />} />
             <Route path="/supply-chain-attacks" element={<SupplyChainAttackDashboard />} />
             <Route path="/cwp" element={<CloudWorkloadProtectionDashboard />} />
 

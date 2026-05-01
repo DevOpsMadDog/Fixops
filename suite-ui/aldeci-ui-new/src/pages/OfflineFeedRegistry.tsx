@@ -1,3 +1,4 @@
+// FOLDED into AirGapHub at /connect/mcp/air-gap?tab=feeds (2026-05-02) — preserve for git history; lazy-imported by hub
 /**
  * Offline Feed Registry — list of all air-gap feeds available
  * Route: /air-gap/feeds

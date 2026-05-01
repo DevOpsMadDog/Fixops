@@ -1,3 +1,4 @@
+// FOLDED into AirGapHub at /connect/mcp/air-gap?tab=feed-status (2026-05-02) — preserve for git history; lazy-imported by hub
 /**
  * Air-Gap Bundle Console — feed-status of offline bundles
  * Route: /air-gap/feed-status

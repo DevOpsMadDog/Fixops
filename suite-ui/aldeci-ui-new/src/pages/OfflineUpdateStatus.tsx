@@ -1,3 +1,4 @@
+// FOLDED into AirGapHub at /connect/mcp/air-gap?tab=update-status (2026-05-02) — preserve for git history; lazy-imported by hub
 /**
  * Offline Update Status — air-gap update install status
  * Route: /air-gap/update-status
