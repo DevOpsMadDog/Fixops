@@ -309,6 +309,98 @@ class ComplianceMappingEngine:
             ).fetchone()
         return self._row(row) if row else None
 
+    def list_controls_with_d3fend_fallback(
+        self,
+        org_id: str,
+        framework: Optional[str] = None,
+        control_status: Optional[str] = None,
+        d3fend_db_path: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List org controls; when the org has zero MITRE D3FEND controls,
+        project the imported D3FEND ontology (data/d3fend.db) as derived rows.
+
+        Behaviour:
+            - Org-registered controls always take precedence.
+            - When ``framework`` is None or ``"mitre_d3fend"`` AND the org
+              has no D3FEND rows in ``compliance_controls``, the imported
+              ``d3fend_techniques`` table is read live and projected into
+              the engine response shape (one dict per technique).
+            - When ``framework`` is supplied as a different value, fallback
+              is bypassed (the caller asked for a specific non-D3FEND
+              framework and we honour that exactly).
+            - When ``control_status`` is supplied and is not
+              ``"not_implemented"``, fallback is bypassed (derived rows
+              have no implementation state yet — only "not_implemented"
+              matches; any other status filter would falsely exclude them).
+            - When the side-DB does not exist or is empty, the response
+              is identical to ``list_controls`` (no error).
+
+        Each derived row carries provenance fields ``source="mitre-d3fend"``
+        and ``source_iri=<original IRI>`` so the UI can badge it.
+        """
+        # Always honour org-registered rows first (filters intact).
+        rows = self.list_controls(
+            org_id, framework=framework, control_status=control_status
+        )
+
+        # Determine whether the caller would accept D3FEND-derived rows.
+        wants_d3fend = framework is None or framework == "mitre_d3fend"
+        if not wants_d3fend:
+            return rows
+        if control_status is not None and control_status != "not_implemented":
+            return rows
+
+        # If the caller didn't filter framework but the org already has
+        # *any* D3FEND row, do not duplicate via fallback.
+        org_has_d3fend = any(r.get("framework") == "mitre_d3fend" for r in rows)
+        if org_has_d3fend:
+            return rows
+
+        # Read the side-DB live.
+        try:
+            from feeds.d3fend.importer import (
+                list_techniques_from_db,
+                get_db_path as _d3fend_db_path,
+            )
+        except ImportError:
+            return rows
+
+        target_db = d3fend_db_path or _d3fend_db_path()
+        techniques = list_techniques_from_db(db_path=target_db)
+        if not techniques:
+            return rows
+
+        now = self._now()
+        derived: List[Dict[str, Any]] = []
+        for t in techniques:
+            cid = t.get("control_id") or ""
+            if not cid:
+                continue
+            derived.append({
+                "id": f"d3fend:{cid}",
+                "org_id": org_id,
+                "control_id": cid,
+                "framework": "mitre_d3fend",
+                "control_name": (t.get("control_name") or cid)[:500],
+                "description": t.get("description") or "",
+                "control_status": "not_implemented",
+                "implementation_notes": "",
+                "owner": "",
+                "evidence_count": 0,
+                "last_reviewed": None,
+                "created_at": t.get("imported_at") or now,
+                # Provenance fields (derived rows only)
+                "source": "mitre-d3fend",
+                "source_iri": t.get("source_iri") or "",
+                "top_category": t.get("top_category") or "",
+                "parent_id": t.get("parent_id"),
+                "attack_techniques": t.get("attack_techniques") or [],
+            })
+
+        # Append derived rows AFTER any org-registered non-D3FEND rows so
+        # callers without a framework filter see the org's data first.
+        return rows + derived
+
     def update_control_status(
         self,
         org_id: str,

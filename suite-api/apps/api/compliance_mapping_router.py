@@ -132,10 +132,100 @@ def list_controls(
     framework: Optional[str] = Query(default=None),
     control_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
-    """List compliance controls with optional filters."""
-    return _get_engine().list_controls(
+    """List compliance controls with optional filters.
+
+    When the caller asks for ``framework=mitre_d3fend`` (or omits the filter)
+    AND the org has not registered any D3FEND controls, the response falls
+    back to the imported MITRE D3FEND ontology projected as derived rows
+    (real public-source data — CC-BY-4.0). Each derived row carries
+    ``source="mitre-d3fend"`` and ``source_iri=<IRI>`` so the UI can badge
+    it. Org-registered rows always take precedence.
+    """
+    return _get_engine().list_controls_with_d3fend_fallback(
         org_id, framework=framework, control_status=control_status
     )
+
+
+_d3fend_importer = None
+
+
+def _get_d3fend_importer(file_path: Optional[str] = None, url: Optional[str] = None):
+    """Return a configured D3fendImporter. file_path overrides url."""
+    from feeds.d3fend.importer import D3fendImporter
+    global _d3fend_importer
+    if file_path or url:
+        return D3fendImporter(url=url or None, file_path=file_path or None)
+    if _d3fend_importer is None:
+        _d3fend_importer = D3fendImporter()
+    return _d3fend_importer
+
+
+class ImportD3fendRequest(BaseModel):
+    file_path: Optional[str] = Field(
+        default=None,
+        description=(
+            "Local D3FEND JSON-LD file path. Used in air-gapped or "
+            "corp-firewalled environments where the live MITRE source is "
+            "unreachable. Mutually exclusive with url."
+        ),
+    )
+    url: Optional[str] = Field(
+        default=None,
+        description=(
+            "Override the D3FEND ontology source URL. Defaults to the live "
+            "MITRE export at d3fend.mitre.org."
+        ),
+    )
+    idempotent: bool = Field(
+        default=True,
+        description="Skip techniques already present in DB (default true).",
+    )
+
+
+@router.post("/import-d3fend", dependencies=[Depends(api_key_auth)])
+def import_d3fend(
+    req: Optional[ImportD3fendRequest] = None,
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Import the MITRE D3FEND defensive-technique ontology into the local
+    side-DB (data/d3fend.db). Triggered by admins to populate the catalogue
+    so subsequent ``GET /controls?framework=mitre_d3fend`` calls surface
+    real D3FEND techniques (hundreds of rows) instead of the six top-level
+    countermeasure-category stubs.
+
+    Source resolution order:
+      1. ``req.file_path`` (admin-uploaded JSON-LD doc — air-gapped use)
+      2. ``req.url`` (caller-supplied HTTP source override)
+      3. Default candidate URLs from feeds.d3fend.importer.D3FEND_DEFAULT_URLS
+    """
+    from feeds.d3fend.importer import D3fendSourceError
+
+    payload = req or ImportD3fendRequest()
+    try:
+        importer = _get_d3fend_importer(
+            file_path=payload.file_path, url=payload.url
+        )
+        result = importer.run(idempotent=payload.idempotent)
+    except D3fendSourceError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "source_unreachable",
+                "reason": str(exc),
+                "remediation": (
+                    "Download the D3FEND JSON-LD ontology from "
+                    "https://d3fend.mitre.org/resources/ and POST again "
+                    "with file_path=/path/to/d3fend.json"
+                ),
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid D3FEND JSON-LD: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        _logger.exception("import_d3fend failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return result
 
 
 @router.get("/controls/{control_id}", dependencies=[Depends(api_key_auth)])
