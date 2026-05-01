@@ -50,7 +50,7 @@ Legend for **Class**:
 | 10 | `/api/v1/security-benchmarks/benchmarks` | b | SANS / Verizon DBIR public stats | **DONE-2026-05-02 SHA=a21bf607** — `list_benchmarks()` now falls back to imported Verizon DBIR/VCDB incident corpus (data/dbir.db, populated by `feeds.dbir.importer.run_import()`) and projects each (sector, action_pattern) bucket as a derived benchmark_definition with linear-interpolated p25/p50/p75/p90 anchors over the bucket-count population. NAICS-2 prefix mapped to ALDECI sector via census.gov table. 5 new tests. |
 | 11 | `/api/v1/security-budget/allocations` | c | Manual finance entry; no public source | Correct empty. Improve response. |
 | 12 | `/api/v1/access-requests/requests` | c | User-driven workflow | Correct empty. |
-| 13 | `/api/v1/pag/accounts` | a | Identity provider connector (Okta/AzureAD) | DEFERRED — connector framework supports IdPs, no PAG-specific adapter. |
+| 13 | `/api/v1/pag/accounts` | a | Identity provider connector (Okta/AzureAD) | **DONE-2026-05-02 SHA=11a75f69** — `list_privileged_accounts_with_okta_fallback()` invokes existing `OktaConnector.sync()` when org has zero rows AND `OKTA_API_KEY`/`OKTA_DOMAIN` set; projects privileged Okta users (admin/devops/sre/owner titles OR LOCKED_OUT/SUSPENDED status) as derived rows tagged `source="okta"`. Needs-credentials returns structured empty + hint, never mocks. 6 new tests. |
 | 14 | `/api/v1/session-recording/sessions` | a | PAM tool integration (CyberArk/BeyondTrust) | DEFERRED — no real PAM tenant available. |
 | 15 | `/api/v1/cloud-posture/findings` | a | Native CSPM scanner (`cspm_engine.py`) | DEFERRED — CSPM scanner needs real cloud creds for fleet tenants (none configured). |
 | 16 | `/api/v1/cloud-governance/policies` | c | Manual policy creation | Correct empty. |
@@ -61,7 +61,7 @@ Legend for **Class**:
 | 21 | `/api/v1/network-forensics/captures` | c | Manual/triggered packet captures | Correct empty. |
 | 22 | `/api/v1/network-segmentation/segments` | c | Manual entry / network discovery | Correct empty. |
 | 23 | `/api/v1/microsegmentation/segments` | c | Manual policy authoring | Correct empty. |
-| 24 | `/api/v1/mdm/devices` | a | MDM connector (Jamf/Intune) | DEFERRED — connector not built. |
+| 24 | `/api/v1/mdm/devices` | a | MDM connector (Jamf/Intune) | **DONE-2026-05-02 SHA=ae0549b3** — `list_devices_with_mdm_fallback()` invokes existing `IntuneConnector.sync()` + `JamfConnector.sync()` when org has zero rows; projects either roster into MDM device shape (deduped on connector device_id; platform filter respected; severity → compliance_status). Needs-credentials returns structured empty + hint, never mocks. 7 new tests. |
 | 25 | `/api/v1/mobile-app-security/apps` | a | App-store / repo connector | DEFERRED — needs MobSF / App Store integration. |
 | 26 | `/api/v1/security-chaos/experiments` | c | Manual experiment design | Correct empty. |
 | 27 | `/api/v1/ai-soc/detections` | a | XDR/SIEM connector | DEFERRED — XDR adapter not implemented. |
@@ -71,7 +71,7 @@ Legend for **Class**:
 | 30 | `/api/v1/gdpr/activities` | c | Manual data-mapping entry | Correct empty. |
 
 ### Class tally
-- **(a) — connector missing**: 10 endpoints (need real adapters: PAM, MDM, SSPM, XDR, cloud creds, identity, k8s, etc.). Endpoint #5 (ti-automation/feeds) reclassified to (b) and DONE.
+- **(a) — connector missing**: 10 endpoints — **2 closed 2026-05-02** (Okta→PAG accounts [SHA=11a75f69], Intune+Jamf→MDM devices [SHA=ae0549b3]); **8 still deferred** (PAG #14 session-recording, #15 cloud-posture, #18 cloud-cost, #19 cwp/workloads, #20 sspm/apps, #25 mobile-app-security, #27 ai-soc/detections, #3 asset-criticality — all need real cloud creds, k8s telemetry, OAuth flows, or PAM tenant access not present in fleet).
 - **(b) — public-source importer missing**: 8 endpoints — **ALL CLOSED 2026-05-02** (CISA KEV via vuln-correlation/assets [SHA=933e27d1], MITRE techniques via threat-vectors/vectors [SHA=1d0894fc], SigmaHQ rules via hunting-playbooks/playbooks [SHA=3225e0a4], CIS Benchmark via posture-benchmarking/benchmarks [SHA=64c66dc8], Verizon DBIR via security-benchmarks/benchmarks [SHA=a21bf607], global feed registry via ti-automation/feeds [SHA=8f8449cb], intrusion-set MITRE via actor-tracking/actors [DONE prior], MITRE D3FEND via compliance-mapping/controls [SHA=e21638dd])
 - **(c) — empty IS correct for fresh tenant**: 12 endpoints (manual/policy-driven; only fix is structured empty-response copy)
 
