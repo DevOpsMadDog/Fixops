@@ -123,15 +123,13 @@ def list_vectors(
     vector_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """List threat vectors with optional filters."""
-    rows = _get_engine().list_vectors(org_id, vector_type=vector_type, severity=severity)
-    if not rows:
-        return {
-            "vectors": [],
-            "total": 0,
-            "hint": "Import MITRE ATT&CK technique vectors via POST /api/v1/threat-vectors/import-mitre, or create manually via POST /api/v1/threat-vectors/vectors.",
-        }
-    return {"vectors": rows, "total": len(rows)}
+    """List org-recorded threat vectors. When the org has not recorded any,
+    the response is a real-source library projected from the imported MITRE
+    ATT&CK technique catalog (POST /import-mitre to populate). No mock data
+    is ever returned."""
+    return _get_engine().list_vectors_with_mitre_fallback(
+        org_id, vector_type=vector_type, severity=severity
+    )
 
 
 @router.post("/import-mitre", dependencies=[Depends(api_key_auth)])

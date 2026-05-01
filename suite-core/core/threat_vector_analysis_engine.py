@@ -230,6 +230,155 @@ class ThreatVectorAnalysisEngine:
             rows = conn.execute(query, params).fetchall()
         return [self._row(r) for r in rows]
 
+    def list_vectors_with_mitre_fallback(
+        self,
+        org_id: str,
+        vector_type: Optional[str] = None,
+        severity: Optional[str] = None,
+        mitre_db_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """List org-recorded threat vectors; if none, project the imported
+        MITRE ATT&CK technique catalog as a derived vector library.
+
+        Each MITRE technique becomes a vector with:
+          - vector_type derived from MITRE tactic (e.g. initial-access -> network)
+          - severity inferred from kill_chain phase position (impact -> critical,
+            exfiltration -> high, etc.)
+          - description = MITRE description text (truncated)
+          - external_id, stix_id, platforms, tactic_ids passed through
+
+        Returns:
+            {"vectors": [...], "total": N, "source": str, "mitre_total": N}
+        """
+        rows = self.list_vectors(org_id, vector_type=vector_type, severity=severity)
+        if rows:
+            return {"vectors": rows, "total": len(rows), "source": "org_recorded"}
+
+        from pathlib import Path as _Path
+        if mitre_db_path is None:
+            mitre_db_path = str(_Path("data") / "mitre_attack.db")
+        if not _Path(mitre_db_path).exists():
+            return {
+                "vectors": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/threat-vectors/import-mitre to populate the MITRE ATT&CK technique catalog, "
+                        "or create vectors manually via POST /api/v1/threat-vectors/vectors.",
+            }
+
+        try:
+            with sqlite3.connect(mitre_db_path) as mconn:
+                mconn.row_factory = sqlite3.Row
+                technique_rows = mconn.execute(
+                    """
+                    SELECT technique_id, name, description, tactic_ids, platforms,
+                           is_subtechnique, parent_id, stix_id
+                    FROM techniques
+                    WHERE is_subtechnique = 0
+                    ORDER BY technique_id
+                    """
+                ).fetchall()
+        except sqlite3.Error as exc:
+            _logger.warning("MITRE-fallback read failed for %s: %s", mitre_db_path, exc)
+            return {
+                "vectors": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/threat-vectors/import-mitre to populate MITRE ATT&CK techniques.",
+            }
+
+        if not technique_rows:
+            return {
+                "vectors": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/threat-vectors/import-mitre to populate MITRE ATT&CK techniques.",
+            }
+
+        # MITRE tactic -> vector_type mapping (stay in our taxonomy)
+        _TACTIC_TO_VECTOR = {
+            "initial-access": "network",
+            "execution": "network",
+            "persistence": "network",
+            "privilege-escalation": "network",
+            "defense-evasion": "network",
+            "credential-access": "credential_stuffing",
+            "discovery": "network",
+            "lateral-movement": "network",
+            "collection": "insider",
+            "exfiltration": "network",
+            "command-and-control": "network",
+            "impact": "network",
+            "reconnaissance": "social_engineering",
+            "resource-development": "supply_chain",
+        }
+        # Tactic -> severity mapping (impact-stage tactics are the most severe)
+        _TACTIC_TO_SEVERITY = {
+            "impact": "critical",
+            "exfiltration": "critical",
+            "command-and-control": "high",
+            "credential-access": "high",
+            "privilege-escalation": "high",
+            "lateral-movement": "high",
+            "execution": "high",
+            "initial-access": "high",
+            "persistence": "medium",
+            "defense-evasion": "medium",
+            "collection": "medium",
+            "discovery": "low",
+            "reconnaissance": "low",
+            "resource-development": "low",
+        }
+
+        import json as _json
+        derived: List[Dict[str, Any]] = []
+        for r in technique_rows:
+            try:
+                tactic_ids = _json.loads(r["tactic_ids"] or "[]")
+            except (ValueError, TypeError):
+                tactic_ids = []
+            primary_tactic = tactic_ids[0] if tactic_ids else "unknown"
+            inferred_vt = _TACTIC_TO_VECTOR.get(primary_tactic, "network")
+            inferred_sev = _TACTIC_TO_SEVERITY.get(primary_tactic, "medium")
+            if vector_type and inferred_vt != vector_type:
+                continue
+            if severity and inferred_sev != severity:
+                continue
+            try:
+                platforms = _json.loads(r["platforms"] or "[]")
+            except (ValueError, TypeError):
+                platforms = []
+            desc = (r["description"] or "")[:500]
+            derived.append({
+                "id": f"mitre:{r['technique_id']}",
+                "org_id": org_id,
+                "vector_type": inferred_vt,
+                "name": f"{r['technique_id']} - {r['name']}",
+                "severity": inferred_sev,
+                "description": desc,
+                "frequency_score": 50.0,
+                "impact_score": 80.0 if inferred_sev == "critical" else (60.0 if inferred_sev == "high" else 40.0),
+                "risk_score": 65.0 if inferred_sev == "critical" else (50.0 if inferred_sev == "high" else 35.0),
+                "indicator_count": 0,
+                "mitigation_count": 0,
+                "first_observed": None,
+                "last_observed": None,
+                "status": "active",
+                "created_at": "",
+                "source": "mitre-attack",
+                "source_technique_id": r["technique_id"],
+                "source_tactic": primary_tactic,
+                "source_platforms": platforms,
+            })
+
+        return {
+            "vectors": derived,
+            "total": len(derived),
+            "source": "mitre-attack-derived",
+            "mitre_total": len(technique_rows),
+            "hint": "Derived from imported MITRE ATT&CK techniques. Record your own vectors via POST /vectors to override.",
+        }
+
     def get_vector(self, org_id: str, vector_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve a single threat vector by ID (org-scoped)."""
         with self._conn() as conn:
