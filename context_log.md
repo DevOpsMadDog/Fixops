@@ -1,5 +1,23 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-02 00:51] backend-hardener — SIMULATED_ENGINES_FLAGGED_V2
+- **What**: Flagged 9 additional simulated engines from random_audit_2026-05-02 (commit 5743aef2). Each engine received: (1) SIMULATED header docstring at file top, (2) module-level `_logger.warning()` at import, (3) `_SIMULATION_WARNING` constant in corresponding router, (4) `{"data": ..., "_simulation_warning": {...}}` envelope on key computed-data endpoints. DB contamination check: 0 rows with devsecops source_tool/scan_id; 289 rows CVE-2024-* cvss_score=0 from sast_scanner (not devsecops — no action taken). 19 new tests all passing. Beast Mode 753/753.
+- **Files touched**: suite-core/core/{security_scorecard,compliance_scanner_engine,vendor_scorecard,kubernetes_security_engine,ccm_engine,config_benchmark_engine,ioc_enrichment_engine,openclaw_engine}.py, suite-core/connectors/iam_sso_connector.py, suite-api/apps/api/{security_scorecard,compliance_scanner,vendor_scorecard,kubernetes_security,iam_sso,ccm,config_benchmark,ioc_enrichment,openclaw}_router.py, tests/test_simulated_engines_flagged_v2.py
+- **Outcome**: SUCCESS — 10 commits d6f3426f..72a54383 pushed to features/intermediate-stage
+- **Pillar(s) served**: V6 (demo safety), V1 (honesty), V9 (air-gapped clarity)
+
+### [2026-04-27 00:00] technical-writer — HONEST_DEMO_PATH
+- **What**: Wrote `docs/investor/honest_demo_path_2026-05-02.md` — founder/sales reference doc distinguishing real product surface from simulated engines. 5-beat demo arc (Yahoo curl, tour SSE, multi-LLM council divergence, TrustGraph propagation, DPO capture) using only verified-real surface. Do-not-click list cites exact file:line for every simulated engine. Pre-demo checklist (5 items), backup demo (static Yahoo JSON walk-through), Q&A primer (5 Aarthi-level questions with honest answers). Every claim traces to a file:line, commit SHA, or live-verified endpoint.
+- **Files touched**: `docs/investor/honest_demo_path_2026-05-02.md` (new, 1,692 words)
+- **Outcome**: SUCCESS — commit 80c43f3f pushed to features/intermediate-stage
+- **Pillar(s) served**: V6 (demo-ready), V1 (CTEM honesty), V7 (multi-LLM moat documentation)
+
+### [2026-05-01 23:22] backend-hardener — TOUR_MODE_E2E_DEMO
+- **What**: Built the real-product-demo "tour mode" — single-screen end-to-end flow proving Aldeci is a working product. Backend: POST /api/v1/tour/start returns tour_id; GET /api/v1/tour/{tour_id}/stream emits SSE events across 5 stages: (1) repo_ingest — git clone + file count, (2) brain_pipeline — 12-step CTEM on real findings from a file walk/SAST scan, (3) council — multi-LLM convene with divergence detection (Member1=remediate_critical@0.88, Member2=investigate@0.74, Chairman=investigate@0.77), (4) trustgraph — finding+verdict nodes emitted to event bus, (5) dpo_capture — council disagreement persisted to learning_signals.db as DPO pair. Frontend: single public /tour page with animated vertical timeline, per-stage detail cards, SSE EventSource consumer, final summary card with reproduction commands. No mocks — every stage emits real output or a visible stage_error event. 8 tests written and passing. Beast Mode 730/730 green. Commit a554721a pushed.
+- **Files touched**: `suite-api/apps/api/tour_router.py` (new — 350 LOC), `suite-ui/aldeci-ui-new/src/pages/Tour.tsx` (new — 420 LOC), `tests/test_tour_e2e.py` (new — 8 tests), `suite-api/apps/api/app.py` (tour_router mount), `suite-ui/aldeci-ui-new/src/App.tsx` (lazy import + /tour public route)
+- **Outcome**: SUCCESS — commit a554721a pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (CTEM end-to-end), V6 (demo-ready), V7 (multi-LLM council moat), V9 (air-gapped real scanners)
+
 ### [2026-05-01 21:30] backend-hardener — DEMO_PATH_ENDPOINT_FIXES
 - **What**: Bisected and fixed 4 demo-path endpoints that were 404 despite prior commits claiming to ship them. Root causes: (1) llm_council_router never imported/mounted in app.py; (2) feed_registry_router imported but include_router() never called; (3) risk_scoring_router mounted inside late try/except that silently swallowed failures; (4) /api/v1/scanners/ingest path never existed (canonical is /api/v1/scanner-ingest). Fixed all 4 with module-level imports + early include_router calls + scanners_alias_router. Added 8 live endpoint tests. Then fixed next-batch: dast/status (missing alias), cspm/health (suite-attack cspm_router had no /health), feeds/status (catch-all in feed_manager_router swallowed it), knowledge-graph/status (500 from unhandled exception type → broadened to bare Exception). Final result: 30/32 probed endpoints return 200. Beast Mode 753/753. 6 commits pushed.
 - **Files touched**: `suite-api/apps/api/app.py` (llm_council_router + feed_registry + risk_scoring wiring), `suite-api/apps/api/scanner_ingest_router.py` (scanners_alias_router), `suite-api/apps/api/dast_router.py` (/status alias), `suite-attack/api/cspm_router.py` (/health + /status), `suite-api/apps/api/feed_manager_router.py` (/health + /status before catch-all), `suite-core/api/knowledge_graph_router.py` (broaden exception), `tests/test_demo_path_endpoints_live.py` (new — 8 tests), `docs/validation/endpoint_verification_2026-05-01.md` (new)
@@ -5733,3 +5751,9 @@
 - **Files touched**: scripts/import_yahoo_findings.py (new), .fixops_data/security_findings_engine.db (data)
 - **Outcome**: SUCCESS — 6 findings persisted, Beast Mode exit code 0, commit 770bc386 pushed
 - **Pillar(s) served**: V1 (real data), V3 (demo readiness)
+
+### [2026-05-02 00:44] backend-hardener — SAFETY_FLAG
+- **What**: Marked devsecops_engine and cloud_drift_engine as SIMULATED to block demo accidents. Added docstring warning headers, module-level startup logger.warning, _simulation_warning envelope on all 18 affected endpoints, and 18-test suite.
+- **Files touched**: suite-core/core/devsecops_engine.py, suite-core/core/cloud_drift_engine.py, suite-api/apps/api/devsecops_router.py, suite-api/apps/api/cloud_drift_router.py, tests/test_simulated_engines_flagged.py
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (demo-safe), V4 (security hygiene)
