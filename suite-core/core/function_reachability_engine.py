@@ -873,28 +873,465 @@ class FunctionReachabilityEngine:
     def parse_typescript_repo(
         self, org_id: str, repo_ref: str, root_path: str
     ) -> int:
-        """TypeScript support is pending NEW-G070 semantic layer.
+        """Parse a TypeScript / JavaScript repo via tree-sitter.
 
-        Will use Tree-sitter TypeScript grammar via the
-        deep_code_analysis_engine once that lands (see gap-matrix NEW-G070).
+        Walks ``*.ts``, ``*.tsx``, ``*.js``, ``*.jsx`` files; extracts
+        function/method/arrow definitions and their call sites.  Skips
+        ``node_modules``, ``.git``, ``dist``, ``build``, ``.next``.
+
+        Falls back gracefully (NotImplementedError with install hint) when
+        the optional ``tree-sitter-typescript`` bundle isn't installed.
         """
-        # TODO(NEW-G070): replace with tree-sitter-typescript AST walk.
-        raise NotImplementedError(
-            "Tree-sitter TS/Java pending NEW-G070 semantic layer"
+        if not repo_ref:
+            raise ValueError("repo_ref is required")
+        if not root_path:
+            raise ValueError("root_path is required")
+
+        try:
+            from tree_sitter import Language, Parser
+            import tree_sitter_typescript as tst
+            ts_lang = Language(tst.language_typescript())
+            tsx_lang = Language(tst.language_tsx())
+            ts_parser = Parser(ts_lang)
+            tsx_parser = Parser(tsx_lang)
+        except ImportError:
+            raise NotImplementedError(
+                "tree-sitter-typescript not installed. "
+                "Run: pip install tree-sitter tree-sitter-typescript"
+            )
+
+        root = Path(root_path)
+        if not root.exists():
+            raise ValueError(f"root_path '{root_path}' does not exist")
+
+        nodes_to_insert: List[Dict[str, Any]] = []
+        edges_to_insert: List[Dict[str, Any]] = []
+        fqn_to_node_id: Dict[str, str] = {}
+        now = self._now()
+
+        ts_files = (
+            list(root.rglob("*.ts"))
+            + list(root.rglob("*.tsx"))
+            + list(root.rglob("*.js"))
+            + list(root.rglob("*.jsx"))
+        )
+        ts_files = [
+            f for f in ts_files
+            if not any(
+                skip in f.parts
+                for skip in ("node_modules", ".git", "dist", "build", ".next")
+            )
+        ]
+
+        for ts_file in ts_files:
+            try:
+                source = ts_file.read_bytes()
+                parser = tsx_parser if ts_file.suffix == ".tsx" else ts_parser
+                tree = parser.parse(source)
+                try:
+                    rel = ts_file.relative_to(root)
+                except ValueError:
+                    rel = Path(ts_file.name)
+                module_name = str(rel.with_suffix("")).replace(os.sep, ".")
+
+                for node in self._walk_ts_tree(tree.root_node):
+                    if node.type in (
+                        "function_declaration", "method_definition",
+                        "arrow_function", "function_expression",
+                    ):
+                        name_node = node.child_by_field_name("name")
+                        if name_node is not None:
+                            fn_name = name_node.text.decode(errors="ignore")
+                        else:
+                            # arrow / anonymous: try to capture parent
+                            # variable_declarator name
+                            parent = node.parent
+                            if (
+                                parent is not None
+                                and parent.type == "variable_declarator"
+                            ):
+                                pn = parent.child_by_field_name("name")
+                                fn_name = (
+                                    pn.text.decode(errors="ignore")
+                                    if pn is not None else f"<anon:{node.start_point[0]}>"
+                                )
+                            else:
+                                fn_name = f"<anon:{node.start_point[0]}>"
+                        fqn = f"{module_name}.{fn_name}" if module_name else fn_name
+                        node_id = str(uuid.uuid4())
+                        fqn_to_node_id[fqn] = node_id
+                        nodes_to_insert.append({
+                            "id": node_id, "org_id": org_id, "repo_ref": repo_ref,
+                            "language": "typescript", "function_fqn": fqn,
+                            "source_file": str(rel),
+                            "start_line": int(node.start_point[0]),
+                            "end_line": int(node.end_point[0]),
+                            "created_at": now,
+                        })
+                        for callee_fqn in self._find_ts_calls(node):
+                            edges_to_insert.append({
+                                "caller_fqn": fqn,
+                                "callee_fqn": callee_fqn,
+                                "edge_type": "direct_call",
+                            })
+            except Exception as exc:  # nosec B112 — best-effort per-file
+                _logger.warning("ts_parse_skip file=%s err=%s", ts_file, exc)
+                continue
+
+        return self._bulk_insert_nodes_edges(
+            org_id, repo_ref, "typescript",
+            nodes_to_insert, edges_to_insert, fqn_to_node_id, now,
+            files_count=len(ts_files),
         )
 
     def parse_java_repo(
         self, org_id: str, repo_ref: str, root_path: str
     ) -> int:
-        """Java support is pending NEW-G070 semantic layer.
+        """Parse a Java repo via tree-sitter.
 
-        Will use Tree-sitter Java grammar via the deep_code_analysis_engine
-        once that lands (see gap-matrix NEW-G070).
+        Walks ``*.java`` files; extracts method/constructor declarations
+        and ``method_invocation`` call sites.  Skips ``target``, ``build``,
+        ``.gradle``, ``out``, ``.git``.
         """
-        # TODO(NEW-G070): replace with tree-sitter-java AST walk.
-        raise NotImplementedError(
-            "Tree-sitter TS/Java pending NEW-G070 semantic layer"
+        if not repo_ref:
+            raise ValueError("repo_ref is required")
+        if not root_path:
+            raise ValueError("root_path is required")
+
+        try:
+            from tree_sitter import Language, Parser
+            import tree_sitter_java as tsj
+            java_lang = Language(tsj.language())
+            parser = Parser(java_lang)
+        except ImportError:
+            raise NotImplementedError(
+                "tree-sitter-java not installed. "
+                "Run: pip install tree-sitter tree-sitter-java"
+            )
+
+        root = Path(root_path)
+        if not root.exists():
+            raise ValueError(f"root_path '{root_path}' does not exist")
+
+        nodes_to_insert: List[Dict[str, Any]] = []
+        edges_to_insert: List[Dict[str, Any]] = []
+        fqn_to_node_id: Dict[str, str] = {}
+        now = self._now()
+
+        java_files = list(root.rglob("*.java"))
+        java_files = [
+            f for f in java_files
+            if not any(
+                skip in f.parts
+                for skip in ("target", "build", ".gradle", "out", ".git")
+            )
+        ]
+
+        for java_file in java_files:
+            try:
+                source = java_file.read_bytes()
+                tree = parser.parse(source)
+                try:
+                    rel = java_file.relative_to(root)
+                except ValueError:
+                    rel = Path(java_file.name)
+                module_name = str(rel.with_suffix("")).replace(os.sep, ".")
+
+                # Build class-context stack while walking
+                for cls_name, fn_node in self._walk_java_methods(tree.root_node):
+                    name_node = fn_node.child_by_field_name("name")
+                    fn_name = (
+                        name_node.text.decode(errors="ignore")
+                        if name_node is not None
+                        else f"<anon:{fn_node.start_point[0]}>"
+                    )
+                    qualname = f"{cls_name}.{fn_name}" if cls_name else fn_name
+                    fqn = (
+                        f"{module_name}.{qualname}" if module_name else qualname
+                    )
+                    node_id = str(uuid.uuid4())
+                    fqn_to_node_id[fqn] = node_id
+                    nodes_to_insert.append({
+                        "id": node_id, "org_id": org_id, "repo_ref": repo_ref,
+                        "language": "java", "function_fqn": fqn,
+                        "source_file": str(rel),
+                        "start_line": int(fn_node.start_point[0]),
+                        "end_line": int(fn_node.end_point[0]),
+                        "created_at": now,
+                    })
+                    for callee_fqn in self._find_java_calls(fn_node):
+                        edges_to_insert.append({
+                            "caller_fqn": fqn,
+                            "callee_fqn": callee_fqn,
+                            "edge_type": "direct_call",
+                        })
+            except Exception as exc:  # nosec B112 — best-effort per-file
+                _logger.warning("java_parse_skip file=%s err=%s", java_file, exc)
+                continue
+
+        return self._bulk_insert_nodes_edges(
+            org_id, repo_ref, "java",
+            nodes_to_insert, edges_to_insert, fqn_to_node_id, now,
+            files_count=len(java_files),
         )
+
+    # ------------------------------------------------------------------
+    # tree-sitter helpers (TS / Java)
+    # ------------------------------------------------------------------
+
+    def _walk_ts_tree(self, node: Any):
+        """Iterative DFS yielding every descendant tree-sitter node."""
+        stack = [node]
+        while stack:
+            cur = stack.pop()
+            yield cur
+            # iterate in reverse so children are visited in source order
+            for child in reversed(cur.children):
+                stack.append(child)
+
+    def _ts_callee_fqn(self, callee_node: Any) -> Optional[str]:
+        """Resolve a TS call-expression callee to a dotted FQN string."""
+        if callee_node is None:
+            return None
+        ntype = callee_node.type
+        if ntype == "identifier":
+            return callee_node.text.decode(errors="ignore")
+        if ntype == "member_expression":
+            # Walk down property chain: object.property.property...
+            parts: List[str] = []
+            cur = callee_node
+            while cur is not None and cur.type == "member_expression":
+                prop = cur.child_by_field_name("property")
+                if prop is not None:
+                    parts.append(prop.text.decode(errors="ignore"))
+                cur = cur.child_by_field_name("object")
+            if cur is not None and cur.type == "identifier":
+                parts.append(cur.text.decode(errors="ignore"))
+            parts.reverse()
+            return ".".join(parts) if parts else None
+        # call_expression callee, super, this, etc — try generic text
+        try:
+            return callee_node.text.decode(errors="ignore")
+        except Exception:
+            return None
+
+    def _find_ts_calls(self, fn_node: Any) -> List[str]:
+        """Walk fn_node subtree, return FQNs of every call_expression callee.
+
+        Skips nested function definitions so callees belong to the enclosing
+        function only (nested fns are emitted separately by the top-level walk).
+        """
+        out: List[str] = []
+        nested_def_types = {
+            "function_declaration", "method_definition",
+            "arrow_function", "function_expression",
+        }
+        stack = list(fn_node.children)
+        while stack:
+            cur = stack.pop()
+            if cur is fn_node:
+                pass
+            elif cur.type in nested_def_types:
+                # Don't descend — calls inside nested fns belong to them.
+                continue
+            if cur.type == "call_expression":
+                callee = cur.child_by_field_name("function")
+                fqn = self._ts_callee_fqn(callee)
+                if fqn:
+                    out.append(fqn)
+            for child in reversed(cur.children):
+                stack.append(child)
+        return out
+
+    def _walk_java_methods(self, root_node: Any):
+        """Yield (class_fqn, method_node) for every method/constructor.
+
+        Tracks nested classes so inner-class methods get a dotted FQN
+        (e.g. ``Outer.Inner.doThing``).
+        """
+        stack: List[Tuple[Any, List[str]]] = [(root_node, [])]
+        while stack:
+            node, class_stack = stack.pop()
+            for child in node.children:
+                if child.type in ("class_declaration", "interface_declaration",
+                                  "enum_declaration", "record_declaration"):
+                    name_node = child.child_by_field_name("name")
+                    cls_name = (
+                        name_node.text.decode(errors="ignore")
+                        if name_node is not None else "<anon>"
+                    )
+                    body = child.child_by_field_name("body")
+                    if body is not None:
+                        stack.append((body, class_stack + [cls_name]))
+                elif child.type in ("method_declaration", "constructor_declaration"):
+                    yield (".".join(class_stack), child)
+                else:
+                    # Descend into other nodes (package, blocks, etc.)
+                    stack.append((child, class_stack))
+
+    def _java_callee_fqn(self, invocation_node: Any) -> Optional[str]:
+        """Resolve a Java method_invocation to a dotted callee FQN."""
+        if invocation_node is None:
+            return None
+        name_node = invocation_node.child_by_field_name("name")
+        obj_node = invocation_node.child_by_field_name("object")
+        method_name = (
+            name_node.text.decode(errors="ignore") if name_node is not None else None
+        )
+        if not method_name:
+            return None
+        if obj_node is None:
+            return method_name
+        # object can itself be an identifier, field_access, method_invocation, etc.
+        try:
+            obj_text = obj_node.text.decode(errors="ignore")
+        except Exception:
+            obj_text = ""
+        return f"{obj_text}.{method_name}" if obj_text else method_name
+
+    def _find_java_calls(self, fn_node: Any) -> List[str]:
+        """Walk a Java method body, return FQNs of every method_invocation."""
+        out: List[str] = []
+        nested_def_types = {
+            "method_declaration", "constructor_declaration",
+            "class_declaration", "interface_declaration",
+        }
+        stack = list(fn_node.children)
+        while stack:
+            cur = stack.pop()
+            if cur is not fn_node and cur.type in nested_def_types:
+                continue
+            if cur.type == "method_invocation":
+                fqn = self._java_callee_fqn(cur)
+                if fqn:
+                    out.append(fqn)
+            for child in reversed(cur.children):
+                stack.append(child)
+        return out
+
+    # ------------------------------------------------------------------
+    # Shared bulk-insert (Python uses inline path; TS/Java use this)
+    # ------------------------------------------------------------------
+
+    def _bulk_insert_nodes_edges(
+        self,
+        org_id: str,
+        repo_ref: str,
+        language: str,
+        nodes_to_insert: List[Dict[str, Any]],
+        edges_to_insert: List[Dict[str, Any]],
+        fqn_to_node_id: Dict[str, str],
+        now: str,
+        files_count: int = 0,
+    ) -> int:
+        """Materialise nodes + edges for non-Python parsers.
+
+        Mirrors the second-pass logic in ``parse_python_repo``: pulls already
+        indexed nodes for (org, repo), creates synthetic ``<external>`` nodes
+        for unresolved callees, then writes everything under ``self._lock``.
+        Returns the number of newly inserted nodes.
+        """
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT function_fqn, id FROM callgraph_nodes "
+                "WHERE org_id=? AND repo_ref=?",
+                (org_id, repo_ref),
+            ).fetchall()
+        for r in existing:
+            fqn_to_node_id.setdefault(r["function_fqn"], r["id"])
+
+        resolved_edges: List[Dict[str, Any]] = []
+        for raw in edges_to_insert:
+            caller_id = fqn_to_node_id.get(raw["caller_fqn"])
+            if caller_id is None:
+                continue
+            callee_id = fqn_to_node_id.get(raw["callee_fqn"])
+            confidence = 1.0
+            if callee_id is None:
+                callee_id = str(uuid.uuid4())
+                fqn_to_node_id[raw["callee_fqn"]] = callee_id
+                nodes_to_insert.append({
+                    "id": callee_id,
+                    "org_id": org_id,
+                    "repo_ref": repo_ref,
+                    "language": language,
+                    "function_fqn": raw["callee_fqn"],
+                    "source_file": "<external>",
+                    "start_line": 0,
+                    "end_line": 0,
+                    "created_at": now,
+                })
+                confidence = 0.6
+            resolved_edges.append({
+                "id": str(uuid.uuid4()),
+                "org_id": org_id,
+                "caller_node_id": caller_id,
+                "callee_node_id": callee_id,
+                "edge_type": raw["edge_type"],
+                "confidence": confidence,
+                "created_at": now,
+            })
+
+        inserted = 0
+        with self._lock, self._conn() as conn:
+            for node in nodes_to_insert:
+                existing_row = conn.execute(
+                    "SELECT id FROM callgraph_nodes "
+                    "WHERE org_id=? AND repo_ref=? AND function_fqn=?",
+                    (node["org_id"], node["repo_ref"], node["function_fqn"]),
+                ).fetchone()
+                if existing_row is not None:
+                    fqn_to_node_id[node["function_fqn"]] = existing_row["id"]
+                    continue
+                conn.execute(
+                    """INSERT INTO callgraph_nodes
+                        (id, org_id, repo_ref, language, function_fqn,
+                         source_file, start_line, end_line, created_at)
+                        VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (
+                        node["id"], node["org_id"], node["repo_ref"],
+                        node["language"], node["function_fqn"],
+                        node["source_file"], node["start_line"],
+                        node["end_line"], node["created_at"],
+                    ),
+                )
+                inserted += 1
+            for edge in resolved_edges:
+                conn.execute(
+                    """INSERT INTO callgraph_edges
+                        (id, org_id, caller_node_id, callee_node_id,
+                         edge_type, confidence, created_at)
+                        VALUES (?,?,?,?,?,?,?)""",
+                    (
+                        edge["id"], edge["org_id"], edge["caller_node_id"],
+                        edge["callee_node_id"], edge["edge_type"],
+                        edge["confidence"], edge["created_at"],
+                    ),
+                )
+
+        _logger.info(
+            "fn_reach.parse_%s org=%s repo=%s files=%d nodes_added=%d edges=%d",
+            language, org_id, repo_ref, files_count, inserted, len(resolved_edges),
+        )
+
+        if _get_tg_bus is not None:
+            try:
+                bus = _get_tg_bus()
+                if bus is not None:
+                    bus.publish(
+                        "callgraph.parsed",
+                        {
+                            "org_id": org_id,
+                            "repo_ref": repo_ref,
+                            "language": language,
+                            "nodes_added": inserted,
+                            "edges_added": len(resolved_edges),
+                        },
+                    )
+            except Exception:  # nosec B110 — best-effort telemetry
+                pass
+
+        return inserted
 
     # ------------------------------------------------------------------
     # REACHABILITY BFS
