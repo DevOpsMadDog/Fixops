@@ -39,9 +39,9 @@ Legend for **Class**:
 | # | Endpoint | Class | Real-source candidate | Action this session |
 |---|---|:---:|---|---|
 | 1 | `/api/v1/actor-tracking/actors` | **b** | MITRE ATT&CK enterprise STIX bundle (groups) | **FIXED** — built `core/mitre_actor_importer.py` + `POST /actors/import-mitre`. Imported **187 real intrusion-sets × 15 tenants = 2,805 real records**. Endpoint now returns 187 actors per tenant. |
-| 2 | `/api/v1/vuln-correlation/assets` | b | CISA KEV catalog (real CVE list) | DEFERRED — KEV importer scoped (CISA endpoint reachable HTTP 200), needs router/engine inspection beyond budget. |
+| 2 | `/api/v1/vuln-correlation/assets` | b | CISA KEV catalog (real CVE list) | **DONE-2026-05-02 SHA=933e27d1** — `list_assets()` now falls back to imported CISA KEV (1,583 real entries) and projects vendor+product as derived asset library; org-registered rows take precedence. 5 new tests. |
 | 3 | `/api/v1/asset-criticality/assets` | a | Native CMDB / inventory connector + Brain Pipeline emit | DEFERRED — engine exists (`asset_criticality_engine.py`) but no connector wires Brain Pipeline `asset.discovered` event into criticality scorer. |
-| 4 | `/api/v1/threat-vectors/vectors` | b | MITRE ATT&CK techniques → vector taxonomy mapping | DEFERRED — bundle already cached at `/tmp/mitre.json`; mapping logic not yet written. |
+| 4 | `/api/v1/threat-vectors/vectors` | b | MITRE ATT&CK techniques → vector taxonomy mapping | **DONE-2026-05-02 SHA=1d0894fc** — `list_vectors()` now falls back to imported MITRE ATT&CK (835 real techniques) and projects each top-level technique as a derived vector with deterministic tactic→{vector_type,severity} mapping. 4 new tests. |
 | 5 | `/api/v1/ti-automation/feeds` | a | `feeds_service.py` already lists 28+ real feeds | DEFERRED — endpoint reads a per-org `feeds` table; need wiring from global feed registry → per-org enrolled-feeds table. |
 | 6 | `/api/v1/intel-enrichment/requests` | c | n/a — request log; empty IS correct for fresh tenants | Empty is correct; should return `{requests: [], hint: "submit POST /requests to enrich an IOC"}`. |
 | 7 | `/api/v1/posture-reports/reports` | c | Compliance scan output | Empty is correct until a posture scan is run. Endpoint should return `{reports: [], hint: "trigger via POST /posture/scan"}`. |
@@ -65,13 +65,13 @@ Legend for **Class**:
 | 25 | `/api/v1/mobile-app-security/apps` | a | App-store / repo connector | DEFERRED — needs MobSF / App Store integration. |
 | 26 | `/api/v1/security-chaos/experiments` | c | Manual experiment design | Correct empty. |
 | 27 | `/api/v1/ai-soc/detections` | a | XDR/SIEM connector | DEFERRED — XDR adapter not implemented. |
-| 28 | `/api/v1/hunting-playbooks/playbooks` | b | MITRE D3FEND / Sigma rule repos | DEFERRED — needs Sigma YAML importer. |
+| 28 | `/api/v1/hunting-playbooks/playbooks` | b | MITRE D3FEND / Sigma rule repos | **DONE-2026-05-02 SHA=3225e0a4** — `list_playbooks()` now falls back to imported SigmaHQ rule catalog and projects each Sigma rule as a derived playbook (hunt_type from attack_techniques presence, mitre_technique from first attack.t#### tag, data_sources from logsource). 6 new tests; defensive against malformed JSON. |
 | 29 | `/api/v1/awareness-gamification/challenges` | c | Manual content authoring | Correct empty. |
 | 30 | `/api/v1/gdpr/activities` | c | Manual data-mapping entry | Correct empty. |
 
 ### Class tally
 - **(a) — connector missing**: 11 endpoints (need real adapters: PAM, MDM, SSPM, XDR, cloud creds, identity, k8s, etc.)
-- **(b) — public-source importer missing**: 7 endpoints (CISA KEV, MITRE techniques, CIS, SANS DBIR, Sigma rules, intrusion-set MITRE [DONE])
+- **(b) — public-source importer missing**: 7 endpoints (3 DONE: CISA KEV via vuln-correlation/assets [SHA=933e27d1], MITRE techniques via threat-vectors/vectors [SHA=1d0894fc], SigmaHQ rules via hunting-playbooks/playbooks [SHA=3225e0a4]; intrusion-set MITRE [DONE prior]; remaining: CIS Benchmark, SANS DBIR, MITRE D3FEND)
 - **(c) — empty IS correct for fresh tenant**: 12 endpoints (manual/policy-driven; only fix is structured empty-response copy)
 
 ---
