@@ -408,7 +408,7 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `ClaudeSkillsRegistry` (cross-link to S28) | shared | widget |
 
 ### 2.19 → S19 Remediation Center
-**Automation/Orchestration sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 patch+SOAR pages folded into `AutomationOrchestrationHub.tsx` at `/remediate/automation` (PatchManagementDashboard, PatchPrioritizer, SOARDashboard). Old routes (`/patch-management`, `/patch-prioritizer`, `/soar`) redirect with `?tab=`. Real APIs: `/api/v1/patch-management/{patches,stats}`, `/api/v1/patch-automation/{patches,stats}`, `/api/v1/soar/{stats,playbooks,executions,mttr}`. Tabs: `patch|prioritize|soar`.
+**Automation/Orchestration sub-cluster: DONE-2026-05-02 SHA=cfab097a** — 3 patch+SOAR pages folded into `AutomationOrchestrationHub.tsx` at `/remediate/automation` (PatchManagementDashboard, PatchPrioritizer, SOARDashboard). Old routes (`/patch-management`, `/patch-prioritizer`, `/soar`) redirect with `?tab=`. Real APIs: `/api/v1/patch-management/{patches,stats}`, `/api/v1/patch-automation/{patches,stats}`, `/api/v1/soar/{stats,playbooks,executions,mttr}`. Tabs: `patch|prioritize|soar`.
 | Source | Endpoint | As |
 |---|---|---|
 | `RemediationCenter` | `/api/v1/remediation` | hero |
