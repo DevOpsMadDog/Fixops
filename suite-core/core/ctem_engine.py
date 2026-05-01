@@ -384,6 +384,18 @@ class CTEMEngine:
             title=exposure.title,
             org_id=exposure.org_id,
         )
+        self._emit_event(
+            "ctem.exposure.added",
+            {
+                "exposure_id": exposure.id,
+                "title": exposure.title,
+                "org_id": exposure.org_id,
+                "stage": exposure.stage.value,
+                "status": exposure.status.value,
+                "risk_score": exposure.risk_score,
+                "asset_count": len(exposure.assets),
+            },
+        )
         return exposure
 
     def update_exposure(
@@ -398,6 +410,16 @@ class CTEMEngine:
         updated = exposure.model_copy(update=updates)
         self._db.upsert_exposure(updated)
         logger.info("Exposure updated", exposure_id=exposure_id, fields=list(updates.keys()))
+        self._emit_event(
+            "ctem.exposure.updated",
+            {
+                "exposure_id": exposure_id,
+                "org_id": updated.org_id,
+                "fields": list(updates.keys()),
+                "stage": updated.stage.value,
+                "status": updated.status.value,
+            },
+        )
         return updated
 
     def get_exposures(self, cycle_id: str) -> List[Exposure]:
@@ -504,6 +526,16 @@ class CTEMEngine:
             cycle_id=cycle_id,
             exposure_count=len(prioritized),
         )
+        self._emit_event(
+            "ctem.exposures.prioritized",
+            {
+                "cycle_id": cycle_id,
+                "org_id": cycle.org_id,
+                "exposure_count": len(prioritized),
+                "stage": CTEMStage.PRIORITIZATION.value,
+                "max_risk_score": max((e.risk_score for e in prioritized), default=0.0),
+            },
+        )
         return prioritized
 
     def validate_exposure(self, exposure_id: str, validated: bool) -> Exposure:
@@ -525,6 +557,17 @@ class CTEMEngine:
             exposure_id=exposure_id,
             validated=validated,
             status=new_status.value,
+        )
+        self._emit_event(
+            "ctem.exposure.validated",
+            {
+                "exposure_id": exposure_id,
+                "org_id": updated.org_id,
+                "validated": validated,
+                "status": new_status.value,
+                "stage": CTEMStage.VALIDATION.value,
+                "risk_score": updated.risk_score,
+            },
         )
         return updated
 
@@ -549,6 +592,17 @@ class CTEMEngine:
             "Remediation mobilized",
             exposure_id=exposure_id,
             owner=owner,
+        )
+        self._emit_event(
+            "ctem.remediation.mobilized",
+            {
+                "exposure_id": exposure_id,
+                "org_id": updated.org_id,
+                "owner": owner,
+                "stage": CTEMStage.MOBILIZATION.value,
+                "status": updated.status.value,
+                "has_plan": bool(plan),
+            },
         )
         return updated
 

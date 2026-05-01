@@ -1874,13 +1874,17 @@ class SASTEngine:
         with self._lock:
             sid = self._latest_scan_id
             if sid is None or sid not in self._scan_store:
-                if _get_tg_bus:
-                    try:
-                        bus = _get_tg_bus()
-                        if bus and getattr(bus, "enabled", False):
-                            bus.emit("FINDING_CREATED", {"entity_type": "sast_engine", "org_id": "unknown", "source_engine": "sast_engine"})
-                    except Exception:
-                        pass
+                # Emit canonical "no scans yet" telemetry so dashboards can
+                # show the engine is alive but idle. Do NOT emit FINDING_CREATED
+                # here — that was a semantic bug (no findings exist).
+                _emit_event(
+                    "sast.summary.requested",
+                    {
+                        "status": "no_scan",
+                        "source_engine": "sast_engine",
+                        "entity_type": "sast_summary",
+                    },
+                )
                 return {"status": "no_scan", "message": "No scans have been run yet"}
             result = self._scan_store[sid]
         return {

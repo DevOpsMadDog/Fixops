@@ -40,6 +40,46 @@ except ImportError:
     _get_tg_bus = None
 
 
+def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
+    """Emit an event to the TrustGraph event bus. Never raises.
+
+    RASP is a hot-path runtime engine — telemetry MUST be best-effort.
+    Mirrors the canonical pattern from sast_engine / ctem_engine /
+    cloud_connectors / llm_council._enrich_with_trustgraph.
+    """
+    if _get_tg_bus is None:
+        return
+    try:
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit is None:
+            return
+        result = emit(event_type, payload)
+        try:
+            import asyncio as _aio
+            import inspect as _insp
+            if _insp.iscoroutine(result):
+                try:
+                    loop = _aio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    result.close()
+        except Exception:  # pragma: no cover
+            pass
+    except Exception:  # pragma: no cover - best-effort telemetry
+        pass
+
+
+# Module-load heartbeat — fires once per process so rasp_engine
+# is observable in the TrustGraph second-brain.
+try:  # pragma: no cover
+    _emit_event("engine.loaded", {"module": __name__})
+except Exception:  # noqa: BLE001
+    pass
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "rasp_engine.db")
@@ -1108,56 +1148,147 @@ class RaspEngine:
             return False
 
     # ------------------------------------------------------------------
-    # TrustGraph integration stubs
+    # TrustGraph integration (FEATURE-2 wired 2026-05-02)
     # ------------------------------------------------------------------
 
     def _index_in_trustgraph(self, event: ThreatEvent) -> None:
-        """
-        Stub: index a blocked attack into TrustGraph for threat correlation.
+        """Index a blocked/observed attack into TrustGraph via the event bus.
 
-        In production this would call:
-            trustgraph_client.add_entity(
-                entity_type="ThreatEvent",
-                name=f"RASP:{event.rule_id}:{event.event_id[:8]}",
-                properties={...},
-                core_id=3,  # Threat Intelligence core
-            )
+        Emits ``rasp.attack_detected`` (canonical) so downstream handlers
+        (KnowledgeBrainAdapter, AgentDB dual-write, alert broadcaster)
+        can correlate the IP, rule, CWE category, and asset across cores.
+
+        Best-effort — never raises (RASP is a hot path).
         """
-        _logger.debug(
-            "rasp: [trustgraph-stub] would index event_id=%s rule=%s cat=%s ip=%s",
-            event.event_id, event.rule_id, event.category, event.client_ip,
-        )
+        try:
+            payload: Dict[str, Any] = {
+                "event_id": event.event_id,
+                "rule_id": event.rule_id,
+                "category": event.category.value if hasattr(event.category, "value") else str(event.category),
+                "severity": event.severity.value if hasattr(event.severity, "value") else str(event.severity),
+                "confidence": event.confidence,
+                "attacker_ip": event.client_ip,
+                "request_path": event.path,
+                "request_method": event.method,
+                "matched_field": event.matched_field,
+                "action_taken": event.action_taken,
+                "asset_id": getattr(event, "asset_id", None) or event.path,
+                "org_id": event.org_id,
+                "timestamp": event.timestamp.isoformat(),
+                "source_engine": "rasp_engine",
+                "entity_type": "rasp_threat_event",
+            }
+            _emit_event("rasp.attack_detected", payload)
+        except Exception:  # pragma: no cover - best-effort
+            _logger.debug("rasp: trustgraph emit failed for event_id=%s", event.event_id, exc_info=True)
 
     def trustgraph_query_attacker(self, ip: str) -> Dict[str, Any]:
-        """
-        Stub: query TrustGraph for correlated intelligence on an attacker IP.
+        """Query TrustGraph for correlated intelligence on an attacker IP.
 
-        Returns placeholder data until TrustGraph client is wired in.
+        Real wiring: emits ``rasp.attacker_query`` (so the query is also
+        recorded in the second-brain), then asks the bus's backbone /
+        KnowledgeBrainAdapter for correlated entities. Falls back to local
+        SQLite stats if the adapter is unavailable.
         """
-        _logger.debug("rasp: [trustgraph-stub] would query attacker %s from knowledge graph", ip)
+        # Emit the query itself — useful for hunters to see what's been asked
+        try:
+            _emit_event(
+                "rasp.attacker_query",
+                {"attacker_ip": ip, "source_engine": "rasp_engine", "entity_type": "rasp_query"},
+            )
+        except Exception:  # pragma: no cover
+            pass
+
+        # Try real backbone correlation
+        correlated_entities: List[Dict[str, Any]] = []
+        adapter_available = False
+        try:
+            if _get_tg_bus is not None:
+                bus = _get_tg_bus()
+                backbone = getattr(bus, "backbone", None) if bus is not None else None
+                adapter = getattr(backbone, "adapter", None) if backbone is not None else None
+                query_fn = getattr(adapter, "query", None) if adapter is not None else None
+                if callable(query_fn):
+                    adapter_available = True
+                    try:
+                        result = query_fn({"attacker_ip": ip, "limit": 25})
+                        if isinstance(result, list):
+                            correlated_entities = result
+                        elif isinstance(result, dict):
+                            correlated_entities = result.get("entities", []) or []
+                    except Exception:  # pragma: no cover
+                        adapter_available = False
+        except Exception:  # pragma: no cover
+            adapter_available = False
+
+        # Local SQLite fallback — counts past sightings of this IP
+        local_hits = 0
+        local_rules: List[str] = []
+        try:
+            with self._get_conn() as conn:
+                cur = conn.execute(
+                    "SELECT rule_id, COUNT(*) FROM threat_events WHERE client_ip = ? GROUP BY rule_id",
+                    (ip,),
+                )
+                for rule_id, count in cur.fetchall():
+                    local_hits += int(count)
+                    local_rules.append(rule_id)
+        except Exception:  # pragma: no cover
+            pass
+
         return {
             "ip": ip,
-            "trustgraph_correlated": False,
+            "trustgraph_correlated": adapter_available and bool(correlated_entities),
+            "correlated_entities": correlated_entities,
+            "local_sightings": local_hits,
+            "local_rules": local_rules,
             "known_threat_actor": None,
             "related_cves": [],
-            "note": "TrustGraph integration pending",
+            "source": "trustgraph_backbone" if adapter_available else "local_sqlite",
         }
 
     def trustgraph_correlate_campaign(self, events: List[ThreatEvent]) -> Dict[str, Any]:
+        """Correlate a set of events to identify attack campaigns via TrustGraph.
+
+        Emits ``rasp.campaign_correlated`` with the rolled-up IP/rule/category
+        buckets so the second-brain can stitch this campaign together with
+        prior campaigns sharing the same IP cluster or rule signatures.
         """
-        Stub: correlate a set of events to identify attack campaigns via TrustGraph.
-        """
-        ips = list({e.client_ip for e in events})
-        rules = list({e.rule_id for e in events})
-        _logger.debug(
-            "rasp: [trustgraph-stub] would correlate campaign across %d IPs, %d rules",
-            len(ips), len(rules),
-        )
+        ips = sorted({e.client_ip for e in events})
+        rules = sorted({e.rule_id for e in events})
+        cats = sorted({(e.category.value if hasattr(e.category, "value") else str(e.category)) for e in events})
+        sevs = sorted({(e.severity.value if hasattr(e.severity, "value") else str(e.severity)) for e in events})
+
+        # Heuristic: campaign = same rule + 3+ unique IPs OR 5+ unique rules from same IP
+        campaign_detected = False
+        if len(events) >= 3 and (len(ips) >= 3 or len(rules) >= 5):
+            campaign_detected = True
+
+        try:
+            _emit_event(
+                "rasp.campaign_correlated",
+                {
+                    "campaign_detected": campaign_detected,
+                    "event_count": len(events),
+                    "ips": ips,
+                    "rules": rules,
+                    "categories": cats,
+                    "severities": sevs,
+                    "source_engine": "rasp_engine",
+                    "entity_type": "rasp_campaign",
+                },
+            )
+        except Exception:  # pragma: no cover
+            pass
+
         return {
-            "campaign_detected": False,
+            "campaign_detected": campaign_detected,
+            "event_count": len(events),
             "ips": ips,
             "rules": rules,
-            "note": "TrustGraph campaign correlation pending",
+            "categories": cats,
+            "severities": sevs,
+            "source": "trustgraph_event_bus",
         }
 
 

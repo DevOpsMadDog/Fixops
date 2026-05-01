@@ -1374,7 +1374,13 @@ class CloudConnectorEngine:
             raise
 
     def sync_account(self, provider: CloudProviderType, account_id: str) -> SyncResult:
-        """Full sync: resources + findings for one account."""
+        """Full sync: resources + findings for one account.
+
+        Emits ``connector.sync_completed`` (success) or
+        ``connector.sync_failed`` (failure) on the TrustGraph event bus
+        so the second-brain knows when each cloud account was last synced
+        and how many resources/findings landed. Best-effort — never raises.
+        """
         result = SyncResult(
             provider=provider,
             account_id=account_id,
@@ -1394,6 +1400,24 @@ class CloudConnectorEngine:
             self._log.info("cloud_engine.sync.completed",
                            provider=provider.value, account=account_id,
                            resources=len(resources), findings=len(findings))
+            try:
+                _emit_event(
+                    "connector.sync_completed",
+                    {
+                        "connector": f"{provider.value}-cloud",
+                        "provider": provider.value,
+                        "account_id": account_id,
+                        "resources_count": len(resources),
+                        "findings_count": len(findings),
+                        "status": "completed",
+                        "started_at": result.started_at.isoformat(),
+                        "completed_at": result.completed_at.isoformat(),
+                        "source_engine": "cloud_connectors",
+                        "entity_type": "connector_sync",
+                    },
+                )
+            except Exception:  # pragma: no cover
+                pass
         except Exception as exc:  # noqa: BLE001
             result.status = "failed"
             result.error = str(exc)
@@ -1401,6 +1425,23 @@ class CloudConnectorEngine:
             self._health_tracker.record_error(provider, account_id, str(exc))
             self._log.error("cloud_engine.sync.failed",
                             provider=provider.value, account=account_id, error=str(exc))
+            try:
+                _emit_event(
+                    "connector.sync_failed",
+                    {
+                        "connector": f"{provider.value}-cloud",
+                        "provider": provider.value,
+                        "account_id": account_id,
+                        "status": "failed",
+                        "error": str(exc),
+                        "started_at": result.started_at.isoformat(),
+                        "completed_at": result.completed_at.isoformat(),
+                        "source_engine": "cloud_connectors",
+                        "entity_type": "connector_sync",
+                    },
+                )
+            except Exception:  # pragma: no cover
+                pass
         return result
 
     def sync_organization(self, provider: CloudProviderType) -> List[SyncResult]:
