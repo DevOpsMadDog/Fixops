@@ -1,30 +1,47 @@
 /**
- * AssetInventoryHub — Asset Inventory metadata unified hero
+ * AssetInventoryHub — Asset Inventory unified hero (8 tabs)
  * (Phase 3 UX consolidation, 2026-05-02)
  *
- * Folds 3 standalone asset-metadata pages into a single tabbed hero per
- * docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.9 (S9 Inventory —
- * Asset metadata sub-cluster: groups + tags + criticality).
+ * Original 3-tab fold (groups + tags + criticality) per
+ * docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.9.
  *
- *   tab          | source page                  | endpoint
- *   -------------|------------------------------|----------------------------------------------
- *   groups       | AssetGroupsDashboard         | /api/v1/asset-groups/groups
- *   tags         | AssetTagsDashboard           | /api/v1/asset-tags/{tags,stats}
- *   criticality  | AssetCriticalityDashboard    | /api/v1/asset-criticality/*
+ * 2026-05-02 expansion (this commit) absorbs the 5 inventory pages flagged
+ * by docs/legacy_dashboard_sweep_2026-05-02.md §3 Cluster C —
+ * "AssetInventoryHub consolidation target":
+ *
+ *   tab           | source page                       | endpoint(s)
+ *   --------------|-----------------------------------|------------------------------------------
+ *   groups        | AssetGroupsDashboard              | /api/v1/asset-groups/groups
+ *   tags          | AssetTagsDashboard                | /api/v1/asset-tags/{tags,stats}
+ *   criticality   | AssetCriticalityDashboard         | /api/v1/asset-criticality/*
+ *   cmdb          | CMDBDashboard                     | /api/v1/cmdb/{cis,changes}
+ *   risk          | AssetRiskDashboard                | /api/v1/asset-risk/{scores,heatmap}
+ *   cloud-res     | CloudResourceInventoryDashboard   | /api/v1/cloud-inventory/resources
+ *   snapshot      | AgentlessSnapshotDashboard        | /api/v1/agentless-snapshot/*
+ *   cloud-accts   | CloudAccountsDashboard            | /api/v1/cloud-accounts/accounts
  *
  * Route: /discover/assets/inventory
- * Persona target: Asset Owner (#15), GRC Analyst (#12), Platform Eng (#16)
- * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.9
+ * Persona target: Asset Owner (#15), GRC Analyst (#12), Platform Eng (#16),
+ *                 Cloud Security Eng (#17), CMDB Owner (#23)
  *
  * Sibling note: the asset-listing hero (`AssetInventory.tsx` at `/assets`) is
- * preserved as-is — this hub focuses on the metadata management surfaces that
- * sit above the inventory table (grouping, tagging, criticality scoring).
+ * preserved as-is — this hub focuses on the metadata + risk + cloud-resource
+ * surfaces that sit above the inventory table.
  */
 
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Layers, Tag, AlertTriangle } from "lucide-react";
+import {
+  Layers,
+  Tag,
+  AlertTriangle,
+  Database,
+  ShieldAlert,
+  Cloud,
+  Camera,
+  Server,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -35,8 +52,21 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 const AssetGroupsDashboard = lazy(() => import("@/pages/AssetGroupsDashboard"));
 const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
 const AssetCriticalityDashboard = lazy(() => import("@/pages/AssetCriticalityDashboard"));
+const CMDBDashboard = lazy(() => import("@/pages/CMDBDashboard"));
+const AssetRiskDashboard = lazy(() => import("@/pages/AssetRiskDashboard"));
+const CloudResourceInventoryDashboard = lazy(() => import("@/pages/CloudResourceInventoryDashboard"));
+const AgentlessSnapshotDashboard = lazy(() => import("@/pages/AgentlessSnapshotDashboard"));
+const CloudAccountsDashboard = lazy(() => import("@/pages/CloudAccountsDashboard"));
 
-type TabKey = "groups" | "tags" | "criticality";
+type TabKey =
+  | "groups"
+  | "tags"
+  | "criticality"
+  | "cmdb"
+  | "risk"
+  | "cloud-res"
+  | "snapshot"
+  | "cloud-accts";
 
 const TABS: Array<{
   key: TabKey;
@@ -65,6 +95,41 @@ const TABS: Array<{
     description:
       "Tier distribution, criticality factors, critical-path BFS, and top-10 critical assets (Folded from AssetCriticalityDashboard).",
   },
+  {
+    key: "cmdb",
+    label: "CMDB",
+    icon: Database,
+    description:
+      "Configuration Items inventory, type breakdowns, environment distribution, and recent changes (Folded from CMDBDashboard).",
+  },
+  {
+    key: "risk",
+    label: "Risk",
+    icon: ShieldAlert,
+    description:
+      "Asset risk scoring, heatmap by type × criticality, top-15 highest-risk assets, and risk-factor breakdown (Folded from AssetRiskDashboard).",
+  },
+  {
+    key: "cloud-res",
+    label: "Cloud Resources",
+    icon: Cloud,
+    description:
+      "Live cloud resource inventory across providers — instance, storage, identity, and network resources (Folded from CloudResourceInventoryDashboard).",
+  },
+  {
+    key: "snapshot",
+    label: "Snapshots",
+    icon: Camera,
+    description:
+      "Agentless workload snapshots — scans running VMs/containers without installing agents (Folded from AgentlessSnapshotDashboard).",
+  },
+  {
+    key: "cloud-accts",
+    label: "Cloud Accounts",
+    icon: Server,
+    description:
+      "Connected AWS/Azure/GCP accounts with sync status, regions, and resource counts (Folded from CloudAccountsDashboard).",
+  },
 ];
 
 const VALID_TABS = new Set<TabKey>(TABS.map(t => t.key));
@@ -81,7 +146,7 @@ export default function AssetInventoryHub() {
   const [tab, setTab] = useState<TabKey>(initial);
 
   // Keep ?tab= in sync with the active tab so deep-links and old-route
-  // redirects (e.g. /asset-groups → /discover/assets/inventory?tab=groups) work.
+  // redirects (e.g. /cmdb → /discover/assets/inventory?tab=cmdb) work.
   useEffect(() => {
     if (params.get("tab") !== tab) {
       const next = new URLSearchParams(params);
@@ -106,8 +171,8 @@ export default function AssetInventoryHub() {
       className="flex flex-col gap-6"
     >
       <PageHeader
-        title="Asset Inventory Metadata"
-        description="Unified asset-management workspace — groups, tags, and criticality scoring across the fleet."
+        title="Asset Inventory"
+        description="Unified asset workspace — groups, tags, criticality, CMDB, risk scoring, cloud resources, snapshots, and accounts."
         badge={activeMeta.label}
       />
 
@@ -139,6 +204,31 @@ export default function AssetInventoryHub() {
         <TabsContent value="criticality">
           <Suspense fallback={<PageSkeleton />}>
             <AssetCriticalityDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="cmdb">
+          <Suspense fallback={<PageSkeleton />}>
+            <CMDBDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="risk">
+          <Suspense fallback={<PageSkeleton />}>
+            <AssetRiskDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="cloud-res">
+          <Suspense fallback={<PageSkeleton />}>
+            <CloudResourceInventoryDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="snapshot">
+          <Suspense fallback={<PageSkeleton />}>
+            <AgentlessSnapshotDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="cloud-accts">
+          <Suspense fallback={<PageSkeleton />}>
+            <CloudAccountsDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

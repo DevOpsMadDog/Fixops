@@ -1,3 +1,4 @@
+// FOLDED into AssetInventoryHub at /discover/assets/inventory?tab=snapshot (Phase 3, 2026-05-02)
 /**
  * Agentless Snapshot Dashboard
  *

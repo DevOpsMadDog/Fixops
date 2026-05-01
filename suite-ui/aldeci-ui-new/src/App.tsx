@@ -1003,7 +1003,8 @@ export default function App() {
             {/* Canonical hub route — Threat Intel Operations (combined 4-page fold) */}
             <Route path="/attack/intel/ops" element={<ThreatIntelOpsHub />} />
             <Route path="/uba" element={<Navigate to="/mission-control/behavior?tab=uba" replace />} />
-            <Route path="/cmdb" element={<CMDBDashboard />} />
+            {/* P3 fold 2026-05-02 — CMDBDashboard folded into AssetInventoryHub */}
+            <Route path="/cmdb" element={<Navigate to="/discover/assets/inventory?tab=cmdb" replace />} />
             <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
             {/* S11 Email & Threat Protection hub — folded 2026-05-02 (FOLDED PhishingSimulation) */}
             <Route path="/phishing" element={<Navigate to="/discover/threat-protection?tab=phishing" replace />} />
@@ -1041,7 +1042,8 @@ export default function App() {
             <Route path="/security-roadmap" element={<Navigate to="/comply/strategic-posture?tab=roadmap" replace />} />
             <Route path="/threat-hunting-dashboard" element={<ThreatHuntingDashboard />} />
             <Route path="/compliance-scanner" element={<ComplianceScannerDashboard />} />
-            <Route path="/asset-risk" element={<AssetRiskDashboard />} />
+            {/* P3 fold 2026-05-02 — AssetRiskDashboard folded into AssetInventoryHub */}
+            <Route path="/asset-risk" element={<Navigate to="/discover/assets/inventory?tab=risk" replace />} />
             <Route path="/security-health" element={<SecurityHealthDashboard />} />
             <Route path="/cross-domain-analytics" element={<CrossDomainAnalytics />} />
             <Route path="/devsecops" element={<DevSecOpsDashboard />} />
@@ -1229,7 +1231,8 @@ export default function App() {
             {/* Wave 28 domain dashboards */}
             <Route path="/access-requests" element={<AccessRequestManagementDashboard />} />
             <Route path="/session-recording" element={<Navigate to="/discover/privileged-access?tab=sessions" replace />} />
-            <Route path="/cloud-inventory" element={<CloudResourceInventoryDashboard />} />
+            {/* P3 fold 2026-05-02 — CloudResourceInventoryDashboard folded into AssetInventoryHub */}
+            <Route path="/cloud-inventory" element={<Navigate to="/discover/assets/inventory?tab=cloud-res" replace />} />
             <Route path="/security-telemetry" element={<SecurityTelemetryDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/third-party-vendor" element={<ThirdPartyVendorDashboard />} />
@@ -1367,7 +1370,8 @@ export default function App() {
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             {/* S22 fold 2026-05-02: IncidentLessonsDashboard → IncidentKnowledgeHub#lessons */}
             <Route path="/incident-lessons" element={<Navigate to="/remediate/incidents/knowledge?tab=lessons" replace />} />
-            <Route path="/cloud-accounts" element={<CloudAccountsDashboard />} />
+            {/* P3 fold 2026-05-02 — CloudAccountsDashboard folded into AssetInventoryHub */}
+            <Route path="/cloud-accounts" element={<Navigate to="/discover/assets/inventory?tab=cloud-accts" replace />} />
             <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
@@ -1384,7 +1388,8 @@ export default function App() {
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/org-hierarchy" element={<OrgHierarchyDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
-            <Route path="/agentless-snapshot" element={<AgentlessSnapshotDashboard />} />
+            {/* P3 fold 2026-05-02 — AgentlessSnapshotDashboard folded into AssetInventoryHub */}
+            <Route path="/agentless-snapshot" element={<Navigate to="/discover/assets/inventory?tab=snapshot" replace />} />
             <Route path="/security-query" element={<SecurityQueryLanguageDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/arch-graph" element={<ArchAwareGraphDashboard />} />

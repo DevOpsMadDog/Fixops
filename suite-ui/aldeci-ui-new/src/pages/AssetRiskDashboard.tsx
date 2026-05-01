@@ -1,3 +1,4 @@
+// FOLDED into AssetInventoryHub at /discover/assets/inventory?tab=risk (Phase 3, 2026-05-02)
 /**
  * Asset Risk Dashboard
  *
