@@ -509,7 +509,7 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 | `SecurityBaselineDashboard` | `/api/v1/baselines` | tab |
 
 ### 2.27 → S27 Integrations Hub
-**Targets sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 outbound-target dashboards folded into `IntegrationTargetsHub.tsx` at `/connect/targets` (ProwlerDashboard, ServiceNowDashboard, SIEMOutputDashboard). Old routes (`/prowler`, `/servicenow`, `/siem-output`) redirect with `?tab=`. Real APIs: `/api/v1/prowler/{findings,compliance,scan}`, `/api/v1/servicenow/{connections,incidents,cmdb,mappings}`, `/api/v1/siem-output/{targets,events,stats}`. Tabs: `prowler|servicenow|siem`.
+**Targets sub-cluster: DONE-2026-05-02 SHA=b3940927** — 3 outbound-target dashboards folded into `IntegrationTargetsHub.tsx` at `/connect/targets` (ProwlerDashboard, ServiceNowDashboard, SIEMOutputDashboard). Old routes (`/prowler`, `/servicenow`, `/siem-output`) redirect with `?tab=`. Real APIs: `/api/v1/prowler/{findings,compliance,scan}`, `/api/v1/servicenow/{connections,incidents,cmdb,mappings}`, `/api/v1/siem-output/{targets,events,stats}`. Tabs: `prowler|servicenow|siem`.
 
 | Source | Endpoint | As |
 |---|---|---|
