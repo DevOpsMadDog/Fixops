@@ -118,16 +118,22 @@ def list_feeds(
 
 @router.post("/feeds/import-global", dependencies=[Depends(api_key_auth)])
 def import_global_feeds(org_id: str = Query("default")) -> Dict[str, Any]:
-    """Import feeds from the global feed registry into per-org enrolled-feeds table (NOT YET IMPLEMENTED)."""
-    raise HTTPException(
-        status_code=501,
-        detail={
-            "error": "not_implemented",
-            "endpoint": "POST /api/v1/ti-automation/feeds/import-global",
-            "reason": "feeds_service.py lists 28+ real global feeds but no wiring from global feed registry to per-org enrolled-feeds table exists yet.",
-            "tracking": "docs/empty_endpoints_triage_2026-04-26.md#5",
-        },
-    )
+    """Import feeds from the global feed registry into per-org tia_feeds.
+
+    Reads the 7 catalogs in suite-feeds/feeds_service.py (AUTHORITATIVE,
+    NATIONAL_CERT, EXPLOIT, THREAT_ACTOR, SUPPLY_CHAIN, CLOUD_RUNTIME,
+    EARLY_SIGNAL) and bulk-registers each as a row in the org's tia_feeds
+    table. Idempotent: feeds already present (matched by feed_name) are
+    skipped. No mock data — every URL/name/refresh comes from feeds_service.
+
+    Returns counts broken down by catalog and by classified feed_type.
+    """
+    try:
+        from core.global_feed_registry_importer import import_global_feeds as _do_import
+        return _do_import(_get_engine(), org_id)
+    except Exception as exc:
+        _logger.exception("import_global_feeds failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.put("/feeds/{feed_id}/stats", dependencies=[Depends(api_key_auth)])
