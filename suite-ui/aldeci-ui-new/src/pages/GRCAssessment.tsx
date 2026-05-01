@@ -1,3 +1,4 @@
+// FOLDED into StrategicPostureHub at /comply/strategic-posture?tab=grc
 /**
  * GRCAssessment — Control testing, gap analysis, and audit readiness
  *

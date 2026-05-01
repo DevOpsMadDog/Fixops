@@ -1,3 +1,4 @@
+// FOLDED into StrategicPostureHub at /comply/strategic-posture?tab=posture
 /**
  * Security Posture Dashboard
  *
