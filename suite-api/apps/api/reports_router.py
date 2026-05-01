@@ -445,13 +445,18 @@ async def list_report_templates():
 
 
 @router.get("", response_model=PaginatedReportResponse)
+@router.get("/", response_model=PaginatedReportResponse)
 async def list_reports(
     org_id: str = Depends(get_org_id),
     report_type: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    """List all reports with optional filtering."""
+    """List all reports with optional filtering.
+
+    Both ``/api/v1/reports`` and ``/api/v1/reports/`` are accepted to avoid
+    the 44% frontend 404 issue caused by trailing-slash variation.
+    """
     reports = db.list_reports(report_type=report_type, limit=limit, offset=offset)
     return {
         "items": [ReportResponse(**r.to_dict()) for r in reports],

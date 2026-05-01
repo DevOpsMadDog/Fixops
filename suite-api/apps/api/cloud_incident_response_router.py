@@ -102,6 +102,28 @@ class ExecutePlaybookRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", summary="Cloud IR root list (incidents) for landing pages")
+def list_cloud_ir_root(
+    org_id: str = Query("default"),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    status: Optional[str] = Query(default=None),
+    cloud_provider: Optional[str] = Query(default=None),
+) -> Dict[str, Any]:
+    """Root endpoint — returns paginated incidents for the org so landing pages don't 404."""
+    rows = _get_engine().list_incidents(
+        org_id=org_id, status=status, cloud_provider=cloud_provider
+    )
+    paged = rows[offset : offset + limit]
+    return {
+        "items": paged,
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
 @router.post("/incidents", summary="Create a cloud incident")
 def create_incident(req: CreateIncidentRequest) -> Dict[str, Any]:
     try:

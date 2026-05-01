@@ -97,6 +97,36 @@ class RotationStatusResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/", summary="Secrets root list — active secrets + rotation status")
+async def list_secrets_root(
+    org_id: str = Depends(get_org_id),
+    limit: int = 50,
+    offset: int = 0,
+) -> Dict[str, object]:
+    """Root endpoint for /api/v1/secrets/ — returns active secrets and rotation status.
+
+    Combines `_scanner.get_active_secrets` (paginated) with `_scanner.get_rotation_status`
+    so landing pages never see a 404.
+    """
+    if limit < 1:
+        limit = 1
+    if limit > 500:
+        limit = 500
+    if offset < 0:
+        offset = 0
+    active = _scanner.get_active_secrets(org_id=org_id)
+    paged = active[offset : offset + limit]
+    status = _scanner.get_rotation_status(org_id=org_id)
+    return {
+        "items": paged,
+        "total": len(active),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "rotation_status": status,
+    }
+
+
 @router.post("/scan", response_model=ScanResponse, summary="Scan text or diff for secrets")
 async def scan_secrets(
     body: ScanRequest,

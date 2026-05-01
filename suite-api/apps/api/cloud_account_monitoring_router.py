@@ -21,7 +21,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -77,6 +77,30 @@ class PolicyCreate(BaseModel):
 
 class PolicyEvaluate(BaseModel):
     violation_count: int
+
+
+# ---------------------------------------------------------------------------
+# Root
+# ---------------------------------------------------------------------------
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_cloud_accounts_root(
+    org_id: str = Query("default"),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    provider: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+) -> Dict[str, Any]:
+    """List registered cloud accounts (root endpoint for hub/landing pages)."""
+    items = _get_engine().list_accounts(org_id, provider=provider, status=status)
+    paged = items[offset : offset + limit]
+    return {
+        "items": paged,
+        "total": len(items),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 # ---------------------------------------------------------------------------
