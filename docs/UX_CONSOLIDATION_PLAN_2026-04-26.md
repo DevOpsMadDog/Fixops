@@ -448,6 +448,8 @@ Alias of S13 — same hero exposed under Brain nav for Threat Hunter / Sec Analy
 ### 2.22 → S22 Incident Response
 **Forensics sub-cluster: DONE-2026-05-02 SHA=808352ac** — 3 forensics surfaces folded into ForensicsHub.tsx at `/remediate/forensics` (DigitalForensicsDashboard, NetworkForensics-via-FindingsExplorerView, MalwareAnalysis-via-FindingsExplorerView). Old routes (`/digital-forensics`, `/network-forensics`, `/malware-analysis`) redirect with `?tab=`.
 
+**Post-Incident Knowledge sub-cluster: DONE-2026-05-02 SHA=PENDING** — 3 post-incident analytics pages folded into IncidentKnowledgeHub.tsx at `/remediate/incidents/knowledge` (IncidentMetricsDashboard, IncidentKBDashboard, IncidentLessonsDashboard). Old routes (`/incident-metrics`, `/incident-kb`, `/incident-lessons`) redirect with `?tab=` (metrics|knowledge|lessons). Real APIs: `/api/v1/incident-metrics/{stats,incidents}`, `/api/v1/incident-kb/{articles,stats}`, `/api/v1/incident-lessons/{lessons,stats}`. Verified via Playwright: 5 real API calls/tab, 0 mock signatures, screenshot at `docs/ui-snapshots/ux-consolidation-incident-knowledge-2026-05-02.png`.
+
 | Source | Endpoint | As |
 |---|---|---|
 | `IncidentResponse` / `IncidentResponseDashboard` | `/api/v1/incidents` | hero |

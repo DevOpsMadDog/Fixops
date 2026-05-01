@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into IncidentKnowledgeHub at /remediate/incidents/knowledge?tab=lessons 2026-05-02 — preserve for git history (lazy-imported by hub)
 /**
  * Incident Lessons - Live API
  * API: GET /api/v1/incident-lessons/lessons

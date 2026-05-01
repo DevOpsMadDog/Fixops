@@ -1,3 +1,4 @@
+// FOLDED into IncidentKnowledgeHub at /remediate/incidents/knowledge?tab=metrics 2026-05-02 — preserve for git history (lazy-imported by hub)
 /**
  * Incident Metrics Dashboard
  *

@@ -545,6 +545,8 @@ const IncidentKBDashboard = lazy(() => import("@/pages/IncidentKBDashboard"));
 const UserAccessReviewDashboard = lazy(() => import("@/pages/UserAccessReviewDashboard"));
 const PostureHistoryDashboard = lazy(() => import("@/pages/PostureHistoryDashboard"));
 const IncidentLessonsDashboard = lazy(() => import("@/pages/IncidentLessonsDashboard"));
+// Phase 3 hub fold 2026-05-02 — IncidentMetrics + IncidentKB + IncidentLessons
+const IncidentKnowledgeHub = lazy(() => import("@/pages/IncidentKnowledgeHub"));
 const CloudAccountsDashboard = lazy(() => import("@/pages/CloudAccountsDashboard"));
 const IntelEnrichmentDashboard = lazy(() => import("@/pages/IntelEnrichmentDashboard"));
 const SecurityOKRDashboard = lazy(() => import("@/pages/SecurityOKRDashboard"));
@@ -1081,7 +1083,9 @@ export default function App() {
             <Route path="/container-runtime" element={<Navigate to="/discover/container-security?tab=runtime" replace />} />
             <Route path="/api-discovery" element={<APIDiscoveryDashboard />} />
             <Route path="/security-chaos" element={<SecurityChaosDashboard />} />
-            <Route path="/incident-metrics" element={<IncidentMetricsDashboard />} />
+            {/* S22 fold 2026-05-02: IncidentMetricsDashboard → IncidentKnowledgeHub#metrics */}
+            <Route path="/remediate/incidents/knowledge" element={<IncidentKnowledgeHub />} />
+            <Route path="/incident-metrics" element={<Navigate to="/remediate/incidents/knowledge?tab=metrics" replace />} />
 
             {/* Wave 20 domain dashboards */}
             <Route path="/zero-day" element={<Navigate to="/attack/intel/external?tab=zeroday" replace />} />
@@ -1271,12 +1275,14 @@ export default function App() {
             <Route path="/posture-trends" element={<PostureTrendsDashboard />} />
             <Route path="/access-governance" element={<Navigate to="/asset-graph?tab=access-governance" replace />} />
             <Route path="/network-threats" element={<Navigate to="/discover/network?tab=threats" replace />} />
-            <Route path="/incident-kb" element={<IncidentKBDashboard />} />
+            {/* S22 fold 2026-05-02: IncidentKBDashboard → IncidentKnowledgeHub#knowledge */}
+            <Route path="/incident-kb" element={<Navigate to="/remediate/incidents/knowledge?tab=knowledge" replace />} />
 
             {/* Wave 31 domain dashboards */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
-            <Route path="/incident-lessons" element={<IncidentLessonsDashboard />} />
+            {/* S22 fold 2026-05-02: IncidentLessonsDashboard → IncidentKnowledgeHub#lessons */}
+            <Route path="/incident-lessons" element={<Navigate to="/remediate/incidents/knowledge?tab=lessons" replace />} />
             <Route path="/cloud-accounts" element={<CloudAccountsDashboard />} />
             <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
