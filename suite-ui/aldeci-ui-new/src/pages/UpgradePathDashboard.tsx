@@ -1,7 +1,8 @@
+// FOLDED into UpgradePathsHub (resolver tab) 2026-05-02 — preserve for git history
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Upgrade Path Dashboard - Live API
- * Route: /upgrade-path
+ * Route: /upgrade-path  (now redirects to /remediate/upgrade?tab=resolver)
  * API: GET /api/v1/upgrade-path/recent, POST /api/v1/upgrade-path/resolve
  */
 import { useState, useEffect } from "react";

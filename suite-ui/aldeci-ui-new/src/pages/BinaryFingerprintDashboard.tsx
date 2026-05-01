@@ -1,9 +1,10 @@
+// FOLDED into UpgradePathsHub (binary-fp tab) 2026-05-02 — preserve for git history
 /**
  * Binary Fingerprint Dashboard
  *
  * Upload binary/library → extract unique fingerprint → correlate with known
  * vulnerable binaries even when version metadata is missing.
- * Route: /binary-fingerprint
+ * Route: /binary-fingerprint  (now redirects to /remediate/upgrade?tab=binary-fp)
  * API: GET /api/v1/binary-fp/stats; POST /api/v1/binary-fp/fingerprint
  */
 

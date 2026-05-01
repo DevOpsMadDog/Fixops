@@ -1,8 +1,9 @@
+// FOLDED into UpgradePathsHub (dep-risk tab) 2026-05-02 — preserve for git history
 // REPLACED by FindingsExplorerView config 2026-04-27
 // Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
 /**
  * Security Dependency Risk Dashboard - Live API
- * Route: /dependency-risk
+ * Route: /dependency-risk  (now redirects to /remediate/upgrade?tab=dep-risk)
  * API: GET /api/v1/dependency-risk/summary
  */
 

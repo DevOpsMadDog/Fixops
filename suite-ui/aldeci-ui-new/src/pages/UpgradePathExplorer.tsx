@@ -1,6 +1,7 @@
+// FOLDED into UpgradePathsHub (explorer tab) 2026-05-02 — preserve for git history
 /**
  * Upgrade Path Explorer — full upgrade chain for a purl
- * Route: /components/upgrade-path
+ * Route: /components/upgrade-path  (now redirects to /remediate/upgrade?tab=explorer)
  * API: GET /api/v1/components/{purl}/safe-upgrade
  * Multica id: 1c5cb190
  */

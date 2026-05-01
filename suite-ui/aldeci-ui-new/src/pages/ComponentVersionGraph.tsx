@@ -1,6 +1,7 @@
+// FOLDED into UpgradePathsHub (version-graph tab) 2026-05-02 — preserve for git history
 /**
  * Component Version Graph — safe-upgrade chart for a purl
- * Route: /components/version-graph
+ * Route: /components/version-graph  (now redirects to /remediate/upgrade?tab=version-graph)
  * API: GET /api/v1/components/{purl}/safe-upgrade
  * Multica id: 93e2e8dc
  */

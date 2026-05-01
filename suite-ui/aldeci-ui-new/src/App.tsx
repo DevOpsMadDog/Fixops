@@ -412,6 +412,8 @@ const IDEBackendDashboard = lazy(() => import("@/pages/IDEBackendDashboard"));
 // Strategic engine dashboards — batch 2 (2026-04-25)
 const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
 const BinaryFingerprintDashboard = lazy(() => import("@/pages/BinaryFingerprintDashboard"));
+// Phase 3 UX consolidation — S21 unified hero (2026-05-02)
+const UpgradePathsHub = lazy(() => import("@/pages/UpgradePathsHub"));
 const CodeToRuntimeDashboard = lazy(() => import("@/pages/CodeToRuntimeDashboard"));
 const PipelineBomDashboard = lazy(() => import("@/pages/PipelineBomDashboard"));
 const SlsaProvenanceDashboard = lazy(() => import("@/pages/SlsaProvenanceDashboard"));
@@ -1084,7 +1086,8 @@ export default function App() {
             <Route path="/program-maturity" element={<ProgramMaturityDashboard />} />
             <Route path="/cloud-ir" element={<CloudIRDashboard />} />
             <Route path="/identity-lifecycle" element={<IdentityLifecycleDashboard />} />
-            <Route path="/dependency-mapping" element={<DependencyMappingDashboard />} />
+            {/* S21 fold 2026-05-02: was DependencyMappingDashboard */}
+            <Route path="/dependency-mapping" element={<Navigate to="/remediate/upgrade?tab=dep-map" replace />} />
 
             {/* Wave 40 domain dashboards (pages for Wave 39 engines) */}
             {/* P3 fold 2026-04-27 — RiskQuantDashboard folded into /compliance#risk-quant */}
@@ -1177,8 +1180,14 @@ export default function App() {
             <Route path="/ide-backend" element={<IDEBackendDashboard />} />
 
             {/* Strategic engine dashboards — batch 2 (2026-04-25) */}
-            <Route path="/upgrade-path" element={<UpgradePathDashboard />} />
-            <Route path="/binary-fingerprint" element={<BinaryFingerprintDashboard />} />
+            {/* S21 hero (Phase 3 UX consolidation, 2026-05-02): merges 6 pages into one tabbed screen. */}
+            <Route path="/remediate/upgrade" element={<UpgradePathsHub />} />
+            {/* S21 fold 2026-05-02: was UpgradePathDashboard */}
+            <Route path="/upgrade-path" element={<Navigate to="/remediate/upgrade?tab=resolver" replace />} />
+            {/* S21 fold 2026-05-02: was BinaryFingerprintDashboard */}
+            <Route path="/binary-fingerprint" element={<Navigate to="/remediate/upgrade?tab=binary-fp" replace />} />
+            {/* S21 fold 2026-05-02: SecurityDependencyRiskDashboard surface restored under hub */}
+            <Route path="/dependency-risk" element={<Navigate to="/remediate/upgrade?tab=dep-risk" replace />} />
             <Route path="/code-to-runtime" element={<CodeToRuntimeDashboard />} />
             <Route path="/pipeline-bom" element={<PipelineBomDashboard />} />
             <Route path="/slsa-provenance" element={<SlsaProvenanceDashboard />} />
@@ -1297,7 +1306,8 @@ export default function App() {
             <Route path="/discover/graph-perf" element={<Navigate to="/assets?tab=architecture" replace />} />
             <Route path="/choke-points" element={<Navigate to="/assets?tab=chokepoints" replace />} />
             <Route path="/attack-paths/graph" element={<Navigate to="/assets?tab=architecture" replace />} />
-            <Route path="/components/version-graph" element={<Navigate to="/assets?tab=layers" replace />} />
+            {/* S21 fold 2026-05-02: redirect to hub instead of /assets */}
+            <Route path="/components/version-graph" element={<Navigate to="/remediate/upgrade?tab=version-graph" replace />} />
             <Route path="/graph/diff" element={<Navigate to="/assets?tab=diff" replace />} />
             <Route path="/graph/databases" element={<Navigate to="/assets?tab=databases" replace />} />
             <Route path="/easm/subsidiaries" element={<Navigate to="/assets?tab=subsidiaries" replace />} />
@@ -1354,7 +1364,8 @@ export default function App() {
             <Route path="/local-store/status" element={<LocalStoreStatus />} />
             <Route path="/local-store/init" element={<ZeroSetupOnboarding />} />
             {/* /components/version-graph → consolidated into /assets hero */}
-            <Route path="/components/upgrade-path" element={<UpgradePathExplorer />} />
+            {/* S21 fold 2026-05-02: was UpgradePathExplorer */}
+            <Route path="/components/upgrade-path" element={<Navigate to="/remediate/upgrade?tab=explorer" replace />} />
             {/* /graph/databases, /graph/diff → consolidated into /assets hero */}
             <Route path="/copilot/graph-chat" element={<CopilotGraphChatRoot />} />
             <Route path="/copilot/traversal-trace" element={<TracedFlowViewer />} />
