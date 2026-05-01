@@ -1,3 +1,4 @@
+// FOLDED into AssetInventoryHub at /discover/assets/inventory?tab=groups (Phase 3 UX consolidation, 2026-05-02)
 /**
  * Asset Groups Dashboard
  *

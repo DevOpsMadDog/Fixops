@@ -434,6 +434,8 @@ const ThreatBriefDashboard = lazy(() => import("@/pages/ThreatBriefDashboard"));
 const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard"));
 const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
 const SecurityRegistryDashboard = lazy(() => import("@/pages/SecurityRegistryDashboard"));
+// P3 fold 2026-05-02 — Asset metadata sub-cluster (groups/tags/criticality) hub
+const AssetInventoryHub = lazy(() => import("@/pages/AssetInventoryHub"));
 
 // Strategic engine dashboards (2026-04-25)
 const AirGapBundleDashboard = lazy(() => import("@/pages/AirGapBundleDashboard"));
@@ -1205,7 +1207,8 @@ export default function App() {
             <Route path="/threat-briefs" element={<ThreatBriefDashboard />} />
             {/* S22 fold 2026-05-02: IncidentCommsDashboard → IncidentExtensionsHub#comms */}
             <Route path="/incident-comms" element={<Navigate to="/remediate/incidents/extensions?tab=comms" replace />} />
-            <Route path="/asset-tags" element={<AssetTagsDashboard />} />
+            {/* P3 fold 2026-05-02 — AssetTagsDashboard folded into AssetInventoryHub */}
+            <Route path="/asset-tags" element={<Navigate to="/discover/assets/inventory?tab=tags" replace />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
             {/* Security Graph — Wiz-killer interactive relationship canvas */}
@@ -1277,7 +1280,8 @@ export default function App() {
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             <Route path="/compliance-calendar" element={<ComplianceCalendarDashboard />} />
             <Route path="/cyber-resilience" element={<CyberResilienceDashboard />} />
-            <Route path="/asset-criticality" element={<AssetCriticalityDashboard />} />
+            {/* P3 fold 2026-05-02 — AssetCriticalityDashboard folded into AssetInventoryHub */}
+            <Route path="/asset-criticality" element={<Navigate to="/discover/assets/inventory?tab=criticality" replace />} />
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
             {/* REPLACED by FindingsExplorerView Pattern-2 2026-04-27 */}
 
@@ -1296,7 +1300,10 @@ export default function App() {
             <Route path="/security-questionnaires" element={<SecurityQuestionnaireDashboard />} />
             <Route path="/risk-scenarios" element={<RiskScenarioDashboard />} />
             <Route path="/feed-subscriptions" element={<FeedSubscriptionsDashboard />} />
-            <Route path="/asset-groups" element={<AssetGroupsDashboard />} />
+            {/* P3 fold 2026-05-02 — AssetGroupsDashboard folded into AssetInventoryHub */}
+            <Route path="/asset-groups" element={<Navigate to="/discover/assets/inventory?tab=groups" replace />} />
+            {/* Canonical hub route — Asset metadata workspace (groups/tags/criticality) */}
+            <Route path="/discover/assets/inventory" element={<AssetInventoryHub />} />
             <Route path="/security-findings" element={<Navigate to="/issues" replace />} />
             {/* S23 fold 2026-05-02: ControlTestingDashboard → PrivacyComplianceHub#controls */}
             <Route path="/control-testing" element={<Navigate to="/comply/privacy?tab=controls" replace />} />

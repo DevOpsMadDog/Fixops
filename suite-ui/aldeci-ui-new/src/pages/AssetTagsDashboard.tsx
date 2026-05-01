@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into AssetInventoryHub at /discover/assets/inventory?tab=tags (Phase 3 UX consolidation, 2026-05-02)
 /**
  * Asset Tags - Live API
  * API: GET /api/v1/asset-tags/tags
