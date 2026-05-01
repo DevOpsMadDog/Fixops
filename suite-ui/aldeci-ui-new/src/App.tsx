@@ -460,6 +460,7 @@ const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptim
 
 // Phase 3 UX consolidation hubs (2026-05-02)
 const ThreatActorsHub = lazy(() => import("@/pages/ThreatActorsHub"));
+const SecretsHub = lazy(() => import("@/pages/SecretsHub"));
 
 // Sales & Marketing
 const CompetitiveComparisonPage = lazy(() => import("@/pages/CompetitiveComparisonPage"));
@@ -701,7 +702,9 @@ export default function App() {
             {/* Space 2: Discover */}
             <Route path="/discover" element={<FindingExplorer />} />
             <Route path="/discover/code" element={<CodeScanning />} />
-            <Route path="/discover/secrets" element={<SecretsDetection />} />
+            {/* Phase 3 fold 2026-05-02 — Secrets Hub (S10 Code Intel — Secrets sub-cluster) */}
+            <Route path="/discover/secrets-hub" element={<SecretsHub />} />
+            <Route path="/discover/secrets" element={<Navigate to="/discover/secrets-hub?tab=detection" replace />} />
             <Route path="/discover/iac" element={<IaCScanning />} />
             <Route path="/discover/cloud" element={<CloudPosture />} />
             <Route path="/discover/containers" element={<ContainerSecurity />} />
@@ -881,7 +884,8 @@ export default function App() {
             <Route path="/cve-search" element={<Navigate to="/discover/vuln-intel?tab=cve-search" replace />} />
             <Route path="/ip-reputation" element={<Navigate to="/discover/vuln-intel?tab=ip-rep" replace />} />
             <Route path="/threat-geolocation" element={<Navigate to="/discover/vuln-intel?tab=geolocation" replace />} />
-            <Route path="/secrets-rotation" element={<SecretsRotation />} />
+            <Route path="/secrets-rotation" element={<Navigate to="/discover/secrets-hub?tab=rotation" replace />} />
+            <Route path="/secret-scanner" element={<Navigate to="/discover/secrets-hub?tab=scanner" replace />} />
             <Route path="/security-awareness" element={<SecurityAwareness />} />
             {/* Phase 3 fold 2026-05-02 — Supply Chain Hub (S4/S10 sub-cluster) */}
             <Route path="/discover/supply-chain" element={<SupplyChainHub />} />

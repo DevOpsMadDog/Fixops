@@ -1,3 +1,4 @@
+// FOLDED into SecretsHub hero (rotation tab) 2026-05-02 — preserve for git history
 /**
  * Secrets Rotation - Live API
  * Route: /secrets-rotation

@@ -1,3 +1,4 @@
+// FOLDED into SecretsHub hero (detection tab) 2026-05-02 — preserve for git history
 import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";

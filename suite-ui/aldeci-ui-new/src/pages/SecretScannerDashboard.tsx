@@ -1,5 +1,6 @@
 // REPLACED by FindingsExplorerView config 2026-04-27
 // Wave 4 Pattern-2 mechanical collapse (UX Phase 3)
+// FOLDED into SecretsHub hero (scanner tab) 2026-05-02 — preserve for git history (was orphan-imported)
 /**
  * Secret Scanner Dashboard - Live API
  * Route: /secret-scanner
