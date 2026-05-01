@@ -23,9 +23,11 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import sqlite3
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -625,23 +627,204 @@ class _StaticCatalogAdapter:
         return _is_major_bump(from_v, to_v)
 
 
-class NpmAdapter(_StaticCatalogAdapter):
+# --------------------------------------------------------------------------
+# Live registry adapters (npm, pypi, maven)
+# --------------------------------------------------------------------------
+
+
+class NpmLiveAdapter:
+    """Fetch versions from registry.npmjs.org."""
+
+    def get_versions(self, package_name: str) -> list:
+        try:
+            import requests
+
+            r = requests.get(
+                f"https://registry.npmjs.org/{package_name}",
+                timeout=10,
+                headers={"Accept": "application/vnd.npm.install-v1+json"},
+            )
+            return list(r.json().get("versions", {}).keys())
+        except Exception:
+            return []
+
+
+class PyPILiveAdapter:
+    """Fetch versions from pypi.org."""
+
+    def get_versions(self, package_name: str) -> list:
+        try:
+            import requests
+
+            r = requests.get(
+                f"https://pypi.org/pypi/{package_name}/json", timeout=10
+            )
+            return list(r.json().get("releases", {}).keys())
+        except Exception:
+            return []
+
+
+class MavenLiveAdapter:
+    """Fetch versions from search.maven.org."""
+
+    def get_versions(self, package_name: str) -> list:
+        try:
+            import requests
+
+            group, artifact = (
+                package_name.split(":", 1)
+                if ":" in package_name
+                else (package_name, package_name)
+            )
+            r = requests.get(
+                "https://search.maven.org/solrsearch/select",
+                params={
+                    "q": f"g:{group} AND a:{artifact}",
+                    "rows": 50,
+                    "wt": "json",
+                },
+                timeout=10,
+            )
+            docs = r.json().get("response", {}).get("docs", [])
+            return [d.get("latestVersion", "") for d in docs if d.get("latestVersion")]
+        except Exception:
+            return []
+
+
+class OfflineRegistryAdapter:
+    """Read versions from local JSON imported via USB.
+
+    Set ALDECI_OFFLINE_REGISTRY_PATH=/path/to/registry.json.
+    Format: {"<ecosystem>": {"<package>": ["<version>", ...]}}
+    """
+
+    def __init__(self):
+        self._cache = None
+        path = os.environ.get("ALDECI_OFFLINE_REGISTRY_PATH")
+        if path and os.path.exists(path):
+            try:
+                with open(path) as f:
+                    self._cache = json.load(f)
+            except Exception:
+                self._cache = None
+
+    def get_versions(self, ecosystem: str, package_name: str) -> list:
+        if not self._cache:
+            return []
+        return self._cache.get(ecosystem, {}).get(package_name, [])
+
+
+# --------------------------------------------------------------------------
+# Per-ecosystem adapter: live → static → offline chain w/ 1h TTL cache
+# --------------------------------------------------------------------------
+
+
+_LIVE_CACHE_TTL_SECONDS = 3600
+_LIVE_CACHE: Dict[Tuple[str, str], Tuple[float, List[VersionRow]]] = {}
+_LIVE_CACHE_LOCK = threading.Lock()
+
+
+def _cache_get(key: Tuple[str, str]) -> Optional[List[VersionRow]]:
+    with _LIVE_CACHE_LOCK:
+        entry = _LIVE_CACHE.get(key)
+        if not entry:
+            return None
+        ts, rows = entry
+        if time.time() - ts > _LIVE_CACHE_TTL_SECONDS:
+            _LIVE_CACHE.pop(key, None)
+            return None
+        return list(rows)
+
+
+def _cache_put(key: Tuple[str, str], rows: List[VersionRow]) -> None:
+    with _LIVE_CACHE_LOCK:
+        _LIVE_CACHE[key] = (time.time(), list(rows))
+
+
+def _versions_to_rows(versions: List[str]) -> List[VersionRow]:
+    out: List[VersionRow] = []
+    for v in versions:
+        if not v or not isinstance(v, str):
+            continue
+        out.append((v, "", False))
+    return out
+
+
+class _ChainedCatalogAdapter:
+    """Dispatch chain: live → static catalog → offline registry.
+
+    Cached for 1h per (ecosystem, package_name) to avoid hammering registries.
+    Network failures NEVER raise — return [].
+    """
+
+    ecosystem: str = ""
+    _catalog: Dict[str, List[VersionRow]] = {}
+    _live: Optional[Any] = None  # NpmLiveAdapter / PyPILiveAdapter / MavenLiveAdapter
+
+    def __init__(self) -> None:
+        self._offline = OfflineRegistryAdapter()
+
+    def get_versions(self, package_name: str) -> List[str]:
+        rows = self.list_versions(package_name)
+        return [r[0] for r in rows]
+
+    def list_versions(self, package_name: str) -> List[VersionRow]:
+        key = (self.ecosystem, (package_name or "").strip())
+        cached = _cache_get(key)
+        if cached is not None:
+            return cached
+
+        result: List[VersionRow] = []
+
+        # 1. Try live
+        if self._live is not None:
+            try:
+                live_versions = self._live.get_versions(package_name) or []
+            except Exception:
+                live_versions = []
+            if live_versions:
+                result = _versions_to_rows(live_versions)
+
+        # 2. Fall back to static catalog
+        if not result:
+            static_rows = list(self._catalog.get((package_name or "").strip(), []))
+            if static_rows:
+                result = static_rows
+
+        # 3. Fall back to offline registry
+        if not result:
+            try:
+                offline_versions = self._offline.get_versions(
+                    self.ecosystem, package_name
+                ) or []
+            except Exception:
+                offline_versions = []
+            if offline_versions:
+                result = _versions_to_rows(offline_versions)
+
+        _cache_put(key, result)
+        return result
+
+    def is_major_bump(self, from_v: str, to_v: str) -> bool:
+        return _is_major_bump(from_v, to_v)
+
+
+class NpmAdapter(_ChainedCatalogAdapter):
     ecosystem = "npm"
     _catalog = _NPM_CATALOG
-    # TODO(live-registry): replace with `registry.npmjs.org/{pkg}` fetch.
+    _live = NpmLiveAdapter()
 
 
-class PypiAdapter(_StaticCatalogAdapter):
+class PypiAdapter(_ChainedCatalogAdapter):
     ecosystem = "pypi"
     _catalog = _PYPI_CATALOG
-    # TODO(live-registry): replace with `pypi.org/pypi/{pkg}/json` fetch.
+    _live = PyPILiveAdapter()
 
 
-class MavenAdapter(_StaticCatalogAdapter):
+class MavenAdapter(_ChainedCatalogAdapter):
     ecosystem = "maven"
     _catalog = _MAVEN_CATALOG
-    # TODO(live-registry): replace with Maven Central REST
-    # (`search.maven.org/solrsearch/select?q=g:...+AND+a:...`).
+    _live = MavenLiveAdapter()
 
 
 def _default_adapters() -> Dict[str, EcosystemAdapter]:
@@ -1235,6 +1418,10 @@ __all__ = [
     "NpmAdapter",
     "PypiAdapter",
     "MavenAdapter",
+    "NpmLiveAdapter",
+    "PyPILiveAdapter",
+    "MavenLiveAdapter",
+    "OfflineRegistryAdapter",
     "compare_versions",
     "parse_purl",
 ]
