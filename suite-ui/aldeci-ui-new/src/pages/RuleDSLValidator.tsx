@@ -1,3 +1,4 @@
+// FOLDED into RulesCatalogHub hero (validate tab) 2026-05-02 — preserve for git history
 /**
  * Rule DSL Validator — Live API
  * Multica: bf5c991a-45c5-433f-8112-6b5c2fe6b969

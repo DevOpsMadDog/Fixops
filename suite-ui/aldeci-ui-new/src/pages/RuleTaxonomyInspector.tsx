@@ -1,3 +1,4 @@
+// FOLDED into RulesCatalogHub hero (taxonomy tab) 2026-05-02 — preserve for git history
 /**
  * Rule Taxonomy Inspector — Live API
  * Multica: 9dcd0ae8-5f2d-4001-b68c-48e6d25fcd57

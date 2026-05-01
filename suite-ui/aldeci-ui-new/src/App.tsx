@@ -645,6 +645,8 @@ const RuleDSLAuthoringStudio = lazy(() => import("@/pages/RuleDSLAuthoringStudio
 const RuleDSLValidator = lazy(() => import("@/pages/RuleDSLValidator"));
 const UnifiedRulesCatalog = lazy(() => import("@/pages/UnifiedRulesCatalog"));
 const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector"));
+// Phase 3 §2.26 (Rules sub-cluster) — RulesCatalogHub at /comply/rules
+const RulesCatalogHub = lazy(() => import("@/pages/RulesCatalogHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -1458,10 +1460,12 @@ export default function App() {
             <Route path="/waivers/auto-rules" element={<AutoWaiverRules />} />
             <Route path="/policies/inheritance" element={<PolicyInheritanceView />} />
             <Route path="/policies/library" element={<PolicyLibraryBrowser />} />
-            <Route path="/rules/dsl/author" element={<RuleDSLAuthoringStudio />} />
-            <Route path="/rules/dsl/validate" element={<RuleDSLValidator />} />
-            <Route path="/rules/catalog" element={<UnifiedRulesCatalog />} />
-            <Route path="/rules/taxonomy" element={<RuleTaxonomyInspector />} />
+            {/* Phase 3 §2.26 — Rules / DSL sub-cluster folded into RulesCatalogHub at /comply/rules */}
+            <Route path="/comply/rules" element={<RulesCatalogHub />} />
+            <Route path="/rules/dsl/author" element={<Navigate to="/comply/rules?tab=author" replace />} />
+            <Route path="/rules/dsl/validate" element={<Navigate to="/comply/rules?tab=validate" replace />} />
+            <Route path="/rules/catalog" element={<Navigate to="/comply/rules?tab=catalog" replace />} />
+            <Route path="/rules/taxonomy" element={<Navigate to="/comply/rules?tab=taxonomy" replace />} />
             {/* /audit/explorer, /system/fips-status → consolidated into /compliance hero */}
             <Route path="/violations/lifecycle" element={<ViolationLifecycleTimeline />} />
 

@@ -1,3 +1,4 @@
+// FOLDED into RulesCatalogHub hero (author tab) 2026-05-02 — preserve for git history
 /**
  * Rule DSL Authoring Studio — Live API
  * Multica: 8813074c-7b02-478c-9a8b-ea093bd8bc79

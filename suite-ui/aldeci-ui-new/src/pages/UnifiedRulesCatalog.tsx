@@ -1,3 +1,4 @@
+// FOLDED into RulesCatalogHub hero (catalog tab) 2026-05-02 — preserve for git history
 /**
  * Unified Rules Catalog — Live API
  * Multica: 3f52e898-a36a-4fde-a788-e637b63014be
