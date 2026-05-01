@@ -1,3 +1,4 @@
+// FOLDED into BehaviorAnalyticsHub hero (insider tab) 2026-05-02 — preserve for git history
 /**
  * Insider Threat - Live API
  * API: GET /api/v1/insider-threat/alerts

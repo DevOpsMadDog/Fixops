@@ -1,3 +1,4 @@
+// FOLDED into BehaviorAnalyticsHub hero (uba tab) 2026-05-02 — preserve for git history
 /**
  * UBA Dashboard — User Behavior Analytics
  *

@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into BehaviorAnalyticsHub hero (behavioral tab) 2026-05-02 — preserve for git history
 /**
  * Behavioral Analytics - Live API
  * API: GET /api/v1/behavioral-analytics/anomalies

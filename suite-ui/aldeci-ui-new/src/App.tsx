@@ -652,6 +652,8 @@ const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector")
 const RulesCatalogHub = lazy(() => import("@/pages/RulesCatalogHub"));
 // Phase 3 §2.23 (Maturity sub-cluster) — MaturityHub at /comply/maturity
 const MaturityHub = lazy(() => import("@/pages/MaturityHub"));
+// Phase 3 §2.3 (Behavior sub-cluster) — BehaviorAnalyticsHub at /mission-control/behavior
+const BehaviorAnalyticsHub = lazy(() => import("@/pages/BehaviorAnalyticsHub"));
 // Phase 3 §2.23 (Privacy/Controls sub-cluster) — PrivacyComplianceHub at /comply/privacy
 const PrivacyComplianceHub = lazy(() => import("@/pages/PrivacyComplianceHub"));
 const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
@@ -856,7 +858,9 @@ export default function App() {
             {/* /assets standalone -> consolidated into /assets hero (AssetGraph) Inventory tab */}
             <Route path="/assets/inventory" element={<Navigate to="/assets?tab=inventory" replace />} />
             <Route path="/vuln-lifecycle" element={<VulnLifecyclePage />} />
-            <Route path="/insider-threats" element={<InsiderThreatMonitor />} />
+            {/* S3 Behavior hub — folded 2026-05-02 (FOLDED InsiderThreatMonitor) */}
+            <Route path="/mission-control/behavior" element={<BehaviorAnalyticsHub />} />
+            <Route path="/insider-threats" element={<Navigate to="/mission-control/behavior?tab=insider" replace />} />
             <Route path="/security-kpis" element={<SecurityKPIDashboard />} />
             <Route path="/posture-advisor" element={<PostureAdvisor />} />
             <Route path="/patch-prioritizer" element={<PatchPrioritizer />} />
@@ -912,7 +916,7 @@ export default function App() {
             <Route path="/breach-response" element={<BreachResponse />} />
             <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/watchlist" element={<WatchlistManager />} />
-            <Route path="/uba" element={<UBADashboard />} />
+            <Route path="/uba" element={<Navigate to="/mission-control/behavior?tab=uba" replace />} />
             <Route path="/cmdb" element={<CMDBDashboard />} />
             <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/phishing" element={<PhishingSimulation />} />
@@ -1085,7 +1089,7 @@ export default function App() {
             {/* S14 Threat Actors hub — folded 2026-05-02 (FOLDED ThreatAttributionDashboard) */}
             <Route path="/threat-attribution" element={<Navigate to="/attack/intel/actors?tab=attribution" replace />} />
             <Route path="/cloud-access-security" element={<CloudAccessSecurityDashboard />} />
-            <Route path="/behavioral-analytics" element={<BehavioralAnalyticsDashboard />} />
+            <Route path="/behavioral-analytics" element={<Navigate to="/mission-control/behavior?tab=behavioral" replace />} />
             <Route path="/vuln-workflow" element={<VulnWorkflowDashboard />} />
             <Route path="/data-pipeline" element={<DataPipelineDashboard />} />
 
