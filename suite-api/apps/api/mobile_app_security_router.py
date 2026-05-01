@@ -114,15 +114,20 @@ def list_apps(
     platform: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
+    """List mobile apps with optional filters.
+
+    Falls back to live ``MobSFConnector`` scan corpus
+    (``MOBSF_API_URL`` + ``MOBSF_API_KEY`` env vars) when the org has no
+    registered apps. Returns ``{apps, total, source, hint?, scans_pulled?}``.
+    """
     eng = _get_engine()
-    apps = eng.list_apps(org_id, platform=platform, risk_level=risk_level)
-    if not apps:
-        return {
-            "total": 0,
-            "apps": [],
-            "hint": "Mobile app security scanning requires a MobSF or App Store connector (not yet built). Register an app manually via POST /api/v1/mobile-app-security/apps.",
-        }
-    return {"total": len(apps), "apps": apps}
+    try:
+        return eng.list_apps_with_mobsf_fallback(
+            org_id, platform=platform, risk_level=risk_level,
+        )
+    except Exception as exc:
+        _logger.error("mobile_app_security.list_apps error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/apps/{app_id}", response_model=Dict[str, Any])

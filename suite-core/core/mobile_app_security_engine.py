@@ -207,6 +207,174 @@ class MobileAppSecurityEngine:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
+    # ------------------------------------------------------------------
+    # Connector fallback — MobSFConnector → derived apps
+    # ------------------------------------------------------------------
+
+    def list_apps_with_mobsf_fallback(
+        self,
+        org_id: str,
+        platform: Optional[str] = None,
+        risk_level: Optional[str] = None,
+        mobsf_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List mobile apps; when org has zero rows AND
+        ``MobSFConnector.is_configured()`` is True, project the live MobSF
+        scan corpus as derived rows.
+
+        Behaviour:
+            - Org-registered rows always take precedence (returns
+              ``source="org_registered"``).
+            - When org has none AND ``MOBSF_API_URL`` + ``MOBSF_API_KEY``
+              are set, ``import_findings(org_id)`` runs and each scan
+              becomes a derived app row tagged ``source="mobsf"``.
+            - When MobSF is not configured, returns
+              ``{"apps": [], "source": "needs_credentials", "hint": ...}``.
+            - When MobSF is configured but has no scans for this org, returns
+              ``source="needs_scan"``.
+            - When MobSF returns an HTTP/network error, returns
+              ``source="connector_error"`` with the error string surfaced.
+            - Filters apply against derived rows.
+
+        Args:
+            org_id:           Tenant identifier.
+            platform:         Optional filter (ios|android|...).
+            risk_level:       Optional filter (critical|high|medium|low).
+            mobsf_connector:  Override for testing — must expose
+                              ``is_configured()`` + ``import_findings(org_id)``.
+
+        Returns:
+            ``{apps, total, source, hint?, scans_pulled?}``.
+        """
+        rows = self.list_apps(org_id, platform=platform, risk_level=risk_level)
+        if rows:
+            return {
+                "apps": rows,
+                "total": len(rows),
+                "source": "org_registered",
+            }
+
+        # Lazy-import MobSF connector unless override provided.
+        if mobsf_connector is None:
+            try:
+                from connectors.mobsf_connector import get_mobsf_connector
+                mobsf_connector = get_mobsf_connector()
+            except ImportError as exc:
+                _logger.warning("MobSFConnector unavailable: %s", exc)
+                return {
+                    "apps": [],
+                    "total": 0,
+                    "source": "needs_credentials",
+                    "hint": (
+                        "Install requests and configure MOBSF_API_URL + "
+                        "MOBSF_API_KEY environment variables, then re-query. "
+                        "Or POST /api/v1/mobile-app-security/apps to register "
+                        "manually."
+                    ),
+                }
+
+        if not mobsf_connector.is_configured():
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Set MOBSF_API_URL (e.g. http://localhost:8000) and "
+                    "MOBSF_API_KEY (MobSF UI → API Docs) to enable mobile "
+                    "scan ingestion. Or POST /api/v1/mobile-app-security/"
+                    "apps to register manually."
+                ),
+            }
+
+        try:
+            payload = mobsf_connector.import_findings(org_id=org_id)
+        except (ValueError, RuntimeError, OSError) as exc:
+            _logger.warning("MobSF import_findings failed: %s", exc)
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(exc),
+                "hint": (
+                    "MobSF is configured but the import call failed. "
+                    "Verify the MobSF instance is reachable at MOBSF_API_URL "
+                    "and the API key is valid."
+                ),
+            }
+
+        status = (payload or {}).get("status")
+        if status == "needs_credentials":
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": "Set MOBSF_API_URL + MOBSF_API_KEY env vars.",
+            }
+        if status == "error":
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": payload.get("error"),
+                "hint": (
+                    "MobSF reported an error during ingestion — verify the "
+                    "instance is up and the API key has scan-list scope."
+                ),
+            }
+
+        raw_apps = payload.get("apps") or []
+        if not raw_apps:
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "needs_scan",
+                "hint": (
+                    "MobSF is configured but has no scans yet. Upload an "
+                    "APK/IPA to the MobSF instance or run a CI scan, then "
+                    "re-query."
+                ),
+            }
+
+        derived: List[Dict[str, Any]] = []
+        for raw in raw_apps:
+            derived_platform = (raw.get("platform") or "").lower()
+            derived_risk_level = (raw.get("risk_level") or "").lower()
+            if platform is not None and derived_platform != platform:
+                continue
+            if risk_level is not None and derived_risk_level != risk_level:
+                continue
+            now = self._now()
+            derived.append({
+                "id": f"mobsf:{raw.get('mobsf_hash') or raw.get('bundle_id', '')}",
+                "org_id": org_id,
+                "app_name": raw.get("app_name"),
+                "bundle_id": raw.get("bundle_id"),
+                "platform": derived_platform or "android",
+                "version": raw.get("version", "1.0.0"),
+                "category": raw.get("category", "enterprise"),
+                "risk_score": float(raw.get("risk_score") or 50.0),
+                "risk_level": derived_risk_level or "medium",
+                "last_scanned": raw.get("last_scanned"),
+                "status": raw.get("status", "active"),
+                "created_at": now,
+                # provenance
+                "source": "mobsf",
+                "mobsf_hash": raw.get("mobsf_hash", ""),
+            })
+
+        return {
+            "apps": derived,
+            "total": len(derived),
+            "source": "mobsf",
+            "scans_pulled": payload.get("scans_pulled", 0),
+            "scorecards_pulled": payload.get("scorecards_pulled", 0),
+            "hint": (
+                "Apps projected from MobSF scan corpus. Org-registered rows "
+                "take precedence — POST /api/v1/mobile-app-security/apps to "
+                "override."
+            ),
+        }
+
     def get_app(self, org_id: str, app_id: str) -> Optional[Dict[str, Any]]:
         """Fetch a single app scoped to org_id. Returns None if not found."""
         with self._connect() as conn:
