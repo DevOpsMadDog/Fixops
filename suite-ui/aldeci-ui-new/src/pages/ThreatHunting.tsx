@@ -1,6 +1,7 @@
+// FOLDED into HuntingHub hero (sessions tab) 2026-05-02 — preserve for git history
 /**
  * Threat Hunting - Live API
- * Route: /threat-hunting
+ * Route: /threat-hunting (now redirects to /mission-control/hunt?tab=sessions)
  * API: GET /api/v1/hunting/sessions
  */
 import { useState, useEffect } from "react";

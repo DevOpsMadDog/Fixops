@@ -104,6 +104,8 @@ const IntegrationHealth = lazy(() => import("@/pages/integrations/IntegrationHea
 
 // Threat Hunting
 const ThreatHunting = lazy(() => import("@/pages/hunting/ThreatHunting"));
+// Phase 3 fold (2026-05-02): Hunting unified hub at /mission-control/hunt
+const HuntingHub = lazy(() => import("@/pages/HuntingHub"));
 
 // Vendor Management
 const VendorManagement = lazy(() => import("@/pages/vendors/VendorManagement"));
@@ -812,9 +814,10 @@ export default function App() {
             {/* Integration Health */}
             <Route path="/integrations" element={<IntegrationHealth />} />
 
-            {/* Threat Hunting */}
+            {/* Threat Hunting — Phase 3 fold (2026-05-02): unified HuntingHub */}
+            <Route path="/mission-control/hunt" element={<HuntingHub />} />
             <Route path="/hunting" element={<ThreatHunting />} />
-            <Route path="/threat-hunting" element={<ThreatHuntingPage />} />
+            <Route path="/threat-hunting" element={<Navigate to="/mission-control/hunt?tab=sessions" replace />} />
 
             {/* Developer Portal */}
             <Route path="/developer" element={<DeveloperPortal />} />
@@ -1153,7 +1156,7 @@ export default function App() {
 
             {/* Wave 41 domain dashboards (pages for Wave 40 engines) */}
             <Route path="/arch-review" element={<ArchReviewDashboard />} />
-            <Route path="/hunting-playbooks" element={<HuntingPlaybookDashboard />} />
+            <Route path="/hunting-playbooks" element={<Navigate to="/mission-control/hunt?tab=playbooks" replace />} />
             {/* S23 fold 2026-05-02: ProgramMaturityDashboard → MaturityHub#program */}
             <Route path="/program-maturity" element={<Navigate to="/comply/maturity?tab=program" replace />} />
             {/* Phase 3 §2.22 — Incident Extensions sub-cluster folded into IncidentExtensionsHub */}
@@ -1179,7 +1182,7 @@ export default function App() {
             <Route path="/posture-reports" element={<Navigate to="/compliance?tab=posture-reports" replace />} />
             <Route path="/network-anomaly" element={<NetworkAnomalyDashboard />} />
             <Route path="/privileged-identity" element={<Navigate to="/admin?tab=privileged-access" replace />} />
-            <Route path="/hunting-automation" element={<HuntingAutomationDashboard />} />
+            <Route path="/hunting-automation" element={<Navigate to="/mission-control/hunt?tab=automation" replace />} />
             {/* P3 fold 2026-04-27 — ServiceCatalogDashboard folded into /assets#catalog */}
             <Route path="/service-catalog" element={<Navigate to="/assets?tab=catalog" replace />} />
 

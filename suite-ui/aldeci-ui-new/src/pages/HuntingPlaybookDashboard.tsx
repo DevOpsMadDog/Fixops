@@ -1,3 +1,4 @@
+// FOLDED into HuntingHub hero (playbooks tab) 2026-05-02 — preserve for git history
 import { useState, useEffect } from "react";
 const _API_BASE = "/api/v1/hunting-playbooks";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });

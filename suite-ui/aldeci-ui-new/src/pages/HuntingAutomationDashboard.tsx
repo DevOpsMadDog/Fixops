@@ -1,8 +1,9 @@
+// FOLDED into HuntingHub hero (automation tab) 2026-05-02 — preserve for git history
 /**
  * Hunting Automation Dashboard
  *
  * Threat hunting hypotheses, automated queries, and execution history.
- * Route: /hunting-automation
+ * Route: /hunting-automation (now redirects to /mission-control/hunt?tab=automation)
  */
 
 import { useState, useEffect } from "react";
