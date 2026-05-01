@@ -1,4 +1,18 @@
 """
+⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
+
+This engine generates randomized/hash-derived scores for development/testing.
+DO NOT use the output in customer-facing screens or pitches.
+
+Real implementation tracking:
+- Org-wide security scoring: requires aggregation of real scanner findings via
+  /api/v1/connectors/{sast,dast,secrets,container,cspm}/configure
+- Category scores (_simulate_score lines 188-220) are seeded from org_id+category
+  hash — not from real platform data.
+
+Until real data pipelines are wired, these endpoints return a structured
+warning header so callers can detect simulation mode.
+
 Security Scorecard for ALDECI — SecurityScorecard-style self-hosted scoring.
 
 Provides organization-wide security grades computed from all platform data:
@@ -27,6 +41,11 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "⚠️  %s loaded in SIMULATION mode — output is randomized/hash-derived; do not present in demos. "
+    "Configure real connectors via /api/v1/connectors/",
+    __name__,
+)
 
 
 # ---------------------------------------------------------------------------

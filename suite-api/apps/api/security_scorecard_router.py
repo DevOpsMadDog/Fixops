@@ -28,6 +28,13 @@ from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
+_SIMULATION_WARNING = {
+    "is_simulated": True,
+    "engine": "security_scorecard",
+    "real_integration_required": "/api/v1/connectors/{sast,dast,secrets,container,cspm}/configure",
+    "do_not_use_in_demo": True,
+}
+
 # ---------------------------------------------------------------------------
 # Router — authenticated endpoints
 # ---------------------------------------------------------------------------
@@ -101,7 +108,7 @@ async def generate_scorecard(
 ) -> Dict[str, Any]:
     """Compute and store a new security scorecard for the organisation."""
     sc = _get_scorecard().generate_scorecard(org_id, validity_days=req.validity_days)
-    return sc.model_dump()
+    return {"data": sc.model_dump(), "_simulation_warning": _SIMULATION_WARNING}
 
 
 @router.get("/{org_id}", summary="Latest scorecard")
@@ -113,7 +120,7 @@ async def get_scorecard(org_id: str) -> Dict[str, Any]:
             status_code=404,
             detail=f"No scorecard found for org '{org_id}'. Call POST /{org_id}/generate first.",
         )
-    return sc.model_dump()
+    return {"data": sc.model_dump(), "_simulation_warning": _SIMULATION_WARNING}
 
 
 @router.get("/{org_id}/history", summary="Score history")
