@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowUpFromLine, RefreshCw, ShieldAlert, Ban, AlertTriangle, CheckCircle,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ────────────────────────────────────────────────
@@ -37,28 +39,6 @@ async function apiFetch(path: string) {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_incidents: 143,
-  confirmed_incidents: 38,
-  blocked_incidents: 89,
-  critical_incidents: 12,
-};
-
-const MOCK_INCIDENTS = [
-  { incident_type: "cloud_upload",     severity: "critical", data_classification: "PII",          detection_method: "DLP",        status: "confirmed"  },
-  { incident_type: "email_attachment", severity: "high",     data_classification: "Confidential", detection_method: "CASB",       status: "blocked"    },
-  { incident_type: "usb_transfer",     severity: "high",     data_classification: "IP",            detection_method: "Endpoint",   status: "confirmed"  },
-  { incident_type: "http_exfil",       severity: "critical", data_classification: "PHI",           detection_method: "NGFW",       status: "blocked"    },
-  { incident_type: "dns_tunnel",       severity: "critical", data_classification: "Internal",      detection_method: "NDR",        status: "confirmed"  },
-  { incident_type: "print_to_file",    severity: "medium",   data_classification: "Confidential", detection_method: "DLP",        status: "under_review" },
-  { incident_type: "cloud_upload",     severity: "high",     data_classification: "Financial",     detection_method: "CASB",       status: "blocked"    },
-  { incident_type: "api_exfil",        severity: "critical", data_classification: "PCI",           detection_method: "API Gateway", status: "confirmed" },
-  { incident_type: "email_attachment", severity: "low",      data_classification: "Internal",      detection_method: "DLP",        status: "false_positive" },
-  { incident_type: "http_exfil",       severity: "high",     data_classification: "PII",           detection_method: "SIEM",       status: "blocked"    },
-];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -155,8 +135,38 @@ export default function DataExfiltrationDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats     = liveData.stats     ?? MOCK_STATS;
-  const incidents = liveData.incidents ?? MOCK_INCIDENTS;
+  const stats     = liveData.stats     ?? null;
+  const incidents = liveData.incidents ?? [];
+  const hasAnyData = Boolean(stats) || incidents.length > 0;
+
+  if (!hasAnyData) return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-6"
+    >
+      <PageHeader
+        title="Data Exfiltration"
+        description="Data loss prevention — exfiltration incident detection, classification, and response"
+        actions={
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
+          </Button>
+        }
+      />
+      <EmptyState
+        icon={ArrowUpFromLine}
+        title="No exfiltration incidents yet"
+        description="Connect a DLP, CASB, or NDR source to populate this view."
+        action={
+          <Link to="/onboarding" className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500">
+            Start onboarding
+          </Link>
+        }
+      />
+    </motion.div>
+  );
 
   return (
     <motion.div
@@ -178,10 +188,10 @@ export default function DataExfiltrationDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Incidents"    value={stats.total_incidents}    icon={ArrowUpFromLine} trend="flat" />
-        <KpiCard title="Confirmed"          value={stats.confirmed_incidents} icon={ShieldAlert}    trend="down" className="border-red-500/20" />
-        <KpiCard title="Blocked"            value={stats.blocked_incidents}  icon={Ban}             trend="up"   className="border-green-500/20" />
-        <KpiCard title="Critical"           value={stats.critical_incidents} icon={AlertTriangle}   trend="down" className="border-red-500/20" />
+        <KpiCard title="Total Incidents"    value={stats?.total_incidents ?? "—"}     icon={ArrowUpFromLine} trend="flat" />
+        <KpiCard title="Confirmed"          value={stats?.confirmed_incidents ?? "—"} icon={ShieldAlert}     trend="down" className="border-red-500/20" />
+        <KpiCard title="Blocked"            value={stats?.blocked_incidents ?? "—"}   icon={Ban}             trend="up"   className="border-green-500/20" />
+        <KpiCard title="Critical"           value={stats?.critical_incidents ?? "—"}  icon={AlertTriangle}   trend="down" className="border-red-500/20" />
       </div>
 
       {/* Incidents Table */}
@@ -211,15 +221,27 @@ export default function DataExfiltrationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {incidents.map((inc: any, i: number) => (
-                  <TableRow key={i} className="hover:bg-muted/30">
-                    <TableCell className="py-2"><IncidentTypeBadge type={inc.incident_type ?? "unknown"} /></TableCell>
-                    <TableCell className="py-2"><SeverityBadge severity={inc.severity ?? "medium"} /></TableCell>
-                    <TableCell className="py-2"><DataClassBadge cls={inc.data_classification ?? "Internal"} /></TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{inc.detection_method}</TableCell>
-                    <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
+                {incidents.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={ArrowUpFromLine}
+                        title="No exfiltration incidents"
+                        description="Incidents from DLP/CASB/NDR detectors will appear here."
+                      />
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  incidents.map((inc: any, i: number) => (
+                    <TableRow key={i} className="hover:bg-muted/30">
+                      <TableCell className="py-2"><IncidentTypeBadge type={inc.incident_type ?? "unknown"} /></TableCell>
+                      <TableCell className="py-2"><SeverityBadge severity={inc.severity ?? "medium"} /></TableCell>
+                      <TableCell className="py-2"><DataClassBadge cls={inc.data_classification ?? "Internal"} /></TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">{inc.detection_method}</TableCell>
+                      <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

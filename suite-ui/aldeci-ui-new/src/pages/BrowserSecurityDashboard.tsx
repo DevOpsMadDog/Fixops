@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Globe, RefreshCw, ShieldCheck, AlertTriangle, Puzzle, Ban,
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ────────────────────────────────────────────────
@@ -38,36 +40,6 @@ async function apiFetch(path: string) {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_policies: 12,
-  active_policies: 9,
-  total_events: 4821,
-  blocked_events: 347,
-};
-
-const MOCK_EVENTS = [
-  { event_type: "data_upload",     severity: "high",     user_id: "usr-014", device_id: "dev-003", blocked: true  },
-  { event_type: "malicious_site",  severity: "critical", user_id: "usr-007", device_id: "dev-009", blocked: true  },
-  { event_type: "file_download",   severity: "medium",   user_id: "usr-022", device_id: "dev-011", blocked: false },
-  { event_type: "credential_leak", severity: "high",     user_id: "usr-031", device_id: "dev-002", blocked: true  },
-  { event_type: "script_inject",   severity: "critical", user_id: "usr-005", device_id: "dev-007", blocked: true  },
-  { event_type: "extension_abuse", severity: "medium",   user_id: "usr-019", device_id: "dev-015", blocked: false },
-  { event_type: "clipboard_copy",  severity: "low",      user_id: "usr-008", device_id: "dev-004", blocked: false },
-  { event_type: "data_upload",     severity: "high",     user_id: "usr-027", device_id: "dev-018", blocked: true  },
-];
-
-const MOCK_EXTENSIONS = [
-  { name: "SuperVPN Pro",        browser_type: "chrome",  risk_level: "critical", status: "blocked",    publisher: "UnknownCorp"    },
-  { name: "Password Saver",      browser_type: "edge",    risk_level: "high",     status: "flagged",    publisher: "ThirdPartyDev"  },
-  { name: "AdBlock Ultimate",    browser_type: "chrome",  risk_level: "low",      status: "approved",   publisher: "AdBlock Inc"    },
-  { name: "CryptoMiner Helper",  browser_type: "firefox", risk_level: "critical", status: "blocked",    publisher: "AnonGroup"      },
-  { name: "Grammarly",           browser_type: "chrome",  risk_level: "low",      status: "approved",   publisher: "Grammarly Inc"  },
-  { name: "SessionReplay Pro",   browser_type: "edge",    risk_level: "high",     status: "flagged",    publisher: "DataCaptureCo"  },
-  { name: "Dark Reader",         browser_type: "firefox", risk_level: "low",      status: "approved",   publisher: "Dark Reader"    },
-];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -179,9 +151,10 @@ export default function BrowserSecurityDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats      = liveData.stats      ?? MOCK_STATS;
-  const events     = liveData.events     ?? MOCK_EVENTS;
-  const extensions = liveData.extensions ?? MOCK_EXTENSIONS;
+  const stats      = liveData.stats      ?? null;
+  const events     = liveData.events     ?? [];
+  const extensions = liveData.extensions ?? [];
+  const hasAnyData = Boolean(stats) || events.length > 0 || extensions.length > 0;
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -189,6 +162,35 @@ export default function BrowserSecurityDashboard() {
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
       ))}
     </div>
+  );
+
+  if (!hasAnyData) return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-6"
+    >
+      <PageHeader
+        title="Browser Security"
+        description="Browser policy enforcement, event monitoring, and extension risk management"
+        actions={
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
+          </Button>
+        }
+      />
+      <EmptyState
+        icon={Globe}
+        title="No browser security data yet"
+        description="Connect a browser endpoint or DLP source to populate this view."
+        action={
+          <Link to="/onboarding" className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500">
+            Start onboarding
+          </Link>
+        }
+      />
+    </motion.div>
   );
 
   return (
@@ -211,10 +213,10 @@ export default function BrowserSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Policies"   value={stats.total_policies}         icon={Globe}       trend="flat" />
-        <KpiCard title="Active Policies"  value={stats.active_policies}  icon={ShieldCheck} trend="up"   className="border-green-500/20" />
-        <KpiCard title="Total Events"     value={stats.total_events}     icon={AlertTriangle} trend="flat" />
-        <KpiCard title="Blocked Events"   value={stats.blocked_events}   icon={Ban}         trend="down" className="border-red-500/20" />
+        <KpiCard title="Total Policies"   value={stats?.total_policies ?? "—"}     icon={Globe}         trend="flat" />
+        <KpiCard title="Active Policies"  value={stats?.active_policies ?? "—"}    icon={ShieldCheck}   trend="up"   className="border-green-500/20" />
+        <KpiCard title="Total Events"     value={stats?.total_events ?? "—"}       icon={AlertTriangle} trend="flat" />
+        <KpiCard title="Blocked Events"   value={stats?.blocked_events ?? "—"}     icon={Ban}           trend="down" className="border-red-500/20" />
       </div>
 
       {/* Browser Events Table */}
@@ -245,10 +247,15 @@ export default function BrowserSecurityDashboard() {
               </TableHeader>
               <TableBody>
                 {events.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={Globe}
+                        title="No browser events yet"
+                        description="Events from the browser policy enforcement engine will appear here."
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   events.map((ev: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
@@ -298,10 +305,15 @@ export default function BrowserSecurityDashboard() {
               </TableHeader>
               <TableBody>
                 {extensions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={Puzzle}
+                        title="No extensions tracked yet"
+                        description="Browser extensions discovered by the agent will be listed here."
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   extensions.map((ext: any, i: number) => (
                   <TableRow key={ext.name ?? i} className="hover:bg-muted/30">

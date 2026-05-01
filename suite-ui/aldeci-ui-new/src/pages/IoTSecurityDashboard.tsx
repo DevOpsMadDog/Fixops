@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Wifi, RefreshCw, AlertTriangle, ShieldOff, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ────────────────────────────────────────────────
@@ -36,32 +38,6 @@ async function apiFetch(path: string) {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_devices: 512,
-  online_devices: 489,
-  quarantined_devices: 7,
-  open_anomalies: 23,
-};
-
-const MOCK_DEVICES = [
-  { device_name: "temp-sensor-01",  device_category: "Sensor",       protocol: "MQTT",    ip_address: "10.1.2.10",  risk_score: 12,  status: "online"      },
-  { device_name: "smart-lock-02",   device_category: "Access",       protocol: "Z-Wave",  ip_address: "10.1.2.15",  risk_score: 45,  status: "online"      },
-  { device_name: "hvac-ctrl-03",    device_category: "HVAC",         protocol: "BACnet",  ip_address: "10.1.3.20",  risk_score: 67,  status: "quarantined" },
-  { device_name: "cam-parking-04",  device_category: "Camera",       protocol: "RTSP",    ip_address: "10.1.4.30",  risk_score: 78,  status: "online"      },
-  { device_name: "badge-reader-05", device_category: "Access",       protocol: "Wiegand", ip_address: "10.1.5.11",  risk_score: 20,  status: "online"      },
-  { device_name: "energy-meter-06", device_category: "Utility",      protocol: "Modbus",  ip_address: "10.1.6.55",  risk_score: 33,  status: "offline"     },
-];
-
-const MOCK_ANOMALIES = [
-  { anomaly_type: "Unusual outbound traffic", severity: "high",     device_id: "cam-parking-04",  status: "open",     detected_at: "2026-04-16T08:22:11Z" },
-  { anomaly_type: "Unauthorized protocol",    severity: "critical", device_id: "hvac-ctrl-03",    status: "open",     detected_at: "2026-04-16T07:55:03Z" },
-  { anomaly_type: "Port scan detected",       severity: "medium",   device_id: "temp-sensor-01",  status: "resolved", detected_at: "2026-04-15T22:10:44Z" },
-  { anomaly_type: "Firmware downgrade",       severity: "high",     device_id: "smart-lock-02",   status: "open",     detected_at: "2026-04-15T18:30:22Z" },
-  { anomaly_type: "Repeated auth failures",   severity: "medium",   device_id: "badge-reader-05", status: "resolved", detected_at: "2026-04-15T14:05:09Z" },
-];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -144,9 +120,10 @@ export default function IoTSecurityDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats     = liveData.stats     ?? MOCK_STATS;
-  const devices   = liveData.devices   ?? MOCK_DEVICES;
-  const anomalies = liveData.anomalies ?? MOCK_ANOMALIES;
+  const stats     = liveData.stats     ?? null;
+  const devices   = liveData.devices   ?? [];
+  const anomalies = liveData.anomalies ?? [];
+  const hasAnyData = Boolean(stats) || devices.length > 0 || anomalies.length > 0;
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -154,6 +131,35 @@ export default function IoTSecurityDashboard() {
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
       ))}
     </div>
+  );
+
+  if (!hasAnyData) return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-6"
+    >
+      <PageHeader
+        title="IoT Security"
+        description="IoT device fleet monitoring and behavioral anomaly detection"
+        actions={
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
+          </Button>
+        }
+      />
+      <EmptyState
+        icon={Wifi}
+        title="No IoT devices discovered"
+        description="Connect an IoT collector or NDR sensor to populate this view."
+        action={
+          <Link to="/onboarding" className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500">
+            Start onboarding
+          </Link>
+        }
+      />
+    </motion.div>
   );
 
   return (
@@ -176,10 +182,10 @@ export default function IoTSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Devices"       value={stats.total_devices}         icon={Wifi}         trend="flat" />
-        <KpiCard title="Online Devices"      value={stats.online_devices}      icon={Activity}     trend="up"   className="border-green-500/20" />
-        <KpiCard title="Quarantined"         value={stats.quarantined_devices} icon={ShieldOff}    trend="down" className="border-red-500/20" />
-        <KpiCard title="Open Anomalies"      value={stats.open_anomalies}      icon={AlertTriangle} trend="down" className="border-amber-500/20" />
+        <KpiCard title="Total Devices"       value={stats?.total_devices ?? "—"}        icon={Wifi}          trend="flat" />
+        <KpiCard title="Online Devices"      value={stats?.online_devices ?? "—"}       icon={Activity}      trend="up"   className="border-green-500/20" />
+        <KpiCard title="Quarantined"         value={stats?.quarantined_devices ?? "—"}  icon={ShieldOff}     trend="down" className="border-red-500/20" />
+        <KpiCard title="Open Anomalies"      value={stats?.open_anomalies ?? "—"}       icon={AlertTriangle} trend="down" className="border-amber-500/20" />
       </div>
 
       {/* Devices Table */}
@@ -211,10 +217,15 @@ export default function IoTSecurityDashboard() {
               </TableHeader>
               <TableBody>
                 {devices.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={6} className="p-0">
+                      <EmptyState
+                        icon={Wifi}
+                        title="No IoT devices yet"
+                        description="Devices discovered via the IoT collector will appear here."
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   devices.map((d: any, i: number) => (
                   <TableRow key={d.device_name ?? i} className="hover:bg-muted/30">
@@ -265,10 +276,15 @@ export default function IoTSecurityDashboard() {
               </TableHeader>
               <TableBody>
                 {anomalies.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={AlertTriangle}
+                        title="No anomalies detected"
+                        description="Behavioral anomalies from the IoT detector will be listed here."
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   anomalies.map((a: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">

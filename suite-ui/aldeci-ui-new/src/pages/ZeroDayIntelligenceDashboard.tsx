@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   AlertTriangle, RefreshCw, ShieldOff, Zap, Bug, Users,
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ────────────────────────────────────────────────
@@ -38,34 +40,6 @@ async function apiFetch(path: string) {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_vulns: 38,
-  unpatched_count: 14,
-  actively_exploited: 7,
-  critical_count: 11,
-};
-
-const MOCK_VULNS = [
-  { cve_id: "CVE-2026-0001", disclosure_type: "zero-day",  exploitation_status: "active",   patch_status: "unpatched", cvss_score: 9.8 },
-  { cve_id: "CVE-2026-0047", disclosure_type: "n-day",     exploitation_status: "active",   patch_status: "partial",   cvss_score: 8.6 },
-  { cve_id: "CVE-2025-4412", disclosure_type: "zero-day",  exploitation_status: "poc",      patch_status: "unpatched", cvss_score: 9.1 },
-  { cve_id: "CVE-2025-3318", disclosure_type: "n-day",     exploitation_status: "none",     patch_status: "patched",   cvss_score: 6.5 },
-  { cve_id: "CVE-2026-0102", disclosure_type: "zero-day",  exploitation_status: "active",   patch_status: "unpatched", cvss_score: 9.4 },
-  { cve_id: "CVE-2025-9981", disclosure_type: "n-day",     exploitation_status: "poc",      patch_status: "unpatched", cvss_score: 7.8 },
-  { cve_id: "CVE-2026-0205", disclosure_type: "zero-day",  exploitation_status: "none",     patch_status: "partial",   cvss_score: 5.9 },
-  { cve_id: "CVE-2025-7743", disclosure_type: "n-day",     exploitation_status: "active",   patch_status: "unpatched", cvss_score: 8.1 },
-];
-
-const MOCK_ACTORS = [
-  { actor_name: "APT-41",      actor_type: "nation-state", confidence_score: 92, vulnerability_id: "CVE-2026-0001" },
-  { actor_name: "Lazarus",     actor_type: "nation-state", confidence_score: 87, vulnerability_id: "CVE-2026-0102" },
-  { actor_name: "RansomHive",  actor_type: "criminal",     confidence_score: 74, vulnerability_id: "CVE-2026-0047" },
-  { actor_name: "SilentOrbit", actor_type: "espionage",    confidence_score: 65, vulnerability_id: "CVE-2025-4412" },
-  { actor_name: "DarkNexus",   actor_type: "criminal",     confidence_score: 58, vulnerability_id: "CVE-2025-7743" },
-];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -164,9 +138,10 @@ export default function ZeroDayIntelligenceDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats  = liveData.stats  ?? MOCK_STATS;
-  const vulns  = liveData.vulns  ?? MOCK_VULNS;
-  const actors = liveData.actors ?? MOCK_ACTORS;
+  const stats  = liveData.stats  ?? null;
+  const vulns  = liveData.vulns  ?? [];
+  const actors = liveData.actors ?? [];
+  const hasAnyData = Boolean(stats) || vulns.length > 0 || actors.length > 0;
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -174,6 +149,35 @@ export default function ZeroDayIntelligenceDashboard() {
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
       ))}
     </div>
+  );
+
+  if (!hasAnyData) return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-6"
+    >
+      <PageHeader
+        title="Zero-Day Intelligence"
+        description="Zero-day and N-day vulnerability tracking, exploitation status, and threat actor attribution"
+        actions={
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
+          </Button>
+        }
+      />
+      <EmptyState
+        icon={Bug}
+        title="No zero-day intelligence yet"
+        description="Connect a CVE feed or threat-intel source to populate this view."
+        action={
+          <Link to="/onboarding" className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500">
+            Start onboarding
+          </Link>
+        }
+      />
+    </motion.div>
   );
 
   return (
@@ -196,10 +200,10 @@ export default function ZeroDayIntelligenceDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Vulns"         value={stats.total_vulns}         icon={Bug}         trend="flat" />
-        <KpiCard title="Unpatched"           value={stats.unpatched_count}    icon={ShieldOff}   trend="down" className="border-orange-500/20" />
-        <KpiCard title="Actively Exploited"  value={stats.actively_exploited} icon={Zap}         trend="down" className="border-red-500/20" />
-        <KpiCard title="Critical"            value={stats.critical_count}     icon={AlertTriangle} trend="down" className="border-red-500/20" />
+        <KpiCard title="Total Vulns"         value={stats?.total_vulns ?? "—"}         icon={Bug}           trend="flat" />
+        <KpiCard title="Unpatched"           value={stats?.unpatched_count ?? "—"}    icon={ShieldOff}     trend="down" className="border-orange-500/20" />
+        <KpiCard title="Actively Exploited"  value={stats?.actively_exploited ?? "—"} icon={Zap}           trend="down" className="border-red-500/20" />
+        <KpiCard title="Critical"            value={stats?.critical_count ?? "—"}     icon={AlertTriangle} trend="down" className="border-red-500/20" />
       </div>
 
       {/* Vulnerabilities Table */}
@@ -230,10 +234,15 @@ export default function ZeroDayIntelligenceDashboard() {
               </TableHeader>
               <TableBody>
                 {vulns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={Bug}
+                        title="No vulnerabilities tracked"
+                        description="Vulnerabilities ingested from CVE feeds will appear here."
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   vulns.map((v: any, i: number) => (
                   <TableRow key={v.cve_id ?? i} className="hover:bg-muted/30">
@@ -280,10 +289,15 @@ export default function ZeroDayIntelligenceDashboard() {
               </TableHeader>
               <TableBody>
                 {actors.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={4} className="p-0">
+                      <EmptyState
+                        icon={Users}
+                        title="No threat actors attributed"
+                        description="Threat actor attributions from intel sources will appear here."
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   actors.map((a: any, i: number) => (
                   <TableRow key={a.actor_name ?? i} className="hover:bg-muted/30">
