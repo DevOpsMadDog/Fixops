@@ -159,7 +159,9 @@ class MobSFConnector:
         self.api_url = (api_url or _env("MOBSF_API_URL")).rstrip("/")
         self.api_key = api_key or _env("MOBSF_API_KEY")
         try:
-            self.timeout_s = int(timeout_s or _env("MOBSF_TIMEOUT_S", str(_DEFAULT_TIMEOUT)))
+            self.timeout_s = int(
+                timeout_s or _env("MOBSF_TIMEOUT_S", str(_DEFAULT_TIMEOUT))
+            )
         except (TypeError, ValueError):
             self.timeout_s = _DEFAULT_TIMEOUT
 
@@ -421,7 +423,8 @@ class MobSFConnector:
                     findings.append(
                         self.normalize_finding(
                             org_id=org_id,
-                            app_id=bundle,  # engine resolves bundle→app_id at insert time
+                            # engine resolves bundle→app_id at insert time
+                            app_id=bundle,
                             finding=item,
                             section=section,
                         )

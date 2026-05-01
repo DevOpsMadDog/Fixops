@@ -328,7 +328,10 @@ def _is_d3fend_technique_node(node: Dict[str, Any]) -> bool:
     type_strs = [_extract_id(t) for t in types]
     # We accept any node typed as a Class (RDF) AND identified by a D3-XXX id.
     looks_like_class = any(
-        ("#Class" in t) or t.endswith("Class") or t.endswith("owl#Class") or t == "rdfs:Class"
+        ("#Class" in t)
+        or t.endswith("Class")
+        or t.endswith("owl#Class")
+        or t == "rdfs:Class"
         for t in type_strs
     )
     iri = _extract_id(_first(node, _ID_KEYS))
@@ -440,20 +443,29 @@ def parse_d3fend_jsonld(data: Any) -> List[Dict[str, Any]]:
             parsed[cid] = {
                 "control_id": cid,
                 "control_name": name,
-                "description": f"MITRE D3FEND top-level countermeasure category: {name}",
+                "description": (
+                    f"MITRE D3FEND top-level countermeasure category: {name}"
+                ),
                 "parent_id": None,
                 "attack_techniques": [],
                 "source_iri": f"https://d3fend.mitre.org/ontologies/d3fend.owl#{cid}",
             }
 
     # Second pass — resolve top_category via parent walk.
-    parent_index = {cid: row["parent_id"] for cid, row in parsed.items() if row.get("parent_id")}
+    parent_index = {
+        cid: row["parent_id"]
+        for cid, row in parsed.items()
+        if row.get("parent_id")
+    }
     out: List[Dict[str, Any]] = []
     for cid, row in parsed.items():
         row["top_category"] = _resolve_top_category(cid, parent_index)
         # Backfill a description if the export omitted one for top categories.
         if not row["description"] and cid in now_label:
-            row["description"] = f"MITRE D3FEND top-level countermeasure category: {now_label[cid]}"
+            row["description"] = (
+                "MITRE D3FEND top-level countermeasure category: "
+                f"{now_label[cid]}"
+            )
         out.append(row)
 
     out.sort(key=lambda r: (r.get("top_category") or "ZZ", r["control_id"]))
@@ -666,7 +678,9 @@ class D3fendImporter:
         last_error: Optional[str] = None
         for url in candidates:
             try:
-                with httpx.Client(timeout=self._timeout, follow_redirects=True) as client:
+                with httpx.Client(
+                    timeout=self._timeout, follow_redirects=True
+                ) as client:
                     response = client.get(url)
             except httpx.RequestError as exc:
                 last_error = f"{url}: {exc}"
@@ -719,7 +733,10 @@ def list_techniques_from_db(
     try:
         with sqlite3.connect(target) as conn:
             conn.row_factory = sqlite3.Row
-            cur = conn.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{_TABLE}'")
+            cur = conn.execute(
+                "SELECT name FROM sqlite_master "
+                f"WHERE type='table' AND name='{_TABLE}'"
+            )
             if cur.fetchone() is None:
                 return []
             clauses: List[str] = []
@@ -749,7 +766,11 @@ def list_techniques_from_db(
     for r in rows:
         d = dict(r)
         try:
-            d["attack_techniques"] = json.loads(d["attack_techniques"]) if d["attack_techniques"] else []
+            d["attack_techniques"] = (
+                json.loads(d["attack_techniques"])
+                if d["attack_techniques"]
+                else []
+            )
         except (TypeError, ValueError):
             d["attack_techniques"] = []
         out.append(d)
@@ -764,7 +785,12 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="Import MITRE D3FEND ontology")
     src = parser.add_mutually_exclusive_group()
     src.add_argument("--url", default=None, help="HTTP source URL for D3FEND JSON-LD")
-    src.add_argument("--file", dest="file_path", default=None, help="Local JSON-LD file path")
+    src.add_argument(
+        "--file",
+        dest="file_path",
+        default=None,
+        help="Local JSON-LD file path",
+    )
     parser.add_argument("--db", default=_DEFAULT_DB, help="SQLite DB path")
     parser.add_argument(
         "--force-update",

@@ -69,9 +69,10 @@ class FunctionReachabilityResult:
     """Reachability verdict for a single vulnerable function/symbol.
 
     NOTE: distinct from ``core.vuln_prioritizer.ReachabilityResult`` (Pydantic,
-    used by the prioritisation pipeline) and ``core.sandbox_verifier.ReachabilityResult``
-    (sandbox network probe).  This one represents *static* call-graph reachability
-    from an application entry point to a CVE-vulnerable symbol.
+    used by the prioritisation pipeline) and
+    ``core.sandbox_verifier.ReachabilityResult`` (sandbox network probe).
+    This one represents *static* call-graph reachability from an application
+    entry point to a CVE-vulnerable symbol.
 
     Fields:
         is_reachable        Conservative verdict — True if any entry point can
@@ -692,9 +693,10 @@ class FunctionReachabilityEngine:
             module_name = ".".join(module_parts) if module_parts else py_file.stem
 
             # Build an import-name resolution table for this module:
-            #   "call_external" -> "pkg.service.call_external"   (from pkg.service import call_external)
-            #   "requests"      -> "requests"                     (import requests)
-            #   "np"            -> "numpy"                        (import numpy as np)
+            #   "call_external" -> "pkg.service.call_external"
+            #       (from pkg.service import call_external)
+            #   "requests"      -> "requests"          (import requests)
+            #   "np"            -> "numpy"             (import numpy as np)
             import_aliases: Dict[str, str] = {}
             for top_node in ast.walk(tree):
                 if isinstance(top_node, ast.ImportFrom):
@@ -953,7 +955,8 @@ class FunctionReachabilityEngine:
                                 pn = parent.child_by_field_name("name")
                                 fn_name = (
                                     pn.text.decode(errors="ignore")
-                                    if pn is not None else f"<anon:{node.start_point[0]}>"
+                                    if pn is not None
+                                    else f"<anon:{node.start_point[0]}>"
                                 )
                             else:
                                 fn_name = f"<anon:{node.start_point[0]}>"
@@ -1618,7 +1621,9 @@ class FunctionReachabilityEngine:
             return None
         data = self._row(row)
         try:
-            data["reachable_callers"] = json.loads(data.get("reachable_callers") or "[]")
+            data["reachable_callers"] = json.loads(
+                data.get("reachable_callers") or "[]"
+            )
         except json.JSONDecodeError:
             data["reachable_callers"] = []
         return data
