@@ -1,3 +1,4 @@
+// FOLDED into CryptoTrustHub at /discover/crypto?tab=pki — kept as redirect-only stub (Phase 3, 2026-05-02)
 /**
  * PKI Management Dashboard
  *

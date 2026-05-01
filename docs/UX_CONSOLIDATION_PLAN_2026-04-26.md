@@ -295,6 +295,8 @@
 | `EmailSecurity` / `PhishingSimulation` | `/api/v1/{email,phishing}` | tab (Email/Phish) |
 | `RansomwareProtectionDashboard` | `/api/v1/ransomware` | tab |
 | `CryptoKeyDashboard` / `CertificateDashboard` / `CertificateManager` / `PKIManagementDashboard` / `QuantumCryptoDashboard` | `/api/v1/crypto/*` | tab (Crypto) |
+
+**Crypto sub-cluster: DONE-2026-05-02 SHA=__PENDING__** — 5 pages folded into `CryptoTrustHub.tsx` at `/discover/crypto` with tabs `keys|certs|manager|pki|quantum`. Source pages kept as redirect-only stubs preserving git history. All 6 URLs (canonical + 5 legacy redirects) verified hitting real `/api/v1/{crypto-keys,certificates,pki,quantum-crypto}/*` endpoints with zero mock signatures. Screenshot: `docs/ui-snapshots/ux-consolidation-crypto-trust-2026-05-02.png`.
 | `MFAManagementDashboard` / `PAMDashboard` / `PrivilegeEscalationDashboard` / `PrivilegedIdentityDashboard` / `PrivilegedSessionRecordingDashboard` / `AccessGovernanceDashboard` / `AccessAnomalyDashboard` / `AccessRequestManagementDashboard` / `UserAccessReviewDashboard` / `ServiceAccountAuditDashboard` / `PasswordPolicy` | `/api/v1/iam/*` | tab (IAM Deep) |
 | `CCMDashboard` (Continuous Cloud Monitoring) | `/api/v1/ccm` | tab |
 | `PostureBenchmarkingDashboard` / `ConfigBenchmarkDashboard` / `SecurityBenchmarksDashboard` | `/api/v1/benchmarks/*` | tab (Benchmarks) |

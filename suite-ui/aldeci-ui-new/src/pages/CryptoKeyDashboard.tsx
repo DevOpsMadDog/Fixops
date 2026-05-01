@@ -1,3 +1,4 @@
+// FOLDED into CryptoTrustHub at /discover/crypto?tab=keys — kept as redirect-only stub (Phase 3, 2026-05-02)
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Crypto Key Management - Live API

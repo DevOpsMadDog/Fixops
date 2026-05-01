@@ -1,0 +1,170 @@
+/**
+ * CryptoTrustHub — Cryptographic Posture & PKI unified hero
+ * (Phase 3 UX consolidation, 2026-05-02)
+ *
+ * Folds 5 standalone crypto / PKI / certificate pages into a single tabbed hero per
+ * docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.11 (S11 Cloud Posture — Crypto sub-cluster).
+ *
+ *   tab        | source page             | endpoint
+ *   -----------|-------------------------|----------------------------------------------
+ *   keys       | CryptoKeyDashboard      | /api/v1/crypto-keys/{keys,stats}
+ *   certs      | CertificateDashboard    | /api/v1/certificates/{certificates,stats}
+ *   manager    | CertificateManager      | /api/v1/certificates/{certificates,stats}
+ *   pki        | PKIManagementDashboard  | /api/v1/pki/{stats,certificates,cas}
+ *   quantum    | QuantumCryptoDashboard  | /api/v1/quantum-crypto/{assets,migrations,readiness}
+ *
+ * Route: /discover/crypto
+ * Persona target: Sec Architect (#11), GRC Analyst (#12), Compliance Mgr (#13)
+ * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.11
+ */
+
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Key, ShieldCheck, FileBadge, Network, Atom } from "lucide-react";
+
+import { PageHeader } from "@/components/shared/page-header";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+
+// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
+// loading/error/empty states, and form interactions continue to work.
+const CryptoKeyDashboard = lazy(() => import("@/pages/CryptoKeyDashboard"));
+const CertificateDashboard = lazy(() => import("@/pages/CertificateDashboard"));
+const CertificateManager = lazy(() => import("@/pages/CertificateManager"));
+const PKIManagementDashboard = lazy(() => import("@/pages/PKIManagementDashboard"));
+const QuantumCryptoDashboard = lazy(() => import("@/pages/QuantumCryptoDashboard"));
+
+type TabKey = "keys" | "certs" | "manager" | "pki" | "quantum";
+
+const TABS: Array<{
+  key: TabKey;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+}> = [
+  {
+    key: "keys",
+    label: "Crypto Keys",
+    icon: Key,
+    description:
+      "Cryptographic key inventory with rotation/expiry tracking (Folded from CryptoKeyDashboard).",
+  },
+  {
+    key: "certs",
+    label: "Certificates",
+    icon: ShieldCheck,
+    description:
+      "TLS / signing / client certificates with expiry and trust-store details (Folded from CertificateDashboard).",
+  },
+  {
+    key: "manager",
+    label: "Cert Manager",
+    icon: FileBadge,
+    description:
+      "Operational certificate lifecycle workflows — issue, renew, revoke (Folded from CertificateManager).",
+  },
+  {
+    key: "pki",
+    label: "PKI",
+    icon: Network,
+    description:
+      "Internal PKI hierarchy — CAs, intermediates, issued certs and chain-of-trust (Folded from PKIManagementDashboard).",
+  },
+  {
+    key: "quantum",
+    label: "Post-Quantum",
+    icon: Atom,
+    description:
+      "Quantum-readiness assessments, asset inventory and PQC migration tracking (Folded from QuantumCryptoDashboard).",
+  },
+];
+
+const VALID_TABS = new Set<TabKey>(TABS.map(t => t.key));
+
+function isTabKey(v: string | null): v is TabKey {
+  return !!v && VALID_TABS.has(v as TabKey);
+}
+
+export default function CryptoTrustHub() {
+  const [params, setParams] = useSearchParams();
+  const initial: TabKey = isTabKey(params.get("tab"))
+    ? (params.get("tab") as TabKey)
+    : "keys";
+  const [tab, setTab] = useState<TabKey>(initial);
+
+  // Keep ?tab= in sync with the active tab so deep-links and old-route
+  // redirects (e.g. /crypto-keys → /discover/crypto?tab=keys) work.
+  useEffect(() => {
+    if (params.get("tab") !== tab) {
+      const next = new URLSearchParams(params);
+      next.set("tab", tab);
+      setParams(next, { replace: true });
+    }
+  }, [tab, params, setParams]);
+
+  // React when query string changes externally.
+  useEffect(() => {
+    const incoming = params.get("tab");
+    if (isTabKey(incoming) && incoming !== tab) setTab(incoming);
+  }, [params, tab]);
+
+  const activeMeta = useMemo(() => TABS.find(t => t.key === tab) ?? TABS[0], [tab]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-6"
+    >
+      <PageHeader
+        title="Crypto & Trust"
+        description="Unified cryptographic posture — keys, certificates, PKI hierarchy, and post-quantum readiness."
+        badge={activeMeta.label}
+      />
+
+      <Tabs value={tab} onValueChange={v => setTab(v as TabKey)} className="w-full">
+        <TabsList className="h-auto flex-wrap gap-1 bg-muted/40 p-1">
+          {TABS.map(t => {
+            const Icon = t.icon;
+            return (
+              <TabsTrigger key={t.key} value={t.key} className="text-xs gap-1.5">
+                <Icon className="h-3.5 w-3.5" />
+                {t.label}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        <p className="text-xs text-muted-foreground mt-2 mb-1">{activeMeta.description}</p>
+
+        <TabsContent value="keys">
+          <Suspense fallback={<PageSkeleton />}>
+            <CryptoKeyDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="certs">
+          <Suspense fallback={<PageSkeleton />}>
+            <CertificateDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="manager">
+          <Suspense fallback={<PageSkeleton />}>
+            <CertificateManager />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="pki">
+          <Suspense fallback={<PageSkeleton />}>
+            <PKIManagementDashboard />
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="quantum">
+          <Suspense fallback={<PageSkeleton />}>
+            <QuantumCryptoDashboard />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
+    </motion.div>
+  );
+}

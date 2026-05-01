@@ -340,6 +340,9 @@ const AutonomousRemediationDashboard = lazy(() => import("@/pages/AutonomousReme
 const VulnerabilityCorrelationDashboard = lazy(() => import("@/pages/VulnerabilityCorrelationDashboard"));
 const PostureBenchmarkingDashboard = lazy(() => import("@/pages/PostureBenchmarkingDashboard"));
 const QuantumCryptoDashboard = lazy(() => import("@/pages/QuantumCryptoDashboard"));
+
+// Phase 3 UX consolidation: CryptoTrustHub folds CryptoKey/Certificate/CertManager/PKI/QuantumCrypto
+const CryptoTrustHub = lazy(() => import("@/pages/CryptoTrustHub"));
 const AIPoweredSOCDashboard = lazy(() => import("@/pages/AIPoweredSOCDashboard"));
 const DeceptionAnalyticsDashboard = lazy(() => import("@/pages/DeceptionAnalyticsDashboard"));
 
@@ -826,8 +829,10 @@ export default function App() {
             <Route path="/api-abuse" element={<Navigate to="/asset-graph?tab=api-abuse" replace />} />
 
             {/* Crypto Key, Certificate, Privilege Escalation, Security Automation */}
-            <Route path="/crypto-keys" element={<CryptoKeyDashboard />} />
-            <Route path="/certificates" element={<CertificateDashboard />} />
+            {/* S11 Crypto sub-cluster — folded 2026-05-02 into CryptoTrustHub */}
+            <Route path="/discover/crypto" element={<CryptoTrustHub />} />
+            <Route path="/crypto-keys" element={<Navigate to="/discover/crypto?tab=keys" replace />} />
+            <Route path="/certificates" element={<Navigate to="/discover/crypto?tab=certs" replace />} />
             {/* /privilege-escalation → FindingsExplorerView (Pattern-2 2026-04-27) */}
             <Route path="/security-automation" element={<SecurityAutomationDashboard />} />
 
@@ -873,7 +878,7 @@ export default function App() {
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED PentestManagement) */}
             <Route path="/pentest" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
             <Route path="/deception" element={<DeceptionEngine />} />
-            <Route path="/cert-manager" element={<CertificateManager />} />
+            <Route path="/cert-manager" element={<Navigate to="/discover/crypto?tab=manager" replace />} />
             <Route path="/firewall" element={<FirewallAnalyzer />} />
             <Route path="/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/playbooks" element={<PlaybookLibraryPage />} />
@@ -1021,7 +1026,7 @@ export default function App() {
             <Route path="/security-tabletop" element={<SecurityTabletopDashboard />} />
             <Route path="/browser-security" element={<BrowserSecurityDashboard />} />
             <Route path="/data-exfiltration" element={<DataExfiltrationDashboard />} />
-            <Route path="/pki-management" element={<PKIManagementDashboard />} />
+            <Route path="/pki-management" element={<Navigate to="/discover/crypto?tab=pki" replace />} />
             <Route path="/tool-inventory" element={<Navigate to="/assets?tab=tool-inventory" replace />} />
 
             {/* Wave 21 domain dashboards */}
@@ -1035,7 +1040,7 @@ export default function App() {
             <Route path="/autonomous-remediation" element={<Navigate to="/remediate?tab=autonomous-remediation" replace />} />
             <Route path="/vuln-correlation" element={<VulnerabilityCorrelationDashboard />} />
             <Route path="/posture-benchmarking" element={<PostureBenchmarkingDashboard />} />
-            <Route path="/quantum-crypto" element={<QuantumCryptoDashboard />} />
+            <Route path="/quantum-crypto" element={<Navigate to="/discover/crypto?tab=quantum" replace />} />
             <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/deception-analytics" element={<DeceptionAnalyticsDashboard />} />
 

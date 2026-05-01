@@ -1,3 +1,4 @@
+// FOLDED into CryptoTrustHub at /discover/crypto?tab=manager — kept as redirect-only stub (Phase 3, 2026-05-02)
 /**
  * Certificate Manager - Live API
  * API: GET /api/v1/certificates/certificates
