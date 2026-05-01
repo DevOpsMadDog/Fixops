@@ -217,6 +217,152 @@ class ThreatHuntingPlaybookEngine:
             rows = conn.execute(query, params).fetchall()
         return [self._row(r) for r in rows]
 
+    def list_playbooks_with_sigma_fallback(
+        self,
+        org_id: str,
+        hunt_type: Optional[str] = None,
+        threat_category: Optional[str] = None,
+        sigma_db_path: Optional[str] = None,
+        sigma_table: str = "sigmahq_rules",
+        max_rules: int = 500,
+    ) -> Dict[str, Any]:
+        """List org-authored playbooks; if none, project the imported SigmaHQ
+        detection-rule catalog as a derived playbook library.
+
+        SigmaHQ rules are stored by the importer as a PersistentDict in
+        data/state.db (table sigmahq_rules) with each rule as a JSON value.
+
+        Each Sigma rule projects to a hunting playbook with:
+          - playbook_name = rule.title
+          - hunt_type = "ttp" if attack_techniques present else "ioc"
+          - threat_category = rule.tags[0] (canonical SigmaHQ tag)
+          - mitre_technique = first MITRE ATT&CK technique reference
+          - hypothesis = rule.description
+          - data_sources = [rule.logsource.product/service/category] when set
+          - tools = ["sigma"]
+
+        Returns:
+            {"playbooks": [...], "total": N, "source": str, "sigma_total": N}
+        """
+        rows = self.list_playbooks(org_id, hunt_type=hunt_type, threat_category=threat_category)
+        if rows:
+            return {"playbooks": rows, "total": len(rows), "source": "org_authored"}
+
+        from pathlib import Path as _Path
+        if sigma_db_path is None:
+            sigma_db_path = str(_Path("data") / "state.db")
+        if not _Path(sigma_db_path).exists():
+            return {
+                "playbooks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/hunting-playbooks/import-sigma to populate the SigmaHQ rule catalog, "
+                        "or create playbooks manually via POST /api/v1/hunting-playbooks/playbooks.",
+            }
+
+        try:
+            with sqlite3.connect(sigma_db_path) as sconn:
+                sconn.row_factory = sqlite3.Row
+                table_exists = sconn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    (sigma_table,),
+                ).fetchone()
+                if not table_exists:
+                    return {
+                        "playbooks": [],
+                        "total": 0,
+                        "source": "empty",
+                        "hint": "POST /api/v1/hunting-playbooks/import-sigma to populate SigmaHQ rules.",
+                    }
+                sigma_rows = sconn.execute(
+                    f"SELECT key, value FROM [{sigma_table}] LIMIT ?",  # nosec B608 — sigma_table whitelisted
+                    (max_rules,),
+                ).fetchall()
+        except sqlite3.Error as exc:
+            _logger.warning("SigmaHQ-fallback read failed for %s.%s: %s",
+                            sigma_db_path, sigma_table, exc)
+            return {
+                "playbooks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/hunting-playbooks/import-sigma to populate SigmaHQ rules.",
+            }
+
+        if not sigma_rows:
+            return {
+                "playbooks": [],
+                "total": 0,
+                "source": "empty",
+                "hint": "POST /api/v1/hunting-playbooks/import-sigma to populate SigmaHQ rules.",
+            }
+
+        derived: List[Dict[str, Any]] = []
+        sigma_total = len(sigma_rows)
+        for r in sigma_rows:
+            try:
+                rule = json.loads(r["value"])
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(rule, dict):
+                continue
+            tags = rule.get("tags") or []
+            attack_techs = rule.get("attack_techniques") or []
+            inferred_ht = "ttp" if attack_techs else ("ioc" if "ioc" in str(tags).lower() else "behavioral")
+            inferred_cat = ""
+            for tag in tags:
+                if isinstance(tag, str) and tag and not tag.startswith("attack."):
+                    inferred_cat = tag
+                    break
+            if not inferred_cat:
+                inferred_cat = rule.get("level", "informational") or "informational"
+
+            if hunt_type and inferred_ht != hunt_type:
+                continue
+            if threat_category and inferred_cat != threat_category:
+                continue
+
+            logsource = rule.get("logsource") or {}
+            data_sources = []
+            for k in ("product", "service", "category"):
+                v = logsource.get(k)
+                if v:
+                    data_sources.append(str(v))
+
+            mitre_technique = ""
+            if attack_techs and isinstance(attack_techs, list):
+                first = attack_techs[0]
+                if isinstance(first, str) and first:
+                    mitre_technique = first.upper()
+
+            derived.append({
+                "id": f"sigma:{rule.get('id', r['key'])}",
+                "org_id": org_id,
+                "playbook_name": rule.get("title", "") or rule.get("id", r["key"]),
+                "hunt_type": inferred_ht,
+                "threat_category": inferred_cat,
+                "mitre_technique": mitre_technique,
+                "hypothesis": (rule.get("description", "") or "")[:1000],
+                "data_sources": data_sources,
+                "tools": ["sigma"],
+                "status": rule.get("status", "active") or "active",
+                "execution_count": 0,
+                "success_rate": 0.0,
+                "avg_duration_mins": 0.0,
+                "created_at": rule.get("imported_at", ""),
+                "source": "sigmahq",
+                "source_rule_id": rule.get("id", r["key"]),
+                "source_level": rule.get("level", ""),
+                "source_platform": rule.get("platform", ""),
+            })
+
+        return {
+            "playbooks": derived,
+            "total": len(derived),
+            "source": "sigmahq-derived",
+            "sigma_total": sigma_total,
+            "hint": "Derived from imported SigmaHQ detection rules. Author your own playbooks via POST /playbooks to override.",
+        }
+
     # ------------------------------------------------------------------
     # PUBLIC API — HYPOTHESES
     # ------------------------------------------------------------------

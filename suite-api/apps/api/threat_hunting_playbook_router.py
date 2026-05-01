@@ -125,17 +125,13 @@ def list_playbooks(
     hunt_type: Optional[str] = Query(default=None),
     threat_category: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """List hunting playbooks, optionally filtered."""
-    rows = _get_engine().list_playbooks(
+    """List org-authored hunting playbooks. When the org has not authored any,
+    the response is a real-source library projected from the imported SigmaHQ
+    detection-rule catalog (POST /import-sigma to populate). No mock data
+    is ever returned."""
+    return _get_engine().list_playbooks_with_sigma_fallback(
         org_id, hunt_type=hunt_type, threat_category=threat_category
     )
-    if not rows:
-        return {
-            "playbooks": [],
-            "total": 0,
-            "hint": "Import Sigma rule playbooks via POST /api/v1/hunting-playbooks/import-sigma, or create a playbook manually via POST /api/v1/hunting-playbooks/playbooks.",
-        }
-    return {"playbooks": rows, "total": len(rows)}
 
 
 @router.post("/import-sigma", dependencies=[Depends(api_key_auth)])
