@@ -302,6 +302,7 @@ class LLMCouncilEngine:
         self,
         finding: Mapping[str, Any],
         context: Mapping[str, Any],
+        org_id: str = "default",
     ) -> CouncilVerdict:
         """Convene the council to analyze a security finding.
 
@@ -310,6 +311,7 @@ class LLMCouncilEngine:
         Args:
             finding: Security finding dict (title, severity, cve_id, etc)
             context: Contextual data (service_name, risk_score, etc)
+            org_id: Tenant org ID, used for TrustGraph enrichment scoping.
 
         Returns:
             CouncilVerdict with final action and reasoning.
@@ -320,20 +322,24 @@ class LLMCouncilEngine:
         # Best-effort: never block convene if the bridge is unavailable.
         context = self._augment_with_similar_decisions(finding, context)
 
+        # Enrich the finding with TrustGraph blast radius + CVE correlation.
+        # Best-effort: returns the original finding shape on any failure.
+        enriched_finding = self._enrich_with_trustgraph(dict(finding), context, org_id)
+
         # Stage 1: Independent Analysis
-        stage1_analyses = self._stage_independent_analysis(finding, context)
+        stage1_analyses = self._stage_independent_analysis(enriched_finding, context)
 
         # Stage 2: Peer Review
-        stage2_analyses = self._stage_peer_review(stage1_analyses, finding, context)
+        stage2_analyses = self._stage_peer_review(stage1_analyses, enriched_finding, context)
 
         # Stage 3: Chairman Synthesis
         verdict = self._stage_chairman_synthesis(
-            stage1_analyses, stage2_analyses, finding, context
+            stage1_analyses, stage2_analyses, enriched_finding, context
         )
 
         # Check if escalation needed
         if self.should_escalate(verdict):
-            verdict = self._escalate_to_cto(finding, context, verdict)
+            verdict = self._escalate_to_cto(enriched_finding, context, verdict)
             verdict.escalated = True
 
         verdict.latency_ms = (time.perf_counter() - wall_start) * 1000
@@ -341,7 +347,7 @@ class LLMCouncilEngine:
 
         # Persist verdict back to AgentDB so future convene() calls can find it.
         # Best-effort, never blocks the verdict return.
-        self._persist_verdict_to_agentdb(finding, verdict)
+        self._persist_verdict_to_agentdb(enriched_finding, verdict)
 
         logger.info(
             "Council verdict: action=%s, confidence=%.2f, escalated=%s, latency=%.0fms",
@@ -352,6 +358,66 @@ class LLMCouncilEngine:
         )
 
         return verdict
+
+    def _enrich_with_trustgraph(
+        self,
+        finding: dict,
+        context: Mapping[str, Any],
+        org_id: str,
+    ) -> dict:
+        """Enrich finding with blast radius, attack paths, CVE correlation.
+
+        Pulls TrustGraph context (impact analysis + cross-domain correlation) so
+        the council prompts can reason about real organisational blast radius and
+        dollar risk instead of just the raw scanner finding payload.
+
+        NEVER raises — returns the original finding shape on any error so the
+        council remains operational even if TrustGraph is unavailable.
+
+        Args:
+            finding: Mutable copy of the security finding dict.
+            context: Council context (currently unused but kept for future
+                cross-context enrichment, e.g. service criticality).
+            org_id: Tenant org ID for TrustGraph scoping.
+
+        Returns:
+            New dict with enrichment fields (blast_radius, dollar_risk_estimate,
+            etc.) merged onto the original finding payload.
+        """
+        enriched = dict(finding)
+        try:
+            from core.trustgraph_integrations import (
+                ImpactAnalyzer,
+                CrossDomainCorrelator,
+            )
+
+            asset_id = finding.get("asset_id")
+            cve_id = finding.get("cve_id")
+
+            if asset_id:
+                analyzer = ImpactAnalyzer(org_id=org_id)
+                impact = analyzer.blast_radius(asset_id)
+                enriched["blast_radius"] = impact.blast_radius
+                enriched["upstream_dependencies"] = [
+                    d.get("id") for d in impact.upstream_dependencies[:5]
+                ]
+                enriched["compliance_impact"] = [
+                    c.get("framework") for c in impact.compliance_impact[:3]
+                ]
+                enriched["risk_weight"] = impact.risk_weight
+
+            if cve_id:
+                correlator = CrossDomainCorrelator(org_id=org_id)
+                chain = correlator.correlate_cve(cve_id)
+                enriched["affected_containers"] = len(chain.containers)
+                enriched["affected_namespaces"] = len(chain.namespaces)
+                enriched["dollar_risk_estimate"] = chain.dollar_risk_estimate
+                enriched["compliance_controls_violated"] = [
+                    c.get("control_id") for c in chain.compliance_controls[:5]
+                ]
+        except Exception as exc:  # noqa: BLE001 — enrichment must never break convene
+            logger.debug("TrustGraph enrichment skipped: %s", exc)
+        return enriched
 
     def _augment_with_similar_decisions(
         self,
