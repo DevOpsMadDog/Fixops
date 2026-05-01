@@ -1,4 +1,5 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
+// FOLDED into VulnIntelHub at /discover/vuln-intel?tab=ip-rep — kept as redirect-only stub (Phase 3 UX consolidation, 2026-05-02)
 /**
  * IP Reputation - Live API
  * API: GET /api/v1/ip-reputation/blocklist

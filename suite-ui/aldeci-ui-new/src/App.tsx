@@ -274,6 +274,9 @@ const AttackSurfaceDashboard = lazy(() => import("@/pages/AttackSurfaceDashboard
 const APISecurityMgmtDashboard = lazy(() => import("@/pages/APISecurityMgmtDashboard"));
 const VulnIntelligenceDashboard = lazy(() => import("@/pages/VulnIntelligenceDashboard"));
 
+// Phase 3 UX consolidation 2026-05-02 — Vuln Intelligence hub (S7 sub-cluster)
+const VulnIntelHub = lazy(() => import("@/pages/VulnIntelHub"));
+
 // AI Security Advisor
 const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
 
@@ -847,9 +850,11 @@ export default function App() {
             <Route path="/posture-advisor" element={<PostureAdvisor />} />
             <Route path="/patch-prioritizer" element={<PatchPrioritizer />} />
             <Route path="/vendor-risk" element={<VendorRiskDashboard />} />
-            <Route path="/cve-search" element={<CVESearch />} />
-            <Route path="/ip-reputation" element={<IPReputationDashboard />} />
-            <Route path="/threat-geolocation" element={<ThreatGeolocationDashboard />} />
+            {/* Phase 3 fold 2026-05-02 — Vuln Intelligence Hub (S7 sub-cluster) */}
+            <Route path="/discover/vuln-intel" element={<VulnIntelHub />} />
+            <Route path="/cve-search" element={<Navigate to="/discover/vuln-intel?tab=cve-search" replace />} />
+            <Route path="/ip-reputation" element={<Navigate to="/discover/vuln-intel?tab=ip-rep" replace />} />
+            <Route path="/threat-geolocation" element={<Navigate to="/discover/vuln-intel?tab=geolocation" replace />} />
             <Route path="/secrets-rotation" element={<SecretsRotation />} />
             <Route path="/security-awareness" element={<SecurityAwareness />} />
             <Route path="/supply-chain" element={<SupplyChainSecurity />} />
@@ -980,7 +985,7 @@ export default function App() {
 
             {/* API Security Management + Vuln Intelligence */}
             <Route path="/api-security-mgmt" element={<APISecurityMgmtDashboard />} />
-            <Route path="/vuln-intelligence" element={<VulnIntelligenceDashboard />} />
+            <Route path="/vuln-intelligence" element={<Navigate to="/discover/vuln-intel?tab=vuln-intel" replace />} />
 
             {/* Firewall Policy, Network Segmentation */}
             <Route path="/firewall-policy" element={<FirewallPolicyDashboard />} />

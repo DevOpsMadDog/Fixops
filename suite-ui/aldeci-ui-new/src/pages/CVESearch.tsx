@@ -1,3 +1,4 @@
+// FOLDED into VulnIntelHub at /discover/vuln-intel?tab=cve-search — kept as redirect-only stub (Phase 3 UX consolidation, 2026-05-02)
 /**
  * CVE Search - Live API
  * API: GET /api/v1/cve/vulnerabilities

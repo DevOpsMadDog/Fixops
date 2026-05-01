@@ -217,6 +217,8 @@
 | `IPReputation` / `IPReputationDashboard` | `/api/v1/ip-reputation` | widget |
 | `ThreatGeolocationDashboard` | `/api/v1/threats/geo` | widget |
 
+**Vuln Intelligence sub-cluster: DONE-2026-05-02 SHA=<pending-commit>** — 4 pages folded into `VulnIntelHub.tsx` at `/discover/vuln-intel` (VulnIntelligenceDashboard, CVESearch, IPReputationDashboard, ThreatGeolocationDashboard). Old routes redirect with `?tab=`. Verified: 9 real `/api/v1/vuln-intel/*` calls, 0 mock signatures, 0 page errors. Screenshot: `docs/ui-snapshots/ux-consolidation-vuln-intel-2026-05-02.png`.
+
 ### 2.8 → S8 Asset Graph (HERO)
 | Source | Endpoint | As |
 |---|---|---|
