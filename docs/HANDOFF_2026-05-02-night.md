@@ -624,3 +624,37 @@ Same principle as BUG-3 EmptyState (silent MOCK_DATA → honest empty state) and
 ---
 
 *Final session lock v5: 2026-05-03 04:00. **STATUS: SESSION CLEAN, FULLY GREEN, 71 COMMITS SHIPPED, 5/5 INSTALL DECISIONS QUEUED FOR FOUNDER REVIEW.***
+
+## 23. Multica integration + 5-INSTALL pin (2026-05-03 07:15–07:35)
+
+Founder directive at 07:15: every dispatched agent task must have a Multica issue assigned to the agent (`creator_type='agent'`, `assignee_type='agent'`), status updated as work progresses (`todo` → `in_progress` → `done`).
+
+| SHA / Multica # | Title | Impact |
+|-----|-------|--------|
+| Multica #3664 | Night session backfill (79 commits) | Single rolled-up record assigned to agent, status=done, priority=high. Captures the entire pre-Multica session. |
+| Multica #3665 → `94112bd5` | Pin 5 INSTALL deps to requirements.txt | Per `062f5c00` decision doc: `google-cloud-storage>=2.14`, `google-cloud-securitycenter>=1.30`, `google-auth>=2.27`, `peft>=0.10`, `dilithium-py>=1.0`. **All 5 PyPI names canonical** (no substitutions). 351/351 regression PASS. Unlocks GCP CSPM/SCC (3-cloud parity), LoRA distillation, real PQ signing. |
+| Multica #3666 → this commit | HANDOFF §23 — Multica integration record | Captures the integration milestone + saves process pattern. |
+
+### Multica integration process (memorized in `feedback_multica_assignment_required.md`)
+
+1. Before every agent dispatch, INSERT into `issue` with `creator_type='agent'`, `assignee_type='agent'`, `assignee_id='00000000-0000-0000-0000-000000000001'`, `status='in_progress'`
+2. Agent dispatched with explicit reference to the Multica # in the prompt
+3. Agent commits + pushes + UPDATEs `issue` to `status='done'` as the final action
+4. CTO confirms via `psql` query against `multica-postgres-1`
+
+### Final session lock v6
+
+**81+ `beast-mode` commits on `features/intermediate-stage`** (was 71 at v5; 10 more since: 5 micro-refreshes + #3665 install pin + #3666 HANDOFF + 3 SESSION_HISTORY/founder-summary docs).
+
+### Final state (post-#3665 pin)
+
+- **Routes:** 6722 (deps pinned, not yet installed — runtime unchanged)
+- **Beast Mode regression:** 753/753 PASS in 7.94s
+- **DoD E2E smoke:** 10/10 PASS  
+- **Multica board:** 3102 + 3 (= 3105 done / 0 todo / 1 cancelled)
+- **5 INSTALL deps:** queued in requirements.txt for `pip install` when GCP/LoRA/PQ activation needed
+- **0 cold-start warnings, 0 regressions across full session**
+
+---
+
+*Final session lock v6: 2026-05-03 07:35. **STATUS: SESSION CLEAN + MULTICA-TRACKED, 81+ COMMITS SHIPPED.***
