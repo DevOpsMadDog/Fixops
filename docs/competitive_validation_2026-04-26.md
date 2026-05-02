@@ -105,7 +105,7 @@ Rows organized by capability theme. Columns = competitor caps; cells score Fixop
 | Per-stage enforcement (Dev/Build/Stage/Rel/Op) | NA | NA | NA | LOSE (Sonatype moat) | NA | NA | NA | GAP-004 done (parity) |
 | SBOM CycloneDX 1.6 + SPDX 2.3 | MATCH | MATCH | MATCH | MATCH | NA | NA | NA | GAP-041 done — full matrix |
 | SLSA provenance attestation | NA | NA | NA | NA | NA | NA | NA | **WIN** — GAP-018 in-toto+DSSE |
-| Quantum-secure evidence (FIPS 204) | NA | NA | NA | NA | NA | NA | NA | **WIN** unique — ML-DSA hybrid |
+| Quantum-secure evidence (FIPS 204-ready envelope) | NA | NA | NA | NA | NA | NA | NA | **WIN** unique — algorithm-agile hybrid envelope (RSA-PSS shipping; ML-DSA via `dilithium-py` activatable per SCIF/IL5 contract) |
 | Append-only audit log REST | MATCH | MATCH | MATCH | MATCH | MATCH | MATCH | MATCH | GAP-040 done |
 | FedRAMP / FIPS-140 mode | NA | NA | NA | LOSE (SAGE) | MATCH | NA | MATCH | `fips_compliance_mode_engine` GAP-042 |
 | RQL-style structured query | NA | NA | NA | NA | NA | NA | LOSE (Prisma RQL) | `security_query_language_engine` GAP-024 |
@@ -156,7 +156,7 @@ Rows organized by capability theme. Columns = competitor caps; cells score Fixop
 | Dual-mode (orchestrate + native) | LOSE (own only) | LOSE (orchestrate only) | MATCH | LOSE (own only) | LOSE | LOSE | LOSE | **WIN** — Switzerland positioning |
 | Hierarchical org/app tree | NA | MATCH | NA | LOSE (Sonatype Root→Org→App) | MATCH | NA | MATCH | GAP-005 done — `org_hierarchy_engine` |
 | Background workers (queue/worker pool) | MATCH | MATCH | MATCH | MATCH | MATCH | MATCH | MATCH | 8 background services |
-| WORM evidence retention | NA | NA | NA | MATCH | NA | NA | NA | `evidence_chain_engine` quantum-safe |
+| WORM evidence retention | NA | NA | NA | MATCH | NA | NA | NA | `evidence_chain_engine` (algorithm-agile envelope; PQ activatable per `docs/quantum_crypto_retire_decision_2026-05-03.md`) |
 
 ---
 
@@ -219,7 +219,7 @@ Mirror **Wiz + Apiiro hybrid** (graph-as-substrate, Issues-as-queue) plus our 3 
 ### Quantitative case for "Ready"
 - 50/71 gap-matrix rows DONE (70.4%). Of the 12 IP, 9 are UI-presentation gaps that the consolidation itself fixes.
 - 83% WIN/MATCH rate across 149 capabilities vs 7 competitors.
-- All 6 unique moats (Multi-LLM consensus, 12-step Brain Pipeline, MPTE 19-phase, FAIL chaos, Quantum-safe evidence, MCP 650+ tools) are shipped and tested (806 tests passing).
+- All 6 unique moats (Multi-LLM consensus, 12-step Brain Pipeline, MPTE 19-phase, FAIL chaos, Quantum-safe-ready evidence envelope [RSA-PSS shipping; PQ backend activatable], MCP 650+ tools) are shipped and tested (806 tests passing).
 - All 7 competitors have at least one cited weakness (FP rate, slow scans, opaque pricing, fragmented UX) that Fixops's consolidated UI can attack directly.
 
 ### Qualitative caveats

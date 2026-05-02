@@ -191,7 +191,7 @@ ALdeci uses multiple large language models to make security decisions — never 
 | Component | Algorithm | Standard |
 |-----------|-----------|----------|
 | **Current Signing** | RSA-SHA256 (2048-bit minimum) | FIPS 186-5 |
-| **Post-Quantum Signing** | ML-DSA (Dilithium) hybrid with RSA | FIPS 204 |
+| **Post-Quantum Signing** | Algorithm-agile hybrid envelope (RSA-PSS shipping; ML-DSA / Dilithium activatable via `FIXOPS_PQ_BACKEND=dilithium-py`) | FIPS 204-ready |
 | **Evidence Integrity** | SHA-256 hash chains | NIST SP 800-185 |
 | **Retention** | Write-Once-Read-Many (WORM) | Configurable: 3, 5, 7, or 10 years |
 
@@ -218,7 +218,7 @@ Every evidence bundle is a self-contained, cryptographically signed artifact con
 4. Exploitability verification result (MPTE output if executed)
 5. Remediation action record (AutoFix applied, PR link, verification result)
 6. Policy evaluation result (policies matched, exceptions granted)
-7. Cryptographic signature (hybrid RSA + ML-DSA)
+7. Cryptographic signature (hybrid envelope: RSA-PSS shipping; ML-DSA side activatable per SCIF/IL5 contract — see `docs/quantum_crypto_retire_decision_2026-05-03.md`)
 8. Timestamp with trusted time source
 
 ---
@@ -324,7 +324,7 @@ Enterprise AI teams can programmatically discover, scan, triage, fix, and genera
 | Chaos security testing | **FAIL** | No | No | No | No | No |
 | AI-native MCP gateway | **650+ tools** | No | No | No | No | No |
 | Self-hosted AI (zero egress) | **Yes** | No | No | No | No | No |
-| Quantum-secure evidence | **FIPS 204** | No | No | No | No | No |
+| Quantum-secure evidence | **FIPS 204-ready envelope** (algorithm-agile, `dilithium-py` activatable) | No | No | No | No | No |
 | Full air-gapped deployment | **Yes** | No | Partial | No | No | Partial |
 | AutoFix types | **10** | 2 | 0 | 1 | 0 | 1 |
 | Confidence-gated auto-merge | **Yes** | No | No | No | No | No |

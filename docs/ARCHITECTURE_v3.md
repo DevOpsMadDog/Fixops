@@ -414,7 +414,7 @@ Organized by capability domain. Each entry represents a production module in `su
 | Module | Description |
 |--------|-------------|
 | `fips_encryption.py` | FIPS 140-2/140-3 compliant encryption — AES-256-GCM |
-| `quantum_crypto.py` | Post-quantum cryptography — FIPS 204 ML-DSA + RSA hybrid signatures |
+| `quantum_crypto.py` | Algorithm-agile signing envelope — RSA-PSS shipping; FIPS 204 ML-DSA side activatable via `FIXOPS_PQ_BACKEND=dilithium-py` |
 | `tls_config.py` | TLS 1.3 configuration with FIPS cipher suites |
 | `crypto.py` | Core cryptographic primitives — signing, hashing, key derivation |
 | `key_manager.py` | Key lifecycle management — rotation, escrow, audit |
@@ -554,7 +554,8 @@ New Finding (from scanner or PULL connector)
   evidence_collector.py
   ┌────────────────────────────────────────┐
   │  Collect remediation evidence          │
-  │  Sign with quantum_crypto.py (ML-DSA)  │
+  │  Sign via quantum_crypto.py envelope    │
+  │  (RSA-PSS today; ML-DSA activatable)    │
   │  Store in compliance evidence vault    │
   │  Map to compliance controls (K4)       │
   └────────────────────────────────────────┘
@@ -834,7 +835,7 @@ LAYER 4: Data Layer
 ├── AES-256-GCM encryption at rest (fips_encryption.py)
 ├── SQLite WAL for crash safety
 ├── Encrypted sensitive store (encrypted_store.py)
-└── Quantum-resistant evidence signing (quantum_crypto.py — FIPS 204 ML-DSA)
+└── Algorithm-agile evidence signing envelope (quantum_crypto.py — RSA-PSS shipping; FIPS 204 ML-DSA activatable per SCIF/IL5 contract)
 
 LAYER 5: Audit & Detection
 ├── Structured audit log via structlog (audit_logger.py)
@@ -851,23 +852,23 @@ LAYER 5: Audit & Detection
 - **Certificate validation**: Full chain validation, OCSP stapling
 - **Key management**: Hardware-backed key storage via `key_manager.py` (supports PKCS#11 HSMs)
 
-### 8.3 Post-Quantum Cryptography
+### 8.3 Post-Quantum Cryptography (Algorithm-Agile Envelope)
 
-`quantum_crypto.py` implements NIST FIPS 204 (ML-DSA, formerly CRYSTALS-Dilithium):
+`quantum_crypto.py` implements an algorithm-agile hybrid envelope. The RSA half is shipping; the FIPS 204 (ML-DSA / CRYSTALS-Dilithium) half is an activatable backend that flips on when `FIXOPS_PQ_BACKEND=dilithium-py` is set (pure-Python, zero C-deps) — pinned only when a SCIF/IL5 contract requires it. See `docs/quantum_crypto_retire_decision_2026-05-03.md`.
 
 ```
 Evidence Signing Pipeline:
   Finding verdict + context data
       │
       ▼
-  RSA-4096 signature (classical)      ← FIPS 140-3 compliant today
+  RSA-4096 signature (classical)      ← FIPS 140-3 compliant today (shipping)
       +
-  ML-DSA-87 signature (post-quantum)  ← NIST FIPS 204, quantum-resistant
+  ML-DSA-87 signature (post-quantum)  ← NIST FIPS 204 envelope; backend activatable
       │
       ▼
   Hybrid signature bundle attached to evidence artifact
-  → Verified by both algorithms during audit
-  → Valid for 20+ years against quantum adversary
+  → RSA path verified at audit today; PQ path co-verifiable when backend enabled
+  → Envelope designed for 20+ year validity once PQ backend pinned
 ```
 
 ### 8.4 Zero-Trust Architecture
@@ -988,7 +989,7 @@ AI copilots, Claude Code, LangChain agents, and custom automation can consume AL
 | **Exploit verification (MPTE)** | 19-phase, continuous | No | No | No | No | Limited |
 | **GraphRAG knowledge graph** | TrustGraph native | Partial | No | Partial | No | No |
 | **AI Copilot (GraphRAG)** | Yes | No | Limited | No | No | No |
-| **Post-quantum evidence signing** | FIPS 204 ML-DSA | No | No | No | No | No |
+| **Post-quantum evidence signing** | FIPS 204 ML-DSA envelope (algorithm-agile, `dilithium-py` activatable) | No | No | No | No | No |
 | **Air-gapped deployment** | Full feature parity | Partial | No | No | No | Partial |
 | **Self-hosted LLM (zero token cost)** | Yes (Ollama, vLLM) | No | No | No | No | No |
 | **AutoFix types** | 10 | 0 | 2 | 0 | 0 | 1 |
@@ -1011,7 +1012,7 @@ Snyk is a developer-facing point solution for code and dependency scanning. ALDE
 Wiz excels at cloud infrastructure visibility. ALDECI extends that to the application layer: code, containers, secrets, SBOM, developer workflows. ALDECI ingests Wiz findings via GraphQL connector and correlates them with SAST/SCA findings — something Wiz cannot do internally.
 
 **vs. Vanta (Compliance)**
-Vanta automates compliance questionnaires. ALDECI generates cryptographically signed evidence from actual security findings, with a full chain-of-custody audit trail. Post-quantum signing is a 3+ year head start. ALDECI serves SOC 2, ISO 27001, FedRAMP, CMMC, HIPAA, and DISA STIG simultaneously.
+Vanta automates compliance questionnaires. ALDECI generates cryptographically signed evidence from actual security findings, with a full chain-of-custody audit trail. The algorithm-agile post-quantum envelope (RSA-PSS shipping; FIPS 204 ML-DSA activatable per contract) is a 3+ year head start on the integration surface. ALDECI serves SOC 2, ISO 27001, FedRAMP, CMMC, HIPAA, and DISA STIG simultaneously.
 
 **vs. CrowdStrike Falcon**
 Falcon is an EDR/XDR platform — infrastructure and endpoint focused. ALDECI is application-layer focused: source code, dependencies, containers, IaC, APIs, and the CI/CD pipeline. The two are complementary. ALDECI can ingest Falcon detections via the notification engine for unified risk correlation.
@@ -1055,7 +1056,7 @@ Falcon is an EDR/XDR platform — infrastructure and endpoint focused. ALDECI is
 **Compliance & Evidence (12 modules)**
 - SOC 2, PCI-DSS 4.0, NIST 800-53, ISO 27001, FedRAMP control mapping
 - Automated evidence collection and cryptographic signing
-- FIPS 204 ML-DSA post-quantum evidence bundles
+- FIPS 204 ML-DSA post-quantum evidence envelope (algorithm-agile; PQ backend activatable per SCIF/IL5 contract — see `docs/quantum_crypto_retire_decision_2026-05-03.md`)
 - 7-year WORM retention capability
 
 **Attack & Exploit Validation (10 modules)**
@@ -1109,7 +1110,7 @@ The SCIF sprint targets DoD / IC production readiness for classified environment
 | 1 | DISA STIG hardening — OS baseline | Complete |
 | 2 | Air-gap config — disable all outbound, local feed snapshot | Complete |
 | 3 | FIPS 140-3 encryption audit — verify all cipher usage | Complete |
-| 4 | ML-DSA evidence signing — FIPS 204 integration | Complete |
+| 4 | ML-DSA evidence signing — FIPS 204 envelope integration (RSA-PSS shipping; PQ backend activatable on SCIF/IL5 contract via `dilithium-py`) | Complete (envelope) |
 | 5 | Ollama LLM deployment — Gemma 4 local inference | Complete |
 | 6 | CMMC Level 2 control mapping — 110 practices | In Progress |
 | 7 | FedRAMP Moderate boundary documentation | In Progress |

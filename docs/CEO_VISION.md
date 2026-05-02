@@ -116,7 +116,7 @@ Every finding flows through a deterministic, auditable pipeline:
 | 3 | **Decision Intelligence** | Moves organizations from "alert fatigue" to "decision confidence" — actionable outcomes, not raw findings |
 | 4 | **Multi-LLM Consensus / Self-Hosted AI** | Three or more LLMs deliberate per decision (85% agreement threshold). Self-hosted option for zero data exfiltration. |
 | 5 | **Exploit Verification (MPTE)** | 19-phase deterministic engine proves exploitability. Eliminates theoretical findings from remediation queues. |
-| 6 | **Quantum-Secure Evidence** | FIPS 204 ML-DSA + RSA hybrid signatures. Evidence bundles valid post-quantum. 7-year WORM retention. |
+| 6 | **Quantum-Secure Evidence** | Algorithm-agile hybrid envelope: RSA-PSS shipping today; FIPS 204 ML-DSA side activatable via `dilithium-py` per SCIF/IL5 contract requirement. 7-year WORM retention. |
 | 7 | **AI-Native Platform (MCP Gateway)** | 650+ auto-discovered tool endpoints consumable by AI agents, copilots, and automation frameworks |
 | 8 | **Self-Learning** | Five feedback loops: decision outcomes, MPTE results, false positive rates, remediation success, policy violations |
 | 9 | **Air-Gapped / On-Premises Deployment** | Full platform functionality with zero external dependencies. Commodity hardware. Sub-1 GB/year storage. |
@@ -153,7 +153,7 @@ ALdeci organizes capabilities by **what security teams need to accomplish**, not
 | Exploit verification engine | **MPTE** (19-phase, continuous) | No | No | No | No | No |
 | Chaos security testing (FAIL Engine) | **Yes** | No | No | No | No | No |
 | AI-native MCP Gateway | **650+ tools** | No | No | No | No | No |
-| Quantum-secure evidence (FIPS 204) | **Yes** | No | No | No | No | No |
+| Quantum-secure evidence (FIPS 204-ready envelope) | **Yes** (algorithm-agile, `dilithium-py` activatable) | No | No | No | No | No |
 | Self-hosted LLM (zero API tokens) | **Yes** | No | No | No | No | No |
 | Full air-gapped deployment | **Yes** | No | Partial | No | No | Partial |
 | 12-step CTEM pipeline | **Yes** | No | No | No | No | No |
@@ -168,7 +168,7 @@ ALdeci organizes capabilities by **what security teams need to accomplish**, not
 3. **FAIL Engine** — Chaos engineering for application security. Inject faults, measure response, generate labeled training data.
 4. **MCP Gateway** — First AppSec platform designed for AI agent consumption. 650+ auto-discovered tools via Model Context Protocol.
 5. **Self-Hosted AI** — Enterprise-grade LLM inference on customer infrastructure. Zero data exfiltration. Zero per-token cost.
-6. **Quantum-Secure Cryptography** — FIPS 204 ML-DSA + RSA hybrid signatures on all evidence bundles.
+6. **Quantum-Secure Cryptography** — Algorithm-agile hybrid envelope: RSA-PSS shipping; FIPS 204 ML-DSA side activatable via `FIXOPS_PQ_BACKEND=dilithium-py` when SCIF/IL5 contract requires it.
 7. **Zero-Gravity Data** — Four-tier intelligent aging reduces on-premises storage by 95%. Sub-1 GB/year.
 8. **MPTE Exploit Verification** — 19-phase deterministic engine proves exploitability. Continuous. Not annual.
 9. **Switzerland Positioning** — Works with every tool in the customer's existing toolchain. Day-one value. No rip-and-replace.
@@ -201,7 +201,7 @@ ALdeci organizes capabilities by **what security teams need to accomplish**, not
 | HIPAA Security Rule | Mapped | In progress | Planned |
 | DISA STIG | Mapped | In progress | Planned |
 
-All evidence bundles are cryptographically signed with hybrid quantum-resistant algorithms and stored with configurable WORM retention (default: 7 years).
+All evidence bundles are cryptographically signed via an algorithm-agile hybrid envelope (RSA-PSS shipping; PQ side activatable per `docs/quantum_crypto_retire_decision_2026-05-03.md`) and stored with configurable WORM retention (default: 7 years).
 
 ---
 
@@ -238,7 +238,7 @@ SARIF, CycloneDX 1.5, SPDX 2.3, VEX, CSAF, OSCAL, custom JSON/CSV.
 | Compliance evidence preparation | 6–8 weeks per audit | Continuous, automated | 90% reduction |
 | Exploit verification frequency | 1x/year (manual pentest) | Continuous (365x/year) | 365x increase |
 | Cross-tool finding correlation | Manual/none | Automated via knowledge graph | First-time capability |
-| Post-quantum evidence validity | Not addressed | 20+ years (FIPS 204) | Future-proof |
+| Post-quantum evidence validity | Not addressed | Hybrid envelope ready (FIPS 204 activatable) | Future-proof |
 
 ---
 
@@ -280,7 +280,7 @@ SARIF, CycloneDX 1.5, SPDX 2.3, VEX, CSAF, OSCAL, custom JSON/CSV.
 - **Event-driven** internal coordination (no external message queue dependency)
 - **SQLite WAL** for local persistence, PostgreSQL for multi-tenant SaaS
 - **Stateless API tier** — horizontal scaling behind standard load balancers
-- **Cryptographic integrity** at every decision boundary (RSA-SHA256 + ML-DSA hybrid)
+- **Cryptographic integrity** at every decision boundary (RSA-SHA256 shipping; ML-DSA hybrid envelope activatable)
 
 ### Security of the Platform Itself
 - SAST, DAST, and secrets scanning run against ALdeci's own codebase continuously (dogfooding)
@@ -319,7 +319,7 @@ SARIF, CycloneDX 1.5, SPDX 2.3, VEX, CSAF, OSCAL, custom JSON/CSV.
 1. **Multi-LLM consensus** — patent-pending approach to AI-driven security decisions
 2. **Knowledge graph compounding** — platform intelligence grows with data volume
 3. **Self-hosted AI** — only vendor with zero-token, zero-egress AI option
-4. **Quantum cryptography** — multi-year head start on post-quantum evidence
+4. **Quantum cryptography** — algorithm-agile envelope ready, PQ backend activatable on contract demand (multi-year head start on the integration surface)
 5. **MCP protocol** — first-mover advantage in AI-native security tooling
 6. **FAIL Engine** — unique capability, no competitive equivalent
 7. **Switzerland positioning** — trusted by customers who refuse vendor lock-in
