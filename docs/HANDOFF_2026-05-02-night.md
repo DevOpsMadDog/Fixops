@@ -316,6 +316,28 @@ After §11 + §12 sweeps, only 2 distinct WARN entries remain on cold-start:
 - `feature_flag_router unavailable` — LaunchDarkly SDK not installed; decide install dep or delete the router.
 - The `greynoise_router` Pydantic deprecation (`example` → `examples`) is cosmetic only.
 
+## 13. Final micro-cleanups + R3 (2026-05-03 01:20–01:35)
+
+3 more commits closed every remaining cold-start cosmetic + the last perf audit recommendation:
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `696edbf7` | Cleanup: delete dead `feature_flag_router` try/except | -7 LOC. `feature_flag_router.py` did not exist on disk; LaunchDarkly SDK was never installed. Last "router not available" WARN gone. |
+| `6f66cd63` | Cleanup: greynoise_router Pydantic v2 `example`→`examples` | 1-line. Last Pydantic deprecation WARN gone. |
+| `95384783` | Perf R3: lazy-import 22 engines in `apps.api.pipeline` | Last quick win from perf audit. **-0.7s** (audit predicted -3.9s; smaller actual because engines were already lazy-init internally — only import-time cost dropped). 170/170 regression PASS. |
+
+### Cold-start improvement chain (final)
+- Baseline: **74.85s**
+- After R2 (OTLP gate): −5–8s
+- After R1 (lazy-load sentence_transformers): −3.66s
+- After R3 (lazy-import 22 engines): −0.7s
+- **Combined: ~9–12s shaved (new ≈63s warm)**
+- WARNINGS: 4 distinct → **0** distinct on cold-start
+
+### Total session commits
+
+**37 `beast-mode` commits on `features/intermediate-stage`** (was 33 at §12; 4 more here).
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
