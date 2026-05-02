@@ -6577,6 +6577,38 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("censys_router unavailable: %s", _e)
 
+    # Threat Landscape — actor profiles, emerging threats, assessments, summary
+    try:
+        from apps.api.threat_landscape_router import router as threat_landscape_router
+        app.include_router(threat_landscape_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Landscape router at /api/v1/threat-landscape")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("threat_landscape_router unavailable: %s", _e)
+
+    # Threat Briefs — brief lifecycle, distribution, recipient tracking
+    try:
+        from apps.api.threat_brief_router import router as threat_brief_router
+        app.include_router(threat_brief_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Brief router at /api/v1/threat-briefs")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("threat_brief_router unavailable: %s", _e)
+
+    # Zero Day Intelligence — CVE registry, patch status, mitigations, stats
+    try:
+        from apps.api.zero_day_intelligence_router import router as zero_day_intelligence_router
+        app.include_router(zero_day_intelligence_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Zero Day Intelligence router at /api/v1/zero-day")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("zero_day_intelligence_router unavailable: %s", _e)
+
+    # Threat Intel Sharing — STIX/TAXII-lite groups, indicators, bundle import/export
+    try:
+        from apps.api.threat_intel_sharing_router import router as threat_intel_sharing_router
+        app.include_router(threat_intel_sharing_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Intel Sharing router at /api/v1/threat-sharing")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("threat_intel_sharing_router unavailable: %s", _e)
+
     # Tour router — real-product-demo "tour mode" (SSE stream, no auth required)
     try:
         from apps.api.tour_router import router as tour_router
