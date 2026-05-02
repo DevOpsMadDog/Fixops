@@ -2374,7 +2374,7 @@ class WORMStorage:
             data = self._load_data(record.data_ref)
             actual_hash = hashlib.sha256(data).hexdigest()
             hash_match = actual_hash == record.content_hash
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             hash_match = False
 
         within_retention = record.is_within_retention()

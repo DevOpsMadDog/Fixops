@@ -200,7 +200,7 @@ def deep_health_check(response: Response) -> Dict[str, Any]:
             "backend": "sqlite",
             "path": _db_path,
         }
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         # If the file doesn't exist yet that's OK — write a temp DB to verify
         # SQLite itself is functional on this host.
         try:
