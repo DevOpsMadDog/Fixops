@@ -5024,16 +5024,7 @@ def create_app() -> FastAPI:
     except ImportError as exc:
         _logger.warning("Connector Gateway router not loaded: %s", exc)
 
-    # ------------------------------------------------------------------
-    # Security KPI Engine — CISO executive dashboard metrics
-    # ------------------------------------------------------------------
-    try:
-        from apps.api.kpi_router import router as kpi_router
-
-        app.include_router(kpi_router)
-        _logger.info("Mounted Security KPI router at /api/v1/kpis")
-    except ImportError as exc:
-        _logger.warning("Security KPI router not loaded: %s", exc)
+    # kpi_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # ------------------------------------------------------------------
     # Unified Security Metrics Dashboard — single-call all personas
@@ -5485,15 +5476,7 @@ def create_app() -> FastAPI:
 
     # vendor_risk_router + vra_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
-    # -----------------------------------------------------------------------
-    # Data Security / DLP — classification, masking, residency
-    # -----------------------------------------------------------------------
-    try:
-        from apps.api.data_security_router import router as data_security_router
-        app.include_router(data_security_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Data Security router")
-    except ImportError as _ds_err:
-        _logger.warning("Data Security router not available: %s", _ds_err)
+    # data_security_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # -----------------------------------------------------------------------
     # IoT/OT Security Scanner — device inventory, firmware CVEs, protocol
@@ -5805,13 +5788,7 @@ def create_app() -> FastAPI:
 
     # email_security_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
-    # GRC Engine — frameworks, controls, risks, assessments (/api/v1/grc)
-    try:
-        from apps.api.grc_router import router as grc_router
-        app.include_router(grc_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted GRC router at /api/v1/grc")
-    except Exception as e:
-        _logger.warning(f"GRC router not loaded: {e}")
+    # grc_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # Network Topology — asset graph, subnet mapping, lateral movement paths
     try:
@@ -5908,12 +5885,7 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Incident Timeline router not loaded: {e}")
 
-    try:
-        from apps.api.security_metrics_collector_router import router as security_metrics_collector_router
-        app.include_router(security_metrics_collector_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Security Metrics Collector router at /api/v1/security-metrics-collector")
-    except Exception as e:
-        _logger.warning(f"Security Metrics Collector router not loaded: {e}")
+    # security_metrics_collector_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # Vulnerability trend analysis — snapshots, SLA tracking, cohorts
     try:
@@ -6036,12 +6008,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    # Security Champions Program — champion registry, activities, certifications, campaigns
-    try:
-        from apps.api.security_champions_router import router as security_champions_router
-        app.include_router(security_champions_router)
-    except ImportError:
-        pass
+    # security_champions_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # Red Team Management — engagements, findings, TTPs, operators
     try:
@@ -6057,19 +6024,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.policy_router import router as policy_router
-        app.include_router(policy_router)
-        _logger.info("Mounted Policy Engine router at /api/v1/policies")
-    except ImportError:
-        pass
+    # policy_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.security_playbook_router import router as security_playbook_router
-        app.include_router(security_playbook_router)
-        _logger.info("Mounted Security Playbook router at /api/v1/security-playbooks")
-    except ImportError:
-        pass
+    # security_playbook_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     try:
         from apps.api.attack_simulation_router import router as attack_simulation_router
@@ -6078,19 +6035,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.compliance_router import router as compliance_router
-        app.include_router(compliance_router)
-        _logger.info("Mounted Compliance Automation router at /api/v1/compliance")
-    except ImportError:
-        pass
+    # compliance_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.scheduled_reports_router import router as scheduled_reports_router
-        app.include_router(scheduled_reports_router)
-        _logger.info("Mounted Scheduled Reports router at /api/v1/scheduled-reports")
-    except ImportError:
-        pass
+    # scheduled_reports_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     try:
         from apps.api.ai_security_advisor_router import router as ai_security_advisor_router
@@ -6140,18 +6087,9 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.identity_governance_router import router as identity_governance_router
-        app.include_router(identity_governance_router)
-        _logger.info("Mounted Identity Governance router at /api/v1/identity-governance")
-    except ImportError:
-        pass
+    # identity_governance_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.security_maturity_router import router as security_maturity_router
-        app.include_router(security_maturity_router)
-    except ImportError:
-        pass
+    # security_maturity_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     try:
         from apps.api.threat_correlation_router import router as threat_correlation_router
@@ -6205,12 +6143,7 @@ def create_app() -> FastAPI:
         app.include_router(attack_surface_mgmt_router)
     except ImportError:
         pass
-    try:
-        from apps.api.compliance_evidence_router import router as compliance_evidence_router
-        app.include_router(compliance_evidence_router)
-        _logger.info("Mounted Compliance Evidence router at /api/v1/compliance-evidence")
-    except ImportError:
-        pass
+    # compliance_evidence_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     try:
         from apps.api.siem_integration_router import router as siem_integration_router
@@ -6242,12 +6175,7 @@ def create_app() -> FastAPI:
 
     # data_retention_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    try:
-        from apps.api.evidence_chain_router import router as _evidence_chain_late
-        app.include_router(_evidence_chain_late)
-        _logger.info("Mounted Evidence Chain router at /api/v1/evidence-chain")
-    except ImportError:
-        pass
+    # _evidence_chain_late (evidence_chain_router late-bound) — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
 
 
@@ -6287,19 +6215,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_metrics_dashboard_router import router as security_metrics_dashboard_router
-        app.include_router(security_metrics_dashboard_router)
-        _logger.info("Mounted Security Metrics Dashboard router at /api/v1/metrics-dashboard")
-    except ImportError:
-        pass
+    # security_metrics_dashboard_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.kpi_tracking_router import router as kpi_tracking_router
-        app.include_router(kpi_tracking_router)
-        _logger.info("Mounted KPI Tracking router at /api/v1/kpi-tracking")
-    except ImportError:
-        pass
+    # kpi_tracking_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
 
 
@@ -6314,12 +6232,7 @@ def create_app() -> FastAPI:
 
     # alerting_notification_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.risk_aggregator_router import router as risk_aggregator_router
-        app.include_router(risk_aggregator_router)
-        _logger.info("Mounted Risk Aggregator router at /api/v1/risk-aggregator")
-    except ImportError:
-        pass
+    # risk_aggregator_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     try:
         from apps.api.security_event_correlation_router import router as security_event_correlation_router
@@ -7401,23 +7314,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.fedramp_router import router as fedramp_router
-        app.include_router(fedramp_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted FedRAMP router at /api/v1/fedramp")
-    except ImportError:
-        pass
+    # fedramp_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
 
     # jira_sync_router — moved to platform_app.py (Wave 5)
 
 
-    try:
-        from apps.api.license_compliance_router import router as license_compliance_router
-        app.include_router(license_compliance_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted License Compliance router at /api/v1/licenses")
-    except ImportError:
-        pass
+    # license_compliance_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     try:
         from apps.api.mitre_coverage_router import router as mitre_coverage_router
@@ -7443,12 +7346,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.regulatory_tracker_router import router as regulatory_tracker_router
-        app.include_router(regulatory_tracker_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Regulatory Tracker router at /api/v1/regulatory")
-    except ImportError:
-        pass
+    # regulatory_tracker_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     try:
         from apps.api.report_builder_router import router as report_builder_router
@@ -7468,12 +7366,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.trust_center_router import router as trust_center_router
-        app.include_router(trust_center_router)
-        _logger.info("Mounted Trust Center router at /api/v1/trust")
-    except ImportError:
-        pass
+    # trust_center_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # trustgraph_backbone_router — moved to platform_app.py (Wave 5)
 
