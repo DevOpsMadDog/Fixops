@@ -248,7 +248,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 | Frontend pages | **~330** (50 hubs landed 2026-05-02 — Phase 3 EXHAUSTED; ~140 source pages folded — TARGET: 25-40) | `ls suite-ui/aldeci-ui-new/src/pages/*.tsx \| wc -l` |
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
 | Beast Mode tests | **994+ passing (753 canonical 13-file + 152 session-added 26-file + 89 night-session new tests across BUG/FEATURE/empty-endpoints), zero regressions** (2026-05-03 night) + **42/42 hub smoke (`ba6bff1a`)** + **10/10 DoD E2E smoke (`scripts/dod_smoke.mjs`)** | `pytest tests/test_phase*.py ... -q` |
-| Graphify graph | 119,765 nodes / 425,727 edges / 1516 communities | `graphify update . --no-llm` |
+| Graphify graph | **184,414 nodes / 574,972 edges / 9,014 communities** (refreshed 2026-05-03 night post-cleanup; +64K nodes / +149K edges / +7.5K communities since 2026-04-26 baseline) | `graphify update . --no-llm` |
 | TrustGraph emit-sites | **378+** across engines/routers | `grep -rl trustgraph_event_bus suite-core/ \| wc -l` |
 
 ### Storage tech
