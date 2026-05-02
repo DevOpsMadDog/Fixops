@@ -67,6 +67,31 @@ class RejectRequest(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
+@router.get("", dependencies=[Depends(api_key_auth)], summary="Vulnerability exceptions — service summary")
+def get_service_summary(org_id: str = Query(default="default")):
+    """Return service status and exception statistics for the vuln exceptions domain."""
+    try:
+        stats = _get_engine().get_exception_stats(org_id)
+    except Exception as exc:
+        _logger.warning("get_exception_stats failed in summary: %s", exc)
+        stats = {}
+    return {
+        "service": "vuln-exceptions",
+        "status": "ok",
+        "org_id": org_id,
+        "stats": stats,
+        "endpoints": [
+            "POST /api/v1/vuln-exceptions/exceptions",
+            "GET  /api/v1/vuln-exceptions/exceptions",
+            "GET  /api/v1/vuln-exceptions/exceptions/{exception_id}",
+            "POST /api/v1/vuln-exceptions/exceptions/{exception_id}/approve",
+            "POST /api/v1/vuln-exceptions/exceptions/{exception_id}/reject",
+            "POST /api/v1/vuln-exceptions/exceptions/expire",
+            "GET  /api/v1/vuln-exceptions/stats",
+        ],
+    }
+
+
 @router.post("/exceptions", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_exception(body: ExceptionCreate, org_id: str = Query(default="default")):
     """Create a new vulnerability exception request."""

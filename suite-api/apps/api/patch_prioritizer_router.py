@@ -81,6 +81,45 @@ class MarkPatchedRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get(
+    "",
+    summary="Patch prioritization — service summary",
+)
+def get_service_summary(
+    org_id: str = Query("default", description="Organization identifier"),
+) -> Dict[str, Any]:
+    """Return service status and patch stats for the patch prioritization domain."""
+    p = _get_prioritizer()
+    try:
+        stats = p.get_patch_stats(org_id=org_id)
+    except Exception as exc:
+        logger.warning("get_patch_stats failed in summary: %s", exc)
+        stats = {}
+    try:
+        plans = p.list_plans(org_id=org_id)
+        plan_count = len(plans)
+    except Exception as exc:
+        logger.warning("list_plans failed in summary: %s", exc)
+        plan_count = 0
+    return {
+        "service": "patch-prioritization",
+        "status": "ok",
+        "org_id": org_id,
+        "plan_count": plan_count,
+        "stats": stats,
+        "endpoints": [
+            "POST /api/v1/patch-priority/score",
+            "POST /api/v1/patch-priority/batch",
+            "POST /api/v1/patch-priority/plans",
+            "GET  /api/v1/patch-priority/plans",
+            "GET  /api/v1/patch-priority/plans/{plan_id}",
+            "POST /api/v1/patch-priority/plans/{plan_id}/patch/{cve_id}",
+            "GET  /api/v1/patch-priority/stats",
+            "GET  /api/v1/patch-priority/kev/{cve_id}",
+        ],
+    }
+
+
 @router.post("/score", summary="Score a single CVE for patch priority")
 def score_cve(req: ScoreRequest) -> Dict[str, Any]:
     """Return a priority score and band for a single CVE."""

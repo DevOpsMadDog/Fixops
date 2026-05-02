@@ -116,6 +116,43 @@ def _event_to_response(event: LifecycleEvent) -> TransitionResponse:
 # ============================================================================
 
 
+@router.get(
+    "",
+    summary="Vulnerability lifecycle — service summary",
+)
+def get_service_summary(
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Return service status and stage distribution for the vuln lifecycle domain."""
+    try:
+        distribution = _tracker.get_stage_distribution(org_id)
+    except Exception as exc:
+        logger.warning("get_stage_distribution failed in summary: %s", exc)
+        distribution = {}
+    try:
+        flow = _tracker.get_flow_metrics(org_id)
+    except Exception as exc:
+        logger.warning("get_flow_metrics failed in summary: %s", exc)
+        flow = {}
+    return {
+        "service": "vuln-lifecycle",
+        "status": "ok",
+        "org_id": org_id,
+        "stage_distribution": distribution,
+        "flow": flow,
+        "endpoints": [
+            "POST /api/v1/vuln-lifecycle/{finding_id}/transition",
+            "GET  /api/v1/vuln-lifecycle/{finding_id}/history",
+            "GET  /api/v1/vuln-lifecycle/{finding_id}/stage",
+            "GET  /api/v1/vuln-lifecycle/distribution",
+            "GET  /api/v1/vuln-lifecycle/bottlenecks",
+            "GET  /api/v1/vuln-lifecycle/avg-time",
+            "GET  /api/v1/vuln-lifecycle/flow",
+            "POST /api/v1/vuln-lifecycle/validate",
+        ],
+    }
+
+
 @router.post(
     "/{finding_id}/transition",
     response_model=TransitionResponse,

@@ -101,6 +101,35 @@ class StatsResponse(BaseModel):
 # ============================================================================
 
 
+@router.get(
+    "",
+    summary="Vulnerability risk scoring — service summary",
+)
+def get_service_summary(
+    org_id: str = Query("default", description="Organization identifier"),
+) -> Dict[str, Any]:
+    """Return service status and high-level stats for the vuln risk scoring domain."""
+    scorer = get_scorer()
+    try:
+        stats = scorer.get_scoring_stats(org_id=org_id)
+    except Exception as exc:
+        logger.warning("get_scoring_stats failed in summary: %s", exc)
+        stats = {}
+    return {
+        "service": "vuln-risk-scoring",
+        "status": "ok",
+        "org_id": org_id,
+        "stats": stats,
+        "endpoints": [
+            "POST /api/v1/vuln-risk/score",
+            "POST /api/v1/vuln-risk/batch-score",
+            "GET  /api/v1/vuln-risk/stats",
+            "GET  /api/v1/vuln-risk/priority-queue",
+            "GET  /api/v1/vuln-risk/trend/{cve_id}",
+        ],
+    }
+
+
 @router.post("/score", response_model=ScoreResponse, summary="Score a single vulnerability")
 def score_vulnerability(req: ScoreRequest) -> ScoreResponse:
     """Compute a contextual risk score for a single CVE."""
