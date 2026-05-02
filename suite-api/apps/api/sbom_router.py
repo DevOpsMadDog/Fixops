@@ -177,3 +177,16 @@ def vuln_exposure(org_id: str = Query(default="default")):
 def sbom_stats(org_id: str = Query(default="default")):
     """Return aggregated SBOM statistics for the org."""
     return _get_engine().get_sbom_stats(org_id)
+
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def sbom_overview(org_id: str = Query(default="default")):
+    """Top-level SBOM overview: asset/component counts, vuln exposure, license summary."""
+    engine = _get_engine()
+    return {
+        "status": "ok",
+        "org_id": org_id,
+        "stats": engine.get_sbom_stats(org_id),
+        "vuln_exposure": engine.get_vuln_exposure(org_id),
+        "license_summary": engine.get_license_summary(org_id),
+    }

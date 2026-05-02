@@ -178,4 +178,23 @@ async def get_stats(
     return engine.get_supply_chain_stats(org_id)
 
 
+@router.get("/", response_model=Dict[str, Any])
+async def supply_chain_monitoring_overview(
+    org_id: str = Query("default", description="Organisation identifier"),
+) -> Dict[str, Any]:
+    """Top-level supply chain monitoring overview: supplier counts, event counts, stats."""
+    engine = _get_engine()
+    suppliers = engine.list_suppliers(org_id)
+    events = engine.list_events(org_id)
+    open_events = [e for e in events if e.get("status") != "resolved"]
+    return {
+        "status": "ok",
+        "org_id": org_id,
+        "total_suppliers": len(suppliers),
+        "total_events": len(events),
+        "open_events": len(open_events),
+        "stats": engine.get_supply_chain_stats(org_id),
+    }
+
+
 __all__ = ["router"]

@@ -223,3 +223,13 @@ def list_snapshots(
 def get_supply_chain_stats(org_id: str = Query(default="default")):
     """Return aggregated supply chain intelligence statistics for the org."""
     return _get_engine().get_supply_chain_stats(org_id)
+
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def supply_chain_intel_overview(org_id: str = Query(default="default")):
+    """Top-level supply chain intelligence overview: package, vuln, and malicious signal counts."""
+    return {
+        "status": "ok",
+        "org_id": org_id,
+        "stats": _get_engine().get_supply_chain_stats(org_id),
+    }

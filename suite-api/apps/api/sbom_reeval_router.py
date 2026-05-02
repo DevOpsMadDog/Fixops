@@ -171,3 +171,21 @@ async def sbom_reeval_stats(
         "claims_by_type": claim_types,
         "unique_purls_claimed": len({c.get("purl") for c in claims}),
     }
+
+
+@router.get("/")
+async def sbom_reeval_overview(
+    org_id: str = Query(..., description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Top-level SBOM re-eval overview: schedule counts and component claim summary."""
+    eng = _get_engine()
+    schedules = eng.list_reeval_schedules(org_id=org_id)
+    enabled = [s for s in schedules if s.get("enabled")]
+    claims = eng.list_component_claims(org_id=org_id)
+    return {
+        "status": "ok",
+        "org_id": org_id,
+        "total_schedules": len(schedules),
+        "enabled_schedules": len(enabled),
+        "total_claims": len(claims),
+    }
