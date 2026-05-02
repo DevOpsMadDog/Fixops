@@ -167,3 +167,54 @@ def list_incidents(
 def get_vendor_stats(org_id: str = Query(default="default")):
     """Return aggregated third-party vendor statistics for the org."""
     return _get_engine().get_vendor_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_third_party_vendor_root_summary(org_id: str = Query(default="default")):
+    """Return a 5-state summary envelope for the Third-Party Vendor domain.
+
+    States:
+      healthy   — vendors registered, no critical vendors, no open incidents
+      degraded  — critical vendors present or open incidents requiring attention
+      empty     — fresh tenant, no vendors registered
+      error     — engine raised an exception
+      unknown   — stats structure unexpected
+    """
+    try:
+        stats = _get_engine().get_vendor_stats(org_id)
+    except Exception as exc:
+        _logger.error("third_party_vendor.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "third-party-vendor",
+        }
+
+    total_vendors = stats.get("total_vendors", 0)
+    critical_vendors = stats.get("critical_vendors", 0)
+    active_incidents = stats.get("active_incidents", 0)
+
+    if total_vendors == 0:
+        status = "empty"
+    elif critical_vendors > 0 or active_incidents > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "third-party-vendor",
+        "stats": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Register vendors via POST /api/v1/third-party-vendor/vendors "
+            "to begin third-party vendor management."
+        )
+    return envelope

@@ -165,3 +165,54 @@ def list_findings(
 def get_sspm_stats(org_id: str = Query(default="default")):
     """Return aggregated SSPM statistics for the org."""
     return _get_engine().get_sspm_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_sspm_root_summary(org_id: str = Query(default="default")):
+    """Return a 5-state summary envelope for the SaaS Security Posture domain.
+
+    States:
+      healthy   — apps registered, no high-risk apps, open findings in bounds
+      degraded  — high-risk apps or critical open findings present
+      empty     — fresh tenant, no SaaS apps registered
+      error     — engine raised an exception
+      unknown   — stats structure unexpected
+    """
+    try:
+        stats = _get_engine().get_sspm_stats(org_id)
+    except Exception as exc:
+        _logger.error("sspm.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "sspm",
+        }
+
+    total_apps = stats.get("total_apps", 0)
+    high_risk_apps = stats.get("high_risk_apps", 0)
+    critical_findings = stats.get("critical_findings", 0)
+
+    if total_apps == 0:
+        status = "empty"
+    elif high_risk_apps > 0 or critical_findings > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "sspm",
+        "stats": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Register SaaS applications via POST /api/v1/sspm/apps "
+            "to begin SaaS security posture management."
+        )
+    return envelope

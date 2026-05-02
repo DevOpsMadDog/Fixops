@@ -194,3 +194,54 @@ def get_overdue_assessments(org_id: str = Query(default="default")):
 def get_high_risk_vendors(org_id: str = Query(default="default")):
     """Get tier-1 and tier-2 vendors ordered by risk score."""
     return _get_engine().get_high_risk_vendors(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_tprm_root_summary(org_id: str = Query(default="default")):
+    """Return a 5-state summary envelope for the TPRM Exchange domain.
+
+    States:
+      healthy   — vendors registered, no overdue assessments, no open incidents
+      degraded  — overdue assessments or open incidents requiring attention
+      empty     — fresh tenant, no vendors registered
+      error     — engine raised an exception
+      unknown   — summary structure unexpected
+    """
+    try:
+        summary = _get_engine().get_tprm_summary(org_id)
+    except Exception as exc:
+        _logger.error("tprm_exchange.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "tprm-exchange",
+        }
+
+    total = summary.get("total_vendors", 0)
+    overdue = summary.get("overdue_assessments", 0)
+    open_incidents = summary.get("open_incidents", 0)
+
+    if total == 0:
+        status = "empty"
+    elif overdue > 0 or open_incidents > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "tprm-exchange",
+        "summary": summary,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Register vendors via POST /api/v1/tprm-exchange/vendors "
+            "to begin third-party risk management."
+        )
+    return envelope

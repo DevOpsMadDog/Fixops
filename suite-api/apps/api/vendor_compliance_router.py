@@ -186,3 +186,57 @@ async def get_stats(
 
 
 __all__ = ["router"]
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/", response_model=None)
+async def get_vendor_compliance_root_summary(
+    org_id: str = Query("default", description="Organisation identifier"),
+):
+    """Return a 5-state summary envelope for the Vendor Compliance domain.
+
+    States:
+      healthy   — vendors registered, avg compliance score >= 80, no overdue requirements
+      degraded  — non-compliant vendors or overdue requirements present
+      empty     — fresh tenant, no vendors registered
+      error     — engine raised an exception
+      unknown   — stats structure unexpected
+    """
+    try:
+        stats = _get_engine().get_vendor_compliance_stats(org_id)
+    except Exception as exc:
+        logger.error("vendor_compliance.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "vendor-compliance",
+        }
+
+    total_vendors = stats.get("total_vendors", 0)
+    non_compliant = stats.get("non_compliant_vendors", 0)
+    overdue_requirements = stats.get("overdue_requirements", 0)
+
+    if total_vendors == 0:
+        status = "empty"
+    elif non_compliant > 0 or overdue_requirements > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope: Dict[str, Any] = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "vendor-compliance",
+        "stats": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Register vendors via POST /api/v1/vendor-compliance/vendors "
+            "to begin vendor compliance tracking."
+        )
+    return envelope
