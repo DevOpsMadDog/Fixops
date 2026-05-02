@@ -99,21 +99,43 @@ def list_requests(
     access_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     resource_type: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ) -> dict:
-    """List access requests, optionally filtered."""
+    """List access requests (canonical envelope, batch-6).
+
+    Class-c contract: empty IS correct for fresh tenants — access requests
+    are a user-driven workflow that populates only after end-users submit
+    privileged access requests. Always returns full envelope with pagination
+    context + filters echo + actionable hint when empty.
+    """
     rows = _get_engine().list_requests(
         org_id,
         access_type=access_type,
         status=status,
         resource_type=resource_type,
-    )
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope = {
+        "items": paged,
+        "requests": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "access_type": access_type,
+            "status": status,
+            "resource_type": resource_type,
+        },
+    }
     if not rows:
-        return {
-            "requests": [],
-            "total": 0,
-            "hint": "Submit POST /api/v1/access-requests/requests to create a privileged access request (user-driven workflow).",
-        }
-    return {"requests": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Submit POST /api/v1/access-requests/requests to create a privileged "
+            "access request. This is a user-driven workflow; empty IS the correct "
+            "response for a fresh tenant."
+        )
+    return envelope
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])

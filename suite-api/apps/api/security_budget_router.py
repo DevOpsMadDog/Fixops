@@ -113,18 +113,39 @@ def list_allocations(
     org_id: str = Query(default="default"),
     fiscal_year: Optional[int] = Query(default=None),
     category: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ):
-    """List budget allocations with optional filters."""
+    """List budget allocations (canonical envelope, batch-6).
+
+    Class-c contract: empty IS correct for fresh tenants — security budget is
+    a manual finance/CFO entry, not auto-derivable from any public source.
+    Always returns full envelope with pagination context + filters echo +
+    actionable hint when empty.
+    """
     rows = _get_engine().list_allocations(
         org_id, fiscal_year=fiscal_year, category=category
-    )
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope = {
+        "items": paged,
+        "allocations": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "fiscal_year": fiscal_year,
+            "category": category,
+        },
+    }
     if not rows:
-        return {
-            "allocations": [],
-            "total": 0,
-            "hint": "Create a budget allocation via POST /api/v1/security-budget/allocations (manual finance entry).",
-        }
-    return {"allocations": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Create a budget allocation via POST /api/v1/security-budget/allocations "
+            "(manual finance entry). No public source exists for this — empty IS "
+            "the correct response for a fresh tenant."
+        )
+    return envelope
 
 
 @router.get("/allocations/{allocation_id}", dependencies=[Depends(api_key_auth)])

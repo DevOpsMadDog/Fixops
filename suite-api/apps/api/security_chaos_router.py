@@ -96,21 +96,43 @@ def create_experiment(body: ExperimentCreate, org_id: str = Query(default="defau
 
 @router.get("/experiments", dependencies=[Depends(api_key_auth)])
 def list_experiments(
-     org_id: str = Query(default="default"),
+    org_id: str = Query(default="default"),
     experiment_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ):
-    """List chaos experiments with optional filters."""
+    """List chaos experiments (canonical envelope, batch-6).
+
+    Class-c contract: empty IS correct for fresh tenants — security chaos
+    experiments are manually designed by SREs/security engineers (think
+    Gremlin/ChaosMonkey-style game-day playbooks), not auto-derivable from
+    any public source. Always returns full envelope with pagination context
+    + filters echo + actionable hint when empty.
+    """
     rows = _get_engine().list_experiments(
         org_id, experiment_type=experiment_type, status=status
-    )
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope = {
+        "items": paged,
+        "experiments": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "experiment_type": experiment_type,
+            "status": status,
+        },
+    }
     if not rows:
-        return {
-            "experiments": [],
-            "total": 0,
-            "hint": "Design and run chaos experiments via POST /api/v1/security-chaos/experiments (manual experiment design).",
-        }
-    return {"experiments": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Design and run chaos experiments via POST /api/v1/security-chaos/experiments "
+            "(manual experiment design). Empty IS the correct response for a fresh "
+            "tenant — no public source exists."
+        )
+    return envelope
 
 
 @router.get("/experiments/{experiment_id}", dependencies=[Depends(api_key_auth)])

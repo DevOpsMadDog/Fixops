@@ -87,25 +87,47 @@ def create_treatment(body: TreatmentCreate, org_id: str = Query(default="default
 
 @router.get("/treatments", dependencies=[Depends(api_key_auth)])
 def list_treatments(
-     org_id: str = Query(default="default"),
+    org_id: str = Query(default="default"),
     treatment_type: Optional[str] = Query(None),
     treatment_status: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ):
-    """List treatments with optional filters."""
+    """List treatments (canonical envelope, batch-6).
+
+    Class-c contract: empty IS correct for fresh tenants — risk treatments
+    are a manual/policy-driven workflow, not a feed-importable artifact.
+    Always returns full envelope with pagination context + filters echo +
+    actionable hint when empty.
+    """
     rows = _get_engine().list_treatments(
         org_id,
         treatment_type=treatment_type,
         treatment_status=treatment_status,
         risk_level=risk_level,
-    )
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope = {
+        "items": paged,
+        "treatments": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "treatment_type": treatment_type,
+            "treatment_status": treatment_status,
+            "risk_level": risk_level,
+        },
+    }
     if not rows:
-        return {
-            "treatments": [],
-            "total": 0,
-            "hint": "Create a risk treatment via POST /api/v1/risk-treatment/treatments once risks are identified.",
-        }
-    return {"treatments": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Create a risk treatment via POST /api/v1/risk-treatment/treatments "
+            "once risks are identified. This is a manual/policy-driven workflow; "
+            "empty IS the correct response for a fresh tenant."
+        )
+    return envelope
 
 
 @router.get("/treatments/{treatment_id}", dependencies=[Depends(api_key_auth)])

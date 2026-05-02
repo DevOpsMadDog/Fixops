@@ -93,21 +93,43 @@ def list_governance_policies(
     policy_type: Optional[str] = Query(None, description="Filter by policy_type"),
     cloud_provider: Optional[str] = Query(None, description="Filter by cloud_provider"),
     enforcement: Optional[str] = Query(None, description="Filter by enforcement"),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ):
-    """List governance policies with optional filters."""
+    """List governance policies (canonical envelope, batch-6).
+
+    Class-c contract: empty IS correct for fresh tenants — cloud governance
+    policies are manually authored by org compliance teams, not auto-derived
+    from a public catalog. Always returns full envelope with pagination
+    context + filters echo + actionable hint when empty.
+    """
     rows = _get_engine(org_id).list_governance_policies(
         org_id,
         policy_type=policy_type,
         cloud_provider=cloud_provider,
         enforcement=enforcement,
-    )
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope = {
+        "items": paged,
+        "policies": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "policy_type": policy_type,
+            "cloud_provider": cloud_provider,
+            "enforcement": enforcement,
+        },
+    }
     if not rows:
-        return {
-            "policies": [],
-            "total": 0,
-            "hint": "Create governance policies via POST /api/v1/cloud-governance/policies (manual policy authoring).",
-        }
-    return {"policies": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Create governance policies via POST /api/v1/cloud-governance/policies "
+            "(manual policy authoring). Empty IS the correct response for a fresh "
+            "tenant — no public source exists."
+        )
+    return envelope
 
 
 @router.get("/policies/{policy_id}", response_model=Dict[str, Any])

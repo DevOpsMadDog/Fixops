@@ -111,16 +111,36 @@ def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query
 
 
 @router.get("/requests", dependencies=[Depends(api_key_auth)])
-def list_enrichment_requests(org_id: str = Query(default="default"), status: str = Query(None), limit: int = Query(50)):
-    """List enrichment requests for an org."""
-    rows = _get_engine().list_enrichment_requests(org_id=org_id, status=status, limit=limit)
+def list_enrichment_requests(
+    org_id: str = Query(default="default"),
+    status: Optional[str] = Query(None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+):
+    """List enrichment requests for an org (canonical envelope, batch-6).
+
+    Class-c contract: empty IS correct for fresh tenants — request log only
+    populates after POST /requests. Always returns full envelope with
+    pagination context + filters echo + actionable hint.
+    """
+    rows = _get_engine().list_enrichment_requests(org_id=org_id, status=status, limit=limit) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope = {
+        "items": paged,
+        "requests": paged,  # legacy key preserved for back-compat
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {"status": status},
+    }
     if not rows:
-        return {
-            "requests": [],
-            "total": 0,
-            "hint": "Submit POST /api/v1/intel-enrichment/requests to enrich an IOC (IP, domain, hash, URL).",
-        }
-    return {"requests": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Submit POST /api/v1/intel-enrichment/requests to enrich an IOC "
+            "(IP, domain, hash, URL). Empty is the correct response for a "
+            "fresh tenant — this is a request log, not an importable feed."
+        )
+    return envelope
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])
