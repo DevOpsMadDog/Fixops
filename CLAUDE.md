@@ -242,7 +242,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 | Layer | Count | How to check |
 |-------|-------|--------------|
-| Backend engines | ~360 | `ls suite-core/core/*_engine.py \| wc -l` |
+| Backend engines | **351** (was ~360 before 2026-05-03 cleanup; small drop from Wave-RETIRE dead-engine module deletes) | `ls suite-core/core/*_engine.py \| wc -l` |
 | API routers | **684** (post 2026-05-02 night session; +94 since 2026-04-26 mega-wave) | `ls suite-api/apps/api/*_router.py \| wc -l` |
 | API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved** across **232/232 dup blocks closed (100%)** + 27/47 suite-core silenced-imports fixed; details in `docs/dead_router_sweep_2026-05-03.md` + `docs/suite_core_silenced_imports_2026-05-03.md` + HANDOFF §11-§19) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
 | Frontend pages | **431 top-level / 529 recursive** (50 hubs landed 2026-05-02 — Phase 3 EXHAUSTED; ~140 source pages folded — TARGET: 25-40 — actual is higher than the per-tsx-file count of "~330" because some pages live in subdirs like `incidents/`, `mission-control/`, `discover/`, `findings/`) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
