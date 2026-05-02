@@ -5049,19 +5049,7 @@ def create_app() -> FastAPI:
     except ImportError as exc:
         _logger.warning("Unified Dashboard router not loaded: %s", exc)
 
-    # ------------------------------------------------------------------
-    # Automated Evidence Collection router (SOC2/PCI/HIPAA auto-collect)
-    # ------------------------------------------------------------------
-    try:
-        from apps.api.auto_evidence_router import router as auto_evidence_router
-
-        app.include_router(
-            auto_evidence_router,
-            dependencies=[Depends(_verify_api_key)],
-        )
-        _logger.info("Mounted Auto Evidence Collection router at /api/v1/auto-evidence")
-    except ImportError as exc:
-        _logger.warning("Auto Evidence Collection router not loaded: %s", exc)
+    # auto_evidence_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
     # ------------------------------------------------------------------
     # Deployment Manager router — moved to platform_app.py (Wave 5)
@@ -5495,22 +5483,7 @@ def create_app() -> FastAPI:
     except ImportError as _bb_err:
         _logger.warning("Bug Bounty router not available: %s", _bb_err)
 
-    # -----------------------------------------------------------------------
-    # Vendor Risk Management — third-party risk assessment
-    # -----------------------------------------------------------------------
-    try:
-        from apps.api.vendor_risk_router import router as vendor_risk_router
-        app.include_router(vendor_risk_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Vendor Risk router")
-    except ImportError as _vr_err:
-        _logger.warning("Vendor Risk router not available: %s", _vr_err)
-
-    try:
-        from apps.api.vendor_risk_router import vra_router as vendor_risk_assessment_router
-        app.include_router(vendor_risk_assessment_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Vendor Risk Assessment (VRA) router")
-    except ImportError as _vra_err:
-        _logger.warning("Vendor Risk Assessment router not available: %s", _vra_err)
+    # vendor_risk_router + vra_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
     # -----------------------------------------------------------------------
     # Data Security / DLP — classification, masking, residency
@@ -5559,16 +5532,7 @@ def create_app() -> FastAPI:
     except ImportError as e:
         _logger.warning("WAF Rule Generator router not available: %s", e)
 
-    # Audit Log Analytics — ingest, search, anomaly detection, retention, forensic timeline
-    try:
-        from apps.api.audit_analytics_router import router as audit_analytics_router
-        app.include_router(
-            audit_analytics_router,
-            dependencies=[Depends(_verify_api_key)],
-        )
-        _logger.info("Mounted Audit Log Analytics router at /api/v1/audit-analytics")
-    except ImportError as e:
-        _logger.warning("Audit Log Analytics router not available: %s", e)
+    # audit_analytics_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
     # GitHub Issues ALM — create/list/sync/metrics for findings as GitHub Issues
     try:
@@ -5773,16 +5737,7 @@ def create_app() -> FastAPI:
     except ImportError as _cve_err:
         _logger.warning("CVE Enrichment router not available: %s", _cve_err)
 
-    # Security KPI Metrics Tracker — MTTD/MTTR/compliance scoring with benchmarks
-    try:
-        from apps.api.security_kpi_router import router as security_kpi_router
-        app.include_router(
-            security_kpi_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Security KPI router at /api/v1/kpi")
-    except ImportError as _kpi_err:
-        _logger.warning("Security KPI router not available: %s", _kpi_err)
+    # security_kpi_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
     # SCIM v2 — SCIM provisioning for enterprise IdP (Okta, Azure AD)
     try:
@@ -5818,38 +5773,11 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"IGA router not loaded: {e}")
 
-    # Security Playbook Engine — automated response playbooks with execution tracking
-    try:
-        from apps.api.playbook_router import router as _playbook_engine_router
-        app.include_router(
-            _playbook_engine_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
-        _logger.info("Mounted Security Playbook router at /api/v1/playbooks")
-    except Exception as e:
-        _logger.warning(f"Playbook router not loaded: {e}")
+    # _playbook_engine_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
-    # Compliance Automation — 7-framework coverage (SOC2, PCI-DSS, HIPAA, FedRAMP, ISO 27001, NIST, CMMC)
-    try:
-        from apps.api.compliance_automation_router import router as compliance_automation_router
-        app.include_router(
-            compliance_automation_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Compliance Automation router at /api/v1/compliance")
-    except Exception as e:
-        _logger.warning(f"Compliance Automation router not loaded: {e}")
+    # compliance_automation_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
-    # Data Classification — SCIF-grade asset classification with audit trail
-    try:
-        from apps.api.data_classification_router import router as data_classification_router
-        app.include_router(
-            data_classification_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Data Classification router at /api/v1/classification")
-    except Exception as e:
-        _logger.warning(f"Data Classification router not loaded: {e}")
+    # data_classification_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
     # Threat Actor Intelligence — actor profiles, campaigns, IOCs, watchlist
     try:
@@ -5862,16 +5790,7 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Threat Actor router not loaded: {e}")
 
-    # Compliance Gap Analysis & Audit Readiness — gap analysis, audit readiness scoring, remediation tasks
-    try:
-        from apps.api.compliance_gap_router import router as compliance_gap_router
-        app.include_router(
-            compliance_gap_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Compliance Gap Analysis router at /api/v1/compliance-automation")
-    except Exception as e:
-        _logger.warning(f"Compliance Gap Analysis router not loaded: {e}")
+    # compliance_gap_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
     # Vulnerability Risk Scoring — contextual risk scores (CVSS + EPSS + KEV + asset context)
     try:
@@ -5967,13 +5886,7 @@ def create_app() -> FastAPI:
     # cmdb_router — moved to platform_app.py (Wave 5)
 
     # Supply Chain Risk — suppliers, components, risks, SBOM import
-    # Cyber Insurance — policies, assessments, claims, portfolio stats
-    try:
-        from apps.api.cyber_insurance_router import router as cyber_insurance_router
-        app.include_router(cyber_insurance_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Cyber Insurance router at /api/v1/cyber-insurance")
-    except Exception as e:
-        _logger.warning(f"Cyber insurance router not loaded: {e}")
+    # cyber_insurance_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
 
     # Vulnerability Scanner — scanners, schedules, results, findings, stats
