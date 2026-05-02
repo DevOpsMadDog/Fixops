@@ -7639,47 +7639,15 @@ def create_app() -> FastAPI:
 
     # Wave C — 21 endpoints: compliance/org/system/admin/tokens/cspm/skills/rules/llm
     # Wave 42 pre-wiring
-    try:
-        from apps.api.endpoint_forensics_router import router as endpoint_forensics_router
-        app.include_router(endpoint_forensics_router)
-        _logger.info("Mounted Endpoint Forensics router at /api/v1/endpoint-forensics")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.security_log_analysis_router import router as security_log_analysis_router
-        app.include_router(security_log_analysis_router)
-        _logger.info("Mounted Security Log Analysis router at /api/v1/log-analysis")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.incident_impact_assessment_router import router as incident_impact_assessment_router
-        app.include_router(incident_impact_assessment_router)
-        _logger.info("Mounted Incident Impact Assessment router at /api/v1/incident-impact")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.vulnerability_disclosure_router import router as vulnerability_disclosure_router
-        app.include_router(vulnerability_disclosure_router)
-        _logger.info("Mounted Vulnerability Disclosure router at /api/v1/vuln-disclosure")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.threat_contextualization_router import router as threat_contextualization_router
-        app.include_router(threat_contextualization_router)
-        _logger.info("Mounted Threat Contextualization router at /api/v1/threat-context")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.security_operations_automation_router import router as security_operations_automation_router
-        app.include_router(security_operations_automation_router)
-        _logger.info("Mounted Security Operations Automation router at /api/v1/soc-automation")
-    except ImportError:
-        pass
+    # NOTE 2026-05-03: Removed 6 dead-router try blocks per silenced-imports
+    # triage `60a8ea9e` (rows 4-9). The .py files for endpoint_forensics_router,
+    # security_log_analysis_router, incident_impact_assessment_router,
+    # vulnerability_disclosure_router, threat_contextualization_router, and
+    # security_operations_automation_router never existed on disk — silently
+    # swallowed ModuleNotFoundError contributed zero behavior. Mirrors the
+    # websocket_routes.py removal in `6307d7fe`. Same dead refs still exist in
+    # sub_apps/ctem_app.py:946-1075 (out of scope of this triage; track
+    # separately).
 
     # -----------------------------------------------------------------------
     # Wave 42+ — wiring previously unwired router files

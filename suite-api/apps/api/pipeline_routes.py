@@ -31,11 +31,11 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, Body
 from pydantic import BaseModel, Field, field_validator
 
 # Import core pipeline components
-from suite_core.core.pipeline_orchestrator import (
+from core.pipeline_orchestrator import (
     PipelineOrchestrator,
     PipelineStage,
 )
-from suite_core.core.rbac import RBACManager, Permission
+from core.rbac import RBACEngine as RBACManager, Permission
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/pipeline", tags=["pipeline"])
@@ -57,7 +57,7 @@ class FindingInput(BaseModel):
     id: Optional[str] = Field(None, description="Finding ID (auto-generated if absent)")
     title: str = Field(..., description="Finding title")
     description: Optional[str] = None
-    severity: str = Field(..., regex="^(low|medium|high|critical)$")
+    severity: str = Field(..., pattern="^(low|medium|high|critical)$")
     connector: str = Field(..., description="Source connector (e.g., snyk, jira)")
     asset_id: Optional[str] = None
     cve_id: Optional[str] = None
@@ -75,7 +75,7 @@ class FindingInput(BaseModel):
 class FindingBatchInput(BaseModel):
     """Batch of findings for ingestion."""
 
-    findings: List[FindingInput] = Field(..., min_items=1, max_items=1000)
+    findings: List[FindingInput] = Field(..., min_length=1, max_length=1000)
     source: str = Field(..., description="Batch source")
     tags: Optional[List[str]] = Field(default_factory=list)
 
@@ -189,7 +189,7 @@ def get_orchestrator() -> PipelineOrchestrator:
 def get_rbac_manager() -> RBACManager:
     """Get RBAC manager (injected from app context)."""
     # This would typically be injected via FastAPI dependency
-    from suite_core.core.rbac import RBACManager
+    from core.rbac import RBACEngine as RBACManager
 
     return RBACManager()
 
@@ -498,7 +498,7 @@ async def reprocess_stage(
 
 @router.get("/findings", response_model=Dict[str, Any])
 async def query_findings(
-    severity: Optional[str] = Query(None, regex="^(low|medium|high|critical)$"),
+    severity: Optional[str] = Query(None, pattern="^(low|medium|high|critical)$"),
     stage: Optional[str] = Query(None),
     connector: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),  # ISO format

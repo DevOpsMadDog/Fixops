@@ -22,7 +22,6 @@ from typing import Any, Dict, List, Mapping, Optional
 from core.connectors import (
     AzureDevOpsConnector,
     ConfluenceConnector,
-    DependabotConnector,
     GitHubConnector,
     GitLabConnector,
     JiraConnector,
@@ -33,6 +32,7 @@ from core.connectors import (
 from core.security_connectors import (
     AWSSecurityHubConnector,
     AzureSecurityCenterConnector,
+    DependabotConnector,
     DependencyTrackConnector,
     LaceworkConnector,
     OrcaSecurityConnector,

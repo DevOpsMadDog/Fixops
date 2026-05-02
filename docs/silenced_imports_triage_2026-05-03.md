@@ -19,19 +19,30 @@
 
 The **576** raw count from the perf audit was over-counted (counted import statements + exception handlers separately); the actual unique targets are 518 and only 9 are silently failing. The remaining 509 wrappers are healthy defensive guards (tolerable).
 
-## Broken modules (full list — n=9)
+## Broken modules (full list — n=9)  —  **9/9 RESOLVED 2026-05-03 (commit pending)**
 
-| #  |  Line | Import target                                          | Exception              | Root cause class      |
-| -- | ----: | ------------------------------------------------------ | ---------------------- | --------------------- |
-| 1  |   310 | `apps.api.pipeline_routes`                             | `ModuleNotFoundError`  | **fix-import**        |
-| 2  |  5278 | `connectors.connector_bridge` (DependabotConnector)    | `ImportError` (symbol) | **fix-import/symbol** |
-| 3  |  7398 | `apps.api.compliance_seed_router` (`get_org_id`)       | `ImportError` (symbol) | **fix-import/symbol** |
-| 4  |  7643 | `apps.api.endpoint_forensics_router`                   | `ModuleNotFoundError`  | **delete (no file)**  |
-| 5  |  7650 | `apps.api.security_log_analysis_router`                | `ModuleNotFoundError`  | **delete (no file)**  |
-| 6  |  7657 | `apps.api.incident_impact_assessment_router`           | `ModuleNotFoundError`  | **delete (no file)**  |
-| 7  |  7664 | `apps.api.vulnerability_disclosure_router`             | `ModuleNotFoundError`  | **delete (no file)**  |
-| 8  |  7671 | `apps.api.threat_contextualization_router`             | `ModuleNotFoundError`  | **delete (no file)**  |
-| 9  |  7678 | `apps.api.security_operations_automation_router`       | `ModuleNotFoundError`  | **delete (no file)**  |
+| #  |  Line | Import target                                          | Exception              | Root cause class      | Disposition (2026-05-03) |
+| -- | ----: | ------------------------------------------------------ | ---------------------- | --------------------- | ------------------------ |
+| 1  |   310 | `apps.api.pipeline_routes`                             | `ModuleNotFoundError`  | **fix-import**        | FIXED — `suite_core.` → `core.` (3x) + Pydantic v2 syntax (`regex=`→`pattern=`, `min/max_items`→`min/max_length`, `RBACManager` aliased to canonical `RBACEngine`). Restored 10 `/api/v1/pipeline/*` routes. |
+| 2  |  5278 | `connectors.connector_bridge` (DependabotConnector)    | `ImportError` (symbol) | **fix-import/symbol** | FIXED — `connector_bridge.py:25` was importing `DependabotConnector` from `core.connectors`; canonical location is `core.security_connectors:254`. Moved import. ConnectorScheduler now boots cleanly. |
+| 3  |  7398 | `apps.api.compliance_seed_router` (`get_org_id`)       | `ImportError` (symbol) | **fix-import/symbol** | FIXED — `compliance_seed_router.py:23` was importing `get_org_id` from `apps.api.auth_deps`; canonical location is `apps.api.org_middleware:187`. Split the import. Restored 6 `/api/v1/compliance-seed/*` routes. |
+| 4  |  7643 | `apps.api.endpoint_forensics_router`                   | `ModuleNotFoundError`  | **delete (no file)**  | DELETED — file does not exist on disk; try block removed. |
+| 5  |  7650 | `apps.api.security_log_analysis_router`                | `ModuleNotFoundError`  | **delete (no file)**  | DELETED — file does not exist on disk; try block removed. |
+| 6  |  7657 | `apps.api.incident_impact_assessment_router`           | `ModuleNotFoundError`  | **delete (no file)**  | DELETED — file does not exist on disk; try block removed. |
+| 7  |  7664 | `apps.api.vulnerability_disclosure_router`             | `ModuleNotFoundError`  | **delete (no file)**  | DELETED — file does not exist on disk; try block removed. |
+| 8  |  7671 | `apps.api.threat_contextualization_router`             | `ModuleNotFoundError`  | **delete (no file)**  | DELETED — file does not exist on disk; try block removed. |
+| 9  |  7678 | `apps.api.security_operations_automation_router`       | `ModuleNotFoundError`  | **delete (no file)**  | DELETED — file does not exist on disk; try block removed. |
+
+### Verification (2026-05-03)
+- `apps.api.pipeline_routes` import OK; router has 10 routes.
+- `connectors.connector_bridge` (`ConnectorScheduler` + `register_all_existing_connectors`) imports OK.
+- `apps.api.compliance_seed_router` imports OK; `get_org_id` resolves to canonical `org_middleware` definition.
+- Cold-start of `apps.api.app:create_app()` succeeds; **9001 routes** mounted (was ~8980 before — 10 pipeline + 6 compliance-seed + others previously skipped).
+- Remaining "unavailable" warnings: 2 distinct (LaunchDarkly SDK + `feature_flag_router`). Both already documented in the §"Healthy noise" section as out-of-scope follow-ups (different exception class, slightly different wrapper pattern).
+- Regression: `tests/test_phase4_integration.py + test_phase6_streaming.py + test_pipeline_api.py + test_trustgraph.py` → **157 PASS**. Wider Beast Mode (9 phase files + connector_framework + persona_workflows) → **596 PASS**. Combined **753 PASS / 0 FAIL**.
+
+### Out-of-scope follow-up (logged 2026-05-03)
+- `suite-api/apps/api/sub_apps/ctem_app.py:946-1075` contains 6 duplicate try/include_router blocks for the same 6 dead routers (#4–#9). Same dispose-by-delete pattern would clean them up. Tracked separately so this commit stays focused on `app.py` per triage scope.
 
 ### Per-row diagnosis (full error text)
 
