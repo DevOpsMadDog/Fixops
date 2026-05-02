@@ -71,33 +71,12 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Try importing LLM-Guard — graceful degradation if not installed
+# LLM-Guard — RETIRED 2026-05-03 per docs/suite_core_install_retire_decisions_2026-05-03.md
+# We ship our own guards (core.aidefence_*); the regex fallback path below is
+# canonical. Flag remains as ``False`` so the existing branches (`if _HAS_LLM_GUARD`)
+# continue to short-circuit to the regex implementation that already shipped.
 # ---------------------------------------------------------------------------
 _HAS_LLM_GUARD = False
-try:
-    from llm_guard import scan_output as _lg_scan_output
-    from llm_guard import scan_prompt as _lg_scan_prompt
-    from llm_guard.input_scanners import (
-        BanSubstrings,
-        InvisibleText,
-        PromptInjection,
-        Secrets,
-        TokenLimit,
-        Toxicity as InputToxicity,
-    )
-    from llm_guard.output_scanners import (
-        Bias,
-        FactualConsistency,
-        NoRefusal,
-        Relevance,
-        Sensitive,
-        Toxicity as OutputToxicity,
-    )
-
-    _HAS_LLM_GUARD = True
-    logger.info("LLM-Guard loaded — full scanner suite available")
-except ImportError:
-    logger.info("LLM-Guard not installed — using regex fallback scanners")
 
 
 # ---------------------------------------------------------------------------

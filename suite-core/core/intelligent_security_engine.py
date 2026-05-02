@@ -834,23 +834,17 @@ class IntelligentSecurityEngine:
         return []
 
     async def _check_exploit_availability(self, cve_ids: List[str]) -> Dict[str, str]:
-        """Check exploit availability for CVEs — returns 'unknown' honestly when no data."""
-        try:
-            from feeds.feeds_service import FeedsService
-            svc = FeedsService()
-            result: Dict[str, str] = {}
-            for cve in cve_ids:
-                enriched = svc.enrich_findings([{"cve_id": cve}])
-                if enriched and enriched[0].get("in_kev"):
-                    result[cve] = "known_exploited"
-                elif enriched and enriched[0].get("epss_score") and enriched[0]["epss_score"] > 0.5:
-                    result[cve] = "likely"
-                else:
-                    result[cve] = "unknown"
-            return result
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-            logger.warning("exploit_check_failed", error=str(exc), cve_count=len(cve_ids))
-            return {cve: "unknown" for cve in cve_ids}
+        """Check exploit availability for CVEs — returns 'unknown' honestly when no data.
+
+        # feeds.feeds_service — RETIRED 2026-05-03 per
+        # docs/suite_core_install_retire_decisions_2026-05-03.md
+        # Module retired in 55adab96; suite-feeds importers are the canonical
+        # source. Until KEV/EPSS wiring lands here (parallel to
+        # ``_fetch_epss_scores`` / ``_fetch_kev_status`` above), report
+        # ``unknown`` for every CVE rather than fabricating values.
+        """
+        logger.debug("exploit_check_unavailable_module_retired", cve_count=len(cve_ids))
+        return {cve: "unknown" for cve in cve_ids}
 
     async def _predict_threat_actors(
         self, target: str, cve_ids: List[str]

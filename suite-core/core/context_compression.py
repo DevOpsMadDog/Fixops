@@ -16,14 +16,11 @@ from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
-# Try importing headroom (optional dependency)
+# headroom — RETIRED 2026-05-03 per docs/suite_core_install_retire_decisions_2026-05-03.md
+# Marketing-only ML compression; the regex/truncation heuristic below ships and
+# is sufficient. Flag stays ``False`` so the existing False-branches in
+# ``compress_prompt`` short-circuit straight to the heuristic path.
 _HAS_HEADROOM = False
-try:
-    from headroom import compress  # type: ignore[import-untyped]
-    _HAS_HEADROOM = True
-    logger.info("headroom library available — using ML-based context compression")
-except ImportError:
-    logger.info("headroom not installed — using heuristic compression fallback")
 
 # ---------------------------------------------------------------------------
 # Statistics

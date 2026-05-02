@@ -105,47 +105,15 @@ _celery_app_lock = threading.Lock()
 
 
 def _get_celery_app() -> Any:
-    """Return the Celery app, creating it on first call."""
-    global _celery_app
-    if _celery_app is not None:
-        return _celery_app
-    with _celery_app_lock:
-        if _celery_app is not None:
-            return _celery_app
-        try:
-            from celery import Celery  # type: ignore[import]
+    """Return the Celery app — RETIRED 2026-05-03.
 
-            app = Celery(
-                "fixops",
-                broker=REDIS_URL,
-                backend=REDIS_URL,
-            )
-            if REDIS_PASSWORD:
-                app.conf.broker_transport_options = {
-                    "password": REDIS_PASSWORD,
-                }
-            app.conf.update(
-                task_serializer="json",
-                result_serializer="json",
-                accept_content=["json"],
-                task_track_started=True,
-                task_acks_late=True,
-                worker_prefetch_multiplier=1,
-                task_soft_time_limit=300,   # 5 min soft limit
-                task_time_limit=600,         # 10 min hard limit
-                result_expires=3600,         # Results kept 1 hour
-                broker_connection_retry_on_startup=False,
-            )
-            _celery_app = app
-            logger.info("Celery app initialised: broker=%s", REDIS_URL)
-        except ImportError:
-            logger.warning(
-                "Celery not installed — async task queue unavailable. "
-                "Install with: pip install celery[redis]"
-            )
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-            logger.warning("Celery app init failed: %s", exc)
-    return _celery_app
+    # celery — RETIRED 2026-05-03 per
+    # docs/suite_core_install_retire_decisions_2026-05-03.md
+    # Project explicitly uses in-process queues (CLAUDE.md). The Celery branch
+    # is dead. Always returns ``None`` so downstream callers route through the
+    # synchronous fallback paths (``_run_sync_*``) that ship today.
+    """
+    return None
 
 
 def is_celery_available() -> bool:

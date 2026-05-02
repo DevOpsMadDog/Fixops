@@ -856,11 +856,14 @@ class DeploymentManager:
 
     def _discover_enabled_modules(self) -> List[str]:
         """Try to import key modules and report which are available."""
+        # trustgraph.store — RETIRED 2026-05-03 per
+        # docs/suite_core_install_retire_decisions_2026-05-03.md
+        # Superseded by suite-core.trustgraph package; legacy entry removed
+        # so module_map no longer reports the dead probe as "missing".
         module_map = {
             "brain_pipeline": "core.brain_pipeline",
             "connector_framework": "core.connectors",
             "scanner_parsers": "core.scanner_parsers",
-            "trustgraph_store": "trustgraph.store",
             "llm_council": "core.council_adapter",
             "pipeline_orchestrator": "core.pipeline_orchestrator",
             "auto_fix": "core.autofix_engine",

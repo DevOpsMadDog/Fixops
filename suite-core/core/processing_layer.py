@@ -49,17 +49,11 @@ def _ensure_ml_libs() -> None:  # pragma: no cover - deferred heavy imports
             extra={"error": repr(exc)},
         )
 
-    try:  # optional dependency for probabilistic modelling
-        from pomegranate import BayesianNetwork as _PomBayes  # type: ignore
-        PomegranateBayes = _PomBayes
-    except ImportError:
-        pass
-
-    try:  # optional dependency for Markov modelling
-        import mchmm as _mchmm  # type: ignore
-        mchmm = _mchmm
-    except ImportError:
-        pass
+    # pomegranate / mchmm — RETIRED 2026-05-03 per
+    # docs/suite_core_install_retire_decisions_2026-05-03.md
+    # Probabilistic-ML alts that never wired downstream. Custom Bayes / heuristic
+    # Markov path below is canonical. Names already initialised to ``None`` at
+    # module scope so the existing ``*_available`` flags stay False.
 
 
 @dataclass

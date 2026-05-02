@@ -12,12 +12,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
-try:  # Optional dependency – available when enterprise extras installed
-    import chromadb  # type: ignore
-    from chromadb.config import Settings as ChromaSettings  # type: ignore
-except ImportError:  # pragma: no cover - environment without chromadb
-    chromadb = None  # type: ignore[assignment]
-    ChromaSettings = None  # type: ignore[assignment]
+# chromadb — RETIRED 2026-05-03 per docs/suite_core_install_retire_decisions_2026-05-03.md
+# Superseded by AgentDB (PRIMARY stack per CLAUDE.md). The existing
+# ``chromadb is None`` guard in ``ChromaVectorStore.__init__`` already raises
+# ``VectorStoreError`` which routes callers to ``InMemoryVectorStore`` —
+# behaviour preserved by leaving the names as None.
+chromadb = None  # type: ignore[assignment]
+ChromaSettings = None  # type: ignore[assignment]
 
 
 # NOTE: ``sentence_transformers`` is *intentionally* not imported at module load.

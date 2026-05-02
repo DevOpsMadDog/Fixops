@@ -1404,19 +1404,17 @@ class OnlineLearningStore:
     # ------------------------------------------------------------------
 
     def _create_model(self, model_id: str) -> NaiveBayesOnline:
-        """Create a new online model instance."""
-        # Try to use River if available, else fall back to built-in
-        try:
-            from river import naive_bayes  # type: ignore
-            logger.debug(
-                "OnlineLearningStore: using River GaussianNB for '%s'", model_id
-            )
-            return naive_bayes.GaussianNB()
-        except ImportError:
-            logger.debug(
-                "OnlineLearningStore: River not available, using built-in NaiveBayesOnline"
-            )
-            return NaiveBayesOnline()
+        """Create a new online model instance.
+
+        # river — RETIRED 2026-05-03 per
+        # docs/suite_core_install_retire_decisions_2026-05-03.md
+        # Online-learning alt that never landed. Custom NaiveBayesOnline ships
+        # and is canonical.
+        """
+        logger.debug(
+            "OnlineLearningStore: using built-in NaiveBayesOnline for '%s'", model_id
+        )
+        return NaiveBayesOnline()
 
     def _log_drift_event(
         self, model_id: str, event_type: str, features: List[str]
