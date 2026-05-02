@@ -5765,13 +5765,7 @@ def create_app() -> FastAPI:
 
     # report_scheduler_router — moved to platform_app.py (Wave 5)
 
-    # IGA — Identity Governance & Administration (access reviews, orphan detection, SoD)
-    try:
-        from apps.api.iga_router import router as iga_router
-        app.include_router(iga_router)
-        _logger.info("Mounted IGA router")
-    except Exception as e:
-        _logger.warning(f"IGA router not loaded: {e}")
+    # iga_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     # _playbook_engine_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
@@ -5890,13 +5884,7 @@ def create_app() -> FastAPI:
 
 
     # Vulnerability Scanner — scanners, schedules, results, findings, stats
-    # Security Awareness Training — courses, enrollments, campaigns, progress
-    try:
-        from apps.api.security_training_router import router as security_training_router
-        app.include_router(security_training_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Security Training router at /api/v1/security-training")
-    except Exception as e:
-        _logger.warning(f"Security Training router not loaded: {e}")
+    # security_training_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     # Threat Intel Connector — MISP / CIRCL CVE / PhishTank / OTX adapters
     # OSS replacements for Recorded Future / Anomali / Mandiant / X-Force / Proofpoint
@@ -5917,13 +5905,7 @@ def create_app() -> FastAPI:
         _logger.warning(f"CWPP router not loaded: {e}")
 
 
-    # FAIR-based financial risk quantification — scenarios, Monte Carlo, treatments, impacts
-    try:
-        from apps.api.risk_quantification_router import router as risk_quantification_router
-        app.include_router(risk_quantification_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Risk Quantification router at /api/v1/risk-quantification")
-    except Exception as e:
-        _logger.warning(f"Risk Quantification router not loaded: {e}")
+    # risk_quantification_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     # Digital forensics — case management, evidence, chain of custody, analysis results
     try:
@@ -5941,28 +5923,11 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Threat Feed Aggregator router not loaded: {e}")
 
-    # Security Roadmap / Strategic Planning Engine
-    try:
-        from apps.api.security_roadmap_router import router as security_roadmap_router
-        app.include_router(security_roadmap_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Security Roadmap router at /api/v1/security-roadmap")
-    except Exception as e:
-        _logger.warning(f"Security Roadmap router not loaded: {e}")
+    # security_roadmap_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    # Data Governance — assets, policies, violations, data flows
-    try:
-        from apps.api.data_governance_router import router as data_governance_router
-        app.include_router(data_governance_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Data Governance router at /api/v1/data-governance")
-    except Exception as e:
-        _logger.warning(f"Data Governance router not loaded: {e}")
+    # data_governance_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    try:
-        from apps.api.compliance_scanner_router import router as compliance_scanner_router
-        app.include_router(compliance_scanner_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Compliance Scanner router at /api/v1/compliance-scanner")
-    except Exception as e:
-        _logger.warning(f"Compliance Scanner router not loaded: {e}")
+    # compliance_scanner_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     # Asset Risk Calculator — weighted composite risk scoring per asset
     try:
@@ -6021,29 +5986,11 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Threat Model Generator router not loaded: {e}")
 
-    # Security exception manager — exception lifecycle, approvals, expiry tracking
-    try:
-        from apps.api.security_exception_router import router as security_exception_router
-        app.include_router(security_exception_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Security Exception router at /api/v1/security-exceptions")
-    except Exception as e:
-        _logger.warning(f"Security Exception router not loaded: {e}")
+    # security_exception_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    # Continuous Control Monitoring — SOC2/ISO27001/NIST/PCI/HIPAA/CIS control tests & failures
-    try:
-        from apps.api.ccm_router import router as ccm_router
-        app.include_router(ccm_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted CCM router at /api/v1/ccm")
-    except Exception as e:
-        _logger.warning(f"CCM router not loaded: {e}")
+    # ccm_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    # Security Awareness Score Tracker — training completions, phishing sims, risk tiers
-    try:
-        from apps.api.awareness_score_router import router as awareness_score_router
-        app.include_router(awareness_score_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Awareness Score router at /api/v1/awareness-score")
-    except Exception as e:
-        _logger.warning(f"Awareness Score router not loaded: {e}")
+    # awareness_score_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     # NDR Engine — network flow ingestion, risk scoring, alerts, baselines, anomaly detection
     try:
@@ -6053,13 +6000,7 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"NDR Engine router not loaded: {e}")
 
-    # Identity Analytics Engine — identity profiles, login events, risks, access certifications
-    try:
-        from apps.api.identity_analytics_router import router as identity_analytics_router
-        app.include_router(identity_analytics_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Identity Analytics router at /api/v1/identity-analytics")
-    except Exception as e:
-        _logger.warning(f"Identity Analytics router not loaded: {e}")
+    # identity_analytics_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     # CNAPP Engine — cloud workloads, findings, policies, composite CSPM+CWPP+CIEM scoring
     try:
@@ -6283,19 +6224,10 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.privacy_gdpr_router import router as privacy_gdpr_router
-        app.include_router(privacy_gdpr_router)
-    except ImportError:
-        pass
+    # privacy_gdpr_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
 
-    try:
-        from apps.api.dlp_router import router as dlp_router
-        app.include_router(dlp_router)
-        _logger.info("Mounted DLP router at /api/v1/dlp")
-    except ImportError:
-        pass
+    # dlp_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
 
     try:
@@ -6312,26 +6244,11 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.cloud_compliance_router import router as cloud_compliance_router
-        app.include_router(cloud_compliance_router)
-        _logger.info("Mounted Cloud Compliance router at /api/v1/cloud-compliance")
-    except ImportError:
-        pass
+    # cloud_compliance_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    try:
-        from apps.api.endpoint_compliance_router import router as endpoint_compliance_router
-        app.include_router(endpoint_compliance_router)
-        _logger.info("Mounted Endpoint Compliance router at /api/v1/endpoint-compliance")
-    except ImportError:
-        pass
+    # endpoint_compliance_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    try:
-        from apps.api.executive_reporting_router import router as executive_reporting_router
-        app.include_router(executive_reporting_router)
-        _logger.info("Mounted Executive Reporting router at /api/v1/exec-reporting")
-    except ImportError:
-        pass
+    # executive_reporting_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     try:
         from apps.api.vuln_intelligence_router import router as vuln_intelligence_router
@@ -6339,12 +6256,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.ciso_report_router import router as ciso_report_router
-        app.include_router(ciso_report_router)
-        _logger.info("Mounted CISO Report router at /api/v1/ciso-report")
-    except ImportError:
-        pass
+    # ciso_report_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     try:
         from apps.api.mitre_attack_router import router as mitre_attack_router
@@ -6393,12 +6305,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.data_retention_router import router as data_retention_router
-        app.include_router(data_retention_router)
-        _logger.info("Mounted Data Retention router at /api/v1/data-retention")
-    except ImportError:
-        pass
+    # data_retention_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
     try:
         from apps.api.evidence_chain_router import router as _evidence_chain_late
@@ -6502,26 +6409,11 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.data_privacy_router import router as data_privacy_router
-        app.include_router(data_privacy_router)
-        _logger.info("Mounted Data Privacy router at /api/v1/data-privacy")
-    except ImportError:
-        pass
+    # data_privacy_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    try:
-        from apps.api.gdpr_compliance_router import router as gdpr_compliance_router
-        app.include_router(gdpr_compliance_router)
-        _logger.info("Mounted GDPR Compliance router at /api/v1/gdpr")
-    except ImportError:
-        pass
+    # gdpr_compliance_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    try:
-        from apps.api.physical_security_router import router as physical_security_router
-        app.include_router(physical_security_router)
-        _logger.info("Mounted Physical Security router at /api/v1/physical-security")
-    except ImportError:
-        pass
+    # physical_security_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
 
 
