@@ -113,6 +113,40 @@ class CreateTemplateRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_service_summary(
+    org_id: str = Query(default="default"),
+) -> dict:
+    """Return incident-communications service summary (stats + available channels).
+
+    5-state envelope: items/total/org_id/filters_applied/hint.
+    """
+    stats = _get_engine().get_comms_stats(org_id)
+    channels = ["email", "slack", "teams", "sms", "pagerduty", "status_page", "internal"]
+    comm_types = [
+        "initial_notification", "status_update", "resolution",
+        "post_mortem", "stakeholder_brief", "press_release",
+    ]
+    items = [
+        {"key": "stats", "value": stats},
+        {"key": "channels", "value": channels},
+        {"key": "comm_types", "value": comm_types},
+    ]
+    envelope: dict = {
+        "items": items,
+        "total": len(items),
+        "org_id": org_id,
+        "filters_applied": {},
+        "service": "incident-comms",
+    }
+    if stats.get("total_comms", 0) == 0:
+        envelope["hint"] = (
+            "No incident communications yet. Create one via "
+            "POST /api/v1/incident-comms/comms."
+        )
+    return envelope
+
+
 @router.post("/comms", dependencies=[Depends(api_key_auth)])
 def create_comm(
     req: CreateCommRequest,

@@ -80,6 +80,36 @@ class RunbookExecute(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_service_summary(org_id: str = Query(default="default")) -> dict:
+    """Return incident-kb service summary (stats + available article/runbook types).
+
+    5-state envelope: items/total/org_id/filters_applied/hint.
+    """
+    stats = _get_engine().get_kb_stats(org_id)
+    article_types = ["runbook", "playbook", "post_mortem", "lesson_learned", "reference"]
+    incident_types = ["malware", "phishing", "data_breach", "ddos", "insider_threat", "ransomware"]
+    items = [
+        {"key": "stats", "value": stats},
+        {"key": "article_types", "value": article_types},
+        {"key": "incident_types", "value": incident_types},
+    ]
+    envelope: dict = {
+        "items": items,
+        "total": len(items),
+        "org_id": org_id,
+        "filters_applied": {},
+        "service": "incident-kb",
+    }
+    total_articles = stats.get("total_articles", 0) if isinstance(stats, dict) else 0
+    if total_articles == 0:
+        envelope["hint"] = (
+            "No KB articles yet. Create one via POST /api/v1/incident-kb/articles "
+            "or search via GET /api/v1/incident-kb/search?query=..."
+        )
+    return envelope
+
+
 @router.post("/articles", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_article(body: ArticleCreate, org_id: str = Query(default="default")):
     """Create a new KB article."""

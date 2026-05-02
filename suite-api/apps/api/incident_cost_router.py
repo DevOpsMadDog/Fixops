@@ -78,6 +78,34 @@ class BenchmarkCreate(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_service_summary(org_id: str = Query(default="default")) -> dict:
+    """Return incident-costs service summary (analytics overview).
+
+    5-state envelope: items/total/org_id/filters_applied/hint.
+    """
+    analytics = _get_engine().get_cost_analytics(org_id)
+    summaries = _get_engine().list_summaries(org_id)
+    items = [
+        {"key": "analytics", "value": analytics},
+        {"key": "recent_summaries", "value": summaries[:5]},
+    ]
+    envelope: dict = {
+        "items": items,
+        "total": len(items),
+        "org_id": org_id,
+        "filters_applied": {},
+        "service": "incident-costs",
+    }
+    total_incidents = analytics.get("total_incidents", 0) if isinstance(analytics, dict) else 0
+    if total_incidents == 0:
+        envelope["hint"] = (
+            "No incident cost records yet. Record a cost via "
+            "POST /api/v1/incident-costs/costs."
+        )
+    return envelope
+
+
 @router.post("/costs", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_cost(body: CostCreate, org_id: str = Query(default="default")):
     """Record a cost line-item for a security incident."""

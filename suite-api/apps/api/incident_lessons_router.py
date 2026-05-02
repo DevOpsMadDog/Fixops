@@ -74,6 +74,36 @@ class LessonReview(BaseModel):
 # Lessons
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_service_summary(org_id: str = Query(default="default")) -> dict:
+    """Return incident-lessons service summary (lessons counts + overdue actions).
+
+    5-state envelope: items/total/org_id/filters_applied/hint.
+    """
+    summary = _get_engine().get_lessons_summary(org_id)
+    overdue = _get_engine().get_overdue_actions(org_id)
+    rate = _get_engine().get_implementation_rate(org_id)
+    items = [
+        {"key": "summary", "value": summary},
+        {"key": "implementation_rate", "value": rate},
+        {"key": "overdue_actions_count", "value": len(overdue) if isinstance(overdue, list) else 0},
+    ]
+    envelope: dict = {
+        "items": items,
+        "total": len(items),
+        "org_id": org_id,
+        "filters_applied": {},
+        "service": "incident-lessons",
+    }
+    total = summary.get("total", 0) if isinstance(summary, dict) else 0
+    if total == 0:
+        envelope["hint"] = (
+            "No lessons-learned entries yet. Create one via "
+            "POST /api/v1/incident-lessons/lessons after closing an incident."
+        )
+    return envelope
+
+
 @router.post("/lessons", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_lesson(body: LessonCreate, org_id: str = Query(default="default")):
     """Create a new lessons-learned entry."""
