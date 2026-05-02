@@ -298,6 +298,24 @@ Per `docs/empty_endpoints_triage_2026-04-26.md`:
 
 **31 `beast-mode` commits on `features/intermediate-stage`** (was 28 at §10; 3 more here).
 
+## 12. CTEM-app duplicate cleanup (2026-05-03 01:15–01:20)
+
+The §11 sweep flagged that the same 6 dead routers also had duplicate try blocks in `suite-api/apps/api/sub_apps/ctem_app.py:944-1078`. Closed in one commit:
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `39e77140` | Cleanup: delete 6 duplicate dead-router blocks from ctem_app.py | -48 LOC, 6 silenced ImportError blocks removed for files that don't exist on disk. Cold-start clean (zero stale refs to the 6 modules). 157/157 regression PASS on the 4 phase-test subset. |
+
+### Session total
+
+**33 `beast-mode` commits on `features/intermediate-stage`** (HANDOFF + CTEM-dup since §11).
+
+### Remaining cold-start warnings (next session)
+
+After §11 + §12 sweeps, only 2 distinct WARN entries remain on cold-start:
+- `feature_flag_router unavailable` — LaunchDarkly SDK not installed; decide install dep or delete the router.
+- The `greynoise_router` Pydantic deprecation (`example` → `examples`) is cosmetic only.
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
