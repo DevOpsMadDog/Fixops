@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
@@ -17,10 +19,36 @@ except ImportError:  # pragma: no cover - environment without chromadb
     chromadb = None  # type: ignore[assignment]
     ChromaSettings = None  # type: ignore[assignment]
 
-try:  # Optional dependency for richer embeddings
-    from sentence_transformers import SentenceTransformer  # type: ignore
-except ImportError:  # pragma: no cover - keep optional
-    SentenceTransformer = None  # type: ignore[assignment]
+
+# NOTE: ``sentence_transformers`` is *intentionally* not imported at module load.
+# Importing it pulls in torch + transformers + tokenizers and adds ~3-4s to
+# cold-start even when the embedder is never used.  Use ``_get_sentence_transformer``
+# below which lazy-imports on first call and is gated on the FIXOPS_VECTOR_STORE
+# env var so test/dev environments never pay the cost.
+#
+# We keep ``SentenceTransformer`` exported as ``None`` so callers that historically
+# probed ``vector_store.SentenceTransformer is None`` keep working; the real class
+# is resolved on demand inside ``_get_sentence_transformer``.
+SentenceTransformer: Any = None  # type: ignore[assignment]
+_VECTOR_STORE_ENV_OPT_INS = {"chroma", "chromadb", "sentence-transformers", "sentence_transformers", "st"}
+
+
+@lru_cache(maxsize=1)
+def _get_sentence_transformer() -> Any:
+    """Lazy-import sentence_transformers.SentenceTransformer.
+
+    Gated on ``FIXOPS_VECTOR_STORE`` to avoid loading torch/transformers in
+    typical test/dev runs.  Returns ``None`` when the dependency is missing
+    or the env var is not set to a recognised opt-in value.
+    """
+    flag = os.getenv("FIXOPS_VECTOR_STORE", "").strip().lower()
+    if flag not in _VECTOR_STORE_ENV_OPT_INS:
+        return None
+    try:
+        from sentence_transformers import SentenceTransformer as _ST  # type: ignore
+    except ImportError:  # pragma: no cover - keep optional
+        return None
+    return _ST
 
 
 Vector = List[float]
@@ -152,10 +180,11 @@ class ChromaVectorStore(BaseVectorStore):
 
     @staticmethod
     def _resolve_embedder():
-        if SentenceTransformer is None:  # pragma: no cover - optional dependency
+        st_cls = _get_sentence_transformer()
+        if st_cls is None:  # pragma: no cover - optional dependency / env-gated
             return None
         try:
-            return SentenceTransformer("all-MiniLM-L6-v2")
+            return st_cls("all-MiniLM-L6-v2")
         except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - model download failures
             return None
 
@@ -438,7 +467,9 @@ __all__ = [
     "ChromaVectorStore",
     "InMemoryVectorStore",
     "SecurityPatternMatcher",
+    "SentenceTransformer",
     "VectorMatch",
     "VectorRecord",
     "VectorStoreError",
+    "_get_sentence_transformer",
 ]
