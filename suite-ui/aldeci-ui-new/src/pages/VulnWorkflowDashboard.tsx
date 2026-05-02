@@ -7,7 +7,7 @@
  *   2. Workflows table (title, workflow_type, priority, sla_tier, sla_due_date, status)
  *
  * Route: /vuln-workflow
- * API: GET /api/v1/vuln-workflow
+ * API: GET /api/v1/vuln-workflow/workflows + /api/v1/vuln-workflow/stats
  */
 
 import { useState, useEffect } from "react";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -27,33 +28,15 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_WORKFLOWS = [
-  { id: "wf-001", title: "Patch Log4Shell on prod-web-01",         workflow_type: "patch",         priority: "critical", sla_tier: "P1", sla_due_date: "2026-04-17", status: "open"       },
-  { id: "wf-002", title: "Remediate SSRF in billing service",       workflow_type: "code_fix",      priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-18", status: "in_progress"},
-  { id: "wf-003", title: "Rotate exposed AWS credentials",          workflow_type: "credential",    priority: "critical", sla_tier: "P1", sla_due_date: "2026-04-16", status: "overdue"    },
-  { id: "wf-004", title: "Update OpenSSL on bastion hosts",         workflow_type: "patch",         priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-20", status: "in_progress"},
-  { id: "wf-005", title: "Fix XSS in customer portal",             workflow_type: "code_fix",      priority: "medium",   sla_tier: "P3", sla_due_date: "2026-04-25", status: "open"       },
-  { id: "wf-006", title: "Disable TLS 1.0 on API gateway",         workflow_type: "configuration", priority: "medium",   sla_tier: "P3", sla_due_date: "2026-04-22", status: "closed"     },
-  { id: "wf-007", title: "Patch VMware ESXi hypervisors",           workflow_type: "patch",         priority: "critical", sla_tier: "P1", sla_due_date: "2026-04-15", status: "overdue"    },
-  { id: "wf-008", title: "Remediate SQLi in legacy API",            workflow_type: "code_fix",      priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-19", status: "in_progress"},
-  { id: "wf-009", title: "Update nginx — CVE-2026-0482",           workflow_type: "patch",         priority: "low",      sla_tier: "P4", sla_due_date: "2026-04-30", status: "open"       },
-  { id: "wf-010", title: "Enforce MFA on admin accounts",           workflow_type: "configuration", priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-16", status: "closed"     },
-];
-
-const MOCK_STATS = { total_workflows: 218, open_workflows: 87, overdue: 14, closed_today: 9 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -96,28 +79,38 @@ function StatusBadge({ status }: { status: string }) {
 export default function VulnWorkflowDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveWorkflows, setLiveWorkflows] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [workflows, setWorkflows] = useState<Record<string, unknown>[]>([]);
+  const [stats, setStats] = useState<Record<string, number>>({});
 
-  useEffect(() => {
+  const fetchData = () => {
+    setLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/vuln-workflow/workflows?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/vuln-workflow/stats?org_id=${ORG_ID}`),
+      apiFetch("/api/v1/vuln-workflow/workflows?org_id=default"),
+      apiFetch("/api/v1/vuln-workflow/stats?org_id=default"),
     ]).then(([wfRes, statsRes]) => {
-      if (wfRes.status === "fulfilled") setLiveWorkflows(wfRes.value?.workflows ?? wfRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+      if (wfRes.status === "fulfilled") {
+        const v = wfRes.value;
+        setWorkflows(Array.isArray(v) ? v : Array.isArray(v?.workflows) ? v.workflows : []);
+      }
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value ?? {});
+      }
+    }).finally(() => setLoading(false));
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { fetchData(); }, []);
 
-  const workflows = liveWorkflows ?? MOCK_WORKFLOWS;
-  const stats     = liveStats     ?? MOCK_STATS;
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+    </div>
+  );
 
   return (
     <motion.div
@@ -138,10 +131,10 @@ export default function VulnWorkflowDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Workflows" value={stats.total_workflows} icon={Workflow}     trend="flat" className="border-amber-500/20" />
-        <KpiCard title="Open"           value={stats.open_workflows}  icon={AlertOctagon} trend="down" className="border-orange-500/20" />
-        <KpiCard title="Overdue"        value={stats.overdue}         icon={Clock}        trend="down" className="border-amber-500/20" />
-        <KpiCard title="Closed Today"   value={stats.closed_today}    icon={CheckCircle}  trend="up"   className="border-orange-500/20" />
+        <KpiCard title="Total Workflows" value={stats.total_workflows ?? 0} icon={Workflow}     trend="flat" className="border-amber-500/20" />
+        <KpiCard title="Open"           value={stats.open_workflows ?? 0}  icon={AlertOctagon} trend="down" className="border-orange-500/20" />
+        <KpiCard title="Overdue"        value={stats.overdue ?? 0}         icon={Clock}        trend="down" className="border-amber-500/20" />
+        <KpiCard title="Closed Today"   value={stats.closed_today ?? 0}    icon={CheckCircle}  trend="up"   className="border-orange-500/20" />
       </div>
 
       {/* Workflows Table */}
@@ -153,7 +146,7 @@ export default function VulnWorkflowDashboard() {
               Remediation Workflows
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {workflows.filter((w: any) => w.status === "overdue").length} overdue
+              {workflows.filter((w) => w.status === "overdue").length} overdue
             </Badge>
           </div>
           <CardDescription className="text-xs">
@@ -161,44 +154,52 @@ export default function VulnWorkflowDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Title</TableHead>
-                  <TableHead className="text-[11px] h-8">Type</TableHead>
-                  <TableHead className="text-[11px] h-8">Priority</TableHead>
-                  <TableHead className="text-[11px] h-8">SLA Tier</TableHead>
-                  <TableHead className="text-[11px] h-8">Due Date</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {workflows.map((wf: any, i: number) => (
-                  <TableRow key={wf.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-semibold text-[11px] text-amber-300 max-w-[240px] truncate">
-                      {wf.title ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(wf.workflow_type ?? "—").replace(/_/g, " ")}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <PriorityBadge priority={wf.priority ?? "medium"} />
-                    </TableCell>
-                    <TableCell className="py-2 font-mono text-[11px] text-orange-300">
-                      {wf.sla_tier ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {wf.sla_due_date ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-right">
-                      <StatusBadge status={wf.status ?? "open"} />
-                    </TableCell>
+          {workflows.length === 0 ? (
+            <EmptyState
+              icon={Workflow}
+              title="No workflows found"
+              description="Remediation workflows will appear here once the API returns data."
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Title</TableHead>
+                    <TableHead className="text-[11px] h-8">Type</TableHead>
+                    <TableHead className="text-[11px] h-8">Priority</TableHead>
+                    <TableHead className="text-[11px] h-8">SLA Tier</TableHead>
+                    <TableHead className="text-[11px] h-8">Due Date</TableHead>
+                    <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {workflows.map((wf, i) => (
+                    <TableRow key={(wf.id as string) ?? i} className="hover:bg-muted/30">
+                      <TableCell className="py-2 font-semibold text-[11px] text-amber-300 max-w-[240px] truncate">
+                        {(wf.title as string) ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
+                        {((wf.workflow_type as string) ?? "—").replace(/_/g, " ")}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <PriorityBadge priority={(wf.priority as string) ?? "medium"} />
+                      </TableCell>
+                      <TableCell className="py-2 font-mono text-[11px] text-orange-300">
+                        {(wf.sla_tier as string) ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">
+                        {(wf.sla_due_date as string) ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 text-right">
+                        <StatusBadge status={(wf.status as string) ?? "open"} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
