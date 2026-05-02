@@ -209,4 +209,34 @@ suite-ui/aldeci-ui-new/src/pages/onboarding/OnboardingWizard.tsx
 
 ---
 
+## 9. Post-handoff cleanup wave (2026-05-03 00:00–00:30)
+
+After the main HANDOFF refresh (`a885a51d`), the watchdog dispatched 3 more cleanup commits:
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `669e950d` | Retire dead `suite-ui/aldeci/` refs | CI + 3 dev scripts + CLAUDE.md + copilot-instructions repointed to `aldeci-ui-new/`. Suite-ui/aldeci/ disk-deleted in `5f415a1d` had stale refs. ~17 dependabot vulns retire on next scan. 170/170 regression PASS. |
+| `b3db76e0` | Empty-endpoints batch-6 | 6 class-c endpoints canonicalized (intel-enrichment, risk-treatment, security-budget, access-requests, cloud-governance, security-chaos). 9 new tests + 170 regression PASS. |
+| `a8a35188` | Empty-endpoints batch-7 | 7 class-c endpoints canonicalized (cloud-ir, gdpr, microsegmentation, network-forensics, network-segmentation, awareness-gamification, posture-reporting). |
+
+### Empty-endpoints triage final state
+
+Per `docs/empty_endpoints_triage_2026-04-26.md`:
+- **24 of 29 fully closed** (batches 1–7 + 8 importer DONEs)
+- **4 deferred to customer-engagement sprint** (need real cloud/PAM creds): #3 asset-criticality, #14 session-recording, #18 cloud-cost (CCM), #20 sspm/apps
+- **1 already aligned** (no work needed)
+
+### Total session commits (2026-05-02 evening + 2026-05-03 night cleanup)
+
+**21 total `beast-mode` commits on `features/intermediate-stage`** spanning the founder's BUG/FEATURE pivot + DoD audit + post-handoff cleanup.
+
+### Open items for next session (unchanged from §5 + 1 update)
+
+- **Dependabot vulns**: was 117 → expected ~100 after suite-ui/aldeci-CI cleanup retires (next dependabot scan). Top remaining: bump deprecated npm + Python deps in batches.
+- **4 class-a empty endpoints**: need real cloud connector creds — sprint-able with customer engagement.
+- **TrueCourse code-quality**: ~13,100 legacy violations, hot paths cleaned, rest sprint-able.
+- **Performance audit**: deferred per HANDOFF §5.
+
+---
+
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
