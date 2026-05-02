@@ -200,3 +200,60 @@ def list_incidents(
 def get_governance_stats(org_id: str = Query(default="default")):
     """Return aggregated AI governance statistics."""
     return _get_engine().get_governance_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Rule context requirements
+# ---------------------------------------------------------------------------
+
+class RuleContextRequirementCreate(BaseModel):
+    rule_key: str
+    tier: str = "metadata"
+    max_tokens: int = 4096
+
+
+@router.post("/rules/context-requirements", dependencies=[Depends(api_key_auth)], status_code=201)
+def register_rule_context_requirement(
+    body: RuleContextRequirementCreate,
+    org_id: str = Query(default="default"),
+):
+    """Register or upsert a per-rule LLM context requirement (tier + token budget)."""
+    try:
+        return _get_engine().register_rule_context_requirement(
+            org_id, body.rule_key, body.tier, body.max_tokens
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/rules/context-requirements", dependencies=[Depends(api_key_auth)])
+def list_rule_context_requirements(org_id: str = Query(default="default")):
+    """List all registered rule context requirements for the org."""
+    return _get_engine().list_rule_context_requirements(org_id)
+
+
+# ---------------------------------------------------------------------------
+# LLM cost estimation
+# ---------------------------------------------------------------------------
+
+class CostEstimateRequest(BaseModel):
+    rule_keys: List[str] = []
+    file_count: int = 1
+
+
+@router.post("/cost/estimate", dependencies=[Depends(api_key_auth)])
+def estimate_llm_cost(body: CostEstimateRequest, org_id: str = Query(default="default")):
+    """Estimate LLM token cost for a scan across supplied rules and file count."""
+    try:
+        return _get_engine().estimate_llm_cost(org_id, body.rule_keys, body.file_count)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/cost/preflight", dependencies=[Depends(api_key_auth)])
+def preflight_estimate(body: CostEstimateRequest, org_id: str = Query(default="default")):
+    """Pre-flight cost estimate with human-readable summary and tier distribution."""
+    try:
+        return _get_engine().preflight_estimate(org_id, body.rule_keys, body.file_count)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
