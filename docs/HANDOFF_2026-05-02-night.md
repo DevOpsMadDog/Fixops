@@ -274,6 +274,30 @@ Per `docs/empty_endpoints_triage_2026-04-26.md`:
 - **Test pollution**: batch-6/7 tests pass alone, fail combined — TestClient state leak documented in MEMORY (`feedback_test_pollution_batch67.md`). Refactor for fixture isolation.
 - **Other silenced ImportErrors**: 576 `try/except ImportError` wrappers in `app.py` likely hide more dead modules (per perf-audit bonus); sweep needed.
 
+## 11. Silenced-imports sweep (2026-05-03 01:00–01:15)
+
+3 commits closed the silenced-import surface in `suite-api/apps/api/app.py`:
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `60a8ea9e` | Audit: triage 9 broken of 518 silenced ImportErrors | Read-only AST sweep; 763 try blocks; 534 silenced imports; 518 unique module targets; 9 silently broken (1.7%). Top broken: `pipeline_routes.py` (`suite_core.` typo silently kills `/api/v1/pipeline/*`). |
+| `c96dba09` | Cleanup: fix 9 silently-broken imports | All 9 RESOLVED: `pipeline_routes.py` (`suite_core`→`core` + Pydantic v2 `regex`→`pattern` + `RBACManager`→`RBACEngine`), `connector_bridge.py` (DependabotConnector path), `compliance_seed_router.py` (get_org_id from `org_middleware`), 6 dead routers DELETED at lines 7643-7679. **Net: +16 routes restored** (pipeline 0→10, compliance-seed 0→6, total 8985→9001). 753/753 regression PASS. |
+
+### Net surface changes from silenced-import sweep
+- `app.py`: 6 dead try/except blocks removed (~36 LOC)
+- `pipeline_routes.py`: 3 `suite_core.` → `core.` + Pydantic v1→v2 + RBACManager alias
+- `connector_bridge.py`: DependabotConnector import to canonical path
+- `compliance_seed_router.py`: get_org_id imported from canonical `org_middleware`
+- Cold-start warnings: 4 distinct → 2 distinct (LaunchDarkly + feature_flag_router remain — out-of-scope follow-ups)
+
+### Out-of-scope follow-up
+- `suite-api/apps/api/sub_apps/ctem_app.py:946-1075` has 6 duplicate dead-router try blocks for the SAME files just deleted from `app.py` (#4-#9 of triage). Same delete pattern; ~80 LOC removable.
+- LaunchDarkly SDK not installed → `feature_flag_router` import fails. Decide: install dep OR delete the router.
+
+### Total session commits
+
+**31 `beast-mode` commits on `features/intermediate-stage`** (was 28 at §10; 3 more here).
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
