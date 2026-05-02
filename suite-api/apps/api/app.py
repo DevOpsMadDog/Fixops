@@ -312,13 +312,7 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("CTEM Pipeline router not available: %s", e)
 
-# SOAR Engine — Security Orchestration, Automation and Response
-soar_router: Optional[APIRouter] = None
-try:
-    from apps.api.soar_router import router as soar_router
-    logging.getLogger(__name__).info("Loaded SOAR Engine router")
-except ImportError as e:
-    logging.getLogger(__name__).warning("SOAR Engine router not available: %s", e)
+# soar_router — moved to ctem_app.py (Wave-C-final 2026-05-03; was split-mount L316/L3137)
 
 # Security Metrics & OKR Tracking — DORA metrics, benchmarks, SLA, ROI, reports
 security_metrics_router: Optional[APIRouter] = None
@@ -328,21 +322,8 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Security Metrics router not available: %s", e)
 
-# IR Playbook Engine — NIST 800-61 structured incident response with evidence chain
-ir_playbook_router: Optional[APIRouter] = None
-try:
-    from apps.api.ir_playbook_router import router as ir_playbook_router
-    logging.getLogger(__name__).info("Loaded IR Playbook Engine router")
-except ImportError as e:
-    logging.getLogger(__name__).warning("IR Playbook Engine router not available: %s", e)
-
-# IR Playbook Runner — 5 built-in playbooks with real automated actions
-ir_playbook_runner_router: Optional[APIRouter] = None
-try:
-    from apps.api.ir_playbook_runner_router import router as ir_playbook_runner_router
-    logging.getLogger(__name__).info("Loaded IR Playbook Runner router")
-except ImportError as e:
-    logging.getLogger(__name__).warning("IR Playbook Runner router not available: %s", e)
+# ir_playbook_router — moved to ctem_app.py (Wave-C-final 2026-05-03; was split-mount L332/L3153)
+# ir_playbook_runner_router — moved to ctem_app.py (Wave-C-final 2026-05-03; was split-mount L340/L3161)
 
 # Security Policy Document Generator — auto-generate policies from platform config
 policy_generator_router: Optional[APIRouter] = None
@@ -400,13 +381,7 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Integration Hub router not available: %s", e)
 
-# Threat Intelligence Correlation — threat actor profiles and campaign data
-threat_intel_router: Optional[APIRouter] = None
-try:
-    from apps.api.threat_intel_router import router as threat_intel_router
-    logging.getLogger(__name__).info("Loaded Threat Intel router")
-except ImportError as e:
-    logging.getLogger(__name__).warning("Threat Intel router not available: %s", e)
+# threat_intel_router — moved to ctem_app.py (Wave-C-final 2026-05-03; was split-mount L404/L3187)
 
 # Database Security Scanner — CIS benchmarks, privilege audit, data exposure, query audit
 db_security_router: Optional[APIRouter] = None
@@ -432,13 +407,7 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("API Gateway Security router not available: %s", e)
 
-# Finding Correlation Engine — groups findings into Exposure Cases
-correlation_router: Optional[APIRouter] = None
-try:
-    from apps.api.correlation_router import router as correlation_router
-    logging.getLogger(__name__).info("Loaded Correlation Engine router")
-except ImportError as e:
-    logging.getLogger(__name__).warning("Correlation Engine router not available: %s", e)
+# correlation_router — moved to ctem_app.py (Wave-C-final 2026-05-03; was split-mount L436/L3212)
 
 # Trivy Scanner — real Docker image / filesystem / repo vulnerability scanning
 trivy_router: Optional[APIRouter] = None
@@ -3133,13 +3102,7 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Risk Scoring router at /api/v1/risk-scoring")
 
     # ── SOAR / IR Playbooks / Security Metrics ─────────────────────────────────
-    # SOAR Engine — automated playbook execution and security response
-    if soar_router:
-        app.include_router(
-            soar_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
-        _logger.info("Mounted SOAR Engine router")
+    # soar_router — moved to ctem_app.py (Wave-C-final 2026-05-03)
 
     # Security Metrics & OKR Tracking — DORA, benchmarks, SLA compliance, ROI, reports
     if security_metrics_router:
@@ -3149,21 +3112,8 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Security Metrics & OKR router")
 
-    # IR Playbook Engine — NIST 800-61 incident response, evidence chain, regulatory notifications
-    if ir_playbook_router:
-        app.include_router(
-            ir_playbook_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
-        _logger.info("Mounted IR Playbook Engine router")
-
-    # IR Playbook Runner — 5 built-in playbooks, real actions (block_ip, quarantine, ntfy.sh, GitHub Issues)
-    if ir_playbook_runner_router:
-        app.include_router(
-            ir_playbook_runner_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
-        _logger.info("Mounted IR Playbook Runner router")
+    # ir_playbook_router — moved to ctem_app.py (Wave-C-final 2026-05-03)
+    # ir_playbook_runner_router — moved to ctem_app.py (Wave-C-final 2026-05-03)
 
     # Security Policy Document Generator — generate, approve, archive, export policies
     if policy_generator_router:
@@ -3183,13 +3133,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Compliance Reports router")
 
-    # Threat Intel Correlation — threat actors and campaigns
-    if threat_intel_router:
-        app.include_router(
-            threat_intel_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Threat Intel router")
+    # threat_intel_router — moved to ctem_app.py (Wave-C-final 2026-05-03)
 
 
     # API Analytics — usage monitoring
@@ -3208,13 +3152,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted API Gateway Security router")
 
-    # Finding Correlation Engine — Exposure Cases, alert fatigue reduction
-    if correlation_router:
-        app.include_router(
-            correlation_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted Correlation Engine router")
+    # correlation_router — moved to ctem_app.py (Wave-C-final 2026-05-03)
 
     # ── Scanners — Trivy / Semgrep / Snyk / AWS / Azure ───────────────────────
     # Trivy Scanner — real Docker image / filesystem / repo vulnerability scanning
