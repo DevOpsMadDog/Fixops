@@ -552,3 +552,36 @@ After app.py was 100% cleaned, scanned suite-core/core engine modules for the sa
 ---
 
 *Final session lock: 2026-05-03 03:35. **STATUS: SESSION CLEAN, FULLY GREEN, 64 COMMITS SHIPPED.***
+
+## 21. Honesty alignment — quantum audit + PQ marketing softening (2026-05-03 03:35–03:45)
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `c386f587` | Audit: quantum_crypto retire-vs-install decision | Read-only investigation. 101 callers, 273 marketing claims across 20 docs. Recommendation: **KEEP-AS-DOCUMENTED-STUB** — RSA half real and shipping; algorithm-agile `HybridSignature` envelope IS the moat; PQ activation is a 1-day ticket when SCIF/IL5 contract requires `dilithium-py`. Doc: `docs/quantum_crypto_retire_decision_2026-05-03.md`. |
+| `e7d5f67c` | Docs: soften PQ-signature claims in 4 marketing docs | 21 phrases edited across `CEO_VISION.md`, `CTEM_PLUS_IDENTITY.md`, `ARCHITECTURE_v3.md`, `competitive_validation_2026-04-26.md`. Pattern: "FIPS 204 ML-DSA + RSA hybrid signatures (live)" → "Algorithm-agile hybrid envelope: RSA-PSS shipping; FIPS 204 ML-DSA activatable via `FIXOPS_PQ_BACKEND=dilithium-py` per SCIF/IL5 contract". Marketing tone preserved + technical accuracy restored. |
+
+### Honesty-alignment principle
+
+Same principle as BUG-3 EmptyState (silent MOCK_DATA → honest empty state) and the Wave-B-3b auth-bypass closure: **claims must match reality.** PQ-signature side now shows as "envelope-ready, activatable" rather than "live", aligning with the actual code path.
+
+### Final session totals (locked v4)
+
+- **67 `beast-mode` commits on `features/intermediate-stage`**
+- **9/9 founder DoD items DONE** + 10/10 E2E PASS
+- **753/753 Beast Mode regression GREEN** (verified 03:32, 7.81s)
+- **6722 routes mounted** (-2070 silent dups from 8792 baseline)
+- **232/232 dup blocks closed (100%)**
+- **31 suite-wide silenced-imports fixed**
+- **21 PQ marketing claims softened to honest "activatable" wording**
+- **0 cold-start warnings**
+- **0 regressions across entire session**
+- **184,414 graphify nodes / 574,972 edges / 9,014 communities**
+
+### PQ activation TODO (next sprint)
+- File ticket: pin `dilithium-py>=1.0` + Beast Mode test asserting `_backend == "dilithium-py"`
+- Add comment block at `quantum_crypto.py:20` flagging that `_sign_simplified` is integration-test-only
+- Cost: <1 day
+
+---
+
+*Final session lock v4: 2026-05-03 03:45. **STATUS: SESSION CLEAN + HONEST CLAIMS, 67 COMMITS SHIPPED.***
