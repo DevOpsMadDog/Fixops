@@ -171,16 +171,9 @@ def register_platform_routers(
     # ------------------------------------------------------------------
     # Real-Time Streaming / WebSocket / EventBus (formerly ~L3138-L3168)
     # ------------------------------------------------------------------
-
-    try:
-        from apps.api.websocket_routes import router as websocket_router  # noqa: PLC0415
-        app.include_router(
-            websocket_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
-        _logger.info("Mounted WebSocket router")
-    except ImportError as exc:
-        _logger.warning("websocket_router not available: %s", exc)
+    # NOTE: websocket_routes.py was removed 2026-05-02 — top-level `from suite_core.core...`
+    # import was broken (silently swallowed) and the router was never effectively mounted.
+    # Canonical /ws/events lives in ws_trustgraph_events_router.py (Wave-3 FEATURE-3).
 
     try:
         from apps.api.websocket_alerts_router import router as websocket_alerts_router  # noqa: PLC0415

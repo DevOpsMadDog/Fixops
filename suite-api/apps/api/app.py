@@ -203,13 +203,10 @@ except ImportError as e:
     logging.getLogger(__name__).warning("SSO router not available: %s", e)
 
 # Phase 10: New routers for E2E pipeline
-# WebSocket router for real-time event streaming
-websocket_router: Optional[APIRouter] = None
-try:
-    from apps.api.websocket_routes import router as websocket_router
-    logging.getLogger(__name__).info("Loaded WebSocket router")
-except ImportError as e:
-    logging.getLogger(__name__).warning("WebSocket router not available: %s", e)
+# NOTE: websocket_routes.py was removed 2026-05-02 — top-level `from suite_core.core...`
+# import was broken (silently swallowed) and the router was never mounted. Replaced by
+# canonical Wave-3 ws_trustgraph_events_router.py mounted in create_app() at /ws/events.
+# See FEATURE-3 (commit f098e412) for the canonical TrustGraph WebSocket spec.
 
 # WebSocket Alerts router — real-time security alert feed + test-broadcast endpoint
 websocket_alerts_router: Optional[APIRouter] = None

@@ -264,7 +264,7 @@ PLATFORM_ROUTER_MODULES: Set[str] = {
     "users_router", "teams_router", "admin_router", "tenant_router",
     "system_router", "metrics_router", "platform_router", "analytics_router",
     "ai_orchestrator_router", "formula_transparency_router",
-    "websocket_routes", "websocket_alerts_router", "ws_events_router",
+    "websocket_alerts_router", "ws_events_router",
     "stream_router", "sse_router", "streaming_router",
     "mcp_routes", "mcp_gateway_router", "mcp_router", "mcp_protocol_router",
     "trustgraph_routes", "trustgraph_quality_router", "trustgraph_maintenance_router",
