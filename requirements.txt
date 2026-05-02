@@ -46,3 +46,13 @@ sentence-transformers>=3.0.0
 # FEATURE-5: PostgreSQL backend for DBAdapter (DATABASE_URL=postgresql://...)
 # Optional at runtime — engines fall back to sqlite if unimportable.
 psycopg2-binary>=2.9,<3.0
+
+# 2026-05-03 night session: 5 INSTALL deps per docs/suite_core_install_retire_decisions_2026-05-03.md
+# Unlocks: GCP CSPM/SCC (3-cloud parity), LoRA distillation, real FIPS 204 PQ signing.
+# All 5 have existing try/except guards in suite-core that fall through to silent-empty
+# when missing — pinning is zero-risk; guards still permit absence in air-gapped builds.
+google-cloud-storage>=2.14
+google-cloud-securitycenter>=1.30
+google-auth>=2.27
+peft>=0.10
+dilithium-py>=1.0
