@@ -5,44 +5,218 @@ import logging
 import sqlite3
 import uuid
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
-from core.ai_agents import AIAgentAdvisor
-from core.analytics import ROIDashboard
-from core.compliance import ComplianceEvaluator
+# Lightweight imports kept eager — used in module-level isinstance() checks
+# and inexpensive constructors that always run.
 from core.configuration import OverlayConfig
-from core.context_engine import ContextEngine
-from core.enhanced_decision import EnhancedDecisionEngine
-from core.evidence import EvidenceHub
-from core.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
-from core.feature_matrix import build_feature_matrix
-from core.iac import IaCPostureEvaluator
-from core.iac_db import IaCDB
-from core.modules import PipelineContext, execute_custom_modules
-from core.onboarding import OnboardingGuide
-from core.performance import PerformanceSimulator
-from core.policy import PolicyAutomation
-from core.probabilistic import ProbabilisticForecastEngine
-from core.processing_layer import ProcessingLayer
-from core.services.deduplication import DeduplicationService
 from core.services.identity import IdentityResolver
-from core.severity_promotion import SeverityPromotionEngine
-from core.ssdlc import SSDLCEvaluator
-from core.tenancy import TenantLifecycleManager
-from core.vector_store import SecurityPatternMatcher
-from domain import CrosswalkRow
-from services.match.indexes import (
-    build_component_index,
-    build_cve_index,
-    build_finding_index,
-)
-from services.match.join import build_crosswalk
-from services.match.utils import build_lookup_tokens, extract_component_name
 
-from .knowledge_graph import KnowledgeGraphService
+# --------------------------------------------------------------------------- #
+# Perf R3 (2026-05-02) — module-load deferral
+#
+# Per perf audit (commit 0713a33f, R3): apps.api.pipeline previously imported
+# 22 heavy engines at module load (~3.9s self-time on cold storage). Each is
+# stateful per-overlay and is constructed inside orchestrator methods, so we
+# defer the *class symbol resolution* to first-use via @lru_cache factories.
+# Type hints stay valid via `from __future__ import annotations` + TYPE_CHECKING.
+# Public surface (PipelineOrchestrator, evaluate_compliance) is unchanged.
+# --------------------------------------------------------------------------- #
+
+if TYPE_CHECKING:  # pragma: no cover — types only
+    from core.ai_agents import AIAgentAdvisor
+    from core.analytics import ROIDashboard
+    from core.compliance import ComplianceEvaluator
+    from core.context_engine import ContextEngine
+    from core.enhanced_decision import EnhancedDecisionEngine
+    from core.evidence import EvidenceHub
+    from core.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
+    from core.iac import IaCPostureEvaluator
+    from core.iac_db import IaCDB
+    from core.modules import PipelineContext
+    from core.onboarding import OnboardingGuide
+    from core.performance import PerformanceSimulator
+    from core.policy import PolicyAutomation
+    from core.probabilistic import ProbabilisticForecastEngine
+    from core.processing_layer import ProcessingLayer
+    from core.services.deduplication import DeduplicationService
+    from core.severity_promotion import SeverityPromotionEngine
+    from core.ssdlc import SSDLCEvaluator
+    from core.tenancy import TenantLifecycleManager
+    from core.vector_store import SecurityPatternMatcher
+    from domain import CrosswalkRow
+
+    from .knowledge_graph import KnowledgeGraphService
+
+
+@lru_cache(maxsize=1)
+def _AIAgentAdvisor_cls():
+    from core.ai_agents import AIAgentAdvisor as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _ROIDashboard_cls():
+    from core.analytics import ROIDashboard as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _ComplianceEvaluator_cls():
+    from core.compliance import ComplianceEvaluator as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _ContextEngine_cls():
+    from core.context_engine import ContextEngine as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _EnhancedDecisionEngine_cls():
+    from core.enhanced_decision import EnhancedDecisionEngine as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _EvidenceHub_cls():
+    from core.evidence import EvidenceHub as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _ExploitFeedRefresher_cls():
+    from core.exploit_signals import ExploitFeedRefresher as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _ExploitSignalEvaluator_cls():
+    from core.exploit_signals import ExploitSignalEvaluator as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _build_feature_matrix_fn():
+    from core.feature_matrix import build_feature_matrix as _F
+    return _F
+
+
+@lru_cache(maxsize=1)
+def _IaCPostureEvaluator_cls():
+    from core.iac import IaCPostureEvaluator as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _IaCDB_cls():
+    from core.iac_db import IaCDB as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _PipelineContext_cls():
+    from core.modules import PipelineContext as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _execute_custom_modules_fn():
+    from core.modules import execute_custom_modules as _F
+    return _F
+
+
+@lru_cache(maxsize=1)
+def _OnboardingGuide_cls():
+    from core.onboarding import OnboardingGuide as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _PerformanceSimulator_cls():
+    from core.performance import PerformanceSimulator as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _PolicyAutomation_cls():
+    from core.policy import PolicyAutomation as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _ProbabilisticForecastEngine_cls():
+    from core.probabilistic import ProbabilisticForecastEngine as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _ProcessingLayer_cls():
+    from core.processing_layer import ProcessingLayer as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _DeduplicationService_cls():
+    from core.services.deduplication import DeduplicationService as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _SeverityPromotionEngine_cls():
+    from core.severity_promotion import SeverityPromotionEngine as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _SSDLCEvaluator_cls():
+    from core.ssdlc import SSDLCEvaluator as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _TenantLifecycleManager_cls():
+    from core.tenancy import TenantLifecycleManager as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _SecurityPatternMatcher_cls():
+    from core.vector_store import SecurityPatternMatcher as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _KnowledgeGraphService_cls():
+    from .knowledge_graph import KnowledgeGraphService as _C
+    return _C
+
+
+@lru_cache(maxsize=1)
+def _match_helpers():
+    """Bundle the five services.match.* helpers — they're always used together."""
+    from services.match.indexes import (
+        build_component_index,
+        build_cve_index,
+        build_finding_index,
+    )
+    from services.match.join import build_crosswalk
+    from services.match.utils import build_lookup_tokens, extract_component_name
+    return {
+        "build_component_index": build_component_index,
+        "build_cve_index": build_cve_index,
+        "build_finding_index": build_finding_index,
+        "build_crosswalk": build_crosswalk,
+        "build_lookup_tokens": build_lookup_tokens,
+        "extract_component_name": extract_component_name,
+    }
+
+
 from .normalizers import (
     CVERecordSummary,
     NormalizedBusinessContext,
@@ -184,10 +358,10 @@ class PipelineOrchestrator:
         self._dedup_service: Optional[DeduplicationService] = None
         self._dedup_db_path = self._repo_root / "data" / "deduplication" / "clusters.db"
 
-    def _ensure_dedup_service(self) -> DeduplicationService:
+    def _ensure_dedup_service(self) -> "DeduplicationService":
         """Lazily initialize deduplication service."""
         if self._dedup_service is None:
-            self._dedup_service = DeduplicationService(
+            self._dedup_service = _DeduplicationService_cls()(
                 self._dedup_db_path, self._identity_resolver
             )
         return self._dedup_service
@@ -234,12 +408,12 @@ class PipelineOrchestrator:
                 return normalised
         return "medium"
 
-    def _ensure_vector_matcher(self, overlay: OverlayConfig) -> Optional[SecurityPatternMatcher]:
+    def _ensure_vector_matcher(self, overlay: OverlayConfig) -> "Optional[SecurityPatternMatcher]":
         config = overlay.module_config("vector_store")
         signature = json.dumps(config, sort_keys=True, default=str)
         if self._vector_matcher is None or self._vector_signature != signature:
             try:
-                matcher = SecurityPatternMatcher(config, root=self._repo_root)
+                matcher = _SecurityPatternMatcher_cls()(config, root=self._repo_root)
                 self._vector_matcher = matcher
                 self._vector_signature = signature
             except (FileNotFoundError, ValueError) as exc:
@@ -656,12 +830,14 @@ class PipelineOrchestrator:
             row for row in design_dataset.get("rows", []) if isinstance(row, Mapping)
         ]
 
-        lookup_tokens = build_lookup_tokens(rows)
+        # Perf R3: lazy-import services.match.* on first orchestrator call.
+        _m = _match_helpers()
+        lookup_tokens = _m["build_lookup_tokens"](rows)
         design_components = lookup_tokens.components
-        component_index = build_component_index(sbom.components)
-        finding_matches = build_finding_index(sarif.findings, lookup_tokens)
-        cve_matches = build_cve_index(cve.records, lookup_tokens)
-        crosswalk_rows = build_crosswalk(
+        component_index = _m["build_component_index"](sbom.components)
+        finding_matches = _m["build_finding_index"](sarif.findings, lookup_tokens)
+        cve_matches = _m["build_cve_index"](cve.records, lookup_tokens)
+        crosswalk_rows = _m["build_crosswalk"](
             rows,
             lookup_tokens,
             component_index=component_index,
@@ -719,9 +895,9 @@ class PipelineOrchestrator:
                 if not name:
                     continue
                 context_map[name.lower()] = component
-            updated_rows: List[CrosswalkRow] = []
+            updated_rows: List["CrosswalkRow"] = []
             for entry in crosswalk_rows:
-                candidate = extract_component_name(entry.design_row)
+                candidate = _m["extract_component_name"](entry.design_row)
                 if not candidate:
                     updated_rows.append(entry)
                     continue
@@ -739,7 +915,7 @@ class PipelineOrchestrator:
             suppressed_counts: Counter[str] = Counter()
             suppressed_refs = vex.suppressed_refs
             if suppressed_refs:
-                vex_filtered_rows: List[CrosswalkRow] = []
+                vex_filtered_rows: List["CrosswalkRow"] = []
                 for entry in crosswalk_rows:
                     component: Dict[str, Any] = dict(entry.sbom_component) if entry.sbom_component else {}  # type: ignore[arg-type,no-redef]
                     component_ref: Optional[str] = None
@@ -887,7 +1063,7 @@ class PipelineOrchestrator:
 
                 severity_overview["metadata"] = metadata
 
-        processing_layer = ProcessingLayer()
+        processing_layer = _ProcessingLayer_cls()()
         processing_result = processing_layer.evaluate(
             sbom_components=[component.to_dict() for component in sbom.components],
             sarif_findings=[finding.to_dict() for finding in sarif.findings],
@@ -951,7 +1127,7 @@ class PipelineOrchestrator:
             modules_status: Dict[str, str] = {}
             executed_modules: List[str] = []
             custom_outcomes: List[Dict[str, Any]] = []
-            knowledge_graph_builder = KnowledgeGraphService()
+            knowledge_graph_builder = _KnowledgeGraphService_cls()()
 
             overlay_metadata = dict(getattr(overlay, "metadata", {}) or {})
             runtime_warnings = list(overlay_metadata.get("runtime_warnings") or [])
@@ -1089,7 +1265,7 @@ class PipelineOrchestrator:
                 # IaC findings represent infrastructure policy violations
                 deploy_dedup_result = None
                 try:
-                    iac_db = IaCDB()
+                    iac_db = _IaCDB_cls()()
                     iac_findings = iac_db.list_findings(limit=1000)
                     if iac_findings:
                         deploy_findings_for_dedup = []
@@ -1333,22 +1509,23 @@ class PipelineOrchestrator:
                 modules_status["correlation_engine"] = "disabled"
 
             if overlay.is_module_enabled("exploit_signals"):
-                exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
-                refresher = ExploitFeedRefresher(overlay)
+                _ExploitSignalEvaluator = _ExploitSignalEvaluator_cls()
+                exploit_evaluator = _ExploitSignalEvaluator(overlay.exploit_settings)
+                refresher = _ExploitFeedRefresher_cls()(overlay)
                 refresh_summary = refresher.refresh(
                     cve, exploit_evaluator.last_refreshed
                 )
                 if refresh_summary:
                     result["exploit_feed_refresh"] = refresh_summary
                     if refresh_summary.get("status") == "refreshed":
-                        exploit_evaluator = ExploitSignalEvaluator(
+                        exploit_evaluator = _ExploitSignalEvaluator(
                             overlay.exploit_settings
                         )
                 exploit_summary = exploit_evaluator.evaluate(cve)
                 if exploit_summary:
                     result["exploitability_insights"] = exploit_summary
 
-                    promotion_engine = SeverityPromotionEngine(enabled=True)
+                    promotion_engine = _SeverityPromotionEngine_cls()(enabled=True)
                     promotion_evidence_list: List[Dict[str, Any]] = []
                     promoted_counts: Counter[str] = Counter()
 
@@ -1425,7 +1602,7 @@ class PipelineOrchestrator:
                 modules_status["guardrails"] = "disabled"
 
             if overlay.is_module_enabled("context_engine"):
-                context_engine = ContextEngine(overlay.context_engine_settings)
+                context_engine = _ContextEngine_cls()(overlay.context_engine_settings)
                 context_summary = context_engine.evaluate(rows, crosswalk)
                 if context is not None:
                     if isinstance(context_summary, Mapping):
@@ -1443,7 +1620,7 @@ class PipelineOrchestrator:
                 modules_status["context_engine"] = "disabled"
 
             if overlay.is_module_enabled("onboarding"):
-                onboarding = OnboardingGuide(overlay)
+                onboarding = _OnboardingGuide_cls()(overlay)
                 result["onboarding"] = onboarding.build(overlay.required_inputs)
                 modules_status["onboarding"] = "executed"
                 executed_modules.append("onboarding")
@@ -1455,7 +1632,7 @@ class PipelineOrchestrator:
                 result["evidence_bundle"] = {"status": "pending"}
 
             if overlay.is_module_enabled("compliance"):
-                compliance_evaluator = ComplianceEvaluator(overlay.compliance_settings)
+                compliance_evaluator = _ComplianceEvaluator_cls()(overlay.compliance_settings)
                 compliance_status = compliance_evaluator.evaluate(
                     result, context_summary
                 )
@@ -1467,7 +1644,7 @@ class PipelineOrchestrator:
 
             if overlay.is_module_enabled("policy_automation"):
                 if automation_ready:
-                    policy_automation = PolicyAutomation(overlay)
+                    policy_automation = _PolicyAutomation_cls()(overlay)
                     policy_plan = policy_automation.plan(
                         result, context_summary, compliance_status
                     )
@@ -1544,7 +1721,7 @@ class PipelineOrchestrator:
             result["knowledge_graph"] = knowledge_graph
 
             if overlay.is_module_enabled("ssdlc"):
-                ssdlc_evaluator = SSDLCEvaluator(overlay.ssdlc_settings)
+                ssdlc_evaluator = _SSDLCEvaluator_cls()(overlay.ssdlc_settings)
                 ssdlc_assessment = ssdlc_evaluator.evaluate(
                     design_rows=rows,
                     sbom=sbom,
@@ -1563,7 +1740,7 @@ class PipelineOrchestrator:
                 modules_status["ssdlc"] = "disabled"
 
             if overlay.is_module_enabled("ai_agents"):
-                ai_advisor = AIAgentAdvisor(overlay.ai_agents)
+                ai_advisor = _AIAgentAdvisor_cls()(overlay.ai_agents)
                 ai_analysis = ai_advisor.analyse(rows, crosswalk)
                 if ai_analysis:
                     result["ai_agent_analysis"] = ai_analysis
@@ -1573,7 +1750,7 @@ class PipelineOrchestrator:
                 modules_status["ai_agents"] = "disabled"
 
             if overlay.is_module_enabled("probabilistic"):
-                probabilistic = ProbabilisticForecastEngine(
+                probabilistic = _ProbabilisticForecastEngine_cls()(
                     overlay.probabilistic_settings
                 )
                 forecast = probabilistic.evaluate(
@@ -1588,7 +1765,7 @@ class PipelineOrchestrator:
                 modules_status["probabilistic"] = "disabled"
 
             if overlay.is_module_enabled("analytics"):
-                analytics_engine = ROIDashboard(overlay.analytics_settings)
+                analytics_engine = _ROIDashboard_cls()(overlay.analytics_settings)
                 analytics_summary = analytics_engine.evaluate(
                     result,
                     overlay,
@@ -1603,7 +1780,7 @@ class PipelineOrchestrator:
                 modules_status["analytics"] = "disabled"
 
             if overlay.is_module_enabled("tenancy"):
-                tenancy_manager = TenantLifecycleManager(overlay.tenancy_settings)
+                tenancy_manager = _TenantLifecycleManager_cls()(overlay.tenancy_settings)
                 tenant_overview = tenancy_manager.evaluate(result, overlay)
                 result["tenant_lifecycle"] = tenant_overview
                 modules_status["tenancy"] = "executed"
@@ -1612,7 +1789,7 @@ class PipelineOrchestrator:
                 modules_status["tenancy"] = "disabled"
 
             if overlay.is_module_enabled("performance"):
-                performance_simulator = PerformanceSimulator(
+                performance_simulator = _PerformanceSimulator_cls()(
                     overlay.performance_settings
                 )
                 performance_profile = performance_simulator.simulate(result, overlay)
@@ -1637,7 +1814,7 @@ class PipelineOrchestrator:
                         cnapp_exposures=cnapp_exposures,
                     )
 
-                    enhanced_engine = EnhancedDecisionEngine(enhanced_settings)
+                    enhanced_engine = _EnhancedDecisionEngine_cls()(enhanced_settings)
                     enhanced_payload = enhanced_engine.evaluate_pipeline(
                         result,
                         context_summary=context_summary,
@@ -1662,7 +1839,7 @@ class PipelineOrchestrator:
                 module_overrides = overlay.module_config("iac_posture")
                 if module_overrides:
                     iac_settings.update(module_overrides)
-                iac_evaluator = IaCPostureEvaluator(iac_settings)
+                iac_evaluator = _IaCPostureEvaluator_cls()(iac_settings)
                 iac_posture = iac_evaluator.evaluate(rows, crosswalk, result)  # type: ignore[arg-type]
                 if iac_posture:
                     result["iac_posture"] = iac_posture
@@ -1673,7 +1850,7 @@ class PipelineOrchestrator:
 
             if overlay.is_module_enabled("evidence"):
                 try:
-                    evidence_hub = EvidenceHub(overlay)
+                    evidence_hub = _EvidenceHub_cls()(overlay)
                     evidence_bundle = evidence_hub.persist(
                         result, context_summary, compliance_status, policy_summary
                     )
@@ -1695,7 +1872,8 @@ class PipelineOrchestrator:
                 modules_status["pricing"] = "disabled"
 
             if overlay.custom_module_specs:
-                context: PipelineContext = PipelineContext(  # type: ignore[assignment,no-redef]
+                _PC = _PipelineContext_cls()
+                context: "PipelineContext" = _PC(  # type: ignore[assignment,no-redef]
                     design_rows=rows,  # type: ignore[arg-type]
                     crosswalk=crosswalk,
                     sbom=sbom,
@@ -1711,7 +1889,7 @@ class PipelineOrchestrator:
                     vex=vex,
                     cnapp=cnapp,
                 )
-                custom_outcomes = execute_custom_modules(
+                custom_outcomes = _execute_custom_modules_fn()(
                     overlay.custom_module_specs, context  # type: ignore[arg-type]
                 )
                 custom_executed = any(
@@ -1725,7 +1903,7 @@ class PipelineOrchestrator:
                 "executed": executed_modules,
                 "custom": custom_outcomes,
             }
-            result["feature_matrix"] = build_feature_matrix(result)
+            result["feature_matrix"] = _build_feature_matrix_fn()(result)
 
         risk_score = 0
         if context_summary and isinstance(context_summary, dict):
