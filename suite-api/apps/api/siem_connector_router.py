@@ -16,10 +16,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from connectors import siem_connector
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-
-from connectors import siem_connector
 
 logger = logging.getLogger(__name__)
 

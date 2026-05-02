@@ -21,10 +21,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends
-
 from apps.api.auth_deps import api_key_auth
-from core.cache_layer import cache_endpoint, TTL_HEALTH
+from core.cache_layer import TTL_HEALTH, cache_endpoint
+from fastapi import APIRouter, Depends
 
 _logger = logging.getLogger(__name__)
 

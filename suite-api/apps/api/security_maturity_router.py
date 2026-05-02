@@ -29,8 +29,9 @@ _engine = None
 def _get_engine():
     global _engine
     if _engine is None:
-        from core.security_maturity_engine import SecurityMaturityEngine
         from pathlib import Path
+
+        from core.security_maturity_engine import SecurityMaturityEngine
         db_path = str(Path(__file__).resolve().parents[4] / ".fixops_data" / "security_maturity.db")
         _engine = SecurityMaturityEngine(db_path)
     return _engine

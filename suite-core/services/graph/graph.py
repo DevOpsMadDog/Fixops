@@ -18,8 +18,9 @@ except ImportError:  # pragma: no cover - optional dependency
     nx = None  # type: ignore[assignment]
 
 from packaging.version import InvalidVersion, Version
-from services.provenance.attestation import ProvenanceAttestation, load_attestation
 from telemetry import get_meter, get_tracer
+
+from services.provenance.attestation import ProvenanceAttestation, load_attestation
 
 try:  # TrustGraph event bus — optional, never blocks on failure
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore

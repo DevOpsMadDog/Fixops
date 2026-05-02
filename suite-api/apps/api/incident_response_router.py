@@ -148,8 +148,9 @@ def create_incident(request: CreateIncidentRequest) -> Dict[str, Any]:
     result = incident.model_dump(mode="json")
     # TrustGraph async indexing (fire-and-forget, non-blocking)
     try:
-        from core.trustgraph_event_bus import EVENT_INCIDENT_CREATED, get_event_bus
         import asyncio
+
+        from core.trustgraph_event_bus import EVENT_INCIDENT_CREATED, get_event_bus
         bus = get_event_bus()
         if bus and bus.enabled:
             asyncio.ensure_future(bus.emit(EVENT_INCIDENT_CREATED, {

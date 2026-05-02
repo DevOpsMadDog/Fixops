@@ -17,11 +17,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-
 from apps.api.auth_deps import api_key_auth
 from apps.api.org_middleware import get_org_id
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
 

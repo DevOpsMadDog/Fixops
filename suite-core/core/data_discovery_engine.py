@@ -495,7 +495,9 @@ class DataDiscoveryEngine:
         if not datastore_ref:
             raise ValueError("datastore_ref is required")
         try:
-            from core.security_dependency_mapping_engine import SecurityDependencyMappingEngine
+            from core.security_dependency_mapping_engine import (
+                SecurityDependencyMappingEngine,
+            )
         except ImportError:
             _logger.warning(
                 "data_discovery.link_to_layer.dep_map_missing org=%s datastore=%s",

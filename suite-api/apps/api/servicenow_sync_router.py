@@ -20,10 +20,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
@@ -193,14 +192,14 @@ def configure(req: ConfigureRequest):
     survives process restarts.
     """
     from core.servicenow_sync import (
-        ConflictResolution,
-        FieldMapping,
-        ServiceNowSyncConfig,
-        SyncDirection,
         _DEFAULT_FINDING_TO_SN_STATE,
         _DEFAULT_SEVERITY_TO_IMPACT,
         _DEFAULT_SEVERITY_TO_URGENCY,
         _DEFAULT_SN_STATE_TO_FINDING_STATUS,
+        ConflictResolution,
+        FieldMapping,
+        ServiceNowSyncConfig,
+        SyncDirection,
     )
 
     try:

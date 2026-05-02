@@ -812,7 +812,9 @@ def get_defender_xdr_connector() -> DefenderXDRConnector:
         if _singleton is None:
             from core.security_findings_engine import SecurityFindingsEngine
             try:
-                from core.security_event_correlation_engine import SecurityEventCorrelationEngine
+                from core.security_event_correlation_engine import (
+                    SecurityEventCorrelationEngine,
+                )
                 corr = SecurityEventCorrelationEngine()
             except (ImportError, RuntimeError, OSError) as exc:
                 _logger.warning("correlation engine unavailable: %s", exc)

@@ -149,9 +149,9 @@ class DistillStudent:
         if self._loaded or self._load_error:
             return self._loaded
         try:
+            import torch  # type: ignore
             from peft import PeftModel  # type: ignore
             from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore
-            import torch  # type: ignore
         except ImportError as exc:
             self._load_error = f"transformers/peft not installed: {exc}"
             logger.warning("DistillStudent unavailable — %s", self._load_error)

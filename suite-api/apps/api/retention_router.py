@@ -10,9 +10,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.data_retention import (
     DataCategory,
@@ -21,6 +18,8 @@ from core.data_retention import (
     PurgeRecord,
     RetentionPolicy,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/retention", tags=["retention"])
 

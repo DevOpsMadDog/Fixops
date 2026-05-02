@@ -27,8 +27,8 @@ try:
     from core.cspm import (
         CloudProvider,
         CloudResource,
-        CSPMEngine,
         ComplianceStatus,
+        CSPMEngine,
         ResourceCategory,
     )
 
@@ -152,7 +152,8 @@ def run_scan(request: ScanRequest) -> Dict[str, Any]:
     results = engine.run_security_checks(org_id=request.org_id, provider=provider_filter)
     # TrustGraph explicit indexing (fire-and-forget)
     try:
-        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED
+        from core.trustgraph_event_bus import get_event_bus as _get_eb
         _bus = _get_eb()
         if _bus and _bus.enabled and results:
             import asyncio as _asyncio

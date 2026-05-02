@@ -15,9 +15,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field, field_validator
-
 from apps.api.auth_deps import api_key_auth
 from core.executive_dashboard import (
     BoardReportGenerator,
@@ -37,6 +34,8 @@ from core.executive_dashboard import (
     RiskTrendSnapshot,
     create_executive_dashboard,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter(
     prefix="/api/v1/executive",

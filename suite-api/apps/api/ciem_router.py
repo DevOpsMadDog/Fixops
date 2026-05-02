@@ -8,10 +8,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from core.ciem_engine import CIEMEngine, get_ciem_engine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.ciem_engine import CIEMEngine, get_ciem_engine
 
 router = APIRouter(prefix="/api/v1/ciem", tags=["ciem"])
 

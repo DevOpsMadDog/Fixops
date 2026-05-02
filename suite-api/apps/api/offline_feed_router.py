@@ -39,7 +39,9 @@ _feed_engine = None
 def _get_fusion_engine():
     global _fusion_engine
     if _fusion_engine is None:
-        from core.threat_intel_fusion_engine import ThreatIntelFusionEngine  # type: ignore
+        from core.threat_intel_fusion_engine import (
+            ThreatIntelFusionEngine,  # type: ignore
+        )
 
         _fusion_engine = ThreatIntelFusionEngine()
     return _fusion_engine
@@ -48,7 +50,9 @@ def _get_fusion_engine():
 def _get_feed_engine():
     global _feed_engine
     if _feed_engine is None:
-        from core.threat_feed_subscription_engine import ThreatFeedSubscriptionEngine  # type: ignore
+        from core.threat_feed_subscription_engine import (
+            ThreatFeedSubscriptionEngine,  # type: ignore
+        )
 
         _feed_engine = ThreatFeedSubscriptionEngine()
     return _feed_engine

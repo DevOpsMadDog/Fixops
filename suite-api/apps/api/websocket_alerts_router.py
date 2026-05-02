@@ -24,9 +24,21 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-
-from apps.api.auth_deps import api_key_auth, _load_api_tokens, _DEV_MODE, _decode_jwt, _HAS_JWT_AUTH
+from apps.api.auth_deps import (
+    _DEV_MODE,
+    _HAS_JWT_AUTH,
+    _decode_jwt,
+    _load_api_tokens,
+    api_key_auth,
+)
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+)
 
 try:
     from core.alert_broadcaster import (

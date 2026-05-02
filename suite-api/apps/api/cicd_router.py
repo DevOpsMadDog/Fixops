@@ -15,15 +15,14 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
 from core.cicd_integration import (
     CICDPolicyEngine,
     PolicyRule,
     ScanResult,
 )
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

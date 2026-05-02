@@ -23,10 +23,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
+from core.siem_output_engine import SIEMOutputEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.siem_output_engine import SIEMOutputEngine
 
 logger = logging.getLogger(__name__)
 

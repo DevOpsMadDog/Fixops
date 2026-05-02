@@ -22,8 +22,8 @@ from __future__ import annotations
 import csv
 import io
 import uuid
-from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import structlog

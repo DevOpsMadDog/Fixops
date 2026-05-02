@@ -42,7 +42,6 @@ except ImportError:  # pragma: no cover
 
 from core.agentless_snapshot_scan_engine import SnapshotBlob, SnapshotRef  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Credential presence check (no SDK call)
 # ---------------------------------------------------------------------------

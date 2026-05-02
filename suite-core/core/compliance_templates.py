@@ -19,7 +19,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from core.playbook_engine import Playbook, PlaybookStep, PlaybookStatus, PlaybookStepType
+from core.playbook_engine import (
+    Playbook,
+    PlaybookStatus,
+    PlaybookStep,
+    PlaybookStepType,
+)
 
 _logger = logging.getLogger(__name__)
 

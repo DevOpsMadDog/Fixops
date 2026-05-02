@@ -18,10 +18,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
@@ -39,7 +38,9 @@ _data_engine = None
 def _get_dep_engine():
     global _dep_engine
     if _dep_engine is None:
-        from core.security_dependency_mapping_engine import SecurityDependencyMappingEngine
+        from core.security_dependency_mapping_engine import (
+            SecurityDependencyMappingEngine,
+        )
         _dep_engine = SecurityDependencyMappingEngine()
     return _dep_engine
 

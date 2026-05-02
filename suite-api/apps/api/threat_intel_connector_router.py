@@ -25,10 +25,9 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 

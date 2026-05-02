@@ -17,12 +17,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
 from core.event_emitter import EventEmitter, EventType, SecurityEvent, Severity
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

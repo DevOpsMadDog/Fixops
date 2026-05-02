@@ -23,10 +23,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
@@ -41,7 +40,9 @@ _engine = None
 def _get_engine():
     global _engine
     if _engine is None:
-        from core.container_registry_security_engine import ContainerRegistrySecurityEngine
+        from core.container_registry_security_engine import (
+            ContainerRegistrySecurityEngine,
+        )
         _engine = ContainerRegistrySecurityEngine()
     return _engine
 

@@ -19,10 +19,9 @@ import logging
 import threading
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
@@ -157,12 +156,12 @@ def ingest_vendor(req: IngestVendorRequest) -> Dict[str, Any]:
     SecurityFindingsEngine + AccessAnomalyEngine path used by ``/sync``.
     """
     from connectors.iam_sso_connector import (  # local import keeps cold start cheap
-        normalize_vendor_event,
-        _login_to_finding_payload,
         _admin_to_finding_payload,
         _login_to_anomaly_event,
-        _safe_import_findings_engine,
+        _login_to_finding_payload,
         _safe_import_anomaly_engine,
+        _safe_import_findings_engine,
+        normalize_vendor_event,
     )
 
     findings_engine = _safe_import_findings_engine()

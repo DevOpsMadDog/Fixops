@@ -78,7 +78,9 @@ def register_aspm_routers(
 
     # Remediation
     try:
-        from apps.api.remediation_router import router as remediation_router  # noqa: PLC0415
+        from apps.api.remediation_router import (
+            router as remediation_router,  # noqa: PLC0415
+        )
         app.include_router(remediation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
     except ImportError:
         pass
@@ -97,7 +99,9 @@ def register_aspm_routers(
 
     # Validation router — compatibility checking for security tool outputs
     try:
-        from apps.api.validation_router import router as validation_router  # noqa: PLC0415
+        from apps.api.validation_router import (
+            router as validation_router,  # noqa: PLC0415
+        )
     except ImportError:
         validation_router = None  # type: ignore[assignment]
     if validation_router:
@@ -123,7 +127,9 @@ def register_aspm_routers(
 
     # Application Security — SAST/DAST findings, scan runs, appsec stats
     try:
-        from apps.api.application_security_router import router as application_security_router
+        from apps.api.application_security_router import (
+            router as application_security_router,
+        )
         app.include_router(application_security_router)
         _logger.info("Mounted Application Security router")
     except ImportError as _as_err:
@@ -195,7 +201,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.secret_scanner_engine_router import router as secret_scanner_engine_router
+        from apps.api.secret_scanner_engine_router import (
+            router as secret_scanner_engine_router,
+        )
         app.include_router(secret_scanner_engine_router)
         _logger.info("Mounted Secret Scanner Engine router at /api/v1/secret-scanner")
     except ImportError:
@@ -209,7 +217,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.api_security_engine_router import router as api_security_engine_router
+        from apps.api.api_security_engine_router import (
+            router as api_security_engine_router,
+        )
         app.include_router(api_security_engine_router)
     except ImportError:
         pass
@@ -235,21 +245,27 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.secrets_management_router import router as secrets_management_router
+        from apps.api.secrets_management_router import (
+            router as secrets_management_router,
+        )
         app.include_router(secrets_management_router)
         _logger.info("Mounted Secrets Management router at /api/v1/secrets-management")
     except ImportError:
         pass
 
     try:
-        from apps.api.vulnerability_remediation_router import router as vulnerability_remediation_router
+        from apps.api.vulnerability_remediation_router import (
+            router as vulnerability_remediation_router,
+        )
         app.include_router(vulnerability_remediation_router)
         _logger.info("Mounted Vulnerability Remediation router at /api/v1/vuln-remediation")
     except ImportError:
         pass
 
     try:
-        from apps.api.api_gateway_security_router import router as api_gateway_security_router
+        from apps.api.api_gateway_security_router import (
+            router as api_gateway_security_router,
+        )
         app.include_router(api_gateway_security_router)
         _logger.info("Mounted API Gateway Security router at /api/v1/api-gateway-security")
     except ImportError:
@@ -263,7 +279,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.supply_chain_monitoring_router import router as supply_chain_monitoring_router
+        from apps.api.supply_chain_monitoring_router import (
+            router as supply_chain_monitoring_router,
+        )
         app.include_router(supply_chain_monitoring_router)
         _logger.info("Mounted Supply Chain Monitoring router at /api/v1/supply-chain-monitoring")
     except ImportError:
@@ -277,7 +295,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.container_runtime_security_router import router as container_runtime_security_router
+        from apps.api.container_runtime_security_router import (
+            router as container_runtime_security_router,
+        )
         app.include_router(container_runtime_security_router)
         _logger.info("Mounted Container Runtime Security router at /api/v1/container-runtime")
     except ImportError:
@@ -305,21 +325,27 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.mobile_app_security_router import router as mobile_app_security_router
+        from apps.api.mobile_app_security_router import (
+            router as mobile_app_security_router,
+        )
         app.include_router(mobile_app_security_router)
         _logger.info("Mounted Mobile App Security router at /api/v1/mobile-app-security")
     except ImportError:
         pass
 
     try:
-        from apps.api.api_abuse_detection_router import router as api_abuse_detection_router
+        from apps.api.api_abuse_detection_router import (
+            router as api_abuse_detection_router,
+        )
         app.include_router(api_abuse_detection_router)
         _logger.info("Mounted API Abuse Detection router at /api/v1/api-abuse")
     except ImportError:
         pass
 
     try:
-        from apps.api.autonomous_remediation_router import router as autonomous_remediation_router
+        from apps.api.autonomous_remediation_router import (
+            router as autonomous_remediation_router,
+        )
         app.include_router(autonomous_remediation_router)
         _logger.info("Mounted Autonomous Remediation router at /api/v1/autonomous-remediation")
     except ImportError:
@@ -333,7 +359,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.api_threat_protection_router import router as api_threat_protection_router
+        from apps.api.api_threat_protection_router import (
+            router as api_threat_protection_router,
+        )
         app.include_router(api_threat_protection_router)
         _logger.info("Mounted API Threat Protection router at /api/v1/api-threat-protection")
     except ImportError:
@@ -347,7 +375,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.vulnerability_workflow_router import router as vulnerability_workflow_router
+        from apps.api.vulnerability_workflow_router import (
+            router as vulnerability_workflow_router,
+        )
         app.include_router(vulnerability_workflow_router)
         _logger.info("Mounted Vulnerability Workflow router at /api/v1/vuln-workflow")
     except ImportError:
@@ -403,7 +433,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.security_dependency_risk_router import router as security_dependency_risk_router
+        from apps.api.security_dependency_risk_router import (
+            router as security_dependency_risk_router,
+        )
         app.include_router(security_dependency_risk_router)
         _logger.info("Mounted Security Dependency Risk router at /api/v1/dependency-risk")
     except ImportError:
@@ -433,6 +465,8 @@ def register_aspm_routers(
     try:
         from apps.api.github_app_router import (
             router as github_app_router,
+        )
+        from apps.api.github_app_router import (
             router_hooks as hooks_yaml_router,
         )
         app.include_router(github_app_router)
@@ -445,7 +479,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.github_app_autofix_router import router as github_app_autofix_router
+        from apps.api.github_app_autofix_router import (
+            router as github_app_autofix_router,
+        )
         app.include_router(github_app_autofix_router)
         _logger.info("Mounted GitHub App AutoFix router at /api/v1/github-app/autofix")
     except ImportError:
@@ -474,14 +510,18 @@ def register_aspm_routers(
 
     # GAP-063 Findings Lifecycle — firstSeenAt/previousViolationId/resolvedAt chain
     try:
-        from apps.api.findings_lifecycle_router import router as findings_lifecycle_router
+        from apps.api.findings_lifecycle_router import (
+            router as findings_lifecycle_router,
+        )
         app.include_router(findings_lifecycle_router)
         _logger.info("Mounted Findings Lifecycle router at /api/v1/findings/lifecycle")
     except ImportError:
         pass
 
     try:
-        from apps.api.security_dependency_mapping_router import router as security_dependency_mapping_router
+        from apps.api.security_dependency_mapping_router import (
+            router as security_dependency_mapping_router,
+        )
         app.include_router(security_dependency_mapping_router)
         _logger.info("Mounted Security Dependency Mapping router at /api/v1/dependency-mapping")
     except ImportError:
@@ -497,7 +537,9 @@ def register_aspm_routers(
 
     # GAP-010 — function-level reachability (Endor Labs moat)
     try:
-        from apps.api.function_reachability_router import router as function_reachability_router
+        from apps.api.function_reachability_router import (
+            router as function_reachability_router,
+        )
         app.include_router(function_reachability_router)
         _logger.info("Mounted Function Reachability router at /api/v1/reachability")
     except ImportError:
@@ -513,7 +555,9 @@ def register_aspm_routers(
 
     # GAP-012 Deep Code Analysis — Apiiro DCA parity
     try:
-        from apps.api.deep_code_analysis_router import router as deep_code_analysis_router
+        from apps.api.deep_code_analysis_router import (
+            router as deep_code_analysis_router,
+        )
         app.include_router(deep_code_analysis_router)
         _logger.info("Mounted DCA router at /api/v1/dca")
     except ImportError:
@@ -545,7 +589,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.container_registry_security_router import router as container_registry_security_router
+        from apps.api.container_registry_security_router import (
+            router as container_registry_security_router,
+        )
         app.include_router(container_registry_security_router)
         _logger.info("Mounted Container Registry Security router at /api/v1/container-registry-security")
     except ImportError:
@@ -608,7 +654,9 @@ def register_aspm_routers(
         pass
 
     try:
-        from apps.api.software_composition_analysis_router import router as software_composition_analysis_router
+        from apps.api.software_composition_analysis_router import (
+            router as software_composition_analysis_router,
+        )
         app.include_router(software_composition_analysis_router)
         _logger.info("Mounted Software Composition Analysis router at /api/v1/sca")
     except ImportError:
@@ -616,7 +664,9 @@ def register_aspm_routers(
 
     # GAP-008: Binary Fingerprint Engine (Sonatype ABF-style)
     try:
-        from apps.api.binary_fingerprint_router import router as binary_fingerprint_router
+        from apps.api.binary_fingerprint_router import (
+            router as binary_fingerprint_router,
+        )
         app.include_router(binary_fingerprint_router)
         _logger.info("Mounted Binary Fingerprint router at /api/v1/binary-fp")
     except ImportError:
@@ -661,7 +711,9 @@ def register_aspm_routers(
 
     # Deduplication — finding dedup engine (suite-core/api/)
     try:
-        from api.deduplication_router import router as deduplication_router  # noqa: PLC0415
+        from api.deduplication_router import (
+            router as deduplication_router,  # noqa: PLC0415
+        )
         app.include_router(deduplication_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Deduplication router (wave-6)")
     except ImportError:
@@ -677,7 +729,9 @@ def register_aspm_routers(
 
     # AutoFix Verification — post-fix validation (suite-core/api/)
     try:
-        from api.autofix_verify_router import router as autofix_verify_router  # noqa: PLC0415
+        from api.autofix_verify_router import (
+            router as autofix_verify_router,  # noqa: PLC0415
+        )
         app.include_router(autofix_verify_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted AutoFix Verification router (wave-6)")
     except ImportError:
@@ -685,7 +739,9 @@ def register_aspm_routers(
 
     # MPTE Post-Fix Verification (suite-core/api/)
     try:
-        from api.postfix_verify_router import router as postfix_verify_router  # noqa: PLC0415
+        from api.postfix_verify_router import (
+            router as postfix_verify_router,  # noqa: PLC0415
+        )
         app.include_router(postfix_verify_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted MPTE Post-Fix Verification router (wave-6)")
     except ImportError:
@@ -693,7 +749,9 @@ def register_aspm_routers(
 
     # MITRE ATT&CK Application-Layer Mapper (suite-core/api/)
     try:
-        from api.mitre_mapper_router import router as mitre_mapper_router  # noqa: PLC0415
+        from api.mitre_mapper_router import (
+            router as mitre_mapper_router,  # noqa: PLC0415
+        )
         app.include_router(mitre_mapper_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted MITRE ATT&CK Mapper router (wave-6)")
     except ImportError:
@@ -701,7 +759,9 @@ def register_aspm_routers(
 
     # Supply Chain Security (suite-core/api/)
     try:
-        from api.supply_chain_router import router as supply_chain_router  # noqa: PLC0415
+        from api.supply_chain_router import (
+            router as supply_chain_router,  # noqa: PLC0415
+        )
         app.include_router(supply_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))])
         _logger.info("Mounted Supply Chain Security router (wave-6)")
     except ImportError:
@@ -711,7 +771,9 @@ def register_aspm_routers(
 
     # Container Scanner (apps/api/)
     try:
-        from apps.api.container_scanner_router import router as container_scanner_router  # noqa: PLC0415
+        from apps.api.container_scanner_router import (
+            router as container_scanner_router,  # noqa: PLC0415
+        )
         app.include_router(container_scanner_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Container Scanner router (wave-6)")
     except ImportError:
@@ -727,7 +789,9 @@ def register_aspm_routers(
 
     # Context Engine — code context graph (apps/api/)
     try:
-        from apps.api.context_engine_router import router as context_engine_router  # noqa: PLC0415
+        from apps.api.context_engine_router import (
+            router as context_engine_router,  # noqa: PLC0415
+        )
         app.include_router(context_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Context Engine router (wave-6)")
     except ImportError:
@@ -735,7 +799,9 @@ def register_aspm_routers(
 
     # Fix Engine — AutoFix dispatch (apps/api/)
     try:
-        from apps.api.fix_engine_router import router as fix_engine_router  # noqa: PLC0415
+        from apps.api.fix_engine_router import (
+            router as fix_engine_router,  # noqa: PLC0415
+        )
         app.include_router(fix_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Fix Engine router (wave-6)")
     except ImportError:
@@ -743,7 +809,9 @@ def register_aspm_routers(
 
     # PR Generator — AutoFix PR creation (apps/api/)
     try:
-        from apps.api.pr_generator_router import router as pr_generator_router  # noqa: PLC0415
+        from apps.api.pr_generator_router import (
+            router as pr_generator_router,  # noqa: PLC0415
+        )
         app.include_router(pr_generator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted PR Generator router (wave-6)")
     except ImportError:
@@ -759,7 +827,9 @@ def register_aspm_routers(
 
     # Secret Scanner (apps/api/)
     try:
-        from apps.api.secret_scanner_router import router as secret_scanner_router  # noqa: PLC0415
+        from apps.api.secret_scanner_router import (
+            router as secret_scanner_router,  # noqa: PLC0415
+        )
         app.include_router(secret_scanner_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Secret Scanner router (wave-6)")
     except ImportError:
@@ -767,7 +837,9 @@ def register_aspm_routers(
 
     # Bulk Operations (apps/api/)
     try:
-        from apps.api.bulk_operations_router import router as bulk_operations_router  # noqa: PLC0415
+        from apps.api.bulk_operations_router import (
+            router as bulk_operations_router,  # noqa: PLC0415
+        )
         app.include_router(bulk_operations_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Bulk Operations router (wave-6)")
     except ImportError:
@@ -775,7 +847,9 @@ def register_aspm_routers(
 
     # Asset Inventory (apps/api/)
     try:
-        from apps.api.asset_inventory_router import router as asset_inventory_router  # noqa: PLC0415
+        from apps.api.asset_inventory_router import (
+            router as asset_inventory_router,  # noqa: PLC0415
+        )
         app.include_router(asset_inventory_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Asset Inventory router (wave-6)")
     except ImportError:
@@ -783,7 +857,9 @@ def register_aspm_routers(
 
     # Patch Manager (apps/api/)
     try:
-        from apps.api.patch_manager_router import router as patch_manager_router  # noqa: PLC0415
+        from apps.api.patch_manager_router import (
+            router as patch_manager_router,  # noqa: PLC0415
+        )
         app.include_router(patch_manager_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Patch Manager router (wave-6)")
     except ImportError:
@@ -791,7 +867,9 @@ def register_aspm_routers(
 
     # Validation — security tool output compatibility (apps/api/)
     try:
-        from apps.api.verification_router import router as verification_router  # noqa: PLC0415
+        from apps.api.verification_router import (
+            router as verification_router,  # noqa: PLC0415
+        )
         app.include_router(verification_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
         _logger.info("Mounted Multi-Stage Verification router (wave-6)")
     except ImportError:

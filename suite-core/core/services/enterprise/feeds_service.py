@@ -58,6 +58,7 @@ from typing import Any, Dict, Iterable, List, Mapping
 
 import aiohttp
 import structlog
+
 from core.services.enterprise.vex_ingestion import VEXIngestor
 
 logger = structlog.get_logger()

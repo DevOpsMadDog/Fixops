@@ -32,8 +32,10 @@ from core.task_queue import (
     dispatch_autofix_generate,
     dispatch_brain_pipeline,
     dispatch_mpte_scan,
-    get_task_status as _get_task_status,
     is_celery_available,
+)
+from core.task_queue import (
+    get_task_status as _get_task_status,
 )
 
 logger = logging.getLogger(__name__)

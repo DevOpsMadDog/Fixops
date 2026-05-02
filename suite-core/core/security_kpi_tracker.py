@@ -1,10 +1,11 @@
 """Security KPI metrics tracker — track, trend, and benchmark security performance."""
 import json
-import uuid
 import sqlite3
-import structlog
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import structlog
 
 _logger = structlog.get_logger()
 

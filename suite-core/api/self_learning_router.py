@@ -440,6 +440,7 @@ async def get_weights() -> Dict[str, Any]:
     """
     try:
         import datetime as _dt
+
         from core.self_learning import get_learning_engine
         engine = get_learning_engine()
         weights = engine.get_all_weights()

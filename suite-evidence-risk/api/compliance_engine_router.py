@@ -88,8 +88,9 @@ async def map_findings(
         raise HTTPException(status_code=500, detail=type(e).__name__)
     # TrustGraph async indexing (fire-and-forget, non-blocking)
     try:
-        from core.trustgraph_event_bus import EVENT_CONTROL_ASSESSED, get_event_bus
         import asyncio
+
+        from core.trustgraph_event_bus import EVENT_CONTROL_ASSESSED, get_event_bus
         bus = get_event_bus()
         if bus and bus.enabled:
             asyncio.ensure_future(bus.emit(EVENT_CONTROL_ASSESSED, {

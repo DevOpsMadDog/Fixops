@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Tuple
 from urllib.parse import urljoin, urlparse
 
 import httpx
+
 from core.verification_engine import (
     MINIMUM_CONFIDENCE_THRESHOLD,
     PRODUCT_SIGNATURES,

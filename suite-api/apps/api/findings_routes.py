@@ -27,13 +27,13 @@ Security: All endpoints require RBAC permission checks
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from apps.api.dependencies import get_org_id
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -232,7 +232,9 @@ def _engine_findings_for_org(org_id: str) -> List[Dict[str, Any]]:
     if not org_id:
         return []
     try:
-        from core.unified_issues_engine import get_unified_issues_engine  # noqa: PLC0415
+        from core.unified_issues_engine import (
+            get_unified_issues_engine,  # noqa: PLC0415
+        )
     except ImportError:
         return []
 

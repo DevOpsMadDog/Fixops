@@ -9,7 +9,12 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
-from core.security_kb import Article, ArticleCategory, SearchResult, SecurityKnowledgeBase
+from core.security_kb import (
+    Article,
+    ArticleCategory,
+    SearchResult,
+    SecurityKnowledgeBase,
+)
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 

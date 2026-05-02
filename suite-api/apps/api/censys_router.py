@@ -20,10 +20,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +60,10 @@ class SearchCveRequest(BaseModel):
 
 def _get_importer():
     from feeds.censys.importer import (
-        run_import,
-        list_hosts,
         check_host,
         get_store_stats,
+        list_hosts,
+        run_import,
     )
     return run_import, list_hosts, check_host, get_store_stats
 

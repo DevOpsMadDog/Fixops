@@ -8,10 +8,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-
-from apps.api.auth_deps import api_key_auth
 
 router = APIRouter(
     prefix="/api/v1/security-roadmap",

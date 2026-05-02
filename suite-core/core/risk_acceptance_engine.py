@@ -1,10 +1,11 @@
 """Risk acceptance workflow — formal process for accepting security risks."""
-import uuid
 import sqlite3
-import structlog
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
+
+import structlog
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

@@ -8,13 +8,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Query
-from pydantic import BaseModel, Field
-
 from core.runtime_protection import (
     EngineMode,
     get_runtime_protection_engine,
 )
+from fastapi import APIRouter, Body, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/runtime", tags=["Runtime Protection"])
 

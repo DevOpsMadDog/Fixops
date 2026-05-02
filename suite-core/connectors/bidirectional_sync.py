@@ -35,8 +35,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 import structlog
-
 from core.persistent_store import PersistentDict
+
 from connectors._emit import emit_connector_event
 
 logger = structlog.get_logger("connectors.bidirectional_sync")

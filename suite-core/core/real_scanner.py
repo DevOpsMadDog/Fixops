@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Set
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import httpx
+
 # ---------------------------------------------------------------------------
 # TrustGraph event-bus wiring (auto-added by hub-wiring wave)
 # ---------------------------------------------------------------------------

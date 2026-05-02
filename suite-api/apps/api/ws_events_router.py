@@ -46,14 +46,20 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-
 from apps.api.auth_deps import (
     _DEV_MODE,
     _HAS_JWT_AUTH,
     _decode_jwt,
     _load_api_tokens,
     api_key_auth,
+)
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
 )
 
 _logger = logging.getLogger(__name__)
@@ -156,7 +162,9 @@ def _get_broadcaster():
     try:
         from core.alert_broadcaster import get_alert_broadcaster
     except ImportError:
-        from suite_core.core.alert_broadcaster import get_alert_broadcaster  # type: ignore[no-redef]
+        from suite_core.core.alert_broadcaster import (
+            get_alert_broadcaster,  # type: ignore[no-redef]
+        )
     return get_alert_broadcaster()
 
 
@@ -374,7 +382,9 @@ async def test_publish_event(
     try:
         from core.alert_broadcaster import build_alert
     except ImportError:
-        from suite_core.core.alert_broadcaster import build_alert  # type: ignore[no-redef]
+        from suite_core.core.alert_broadcaster import (
+            build_alert,  # type: ignore[no-redef]
+        )
 
     # Map event_type back to an alert type the broadcaster understands
     event_type_to_alert = {

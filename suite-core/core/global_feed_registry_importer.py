@@ -97,12 +97,12 @@ def _build_records() -> List[Tuple[str, str, Dict[str, Any]]]:
     try:
         from feeds_service import (
             AUTHORITATIVE_FEEDS,
-            NATIONAL_CERT_FEEDS,
-            EXPLOIT_FEEDS,
-            THREAT_ACTOR_FEEDS,
-            SUPPLY_CHAIN_FEEDS,
             CLOUD_RUNTIME_FEEDS,
             EARLY_SIGNAL_FEEDS,
+            EXPLOIT_FEEDS,
+            NATIONAL_CERT_FEEDS,
+            SUPPLY_CHAIN_FEEDS,
+            THREAT_ACTOR_FEEDS,
         )
     except ImportError as exc:
         _logger.warning("Global feed registry not importable: %s", exc)

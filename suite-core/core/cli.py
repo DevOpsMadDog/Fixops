@@ -19,8 +19,6 @@ if ENTERPRISE_SRC.exists():  # pragma: no cover - enterprise path setup
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 if TYPE_CHECKING:
-    from core.services.enterprise import id_allocator, signing  # noqa: F401
-    from core.services.enterprise.run_registry import RunRegistry  # noqa: F401
     from apps.api.normalizers import (  # noqa: F401
         InputNormalizer,
         NormalizedCVEFeed,
@@ -28,14 +26,18 @@ if TYPE_CHECKING:
         NormalizedSBOM,
     )
     from apps.api.pipeline import PipelineOrchestrator  # noqa: F401
+
     from core.configuration import OverlayConfig  # noqa: F401
     from core.evidence import EvidenceHub  # noqa: F401
     from core.probabilistic import ProbabilisticForecastEngine  # noqa: F401
     from core.processing_layer import ProcessingLayer  # noqa: F401
+    from core.services.enterprise import id_allocator, signing  # noqa: F401
+    from core.services.enterprise.run_registry import RunRegistry  # noqa: F401
     from core.stage_runner import StageRunner  # noqa: F401
     from core.storage import ArtefactArchive  # noqa: F401
 
 from core.overlay_runtime import prepare_overlay
+
 # ---------------------------------------------------------------------------
 # TrustGraph event-bus wiring (auto-added by hub-wiring wave)
 # ---------------------------------------------------------------------------
@@ -305,6 +307,7 @@ def _copy_evidence(
 def _build_pipeline_result(args: argparse.Namespace) -> Dict[str, Any]:
     from apps.api.normalizers import InputNormalizer  # noqa: F811
     from apps.api.pipeline import PipelineOrchestrator  # noqa: F811
+
     from core.storage import ArtefactArchive  # noqa: F811
 
     if getattr(args, "env", None):
@@ -1165,6 +1168,7 @@ def _handle_showcase(args: argparse.Namespace) -> int:
 def _handle_train_bn_lr(args: argparse.Namespace) -> int:
     import numpy as np
     import pandas as pd
+
     from core.bn_lr import save_model, train
 
     data_path = args.data
@@ -1259,6 +1263,7 @@ def _handle_predict_bn_lr(args: argparse.Namespace) -> int:
 
 def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     import pandas as pd
+
     from core.bn_lr import backtest, load_model
 
     model_path = args.model
@@ -3356,8 +3361,9 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
         )
         target_urls = [target] if target else []
         try:
-            from core.micro_pentest import MicroPentestConfig, run_micro_pentest
             import os
+
+            from core.micro_pentest import MicroPentestConfig, run_micro_pentest
 
             config = MicroPentestConfig(
                 mpte_url=os.environ.get("MPTE_BASE_URL", "http://mpte:8443"),
@@ -4617,7 +4623,9 @@ def _handle_airgap(args: argparse.Namespace) -> int:
     """
     sub = getattr(args, "airgap_command", None)
     if sub == "build-nvd-bundle":
-        from core.airgap_config import build_nvd_bundle  # local import: keeps CLI startup cheap
+        from core.airgap_config import (
+            build_nvd_bundle,  # local import: keeps CLI startup cheap
+        )
 
         feed_range: Optional[tuple[str, str]] = None
         if args.feed_from or args.feed_to:

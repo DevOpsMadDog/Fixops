@@ -890,8 +890,8 @@ class FunctionReachabilityEngine:
             raise ValueError("root_path is required")
 
         try:
-            from tree_sitter import Language, Parser
             import tree_sitter_typescript as tst
+            from tree_sitter import Language, Parser
             ts_lang = Language(tst.language_typescript())
             tsx_lang = Language(tst.language_tsx())
             ts_parser = Parser(ts_lang)
@@ -1002,8 +1002,8 @@ class FunctionReachabilityEngine:
             raise ValueError("root_path is required")
 
         try:
-            from tree_sitter import Language, Parser
             import tree_sitter_java as tsj
+            from tree_sitter import Language, Parser
             java_lang = Language(tsj.language())
             parser = Parser(java_lang)
         except ImportError:

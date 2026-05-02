@@ -15,8 +15,9 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import yaml
-from services.provenance.attestation import load_attestation
 from telemetry import get_meter, get_tracer
+
+from services.provenance.attestation import load_attestation
 
 
 @dataclass(slots=True)

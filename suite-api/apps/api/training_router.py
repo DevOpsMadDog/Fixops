@@ -23,12 +23,11 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
+from core.security_training import SecurityAwarenessTracker
+from core.training_tracker import TrainingCategory, TrainingCompletion, TrainingModule
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
-from core.training_tracker import TrainingCategory, TrainingCompletion, TrainingModule
-from core.security_training import SecurityAwarenessTracker
 
 logger = logging.getLogger(__name__)
 

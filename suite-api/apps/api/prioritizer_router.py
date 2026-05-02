@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 from apps.api.auth_deps import api_key_auth as _verify_api_key
 
-
 # ---------------------------------------------------------------------------
 # Lazy prioritizer singleton
 # ---------------------------------------------------------------------------
@@ -43,7 +42,9 @@ def _get_vuln_prio_engine():
     """Return a VulnerabilityPrioritizationEngine singleton (has get_prioritization_stats)."""
     global _vuln_prio_engine
     if _vuln_prio_engine is None:
-        from core.vulnerability_prioritization_engine import VulnerabilityPrioritizationEngine
+        from core.vulnerability_prioritization_engine import (
+            VulnerabilityPrioritizationEngine,
+        )
         _vuln_prio_engine = VulnerabilityPrioritizationEngine()
     return _vuln_prio_engine
 

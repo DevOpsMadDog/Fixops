@@ -12,9 +12,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.asset_inventory import (
     AssetCriticality,
     AssetInventory,
@@ -29,6 +26,8 @@ from core.asset_inventory import (
     RelationshipType,
     get_asset_inventory,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -272,9 +271,10 @@ def register_asset(req: RegisterAssetRequest) -> ManagedAsset:
         raise HTTPException(status_code=500, detail=f"Failed to register asset: {exc}") from exc
     # TrustGraph async indexing (fire-and-forget, non-blocking)
     try:
-        from core.trustgraph_event_bus import EVENT_ASSET_DISCOVERED, get_event_bus
         import asyncio
         import threading
+
+        from core.trustgraph_event_bus import EVENT_ASSET_DISCOVERED, get_event_bus
         bus = get_event_bus()
         if bus and bus.enabled:
             result = registered.model_dump(mode="json") if hasattr(registered, "model_dump") else {}

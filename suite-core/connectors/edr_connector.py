@@ -808,7 +808,9 @@ def get_edr_connector() -> EDRConnector:
             from core.edr_engine import EDREngine
             from core.security_findings_engine import SecurityFindingsEngine
             try:
-                from core.security_event_correlation_engine import SecurityEventCorrelationEngine
+                from core.security_event_correlation_engine import (
+                    SecurityEventCorrelationEngine,
+                )
                 corr = SecurityEventCorrelationEngine()
             except (ImportError, RuntimeError, OSError) as exc:
                 _logger.warning("correlation engine unavailable: %s", exc)

@@ -19,10 +19,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.security_kpi_tracker import KPI_NAMES, SecurityKPITracker
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.security_kpi_tracker import KPI_NAMES, SecurityKPITracker
 
 logger = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ import json
 import logging
 import sqlite3
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -2034,6 +2034,7 @@ async def list_registered_scanners():
     # Enrich findings counts from analytics DB (with timeout guard)
     try:
         import asyncio
+
         from core.analytics_db import AnalyticsDB
         def _load_findings_counts():
             adb = AnalyticsDB()
@@ -2102,6 +2103,7 @@ async def list_notifications(
     """List recent notifications from EventBus."""
     try:
         import asyncio
+
         from core.event_bus import get_event_bus
         bus = get_event_bus()
         events = await asyncio.wait_for(
@@ -2468,8 +2470,9 @@ async def export_findings_syslog(limit: int = Query(10_000, ge=1, le=50_000)):
     Returns ``text/plain`` with ``Content-Disposition: attachment`` so Elastic
     Filebeat / Logstash / rsyslog can ingest the file directly.
     """
-    from fastapi.responses import PlainTextResponse
     import socket
+
+    from fastapi.responses import PlainTextResponse
 
     findings = _load_findings_for_export(limit=limit)
 
@@ -3804,7 +3807,7 @@ async def sbom_generate(
     Wires: SBOMGenerator + SBOMQualityScorer from suite-evidence-risk.
     """
     try:
-        from risk.sbom.generator import SBOMGenerator, SBOMFormat, SBOMQualityScorer
+        from risk.sbom.generator import SBOMFormat, SBOMGenerator, SBOMQualityScorer
         fmt = SBOMFormat.SPDX if format.lower() == "spdx" else SBOMFormat.CYCLONEDX
         generator = SBOMGenerator()
         codebase_path = Path(path) if path != "." else Path(".")
@@ -3833,7 +3836,7 @@ async def sbom_export(
 ):
     """Export pre-generated SBOM as downloadable JSON."""
     try:
-        from risk.sbom.generator import SBOMGenerator, SBOMFormat
+        from risk.sbom.generator import SBOMFormat, SBOMGenerator
         fmt = SBOMFormat.SPDX if format.lower() == "spdx" else SBOMFormat.CYCLONEDX
         generator = SBOMGenerator()
         sbom = generator.generate_from_codebase(Path("."), output_format=fmt)
@@ -4010,7 +4013,7 @@ async def license_scan(
 
     # 1. Discover packages via SBOM generator
     try:
-        from risk.sbom.generator import SBOMGenerator, SBOMFormat
+        from risk.sbom.generator import SBOMFormat, SBOMGenerator
         gen = SBOMGenerator()
         sbom = gen.generate_from_codebase(Path("."), output_format=SBOMFormat.CYCLONEDX)
         for comp in sbom.get("components", []):
@@ -4065,8 +4068,8 @@ async def license_alerts():
     alerts: list = []
 
     try:
-        from risk.sbom.generator import SBOMGenerator, SBOMFormat
         from risk.license_compliance import LicenseComplianceAnalyzer, LicenseRisk
+        from risk.sbom.generator import SBOMFormat, SBOMGenerator
         gen = SBOMGenerator()
         sbom = gen.generate_from_codebase(Path("."), output_format=SBOMFormat.CYCLONEDX)
         packages = []

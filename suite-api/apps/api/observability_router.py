@@ -19,10 +19,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel, Field
-
 from core.observability import (
     AlertRule,
     ProbeResult,
@@ -32,6 +28,9 @@ from core.observability import (
     get_metrics_collector,
     get_tracing_context,
 )
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

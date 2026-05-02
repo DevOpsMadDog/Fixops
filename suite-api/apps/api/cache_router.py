@@ -13,9 +13,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
-
 from core.cache import named_cache_manager
+from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 

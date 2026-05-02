@@ -15,22 +15,29 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
-from core.cspm_engine import (
-    PROVIDERS as CSPM_PROVIDERS,
-    get_provider_adapter as get_cspm_adapter,
-    list_supported_providers as list_cspm_providers,
-)
-from core.cnapp_engine import (
-    PROVIDERS as CNAPP_PROVIDERS,
-    get_workload_adapter as get_cnapp_adapter,
-    list_supported_cnapp_providers,
-)
 from core.cloud_account_monitoring_engine import (
     _VALID_PROVIDERS as _MON_VALID_PROVIDERS,
 )
+from core.cnapp_engine import (
+    PROVIDERS as CNAPP_PROVIDERS,
+)
+from core.cnapp_engine import (
+    get_workload_adapter as get_cnapp_adapter,
+)
+from core.cnapp_engine import (
+    list_supported_cnapp_providers,
+)
+from core.cspm_engine import (
+    PROVIDERS as CSPM_PROVIDERS,
+)
+from core.cspm_engine import (
+    get_provider_adapter as get_cspm_adapter,
+)
+from core.cspm_engine import (
+    list_supported_providers as list_cspm_providers,
+)
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 

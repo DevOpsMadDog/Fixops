@@ -18,9 +18,6 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.bug_bounty import (
     BountyProgram,
     BugBountyEngine,
@@ -35,6 +32,8 @@ from core.bug_bounty import (
     VulnerabilitySubmission,
     get_bug_bounty_engine,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

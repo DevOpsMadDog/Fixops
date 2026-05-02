@@ -10,9 +10,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.change_management import (
     ApprovalDecision,
     CABApproval,
@@ -25,6 +22,8 @@ from core.change_management import (
     RollbackPlan,
     get_cab,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/changes", tags=["change-management"])
 

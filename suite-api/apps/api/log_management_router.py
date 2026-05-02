@@ -25,10 +25,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
+from core.log_management_engine import LogManagementEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-
-from core.log_management_engine import LogManagementEngine
 
 logger = logging.getLogger(__name__)
 

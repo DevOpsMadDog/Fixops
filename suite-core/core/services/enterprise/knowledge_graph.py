@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Set
 
 import structlog
+
 from core.services.enterprise.chatgpt_client import (
     ChatGPTClient,
     get_primary_llm_api_key,

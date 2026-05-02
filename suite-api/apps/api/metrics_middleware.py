@@ -28,11 +28,11 @@ from starlette.routing import Match
 try:
     from prometheus_client import (
         CONTENT_TYPE_LATEST,
+        REGISTRY,
         Counter,
         Gauge,
         Histogram,
         generate_latest,
-        REGISTRY,
     )
 
     _PROMETHEUS_AVAILABLE = True

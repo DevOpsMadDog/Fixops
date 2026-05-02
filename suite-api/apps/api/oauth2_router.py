@@ -33,11 +33,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
+from core.api_key_manager import APIKeyManager
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
-from core.api_key_manager import APIKeyManager
 
 _logger = logging.getLogger(__name__)
 

@@ -54,7 +54,7 @@ _logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     import pkcs11  # type: ignore
-    from pkcs11 import Mechanism, ObjectClass, KeyType  # type: ignore
+    from pkcs11 import KeyType, Mechanism, ObjectClass  # type: ignore
     from pkcs11.util.rsa import encode_rsa_public_key  # type: ignore
     _PKCS11_AVAILABLE = True
 except ImportError:
@@ -66,8 +66,9 @@ except ImportError:
 # Soft import — cryptography for software fallback (NOT FIPS-strict)
 # ---------------------------------------------------------------------------
 try:
-    from cryptography.hazmat.primitives import hashes, serialization, hmac as crypto_hmac
-    from cryptography.hazmat.primitives.asymmetric import rsa, padding
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives import hmac as crypto_hmac
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     _CRYPTO_AVAILABLE = True
 except ImportError:

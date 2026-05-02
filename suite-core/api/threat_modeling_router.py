@@ -8,13 +8,12 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from core.threat_modeling import (
     STRIDECategory,
     get_threat_modeling_engine,
 )
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/threat-model", tags=["Threat Modeling"])
 

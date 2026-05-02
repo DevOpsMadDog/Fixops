@@ -43,11 +43,10 @@ import logging
 import threading
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field, field_validator
-
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +98,7 @@ def _risk_quantifier() -> Any:
         engine = _engines.get("risk_quantifier")
         if engine is None:
             import os
+
             from core.risk_quantifier import get_risk_quantifier
             engine = get_risk_quantifier(
                 db_path=os.environ.get("RISK_QUANTIFIER_DB", "risk_quantifier.db"),
@@ -295,7 +295,7 @@ def findings_drift(
     engine = _findings_engine()
     if since:
         # day-by-day reconstruction from the lifecycle lookup
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
         try:
             start = datetime.fromisoformat(since.replace("Z", "+00:00"))
         except ValueError as exc:

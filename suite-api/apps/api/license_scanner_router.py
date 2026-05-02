@@ -183,7 +183,11 @@ def scan_package_json(body: ScanPackageJsonRequest) -> ScanResponse:
 )
 def evaluate_policy(body: EvaluatePolicyRequest) -> ScanResponse:
     """Scan packages inline (from name/version pairs) and apply the provided policy."""
-    from core.license_scanner import LicenseResult, LicenseRisk, LicensePolicy  # noqa: F401
+    from core.license_scanner import (  # noqa: F401
+        LicensePolicy,
+        LicenseResult,
+        LicenseRisk,
+    )
 
     scanner = _get_scanner()
 

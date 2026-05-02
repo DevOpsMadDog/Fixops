@@ -11,10 +11,9 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
+from core.attack_path_engine import AttackPathEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.attack_path_engine import AttackPathEngine
 
 logger = logging.getLogger(__name__)
 

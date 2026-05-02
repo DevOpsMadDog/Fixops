@@ -21,8 +21,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Depends
 from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
@@ -484,7 +484,7 @@ async def health(org_id: str = Depends(get_org_id)):
         techniques = mapper.list_techniques()
         tactics = mapper.list_tactics()
 
-        from core.mitre_mapper import CWE_TO_TECHNIQUES, CVE_TO_TECHNIQUES
+        from core.mitre_mapper import CVE_TO_TECHNIQUES, CWE_TO_TECHNIQUES
 
         return {
             "status": "healthy",

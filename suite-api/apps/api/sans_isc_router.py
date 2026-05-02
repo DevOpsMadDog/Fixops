@@ -16,9 +16,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-
 from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +29,9 @@ router = APIRouter(
 
 def _get_importer():
     from feeds.sans_isc.importer import (
-        run_import,
-        get_top_sources,
         get_top_ports,
+        get_top_sources,
+        run_import,
     )
     return run_import, get_top_sources, get_top_ports
 

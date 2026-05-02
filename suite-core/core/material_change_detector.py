@@ -550,10 +550,15 @@ import json as _json  # noqa: E402
 import os as _os  # noqa: E402
 import sqlite3 as _sqlite3  # noqa: E402
 import uuid as _uuid  # noqa: E402
-from dataclasses import dataclass as _dataclass, field as _field  # noqa: E402
-from datetime import datetime as _datetime, timezone as _timezone  # noqa: E402
+from dataclasses import dataclass as _dataclass  # noqa: E402
+from dataclasses import field as _field
+from datetime import datetime as _datetime  # noqa: E402
+from datetime import timezone as _timezone
 from enum import Enum as _Enum  # noqa: E402
-from typing import Any as _Any, Dict as _Dict, List as _List, Optional as _Optional  # noqa: E402
+from typing import Any as _Any  # noqa: E402
+from typing import Dict as _Dict
+from typing import List as _List
+from typing import Optional as _Optional
 
 
 class BlastRadiusCategory(str, _Enum):
@@ -972,7 +977,9 @@ class PushEventAnalyzer:
     ) -> _Optional[_Dict[str, _Any]]:
         """Ask LLM Council whether this change is material. Returns None if unavailable."""
         try:
-            from core.council_pipeline_adapter import create_consensus_engine_replacement
+            from core.council_pipeline_adapter import (
+                create_consensus_engine_replacement,
+            )
 
             adapter = create_consensus_engine_replacement()
             br_cat = result.blast_radius.category.value if result.blast_radius else "UNKNOWN"

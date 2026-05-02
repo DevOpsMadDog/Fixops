@@ -10,9 +10,6 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.license_compliance import (
     CompatibilityResult,
     LicenseCategory,
@@ -21,6 +18,8 @@ from core.license_compliance import (
     get_engine,
     normalize_license_id,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/licenses", tags=["license-compliance"])
 

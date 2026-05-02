@@ -36,17 +36,22 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import time
 import uuid
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-import hashlib
 
-from trustgraph.knowledge_store import KnowledgeStore, KnowledgeEntity, KnowledgeRelationship
-from core.graphrag_engine import GraphRAGEngine, GraphQuery
+from core.graphrag_engine import GraphQuery, GraphRAGEngine
+
+from trustgraph.knowledge_store import (
+    KnowledgeEntity,
+    KnowledgeRelationship,
+    KnowledgeStore,
+)
 
 logger = logging.getLogger(__name__)
 

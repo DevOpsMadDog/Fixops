@@ -438,7 +438,9 @@ class AssetCriticalityEngine:
         connector_unavailable_reason: Optional[str] = None
         if findings_engine is None:
             try:
-                from core.security_findings_engine import SecurityFindingsEngine  # type: ignore
+                from core.security_findings_engine import (
+                    SecurityFindingsEngine,  # type: ignore
+                )
                 findings_engine = SecurityFindingsEngine()
             except (ImportError, RuntimeError, OSError) as exc:
                 connector_unavailable_reason = (

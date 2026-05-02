@@ -62,21 +62,22 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
-
 from apps.api.auth_deps import (
     _DEV_MODE,
     _HAS_JWT_AUTH,
     _decode_jwt,
     _load_api_tokens,
 )
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 try:
     # Canonical TrustGraph event bus — the real source of truth.
     from core.trustgraph_event_bus import (
         ALL_EVENT_TYPES,
-        EventBus as TrustGraphEventBus,  # noqa: F401  (typing aid only)
         get_event_bus,
+    )
+    from core.trustgraph_event_bus import (
+        EventBus as TrustGraphEventBus,  # noqa: F401  (typing aid only)
     )
 except ImportError:  # pragma: no cover — sitecustomize.py path injection should make this work
     from suite_core.core.trustgraph_event_bus import (  # type: ignore[no-redef]

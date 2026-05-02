@@ -24,10 +24,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
@@ -72,8 +71,8 @@ def _get_connector(org_id: str = "default"):
     except ImportError:
         pass
     # Final fallback: sys.path includes suite-integrations
-    import sys
     import os
+    import sys
     _prowler_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
         "suite-integrations", "prowler",

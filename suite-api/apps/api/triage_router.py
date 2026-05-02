@@ -21,10 +21,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
-
-from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,9 @@ _HAS_COMPLIANCE = False
 _DEFAULT_CWE_MAPPINGS: Dict[str, Any] = {}
 _ComplianceMappingResult: Any = None
 try:
-    from compliance.mapping import DEFAULT_CWE_MAPPINGS as _DEFAULT_CWE_MAPPINGS  # type: ignore[assignment]
+    from compliance.mapping import (
+        DEFAULT_CWE_MAPPINGS as _DEFAULT_CWE_MAPPINGS,  # type: ignore[assignment]
+    )
     from compliance.mapping import ComplianceMappingResult as _ComplianceMappingResult
 
     _HAS_COMPLIANCE = True

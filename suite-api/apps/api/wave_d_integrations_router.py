@@ -22,10 +22,9 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query
 from pydantic import BaseModel, Field, field_validator
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
@@ -301,7 +300,9 @@ def easm_seed_domain(
     """Seed an EASM root domain. (Multica 2ccc15a7)"""
     org_id = _org(x_org_id) if not body.org_id else body.org_id
     try:
-        from core.attack_surface_discovery import get_attack_surface_engine  # type: ignore
+        from core.attack_surface_discovery import (
+            get_attack_surface_engine,  # type: ignore
+        )
         engine = get_attack_surface_engine()
         report = engine.discover(domain=body.domain, timeout=body.timeout_s)
         rep_id = getattr(report, "report_id", None) or f"easm_{uuid.uuid4().hex[:10]}"
@@ -365,7 +366,9 @@ def easm_exposures(
     org_id = _org(x_org_id)
     exposures: List[Dict[str, Any]] = []
     try:
-        from core.attack_surface_discovery import get_attack_surface_engine  # type: ignore
+        from core.attack_surface_discovery import (
+            get_attack_surface_engine,  # type: ignore
+        )
         engine = get_attack_surface_engine()
         reports = engine.list_reports() if hasattr(engine, "list_reports") else []
         for r in reports[:limit]:
@@ -633,7 +636,9 @@ def trustgraph_compact(
         "freed_bytes": 0,
     }
     try:
-        from core.trustgraph_maintenance_engine import get_engine as _get_eng  # type: ignore
+        from core.trustgraph_maintenance_engine import (
+            get_engine as _get_eng,  # type: ignore
+        )
         eng = _get_eng()
         if hasattr(eng, "compact"):
             res = eng.compact(cores=body.cores, dry_run=body.dry_run)
@@ -674,7 +679,9 @@ def trustgraph_quality_issues(
         logger.debug("wave_d: tg quality fallback: %s", exc)
     if not issues:
         try:
-            from core.trustgraph_maintenance_engine import get_engine as _me  # type: ignore
+            from core.trustgraph_maintenance_engine import (
+                get_engine as _me,  # type: ignore
+            )
             eng = _me()
             if hasattr(eng, "list_issues"):
                 issues = eng.list_issues() or []

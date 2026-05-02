@@ -422,6 +422,7 @@ def _build_annotations(findings: List[FindingInput]) -> List[Dict[str, Any]]:
 def _get_github_connector(owner: str, repo: str):
     """Get a configured GitHubConnector for the given owner/repo."""
     import os
+
     from core.connectors import GitHubConnector
     token = os.environ.get("GITHUB_TOKEN", "")
     connector = GitHubConnector({

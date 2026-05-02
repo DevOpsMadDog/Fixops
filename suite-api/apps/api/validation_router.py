@@ -21,8 +21,8 @@ from datetime import datetime, timezone
 from tempfile import SpooledTemporaryFile
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, Depends
 from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from .normalizers import (

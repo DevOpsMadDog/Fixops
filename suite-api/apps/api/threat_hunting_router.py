@@ -21,11 +21,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +218,8 @@ async def run_hunt(
 
     # TrustGraph explicit indexing (fire-and-forget)
     try:
-        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED
+        from core.trustgraph_event_bus import get_event_bus as _get_eb
         _bus = _get_eb()
         if _bus and _bus.enabled and results:
             import asyncio as _asyncio

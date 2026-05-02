@@ -13,9 +13,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
 from core.policy_engine import (
@@ -25,6 +22,8 @@ from core.policy_engine import (
     PolicyScope,
     get_policy_engine,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

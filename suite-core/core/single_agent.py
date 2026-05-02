@@ -37,10 +37,10 @@ import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 # ---------------------------------------------------------------------------
@@ -174,8 +174,8 @@ class VLLMBackend(BaseInferenceBackend):
 
     def generate(self, prompt: str, system_prompt: str = "",
                  max_tokens: int = 2048, temperature: float = 0.1) -> Tuple[str, int]:
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         messages = []
         if system_prompt:

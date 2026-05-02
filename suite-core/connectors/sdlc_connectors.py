@@ -44,8 +44,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional
 
 import httpx
+from core.connectors import ConnectorOutcome
 
-from connectors._emit import emit_connector_event  # noqa: F401  — emit happens in PullConnector.execute_pull_cycle
+from connectors._emit import (
+    emit_connector_event,  # noqa: F401  — emit happens in PullConnector.execute_pull_cycle
+)
 from connectors.pull_connector import (
     BidirectionalConnector,
     ConnectorMetadata,
@@ -53,7 +56,6 @@ from connectors.pull_connector import (
     PullSchedule,
     SDLCStage,
 )
-from core.connectors import ConnectorOutcome
 
 logger = logging.getLogger(__name__)
 

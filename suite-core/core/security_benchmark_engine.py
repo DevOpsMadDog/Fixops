@@ -15,7 +15,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -299,8 +299,8 @@ class SecurityBenchmarkEngine:
             return {"benchmarks": rows, "total": len(rows), "source": "org_registered"}
 
         # Engine has no rows for this org — try real DBIR side-DB.
-        from pathlib import Path as _Path
         import json as _json
+        from pathlib import Path as _Path
 
         if dbir_db_path is None:
             dbir_db_path = str(_Path("data") / "dbir.db")

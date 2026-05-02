@@ -23,9 +23,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from core.persistent_store import get_persistent_store
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Depends
 from apps.api.dependencies import get_org_id
+from core.persistent_store import get_persistent_store
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
@@ -897,8 +897,8 @@ def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[Sug
     """Generate context-aware suggestions from real Knowledge Brain data (no LLM required)."""
     suggestions: List[SuggestionResponse] = []
     try:
-        import sqlite3 as _sqlite3
         import json as _json
+        import sqlite3 as _sqlite3
         brain_db = "data/fixops_brain.db"
         conn = _sqlite3.connect(brain_db)
         conn.row_factory = _sqlite3.Row

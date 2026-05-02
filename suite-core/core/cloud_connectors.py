@@ -735,8 +735,8 @@ class AzureProvider(CloudProvider):
     def _get_access_token(self) -> Optional[str]:
         """Obtain OAuth2 token via client credentials flow."""
         try:
-            import urllib.request
             import urllib.parse
+            import urllib.request
             tenant = self.credentials.azure_tenant_id
             client_id = self.credentials.azure_client_id
             client_secret = self.credentials.azure_client_secret

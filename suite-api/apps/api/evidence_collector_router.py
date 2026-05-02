@@ -7,9 +7,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.evidence_collector import (
     AutoEvidenceCollector,
@@ -18,6 +15,8 @@ from core.evidence_collector import (
     EvidenceStatus,
     EvidenceType,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/evidence-collector", tags=["evidence-collector"])
 

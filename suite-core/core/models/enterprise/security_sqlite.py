@@ -8,9 +8,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from core.models.enterprise.base_sqlite import AuditMixin, BaseModel, SoftDeleteMixin
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
+
+from core.models.enterprise.base_sqlite import AuditMixin, BaseModel, SoftDeleteMixin
 
 
 class SeverityLevel(str, Enum):

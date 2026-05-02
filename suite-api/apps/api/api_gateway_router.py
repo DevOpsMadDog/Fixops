@@ -19,9 +19,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
-from pydantic import BaseModel, Field
-
 from core.api_gateway import (
     APIGatewayEngine,
     IPRuleAction,
@@ -30,6 +27,8 @@ from core.api_gateway import (
     ThrottlePolicy,
     get_api_gateway_engine,
 )
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 

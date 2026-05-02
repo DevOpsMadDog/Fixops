@@ -8,10 +8,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from core.posture_score_engine import PostureScoreEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.posture_score_engine import PostureScoreEngine
 
 router = APIRouter(prefix="/api/v1/posture-score", tags=["posture-score"])
 

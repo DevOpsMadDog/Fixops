@@ -7,11 +7,11 @@ import time
 from typing import Any, Dict, List, Optional
 
 import structlog
+from apps.api.dependencies import get_org_id
 from core.db.enterprise.session import DatabaseManager
 from core.enterprise.security import get_current_user
 from core.services.enterprise.decision_engine import DecisionContext, decision_engine
 from core.services.enterprise.metrics import FixOpsMetrics
-from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 

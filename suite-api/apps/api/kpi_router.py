@@ -11,18 +11,17 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
 from core.kpi_engine import (
-    ExecutiveKPISummary,
     KPI,
+    ExecutiveKPISummary,
     KPICategory,
     KPIEngine,
     KPIHealthStatus,
     KPITarget,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(
     prefix="/api/v1/kpis",

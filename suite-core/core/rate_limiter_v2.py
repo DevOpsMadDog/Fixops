@@ -416,10 +416,11 @@ class RateLimiterV2:
 # ---------------------------------------------------------------------------
 
 try:
+    import json as _json
+
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.requests import Request as StarletteRequest
     from starlette.responses import JSONResponse, Response
-    import json as _json
 
     class RateLimitMiddlewareV2(BaseHTTPMiddleware):
         """

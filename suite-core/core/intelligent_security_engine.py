@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 import structlog
+
 from core.tls_config import tls_verify
 
 try:
@@ -1280,7 +1281,9 @@ class IntelligentSecurityEngine:
         try:
             from core.ai_security_advisor_engine import AISecurityAdvisorEngine
         except ImportError:
-            from ai_security_advisor_engine import AISecurityAdvisorEngine  # type: ignore
+            from ai_security_advisor_engine import (
+                AISecurityAdvisorEngine,  # type: ignore
+            )
 
         advisor = AISecurityAdvisorEngine()
         return advisor.answer_graph_question(org_id, question)

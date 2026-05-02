@@ -19,11 +19,10 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
 from core.attack_path_engine import AttackPathEngine
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 

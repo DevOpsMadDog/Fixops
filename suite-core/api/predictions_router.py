@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends
 from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/predictions", tags=["predictions"])

@@ -489,7 +489,9 @@ class APIDiscoveryEngine:
         if not endpoint_path:
             raise ValueError("endpoint_path is required")
         try:
-            from core.security_dependency_mapping_engine import SecurityDependencyMappingEngine
+            from core.security_dependency_mapping_engine import (
+                SecurityDependencyMappingEngine,
+            )
         except ImportError:
             _logger.warning(
                 "api_discovery.link_to_layer.dep_map_missing org=%s endpoint=%s",

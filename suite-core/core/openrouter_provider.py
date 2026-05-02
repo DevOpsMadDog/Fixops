@@ -24,7 +24,12 @@ try:
 except ImportError:
     httpx = None  # type: ignore[assignment]
 
-from core.llm_providers import BaseLLMProvider, LLMResponse, _ensure_list, _response_from_payload
+from core.llm_providers import (
+    BaseLLMProvider,
+    LLMResponse,
+    _ensure_list,
+    _response_from_payload,
+)
 
 __all__ = ["OpenRouterProvider"]
 

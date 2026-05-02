@@ -1016,7 +1016,9 @@ def get_falcon_connector() -> CrowdStrikeFalconConnector:
             except (ImportError, RuntimeError, OSError) as exc:
                 _logger.warning("SecurityFindingsEngine unavailable for Falcon connector: %s", exc)
             try:
-                from core.security_event_correlation_engine import SecurityEventCorrelationEngine
+                from core.security_event_correlation_engine import (
+                    SecurityEventCorrelationEngine,
+                )
                 corr = SecurityEventCorrelationEngine()
             except (ImportError, RuntimeError, OSError) as exc:
                 _logger.warning("SecurityEventCorrelationEngine unavailable for Falcon connector: %s", exc)

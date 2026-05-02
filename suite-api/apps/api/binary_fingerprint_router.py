@@ -20,10 +20,9 @@ import base64
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 

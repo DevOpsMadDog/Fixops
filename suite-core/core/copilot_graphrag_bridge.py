@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+
 import structlog
 
 sys.path.insert(0, "suite-core")

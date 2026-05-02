@@ -870,7 +870,8 @@ class CSPMConnector:
                 normalizer = TrivyScannerNormalizer()  # zero-arg if supported
             except TypeError:
                 # Real BaseNormalizer requires config — minimal config.
-                from dataclasses import dataclass as _dc, field as _field
+                from dataclasses import dataclass as _dc
+                from dataclasses import field as _field
 
                 @_dc
                 class _MinimalCfg:
@@ -1069,7 +1070,7 @@ def _build_normalizer(name: str):
     if name in _NORMALIZER_CONFIG_CACHE:
         return _NORMALIZER_CONFIG_CACHE[name]
     try:
-        from core.scanner_parsers import ProwlerNormalizer, CheckovNormalizer
+        from core.scanner_parsers import CheckovNormalizer, ProwlerNormalizer
     except Exception as exc:  # pragma: no cover
         logger.warning("scanner_parsers import failed: %s", exc)
         return None
@@ -1086,7 +1087,8 @@ def _build_normalizer(name: str):
         instance = cls(cfg) if cfg is not None else cls()
     except TypeError:
         # Real BaseNormalizer requires config — make a minimal one.
-        from dataclasses import dataclass as _dc, field as _field
+        from dataclasses import dataclass as _dc
+        from dataclasses import field as _field
 
         @_dc
         class _MinimalCfg:

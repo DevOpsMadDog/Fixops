@@ -13,7 +13,6 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-
 _SIGNING_KEY_ENV = "FIXOPS_SIGNING_KEY"
 _DEFAULT_DEV_KEY = b"fixops-dev-signing-key-do-not-use-in-prod"
 

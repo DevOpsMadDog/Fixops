@@ -17,11 +17,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-
 from apps.api.auth_deps import api_key_auth
 from core.security_service_catalog_engine import SecurityServiceCatalogEngine
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 

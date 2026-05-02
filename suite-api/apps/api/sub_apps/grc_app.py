@@ -95,7 +95,9 @@ def register_grc_routers(
 
     # IR Playbook Runner — 5 built-in playbooks, real actions
     try:
-        from apps.api.ir_playbook_runner_router import router as ir_playbook_runner_router
+        from apps.api.ir_playbook_runner_router import (
+            router as ir_playbook_runner_router,
+        )
     except ImportError:
         ir_playbook_runner_router = None  # type: ignore[assignment]
     if ir_playbook_runner_router:
@@ -119,7 +121,9 @@ def register_grc_routers(
 
     # Compliance Reports — multi-framework reporting
     try:
-        from apps.api.compliance_reports_router import router as compliance_reports_router
+        from apps.api.compliance_reports_router import (
+            router as compliance_reports_router,
+        )
     except ImportError:
         compliance_reports_router = None  # type: ignore[assignment]
     if compliance_reports_router:
@@ -143,7 +147,9 @@ def register_grc_routers(
 
     # Compliance Planner
     try:
-        from apps.api.compliance_planner_router import router as compliance_planner_router
+        from apps.api.compliance_planner_router import (
+            router as compliance_planner_router,
+        )
     except ImportError:
         compliance_planner_router = None  # type: ignore[assignment]
     if compliance_planner_router:
@@ -155,7 +161,9 @@ def register_grc_routers(
 
     # Evidence Collector
     try:
-        from apps.api.evidence_collector_router import router as evidence_collector_router
+        from apps.api.evidence_collector_router import (
+            router as evidence_collector_router,
+        )
     except ImportError:
         evidence_collector_router = None  # type: ignore[assignment]
     if evidence_collector_router:
@@ -191,7 +199,9 @@ def register_grc_routers(
 
     # Executive Security Reports
     try:
-        from apps.api.exec_security_reports_router import router as exec_security_reports_router
+        from apps.api.exec_security_reports_router import (
+            router as exec_security_reports_router,
+        )
     except ImportError:
         exec_security_reports_router = None  # type: ignore[assignment]
     if exec_security_reports_router:
@@ -203,7 +213,9 @@ def register_grc_routers(
 
     # Regulatory Tracker Engine
     try:
-        from apps.api.regulatory_tracker_engine_router import router as regulatory_tracker_engine_router
+        from apps.api.regulatory_tracker_engine_router import (
+            router as regulatory_tracker_engine_router,
+        )
     except ImportError:
         regulatory_tracker_engine_router = None  # type: ignore[assignment]
     if regulatory_tracker_engine_router:
@@ -254,7 +266,9 @@ def register_grc_routers(
         _logger.warning("Vendor Risk router not available: %s", _e)
 
     try:
-        from apps.api.vendor_risk_router import vra_router as vendor_risk_assessment_router
+        from apps.api.vendor_risk_router import (
+            vra_router as vendor_risk_assessment_router,
+        )
         app.include_router(vendor_risk_assessment_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Vendor Risk Assessment (VRA) router")
     except ImportError as _e:
@@ -292,7 +306,9 @@ def register_grc_routers(
 
     # Compliance Automation — 7-framework coverage (SOC2, PCI-DSS, HIPAA, FedRAMP, ISO 27001, NIST, CMMC)
     try:
-        from apps.api.compliance_automation_router import router as compliance_automation_router
+        from apps.api.compliance_automation_router import (
+            router as compliance_automation_router,
+        )
         app.include_router(
             compliance_automation_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
@@ -303,7 +319,9 @@ def register_grc_routers(
 
     # Data Classification — SCIF-grade asset classification with audit trail
     try:
-        from apps.api.data_classification_router import router as data_classification_router
+        from apps.api.data_classification_router import (
+            router as data_classification_router,
+        )
         app.include_router(
             data_classification_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
@@ -349,7 +367,9 @@ def register_grc_routers(
 
     # FAIR-based financial risk quantification — scenarios, Monte Carlo, treatments, impacts
     try:
-        from apps.api.risk_quantification_router import router as risk_quantification_router
+        from apps.api.risk_quantification_router import (
+            router as risk_quantification_router,
+        )
         app.include_router(risk_quantification_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Risk Quantification router at /api/v1/risk-quantification")
     except Exception as _e:
@@ -373,7 +393,9 @@ def register_grc_routers(
 
     # Compliance Scanner
     try:
-        from apps.api.compliance_scanner_router import router as compliance_scanner_router
+        from apps.api.compliance_scanner_router import (
+            router as compliance_scanner_router,
+        )
         app.include_router(compliance_scanner_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Compliance Scanner router at /api/v1/compliance-scanner")
     except Exception as _e:
@@ -381,7 +403,9 @@ def register_grc_routers(
 
     # Security Exception Manager — exception lifecycle, approvals, expiry tracking
     try:
-        from apps.api.security_exception_router import router as security_exception_router
+        from apps.api.security_exception_router import (
+            router as security_exception_router,
+        )
         app.include_router(security_exception_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Exception router at /api/v1/security-exceptions")
     except Exception as _e:
@@ -405,7 +429,9 @@ def register_grc_routers(
 
     # Identity Analytics Engine — identity profiles, login events, risks, access certifications
     try:
-        from apps.api.identity_analytics_router import router as identity_analytics_router
+        from apps.api.identity_analytics_router import (
+            router as identity_analytics_router,
+        )
         app.include_router(identity_analytics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Identity Analytics router at /api/v1/identity-analytics")
     except Exception as _e:
@@ -445,7 +471,9 @@ def register_grc_routers(
 
     # Compliance Evidence
     try:
-        from apps.api.compliance_evidence_router import router as compliance_evidence_router
+        from apps.api.compliance_evidence_router import (
+            router as compliance_evidence_router,
+        )
         app.include_router(compliance_evidence_router)
         _logger.info("Mounted Compliance Evidence router at /api/v1/compliance-evidence")
     except ImportError:
@@ -477,7 +505,9 @@ def register_grc_routers(
 
     # Endpoint Compliance
     try:
-        from apps.api.endpoint_compliance_router import router as endpoint_compliance_router
+        from apps.api.endpoint_compliance_router import (
+            router as endpoint_compliance_router,
+        )
         app.include_router(endpoint_compliance_router)
         _logger.info("Mounted Endpoint Compliance router at /api/v1/endpoint-compliance")
     except ImportError:
@@ -485,7 +515,9 @@ def register_grc_routers(
 
     # Executive Reporting Engine
     try:
-        from apps.api.executive_reporting_router import router as executive_reporting_router
+        from apps.api.executive_reporting_router import (
+            router as executive_reporting_router,
+        )
         app.include_router(executive_reporting_router)
         _logger.info("Mounted Executive Reporting router at /api/v1/exec-reporting")
     except ImportError:
@@ -556,14 +588,18 @@ def register_grc_routers(
 
     # Security Champions Program
     try:
-        from apps.api.security_champions_router import router as security_champions_router
+        from apps.api.security_champions_router import (
+            router as security_champions_router,
+        )
         app.include_router(security_champions_router)
     except ImportError:
         pass
 
     # Identity Governance
     try:
-        from apps.api.identity_governance_router import router as identity_governance_router
+        from apps.api.identity_governance_router import (
+            router as identity_governance_router,
+        )
         app.include_router(identity_governance_router)
         _logger.info("Mounted Identity Governance router at /api/v1/identity-governance")
     except ImportError:
@@ -586,7 +622,9 @@ def register_grc_routers(
 
     # Security Metrics Dashboard
     try:
-        from apps.api.security_metrics_dashboard_router import router as security_metrics_dashboard_router
+        from apps.api.security_metrics_dashboard_router import (
+            router as security_metrics_dashboard_router,
+        )
         app.include_router(security_metrics_dashboard_router)
         _logger.info("Mounted Security Metrics Dashboard router at /api/v1/metrics-dashboard")
     except ImportError:
@@ -602,7 +640,9 @@ def register_grc_routers(
 
     # Security Metrics Collector
     try:
-        from apps.api.security_metrics_collector_router import router as security_metrics_collector_router
+        from apps.api.security_metrics_collector_router import (
+            router as security_metrics_collector_router,
+        )
         app.include_router(security_metrics_collector_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Metrics Collector router at /api/v1/security-metrics-collector")
     except Exception as _e:
@@ -626,7 +666,9 @@ def register_grc_routers(
 
     # Quantum-Safe Cryptography
     try:
-        from apps.api.quantum_safe_crypto_router import router as quantum_safe_crypto_router
+        from apps.api.quantum_safe_crypto_router import (
+            router as quantum_safe_crypto_router,
+        )
         app.include_router(quantum_safe_crypto_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Quantum-Safe Crypto router at /api/v1/quantum-crypto")
     except ImportError:
@@ -634,7 +676,9 @@ def register_grc_routers(
 
     # Subsidiary Risk Attribution
     try:
-        from apps.api.subsidiary_attribution_router import router as subsidiary_attribution_router
+        from apps.api.subsidiary_attribution_router import (
+            router as subsidiary_attribution_router,
+        )
         app.include_router(subsidiary_attribution_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Subsidiary Attribution router at /api/v1/subsidiary-risk")
     except ImportError:
@@ -650,7 +694,9 @@ def register_grc_routers(
 
     # User Access Review
     try:
-        from apps.api.user_access_review_router import router as user_access_review_router
+        from apps.api.user_access_review_router import (
+            router as user_access_review_router,
+        )
         app.include_router(user_access_review_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted User Access Review router at /api/v1/access-review")
     except ImportError:
@@ -682,7 +728,9 @@ def register_grc_routers(
 
     # Risk Register Engine
     try:
-        from apps.api.risk_register_engine_router import router as risk_register_engine_router
+        from apps.api.risk_register_engine_router import (
+            router as risk_register_engine_router,
+        )
         app.include_router(risk_register_engine_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Risk Register Engine router at /api/v1/risk-register-engine")
     except ImportError:
@@ -690,7 +738,9 @@ def register_grc_routers(
 
     # Risk Quantification Engine (FAIR)
     try:
-        from apps.api.risk_quantification_engine_router import router as risk_quantification_engine_router
+        from apps.api.risk_quantification_engine_router import (
+            router as risk_quantification_engine_router,
+        )
         app.include_router(risk_quantification_engine_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Risk Quantification Engine router at /api/v1/risk-quantification-engine")
     except ImportError:
@@ -714,7 +764,9 @@ def register_grc_routers(
 
     # Security Investment ROI
     try:
-        from apps.api.security_investment_router import router as security_investment_router
+        from apps.api.security_investment_router import (
+            router as security_investment_router,
+        )
         app.include_router(security_investment_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Investment router at /api/v1/security-investment")
     except ImportError:
@@ -722,7 +774,9 @@ def register_grc_routers(
 
     # Security Questionnaire
     try:
-        from apps.api.security_questionnaire_router import router as security_questionnaire_router
+        from apps.api.security_questionnaire_router import (
+            router as security_questionnaire_router,
+        )
         app.include_router(security_questionnaire_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Questionnaire router at /api/v1/security-questionnaire")
     except ImportError:
@@ -730,7 +784,9 @@ def register_grc_routers(
 
     # Security Capacity Planning
     try:
-        from apps.api.security_capacity_planning_router import router as security_capacity_planning_router
+        from apps.api.security_capacity_planning_router import (
+            router as security_capacity_planning_router,
+        )
         app.include_router(security_capacity_planning_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Capacity Planning router at /api/v1/security-capacity")
     except ImportError:
@@ -746,7 +802,9 @@ def register_grc_routers(
 
     # Security Change Management
     try:
-        from apps.api.security_change_management_router import router as security_change_management_router
+        from apps.api.security_change_management_router import (
+            router as security_change_management_router,
+        )
         app.include_router(security_change_management_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Change Management router at /api/v1/security-change-mgmt")
     except ImportError:
@@ -754,7 +812,9 @@ def register_grc_routers(
 
     # Security Service Catalog
     try:
-        from apps.api.security_service_catalog_router import router as security_service_catalog_router
+        from apps.api.security_service_catalog_router import (
+            router as security_service_catalog_router,
+        )
         app.include_router(security_service_catalog_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Service Catalog router at /api/v1/security-catalog")
     except ImportError:
@@ -770,7 +830,9 @@ def register_grc_routers(
 
     # Security Training Effectiveness
     try:
-        from apps.api.security_training_effectiveness_router import router as security_training_effectiveness_router
+        from apps.api.security_training_effectiveness_router import (
+            router as security_training_effectiveness_router,
+        )
         app.include_router(security_training_effectiveness_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Training Effectiveness router at /api/v1/training-effectiveness")
     except ImportError:
@@ -778,7 +840,9 @@ def register_grc_routers(
 
     # Security Awareness Metrics
     try:
-        from apps.api.security_awareness_metrics_router import router as security_awareness_metrics_router
+        from apps.api.security_awareness_metrics_router import (
+            router as security_awareness_metrics_router,
+        )
         app.include_router(security_awareness_metrics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Awareness Metrics router at /api/v1/awareness-metrics")
     except ImportError:
@@ -786,7 +850,9 @@ def register_grc_routers(
 
     # Security Awareness Program
     try:
-        from apps.api.security_awareness_program_router import router as security_awareness_program_router
+        from apps.api.security_awareness_program_router import (
+            router as security_awareness_program_router,
+        )
         app.include_router(security_awareness_program_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Awareness Program router at /api/v1/awareness-program")
     except ImportError:
@@ -794,7 +860,9 @@ def register_grc_routers(
 
     # Security Awareness Gamification
     try:
-        from apps.api.security_awareness_gamification_router import router as security_awareness_gamification_router
+        from apps.api.security_awareness_gamification_router import (
+            router as security_awareness_gamification_router,
+        )
         app.include_router(security_awareness_gamification_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Awareness Gamification router at /api/v1/awareness-gamification")
     except ImportError:
@@ -802,7 +870,9 @@ def register_grc_routers(
 
     # Regulatory Reporting
     try:
-        from apps.api.regulatory_reporting_router import router as regulatory_reporting_router
+        from apps.api.regulatory_reporting_router import (
+            router as regulatory_reporting_router,
+        )
         app.include_router(regulatory_reporting_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Regulatory Reporting router at /api/v1/regulatory-reporting")
     except ImportError:
@@ -810,7 +880,9 @@ def register_grc_routers(
 
     # Regulatory Tracker
     try:
-        from apps.api.regulatory_tracker_router import router as regulatory_tracker_router
+        from apps.api.regulatory_tracker_router import (
+            router as regulatory_tracker_router,
+        )
         app.include_router(regulatory_tracker_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Regulatory Tracker router at /api/v1/regulatory-tracker")
     except ImportError:
@@ -834,7 +906,9 @@ def register_grc_routers(
 
     # Compliance Mapping
     try:
-        from apps.api.compliance_mapping_router import router as compliance_mapping_router
+        from apps.api.compliance_mapping_router import (
+            router as compliance_mapping_router,
+        )
         app.include_router(compliance_mapping_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Compliance Mapping router at /api/v1/compliance-mapping")
     except ImportError:
@@ -842,7 +916,9 @@ def register_grc_routers(
 
     # Compliance Workflow
     try:
-        from apps.api.compliance_workflow_router import router as compliance_workflow_router
+        from apps.api.compliance_workflow_router import (
+            router as compliance_workflow_router,
+        )
         app.include_router(compliance_workflow_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Compliance Workflow router at /api/v1/compliance-workflow")
     except ImportError:
@@ -874,7 +950,9 @@ def register_grc_routers(
 
     # Access Request Management
     try:
-        from apps.api.access_request_management_router import router as access_request_management_router
+        from apps.api.access_request_management_router import (
+            router as access_request_management_router,
+        )
         app.include_router(access_request_management_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Access Request Management router at /api/v1/access-requests")
     except ImportError:
@@ -946,7 +1024,9 @@ def register_grc_routers(
 
     # License Compliance
     try:
-        from apps.api.license_compliance_router import router as license_compliance_router
+        from apps.api.license_compliance_router import (
+            router as license_compliance_router,
+        )
         app.include_router(license_compliance_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted License Compliance router at /api/v1/license-compliance")
     except ImportError:
@@ -954,7 +1034,9 @@ def register_grc_routers(
 
     # Playbook Marketplace
     try:
-        from apps.api.playbook_marketplace_router import router as playbook_marketplace_router
+        from apps.api.playbook_marketplace_router import (
+            router as playbook_marketplace_router,
+        )
         app.include_router(playbook_marketplace_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Playbook Marketplace router at /api/v1/playbook-marketplace")
     except ImportError:
@@ -962,7 +1044,9 @@ def register_grc_routers(
 
     # Policy Enforcement Engine
     try:
-        from apps.api.policy_enforcement_router import router as policy_enforcement_router
+        from apps.api.policy_enforcement_router import (
+            router as policy_enforcement_router,
+        )
         app.include_router(policy_enforcement_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Policy Enforcement router at /api/v1/policy-enforcement")
     except ImportError:
@@ -970,7 +1054,9 @@ def register_grc_routers(
 
     # Privacy Impact Assessment
     try:
-        from apps.api.privacy_impact_assessment_router import router as privacy_impact_assessment_router
+        from apps.api.privacy_impact_assessment_router import (
+            router as privacy_impact_assessment_router,
+        )
         app.include_router(privacy_impact_assessment_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Privacy Impact Assessment router at /api/v1/privacy-impact")
     except ImportError:
@@ -994,7 +1080,9 @@ def register_grc_routers(
 
     # Security Architecture Review
     try:
-        from apps.api.security_architecture_review_router import router as security_architecture_review_router
+        from apps.api.security_architecture_review_router import (
+            router as security_architecture_review_router,
+        )
         app.include_router(security_architecture_review_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Architecture Review router at /api/v1/security-arch-review")
     except ImportError:
@@ -1010,7 +1098,9 @@ def register_grc_routers(
 
     # Security Benchmark
     try:
-        from apps.api.security_benchmark_router import router as security_benchmark_router
+        from apps.api.security_benchmark_router import (
+            router as security_benchmark_router,
+        )
         app.include_router(security_benchmark_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Benchmark router at /api/v1/security-benchmark")
     except ImportError:
@@ -1018,7 +1108,9 @@ def register_grc_routers(
 
     # Security Gap Analysis
     try:
-        from apps.api.security_gap_analysis_router import router as security_gap_analysis_router
+        from apps.api.security_gap_analysis_router import (
+            router as security_gap_analysis_router,
+        )
         app.include_router(security_gap_analysis_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Gap Analysis router at /api/v1/security-gap")
     except ImportError:
@@ -1026,7 +1118,9 @@ def register_grc_routers(
 
     # Security Health Scorecard
     try:
-        from apps.api.security_health_scorecard_router import router as security_health_scorecard_router
+        from apps.api.security_health_scorecard_router import (
+            router as security_health_scorecard_router,
+        )
         app.include_router(security_health_scorecard_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Health Scorecard router at /api/v1/security-health-scorecard")
     except ImportError:
@@ -1034,7 +1128,9 @@ def register_grc_routers(
 
     # Security Metrics Aggregator
     try:
-        from apps.api.security_metrics_aggregator_router import router as security_metrics_aggregator_router
+        from apps.api.security_metrics_aggregator_router import (
+            router as security_metrics_aggregator_router,
+        )
         app.include_router(security_metrics_aggregator_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Metrics Aggregator router at /api/v1/security-metrics-agg")
     except ImportError:
@@ -1050,7 +1146,9 @@ def register_grc_routers(
 
     # Security Operations Metrics
     try:
-        from apps.api.security_operations_metrics_router import router as security_operations_metrics_router
+        from apps.api.security_operations_metrics_router import (
+            router as security_operations_metrics_router,
+        )
         app.include_router(security_operations_metrics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Operations Metrics router at /api/v1/ops-metrics")
     except ImportError:
@@ -1058,7 +1156,9 @@ def register_grc_routers(
 
     # Security Posture Benchmarking
     try:
-        from apps.api.security_posture_benchmarking_router import router as security_posture_benchmarking_router
+        from apps.api.security_posture_benchmarking_router import (
+            router as security_posture_benchmarking_router,
+        )
         app.include_router(security_posture_benchmarking_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Posture Benchmarking router at /api/v1/posture-benchmarking")
     except ImportError:
@@ -1066,7 +1166,9 @@ def register_grc_routers(
 
     # Security Posture History
     try:
-        from apps.api.security_posture_history_router import router as security_posture_history_router
+        from apps.api.security_posture_history_router import (
+            router as security_posture_history_router,
+        )
         app.include_router(security_posture_history_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Posture History router at /api/v1/posture-history")
     except ImportError:
@@ -1074,7 +1176,9 @@ def register_grc_routers(
 
     # Security Posture Maturity
     try:
-        from apps.api.security_posture_maturity_router import router as security_posture_maturity_router
+        from apps.api.security_posture_maturity_router import (
+            router as security_posture_maturity_router,
+        )
         app.include_router(security_posture_maturity_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Posture Maturity router at /api/v1/posture-maturity")
     except ImportError:
@@ -1082,7 +1186,9 @@ def register_grc_routers(
 
     # Security Posture PDF Report
     try:
-        from apps.api.security_posture_pdf_router import router as security_posture_pdf_router
+        from apps.api.security_posture_pdf_router import (
+            router as security_posture_pdf_router,
+        )
         app.include_router(security_posture_pdf_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Posture PDF router at /api/v1/posture-pdf")
     except ImportError:
@@ -1090,7 +1196,9 @@ def register_grc_routers(
 
     # Security Posture Reporting
     try:
-        from apps.api.security_posture_reporting_router import router as security_posture_reporting_router
+        from apps.api.security_posture_reporting_router import (
+            router as security_posture_reporting_router,
+        )
         app.include_router(security_posture_reporting_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Posture Reporting router at /api/v1/posture-reporting")
     except ImportError:
@@ -1098,7 +1206,9 @@ def register_grc_routers(
 
     # Security Posture Scoring
     try:
-        from apps.api.security_posture_scoring_router import router as security_posture_scoring_router
+        from apps.api.security_posture_scoring_router import (
+            router as security_posture_scoring_router,
+        )
         app.include_router(security_posture_scoring_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Posture Scoring router at /api/v1/posture-scoring")
     except ImportError:
@@ -1106,7 +1216,9 @@ def register_grc_routers(
 
     # Security Posture Trend
     try:
-        from apps.api.security_posture_trend_router import router as security_posture_trend_router
+        from apps.api.security_posture_trend_router import (
+            router as security_posture_trend_router,
+        )
         app.include_router(security_posture_trend_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Posture Trend router at /api/v1/posture-trend")
     except ImportError:
@@ -1114,7 +1226,9 @@ def register_grc_routers(
 
     # Security Program Maturity
     try:
-        from apps.api.security_program_maturity_router import router as security_program_maturity_router
+        from apps.api.security_program_maturity_router import (
+            router as security_program_maturity_router,
+        )
         app.include_router(security_program_maturity_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Program Maturity router at /api/v1/program-maturity")
     except ImportError:
@@ -1122,7 +1236,9 @@ def register_grc_routers(
 
     # Security Scoreboard
     try:
-        from apps.api.security_scoreboard_router import router as security_scoreboard_router
+        from apps.api.security_scoreboard_router import (
+            router as security_scoreboard_router,
+        )
         app.include_router(security_scoreboard_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Scoreboard router at /api/v1/security-scoreboard")
     except ImportError:
@@ -1130,7 +1246,9 @@ def register_grc_routers(
 
     # Exception Workflow
     try:
-        from apps.api.security_exception_workflow_router import router as security_exception_workflow_router
+        from apps.api.security_exception_workflow_router import (
+            router as security_exception_workflow_router,
+        )
         app.include_router(security_exception_workflow_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Exception Workflow router at /api/v1/exception-workflow")
     except ImportError:
@@ -1146,7 +1264,9 @@ def register_grc_routers(
 
     # Awareness Campaign
     try:
-        from apps.api.awareness_campaign_router import router as awareness_campaign_router
+        from apps.api.awareness_campaign_router import (
+            router as awareness_campaign_router,
+        )
         app.include_router(awareness_campaign_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Awareness Campaign router at /api/v1/awareness-campaigns")
     except ImportError:
@@ -1201,7 +1321,9 @@ def register_grc_routers(
 
     # Compliance Engine — control assessment (suite-evidence-risk/api/)
     try:
-        from api.compliance_engine_router import router as compliance_engine_router  # noqa: PLC0415
+        from api.compliance_engine_router import (
+            router as compliance_engine_router,  # noqa: PLC0415
+        )
         app.include_router(compliance_engine_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Compliance Engine router (wave-6)")
     except ImportError:
@@ -1217,7 +1339,9 @@ def register_grc_routers(
 
     # Business Context Enhanced (suite-evidence-risk/api/)
     try:
-        from api.business_context_enhanced import router as biz_ctx_enhanced_router  # noqa: PLC0415
+        from api.business_context_enhanced import (
+            router as biz_ctx_enhanced_router,  # noqa: PLC0415
+        )
         app.include_router(biz_ctx_enhanced_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Business Context Enhanced router (wave-6)")
     except ImportError:
@@ -1227,7 +1351,9 @@ def register_grc_routers(
 
     # Compliance Planner (apps/api/)
     try:
-        from apps.api.compliance_planner_router import router as compliance_planner_router  # noqa: PLC0415
+        from apps.api.compliance_planner_router import (
+            router as compliance_planner_router,  # noqa: PLC0415
+        )
         app.include_router(compliance_planner_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Compliance Planner router (wave-6)")
     except ImportError:
@@ -1235,7 +1361,9 @@ def register_grc_routers(
 
     # Evidence Collector (apps/api/)
     try:
-        from apps.api.evidence_collector_router import router as evidence_collector_router  # noqa: PLC0415
+        from apps.api.evidence_collector_router import (
+            router as evidence_collector_router,  # noqa: PLC0415
+        )
         app.include_router(evidence_collector_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Evidence Collector router (wave-6)")
     except ImportError:
@@ -1243,7 +1371,9 @@ def register_grc_routers(
 
     # Exception Policy (apps/api/)
     try:
-        from apps.api.exception_policy_router import router as exception_policy_router  # noqa: PLC0415
+        from apps.api.exception_policy_router import (
+            router as exception_policy_router,  # noqa: PLC0415
+        )
         app.include_router(exception_policy_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Exception Policy router (wave-6)")
     except ImportError:
@@ -1251,7 +1381,9 @@ def register_grc_routers(
 
     # Executive Report (apps/api/)
     try:
-        from apps.api.executive_report_router import router as executive_report_router  # noqa: PLC0415
+        from apps.api.executive_report_router import (
+            router as executive_report_router,  # noqa: PLC0415
+        )
         app.include_router(executive_report_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Executive Report router (wave-6)")
     except ImportError:
@@ -1259,7 +1391,9 @@ def register_grc_routers(
 
     # Executive Security Reports (apps/api/)
     try:
-        from apps.api.exec_security_reports_router import router as exec_security_reports_router  # noqa: PLC0415
+        from apps.api.exec_security_reports_router import (
+            router as exec_security_reports_router,  # noqa: PLC0415
+        )
         app.include_router(exec_security_reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Executive Security Reports router (wave-6)")
     except ImportError:
@@ -1267,7 +1401,9 @@ def register_grc_routers(
 
     # Risk Acceptance (apps/api/)
     try:
-        from apps.api.risk_acceptance_router import router as risk_acceptance_router  # noqa: PLC0415
+        from apps.api.risk_acceptance_router import (
+            router as risk_acceptance_router,  # noqa: PLC0415
+        )
         app.include_router(risk_acceptance_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Risk Acceptance router (wave-6)")
     except ImportError:
@@ -1275,7 +1411,9 @@ def register_grc_routers(
 
     # Risk Quantifier (apps/api/)
     try:
-        from apps.api.risk_quantifier_router import router as risk_quantifier_router  # noqa: PLC0415
+        from apps.api.risk_quantifier_router import (
+            router as risk_quantifier_router,  # noqa: PLC0415
+        )
         app.include_router(risk_quantifier_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Risk Quantifier router (wave-6)")
     except ImportError:
@@ -1283,7 +1421,9 @@ def register_grc_routers(
 
     # Security ROI (apps/api/)
     try:
-        from apps.api.security_roi_router import router as security_roi_router  # noqa: PLC0415
+        from apps.api.security_roi_router import (
+            router as security_roi_router,  # noqa: PLC0415
+        )
         app.include_router(security_roi_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Security ROI router (wave-6)")
     except ImportError:
@@ -1291,7 +1431,9 @@ def register_grc_routers(
 
     # Vendor Scorecard (apps/api/)
     try:
-        from apps.api.vendor_scorecard_router import router as vendor_scorecard_router  # noqa: PLC0415
+        from apps.api.vendor_scorecard_router import (
+            router as vendor_scorecard_router,  # noqa: PLC0415
+        )
         app.include_router(vendor_scorecard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Vendor Scorecard router (wave-6)")
     except ImportError:
@@ -1299,7 +1441,9 @@ def register_grc_routers(
 
     # Security Scorecard Engine (apps/api/)
     try:
-        from apps.api.security_scorecard_engine_router import router as security_scorecard_engine_router  # noqa: PLC0415
+        from apps.api.security_scorecard_engine_router import (
+            router as security_scorecard_engine_router,  # noqa: PLC0415
+        )
         app.include_router(security_scorecard_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Security Scorecard Engine router (wave-6)")
     except ImportError:
@@ -1307,7 +1451,9 @@ def register_grc_routers(
 
     # Security Scorecard (apps/api/)
     try:
-        from apps.api.security_scorecard_router import router as security_scorecard_router  # noqa: PLC0415
+        from apps.api.security_scorecard_router import (
+            router as security_scorecard_router,  # noqa: PLC0415
+        )
         app.include_router(security_scorecard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Security Scorecard router (wave-6)")
     except ImportError:
@@ -1315,7 +1461,9 @@ def register_grc_routers(
 
     # Regulatory Tracker Engine (apps/api/)
     try:
-        from apps.api.regulatory_tracker_engine_router import router as regulatory_tracker_engine_router  # noqa: PLC0415
+        from apps.api.regulatory_tracker_engine_router import (
+            router as regulatory_tracker_engine_router,  # noqa: PLC0415
+        )
         app.include_router(regulatory_tracker_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Regulatory Tracker Engine router (wave-6)")
     except ImportError:
@@ -1323,7 +1471,9 @@ def register_grc_routers(
 
     # Questionnaire Engine (apps/api/)
     try:
-        from apps.api.questionnaire_router import router as questionnaire_router  # noqa: PLC0415
+        from apps.api.questionnaire_router import (
+            router as questionnaire_router,  # noqa: PLC0415
+        )
         app.include_router(questionnaire_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Questionnaire Engine router (wave-6)")
     except ImportError:

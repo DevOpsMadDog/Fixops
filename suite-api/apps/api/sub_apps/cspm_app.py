@@ -51,7 +51,9 @@ def register_cspm_routers(
         _logger = _log
 
     try:
-        from apps.api.network_security_router import router as network_security_router  # noqa: PLC0415
+        from apps.api.network_security_router import (
+            router as network_security_router,  # noqa: PLC0415
+        )
         app.include_router(network_security_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Network Security (NDR) router")
     except ImportError:
@@ -59,7 +61,9 @@ def register_cspm_routers(
 
     # Cloud Discovery — multi-cloud asset inventory
     try:
-        from apps.api.cloud_discovery_router import router as cloud_discovery_router  # noqa: PLC0415
+        from apps.api.cloud_discovery_router import (
+            router as cloud_discovery_router,  # noqa: PLC0415
+        )
         app.include_router(cloud_discovery_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Cloud Discovery router")
     except ImportError:
@@ -67,7 +71,9 @@ def register_cspm_routers(
 
     # Database Security Scanner — CIS benchmarks, privilege audit, data exposure, query audit
     try:
-        from apps.api.db_security_router import router as db_security_router  # noqa: PLC0415
+        from apps.api.db_security_router import (
+            router as db_security_router,  # noqa: PLC0415
+        )
         app.include_router(db_security_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Database Security Scanner router")
     except ImportError:
@@ -75,7 +81,9 @@ def register_cspm_routers(
 
     # AWS Security Hub — pull findings from AWS Security Hub (ASFF normalization)
     try:
-        from apps.api.aws_security_hub_router import router as aws_security_hub_router  # noqa: PLC0415
+        from apps.api.aws_security_hub_router import (
+            router as aws_security_hub_router,  # noqa: PLC0415
+        )
         app.include_router(aws_security_hub_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted AWS Security Hub router")
     except ImportError:
@@ -83,7 +91,9 @@ def register_cspm_routers(
 
     # Azure Defender — pull alerts/score/recommendations from Microsoft Defender for Cloud
     try:
-        from apps.api.azure_defender_router import router as azure_defender_router  # noqa: PLC0415
+        from apps.api.azure_defender_router import (
+            router as azure_defender_router,  # noqa: PLC0415
+        )
         app.include_router(azure_defender_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Azure Defender router")
     except ImportError:
@@ -93,7 +103,9 @@ def register_cspm_routers(
     # GAP-020 — Agentless Snapshot Scanning (Wiz/Orca moat, P0)
     # -----------------------------------------------------------------------
     try:
-        from apps.api.agentless_snapshot_router import router as agentless_snapshot_router
+        from apps.api.agentless_snapshot_router import (
+            router as agentless_snapshot_router,
+        )
         app.include_router(agentless_snapshot_router)
         _logger.info("Mounted Agentless Snapshot Scan router at /api/v1/agentless-snapshot")
     except ImportError as _agentless_err:
@@ -133,14 +145,18 @@ def register_cspm_routers(
 
     # Cloud Workload Protection Engine — runtime threats, policies, risk scoring
     try:
-        from apps.api.cloud_workload_protection_router import router as cloud_workload_protection_router
+        from apps.api.cloud_workload_protection_router import (
+            router as cloud_workload_protection_router,
+        )
         app.include_router(cloud_workload_protection_router)
         _logger.info("Mounted Cloud Workload Protection router at /api/v1/cwp")
     except Exception as e:
         _logger.warning(f"Cloud Workload Protection router not loaded: {e}")
 
     try:
-        from apps.api.zero_trust_enforcement_router import router as zero_trust_enforcement_router
+        from apps.api.zero_trust_enforcement_router import (
+            router as zero_trust_enforcement_router,
+        )
         app.include_router(zero_trust_enforcement_router)
         _logger.info("Mounted Zero Trust Enforcement router at /api/v1/zero-trust")
     except ImportError:
@@ -154,7 +170,9 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.cloud_security_engine_router import router as cloud_security_engine_router
+        from apps.api.cloud_security_engine_router import (
+            router as cloud_security_engine_router,
+        )
         app.include_router(cloud_security_engine_router)
         _logger.info("Mounted Cloud Security Engine router at /api/v1/cloud-security-engine")
     except ImportError:
@@ -168,13 +186,17 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.firewall_management_router import router as firewall_management_router
+        from apps.api.firewall_management_router import (
+            router as firewall_management_router,
+        )
         app.include_router(firewall_management_router)
     except ImportError:
         pass
 
     try:
-        from apps.api.cloud_cost_security_router import router as cloud_cost_security_router
+        from apps.api.cloud_cost_security_router import (
+            router as cloud_cost_security_router,
+        )
         app.include_router(cloud_cost_security_router)
         _logger.info("Mounted Cloud Cost Security router at /api/v1/cloud-cost")
     except ImportError:
@@ -223,42 +245,54 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.cloud_native_security_router import router as cloud_native_security_router
+        from apps.api.cloud_native_security_router import (
+            router as cloud_native_security_router,
+        )
         app.include_router(cloud_native_security_router)
         _logger.info("Mounted Cloud Native Security router at /api/v1/cloud-native")
     except ImportError:
         pass
 
     try:
-        from apps.api.kubernetes_security_router import router as kubernetes_security_router
+        from apps.api.kubernetes_security_router import (
+            router as kubernetes_security_router,
+        )
         app.include_router(kubernetes_security_router)
         _logger.info("Mounted Kubernetes Security router at /api/v1/kubernetes-security")
     except ImportError:
         pass
 
     try:
-        from apps.api.network_monitoring_router import router as network_monitoring_router
+        from apps.api.network_monitoring_router import (
+            router as network_monitoring_router,
+        )
         app.include_router(network_monitoring_router)
         _logger.info("Mounted Network Monitoring router at /api/v1/network-monitoring")
     except ImportError:
         pass
 
     try:
-        from apps.api.bandwidth_analysis_router import router as bandwidth_analysis_router
+        from apps.api.bandwidth_analysis_router import (
+            router as bandwidth_analysis_router,
+        )
         app.include_router(bandwidth_analysis_router)
         _logger.info("Mounted Bandwidth Analysis router at /api/v1/bandwidth-analysis")
     except ImportError:
         pass
 
     try:
-        from apps.api.service_account_auditor_router import router as service_account_auditor_router
+        from apps.api.service_account_auditor_router import (
+            router as service_account_auditor_router,
+        )
         app.include_router(service_account_auditor_router)
         _logger.info("Mounted Service Account Auditor router at /api/v1/service-account-auditor")
     except ImportError:
         pass
 
     try:
-        from apps.api.privilege_escalation_router import router as privilege_escalation_router
+        from apps.api.privilege_escalation_router import (
+            router as privilege_escalation_router,
+        )
         app.include_router(privilege_escalation_router)
         _logger.info("Mounted Privilege Escalation router at /api/v1/privilege-escalation")
     except ImportError:
@@ -272,35 +306,45 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.network_segmentation_router import router as network_segmentation_router
+        from apps.api.network_segmentation_router import (
+            router as network_segmentation_router,
+        )
         app.include_router(network_segmentation_router)
         _logger.info("Mounted Network Segmentation router at /api/v1/network-segmentation")
     except ImportError:
         pass
 
     try:
-        from apps.api.crypto_key_management_router import router as crypto_key_management_router
+        from apps.api.crypto_key_management_router import (
+            router as crypto_key_management_router,
+        )
         app.include_router(crypto_key_management_router)
         _logger.info("Mounted Crypto Key Management router at /api/v1/crypto-keys")
     except ImportError:
         pass
 
     try:
-        from apps.api.certificate_lifecycle_router import router as certificate_lifecycle_router
+        from apps.api.certificate_lifecycle_router import (
+            router as certificate_lifecycle_router,
+        )
         app.include_router(certificate_lifecycle_router)
         _logger.info("Mounted Certificate Lifecycle router at /api/v1/certificates")
     except ImportError:
         pass
 
     try:
-        from apps.api.data_lake_security_router import router as data_lake_security_router
+        from apps.api.data_lake_security_router import (
+            router as data_lake_security_router,
+        )
         app.include_router(data_lake_security_router)
         _logger.info("Mounted Data Lake Security router at /api/v1/data-lake-security")
     except ImportError:
         pass
 
     try:
-        from apps.api.mobile_device_management_router import router as mobile_device_management_router
+        from apps.api.mobile_device_management_router import (
+            router as mobile_device_management_router,
+        )
         app.include_router(mobile_device_management_router)
         _logger.info("Mounted Mobile Device Management router at /api/v1/mdm")
     except ImportError:
@@ -321,7 +365,9 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.network_access_control_router import router as network_access_control_router
+        from apps.api.network_access_control_router import (
+            router as network_access_control_router,
+        )
         app.include_router(network_access_control_router)
         _logger.info("Mounted Network Access Control router at /api/v1/nac")
     except ImportError:
@@ -364,7 +410,9 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.cloud_security_analytics_router import router as cloud_security_analytics_router
+        from apps.api.cloud_security_analytics_router import (
+            router as cloud_security_analytics_router,
+        )
         app.include_router(cloud_security_analytics_router)
         _logger.info("Mounted Cloud Security Analytics router at /api/v1/cloud-analytics")
     except ImportError:
@@ -378,7 +426,9 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.privileged_access_governance_router import router as privileged_access_governance_router
+        from apps.api.privileged_access_governance_router import (
+            router as privileged_access_governance_router,
+        )
         app.include_router(privileged_access_governance_router)
         _logger.info("Mounted Privileged Access Governance router at /api/v1/pag")
     except ImportError:
@@ -392,28 +442,36 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.container_security_posture_router import router as container_security_posture_router
+        from apps.api.container_security_posture_router import (
+            router as container_security_posture_router,
+        )
         app.include_router(container_security_posture_router)
         _logger.info("Mounted Container Security Posture router at /api/v1/container-posture")
     except ImportError:
         pass
 
     try:
-        from apps.api.privileged_session_recording_router import router as privileged_session_recording_router
+        from apps.api.privileged_session_recording_router import (
+            router as privileged_session_recording_router,
+        )
         app.include_router(privileged_session_recording_router)
         _logger.info("Mounted Privileged Session Recording router at /api/v1/session-recording")
     except ImportError:
         pass
 
     try:
-        from apps.api.cloud_resource_inventory_router import router as cloud_resource_inventory_router
+        from apps.api.cloud_resource_inventory_router import (
+            router as cloud_resource_inventory_router,
+        )
         app.include_router(cloud_resource_inventory_router)
         _logger.info("Mounted Cloud Resource Inventory router at /api/v1/cloud-inventory")
     except ImportError:
         pass
 
     try:
-        from apps.api.microsegmentation_policy_router import router as microsegmentation_policy_router
+        from apps.api.microsegmentation_policy_router import (
+            router as microsegmentation_policy_router,
+        )
         app.include_router(microsegmentation_policy_router)
         _logger.info("Mounted Microsegmentation Policy router at /api/v1/microsegmentation")
     except ImportError:
@@ -421,21 +479,27 @@ def register_cspm_routers(
 
     # Wave 29 routers
     try:
-        from apps.api.saas_security_posture_router import router as saas_security_posture_router
+        from apps.api.saas_security_posture_router import (
+            router as saas_security_posture_router,
+        )
         app.include_router(saas_security_posture_router)
         _logger.info("Mounted SaaS Security Posture router at /api/v1/sspm")
     except ImportError:
         pass
 
     try:
-        from apps.api.cloud_account_monitoring_router import router as cloud_account_monitoring_router
+        from apps.api.cloud_account_monitoring_router import (
+            router as cloud_account_monitoring_router,
+        )
         app.include_router(cloud_account_monitoring_router)
         _logger.info("Mounted Cloud Account Monitoring router at /api/v1/cloud-accounts")
     except ImportError:
         pass
 
     try:
-        from apps.api.cloud_security_findings_router import router as cloud_security_findings_router
+        from apps.api.cloud_security_findings_router import (
+            router as cloud_security_findings_router,
+        )
         app.include_router(cloud_security_findings_router)
         _logger.info("Mounted Cloud Security Findings router at /api/v1/cloud-findings")
     except ImportError:
@@ -450,14 +514,18 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.privileged_identity_router import router as privileged_identity_router
+        from apps.api.privileged_identity_router import (
+            router as privileged_identity_router,
+        )
         app.include_router(privileged_identity_router)
         _logger.info("Mounted Privileged Identity router at /api/v1/privileged-identity")
     except ImportError:
         pass
 
     try:
-        from apps.api.identity_lifecycle_router import router as identity_lifecycle_router
+        from apps.api.identity_lifecycle_router import (
+            router as identity_lifecycle_router,
+        )
         app.include_router(identity_lifecycle_router)
         _logger.info("Mounted Identity Lifecycle router at /api/v1/identity-lifecycle")
     except ImportError:
@@ -471,7 +539,9 @@ def register_cspm_routers(
         pass
 
     try:
-        from apps.api.cloud_cost_optimization_router import router as cloud_cost_optimization_router
+        from apps.api.cloud_cost_optimization_router import (
+            router as cloud_cost_optimization_router,
+        )
         app.include_router(cloud_cost_optimization_router)
         _logger.info("Mounted Cloud Cost Optimization router at /api/v1/cost-optimization")
     except ImportError:
@@ -520,7 +590,9 @@ def register_cspm_routers(
 
     # CSPM Engine (apps/api/)
     try:
-        from apps.api.cspm_engine_router import router as cspm_engine_router  # noqa: PLC0415
+        from apps.api.cspm_engine_router import (
+            router as cspm_engine_router,  # noqa: PLC0415
+        )
         app.include_router(cspm_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted CSPM Engine router (wave-6)")
     except ImportError:
@@ -528,7 +600,9 @@ def register_cspm_routers(
 
     # CSPM Deep Scan (apps/api/)
     try:
-        from apps.api.cspm_deep_router import router as cspm_deep_router  # noqa: PLC0415
+        from apps.api.cspm_deep_router import (
+            router as cspm_deep_router,  # noqa: PLC0415
+        )
         app.include_router(cspm_deep_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted CSPM Deep Scan router (wave-6)")
     except ImportError:
@@ -536,7 +610,9 @@ def register_cspm_routers(
 
     # CSPM Connector OSS family (apps/api/)
     try:
-        from apps.api.cspm_connector_router import router as cspm_connector_router  # noqa: PLC0415
+        from apps.api.cspm_connector_router import (
+            router as cspm_connector_router,  # noqa: PLC0415
+        )
         app.include_router(cspm_connector_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted CSPM Connector router (wave-6)")
     except ImportError:
@@ -544,7 +620,9 @@ def register_cspm_routers(
 
     # Privilege Escalation Detector (apps/api/)
     try:
-        from apps.api.privilege_escalation_detector_router import router as privilege_escalation_detector_router  # noqa: PLC0415
+        from apps.api.privilege_escalation_detector_router import (
+            router as privilege_escalation_detector_router,  # noqa: PLC0415
+        )
         app.include_router(privilege_escalation_detector_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Privilege Escalation Detector router (wave-6)")
     except ImportError:

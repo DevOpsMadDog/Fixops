@@ -14,10 +14,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.rate_limiter_v2 import RateLimiterV2, RateLimitTier, get_rate_limiter
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.rate_limiter_v2 import RateLimitTier, RateLimiterV2, get_rate_limiter
 
 logger = logging.getLogger(__name__)
 

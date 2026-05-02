@@ -10,10 +10,9 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
+from core.red_team_engine import INTENSITY_LEVELS, TACTICS, RedTeamEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.red_team_engine import RedTeamEngine, INTENSITY_LEVELS, TACTICS
 
 logger = logging.getLogger(__name__)
 

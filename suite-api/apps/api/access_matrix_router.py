@@ -8,15 +8,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.access_matrix import (
     AccessLevel,
     AccessMatrix,
     ResourceType,
     get_access_matrix,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/access-matrix", tags=["access-matrix"])
 

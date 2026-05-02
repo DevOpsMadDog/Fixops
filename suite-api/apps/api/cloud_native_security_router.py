@@ -9,10 +9,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.cloud_native_security_engine import get_engine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-
-from core.cloud_native_security_engine import get_engine
 
 _logger = logging.getLogger(__name__)
 

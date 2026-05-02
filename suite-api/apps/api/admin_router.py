@@ -24,14 +24,13 @@ import logging
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, EmailStr, Field
-
 from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
 from core.audit_logger import create_audit_logger
 from core.user_db import UserDB
 from core.user_models import Team, User, UserRole, UserStatus
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, EmailStr, Field
 
 logger = logging.getLogger(__name__)
 _audit = create_audit_logger()

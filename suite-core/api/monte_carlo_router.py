@@ -73,7 +73,7 @@ class PortfolioRiskRequest(BaseModel):
 @router.post("/fair", summary="Full FAIR model simulation")
 async def simulate_fair(req: FAIRSimulationRequest) -> Dict[str, Any]:
     """Run a full FAIR Monte Carlo simulation with custom parameters."""
-    from core.monte_carlo import MonteCarloRiskEngine, FAIRInputs
+    from core.monte_carlo import FAIRInputs, MonteCarloRiskEngine
 
     engine = MonteCarloRiskEngine(iterations=req.iterations)
     inputs = FAIRInputs(

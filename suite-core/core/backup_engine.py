@@ -6,6 +6,7 @@ encryption, checksum verification, and retention management.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import io
 import json
@@ -22,8 +23,6 @@ from typing import Any, Dict, List, Optional
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import base64
-
 from pydantic import BaseModel
 
 try:

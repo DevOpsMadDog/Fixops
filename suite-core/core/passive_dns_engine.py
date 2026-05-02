@@ -271,8 +271,8 @@ class PassiveDNSEngine:
 
     def add_domain_threat(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mark a domain as malicious with threat classification."""
-        import uuid
         import json
+        import uuid
 
         domain = str(data.get("domain", "")).strip().lower()
         threat_type = str(data.get("threat_type", "")).lower()

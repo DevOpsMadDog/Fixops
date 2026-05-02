@@ -34,8 +34,9 @@ import defusedxml.ElementTree as defused_ET
 import httpx
 import jwt
 from jwt import PyJWKClient
-from core.exceptions import AuthorizationError, ValidationError
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+from core.exceptions import AuthorizationError, ValidationError
 
 logger = logging.getLogger(__name__)
 

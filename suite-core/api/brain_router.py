@@ -611,8 +611,9 @@ async def brain_trends(
         app_id: Filter by application (optional)
     """
     try:
-        import json as _json
         import datetime as _dt
+        import json as _json
+
         from core.ml.trend_analyzer import get_trend_analyzer
 
         analyzer = get_trend_analyzer()

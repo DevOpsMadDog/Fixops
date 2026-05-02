@@ -37,8 +37,10 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    false as sa_false,
     text,
+)
+from sqlalchemy import (
+    false as sa_false,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 

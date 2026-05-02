@@ -13,9 +13,8 @@ import base64
 import json
 from typing import Any, Dict
 
-from fastapi import HTTPException
-
 from core.utils.enterprise import crypto
+from fastapi import HTTPException
 
 
 async def verify_signature(request: Any) -> Dict[str, Any]:

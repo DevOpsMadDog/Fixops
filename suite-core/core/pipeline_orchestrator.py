@@ -460,7 +460,10 @@ class PipelineOrchestrator:
 
         if raw_content:
             try:
-                from core.scanner_parsers import parse_scanner_output, auto_detect_scanner
+                from core.scanner_parsers import (
+                    auto_detect_scanner,
+                    parse_scanner_output,
+                )
 
                 if not scanner_type:
                     content_bytes = raw_content if isinstance(raw_content, bytes) else raw_content.encode("utf-8")

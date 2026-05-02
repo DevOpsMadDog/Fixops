@@ -22,11 +22,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
-from pydantic import BaseModel, Field
-
 from core.data_classification import (
     AutoClassifyResult,
     ClassificationChange,
@@ -36,6 +32,8 @@ from core.data_classification import (
     DataClassificationEngine,
     get_classification_engine,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

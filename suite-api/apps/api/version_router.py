@@ -7,9 +7,8 @@ import subprocess
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-from fastapi import APIRouter
-
 from apps.api.api_versioning_middleware import API_VERSION, DEPRECATED_ENDPOINTS
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/v1", tags=["version"])
 

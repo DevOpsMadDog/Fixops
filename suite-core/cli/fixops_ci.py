@@ -6,11 +6,12 @@ import sys
 from pathlib import Path
 from typing import Iterable, List
 
+from services.evidence.packager import BundleInputs, EvidencePackager
+
 from cli.fixops_provenance import main as provenance_main
 from cli.fixops_repro import main as repro_main
 from cli.fixops_risk import main as risk_main
 from cli.fixops_sbom import main as sbom_main
-from services.evidence.packager import BundleInputs, EvidencePackager
 
 DEFAULT_NORMALIZED = Path("artifacts/sbom/normalized.json")
 DEFAULT_QUALITY_JSON = Path("analysis/sbom_quality_report.json")

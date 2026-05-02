@@ -4,8 +4,9 @@ Migration: 001
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # Migration metadata
 revision = "001"

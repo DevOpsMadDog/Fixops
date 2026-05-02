@@ -337,7 +337,7 @@ class CouncilPipelineAdapter:
         """Lazy-init LLMCouncilEngine if needed."""
         if self._council is None:
             try:
-                from core.llm_council import LLMCouncilEngine, CouncilFactory
+                from core.llm_council import CouncilFactory, LLMCouncilEngine
                 # Use factory to get a pre-configured council
                 factory = CouncilFactory()
                 self._council = factory.create_default_council()
@@ -506,8 +506,9 @@ class CouncilPipelineAdapter:
             store = self._ensure_memory()
             if store and findings:
                 try:
-                    from core.decision_memory import DecisionRecord
                     import hashlib
+
+                    from core.decision_memory import DecisionRecord
 
                     finding_content = json.dumps(critical, sort_keys=True, default=str)
                     finding_hash = hashlib.sha256(finding_content.encode()).hexdigest()

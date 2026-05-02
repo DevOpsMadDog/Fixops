@@ -31,12 +31,12 @@ except ImportError:
     _AUTH_DEP = []
 
 from core.ir_playbook_engine import (
+    IncidentSeverity,
+    IncidentType,
     IRIncident,
     IRMetrics,
     IRPlaybook,
     IRPlaybookEngine,
-    IncidentSeverity,
-    IncidentType,
     RegulatoryNotification,
     TimelineEvent,
 )

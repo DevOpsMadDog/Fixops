@@ -12,6 +12,7 @@ Usage (in app.py)::
 
 from __future__ import annotations
 
+import logging
 import math
 import statistics
 import threading
@@ -19,12 +20,10 @@ import time
 from collections import defaultdict, deque
 from typing import Any, Deque, Dict, List
 
-import logging
-
+from fastapi import APIRouter
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from fastapi import APIRouter
 
 logger = logging.getLogger(__name__)
 

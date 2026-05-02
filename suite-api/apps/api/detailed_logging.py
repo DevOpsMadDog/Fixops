@@ -25,9 +25,8 @@ from threading import Lock
 from typing import Callable, Optional
 
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, Request, Response
 from fastapi import Query as FQ
-from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)

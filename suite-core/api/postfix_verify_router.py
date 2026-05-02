@@ -455,7 +455,7 @@ async def supported_languages() -> Dict[str, Any]:
     For each language, returns the number of vulnerability patterns in the
     detection library.
     """
-    from core.postfix_verifier import _VULN_PATTERNS, _FIX_REGRESSION_PATTERNS
+    from core.postfix_verifier import _FIX_REGRESSION_PATTERNS, _VULN_PATTERNS
 
     result = {}
     for lang in sorted(_VULN_PATTERNS.keys()):

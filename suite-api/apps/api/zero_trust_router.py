@@ -21,10 +21,9 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 import structlog
+from core.zero_trust_engine import ZeroTrustEngine, get_zero_trust_engine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.zero_trust_engine import ZeroTrustEngine, get_zero_trust_engine
 
 _logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/zero-trust-legacy", tags=["zero-trust-legacy"])

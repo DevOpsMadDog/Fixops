@@ -1558,10 +1558,16 @@ def get_cspm_engine() -> CSPMEngine:
 
 try:
     import uuid as _uuid
-    from datetime import datetime as _datetime, timezone as _timezone
-    from typing import Any as _Any, Dict as _Dict, List as _List, Optional as _Optional
+    from datetime import datetime as _datetime
+    from datetime import timezone as _timezone
     from enum import Enum as _Enum
-    from pydantic import BaseModel as _BaseModel, Field as _Field
+    from typing import Any as _Any
+    from typing import Dict as _Dict
+    from typing import List as _List
+    from typing import Optional as _Optional
+
+    from pydantic import BaseModel as _BaseModel
+    from pydantic import Field as _Field
 
 
     class _LegacyEnum(str, _Enum):

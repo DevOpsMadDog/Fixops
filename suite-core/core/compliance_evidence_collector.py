@@ -475,12 +475,12 @@ class ComplianceEvidenceCollector:
 
         Returns summary with per-source results and total evidence collected.
         """
-        from core.alert_triage_engine import AlertTriageEngine
         from core.access_control_engine import AccessControlEngine
-        from core.password_policy_engine import PasswordPolicyEngine
-        from core.vuln_scan_engine import VulnScanEngine
-        from core.security_training_engine import SecurityTrainingEngine
+        from core.alert_triage_engine import AlertTriageEngine
         from core.incident_response_engine import IncidentResponseEngine
+        from core.password_policy_engine import PasswordPolicyEngine
+        from core.security_training_engine import SecurityTrainingEngine
+        from core.vuln_scan_engine import VulnScanEngine
 
         results: List[Dict[str, Any]] = []
         now = self._now()

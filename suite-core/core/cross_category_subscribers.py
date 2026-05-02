@@ -446,7 +446,8 @@ def register_cross_category_subscribers() -> int:
 
     # Wire into legacy event bus
     try:
-        from core.event_bus import get_event_bus as get_legacy_bus, EventType
+        from core.event_bus import EventType
+        from core.event_bus import get_event_bus as get_legacy_bus
         legacy = get_legacy_bus()
         if legacy:
             type_map = {

@@ -965,8 +965,8 @@ class VendorRiskEngine:
         Falls back to empty list on network failure (offline-safe).
         """
         try:
-            import urllib.request
             import urllib.parse
+            import urllib.request
 
             keyword = urllib.parse.quote(vendor_name)
             url = (

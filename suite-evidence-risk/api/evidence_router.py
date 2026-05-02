@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional
 
 import yaml  # type: ignore[import]
-from core.paths import verify_allowlisted_path
 from apps.api.dependencies import get_org_id
+from core.paths import verify_allowlisted_path
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator

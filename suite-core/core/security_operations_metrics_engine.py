@@ -14,7 +14,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, date, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 

@@ -22,7 +22,16 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +53,7 @@ _ALLOWED_EXTENSIONS = frozenset({
 })
 # Valid scanner type characters (alphanumeric + hyphens/underscores only)
 import re as _re
+
 _SCANNER_TYPE_RE = _re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 

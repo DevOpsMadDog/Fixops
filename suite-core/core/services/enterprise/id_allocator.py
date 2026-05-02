@@ -6,7 +6,6 @@ import hashlib
 import uuid
 from typing import Any, Dict
 
-
 _COUNTER: int = 0
 
 

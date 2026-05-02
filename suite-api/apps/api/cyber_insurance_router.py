@@ -25,10 +25,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.cyber_insurance_engine import CyberInsuranceEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.cyber_insurance_engine import CyberInsuranceEngine
 
 logger = logging.getLogger(__name__)
 

@@ -9,14 +9,13 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from core.attack_surface_discovery import (
     AssetType,
     RiskLevel,
     get_attack_surface_engine,
 )
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/attack-surface", tags=["Attack Surface Discovery"])
 

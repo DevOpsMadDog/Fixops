@@ -17,11 +17,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict
 
+from core.report_generator import ExecutiveReportGenerator, ReportDocument
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
-
-from core.report_generator import ExecutiveReportGenerator, ReportDocument
 
 logger = logging.getLogger(__name__)
 

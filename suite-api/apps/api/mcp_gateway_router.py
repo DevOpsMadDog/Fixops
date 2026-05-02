@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Import gateway (graceful degradation so the router still loads when
 # suite-core is not on sys.path during unit testing)
 try:
-    from core.mcp_gateway import MCPTool, MCPResponse, get_mcp_gateway
+    from core.mcp_gateway import MCPResponse, MCPTool, get_mcp_gateway
 
     _GATEWAY_AVAILABLE = True
 except ImportError:

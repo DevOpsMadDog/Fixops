@@ -21,10 +21,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +194,7 @@ def _build_security_posture_pdf(
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
     from reportlab.platypus import (
         BaseDocTemplate,

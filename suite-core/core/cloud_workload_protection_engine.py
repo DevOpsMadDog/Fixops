@@ -280,8 +280,10 @@ class CloudWorkloadProtectionEngine:
         if container_connector is None:
             try:
                 from connectors.container_security_connector import (
-                    get_scan_history as _get_scan_history,
                     get_container_security_connector as _get_connector,
+                )
+                from connectors.container_security_connector import (
+                    get_scan_history as _get_scan_history,
                 )
                 connector_obj = _get_connector()
                 scan_history = _get_scan_history(org_id, limit=200) or []

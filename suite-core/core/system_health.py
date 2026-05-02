@@ -6,19 +6,18 @@ databases) into a comprehensive health report. SQLite-backed with history.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
 import sqlite3
 import time
-import importlib.util
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
-
 
 # ---------------------------------------------------------------------------
 # Enums and Pydantic models

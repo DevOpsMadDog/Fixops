@@ -16,10 +16,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +32,9 @@ try:
     from core.ai_orchestrator import (
         AgentRole,
         AgentTask,
+        AIOrchestrator,
         ConsensusResult,
         TaskStatus,
-        AIOrchestrator,
         get_orchestrator,
     )
 

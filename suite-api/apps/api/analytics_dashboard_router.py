@@ -13,15 +13,14 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from core.cache_layer import cache_endpoint, TTL_STATS
-
+from core.cache_layer import TTL_STATS, cache_endpoint
 from core.vulnerability_analytics import (
     ScannerEffectiveness,
     TimeGranularity,
     TrendPoint,
     VulnerabilityAnalytics,
 )
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(
     prefix="/api/v1/analytics",

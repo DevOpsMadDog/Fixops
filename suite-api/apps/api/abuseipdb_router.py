@@ -18,9 +18,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
-
 from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +31,10 @@ router = APIRouter(
 
 def _get_importer():
     from feeds.abuseipdb.importer import (
-        run_import,
-        list_ips,
         check_ip,
         get_store_stats,
+        list_ips,
+        run_import,
     )
     return run_import, list_ips, check_ip, get_store_stats
 

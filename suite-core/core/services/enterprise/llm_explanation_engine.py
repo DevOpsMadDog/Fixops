@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import structlog
+
 from core.services.enterprise.chatgpt_client import (
     ChatGPTClient,
     get_primary_llm_api_key,

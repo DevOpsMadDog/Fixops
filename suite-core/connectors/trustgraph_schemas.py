@@ -17,13 +17,12 @@ The Knowledge Cores are:
 This is the data contract between connectors and TrustGraph.
 """
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any, Set
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Set
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ============================================================================
 # Core 1: Customer Environment (per-tenant)

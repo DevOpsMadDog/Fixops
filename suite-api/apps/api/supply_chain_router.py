@@ -25,7 +25,8 @@ from pydantic import BaseModel, Field
 
 # Event bus subscriber — auto-sync component nodes as they arrive in the brain
 try:
-    from core.event_bus import EventType, get_event_bus as _get_event_bus
+    from core.event_bus import EventType
+    from core.event_bus import get_event_bus as _get_event_bus
     _EVENT_BUS_AVAILABLE = True
 except ImportError:
     _EVENT_BUS_AVAILABLE = False

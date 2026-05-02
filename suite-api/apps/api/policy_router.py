@@ -22,10 +22,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
@@ -167,7 +166,7 @@ def list_policies(
 @router.post("", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_policy(body: PolicyCreate):
     """Create a new policy."""
-    from core.policy_engine import Policy, PolicyScope, PolicyLanguage, PolicyDecision
+    from core.policy_engine import Policy, PolicyDecision, PolicyLanguage, PolicyScope
     try:
         policy = Policy(
             name=body.name,

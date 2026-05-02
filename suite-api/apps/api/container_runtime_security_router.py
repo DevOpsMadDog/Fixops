@@ -26,7 +26,6 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -40,7 +39,9 @@ _engine = None
 def _get_engine():
     global _engine
     if _engine is None:
-        from core.container_runtime_security_engine import ContainerRuntimeSecurityEngine
+        from core.container_runtime_security_engine import (
+            ContainerRuntimeSecurityEngine,
+        )
         _engine = ContainerRuntimeSecurityEngine()
     return _engine
 

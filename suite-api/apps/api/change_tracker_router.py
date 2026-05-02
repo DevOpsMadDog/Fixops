@@ -19,10 +19,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
+from core.change_tracker import Change, ChangeRisk, ChangeTracker, ChangeType
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.change_tracker import Change, ChangeRisk, ChangeTracker, ChangeType
 
 logger = logging.getLogger(__name__)
 

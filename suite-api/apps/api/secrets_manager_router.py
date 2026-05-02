@@ -5,13 +5,11 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 # Auth dep — same pattern used across all ALDECI routers
 from apps.api.auth_deps import api_key_auth as _verify_api_key
-
 from core.secrets_manager_engine import SecretsManagerEngine
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/secrets-manager", tags=["secrets-manager"])
 

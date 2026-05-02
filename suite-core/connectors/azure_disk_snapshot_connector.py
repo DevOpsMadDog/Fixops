@@ -29,7 +29,10 @@ _logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    from azure.identity import ClientSecretCredential, DefaultAzureCredential  # type: ignore
+    from azure.identity import (  # type: ignore
+        ClientSecretCredential,
+        DefaultAzureCredential,
+    )
     from azure.mgmt.compute import ComputeManagementClient  # type: ignore
 
     _AZURE_SDK_AVAILABLE = True
@@ -37,7 +40,6 @@ except ImportError:  # pragma: no cover
     _AZURE_SDK_AVAILABLE = False
 
 from core.agentless_snapshot_scan_engine import SnapshotBlob, SnapshotRef  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # Credential presence check (no SDK call)

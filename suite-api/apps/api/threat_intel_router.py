@@ -12,15 +12,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
-
 from core.threat_intel_correlator import (
     Campaign,
     ThreatActor,
     ThreatCorrelation,
     ThreatIntelCorrelator,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/api/v1/threat-intel",

@@ -22,10 +22,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from core.tenant_rate_limiter import TenantQuota, TenantRateLimiter
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-
-from core.tenant_rate_limiter import TenantQuota, TenantRateLimiter
 
 router = APIRouter(prefix="/api/v1/rate-limits", tags=["tenant-rate-limiting"])
 

@@ -29,8 +29,9 @@ _engine = None
 def _get_engine():
     global _engine
     if _engine is None:
-        from core.threat_correlation_engine import ThreatCorrelationEngine
         from pathlib import Path
+
+        from core.threat_correlation_engine import ThreatCorrelationEngine
         db_path = str(Path(__file__).resolve().parents[4] / ".fixops_data" / "threat_correlation_default.db")
         _engine = ThreatCorrelationEngine(db_path)
     return _engine

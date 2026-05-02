@@ -842,6 +842,7 @@ def get_security_scanner():  # type: ignore[return]
 
 import sqlite3
 from pathlib import Path as _Path
+
 from pydantic import BaseModel, Field
 
 _SCANNER_DB_PATH = _Path(__file__).parent.parent.parent / "data" / "container_scanner.db"

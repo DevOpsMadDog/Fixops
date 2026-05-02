@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from threading import Lock
 from typing import Any, Dict, List, Optional
 
+from core.connectors import ConnectorOutcome
 from pydantic import BaseModel, ValidationError, field_validator
 
 from connectors.pull_connector import (
@@ -38,7 +39,6 @@ from connectors.pull_connector import (
     PullConnector,
     SDLCStage,
 )
-from core.connectors import ConnectorOutcome
 
 logger = logging.getLogger(__name__)
 

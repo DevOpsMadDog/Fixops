@@ -50,10 +50,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path as PathParam, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import Path as PathParam
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
@@ -320,8 +320,8 @@ def system_fips_self_test(
 
     # HMAC-SHA-256 KAT — RFC 4231 test case 1
     try:
-        import hmac
         import hashlib
+        import hmac
         key = b"\x0b" * 20
         data = b"Hi There"
         expected = (
@@ -351,8 +351,8 @@ def system_fips_self_test(
 
     # RSA-PSS-SHA-256 sign/verify
     try:
-        from cryptography.hazmat.primitives.asymmetric import rsa, padding
         from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import padding, rsa
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         msg = b"FIPS-140-3 self test payload"
         sig = key.sign(

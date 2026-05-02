@@ -11,9 +11,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.attack_surface import (
     Asset,
     AssetType,
@@ -23,6 +20,8 @@ from core.attack_surface import (
     ExposurePath,
     get_attack_surface_mapper,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +161,8 @@ def discover_from_findings(req: DiscoverFromFindingsRequest) -> List[Asset]:
         assets = mapper.discover_from_findings(req.findings)
         # TrustGraph explicit indexing (fire-and-forget)
         try:
-            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED
+            from core.trustgraph_event_bus import get_event_bus as _get_eb
             _bus = _get_eb()
             if _bus and _bus.enabled and assets:
                 import asyncio as _asyncio

@@ -59,7 +59,9 @@ def register_platform_routers(
 
     # Login endpoint — public (no auth required)
     try:
-        from apps.api.users_router import public_router as users_public_router  # noqa: PLC0415
+        from apps.api.users_router import (
+            public_router as users_public_router,  # noqa: PLC0415
+        )
         app.include_router(users_public_router)
         _logger.info("Mounted public users router (login)")
     except ImportError as exc:
@@ -136,14 +138,18 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.analytics_router import router as analytics_router  # noqa: PLC0415
+        from apps.api.analytics_router import (
+            router as analytics_router,  # noqa: PLC0415
+        )
         app.include_router(analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Analytics router")
     except ImportError as exc:
         _logger.warning("analytics_router not available: %s", exc)
 
     try:
-        from apps.api.ai_orchestrator_router import router as ai_orchestrator_router  # noqa: PLC0415
+        from apps.api.ai_orchestrator_router import (
+            router as ai_orchestrator_router,  # noqa: PLC0415
+        )
         app.include_router(
             ai_orchestrator_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
@@ -154,7 +160,9 @@ def register_platform_routers(
 
     # AI Teammates router (GAP-044)
     try:
-        from apps.api.ai_orchestrator_router import teammates_router as _teammates_router  # noqa: PLC0415
+        from apps.api.ai_orchestrator_router import (
+            teammates_router as _teammates_router,  # noqa: PLC0415
+        )
         app.include_router(_teammates_router)
         _logger.info("Mounted AI Teammates router at /api/v1/teammates (GAP-044)")
     except ImportError as exc:
@@ -162,7 +170,9 @@ def register_platform_routers(
 
     # Formula Transparency router (GAP-043)
     try:
-        from apps.api.formula_transparency_router import router as _formula_router  # noqa: PLC0415
+        from apps.api.formula_transparency_router import (
+            router as _formula_router,  # noqa: PLC0415
+        )
         app.include_router(_formula_router)
         _logger.info("Mounted Formula Transparency router at /api/v1/formula (GAP-043)")
     except ImportError as exc:
@@ -176,21 +186,27 @@ def register_platform_routers(
     # Canonical /ws/events lives in ws_trustgraph_events_router.py (Wave-3 FEATURE-3).
 
     try:
-        from apps.api.websocket_alerts_router import router as websocket_alerts_router  # noqa: PLC0415
+        from apps.api.websocket_alerts_router import (
+            router as websocket_alerts_router,  # noqa: PLC0415
+        )
         app.include_router(websocket_alerts_router)
         _logger.info("Mounted WebSocket Alerts router")
     except ImportError as exc:
         _logger.warning("websocket_alerts_router not available: %s", exc)
 
     try:
-        from apps.api.ws_events_router import router as ws_events_router  # noqa: PLC0415
+        from apps.api.ws_events_router import (
+            router as ws_events_router,  # noqa: PLC0415
+        )
         app.include_router(ws_events_router)
         _logger.info("Mounted WS Events router")
     except ImportError as exc:
         _logger.warning("ws_events_router not available: %s", exc)
 
     try:
-        from apps.api.stream_router import router as event_stream_router  # noqa: PLC0415
+        from apps.api.stream_router import (
+            router as event_stream_router,  # noqa: PLC0415
+        )
         app.include_router(
             event_stream_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
@@ -214,14 +230,18 @@ def register_platform_routers(
         _logger.warning("mcp_router not available: %s", exc)
 
     try:
-        from apps.api.mcp_gateway_router import router as mcp_gateway_router  # noqa: PLC0415
+        from apps.api.mcp_gateway_router import (
+            router as mcp_gateway_router,  # noqa: PLC0415
+        )
         app.include_router(mcp_gateway_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted MCP Gateway router")
     except ImportError as exc:
         _logger.warning("mcp_gateway_router not available: %s", exc)
 
     try:
-        from apps.api.trustgraph_routes import router as trustgraph_router  # noqa: PLC0415
+        from apps.api.trustgraph_routes import (
+            router as trustgraph_router,  # noqa: PLC0415
+        )
         app.include_router(
             trustgraph_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
@@ -231,7 +251,9 @@ def register_platform_routers(
         _logger.warning("trustgraph_router not available: %s", exc)
 
     try:
-        from apps.api.trustgraph_quality_router import router as trustgraph_quality_router  # noqa: PLC0415
+        from apps.api.trustgraph_quality_router import (
+            router as trustgraph_quality_router,  # noqa: PLC0415
+        )
         app.include_router(
             trustgraph_quality_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
@@ -241,7 +263,9 @@ def register_platform_routers(
         _logger.warning("trustgraph_quality_router not available: %s", exc)
 
     try:
-        from apps.api.trustgraph_maintenance_router import router as trustgraph_maintenance_router  # noqa: PLC0415
+        from apps.api.trustgraph_maintenance_router import (
+            router as trustgraph_maintenance_router,  # noqa: PLC0415
+        )
         app.include_router(
             trustgraph_maintenance_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
@@ -251,21 +275,27 @@ def register_platform_routers(
         _logger.warning("trustgraph_maintenance_router not available: %s", exc)
 
     try:
-        from apps.api.trustgraph_integration_router import router as trustgraph_integration_router  # noqa: PLC0415
+        from apps.api.trustgraph_integration_router import (
+            router as trustgraph_integration_router,  # noqa: PLC0415
+        )
         app.include_router(trustgraph_integration_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted TrustGraph Integration router")
     except ImportError as exc:
         _logger.warning("trustgraph_integration_router not available: %s", exc)
 
     try:
-        from apps.api.trustgraph_backbone_router import router as trustgraph_backbone_router  # noqa: PLC0415
+        from apps.api.trustgraph_backbone_router import (
+            router as trustgraph_backbone_router,  # noqa: PLC0415
+        )
         app.include_router(trustgraph_backbone_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted TrustGraph Backbone router at /api/v1/graph")
     except ImportError as exc:
         _logger.warning("trustgraph_backbone_router not available: %s", exc)
 
     try:
-        from apps.api.trustgraph_migrator_router import router as trustgraph_migrator_router  # noqa: PLC0415
+        from apps.api.trustgraph_migrator_router import (
+            router as trustgraph_migrator_router,  # noqa: PLC0415
+        )
         app.include_router(trustgraph_migrator_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted TrustGraph Migrator router at /api/v1/trustgraph/migrate")
     except ImportError as exc:
@@ -283,7 +313,9 @@ def register_platform_routers(
         _logger.warning("iam_sso_router not available: %s", exc)
 
     try:
-        from apps.api.connectors_router import router as connectors_router  # noqa: PLC0415
+        from apps.api.connectors_router import (
+            router as connectors_router,  # noqa: PLC0415
+        )
         app.include_router(
             connectors_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
@@ -300,7 +332,9 @@ def register_platform_routers(
         _logger.warning("org_router not available: %s", exc)
 
     try:
-        from apps.api.servicenow_sync_router import router as servicenow_sync_router  # noqa: PLC0415
+        from apps.api.servicenow_sync_router import (
+            router as servicenow_sync_router,  # noqa: PLC0415
+        )
         app.include_router(
             servicenow_sync_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
@@ -310,7 +344,9 @@ def register_platform_routers(
         _logger.warning("servicenow_sync_router not available: %s", exc)
 
     try:
-        from apps.api.servicenow_sync_router import webhook_router as servicenow_sync_webhook_router  # noqa: PLC0415
+        from apps.api.servicenow_sync_router import (
+            webhook_router as servicenow_sync_webhook_router,  # noqa: PLC0415
+        )
         app.include_router(servicenow_sync_webhook_router)
         _logger.info("Mounted ServiceNow Sync Webhook router (no auth)")
     except ImportError as exc:
@@ -348,7 +384,9 @@ def register_platform_routers(
         _logger.warning("bulk_router not available: %s", exc)
 
     try:
-        from apps.api.collaboration_router import router as collaboration_router  # noqa: PLC0415
+        from apps.api.collaboration_router import (
+            router as collaboration_router,  # noqa: PLC0415
+        )
         app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Collaboration router")
     except ImportError as exc:
@@ -362,21 +400,27 @@ def register_platform_routers(
         _logger.warning("sla_router not available: %s", exc)
 
     try:
-        from apps.api.sla_engine_router import router as sla_engine_router  # noqa: PLC0415
+        from apps.api.sla_engine_router import (
+            router as sla_engine_router,  # noqa: PLC0415
+        )
         app.include_router(sla_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted SLA Engine router")
     except ImportError as exc:
         _logger.warning("sla_engine_router not available: %s", exc)
 
     try:
-        from apps.api.workflows_router import router as workflows_router  # noqa: PLC0415
+        from apps.api.workflows_router import (
+            router as workflows_router,  # noqa: PLC0415
+        )
         app.include_router(workflows_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Workflows router")
     except ImportError as exc:
         _logger.warning("workflows_router not available: %s", exc)
 
     try:
-        from apps.api.change_management_router import router as change_management_router  # noqa: PLC0415
+        from apps.api.change_management_router import (
+            router as change_management_router,  # noqa: PLC0415
+        )
         app.include_router(change_management_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Change Management router")
     except ImportError as exc:
@@ -384,7 +428,9 @@ def register_platform_routers(
 
     # Wave D — 22 Multica integrations/AI/policy endpoints
     try:
-        from apps.api.wave_d_integrations_router import router as wave_d_integrations_router  # noqa: PLC0415
+        from apps.api.wave_d_integrations_router import (
+            router as wave_d_integrations_router,  # noqa: PLC0415
+        )
         app.include_router(wave_d_integrations_router)
         _logger.info("Mounted Wave D integrations router (22 endpoints)")
     except ImportError as exc:
@@ -400,7 +446,9 @@ def register_platform_routers(
 
     # Integration Marketplace API
     try:
-        from apps.api.integration_marketplace_router import router as integration_marketplace_router  # noqa: PLC0415
+        from apps.api.integration_marketplace_router import (
+            router as integration_marketplace_router,  # noqa: PLC0415
+        )
         app.include_router(integration_marketplace_router)
         _logger.info("Mounted Integration Marketplace router at /api/v1/integrations")
     except ImportError as exc:
@@ -408,7 +456,9 @@ def register_platform_routers(
 
     # Enterprise marketplace API
     try:
-        from apps.api.marketplace_router import router as marketplace_router  # noqa: PLC0415
+        from apps.api.marketplace_router import (
+            router as marketplace_router,  # noqa: PLC0415
+        )
         app.include_router(
             marketplace_router,
             prefix="/api/v1/marketplace",
@@ -420,7 +470,9 @@ def register_platform_routers(
 
     # Customer onboarding wizard
     try:
-        from apps.api.onboarding_router import router as onboarding_wizard_router  # noqa: PLC0415
+        from apps.api.onboarding_router import (
+            router as onboarding_wizard_router,  # noqa: PLC0415
+        )
         app.include_router(
             onboarding_wizard_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
@@ -431,7 +483,9 @@ def register_platform_routers(
 
     # Admin first-login wizard (no auth)
     try:
-        from apps.api.admin_wizard_router import router as admin_wizard_router  # noqa: PLC0415
+        from apps.api.admin_wizard_router import (
+            router as admin_wizard_router,  # noqa: PLC0415
+        )
         app.include_router(admin_wizard_router)
         _logger.info("Mounted Admin First-Login Wizard router (no auth — first-login flow)")
     except ImportError as exc:
@@ -459,7 +513,9 @@ def register_platform_routers(
         _logger.warning("cache_router not available: %s", exc)
 
     try:
-        from apps.api.deployment_router import router as deployment_router  # noqa: PLC0415
+        from apps.api.deployment_router import (
+            router as deployment_router,  # noqa: PLC0415
+        )
         app.include_router(deployment_router)
         _logger.info("Mounted Deployment Manager router at /api/v1/deployment")
     except ImportError as exc:
@@ -470,7 +526,9 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.webhook_subscriptions_router import router as webhook_subscriptions_router  # noqa: PLC0415
+        from apps.api.webhook_subscriptions_router import (
+            router as webhook_subscriptions_router,  # noqa: PLC0415
+        )
         app.include_router(
             webhook_subscriptions_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
@@ -480,7 +538,9 @@ def register_platform_routers(
         _logger.warning("webhook_subscriptions_router not available: %s", exc)
 
     try:
-        from apps.api.webhook_dlq_router import router as webhook_dlq_router  # noqa: PLC0415
+        from apps.api.webhook_dlq_router import (
+            router as webhook_dlq_router,  # noqa: PLC0415
+        )
         app.include_router(
             webhook_dlq_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
@@ -490,7 +550,9 @@ def register_platform_routers(
         _logger.warning("webhook_dlq_router not available: %s", exc)
 
     try:
-        from apps.api.webhook_notifications_router import router as webhook_notifications_router  # noqa: PLC0415
+        from apps.api.webhook_notifications_router import (
+            router as webhook_notifications_router,  # noqa: PLC0415
+        )
         app.include_router(
             webhook_notifications_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
@@ -500,7 +562,9 @@ def register_platform_routers(
         _logger.warning("webhook_notifications_router not available: %s", exc)
 
     try:
-        from apps.api.webhook_verifier_router import router as webhook_verifier_router  # noqa: PLC0415
+        from apps.api.webhook_verifier_router import (
+            router as webhook_verifier_router,  # noqa: PLC0415
+        )
         app.include_router(
             webhook_verifier_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
@@ -517,7 +581,9 @@ def register_platform_routers(
         _logger.warning("webhook_router not available: %s", exc)
 
     try:
-        from api.webhooks_router import receiver_router as webhooks_receiver_router  # noqa: PLC0415
+        from api.webhooks_router import (
+            receiver_router as webhooks_receiver_router,  # noqa: PLC0415
+        )
         from api.webhooks_router import router as webhooks_router  # noqa: PLC0415
         app.include_router(webhooks_router)
         app.include_router(webhooks_receiver_router)
@@ -531,49 +597,63 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.integration_hub_router import router as integration_hub_router  # noqa: PLC0415
+        from apps.api.integration_hub_router import (
+            router as integration_hub_router,  # noqa: PLC0415
+        )
         app.include_router(integration_hub_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Integration Hub router")
     except ImportError as exc:
         _logger.warning("integration_hub_router not available: %s", exc)
 
     try:
-        from apps.api.integration_health_router import router as integration_health_router  # noqa: PLC0415
+        from apps.api.integration_health_router import (
+            router as integration_health_router,  # noqa: PLC0415
+        )
         app.include_router(integration_health_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Integration Health router")
     except ImportError as exc:
         _logger.warning("integration_health_router not available: %s", exc)
 
     try:
-        from apps.api.jira_sync_router import router as jira_sync_router  # noqa: PLC0415
+        from apps.api.jira_sync_router import (
+            router as jira_sync_router,  # noqa: PLC0415
+        )
         app.include_router(jira_sync_router)
         _logger.info("Mounted Jira Sync router at /api/v1/jira-sync")
     except ImportError as exc:
         _logger.warning("jira_sync_router not available: %s", exc)
 
     try:
-        from apps.api.pagerduty_router import router as pagerduty_router  # noqa: PLC0415
+        from apps.api.pagerduty_router import (
+            router as pagerduty_router,  # noqa: PLC0415
+        )
         app.include_router(pagerduty_router)
         _logger.info("Mounted PagerDuty router at /api/v1/pagerduty")
     except ImportError as exc:
         _logger.warning("pagerduty_router not available: %s", exc)
 
     try:
-        from apps.api.slack_bot_router import router as slack_bot_router  # noqa: PLC0415
+        from apps.api.slack_bot_router import (
+            router as slack_bot_router,  # noqa: PLC0415
+        )
         app.include_router(slack_bot_router)
         _logger.info("Mounted Slack Bot router")
     except ImportError as exc:
         _logger.warning("slack_bot_router not available: %s", exc)
 
     try:
-        from apps.api.slack_notifier_router import router as slack_notifier_router  # noqa: PLC0415
+        from apps.api.slack_notifier_router import (
+            router as slack_notifier_router,  # noqa: PLC0415
+        )
         app.include_router(slack_notifier_router)
         _logger.info("Mounted Slack Notifier router at /api/v1/integrations/slack")
     except ImportError as exc:
         _logger.warning("slack_notifier_router not available: %s", exc)
 
     try:
-        from servicenow.servicenow_router import router as servicenow_router  # noqa: PLC0415
+        from servicenow.servicenow_router import (
+            router as servicenow_router,  # noqa: PLC0415
+        )
         app.include_router(servicenow_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted ServiceNow connector at /api/v1/servicenow")
     except ImportError as exc:
@@ -592,21 +672,27 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.analytics_dashboard_router import router as analytics_dashboard_router  # noqa: PLC0415
+        from apps.api.analytics_dashboard_router import (
+            router as analytics_dashboard_router,  # noqa: PLC0415
+        )
         app.include_router(analytics_dashboard_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Analytics Dashboard router")
     except ImportError as exc:
         _logger.warning("analytics_dashboard_router not available: %s", exc)
 
     try:
-        from apps.api.analytics_routes import router as analytics_routes_router  # noqa: PLC0415
+        from apps.api.analytics_routes import (
+            router as analytics_routes_router,  # noqa: PLC0415
+        )
         app.include_router(analytics_routes_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Analytics Routes router")
     except ImportError as exc:
         _logger.warning("analytics_routes_router not available: %s", exc)
 
     try:
-        from apps.api.duckdb_analytics_router import router as duckdb_analytics_router  # noqa: PLC0415
+        from apps.api.duckdb_analytics_router import (
+            router as duckdb_analytics_router,  # noqa: PLC0415
+        )
         app.include_router(duckdb_analytics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted DuckDB Analytics router")
     except ImportError as exc:
@@ -627,28 +713,36 @@ def register_platform_routers(
         _logger.warning("nl_graph_router not available: %s", exc)
 
     try:
-        from apps.api.dashboard_builder_router import router as dashboard_builder_router  # noqa: PLC0415
+        from apps.api.dashboard_builder_router import (
+            router as dashboard_builder_router,  # noqa: PLC0415
+        )
         app.include_router(dashboard_builder_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Dashboard Builder router")
     except ImportError as exc:
         _logger.warning("dashboard_builder_router not available: %s", exc)
 
     try:
-        from apps.api.unified_dashboard_router import router as unified_dashboard_router  # noqa: PLC0415
+        from apps.api.unified_dashboard_router import (
+            router as unified_dashboard_router,  # noqa: PLC0415
+        )
         app.include_router(unified_dashboard_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Unified Dashboard router")
     except ImportError as exc:
         _logger.warning("unified_dashboard_router not available: %s", exc)
 
     try:
-        from apps.api.api_analytics_router import router as api_analytics_router  # noqa: PLC0415
+        from apps.api.api_analytics_router import (
+            router as api_analytics_router,  # noqa: PLC0415
+        )
         app.include_router(api_analytics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted API Analytics router")
     except ImportError as exc:
         _logger.warning("api_analytics_router not available: %s", exc)
 
     try:
-        from apps.api.api_gateway_router import router as api_gateway_router  # noqa: PLC0415
+        from apps.api.api_gateway_router import (
+            router as api_gateway_router,  # noqa: PLC0415
+        )
         app.include_router(api_gateway_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted API Gateway Security router")
     except ImportError as exc:
@@ -660,42 +754,54 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.metrics_aggregator_router import router as metrics_aggregator_router  # noqa: PLC0415
+        from apps.api.metrics_aggregator_router import (
+            router as metrics_aggregator_router,  # noqa: PLC0415
+        )
         app.include_router(metrics_aggregator_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Metrics Aggregator router")
     except ImportError as exc:
         _logger.warning("metrics_aggregator_router not available: %s", exc)
 
     try:
-        from apps.api.metrics_timeseries_router import router as metrics_timeseries_router  # noqa: PLC0415
+        from apps.api.metrics_timeseries_router import (
+            router as metrics_timeseries_router,  # noqa: PLC0415
+        )
         app.include_router(metrics_timeseries_router)
         _logger.info("Mounted Metrics Time-Series router")
     except ImportError as exc:
         _logger.warning("metrics_timeseries_router not available: %s", exc)
 
     try:
-        from apps.api.notification_router import router as notification_router  # noqa: PLC0415
+        from apps.api.notification_router import (
+            router as notification_router,  # noqa: PLC0415
+        )
         app.include_router(notification_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Notification router")
     except ImportError as exc:
         _logger.warning("notification_router not available: %s", exc)
 
     try:
-        from apps.api.alerting_notification_router import router as alerting_notification_router  # noqa: PLC0415
+        from apps.api.alerting_notification_router import (
+            router as alerting_notification_router,  # noqa: PLC0415
+        )
         app.include_router(alerting_notification_router)
         _logger.info("Mounted Alerting Notification router at /api/v1/alerting")
     except ImportError as exc:
         _logger.warning("alerting_notification_router not available: %s", exc)
 
     try:
-        from apps.api.rate_limit_router import router as rate_limit_router  # noqa: PLC0415
+        from apps.api.rate_limit_router import (
+            router as rate_limit_router,  # noqa: PLC0415
+        )
         app.include_router(rate_limit_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Rate Limit router")
     except ImportError as exc:
         _logger.warning("rate_limit_router not available: %s", exc)
 
     try:
-        from apps.api.tenant_rate_limiter_router import router as tenant_rate_limiter_router  # noqa: PLC0415
+        from apps.api.tenant_rate_limiter_router import (
+            router as tenant_rate_limiter_router,  # noqa: PLC0415
+        )
         app.include_router(tenant_rate_limiter_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Tenant Rate Limiter router")
     except ImportError as exc:
@@ -716,7 +822,9 @@ def register_platform_routers(
         _logger.warning("session_router not available: %s", exc)
 
     try:
-        from apps.api.sla_management_router import router as sla_management_router  # noqa: PLC0415
+        from apps.api.sla_management_router import (
+            router as sla_management_router,  # noqa: PLC0415
+        )
         app.include_router(sla_management_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted SLA Management router at /api/v1/sla-management")
     except ImportError as exc:
@@ -737,7 +845,9 @@ def register_platform_routers(
         _logger.warning("oauth2_router not available: %s", exc)
 
     try:
-        from apps.api.observability_router import router as observability_router  # noqa: PLC0415
+        from apps.api.observability_router import (
+            router as observability_router,  # noqa: PLC0415
+        )
         app.include_router(observability_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Observability router at /api/v1/observability")
     except ImportError as exc:
@@ -756,7 +866,9 @@ def register_platform_routers(
         _logger.warning("backup_router not available: %s", exc)
 
     try:
-        from apps.api.changelog_router import router as changelog_router  # noqa: PLC0415
+        from apps.api.changelog_router import (
+            router as changelog_router,  # noqa: PLC0415
+        )
         app.include_router(changelog_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Changelog router")
     except ImportError as exc:
@@ -777,7 +889,9 @@ def register_platform_routers(
         _logger.warning("tag_router not available: %s", exc)
 
     try:
-        from apps.api.log_management_router import router as log_management_router  # noqa: PLC0415
+        from apps.api.log_management_router import (
+            router as log_management_router,  # noqa: PLC0415
+        )
         app.include_router(log_management_router)
         _logger.info("Mounted Log Management router at /api/v1/log-management")
     except ImportError as exc:
@@ -791,7 +905,9 @@ def register_platform_routers(
         _logger.warning("cmdb_router not available: %s", exc)
 
     try:
-        from apps.api.local_file_store_router import router as local_file_store_router  # noqa: PLC0415
+        from apps.api.local_file_store_router import (
+            router as local_file_store_router,  # noqa: PLC0415
+        )
         app.include_router(local_file_store_router)
         _logger.info("Mounted Local File Store router")
     except ImportError as exc:
@@ -803,49 +919,63 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.security_health_router import router as security_health_router  # noqa: PLC0415
+        from apps.api.security_health_router import (
+            router as security_health_router,  # noqa: PLC0415
+        )
         app.include_router(security_health_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Security Health router at /api/v1/security-health")
     except ImportError as exc:
         _logger.warning("security_health_router not available: %s", exc)
 
     try:
-        from apps.api.security_telemetry_router import router as security_telemetry_router  # noqa: PLC0415
+        from apps.api.security_telemetry_router import (
+            router as security_telemetry_router,  # noqa: PLC0415
+        )
         app.include_router(security_telemetry_router)
         _logger.info("Mounted Security Telemetry router")
     except ImportError as exc:
         _logger.warning("security_telemetry_router not available: %s", exc)
 
     try:
-        from apps.api.security_registry_router import router as security_registry_router  # noqa: PLC0415
+        from apps.api.security_registry_router import (
+            router as security_registry_router,  # noqa: PLC0415
+        )
         app.include_router(security_registry_router)
         _logger.info("Mounted Security Registry router")
     except ImportError as exc:
         _logger.warning("security_registry_router not available: %s", exc)
 
     try:
-        from apps.api.security_query_router import router as security_query_router  # noqa: PLC0415
+        from apps.api.security_query_router import (
+            router as security_query_router,  # noqa: PLC0415
+        )
         app.include_router(security_query_router)
         _logger.info("Mounted Security Query Language router")
     except ImportError as exc:
         _logger.warning("security_query_router not available: %s", exc)
 
     try:
-        from apps.api.security_automation_router import router as security_automation_router  # noqa: PLC0415
+        from apps.api.security_automation_router import (
+            router as security_automation_router,  # noqa: PLC0415
+        )
         app.include_router(security_automation_router)
         _logger.info("Mounted Security Automation router at /api/v1/security-automation")
     except ImportError as exc:
         _logger.warning("security_automation_router not available: %s", exc)
 
     try:
-        from apps.api.security_data_pipeline_router import router as security_data_pipeline_router  # noqa: PLC0415
+        from apps.api.security_data_pipeline_router import (
+            router as security_data_pipeline_router,  # noqa: PLC0415
+        )
         app.include_router(security_data_pipeline_router)
         _logger.info("Mounted Security Data Pipeline router")
     except ImportError as exc:
         _logger.warning("security_data_pipeline_router not available: %s", exc)
 
     try:
-        from apps.api.security_tool_inventory_router import router as security_tool_inventory_router  # noqa: PLC0415
+        from apps.api.security_tool_inventory_router import (
+            router as security_tool_inventory_router,  # noqa: PLC0415
+        )
         app.include_router(security_tool_inventory_router)
         _logger.info("Mounted Security Tool Inventory router at /api/v1/tool-inventory")
     except ImportError as exc:
@@ -857,28 +987,36 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.llm_loop_metrics_router import router as llm_loop_metrics_router  # noqa: PLC0415
+        from apps.api.llm_loop_metrics_router import (
+            router as llm_loop_metrics_router,  # noqa: PLC0415
+        )
         app.include_router(llm_loop_metrics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted LLM Loop Telemetry router")
     except ImportError as exc:
         _logger.warning("llm_loop_metrics_router not available: %s", exc)
 
     try:
-        from apps.api.user_analytics_router import router as user_analytics_router  # noqa: PLC0415
+        from apps.api.user_analytics_router import (
+            router as user_analytics_router,  # noqa: PLC0415
+        )
         app.include_router(user_analytics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted User Analytics router")
     except ImportError as exc:
         _logger.warning("user_analytics_router not available: %s", exc)
 
     try:
-        from apps.api.upgrade_path_router import router as upgrade_path_router  # noqa: PLC0415
+        from apps.api.upgrade_path_router import (
+            router as upgrade_path_router,  # noqa: PLC0415
+        )
         app.include_router(upgrade_path_router)
         _logger.info("Mounted Upgrade Path Resolver router at /api/v1/upgrade-path")
     except ImportError as exc:
         _logger.warning("upgrade_path_router not available: %s", exc)
 
     try:
-        from apps.api.air_gap_bundle_router import router as air_gap_bundle_router  # noqa: PLC0415
+        from apps.api.air_gap_bundle_router import (
+            router as air_gap_bundle_router,  # noqa: PLC0415
+        )
         app.include_router(air_gap_bundle_router)
         _logger.info("Mounted Air-Gap Bundle router at /api/v1/air-gap")
     except ImportError as exc:
@@ -890,42 +1028,54 @@ def register_platform_routers(
     # ------------------------------------------------------------------
 
     try:
-        from apps.api.council_enhanced_router import router as council_enhanced_router  # noqa: PLC0415
+        from apps.api.council_enhanced_router import (
+            router as council_enhanced_router,  # noqa: PLC0415
+        )
         app.include_router(council_enhanced_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Council Enhanced router")
     except ImportError as exc:
         _logger.warning("council_enhanced_router not available: %s", exc)
 
     try:
-        from apps.api.llm_council_router import router as llm_council_router  # noqa: PLC0415
+        from apps.api.llm_council_router import (
+            router as llm_council_router,  # noqa: PLC0415
+        )
         app.include_router(llm_council_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted LLM Council Status router at /api/v1/llm/council/status")
     except ImportError as exc:
         _logger.warning("llm_council_router not available: %s", exc)
 
     try:
-        from apps.api.workflow_engine_router import router as workflow_engine_router  # noqa: PLC0415
+        from apps.api.workflow_engine_router import (
+            router as workflow_engine_router,  # noqa: PLC0415
+        )
         app.include_router(workflow_engine_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Workflow Engine router")
     except ImportError as exc:
         _logger.warning("workflow_engine_router not available: %s", exc)
 
     try:
-        from apps.api.versioning_router import router as versioning_router  # noqa: PLC0415
+        from apps.api.versioning_router import (
+            router as versioning_router,  # noqa: PLC0415
+        )
         app.include_router(versioning_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted API Versioning router")
     except ImportError as exc:
         _logger.warning("versioning_router not available: %s", exc)
 
     try:
-        from apps.api.webhook_events_router import router as webhook_events_router  # noqa: PLC0415
+        from apps.api.webhook_events_router import (
+            router as webhook_events_router,  # noqa: PLC0415
+        )
         app.include_router(webhook_events_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Webhook Events router")
     except ImportError as exc:
         _logger.warning("webhook_events_router not available: %s", exc)
 
     try:
-        from apps.api.app_config_router import router as app_config_router  # noqa: PLC0415
+        from apps.api.app_config_router import (
+            router as app_config_router,  # noqa: PLC0415
+        )
         app.include_router(
             app_config_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
@@ -935,7 +1085,9 @@ def register_platform_routers(
         _logger.warning("app_config_router not available: %s", exc)
 
     try:
-        from apps.api.org_hierarchy_router import router as org_hierarchy_router  # noqa: PLC0415
+        from apps.api.org_hierarchy_router import (
+            router as org_hierarchy_router,  # noqa: PLC0415
+        )
         app.include_router(org_hierarchy_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Org Hierarchy router")
     except ImportError as exc:
@@ -966,7 +1118,9 @@ def register_platform_routers(
 
     # Fuzzy Identity (suite-core/api/)
     try:
-        from api.fuzzy_identity_router import router as fuzzy_identity_router  # noqa: PLC0415
+        from api.fuzzy_identity_router import (
+            router as fuzzy_identity_router,  # noqa: PLC0415
+        )
         app.include_router(fuzzy_identity_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Fuzzy Identity router (wave-6)")
     except ImportError:
@@ -974,7 +1128,9 @@ def register_platform_routers(
 
     # Exposure Case (suite-core/api/)
     try:
-        from api.exposure_case_router import router as exposure_case_router  # noqa: PLC0415
+        from api.exposure_case_router import (
+            router as exposure_case_router,  # noqa: PLC0415
+        )
         app.include_router(exposure_case_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Exposure Case router (wave-6)")
     except ImportError:
@@ -1054,7 +1210,9 @@ def register_platform_routers(
 
     # Code-to-Cloud Tracing (suite-core/api/)
     try:
-        from api.code_to_cloud_router import router as code_to_cloud_router  # noqa: PLC0415
+        from api.code_to_cloud_router import (
+            router as code_to_cloud_router,  # noqa: PLC0415
+        )
         app.include_router(code_to_cloud_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))])
         _logger.info("Mounted Code-to-Cloud router (wave-6)")
     except ImportError:
@@ -1062,7 +1220,9 @@ def register_platform_routers(
 
     # Quantum Crypto (suite-core/api/)
     try:
-        from api.quantum_crypto_router import router as quantum_crypto_router  # noqa: PLC0415
+        from api.quantum_crypto_router import (
+            router as quantum_crypto_router,  # noqa: PLC0415
+        )
         app.include_router(quantum_crypto_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
         _logger.info("Mounted Quantum Crypto router (wave-6)")
     except ImportError:
@@ -1070,7 +1230,9 @@ def register_platform_routers(
 
     # Zero-Gravity Data (suite-core/api/)
     try:
-        from api.zero_gravity_router import router as zero_gravity_router  # noqa: PLC0415
+        from api.zero_gravity_router import (
+            router as zero_gravity_router,  # noqa: PLC0415
+        )
         app.include_router(zero_gravity_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
         _logger.info("Mounted Zero-Gravity router (wave-6)")
     except ImportError:
@@ -1078,7 +1240,9 @@ def register_platform_routers(
 
     # Single Agent (suite-core/api/)
     try:
-        from api.single_agent_router import router as single_agent_router  # noqa: PLC0415
+        from api.single_agent_router import (
+            router as single_agent_router,  # noqa: PLC0415
+        )
         app.include_router(single_agent_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Single Agent router (wave-6)")
     except ImportError:
@@ -1086,7 +1250,9 @@ def register_platform_routers(
 
     # Knowledge Graph (suite-core/api/)
     try:
-        from api.knowledge_graph_router import router as knowledge_graph_router  # noqa: PLC0415
+        from api.knowledge_graph_router import (
+            router as knowledge_graph_router,  # noqa: PLC0415
+        )
         app.include_router(knowledge_graph_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))])
         _logger.info("Mounted Knowledge Graph router (wave-6)")
     except ImportError:
@@ -1102,7 +1268,9 @@ def register_platform_routers(
 
     # MCP Protocol (suite-core/api/)
     try:
-        from api.mcp_protocol_router import router as mcp_protocol_router  # noqa: PLC0415
+        from api.mcp_protocol_router import (
+            router as mcp_protocol_router,  # noqa: PLC0415
+        )
         app.include_router(mcp_protocol_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted MCP Protocol router (wave-6)")
     except ImportError:
@@ -1110,7 +1278,9 @@ def register_platform_routers(
 
     # Self-Learning (suite-core/api/)
     try:
-        from api.self_learning_router import router as self_learning_router  # noqa: PLC0415
+        from api.self_learning_router import (
+            router as self_learning_router,  # noqa: PLC0415
+        )
         app.include_router(self_learning_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Self-Learning router (wave-6)")
     except ImportError:
@@ -1118,7 +1288,9 @@ def register_platform_routers(
 
     # LLM Loop Metrics telemetry (apps/api/)
     try:
-        from apps.api.llm_loop_metrics_router import router as llm_loop_metrics_router  # noqa: PLC0415
+        from apps.api.llm_loop_metrics_router import (
+            router as llm_loop_metrics_router,  # noqa: PLC0415
+        )
         app.include_router(llm_loop_metrics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted LLM Loop Metrics router (wave-6)")
     except ImportError:
@@ -1126,7 +1298,9 @@ def register_platform_routers(
 
     # Developer Risk Profiles (apps/api/)
     try:
-        from apps.api.developer_profiles_router import router as developer_profiles_router  # noqa: PLC0415
+        from apps.api.developer_profiles_router import (
+            router as developer_profiles_router,  # noqa: PLC0415
+        )
         app.include_router(developer_profiles_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Developer Risk Profiles router (wave-6)")
     except ImportError:
@@ -1136,7 +1310,9 @@ def register_platform_routers(
 
     # Integrations (suite-integrations/api/)
     try:
-        from api.integrations_router import router as integrations_router_ext  # noqa: PLC0415
+        from api.integrations_router import (
+            router as integrations_router_ext,  # noqa: PLC0415
+        )
         app.include_router(integrations_router_ext, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
         _logger.info("Mounted Integrations router (wave-6)")
     except ImportError:
@@ -1178,7 +1354,9 @@ def register_platform_routers(
 
     # Analytics Dashboard (apps/api/)
     try:
-        from apps.api.analytics_dashboard_router import router as analytics_dashboard_router  # noqa: PLC0415
+        from apps.api.analytics_dashboard_router import (
+            router as analytics_dashboard_router,  # noqa: PLC0415
+        )
         app.include_router(analytics_dashboard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Analytics Dashboard router (wave-6)")
     except ImportError:
@@ -1186,7 +1364,9 @@ def register_platform_routers(
 
     # Analytics Routes (apps/api/)
     try:
-        from apps.api.analytics_routes import router as analytics_routes_router  # noqa: PLC0415
+        from apps.api.analytics_routes import (
+            router as analytics_routes_router,  # noqa: PLC0415
+        )
         app.include_router(analytics_routes_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Analytics Routes router (wave-6)")
     except ImportError:
@@ -1210,7 +1390,9 @@ def register_platform_routers(
 
     # Backup DR Validator (apps/api/)
     try:
-        from apps.api.backup_validator_router import router as backup_validator_router  # noqa: PLC0415
+        from apps.api.backup_validator_router import (
+            router as backup_validator_router,  # noqa: PLC0415
+        )
         app.include_router(backup_validator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
         _logger.info("Mounted Backup DR Validator router (wave-6)")
     except ImportError:
@@ -1218,7 +1400,9 @@ def register_platform_routers(
 
     # Changelog (apps/api/)
     try:
-        from apps.api.changelog_router import router as changelog_router  # noqa: PLC0415
+        from apps.api.changelog_router import (
+            router as changelog_router,  # noqa: PLC0415
+        )
         app.include_router(changelog_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Changelog router (wave-6)")
     except ImportError:
@@ -1226,7 +1410,9 @@ def register_platform_routers(
 
     # Dashboard Builder (apps/api/)
     try:
-        from apps.api.dashboard_builder_router import router as dashboard_builder_router  # noqa: PLC0415
+        from apps.api.dashboard_builder_router import (
+            router as dashboard_builder_router,  # noqa: PLC0415
+        )
         app.include_router(dashboard_builder_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Dashboard Builder router (wave-6)")
     except ImportError:
@@ -1234,7 +1420,9 @@ def register_platform_routers(
 
     # Developer Portal (apps/api/)
     try:
-        from apps.api.developer_portal_router import router as developer_portal_router  # noqa: PLC0415
+        from apps.api.developer_portal_router import (
+            router as developer_portal_router,  # noqa: PLC0415
+        )
         app.include_router(developer_portal_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Developer Portal router (wave-6)")
     except ImportError:
@@ -1258,7 +1446,9 @@ def register_platform_routers(
 
     # Feed Registry (apps/api/)
     try:
-        from apps.api.feed_registry_router import router as feed_registry_router  # noqa: PLC0415
+        from apps.api.feed_registry_router import (
+            router as feed_registry_router,  # noqa: PLC0415
+        )
         app.include_router(feed_registry_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
         _logger.info("Mounted Feed Registry router (wave-6)")
     except ImportError:
@@ -1266,7 +1456,9 @@ def register_platform_routers(
 
     # Feed Manager (apps/api/)
     try:
-        from apps.api.feed_manager_router import router as feed_manager_router  # noqa: PLC0415
+        from apps.api.feed_manager_router import (
+            router as feed_manager_router,  # noqa: PLC0415
+        )
         app.include_router(feed_manager_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
         _logger.info("Mounted Feed Manager router (wave-6)")
     except ImportError:
@@ -1274,7 +1466,9 @@ def register_platform_routers(
 
     # Integration Health (apps/api/)
     try:
-        from apps.api.integration_health_router import router as integration_health_router  # noqa: PLC0415
+        from apps.api.integration_health_router import (
+            router as integration_health_router,  # noqa: PLC0415
+        )
         app.include_router(integration_health_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Integration Health router (wave-6)")
     except ImportError:
@@ -1282,7 +1476,9 @@ def register_platform_routers(
 
     # Metrics Aggregator (apps/api/)
     try:
-        from apps.api.metrics_aggregator_router import router as metrics_aggregator_router  # noqa: PLC0415
+        from apps.api.metrics_aggregator_router import (
+            router as metrics_aggregator_router,  # noqa: PLC0415
+        )
         app.include_router(metrics_aggregator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Metrics Aggregator router (wave-6)")
     except ImportError:
@@ -1290,7 +1486,9 @@ def register_platform_routers(
 
     # Notifications (apps/api/)
     try:
-        from apps.api.notification_router import router as notification_router  # noqa: PLC0415
+        from apps.api.notification_router import (
+            router as notification_router,  # noqa: PLC0415
+        )
         app.include_router(notification_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Notifications router (wave-6)")
     except ImportError:
@@ -1306,7 +1504,9 @@ def register_platform_routers(
 
     # Posture Benchmark (apps/api/)
     try:
-        from apps.api.posture_benchmark_router import router as posture_benchmark_router  # noqa: PLC0415
+        from apps.api.posture_benchmark_router import (
+            router as posture_benchmark_router,  # noqa: PLC0415
+        )
         app.include_router(posture_benchmark_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Posture Benchmark router (wave-6)")
     except ImportError:
@@ -1322,7 +1522,9 @@ def register_platform_routers(
 
     # Runtime Protection (apps/api/)
     try:
-        from apps.api.runtime_protection_router import router as runtime_protection_router  # noqa: PLC0415
+        from apps.api.runtime_protection_router import (
+            router as runtime_protection_router,  # noqa: PLC0415
+        )
         app.include_router(runtime_protection_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Runtime Protection router (wave-6)")
     except ImportError:
@@ -1330,7 +1532,9 @@ def register_platform_routers(
 
     # Prioritizer (apps/api/)
     try:
-        from apps.api.prioritizer_router import router as prioritizer_router  # noqa: PLC0415
+        from apps.api.prioritizer_router import (
+            router as prioritizer_router,  # noqa: PLC0415
+        )
         app.include_router(prioritizer_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Prioritizer router (wave-6)")
     except ImportError:
@@ -1338,7 +1542,9 @@ def register_platform_routers(
 
     # Rate Limits (apps/api/)
     try:
-        from apps.api.rate_limit_router import router as rate_limit_router  # noqa: PLC0415
+        from apps.api.rate_limit_router import (
+            router as rate_limit_router,  # noqa: PLC0415
+        )
         app.include_router(rate_limit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
         _logger.info("Mounted Rate Limits router (wave-6)")
     except ImportError:
@@ -1346,7 +1552,9 @@ def register_platform_routers(
 
     # Tenant Rate Limiter (apps/api/)
     try:
-        from apps.api.tenant_rate_limiter_router import router as tenant_rate_limiter_router  # noqa: PLC0415
+        from apps.api.tenant_rate_limiter_router import (
+            router as tenant_rate_limiter_router,  # noqa: PLC0415
+        )
         app.include_router(tenant_rate_limiter_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
         _logger.info("Mounted Tenant Rate Limiter router (wave-6)")
     except ImportError:
@@ -1354,7 +1562,9 @@ def register_platform_routers(
 
     # Retention (apps/api/)
     try:
-        from apps.api.retention_router import router as retention_router  # noqa: PLC0415
+        from apps.api.retention_router import (
+            router as retention_router,  # noqa: PLC0415
+        )
         app.include_router(retention_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
         _logger.info("Mounted Retention router (wave-6)")
     except ImportError:
@@ -1362,7 +1572,9 @@ def register_platform_routers(
 
     # Slack Bot (apps/api/)
     try:
-        from apps.api.slack_bot_router import router as slack_bot_router  # noqa: PLC0415
+        from apps.api.slack_bot_router import (
+            router as slack_bot_router,  # noqa: PLC0415
+        )
         app.include_router(slack_bot_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
         _logger.info("Mounted Slack Bot router (wave-6)")
     except ImportError:
@@ -1370,7 +1582,9 @@ def register_platform_routers(
 
     # System Health (apps/api/)
     try:
-        from apps.api.system_health_router import router as system_health_router  # noqa: PLC0415
+        from apps.api.system_health_router import (
+            router as system_health_router,  # noqa: PLC0415
+        )
         app.include_router(system_health_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
         _logger.info("Mounted System Health router (wave-6)")
     except ImportError:
@@ -1386,7 +1600,9 @@ def register_platform_routers(
 
     # User Analytics (apps/api/)
     try:
-        from apps.api.user_analytics_router import router as user_analytics_router  # noqa: PLC0415
+        from apps.api.user_analytics_router import (
+            router as user_analytics_router,  # noqa: PLC0415
+        )
         app.include_router(user_analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted User Analytics router (wave-6)")
     except ImportError:
@@ -1394,7 +1610,9 @@ def register_platform_routers(
 
     # Versioning (apps/api/)
     try:
-        from apps.api.versioning_router import router as versioning_router  # noqa: PLC0415
+        from apps.api.versioning_router import (
+            router as versioning_router,  # noqa: PLC0415
+        )
         app.include_router(versioning_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Versioning router (wave-6)")
     except ImportError:
@@ -1402,7 +1620,9 @@ def register_platform_routers(
 
     # Webhook Events (apps/api/)
     try:
-        from apps.api.webhook_events_router import router as webhook_events_router  # noqa: PLC0415
+        from apps.api.webhook_events_router import (
+            router as webhook_events_router,  # noqa: PLC0415
+        )
         app.include_router(webhook_events_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Webhook Events router (wave-6)")
     except ImportError:
@@ -1410,7 +1630,9 @@ def register_platform_routers(
 
     # Workflow Engine (apps/api/)
     try:
-        from apps.api.workflow_engine_router import router as workflow_engine_router  # noqa: PLC0415
+        from apps.api.workflow_engine_router import (
+            router as workflow_engine_router,  # noqa: PLC0415
+        )
         app.include_router(workflow_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Workflow Engine router (wave-6)")
     except ImportError:
@@ -1426,7 +1648,9 @@ def register_platform_routers(
 
     # DuckDB Analytics (apps/api/)
     try:
-        from apps.api.duckdb_analytics_router import router as duckdb_analytics_router  # noqa: PLC0415
+        from apps.api.duckdb_analytics_router import (
+            router as duckdb_analytics_router,  # noqa: PLC0415
+        )
         app.include_router(duckdb_analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted DuckDB Analytics router (wave-6)")
     except ImportError:
@@ -1441,77 +1665,99 @@ def register_platform_routers(
     # WorkspaceOne-live, AppOmni-live, AdaptiveShield-live, SplunkSOAR-live
     # ------------------------------------------------------------------
     try:
-        from apps.api.crowdstrike_live_connector_router import router as crowdstrike_live_router  # noqa: PLC0415
+        from apps.api.crowdstrike_live_connector_router import (
+            router as crowdstrike_live_router,  # noqa: PLC0415
+        )
         app.include_router(crowdstrike_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted CrowdStrike live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.defender_xdr_live_connector_router import router as defender_xdr_live_router  # noqa: PLC0415
+        from apps.api.defender_xdr_live_connector_router import (
+            router as defender_xdr_live_router,  # noqa: PLC0415
+        )
         app.include_router(defender_xdr_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Defender XDR live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.okta_live_connector_router import router as okta_live_router  # noqa: PLC0415
+        from apps.api.okta_live_connector_router import (
+            router as okta_live_router,  # noqa: PLC0415
+        )
         app.include_router(okta_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Okta live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.jamf_live_connector_router import router as jamf_live_router  # noqa: PLC0415
+        from apps.api.jamf_live_connector_router import (
+            router as jamf_live_router,  # noqa: PLC0415
+        )
         app.include_router(jamf_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Jamf live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.vault_live_connector_router import router as vault_live_router  # noqa: PLC0415
+        from apps.api.vault_live_connector_router import (
+            router as vault_live_router,  # noqa: PLC0415
+        )
         app.include_router(vault_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted HashiCorp Vault live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.cyberark_live_connector_router import router as cyberark_live_router  # noqa: PLC0415
+        from apps.api.cyberark_live_connector_router import (
+            router as cyberark_live_router,  # noqa: PLC0415
+        )
         app.include_router(cyberark_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted CyberArk live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.intune_live_connector_router import router as intune_live_router  # noqa: PLC0415
+        from apps.api.intune_live_connector_router import (
+            router as intune_live_router,  # noqa: PLC0415
+        )
         app.include_router(intune_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Microsoft Intune live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.workspace_one_live_connector_router import router as workspace_one_live_router  # noqa: PLC0415
+        from apps.api.workspace_one_live_connector_router import (
+            router as workspace_one_live_router,  # noqa: PLC0415
+        )
         app.include_router(workspace_one_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted VMware Workspace ONE live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.appomni_live_connector_router import router as appomni_live_router  # noqa: PLC0415
+        from apps.api.appomni_live_connector_router import (
+            router as appomni_live_router,  # noqa: PLC0415
+        )
         app.include_router(appomni_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted AppOmni live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.adaptive_shield_live_connector_router import router as adaptive_shield_live_router  # noqa: PLC0415
+        from apps.api.adaptive_shield_live_connector_router import (
+            router as adaptive_shield_live_router,  # noqa: PLC0415
+        )
         app.include_router(adaptive_shield_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Adaptive Shield live connector router (wave-7)")
     except ImportError:
         pass
 
     try:
-        from apps.api.splunk_soar_live_connector_router import router as splunk_soar_live_router  # noqa: PLC0415
+        from apps.api.splunk_soar_live_connector_router import (
+            router as splunk_soar_live_router,  # noqa: PLC0415
+        )
         app.include_router(splunk_soar_live_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Splunk SOAR live connector router (wave-7)")
     except ImportError:

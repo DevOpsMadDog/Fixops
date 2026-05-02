@@ -30,10 +30,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.grc_engine import GRCEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.grc_engine import GRCEngine
 
 logger = logging.getLogger(__name__)
 

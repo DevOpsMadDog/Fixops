@@ -1,11 +1,12 @@
 """Patch prioritization engine — EPSS + KEV + asset criticality weighted scoring."""
 import json
-import uuid
 import sqlite3
-import structlog
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
-from datetime import datetime, timezone
+
+import structlog
 
 _logger = structlog.get_logger()
 

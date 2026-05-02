@@ -12,12 +12,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-
-from core.api_key_manager import APIKeyManager, APIKey
+from core.api_key_manager import APIKey, APIKeyManager
 from core.auth_middleware import AuthContext, require_scope
 from core.rbac import RBACRole
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/auth/keys", tags=["api-key-management"])
 

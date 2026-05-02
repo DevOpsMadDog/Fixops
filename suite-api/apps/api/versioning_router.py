@@ -15,8 +15,6 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-
 from core.api_versioning import (
     APIVersion,
     APIVersionManager,
@@ -24,6 +22,7 @@ from core.api_versioning import (
     EndpointVersion,
     get_version_manager,
 )
+from fastapi import APIRouter, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 

@@ -26,10 +26,11 @@ from typing import Any, Dict, List, Optional
 
 import bcrypt
 import jwt
-from core.auth_db import AuthDB
-from core.auth_models import ROLE_SCOPES, User, UserRole
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
+
+from core.auth_db import AuthDB
+from core.auth_models import ROLE_SCOPES, User, UserRole
 
 logger = logging.getLogger(__name__)
 

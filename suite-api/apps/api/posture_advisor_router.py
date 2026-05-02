@@ -7,14 +7,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.posture_advisor import (
-    RECOMMENDATION_CATEGORIES,
     PRIORITY_LEVELS,
+    RECOMMENDATION_CATEGORIES,
     get_posture_advisor,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/posture-advisor", tags=["posture-advisor"])
 

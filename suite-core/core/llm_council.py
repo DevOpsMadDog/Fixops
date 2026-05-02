@@ -37,6 +37,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 logger = logging.getLogger(__name__)
 
 from core.llm_providers import BaseLLMProvider
+
 # ---------------------------------------------------------------------------
 # TrustGraph event-bus wiring (auto-added by hub-wiring wave)
 # ---------------------------------------------------------------------------
@@ -387,8 +388,8 @@ class LLMCouncilEngine:
         enriched = dict(finding)
         try:
             from core.trustgraph_integrations import (
-                ImpactAnalyzer,
                 CrossDomainCorrelator,
+                ImpactAnalyzer,
             )
 
             asset_id = finding.get("asset_id")
@@ -1291,8 +1292,8 @@ class CouncilFactory:
         """
         # Import here to avoid circular dependency
         from core.llm_providers import (
-            LLMProviderManager,
             AnthropicMessagesProvider,
+            LLMProviderManager,
         )
 
         self.manager = manager or LLMProviderManager()

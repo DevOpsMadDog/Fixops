@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 TRUSTGRAPH_AVAILABLE = False
 try:
     import trustgraph
-    from trustgraph import KnowledgeCore, GraphQuery
+    from trustgraph import GraphQuery, KnowledgeCore
     TRUSTGRAPH_AVAILABLE = True
 except ImportError:
     logger.warning(

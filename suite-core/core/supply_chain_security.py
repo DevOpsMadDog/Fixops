@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field, field_validator
+
 # ---------------------------------------------------------------------------
 # TrustGraph event-bus wiring (auto-added by hub-wiring wave)
 # ---------------------------------------------------------------------------
@@ -1507,7 +1508,9 @@ class SupplyChainEngine:
         Returns a summary dict with ``synced``, ``skipped``, and ``errors`` counts.
         """
         try:
-            from core.knowledge_brain import get_brain  # local import to avoid circular dep
+            from core.knowledge_brain import (
+                get_brain,  # local import to avoid circular dep
+            )
         except ImportError:
             _logger.warning("sync_from_brain: knowledge_brain not available")
             return {"synced": 0, "skipped": 0, "errors": 1, "detail": "knowledge_brain unavailable"}

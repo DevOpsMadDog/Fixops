@@ -27,10 +27,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.supply_chain_risk_engine import SupplyChainRiskEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.supply_chain_risk_engine import SupplyChainRiskEngine
 
 logger = logging.getLogger(__name__)
 

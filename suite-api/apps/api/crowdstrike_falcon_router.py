@@ -23,10 +23,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, Union
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
@@ -82,9 +81,9 @@ def health() -> Dict[str, Any]:
     """Health probe — returns the connector wiring state."""
     try:
         from connectors.crowdstrike_falcon_connector import (
-            FALCON_SAMPLE_DETECTIONS,
-            _FALCON_TECHNIQUE_TO_MITRE,
             _FALCON_TACTIC_TO_MITRE,
+            _FALCON_TECHNIQUE_TO_MITRE,
+            FALCON_SAMPLE_DETECTIONS,
         )
         conn = _conn()
         return {
@@ -189,8 +188,8 @@ def get_severity_mappings() -> Dict[str, Any]:
 def get_technique_mappings() -> Dict[str, Any]:
     """Return the Falcon technique label → MITRE T-code map."""
     from connectors.crowdstrike_falcon_connector import (
-        _FALCON_TECHNIQUE_TO_MITRE,
         _FALCON_TACTIC_TO_MITRE,
+        _FALCON_TECHNIQUE_TO_MITRE,
     )
     return {
         "technique_count": len(_FALCON_TECHNIQUE_TO_MITRE),

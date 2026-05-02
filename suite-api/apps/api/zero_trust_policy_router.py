@@ -20,14 +20,13 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
 from core.zero_trust_policy_engine import (
     ZeroTrustPolicyEngine,
     get_zero_trust_policy_engine,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 _logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/zero-trust-policy", tags=["zero-trust-policy"])

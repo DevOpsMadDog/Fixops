@@ -15,10 +15,9 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 

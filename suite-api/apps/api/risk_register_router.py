@@ -14,9 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
+import structlog
 from core.risk_register import (
     KRIRecord,
     Risk,
@@ -28,8 +26,8 @@ from core.risk_register import (
     TreatmentAction,
     get_risk_register,
 )
-
-import structlog
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
 

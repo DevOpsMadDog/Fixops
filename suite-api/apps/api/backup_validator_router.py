@@ -23,9 +23,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.backup_validator import (
     BackupJob,
     BackupStatus,
@@ -43,6 +40,8 @@ from core.backup_validator import (
     VerificationStatus,
     get_backup_validator,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

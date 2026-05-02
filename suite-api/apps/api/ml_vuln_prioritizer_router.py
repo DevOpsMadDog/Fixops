@@ -127,8 +127,9 @@ def predict(body: PredictRequest) -> PredictResponse:
 
     # Emit TrustGraph event (fire-and-forget)
     try:
-        from core.trustgraph_event_bus import get_event_bus as _get_eb
         import asyncio as _asyncio
+
+        from core.trustgraph_event_bus import get_event_bus as _get_eb
         _bus = _get_eb()
         if _bus and _bus.enabled:
             _asyncio.ensure_future(_bus.emit("ml.vuln_prioritizer.predict", {

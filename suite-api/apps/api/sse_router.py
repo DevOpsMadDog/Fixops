@@ -18,10 +18,9 @@ import logging
 import time
 from typing import AsyncGenerator, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 

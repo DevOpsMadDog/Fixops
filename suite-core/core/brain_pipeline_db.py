@@ -31,7 +31,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import structlog
 
@@ -115,9 +115,10 @@ async def persist_pipeline_run(
                  Defaults to "default" for single-tenant / dev environments.
     """
     try:
+        from sqlalchemy import select
+
         from core.db.enterprise.session import DatabaseManager
         from core.db.models import PipelineRun
-        from sqlalchemy import select
 
         row_data = _build_pipeline_run_row(result, org_id)
 
@@ -217,8 +218,9 @@ async def check_database_health() -> Dict[str, Any]:
     Never raises — all errors are caught and returned as an "unhealthy" status.
     """
     try:
-        from core.db.enterprise.session import DatabaseManager
         from config.enterprise.settings import get_settings
+
+        from core.db.enterprise.session import DatabaseManager
 
         settings = get_settings()
         db_url = settings.DATABASE_URL

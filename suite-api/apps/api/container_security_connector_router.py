@@ -21,10 +21,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
-
-from apps.api.dependencies import get_org_id
 
 try:
     from connectors.container_security_connector import (

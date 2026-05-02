@@ -52,8 +52,8 @@ except Exception:  # noqa: BLE001
 import json
 import logging
 import socket
-import ssl
 import sqlite3
+import ssl
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone

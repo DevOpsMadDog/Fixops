@@ -240,8 +240,8 @@ class TenantIsolationAuditor:
                 from suite_core.core.sso_bridge import SSOUser  # type: ignore[import]
             except ImportError:
                 try:
-                    import sys
                     import os
+                    import sys
                     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
                     from core.sso_bridge import SSOUser  # type: ignore[import]
                 except ImportError:

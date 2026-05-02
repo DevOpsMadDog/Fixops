@@ -1005,6 +1005,7 @@ class OnlineLearningPipeline:
         """Emit MODEL_RETRAINED event via EventBus."""
         try:
             import asyncio
+
             from core.event_bus import Event, EventType, get_event_bus
 
             bus = get_event_bus()

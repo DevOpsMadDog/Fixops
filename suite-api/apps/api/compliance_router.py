@@ -27,11 +27,10 @@ import logging
 import os
 from typing import Optional
 
+from apps.api.auth_deps import api_key_auth
+from core.cache_layer import TTL_COMPLIANCE, cache_endpoint
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
-from core.cache_layer import cache_endpoint, TTL_COMPLIANCE
 
 _logger = logging.getLogger(__name__)
 

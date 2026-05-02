@@ -41,17 +41,17 @@ The TrustGraphQueryBuilder provides a fluent API for structured queries:
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import re as _re
 import sqlite3
 import time
 import uuid
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime
-import json
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

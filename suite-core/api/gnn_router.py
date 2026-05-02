@@ -92,10 +92,10 @@ async def analyze_attack_surface(req: AttackSurfaceRequest) -> Dict[str, Any]:
 async def find_paths(req: PathQueryRequest) -> Dict[str, Any]:
     """Find attack paths from entry points to targets."""
     from core.attack_graph_gnn import (
-        GraphNeuralPredictor,
-        SecurityGraph,
-        NodeType,
         EdgeType,
+        GraphNeuralPredictor,
+        NodeType,
+        SecurityGraph,
     )
 
     graph = SecurityGraph()
@@ -127,10 +127,10 @@ async def find_paths(req: PathQueryRequest) -> Dict[str, Any]:
 async def propagate_risk(req: RiskPropagationRequest) -> Dict[str, Any]:
     """Propagate risk from source nodes through the graph."""
     from core.attack_graph_gnn import (
-        GraphNeuralPredictor,
-        SecurityGraph,
-        NodeType,
         EdgeType,
+        GraphNeuralPredictor,
+        NodeType,
+        SecurityGraph,
     )
 
     graph = SecurityGraph()

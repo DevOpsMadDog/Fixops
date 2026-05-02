@@ -16,15 +16,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.changelog_generator import (
     ChangeEntry,
     ChangelogGenerator,
     ChangeType,
     OutputFormat,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/changelog", tags=["changelog"])
 _generator = ChangelogGenerator()

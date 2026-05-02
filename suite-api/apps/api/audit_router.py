@@ -511,7 +511,8 @@ async def get_retention_policy():
 
 try:
     from core.audit_log import AuditLogger as _RBACLogger
-    from core.rbac import RBACPermission as _RBACPermission, require_permission as _rp
+    from core.rbac import RBACPermission as _RBACPermission
+    from core.rbac import require_permission as _rp
 
     _rbac_audit = _RBACLogger.get_instance()
 

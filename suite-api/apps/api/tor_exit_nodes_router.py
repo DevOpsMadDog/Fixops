@@ -20,9 +20,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Path as FPath, Query
-
 from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Path as FPath
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +41,9 @@ router = APIRouter(
 
 def _get_importer():
     from feeds.tor_exit_nodes.importer import (
-        run_import,
-        list_exit_ips,
         check_ip,
+        list_exit_ips,
+        run_import,
         total_count,
     )
     return run_import, list_exit_ips, check_ip, total_count

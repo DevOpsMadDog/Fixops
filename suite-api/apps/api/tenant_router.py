@@ -23,10 +23,9 @@ from __future__ import annotations
 import logging
 from typing import Dict, List
 
+from apps.api.dependencies import get_current_org_id, get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-
-from apps.api.dependencies import get_current_org_id, get_org_id
 
 logger = logging.getLogger(__name__)
 

@@ -30,13 +30,13 @@ except ImportError:
     _AUTH_DEP = []
 
 from core.threat_hunter import (
+    IOC,
     HuntFinding,
     HuntHypothesis,
     HuntSeverity,
     HuntStatus,
     HuntTriggerType,
     HuntWorkflow,
-    IOC,
     IOCType,
     KillChainCoverage,
     KillChainPhase,

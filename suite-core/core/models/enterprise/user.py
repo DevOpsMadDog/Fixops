@@ -6,17 +6,17 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 
+from sqlalchemy import JSON, Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import Mapped, mapped_column
+
 from core.models.enterprise.base import (
     AuditMixin,
     BaseModel,
     EncryptedFieldMixin,
     SoftDeleteMixin,
 )
-from sqlalchemy import JSON, Boolean, DateTime
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import Mapped, mapped_column
 
 
 class UserStatus(str, Enum):

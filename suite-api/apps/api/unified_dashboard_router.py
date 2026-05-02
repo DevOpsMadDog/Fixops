@@ -19,9 +19,8 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Query
-
 from core.unified_dashboard import DashboardLayout, get_unified_dashboard
+from fastapi import APIRouter, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 

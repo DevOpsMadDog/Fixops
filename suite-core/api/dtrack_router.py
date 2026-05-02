@@ -18,10 +18,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.security_connectors import DependencyTrackConnector
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
-
-from core.security_connectors import DependencyTrackConnector
 
 logger = logging.getLogger(__name__)
 

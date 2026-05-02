@@ -19,8 +19,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-
 from apps.api.auth_deps import api_key_auth
 from core.regulatory_reporting_engine import (
     ComplianceScoreUpdate,
@@ -29,6 +27,7 @@ from core.regulatory_reporting_engine import (
     ReportCreate,
     ReportSubmit,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 _logger = logging.getLogger(__name__)
 

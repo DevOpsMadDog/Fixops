@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.errors import ExternalServiceError  # noqa: F401 - re-exported for callers
-from core.event_streaming import StreamEvent, EventBus
+from core.event_streaming import EventBus, StreamEvent
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

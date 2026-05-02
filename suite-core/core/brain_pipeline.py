@@ -606,7 +606,9 @@ class BrainPipeline:
         # write only.
         # ----------------------------------------------------------------
         try:
-            from core.brain_pipeline_db import persist_pipeline_run_sync  # noqa: PLC0415
+            from core.brain_pipeline_db import (
+                persist_pipeline_run_sync,  # noqa: PLC0415
+            )
             persist_pipeline_run_sync(result, org_id=inp.org_id or "default")
         except ImportError:
             pass  # DB write failure must never surface to callers
@@ -1492,7 +1494,9 @@ class BrainPipeline:
         # ------------------------------------------------------------------
         if not ctx["findings"]:
             try:
-                from core.connector_ingestion_scheduler import ConnectorIngestionScheduler
+                from core.connector_ingestion_scheduler import (
+                    ConnectorIngestionScheduler,
+                )
                 scheduler = ConnectorIngestionScheduler(ctx["org_id"])
                 collected = scheduler.collect_all_findings()
                 ctx["findings"].extend(collected)
@@ -2294,8 +2298,9 @@ class BrainPipeline:
 
             # Best-effort event emission — async bus called from sync context
             try:
-                from core.trustgraph_event_bus import get_event_bus
                 import asyncio as _asyncio
+
+                from core.trustgraph_event_bus import get_event_bus
                 bus = get_event_bus()
 
                 async def _emit_all():
@@ -2757,10 +2762,14 @@ class BrainPipeline:
         Pipeline never fails when the GNN module is unavailable.
         """
         try:
-            from core.attack_graph_gnn import (
-                SecurityGraph, NodeType, EdgeType, GraphNeuralPredictor,
-            )
             import uuid as _uuid
+
+            from core.attack_graph_gnn import (
+                EdgeType,
+                GraphNeuralPredictor,
+                NodeType,
+                SecurityGraph,
+            )
             graph = SecurityGraph()
             entry_points: List[str] = []
             vuln_ids: List[str] = []
@@ -2812,8 +2821,9 @@ class BrainPipeline:
 
             # Emit threat.detected events for top 3 paths (async-safe)
             try:
-                from core.trustgraph_event_bus import get_event_bus
                 import asyncio as _asyncio
+
+                from core.trustgraph_event_bus import get_event_bus
                 bus = get_event_bus()
 
                 async def _emit_paths():
@@ -2940,7 +2950,8 @@ class BrainPipeline:
         risk_model = None
         ML_MODEL_VERSION = "unknown"
         try:
-            from core.ml.risk_scorer import get_risk_model, MODEL_VERSION as _ml_ver
+            from core.ml.risk_scorer import MODEL_VERSION as _ml_ver
+            from core.ml.risk_scorer import get_risk_model
             ML_MODEL_VERSION = _ml_ver
             risk_model = get_risk_model()
             ml_available = risk_model.is_trained
@@ -2955,6 +2966,7 @@ class BrainPipeline:
         if repo_path_str and ctx.get("findings"):
             try:
                 from pathlib import Path as _Path
+
                 from risk.reachability.call_graph import CallGraphBuilder
                 _repo = _Path(repo_path_str)
                 if _repo.is_dir():
@@ -3208,7 +3220,9 @@ class BrainPipeline:
 
         # --- Path 2: Enterprise real_opa_engine import -----------------------
         try:
-            from core.services.enterprise.real_opa_engine import OPAEngineFactory  # type: ignore[import]
+            from core.services.enterprise.real_opa_engine import (
+                OPAEngineFactory,  # type: ignore[import]
+            )
 
             engine = OPAEngineFactory.create()
             BrainPipeline._opa_engine = engine
@@ -3514,8 +3528,9 @@ class BrainPipeline:
         was_capped = len(critical) == self.MAX_LLM_FINDINGS
 
         try:
-            from core.llm_providers import LLMProviderManager
             import concurrent.futures
+
+            from core.llm_providers import LLMProviderManager
 
             manager = LLMProviderManager()
 
@@ -3723,7 +3738,9 @@ class BrainPipeline:
         if cls._council_adapter is None:
             with cls._council_adapter_lock:
                 if cls._council_adapter is None:
-                    from core.council_pipeline_adapter import create_consensus_engine_replacement
+                    from core.council_pipeline_adapter import (
+                        create_consensus_engine_replacement,
+                    )
                     cls._council_adapter = create_consensus_engine_replacement()
                     logger.info("CouncilPipelineAdapter singleton initialized")
         return cls._council_adapter
@@ -4322,8 +4339,9 @@ class BrainPipeline:
 
         # Try hybrid quantum signing first (FIPS 204 ML-DSA + RSA)
         try:
-            from core.quantum_crypto import HybridQuantumSigner
             import json as _json
+
+            from core.quantum_crypto import HybridQuantumSigner
 
             hybrid_signer = HybridQuantumSigner()
             evidence_bytes = _json.dumps(evidence, sort_keys=True, default=str).encode("utf-8")

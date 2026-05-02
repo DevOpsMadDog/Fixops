@@ -12,15 +12,14 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel, Field
-
 from core.app_config import (
     AppConfig,
     AppConfigManager,
     get_default_manager,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

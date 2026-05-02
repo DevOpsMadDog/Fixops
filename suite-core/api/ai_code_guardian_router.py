@@ -8,14 +8,13 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from core.ai_code_guardian import (
     RiskCategory,
     Severity,
     get_ai_code_guardian,
 )
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/guardian", tags=["AI Code Guardian"])
 

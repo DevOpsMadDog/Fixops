@@ -1,6 +1,7 @@
 """Create KEV waiver table"""
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "002_add_kev_waivers"

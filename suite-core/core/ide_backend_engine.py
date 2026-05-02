@@ -71,7 +71,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(

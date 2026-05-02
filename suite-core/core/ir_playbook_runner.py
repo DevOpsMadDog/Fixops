@@ -27,7 +27,7 @@ import json
 import sqlite3
 import threading
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore

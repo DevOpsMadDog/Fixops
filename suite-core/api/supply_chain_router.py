@@ -13,13 +13,12 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
-
 from core.supply_chain_engine import (
     SupplyChainEngine,
     get_supply_chain_engine,
 )
+from fastapi import APIRouter
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

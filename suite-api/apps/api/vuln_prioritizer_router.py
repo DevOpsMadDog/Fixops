@@ -32,8 +32,8 @@ except ImportError:
 from core.vuln_prioritizer import (
     EPSSScore,
     PrioritizationSummary,
-    PrioritizeRequest,
     PrioritizedVuln,
+    PrioritizeRequest,
     ReachabilityResult,
     RiskBucket,
     SLAStatus,
@@ -269,7 +269,8 @@ def trigger_prioritization(body: PrioritizeRequest) -> PrioritizationSummary:
         )
         # TrustGraph explicit indexing (fire-and-forget)
         try:
-            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED
+            from core.trustgraph_event_bus import get_event_bus as _get_eb
             _bus = _get_eb()
             if _bus and _bus.enabled:
                 import asyncio as _asyncio

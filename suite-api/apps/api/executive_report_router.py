@@ -13,9 +13,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.executive_reports import (
     ExecutiveReport,
     ExecutiveReportEngine,
@@ -23,6 +20,8 @@ from core.executive_reports import (
     ReportSchedule,
     ReportType,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(
     prefix="/api/v1/reports/executive",

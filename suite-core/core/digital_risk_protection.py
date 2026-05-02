@@ -27,8 +27,8 @@ from typing import Any, Dict, List, Optional
 import structlog
 
 try:
-    import urllib.request as _urllib_request
     import urllib.error as _urllib_error
+    import urllib.request as _urllib_request
 except ImportError:
     _urllib_request = None  # type: ignore[assignment]
     _urllib_error = None  # type: ignore[assignment]

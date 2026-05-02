@@ -21,10 +21,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
@@ -40,7 +39,9 @@ _engine = None
 def _get_engine():
     global _engine
     if _engine is None:
-        from core.threat_intelligence_confidence_engine import ThreatIntelligenceConfidenceEngine
+        from core.threat_intelligence_confidence_engine import (
+            ThreatIntelligenceConfidenceEngine,
+        )
         _engine = ThreatIntelligenceConfidenceEngine()
     return _engine
 

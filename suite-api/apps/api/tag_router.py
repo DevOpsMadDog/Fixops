@@ -12,9 +12,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.tag_manager import (
     AutoTagRule,
     EntityType,
@@ -22,6 +19,8 @@ from core.tag_manager import (
     TagManager,
     get_tag_manager,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

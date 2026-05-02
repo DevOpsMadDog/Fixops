@@ -424,7 +424,9 @@ class EventStream:
             heartbeat_interval: Seconds between server-sent ping messages.
             queue_maxsize: Max queue depth before events are dropped.
         """
-        from fastapi import WebSocketDisconnect  # local import to avoid hard dep at module level
+        from fastapi import (
+            WebSocketDisconnect,  # local import to avoid hard dep at module level
+        )
 
         await websocket.accept()
 

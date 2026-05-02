@@ -25,9 +25,6 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.security_metrics import (
     Objective,
     ReportType,
@@ -36,6 +33,8 @@ from core.security_metrics import (
     Severity,
     TrendPeriod,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/metrics", tags=["security-metrics"])
 

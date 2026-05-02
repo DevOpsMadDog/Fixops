@@ -267,7 +267,9 @@ def _lookup_exploitdb(cve_id: str) -> Optional[Dict[str, Any]]:
     ``None`` for missing feeds, never to fabricate data.
     """
     try:
-        from feeds.exploitdb.importer import list_exploits  # type: ignore[import-not-found]
+        from feeds.exploitdb.importer import (
+            list_exploits,  # type: ignore[import-not-found]
+        )
     except ImportError:
         return None
     try:
@@ -356,7 +358,9 @@ def _lookup_phishtank(url: str) -> Optional[Dict[str, Any]]:
     if not url:
         return None
     try:
-        from feeds.phishtank.importer import PhishTankImporter  # type: ignore[import-not-found]
+        from feeds.phishtank.importer import (
+            PhishTankImporter,  # type: ignore[import-not-found]
+        )
     except ImportError:
         return None
     try:
@@ -382,7 +386,9 @@ def _lookup_malwarebazaar(sha256: str) -> Optional[Dict[str, Any]]:
     if not sha256 or len(sha256) != 64:
         return None
     try:
-        from feeds.malware_bazaar.importer import MalwareBazaarImporter  # type: ignore[import-not-found]
+        from feeds.malware_bazaar.importer import (
+            MalwareBazaarImporter,  # type: ignore[import-not-found]
+        )
     except ImportError:
         return None
     try:
@@ -410,7 +416,9 @@ def _lookup_tor_exit(ip: str) -> Optional[Dict[str, Any]]:
     if not ip:
         return None
     try:
-        from feeds.tor_exit_nodes.importer import check_ip  # type: ignore[import-not-found]
+        from feeds.tor_exit_nodes.importer import (
+            check_ip,  # type: ignore[import-not-found]
+        )
     except ImportError:
         return None
     entry = _safe_call("tor_exit_nodes", check_ip, ip)
@@ -428,7 +436,9 @@ def _lookup_spamhaus(ip: str) -> Optional[Dict[str, Any]]:
     if not ip:
         return None
     try:
-        from feeds.spamhaus_drop.importer import check_ip  # type: ignore[import-not-found]
+        from feeds.spamhaus_drop.importer import (
+            check_ip,  # type: ignore[import-not-found]
+        )
     except ImportError:
         return None
     result = _safe_call("spamhaus_drop", check_ip, ip)

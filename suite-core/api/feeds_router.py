@@ -19,8 +19,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core.cache_layer import TTL_HEALTH, cache_endpoint
 from fastapi import APIRouter, HTTPException, Query
-from core.cache_layer import cache_endpoint, TTL_HEALTH
 
 router = APIRouter(prefix="/api/v1/feeds", tags=["Threat Intelligence Feeds"])
 

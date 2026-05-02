@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-
 from apps.api.auth_deps import api_key_auth
 from core.metrics_aggregator import (
     Metric,
@@ -21,6 +19,7 @@ from core.metrics_aggregator import (
     MetricsSnapshot,
     get_metrics_aggregator,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 router = APIRouter(
     prefix="/api/v1/metrics",

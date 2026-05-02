@@ -15,10 +15,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.rbac_engine import ROLES, RBACEngine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.rbac_engine import ROLES, RBACEngine
 
 logger = logging.getLogger(__name__)
 

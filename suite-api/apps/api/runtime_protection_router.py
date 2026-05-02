@@ -21,8 +21,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-
 from core.runtime_protection import (
     EventType,
     HostRuntimeEngine,
@@ -31,6 +29,7 @@ from core.runtime_protection import (
     RuntimePolicy,
     ThreatLevel,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 _logger = logging.getLogger(__name__)
 

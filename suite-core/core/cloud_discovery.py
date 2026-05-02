@@ -778,9 +778,14 @@ class CloudDiscovery:
 
     def _live_discover_azure(self, org_id: str) -> List[CloudAsset]:
         """Attempt live Azure discovery via azure-mgmt-compute. Raises if unavailable."""
-        from azure.identity import DefaultAzureCredential  # type: ignore[import-untyped]
-        from azure.mgmt.compute import ComputeManagementClient  # type: ignore[import-untyped]
         import os as _os
+
+        from azure.identity import (
+            DefaultAzureCredential,  # type: ignore[import-untyped]
+        )
+        from azure.mgmt.compute import (
+            ComputeManagementClient,  # type: ignore[import-untyped]
+        )
         credential = DefaultAzureCredential()
         subscription_id = _os.environ["AZURE_SUBSCRIPTION_ID"]
         client = ComputeManagementClient(credential, subscription_id)
@@ -800,8 +805,9 @@ class CloudDiscovery:
 
     def _live_discover_gcp(self, org_id: str) -> List[CloudAsset]:
         """Attempt live GCP discovery via google-cloud-compute. Raises if unavailable."""
-        from google.cloud import compute_v1  # type: ignore[import-untyped]
         import os as _os
+
+        from google.cloud import compute_v1  # type: ignore[import-untyped]
         project = _os.environ["GCP_PROJECT_ID"]
         client = compute_v1.InstancesClient()
         assets: List[CloudAsset] = []

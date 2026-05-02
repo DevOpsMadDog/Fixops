@@ -58,14 +58,13 @@ import os
 import random
 import threading
 import time
+import urllib.error
+import urllib.request
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
-
-import urllib.error
-import urllib.request
 
 from connectors._emit import emit_connector_event
 

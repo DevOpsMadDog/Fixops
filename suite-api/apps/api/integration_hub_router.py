@@ -188,7 +188,7 @@ async def reset_circuit_breaker(
 @router.post("/webhooks", summary="Register a webhook")
 async def register_webhook(req: RegisterWebhookRequest) -> Dict[str, Any]:
     """Register an inbound or outbound webhook for an integration."""
-    from core.integration_hub import SyncDirection, EventType
+    from core.integration_hub import EventType, SyncDirection
 
     try:
         direction = SyncDirection(req.direction)

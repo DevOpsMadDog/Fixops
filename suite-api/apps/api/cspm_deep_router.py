@@ -248,7 +248,7 @@ def scan_localstack(request: LocalStackScanRequest) -> Dict[str, Any]:
                         if key.get("Status") == "Active":
                             create_date = key.get("CreateDate")
                             if create_date:
-                                from datetime import datetime, timezone, timedelta
+                                from datetime import datetime, timedelta, timezone
                                 age = datetime.now(timezone.utc) - create_date.replace(tzinfo=timezone.utc)
                                 if age > timedelta(days=90):
                                     findings_raw.append({

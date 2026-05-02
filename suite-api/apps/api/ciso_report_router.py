@@ -18,10 +18,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import PlainTextResponse
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 

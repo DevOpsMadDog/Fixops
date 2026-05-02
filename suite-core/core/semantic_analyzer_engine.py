@@ -43,7 +43,8 @@ _TS_LANGS: Dict[str, Any] = {}
 _TS_PARSERS: Dict[str, Any] = {}
 
 try:  # pragma: no cover - import-only branch
-    from tree_sitter import Language as _TSLanguage, Parser as _TSParser  # type: ignore
+    from tree_sitter import Language as _TSLanguage  # type: ignore
+    from tree_sitter import Parser as _TSParser
 
     try:
         import tree_sitter_typescript as _ts_typescript  # type: ignore

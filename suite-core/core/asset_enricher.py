@@ -374,9 +374,9 @@ class AssetEnricher:
             return []
 
         try:
-            import urllib.request
-            import urllib.parse
             import json as _json
+            import urllib.parse
+            import urllib.request
 
             keyword = urllib.parse.quote(product_name[:50])
             url = (

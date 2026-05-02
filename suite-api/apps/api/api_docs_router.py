@@ -18,11 +18,10 @@ import logging
 from typing import Any, Dict, Optional
 
 import yaml
-from fastapi import APIRouter, Depends, Query
-from fastapi.responses import JSONResponse, PlainTextResponse, Response
-
 from apps.api.auth_deps import api_key_auth
 from core.api_doc_generator import APIDocGenerator
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 logger = logging.getLogger(__name__)
 

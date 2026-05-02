@@ -21,10 +21,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Literal, Optional
 
+from apps.api.auth_deps import api_key_auth, require_role
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-from apps.api.auth_deps import api_key_auth, require_role
 
 _logger = logging.getLogger(__name__)
 

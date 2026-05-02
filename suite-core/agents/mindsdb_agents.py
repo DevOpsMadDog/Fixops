@@ -1083,8 +1083,8 @@ class MindsDBRAGService:
 
     def _exec_sql(self, sql: str) -> Dict[str, Any]:
         """Execute a SQL statement on MindsDB REST API (synchronous)."""
-        import urllib.request
         import json as _json
+        import urllib.request
         url = f"{self.base_url}/api/sql/query"
         payload = _json.dumps({"query": sql}).encode()
         req = urllib.request.Request(url, data=payload, method="POST")  # nosemgrep: dynamic-urllib-use-detected

@@ -22,9 +22,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.vuln_lifecycle import (
     LifecycleEvent,
@@ -32,6 +29,8 @@ from core.vuln_lifecycle import (
     TransitionError,
     VulnLifecycle,
 )
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -149,8 +148,9 @@ def transition_finding(
     response = _event_to_response(event)
     # TrustGraph async indexing (fire-and-forget, non-blocking)
     try:
-        from core.trustgraph_event_bus import EVENT_FINDING_UPDATED, get_event_bus
         import asyncio
+
+        from core.trustgraph_event_bus import EVENT_FINDING_UPDATED, get_event_bus
         bus = get_event_bus()
         if bus and bus.enabled:
             asyncio.ensure_future(bus.emit(EVENT_FINDING_UPDATED, {

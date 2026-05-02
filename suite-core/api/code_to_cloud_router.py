@@ -22,8 +22,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Query
 from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -403,7 +403,8 @@ def _ctc_engine():
     return _get_ctc_engine()
 
 
-from pydantic import BaseModel as _BaseModel, Field as _Field
+from pydantic import BaseModel as _BaseModel
+from pydantic import Field as _Field
 
 
 class _WebhookPayload(_BaseModel):

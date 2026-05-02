@@ -19,11 +19,10 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.sla_engine import SLAEngine, SLAPolicy, SLAStatus, SLATracking
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

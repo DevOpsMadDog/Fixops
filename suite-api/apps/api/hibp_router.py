@@ -17,10 +17,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ router = APIRouter(
 
 def _get_importer(db_path: Optional[str] = None):
     """Return a HibpImporter instance (lazy import to avoid startup errors)."""
-    from feeds.hibp.importer import HibpImporter, _DEFAULT_DB  # noqa: PLC0415
+    from feeds.hibp.importer import _DEFAULT_DB, HibpImporter  # noqa: PLC0415
     return HibpImporter(db_path=db_path or _DEFAULT_DB)
 
 

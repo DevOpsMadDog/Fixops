@@ -32,7 +32,8 @@ from typing import Any, Dict, List, Optional, Tuple
 # ---------------------------------------------------------------------------
 try:
     import tree_sitter_typescript as _tst
-    from tree_sitter import Language as _TSLanguage, Parser as _TSParser
+    from tree_sitter import Language as _TSLanguage
+    from tree_sitter import Parser as _TSParser
 
     _TS_LANGUAGE: Optional[Any] = _TSLanguage(_tst.language_typescript())
     _TSX_LANGUAGE: Optional[Any] = _TSLanguage(_tst.language_tsx())

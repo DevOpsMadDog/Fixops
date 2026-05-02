@@ -12,6 +12,7 @@ Compliance: SOC2 CC6.1 (Change management), ISO27001 A.18.1 (Legal requirements)
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 import uuid
@@ -19,8 +20,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
-
-import logging
 
 _logger = logging.getLogger(__name__)
 

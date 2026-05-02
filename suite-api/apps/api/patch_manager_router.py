@@ -11,9 +11,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.patch_manager import (
     Patch,
     PatchManager,
@@ -21,6 +18,8 @@ from core.patch_manager import (
     PatchStatus,
     get_patch_manager,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

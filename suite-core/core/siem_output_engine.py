@@ -427,6 +427,8 @@ class SIEMOutputEngine:
 try:
     from core.siem_integration_engine import (  # type: ignore[import]
         SIEM_ADAPTERS as _INTEG_ADAPTERS,
+    )
+    from core.siem_integration_engine import (
         ChronicleAdapter,  # noqa: F401
         DatadogAdapter,  # noqa: F401
         forward_to_siem,  # noqa: F401

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 from config.enterprise.settings import get_settings
+
 from core.services.enterprise.cache_service import CacheService
 from core.services.enterprise.chatgpt_client import ChatGPTClient
 

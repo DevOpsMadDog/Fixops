@@ -701,7 +701,6 @@ def list_supported_cnapp_providers() -> List[str]:
 # Need Tuple for type hints above
 from typing import Tuple  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Module-level singleton
 # ---------------------------------------------------------------------------

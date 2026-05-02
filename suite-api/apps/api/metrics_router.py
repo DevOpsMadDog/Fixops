@@ -16,10 +16,9 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 

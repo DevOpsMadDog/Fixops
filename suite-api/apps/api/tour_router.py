@@ -397,7 +397,8 @@ def _stage_trustgraph(finding: dict, verdict: Optional[dict], emit) -> int:
             raise RuntimeError("Bus has no emit/publish method")
 
         # Emit finding node
-        import inspect as _insp, asyncio as _aio
+        import asyncio as _aio
+        import inspect as _insp
         payload_finding = {
             "id": finding.get("id"),
             "title": finding.get("title"),

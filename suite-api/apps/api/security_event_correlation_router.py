@@ -40,7 +40,9 @@ _engine = None
 def _get_engine():
     global _engine
     if _engine is None:
-        from core.security_event_correlation_engine import SecurityEventCorrelationEngine
+        from core.security_event_correlation_engine import (
+            SecurityEventCorrelationEngine,
+        )
         _engine = SecurityEventCorrelationEngine()
     return _engine
 

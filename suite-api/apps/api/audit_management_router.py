@@ -20,8 +20,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-
 from apps.api.auth_deps import api_key_auth
 from core.audit_management_engine import (
     AuditComplete,
@@ -30,6 +28,7 @@ from core.audit_management_engine import (
     FindingCreate,
     FindingResolve,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 _logger = logging.getLogger(__name__)
 

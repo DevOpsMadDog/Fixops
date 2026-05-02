@@ -19,14 +19,13 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import structlog
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
 from core.self_scanner import (
     ScanCategory,
     get_self_scan_engine,
 )
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
 

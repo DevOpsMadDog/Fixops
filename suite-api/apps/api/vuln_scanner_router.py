@@ -18,11 +18,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.vuln_scanner_engine import VulnScannerEngine
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+
 sys.setrecursionlimit(5000)  # 453+ routers chain FastAPI lifespans recursively
 
 import csv
@@ -153,7 +154,9 @@ servicenow_sync_router: Optional[APIRouter] = None
 servicenow_sync_webhook_router: Optional[APIRouter] = None
 try:
     from apps.api.servicenow_sync_router import router as servicenow_sync_router
-    from apps.api.servicenow_sync_router import webhook_router as servicenow_sync_webhook_router
+    from apps.api.servicenow_sync_router import (
+        webhook_router as servicenow_sync_webhook_router,
+    )
 
     logging.getLogger(__name__).info("Loaded ServiceNow Sync router")
 except ImportError as e:
@@ -171,6 +174,7 @@ except ImportError as e:
     logging.getLogger(__name__).warning("PR Gate router not available: %s", e)
 from apps.api.policies_router import router as policies_router
 from apps.api.policy_engine_router import router as policy_engine_router
+
 # Wave D — 22 integrations/AI/policy endpoints (Multica)
 try:
     from apps.api.wave_d_integrations_router import router as wave_d_integrations_router
@@ -192,6 +196,7 @@ except ImportError as _hooks_err:
     hooks_router = None
     logging.getLogger(__name__).warning("Hooks router not available: %s", _hooks_err)
 from apps.api.reports_router import router as reports_router
+
 # ── ADMIN / SYSTEM / USERS ────────────────────────────────────────────────────
 
 # Enterprise SSO router (SAML 2.0 + OIDC — Okta, Azure AD, Google)
@@ -275,7 +280,9 @@ except ImportError as e:
 # TrustGraph Maintenance router (integrity sweep, core health, auto-fix, issues)
 trustgraph_maintenance_router: Optional[APIRouter] = None
 try:
-    from apps.api.trustgraph_maintenance_router import router as trustgraph_maintenance_router
+    from apps.api.trustgraph_maintenance_router import (
+        router as trustgraph_maintenance_router,
+    )
     logging.getLogger(__name__).info("Loaded TrustGraph Maintenance router")
 except ImportError as e:
     logging.getLogger(__name__).warning("TrustGraph Maintenance router not available: %s", e)
@@ -580,14 +587,18 @@ except ImportError as e:
 
 privilege_escalation_detector_router: Optional[APIRouter] = None
 try:
-    from apps.api.privilege_escalation_detector_router import router as privilege_escalation_detector_router
+    from apps.api.privilege_escalation_detector_router import (
+        router as privilege_escalation_detector_router,
+    )
     logging.getLogger(__name__).info("Loaded Privilege Escalation Detector router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Privilege Escalation Detector router not available: %s", e)
 
 mitre_attack_coverage_router: Optional[APIRouter] = None
 try:
-    from apps.api.mitre_attack_coverage_router import router as mitre_attack_coverage_router
+    from apps.api.mitre_attack_coverage_router import (
+        router as mitre_attack_coverage_router,
+    )
     logging.getLogger(__name__).info("Loaded MITRE ATT&CK Coverage router")
 except ImportError as e:
     logging.getLogger(__name__).warning("MITRE ATT&CK Coverage router not available: %s", e)
@@ -608,7 +619,9 @@ except ImportError as e:
 
 intelligent_security_router: Optional[APIRouter] = None
 try:
-    from apps.api.intelligent_security_router import router as intelligent_security_router
+    from apps.api.intelligent_security_router import (
+        router as intelligent_security_router,
+    )
     logging.getLogger(__name__).info("Loaded Intelligent Security Engine router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Intelligent Security router not available: %s", e)
@@ -679,7 +692,9 @@ except ImportError as e:
 
 exec_security_reports_router: Optional[APIRouter] = None
 try:
-    from apps.api.exec_security_reports_router import router as exec_security_reports_router
+    from apps.api.exec_security_reports_router import (
+        router as exec_security_reports_router,
+    )
     logging.getLogger(__name__).info("Loaded Executive Security Reports router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Executive Security Reports router not available: %s", e)
@@ -920,22 +935,28 @@ except ImportError as e:
 security_scorecard_router: Optional[APIRouter] = None
 security_scorecard_public_router: Optional[APIRouter] = None
 try:
+    from apps.api.security_scorecard_router import (
+        public_router as security_scorecard_public_router,
+    )
     from apps.api.security_scorecard_router import router as security_scorecard_router
-    from apps.api.security_scorecard_router import public_router as security_scorecard_public_router
     logging.getLogger(__name__).info("Loaded Security Scorecard router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Security Scorecard router not available: %s", e)
 
 regulatory_tracker_engine_router: Optional[APIRouter] = None
 try:
-    from apps.api.regulatory_tracker_engine_router import router as regulatory_tracker_engine_router
+    from apps.api.regulatory_tracker_engine_router import (
+        router as regulatory_tracker_engine_router,
+    )
     logging.getLogger(__name__).info("Loaded Regulatory Tracker Engine router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Regulatory Tracker Engine router not available: %s", e)
 
 security_scorecard_engine_router: Optional[APIRouter] = None
 try:
-    from apps.api.security_scorecard_engine_router import router as security_scorecard_engine_router
+    from apps.api.security_scorecard_engine_router import (
+        router as security_scorecard_engine_router,
+    )
     logging.getLogger(__name__).info("Loaded Security Scorecard Engine router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Security Scorecard Engine router not available: %s", e)
@@ -1137,7 +1158,9 @@ scanner_ingest_router: Optional[APIRouter] = None
 scanners_alias_router: Optional[APIRouter] = None
 try:
     from apps.api.scanner_ingest_router import router as scanner_ingest_router
-    from apps.api.scanner_ingest_router import scanners_alias_router as scanners_alias_router
+    from apps.api.scanner_ingest_router import (
+        scanners_alias_router as scanners_alias_router,
+    )
 
     _logger.info("Loaded Scanner Ingest router (15 new parsers) + /scanners/ingest alias")
 except ImportError as e:
@@ -1148,7 +1171,9 @@ except ImportError as e:
 # ---------------------------------------------------------------------------
 webhook_subscriptions_router: Optional[APIRouter] = None
 try:
-    from apps.api.webhook_subscriptions_router import router as webhook_subscriptions_router
+    from apps.api.webhook_subscriptions_router import (
+        router as webhook_subscriptions_router,
+    )
 
     _logger.info("Loaded Webhook Subscriptions router")
 except ImportError as e:
@@ -1170,7 +1195,9 @@ except ImportError as e:
 # ---------------------------------------------------------------------------
 webhook_notifications_router: Optional[APIRouter] = None
 try:
-    from apps.api.webhook_notifications_router import router as webhook_notifications_router
+    from apps.api.webhook_notifications_router import (
+        router as webhook_notifications_router,
+    )
 
     _logger.info("Loaded Webhook Notifications router")
 except ImportError as e:
@@ -1213,7 +1240,9 @@ except ImportError as e:
 # Integration Marketplace router (scanner, ticketing, notification, cloud, CI/CD, SIEM installs)
 integration_marketplace_router: Optional[APIRouter] = None
 try:
-    from apps.api.integration_marketplace_router import router as integration_marketplace_router
+    from apps.api.integration_marketplace_router import (
+        router as integration_marketplace_router,
+    )
 
     logging.getLogger(__name__).info("Loaded Integration Marketplace router")
 except ImportError as e:
@@ -1598,7 +1627,9 @@ except ImportError as e:
 # ---------------------------------------------------------------------------
 attack_surface_manager_router: Optional[APIRouter] = None
 try:
-    from apps.api.attack_surface_manager_router import router as attack_surface_manager_router
+    from apps.api.attack_surface_manager_router import (
+        router as attack_surface_manager_router,
+    )
 
     _logger.info("Loaded Attack Surface Manager router")
 except ImportError as e:
@@ -1609,7 +1640,9 @@ except ImportError as e:
 # ---------------------------------------------------------------------------
 attack_surface_monitor_router: Optional[APIRouter] = None
 try:
-    from apps.api.attack_surface_monitor_router import router as attack_surface_monitor_router
+    from apps.api.attack_surface_monitor_router import (
+        router as attack_surface_monitor_router,
+    )
 
     _logger.info("Loaded Attack Surface Monitor router")
 except ImportError as e:
@@ -1816,7 +1849,6 @@ except ImportError as e:
 # MCP Auto-Discovery router (auto-generates tool catalog from all FastAPI routes)
 from apps.api.mcp_router import register_startup_hook as _mcp_register_startup
 from apps.api.mcp_router import router as mcp_discovery_router
-
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -1836,8 +1868,13 @@ if _has_otel_fastapi:
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
 
-from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware, RequestTracingMiddleware, SecurityHeadersMiddleware
 from .metrics_middleware import PrometheusMetricsMiddleware, metrics_response
+from .middleware import (
+    CorrelationIdMiddleware,
+    RequestLoggingMiddleware,
+    RequestTracingMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 # Security audit logger — logs auth events, permission denials, scanner runs
 # Import is lazy-safe: if the module is missing (e.g. sys.path issue) the
@@ -1871,6 +1908,7 @@ from .normalizers import (
     NormalizedSBOM,
     NormalizedVEX,
 )
+
 # PipelineOrchestrator is imported lazily inside create_app() to avoid loading
 # heavy ML dependencies (torch, sklearn, pgmpy) at module import time.
 from .routes.enhanced import router as enhanced_router
@@ -2384,11 +2422,11 @@ def create_app() -> FastAPI:
     if os.getenv("FIXOPS_DISABLE_RATE_LIMIT") != "1":
         try:
             from apps.api.rate_limit_middleware import (
-                RateLimitMiddleware,
-                register_rate_limit_middleware,
+                _DEFAULT_RPM,
                 _READ_RPM,
                 _WRITE_RPM,
-                _DEFAULT_RPM,
+                RateLimitMiddleware,
+                register_rate_limit_middleware,
             )
 
             # IMPORTANT: do NOT instantiate the middleware twice.
@@ -2638,7 +2676,9 @@ def create_app() -> FastAPI:
     )
 
     normalizer = InputNormalizer()
-    from .pipeline import PipelineOrchestrator  # lazy: avoids torch/sklearn at module import
+    from .pipeline import (
+        PipelineOrchestrator,  # lazy: avoids torch/sklearn at module import
+    )
     orchestrator = PipelineOrchestrator()
 
     # API authentication setup
@@ -2664,8 +2704,8 @@ def create_app() -> FastAPI:
     # from .auth_deps.  We re-bind them here under the original local names so
     # all existing Depends(_verify_api_key) / Depends(_require_scope(...)) call
     # sites in this file continue to work without modification.
+    from .auth_deps import require_scope as _require_scope  # noqa: PLC0415
     from .auth_deps import verify_api_key as _verify_api_key  # noqa: PLC0415
-    from .auth_deps import require_scope as _require_scope     # noqa: PLC0415
 
     allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
     for directory in overlay.data_directories.values():
@@ -3033,7 +3073,9 @@ def create_app() -> FastAPI:
     # suite-api/apps/api/sub_apps/platform_app.py (registrar pattern).
     # Note: Wave 4 (GRC) had not yet landed when Wave 5 was sequenced; GRC
     # registrar is already wired above.
-    from apps.api.sub_apps.platform_app import register_platform_routers as _reg_platform  # noqa: PLC0415
+    from apps.api.sub_apps.platform_app import (
+        register_platform_routers as _reg_platform,  # noqa: PLC0415
+    )
     _reg_platform(app, _verify_api_key, _require_scope, _logger)
 
     app.include_router(
@@ -4968,7 +5010,9 @@ def create_app() -> FastAPI:
     # Unified Security Metrics Dashboard — single-call all personas
     # ------------------------------------------------------------------
     try:
-        from apps.api.unified_dashboard_router import router as _unified_dashboard_router
+        from apps.api.unified_dashboard_router import (
+            router as _unified_dashboard_router,
+        )
 
         app.include_router(
             _unified_dashboard_router,
@@ -5072,7 +5116,9 @@ def create_app() -> FastAPI:
             _logger.warning("EventBus subscriber registration failed: %s", exc)
 
         try:
-            from core.cross_category_subscribers import register_cross_category_subscribers
+            from core.cross_category_subscribers import (
+                register_cross_category_subscribers,
+            )
             register_cross_category_subscribers()
             _logger.info("Cross-category subscribers registered")
         except Exception as e:
@@ -5701,7 +5747,9 @@ def create_app() -> FastAPI:
     # Threat Intel Connector — MISP / CIRCL CVE / PhishTank / OTX adapters
     # OSS replacements for Recorded Future / Anomali / Mandiant / X-Force / Proofpoint
     try:
-        from apps.api.threat_intel_connector_router import router as threat_intel_connector_router
+        from apps.api.threat_intel_connector_router import (
+            router as threat_intel_connector_router,
+        )
         app.include_router(threat_intel_connector_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Intel Connector router at /api/v1/connectors/ti")
     except Exception as e:
@@ -5769,7 +5817,9 @@ def create_app() -> FastAPI:
 
     # Threat model auto-generator — STRIDE auto-generation, risk rating, mitigations
     try:
-        from apps.api.threat_model_generator_router import router as threat_model_generator_router
+        from apps.api.threat_model_generator_router import (
+            router as threat_model_generator_router,
+        )
         app.include_router(threat_model_generator_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Model Generator router at /api/v1/threat-model-gen")
     except Exception as e:
@@ -5822,7 +5872,9 @@ def create_app() -> FastAPI:
 
     # Supply Chain Intelligence — package tracking, vuln/malicious flags, SBOM snapshots
     try:
-        from apps.api.supply_chain_intel_router import router as supply_chain_intel_router
+        from apps.api.supply_chain_intel_router import (
+            router as supply_chain_intel_router,
+        )
         app.include_router(supply_chain_intel_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Supply Chain Intel router at /api/v1/supply-chain-intel")
     except Exception as e:
@@ -6030,7 +6082,9 @@ def create_app() -> FastAPI:
     # threat_exposure_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
-        from apps.api.software_license_security_router import router as software_license_security_router
+        from apps.api.software_license_security_router import (
+            router as software_license_security_router,
+        )
         app.include_router(software_license_security_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Software License Security router at /api/v1/license-security")
     except ImportError:
@@ -6073,7 +6127,9 @@ def create_app() -> FastAPI:
 
     # Wave 22 routers
     try:
-        from apps.api.vulnerability_correlation_router import router as vulnerability_correlation_router
+        from apps.api.vulnerability_correlation_router import (
+            router as vulnerability_correlation_router,
+        )
         app.include_router(vulnerability_correlation_router)
         _logger.info("Mounted Vulnerability Correlation router at /api/v1/vuln-correlation")
     except ImportError:
@@ -6115,7 +6171,9 @@ def create_app() -> FastAPI:
 
     # Wave 26 routers
     try:
-        from apps.api.compliance_automation_router import router as compliance_automation_router
+        from apps.api.compliance_automation_router import (
+            router as compliance_automation_router,
+        )
         app.include_router(compliance_automation_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Compliance Automation router at /api/v1/compliance-automation")
     except ImportError:
@@ -6124,14 +6182,18 @@ def create_app() -> FastAPI:
     # threat_attribution_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
-        from apps.api.cloud_access_security_router import router as cloud_access_security_router
+        from apps.api.cloud_access_security_router import (
+            router as cloud_access_security_router,
+        )
         app.include_router(cloud_access_security_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Cloud Access Security router at /api/v1/cloud-access-security")
     except ImportError:
         pass
 
     try:
-        from apps.api.behavioral_analytics_router import router as behavioral_analytics_router
+        from apps.api.behavioral_analytics_router import (
+            router as behavioral_analytics_router,
+        )
         app.include_router(behavioral_analytics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Behavioral Analytics router at /api/v1/behavioral-analytics")
     except ImportError:
@@ -6154,7 +6216,9 @@ def create_app() -> FastAPI:
 
 
     try:
-        from apps.api.security_telemetry_router import router as security_telemetry_router
+        from apps.api.security_telemetry_router import (
+            router as security_telemetry_router,
+        )
         app.include_router(security_telemetry_router)
         _logger.info("Mounted Security Telemetry router at /api/v1/security-telemetry")
     except ImportError:
@@ -6162,7 +6226,9 @@ def create_app() -> FastAPI:
 
 
     try:
-        from apps.api.third_party_vendor_router import router as third_party_vendor_router
+        from apps.api.third_party_vendor_router import (
+            router as third_party_vendor_router,
+        )
         app.include_router(third_party_vendor_router)
         _logger.info("Mounted Third Party Vendor router at /api/v1/third-party-vendor")
     except ImportError:
@@ -6199,7 +6265,9 @@ def create_app() -> FastAPI:
 
 
     try:
-        from apps.api.metrics_timeseries_router import router as metrics_timeseries_router
+        from apps.api.metrics_timeseries_router import (
+            router as metrics_timeseries_router,
+        )
         app.include_router(metrics_timeseries_router)
         _logger.info("Mounted Metrics Timeseries router at /api/v1/metrics-ts (GAP-060)")
     except ImportError:
@@ -6244,7 +6312,9 @@ def create_app() -> FastAPI:
     # Wave 35 pre-wiring (engines pending creation)
 
     try:
-        from apps.api.compliance_calendar_router import router as compliance_calendar_router
+        from apps.api.compliance_calendar_router import (
+            router as compliance_calendar_router,
+        )
         app.include_router(compliance_calendar_router)
         _logger.info("Mounted Compliance Calendar router at /api/v1/compliance-calendar")
     except ImportError:
@@ -6373,7 +6443,9 @@ def create_app() -> FastAPI:
     # Subscribes directly to TrustGraphEventBus (the canonical bus that
     # Brain Pipeline + ResponseInterceptorMiddleware emit into).
     try:
-        from apps.api.ws_trustgraph_events_router import router as ws_trustgraph_events_router
+        from apps.api.ws_trustgraph_events_router import (
+            router as ws_trustgraph_events_router,
+        )
         app.include_router(ws_trustgraph_events_router)
         _logger.info("Mounted TrustGraph WebSocket event stream at /ws/events")
     except ImportError as exc:
@@ -6406,7 +6478,9 @@ def create_app() -> FastAPI:
     # ctem_engine_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     try:
-        from apps.api.executive_dashboard_router import router as executive_dashboard_router
+        from apps.api.executive_dashboard_router import (
+            router as executive_dashboard_router,
+        )
         app.include_router(executive_dashboard_router)
         _logger.info("Mounted Executive Dashboard router at /api/v1/executive")
     except ImportError:
@@ -6459,7 +6533,9 @@ def create_app() -> FastAPI:
     # vuln_prioritizer_router — moved to ctem_app.py (Wave-C-batch-4 2026-05-03)
 
     try:
-        from apps.api.ml_vuln_prioritizer_router import router as ml_vuln_prioritizer_router
+        from apps.api.ml_vuln_prioritizer_router import (
+            router as ml_vuln_prioritizer_router,
+        )
         app.include_router(ml_vuln_prioritizer_router)
         _logger.info("Mounted ML Vulnerability Prioritizer router at /api/v1/ml/vuln-prioritizer")
     except ImportError:
@@ -6607,8 +6683,8 @@ def create_app() -> FastAPI:
     _ui_dist_legacy = os.path.join(_repo_root, "suite-ui", "aldeci", "dist")
     _ui_dist = _ui_dist_new if os.path.isdir(_ui_dist_new) else _ui_dist_legacy
     if os.path.isdir(_ui_dist):
-        from starlette.staticfiles import StaticFiles
         from starlette.responses import FileResponse
+        from starlette.staticfiles import StaticFiles
 
         _assets_dir = os.path.join(_ui_dist, "assets")
         if os.path.isdir(_assets_dir):

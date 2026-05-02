@@ -25,6 +25,7 @@ from threading import Lock
 from typing import Any, Dict, List, Mapping, Optional
 
 from core.connectors import ConnectorOutcome, _BaseConnector
+
 from connectors._emit import emit_connector_event
 
 logger = logging.getLogger(__name__)

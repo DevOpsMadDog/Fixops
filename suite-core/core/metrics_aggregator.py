@@ -426,7 +426,10 @@ class MetricsAggregator:
         """Collect vulnerability counts and severity breakdown."""
         metrics: List[Metric] = []
         try:
-            from core.vulnerability_analytics import VulnerabilityAnalytics, TimeGranularity
+            from core.vulnerability_analytics import (
+                TimeGranularity,
+                VulnerabilityAnalytics,
+            )
             analytics = VulnerabilityAnalytics()
 
             now = datetime.now(timezone.utc)

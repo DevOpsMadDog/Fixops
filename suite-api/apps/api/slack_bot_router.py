@@ -16,10 +16,9 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
+from core.slack_bot import SlackBot
 from fastapi import APIRouter, Form, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
-
-from core.slack_bot import SlackBot
 
 logger = logging.getLogger(__name__)
 

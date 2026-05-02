@@ -18,11 +18,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
+from core.event_stream import EventChannel, EventStream, StreamEvent
 from fastapi import APIRouter, HTTPException, Query, WebSocket, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-
-from core.event_stream import EventChannel, EventStream, StreamEvent
 
 _logger = logging.getLogger(__name__)
 

@@ -9,10 +9,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from core.identity_analytics_engine import get_engine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.identity_analytics_engine import get_engine
 
 _logger = logging.getLogger(__name__)
 

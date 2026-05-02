@@ -20,7 +20,11 @@ _suite_core = Path(__file__).parent.parent.parent.parent / "suite-core"
 if str(_suite_core) not in sys.path:
     sys.path.insert(0, str(_suite_core))
 
-from core.playbook_marketplace import PlaybookCategory, PlaybookMarketplace, PlaybookTemplate
+from core.playbook_marketplace import (
+    PlaybookCategory,
+    PlaybookMarketplace,
+    PlaybookTemplate,
+)
 
 _logger = logging.getLogger(__name__)
 

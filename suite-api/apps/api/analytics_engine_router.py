@@ -11,9 +11,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-
 from core.duckdb_analytics_engine import AnalyticsEngine
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(
     prefix="/api/v1/analytics-engine",

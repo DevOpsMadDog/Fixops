@@ -125,7 +125,7 @@ async def sign_content(req: SignRequest) -> Dict[str, Any]:
 async def verify_signature(req: VerifyRequest) -> Dict[str, Any]:
     """Verify a hybrid quantum+classical signature."""
     try:
-        from core.quantum_crypto import get_quantum_signer, HybridSignature
+        from core.quantum_crypto import HybridSignature, get_quantum_signer
         signer = get_quantum_signer()
         sig = HybridSignature(**req.signature)
         valid = signer.verify(req.content.encode(), sig)

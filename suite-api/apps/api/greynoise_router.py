@@ -22,7 +22,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Path as FPath
+from fastapi import APIRouter, Body, HTTPException
+from fastapi import Path as FPath
 
 logger = logging.getLogger(__name__)
 

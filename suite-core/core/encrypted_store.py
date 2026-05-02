@@ -127,9 +127,9 @@ def _get_master_key() -> bytes:
 def _derive_table_key(master: bytes, table: str, salt: bytes) -> bytes:
     """Derive a table-specific encryption key using HKDF-SHA256."""
     try:
-        from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-        from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
@@ -162,8 +162,8 @@ def _encrypt_value(key: bytes, plaintext: bytes) -> bytes:
 def _decrypt_value(key: bytes, data: bytes) -> bytes:
     """Decrypt AES-256-GCM data. Input: nonce + ciphertext + tag."""
     try:
-        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
         from cryptography.exceptions import InvalidTag
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         nonce = data[:_NONCE_LENGTH]
         ciphertext = data[_NONCE_LENGTH:]

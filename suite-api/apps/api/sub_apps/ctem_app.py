@@ -130,7 +130,9 @@ def register_ctem_routers(
 
     # IR Playbook Runner
     try:
-        from apps.api.ir_playbook_runner_router import router as ir_playbook_runner_router
+        from apps.api.ir_playbook_runner_router import (
+            router as ir_playbook_runner_router,
+        )
     except ImportError:
         ir_playbook_runner_router = None  # type: ignore[assignment]
     if ir_playbook_runner_router:
@@ -285,7 +287,9 @@ def register_ctem_routers(
 
     # Threat Correlation Engine
     try:
-        from apps.api.threat_correlation_router import router as threat_correlation_router
+        from apps.api.threat_correlation_router import (
+            router as threat_correlation_router,
+        )
         app.include_router(threat_correlation_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Correlation router at /api/v1/threat-correlation")
     except Exception as _e:
@@ -317,7 +321,9 @@ def register_ctem_routers(
 
     # Threat Feed Aggregator
     try:
-        from apps.api.threat_feed_aggregator_router import router as threat_feed_aggregator_router
+        from apps.api.threat_feed_aggregator_router import (
+            router as threat_feed_aggregator_router,
+        )
         app.include_router(threat_feed_aggregator_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Feed Aggregator router at /api/v1/threat-feeds")
     except Exception as _e:
@@ -325,7 +331,9 @@ def register_ctem_routers(
 
     # Asset Risk Calculator
     try:
-        from apps.api.asset_risk_calculator_router import router as asset_risk_calculator_router
+        from apps.api.asset_risk_calculator_router import (
+            router as asset_risk_calculator_router,
+        )
         app.include_router(asset_risk_calculator_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Asset Risk Calculator router at /api/v1/asset-risk")
     except Exception as _e:
@@ -357,7 +365,9 @@ def register_ctem_routers(
 
     # CrowdStrike Falcon Connector
     try:
-        from apps.api.crowdstrike_falcon_router import router as crowdstrike_falcon_router
+        from apps.api.crowdstrike_falcon_router import (
+            router as crowdstrike_falcon_router,
+        )
         app.include_router(crowdstrike_falcon_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted CrowdStrike Falcon Connector router at /api/v1/connectors/falcon")
     except Exception as _e:
@@ -365,7 +375,9 @@ def register_ctem_routers(
 
     # SentinelOne Connector
     try:
-        from apps.api.sentinelone_connector_router import router as sentinelone_connector_router
+        from apps.api.sentinelone_connector_router import (
+            router as sentinelone_connector_router,
+        )
         app.include_router(sentinelone_connector_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted SentinelOne Connector router at /api/v1/connectors/sentinelone")
     except Exception as _e:
@@ -381,7 +393,9 @@ def register_ctem_routers(
 
     # Threat Intel Sharing — STIX/TAXII-lite
     try:
-        from apps.api.threat_intel_sharing_router import router as threat_intel_sharing_router
+        from apps.api.threat_intel_sharing_router import (
+            router as threat_intel_sharing_router,
+        )
         app.include_router(threat_intel_sharing_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Intel Sharing router at /api/v1/threat-sharing")
     except Exception as _e:
@@ -389,7 +403,9 @@ def register_ctem_routers(
 
     # Phishing Simulation
     try:
-        from apps.api.phishing_simulation_router import router as phishing_simulation_router
+        from apps.api.phishing_simulation_router import (
+            router as phishing_simulation_router,
+        )
         app.include_router(phishing_simulation_router)
     except ImportError:
         pass
@@ -417,7 +433,9 @@ def register_ctem_routers(
 
     # AI Security Advisor
     try:
-        from apps.api.ai_security_advisor_router import router as ai_security_advisor_router
+        from apps.api.ai_security_advisor_router import (
+            router as ai_security_advisor_router,
+        )
         app.include_router(ai_security_advisor_router)
         _logger.info("Mounted AI Security Advisor router at /api/v1/ai-advisor")
     except ImportError:
@@ -425,7 +443,9 @@ def register_ctem_routers(
 
     # Vuln Prioritization
     try:
-        from apps.api.vuln_prioritization_router import router as vuln_prioritization_router
+        from apps.api.vuln_prioritization_router import (
+            router as vuln_prioritization_router,
+        )
         app.include_router(vuln_prioritization_router)
         _logger.info("Mounted Vuln Prioritization router at /api/v1/vuln-prioritization")
     except ImportError:
@@ -481,7 +501,9 @@ def register_ctem_routers(
 
     # Attack Surface Management
     try:
-        from apps.api.attack_surface_mgmt_router import router as attack_surface_mgmt_router
+        from apps.api.attack_surface_mgmt_router import (
+            router as attack_surface_mgmt_router,
+        )
         app.include_router(attack_surface_mgmt_router)
         _logger.info("Mounted Attack Surface Management router at /api/v1/asm")
     except ImportError:
@@ -504,7 +526,9 @@ def register_ctem_routers(
 
     # Attack Surface Engine (duplicate/alternate module)
     try:
-        from apps.api.attack_surface_engine_router import router as _attack_surface_engine_router
+        from apps.api.attack_surface_engine_router import (
+            router as _attack_surface_engine_router,
+        )
         app.include_router(_attack_surface_engine_router)
     except ImportError:
         pass
@@ -543,7 +567,9 @@ def register_ctem_routers(
 
     # Threat Geolocation
     try:
-        from apps.api.threat_geolocation_router import router as threat_geolocation_router
+        from apps.api.threat_geolocation_router import (
+            router as threat_geolocation_router,
+        )
         app.include_router(threat_geolocation_router)
         _logger.info("Mounted Threat Geolocation router at /api/v1/threat-geolocation")
     except ImportError:
@@ -559,7 +585,9 @@ def register_ctem_routers(
 
     # Incident Orchestration
     try:
-        from apps.api.incident_orchestration_router import router as incident_orchestration_router
+        from apps.api.incident_orchestration_router import (
+            router as incident_orchestration_router,
+        )
         app.include_router(incident_orchestration_router)
         _logger.info("Mounted Incident Orchestration router at /api/v1/incident-orchestration")
     except ImportError:
@@ -575,7 +603,9 @@ def register_ctem_routers(
 
     # Security Event Correlation
     try:
-        from apps.api.security_event_correlation_router import router as security_event_correlation_router
+        from apps.api.security_event_correlation_router import (
+            router as security_event_correlation_router,
+        )
         app.include_router(security_event_correlation_router)
         _logger.info("Mounted Security Event Correlation router at /api/v1/event-correlation")
     except ImportError:
@@ -583,7 +613,9 @@ def register_ctem_routers(
 
     # Threat Intel Fusion
     try:
-        from apps.api.threat_intel_fusion_router import router as threat_intel_fusion_router
+        from apps.api.threat_intel_fusion_router import (
+            router as threat_intel_fusion_router,
+        )
         app.include_router(threat_intel_fusion_router)
         _logger.info("Mounted Threat Intel Fusion router at /api/v1/threat-intel-fusion")
     except ImportError:
@@ -647,7 +679,9 @@ def register_ctem_routers(
 
     # Forensics Readiness
     try:
-        from apps.api.forensics_readiness_router import router as forensics_readiness_router
+        from apps.api.forensics_readiness_router import (
+            router as forensics_readiness_router,
+        )
         app.include_router(forensics_readiness_router)
         _logger.info("Mounted Forensics Readiness router at /api/v1/forensics-readiness")
     except ImportError:
@@ -655,7 +689,9 @@ def register_ctem_routers(
 
     # Supply Chain Attack Detection
     try:
-        from apps.api.supply_chain_attack_detection_router import router as supply_chain_attack_detection_router
+        from apps.api.supply_chain_attack_detection_router import (
+            router as supply_chain_attack_detection_router,
+        )
         app.include_router(supply_chain_attack_detection_router)
         _logger.info("Mounted Supply Chain Attack Detection router at /api/v1/supply-chain-attacks")
     except ImportError:
@@ -687,7 +723,9 @@ def register_ctem_routers(
 
     # Dark Web Monitoring
     try:
-        from apps.api.dark_web_monitoring_router import router as dark_web_monitoring_router
+        from apps.api.dark_web_monitoring_router import (
+            router as dark_web_monitoring_router,
+        )
         app.include_router(dark_web_monitoring_router)
         _logger.info("Mounted Dark Web Monitoring router at /api/v1/dark-web")
     except ImportError:
@@ -703,7 +741,9 @@ def register_ctem_routers(
 
     # Zero Day Intelligence
     try:
-        from apps.api.zero_day_intelligence_router import router as zero_day_intelligence_router
+        from apps.api.zero_day_intelligence_router import (
+            router as zero_day_intelligence_router,
+        )
         app.include_router(zero_day_intelligence_router)
         _logger.info("Mounted Zero Day Intelligence router at /api/v1/zero-day")
     except ImportError:
@@ -719,7 +759,9 @@ def register_ctem_routers(
 
     # Deception Analytics
     try:
-        from apps.api.deception_analytics_router import router as deception_analytics_router
+        from apps.api.deception_analytics_router import (
+            router as deception_analytics_router,
+        )
         app.include_router(deception_analytics_router)
         _logger.info("Mounted Deception Analytics router at /api/v1/deception-analytics")
     except ImportError:
@@ -727,7 +769,9 @@ def register_ctem_routers(
 
     # Threat Intelligence Automation (Wave 23)
     try:
-        from apps.api.threat_intelligence_automation_router import router as threat_intelligence_automation_router
+        from apps.api.threat_intelligence_automation_router import (
+            router as threat_intelligence_automation_router,
+        )
         app.include_router(threat_intelligence_automation_router)
         _logger.info("Mounted Threat Intelligence Automation router at /api/v1/ti-automation")
     except ImportError:
@@ -735,7 +779,9 @@ def register_ctem_routers(
 
     # Endpoint Threat Hunting
     try:
-        from apps.api.endpoint_threat_hunting_router import router as endpoint_threat_hunting_router
+        from apps.api.endpoint_threat_hunting_router import (
+            router as endpoint_threat_hunting_router,
+        )
         app.include_router(endpoint_threat_hunting_router)
         _logger.info("Mounted Endpoint Threat Hunting router at /api/v1/endpoint-hunting")
     except ImportError:
@@ -743,7 +789,9 @@ def register_ctem_routers(
 
     # Operational Technology Security
     try:
-        from apps.api.operational_technology_security_router import router as operational_technology_security_router
+        from apps.api.operational_technology_security_router import (
+            router as operational_technology_security_router,
+        )
         app.include_router(operational_technology_security_router)
         _logger.info("Mounted Operational Technology Security router at /api/v1/ot-sec")
     except ImportError:
@@ -767,7 +815,9 @@ def register_ctem_routers(
 
     # Vulnerability Prioritization (extended, Wave 24)
     try:
-        from apps.api.vulnerability_prioritization_router import router as vulnerability_prioritization_router
+        from apps.api.vulnerability_prioritization_router import (
+            router as vulnerability_prioritization_router,
+        )
         app.include_router(vulnerability_prioritization_router)
         _logger.info("Mounted Vulnerability Prioritization router at /api/v1/vuln-prioritization")
     except ImportError:
@@ -775,7 +825,9 @@ def register_ctem_routers(
 
     # Threat Deception Management (Wave 25)
     try:
-        from apps.api.threat_deception_management_router import router as threat_deception_management_router
+        from apps.api.threat_deception_management_router import (
+            router as threat_deception_management_router,
+        )
         app.include_router(threat_deception_management_router)
         _logger.info("Mounted Threat Deception Management router at /api/v1/threat-deception")
     except ImportError:
@@ -783,7 +835,9 @@ def register_ctem_routers(
 
     # Threat Attribution (Wave 26)
     try:
-        from apps.api.threat_attribution_router import router as threat_attribution_router
+        from apps.api.threat_attribution_router import (
+            router as threat_attribution_router,
+        )
         app.include_router(threat_attribution_router)
         _logger.info("Mounted Threat Attribution router at /api/v1/threat-attribution")
     except ImportError:
@@ -799,7 +853,9 @@ def register_ctem_routers(
 
     # Cyber Threat Intelligence (Wave 27)
     try:
-        from apps.api.cyber_threat_intelligence_router import router as cyber_threat_intelligence_router
+        from apps.api.cyber_threat_intelligence_router import (
+            router as cyber_threat_intelligence_router,
+        )
         app.include_router(cyber_threat_intelligence_router)
         _logger.info("Mounted Cyber Threat Intelligence router at /api/v1/cyber-threat-intel")
     except ImportError:
@@ -807,7 +863,9 @@ def register_ctem_routers(
 
     # Digital Twin Security (Wave 27)
     try:
-        from apps.api.digital_twin_security_router import router as digital_twin_security_router
+        from apps.api.digital_twin_security_router import (
+            router as digital_twin_security_router,
+        )
         app.include_router(digital_twin_security_router)
         _logger.info("Mounted Digital Twin Security router at /api/v1/digital-twin")
     except ImportError:
@@ -815,7 +873,9 @@ def register_ctem_routers(
 
     # Threat Vector Analysis
     try:
-        from apps.api.threat_vector_analysis_router import router as threat_vector_analysis_router
+        from apps.api.threat_vector_analysis_router import (
+            router as threat_vector_analysis_router,
+        )
         app.include_router(threat_vector_analysis_router)
         _logger.info("Mounted Threat Vector Analysis router at /api/v1/threat-vectors")
     except ImportError:
@@ -831,7 +891,9 @@ def register_ctem_routers(
 
     # Threat Intel Enrichment (Wave 31)
     try:
-        from apps.api.threat_intel_enrichment_router import router as threat_intel_enrichment_router
+        from apps.api.threat_intel_enrichment_router import (
+            router as threat_intel_enrichment_router,
+        )
         app.include_router(threat_intel_enrichment_router)
         _logger.info("Mounted Threat Intel Enrichment router at /api/v1/intel-enrichment")
     except ImportError:
@@ -863,7 +925,9 @@ def register_ctem_routers(
 
     # Threat Feed Subscription (Wave 33)
     try:
-        from apps.api.threat_feed_subscription_router import router as threat_feed_subscription_router
+        from apps.api.threat_feed_subscription_router import (
+            router as threat_feed_subscription_router,
+        )
         app.include_router(threat_feed_subscription_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Feed Subscription router at /api/v1/feed-subscriptions")
     except ImportError:
@@ -871,7 +935,9 @@ def register_ctem_routers(
 
     # Threat Actor Tracking (Wave 34)
     try:
-        from apps.api.threat_actor_tracking_router import router as threat_actor_tracking_router
+        from apps.api.threat_actor_tracking_router import (
+            router as threat_actor_tracking_router,
+        )
         app.include_router(threat_actor_tracking_router)
         _logger.info("Mounted Threat Actor Tracking router at /api/v1/actor-tracking")
     except ImportError:
@@ -879,7 +945,9 @@ def register_ctem_routers(
 
     # Vulnerability Scoring (Wave 34)
     try:
-        from apps.api.vulnerability_scoring_router import router as vulnerability_scoring_router
+        from apps.api.vulnerability_scoring_router import (
+            router as vulnerability_scoring_router,
+        )
         app.include_router(vulnerability_scoring_router)
         _logger.info("Mounted Vulnerability Scoring router at /api/v1/vuln-scoring")
     except ImportError:
@@ -895,7 +963,9 @@ def register_ctem_routers(
 
     # Threat Modeling Pipeline (Wave 35)
     try:
-        from apps.api.threat_modeling_pipeline_router import router as threat_modeling_pipeline_router
+        from apps.api.threat_modeling_pipeline_router import (
+            router as threat_modeling_pipeline_router,
+        )
         app.include_router(threat_modeling_pipeline_router)
         _logger.info("Mounted Threat Modeling Pipeline router at /api/v1/threat-modeling-pipeline")
     except ImportError:
@@ -903,7 +973,9 @@ def register_ctem_routers(
 
     # Cloud Incident Response (Wave 40)
     try:
-        from apps.api.cloud_incident_response_router import router as cloud_incident_response_router
+        from apps.api.cloud_incident_response_router import (
+            router as cloud_incident_response_router,
+        )
         app.include_router(cloud_incident_response_router)
         _logger.info("Mounted Cloud Incident Response router at /api/v1/cloud-ir")
     except ImportError:
@@ -919,7 +991,9 @@ def register_ctem_routers(
 
     # Ransomware Protection (Wave 41)
     try:
-        from apps.api.ransomware_protection_router import router as ransomware_protection_router
+        from apps.api.ransomware_protection_router import (
+            router as ransomware_protection_router,
+        )
         app.include_router(ransomware_protection_router)
         _logger.info("Mounted Ransomware Protection router at /api/v1/ransomware-protection")
     except ImportError:
@@ -943,7 +1017,9 @@ def register_ctem_routers(
 
     # Threat Intelligence Confidence
     try:
-        from apps.api.threat_intelligence_confidence_router import router as threat_intelligence_confidence_router
+        from apps.api.threat_intelligence_confidence_router import (
+            router as threat_intelligence_confidence_router,
+        )
         app.include_router(threat_intelligence_confidence_router)
         _logger.info("Mounted Threat Intelligence Confidence router at /api/v1/ti-confidence")
     except ImportError:
@@ -959,7 +1035,9 @@ def register_ctem_routers(
 
     # Hunting Automation (Wave 38)
     try:
-        from apps.api.hunting_automation_router import router as hunting_automation_router
+        from apps.api.hunting_automation_router import (
+            router as hunting_automation_router,
+        )
         app.include_router(hunting_automation_router)
         _logger.info("Mounted Hunting Automation router at /api/v1/hunting-automation")
     except ImportError:
@@ -983,7 +1061,9 @@ def register_ctem_routers(
 
     # Cyber Threat Modeling (Wave 39)
     try:
-        from apps.api.cyber_threat_modeling_router import router as cyber_threat_modeling_router
+        from apps.api.cyber_threat_modeling_router import (
+            router as cyber_threat_modeling_router,
+        )
         app.include_router(cyber_threat_modeling_router)
         _logger.info("Mounted Cyber Threat Modeling router at /api/v1/cyber-threat-models")
     except ImportError:
@@ -991,7 +1071,9 @@ def register_ctem_routers(
 
     # Security Event Timeline (Wave 39)
     try:
-        from apps.api.security_event_timeline_router import router as security_event_timeline_router
+        from apps.api.security_event_timeline_router import (
+            router as security_event_timeline_router,
+        )
         app.include_router(security_event_timeline_router)
         _logger.info("Mounted Security Event Timeline router at /api/v1/event-timeline")
     except ImportError:
@@ -1007,7 +1089,9 @@ def register_ctem_routers(
 
     # Threat Hunting Playbook (Wave 40)
     try:
-        from apps.api.threat_hunting_playbook_router import router as threat_hunting_playbook_router
+        from apps.api.threat_hunting_playbook_router import (
+            router as threat_hunting_playbook_router,
+        )
         app.include_router(threat_hunting_playbook_router)
         _logger.info("Mounted Threat Hunting Playbook router at /api/v1/hunting-playbooks")
     except ImportError:
@@ -1079,7 +1163,9 @@ def register_ctem_routers(
 
     # Threat Correlation (duplicate late-binding)
     try:
-        from apps.api.threat_correlation_router import router as _threat_correlation_late
+        from apps.api.threat_correlation_router import (
+            router as _threat_correlation_late,
+        )
         app.include_router(_threat_correlation_late)
     except ImportError:
         pass
@@ -1125,7 +1211,9 @@ def register_ctem_routers(
 
     # Threat Modeling — STRIDE-based AI threat modeling (suite-core/api/)
     try:
-        from api.threat_modeling_router import router as threat_modeling_router  # noqa: PLC0415
+        from api.threat_modeling_router import (
+            router as threat_modeling_router,  # noqa: PLC0415
+        )
         app.include_router(threat_modeling_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Threat Modeling router (wave-6)")
     except ImportError:
@@ -1133,7 +1221,9 @@ def register_ctem_routers(
 
     # AI Code Guardian — AI-generated code security (suite-core/api/)
     try:
-        from api.ai_code_guardian_router import router as ai_code_guardian_router  # noqa: PLC0415
+        from api.ai_code_guardian_router import (
+            router as ai_code_guardian_router,  # noqa: PLC0415
+        )
         app.include_router(ai_code_guardian_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted AI Code Guardian router (wave-6)")
     except ImportError:
@@ -1141,7 +1231,9 @@ def register_ctem_routers(
 
     # Attack Surface Discovery — external asset monitoring (suite-core/api/)
     try:
-        from api.attack_surface_router import router as attack_surface_router  # noqa: PLC0415
+        from api.attack_surface_router import (
+            router as attack_surface_router,  # noqa: PLC0415
+        )
         app.include_router(attack_surface_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Attack Surface Discovery router (wave-6)")
     except ImportError:
@@ -1149,7 +1241,9 @@ def register_ctem_routers(
 
     # Attack Surface Manager — full ASM engine (apps/api/)
     try:
-        from apps.api.attack_surface_manager_router import router as attack_surface_manager_router  # noqa: PLC0415
+        from apps.api.attack_surface_manager_router import (
+            router as attack_surface_manager_router,  # noqa: PLC0415
+        )
         app.include_router(attack_surface_manager_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Attack Surface Manager router (wave-6)")
     except ImportError:
@@ -1157,7 +1251,9 @@ def register_ctem_routers(
 
     # Attack Surface Monitor — continuous monitoring (apps/api/)
     try:
-        from apps.api.attack_surface_monitor_router import router as attack_surface_monitor_router  # noqa: PLC0415
+        from apps.api.attack_surface_monitor_router import (
+            router as attack_surface_monitor_router,  # noqa: PLC0415
+        )
         app.include_router(attack_surface_monitor_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Attack Surface Monitor router (wave-6)")
     except ImportError:
@@ -1199,7 +1295,9 @@ def register_ctem_routers(
 
     # DAST Pentest OSS (ZAP+Nuclei) (apps/api/)
     try:
-        from apps.api.dast_pentest_router import router as dast_pentest_router  # noqa: PLC0415
+        from apps.api.dast_pentest_router import (
+            router as dast_pentest_router,  # noqa: PLC0415
+        )
         app.include_router(dast_pentest_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
         _logger.info("Mounted DAST/Pentest OSS router (wave-6)")
     except ImportError:
@@ -1238,21 +1336,27 @@ def register_ctem_routers(
         pass
 
     try:
-        from api.micro_pentest_router import router as micro_pentest_router  # noqa: PLC0415
+        from api.micro_pentest_router import (
+            router as micro_pentest_router,  # noqa: PLC0415
+        )
         app.include_router(micro_pentest_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
         _logger.info("Mounted Micro Pentest router (wave-6)")
     except ImportError:
         pass
 
     try:
-        from api.vuln_discovery_router import router as vuln_discovery_router  # noqa: PLC0415
+        from api.vuln_discovery_router import (
+            router as vuln_discovery_router,  # noqa: PLC0415
+        )
         app.include_router(vuln_discovery_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
         _logger.info("Mounted Vulnerability Discovery router (wave-6)")
     except ImportError:
         pass
 
     try:
-        from api.mpte_orchestrator_router import router as mpte_orchestrator_router  # noqa: PLC0415
+        from api.mpte_orchestrator_router import (
+            router as mpte_orchestrator_router,  # noqa: PLC0415
+        )
         app.include_router(mpte_orchestrator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
         _logger.info("Mounted MPTE Orchestrator router (wave-6)")
     except ImportError:
@@ -1269,7 +1373,9 @@ def register_ctem_routers(
 
     # Intelligent Security Engine (apps/api/)
     try:
-        from apps.api.intelligent_security_router import router as intelligent_security_router  # noqa: PLC0415
+        from apps.api.intelligent_security_router import (
+            router as intelligent_security_router,  # noqa: PLC0415
+        )
         app.include_router(intelligent_security_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
         _logger.info("Mounted Intelligent Security Engine router (wave-6)")
     except ImportError:
@@ -1277,7 +1383,9 @@ def register_ctem_routers(
 
     # MITRE ATT&CK Coverage (apps/api/)
     try:
-        from apps.api.mitre_attack_coverage_router import router as mitre_attack_coverage_router  # noqa: PLC0415
+        from apps.api.mitre_attack_coverage_router import (
+            router as mitre_attack_coverage_router,  # noqa: PLC0415
+        )
         app.include_router(mitre_attack_coverage_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted MITRE ATT&CK Coverage router (wave-6)")
     except ImportError:
@@ -1293,7 +1401,9 @@ def register_ctem_routers(
 
     # Auto Pentest (apps/api/)
     try:
-        from apps.api.auto_pentest_router import router as auto_pentest_router  # noqa: PLC0415
+        from apps.api.auto_pentest_router import (
+            router as auto_pentest_router,  # noqa: PLC0415
+        )
         app.include_router(auto_pentest_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
         _logger.info("Mounted Auto Pentest router (wave-6)")
     except ImportError:
@@ -1301,7 +1411,9 @@ def register_ctem_routers(
 
     # SOC Automation (apps/api/)
     try:
-        from apps.api.soc_automation_router import router as soc_automation_router  # noqa: PLC0415
+        from apps.api.soc_automation_router import (
+            router as soc_automation_router,  # noqa: PLC0415
+        )
         app.include_router(soc_automation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted SOC Automation router (wave-6)")
     except ImportError:
@@ -1309,7 +1421,9 @@ def register_ctem_routers(
 
     # Breach Response (apps/api/)
     try:
-        from apps.api.breach_response_router import router as breach_response_router  # noqa: PLC0415
+        from apps.api.breach_response_router import (
+            router as breach_response_router,  # noqa: PLC0415
+        )
         app.include_router(breach_response_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Breach Response router (wave-6)")
     except ImportError:
@@ -1317,7 +1431,9 @@ def register_ctem_routers(
 
     # Incident Response (apps/api/)
     try:
-        from apps.api.incident_response_router import router as incident_response_router  # noqa: PLC0415
+        from apps.api.incident_response_router import (
+            router as incident_response_router,  # noqa: PLC0415
+        )
         app.include_router(incident_response_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Incident Response router (wave-6)")
     except ImportError:
@@ -1325,7 +1441,9 @@ def register_ctem_routers(
 
     # Threat Hunting (apps/api/)
     try:
-        from apps.api.threat_hunting_router import router as threat_hunting_router  # noqa: PLC0415
+        from apps.api.threat_hunting_router import (
+            router as threat_hunting_router,  # noqa: PLC0415
+        )
         app.include_router(threat_hunting_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Threat Hunting router (wave-6)")
     except ImportError:
@@ -1333,7 +1451,9 @@ def register_ctem_routers(
 
     # IP Reputation (apps/api/)
     try:
-        from apps.api.ip_reputation_router import router as ip_reputation_router  # noqa: PLC0415
+        from apps.api.ip_reputation_router import (
+            router as ip_reputation_router,  # noqa: PLC0415
+        )
         app.include_router(ip_reputation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
         _logger.info("Mounted IP Reputation router (wave-6)")
     except ImportError:
@@ -1341,7 +1461,9 @@ def register_ctem_routers(
 
     # Security Knowledge Base (apps/api/)
     try:
-        from apps.api.security_kb_router import router as security_kb_router  # noqa: PLC0415
+        from apps.api.security_kb_router import (
+            router as security_kb_router,  # noqa: PLC0415
+        )
         app.include_router(security_kb_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted Security KB router (wave-6)")
     except ImportError:

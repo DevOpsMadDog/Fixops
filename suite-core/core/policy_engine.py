@@ -621,7 +621,9 @@ class PolicyEngine:
         entry-point for IDE/PR/build/deploy/runtime hooks.
         """
         try:
-            from core.policy_enforcement_engine import get_engine as _get_enforcement_engine
+            from core.policy_enforcement_engine import (
+                get_engine as _get_enforcement_engine,
+            )
         except ImportError:
             return {
                 "org_id": org_id,

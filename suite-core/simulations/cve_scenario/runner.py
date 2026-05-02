@@ -16,11 +16,10 @@ from apps.api.normalizers import (
     SBOMComponent,
 )
 from apps.api.pipeline import PipelineOrchestrator
-from core.configuration import DEFAULT_OVERLAY_PATH, OverlayConfig
+from core.configuration import DEFAULT_OVERLAY_PATH, OverlayConfig, load_overlay
 from core.configuration import _deep_merge as _merge_overlay  # type: ignore
 from core.configuration import _parse_overlay as _parse_overlay_config  # type: ignore
 from core.configuration import _read_text as _read_overlay_text  # type: ignore
-from core.configuration import load_overlay
 
 # Import the contextual risk scorer from the blended enterprise package.
 # The repository ships with the module but it is not installed as a package,

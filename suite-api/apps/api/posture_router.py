@@ -10,11 +10,15 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
+from core.posture_scoring import PostureScore, PostureScorer, get_posture_scorer
+from core.posture_tracker import (
+    PostureDiff,
+    PostureSnapshot,
+    PostureTracker,
+    get_posture_tracker,
+)
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.posture_scoring import PostureScore, PostureScorer, get_posture_scorer
-from core.posture_tracker import PostureDiff, PostureSnapshot, PostureTracker, get_posture_tracker
 
 logger = logging.getLogger(__name__)
 

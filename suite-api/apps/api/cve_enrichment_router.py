@@ -3,10 +3,9 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+from core.cve_enrichment import CVEEnrichmentService
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.cve_enrichment import CVEEnrichmentService
 
 router = APIRouter(prefix="/api/v1/cve", tags=["cve-enrichment"])
 _svc = CVEEnrichmentService()

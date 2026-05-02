@@ -1,12 +1,13 @@
 """Data Loss Prevention engine — detect PII, PCI, and sensitive data patterns."""
-import re
 import json
-import uuid
-import time
+import re
 import sqlite3
-import structlog
+import time
+import uuid
 from pathlib import Path
 from typing import Optional
+
+import structlog
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus

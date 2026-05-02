@@ -29,10 +29,11 @@ try:
     import joblib as _joblib
 except ImportError:  # pragma: no cover - optional dependency fallback
     _joblib = None
-from core.processing_layer import ProcessingLayer
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
+
+from core.processing_layer import ProcessingLayer
 
 logger = logging.getLogger(__name__)
 

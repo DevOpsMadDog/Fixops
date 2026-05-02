@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
 from core.compliance_reports import SUPPORTED_FRAMEWORKS, ComplianceReportGenerator
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 

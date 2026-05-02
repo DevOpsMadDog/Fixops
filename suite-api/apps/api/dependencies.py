@@ -11,8 +11,6 @@ continue to work without modification.
 
 from typing import Optional
 
-from fastapi import Request
-
 # Re-export from org_middleware — single source of truth for org_id resolution.
 # Callers can import from either module; behaviour is identical.
 from apps.api.org_middleware import (  # noqa: F401
@@ -20,6 +18,7 @@ from apps.api.org_middleware import (  # noqa: F401
     get_org_id,
     get_org_id_required,
 )
+from fastapi import Request
 
 
 def get_correlation_id(request: Request) -> Optional[str]:

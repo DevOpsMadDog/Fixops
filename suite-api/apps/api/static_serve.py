@@ -1,8 +1,9 @@
 """Serve the frontend static files from FastAPI."""
 from pathlib import Path
+
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 DIST_DIR = Path(__file__).parent.parent.parent.parent / "suite-ui" / "aldeci-ui-new" / "dist"
 

@@ -62,6 +62,7 @@ def configure_middleware(app: "FastAPI") -> None:
     # ------------------------------------------------------------------
     try:
         import uuid
+
         from starlette.middleware.base import BaseHTTPMiddleware  # noqa: PLC0415
         from starlette.requests import Request  # noqa: PLC0415
         from starlette.responses import Response  # noqa: PLC0415

@@ -18,15 +18,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.code_ownership import (
     CodeOwnership,
     Owner,
     OwnershipRule,
     get_code_ownership,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/ownership", tags=["code-ownership"])
 

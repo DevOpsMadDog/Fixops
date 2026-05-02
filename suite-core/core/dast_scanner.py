@@ -19,8 +19,8 @@ import html.parser
 import ipaddress
 import re
 import ssl
-import time
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -31,6 +31,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import structlog
+
 # ---------------------------------------------------------------------------
 # TrustGraph event-bus wiring (auto-added by hub-wiring wave)
 # ---------------------------------------------------------------------------

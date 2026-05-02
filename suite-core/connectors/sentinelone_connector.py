@@ -874,7 +874,9 @@ def get_sentinelone_connector() -> SentinelOneConnector:
         if _singleton is None:
             from core.security_findings_engine import SecurityFindingsEngine
             try:
-                from core.security_event_correlation_engine import SecurityEventCorrelationEngine
+                from core.security_event_correlation_engine import (
+                    SecurityEventCorrelationEngine,
+                )
                 corr: Any = SecurityEventCorrelationEngine()
             except (ImportError, RuntimeError, OSError) as exc:
                 _logger.warning("sentinelone: correlation engine unavailable: %s", exc)

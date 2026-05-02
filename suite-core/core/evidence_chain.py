@@ -18,7 +18,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # HMAC key — sourced from env or a stable fallback for deterministic testing
 # ---------------------------------------------------------------------------

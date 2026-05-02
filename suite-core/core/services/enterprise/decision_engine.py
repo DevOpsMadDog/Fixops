@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from config.enterprise.settings import get_settings
+
 from core.db.enterprise.session import DatabaseManager
 from core.services.enterprise.cache_service import CacheService
 from core.services.enterprise.chatgpt_client import ChatGPTClient

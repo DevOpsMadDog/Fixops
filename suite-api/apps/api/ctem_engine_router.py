@@ -41,7 +41,7 @@ from apps.api.auth_deps import api_key_auth as _verify_api_key
 # ---------------------------------------------------------------------------
 
 try:
-    from core.ctem_engine import CTEMEngine, CTEMCycle, Exposure, get_ctem_engine
+    from core.ctem_engine import CTEMCycle, CTEMEngine, Exposure, get_ctem_engine
 
     _HAS_ENGINE = True
 except ImportError as _exc:

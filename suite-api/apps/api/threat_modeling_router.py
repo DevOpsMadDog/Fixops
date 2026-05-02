@@ -10,10 +10,13 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
+from core.threat_modeling_engine import (
+    COMPONENT_TYPES,
+    STRIDE_CATEGORIES,
+    ThreatModelingEngine,
+)
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-
-from core.threat_modeling_engine import STRIDE_CATEGORIES, COMPONENT_TYPES, ThreatModelingEngine
 
 logger = logging.getLogger(__name__)
 

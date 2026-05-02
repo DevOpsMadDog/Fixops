@@ -22,10 +22,9 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, Iterator, List
 
+from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-
-from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 

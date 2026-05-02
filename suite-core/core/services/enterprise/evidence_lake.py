@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import structlog
+
 from core.db.enterprise.session import DatabaseManager
 from core.models.enterprise.user import UserAuditLog
 from core.utils.enterprise.crypto import rsa_sign, rsa_verify

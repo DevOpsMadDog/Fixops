@@ -1,11 +1,10 @@
 """Queue management API — monitor depth, enqueue tasks, and drain the queue."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
-
 from apps.api.auth_deps import api_key_auth
 from core.redis_queue import RedisQueue
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 
 router = APIRouter(
     prefix="/api/v1/queue",

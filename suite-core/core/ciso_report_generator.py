@@ -64,7 +64,9 @@ class CISOReportGenerator:
 
     def _get_vuln_prio(self, org_id: str):
         try:
-            from core.vuln_prioritization_engine import VulnerabilityPrioritizationEngine
+            from core.vuln_prioritization_engine import (
+                VulnerabilityPrioritizationEngine,
+            )
             return VulnerabilityPrioritizationEngine(org_id=org_id)
         except Exception:
             return None

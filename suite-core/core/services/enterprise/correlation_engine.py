@@ -11,6 +11,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import structlog
+from dotenv import load_dotenv
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.db.enterprise.session import DatabaseManager
 from core.models.enterprise.security_sqlite import FindingCorrelation, SecurityFinding
 from core.services.enterprise.cache_service import CacheService
@@ -20,9 +24,6 @@ from core.services.enterprise.chatgpt_client import (
     get_primary_llm_api_key,
 )
 from core.utils.enterprise.logger import PerformanceLogger
-from dotenv import load_dotenv
-from sqlalchemy import and_, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Load environment variables
 load_dotenv()

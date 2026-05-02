@@ -20,9 +20,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path
-
 from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Body, Depends, HTTPException, Path
 
 logger = logging.getLogger(__name__)
 

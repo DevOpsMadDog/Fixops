@@ -173,8 +173,8 @@ class EventEmitter:
 
         # SSRF protection: validate the target URL before persisting
         try:
-            from core.ssrf_protection import validate_url
             from core.exceptions import SSRFError
+            from core.ssrf_protection import validate_url
             validate_url(url)
         except ImportError:
             pass  # ssrf_protection not available — degrade gracefully

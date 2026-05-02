@@ -22,7 +22,6 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
 from trustgraph import get_mcp_server
 
 logger = logging.getLogger(__name__)

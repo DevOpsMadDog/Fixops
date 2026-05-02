@@ -670,7 +670,7 @@ class SLAManager:
             record = self._record_from_row(row)
             # Attempt notification
             try:
-                from core.notifications import NotificationEngine, Notification, Channel
+                from core.notifications import Channel, Notification, NotificationEngine
                 engine = NotificationEngine()
                 for recipient in escalation_chain:
                     notif = Notification(

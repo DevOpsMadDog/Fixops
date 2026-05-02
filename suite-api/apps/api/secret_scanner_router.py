@@ -19,9 +19,6 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.secret_scanner import (
     DetectedSecret,
@@ -29,6 +26,8 @@ from core.secret_scanner import (
     SecretScanner,
     SecretType,
 )
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +158,8 @@ async def scan_secrets(
 
     # TrustGraph explicit indexing (fire-and-forget)
     try:
-        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED
+        from core.trustgraph_event_bus import get_event_bus as _get_eb
         _bus = _get_eb()
         if _bus and _bus.enabled and secrets:
             import asyncio as _asyncio

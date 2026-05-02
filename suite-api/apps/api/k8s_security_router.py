@@ -11,9 +11,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.k8s_security import (
     AdmissionRule,
     CheckCategory,
@@ -23,6 +20,8 @@ from core.k8s_security import (
     Severity,
     get_k8s_engine,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

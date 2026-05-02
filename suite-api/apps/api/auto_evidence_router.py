@@ -9,17 +9,16 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
-
 from core.auto_evidence import (
+    FRAMEWORK_CONTROL_MAP,
     AutoEvidence,
     AutoEvidenceCollector,
     EvidenceCoverage,
     EvidenceSource,
-    FRAMEWORK_CONTROL_MAP,
     get_collector,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/auto-evidence", tags=["auto-evidence"])
 

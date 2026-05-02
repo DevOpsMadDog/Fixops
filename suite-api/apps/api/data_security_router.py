@@ -79,7 +79,7 @@ class FlowPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _make_node(d: Dict[str, Any]):
-    from core.data_security import DataFlowNode, StorageType, Region
+    from core.data_security import DataFlowNode, Region, StorageType
     return DataFlowNode(
         node_id=d.get("node_id", ""),
         name=d.get("name", "unknown"),
@@ -309,7 +309,7 @@ async def mask_sensitive_data(payload: MaskPayload):
     """Mask or tokenize sensitive data in the supplied text. Returns masked content and optional token map."""
     engine = _get_engine()
     try:
-        from core.data_security import MaskRequest, DataCategory
+        from core.data_security import DataCategory, MaskRequest
         cats = [DataCategory(c) for c in payload.categories] if payload.categories else None
         request = MaskRequest(
             content=payload.content,
@@ -402,9 +402,10 @@ async def assess_breach_impact(payload: BreachPayload):
     """Assess the regulatory and financial impact of a data breach."""
     engine = _get_engine()
     try:
-        from core.data_security import BreachImpactRequest, DataCategory, Region
         import uuid as _uuid
         from datetime import datetime
+
+        from core.data_security import BreachImpactRequest, DataCategory, Region
 
         cats = [DataCategory(c) for c in payload.data_categories]
         regions = [Region(r) for r in (payload.storage_regions or [])]

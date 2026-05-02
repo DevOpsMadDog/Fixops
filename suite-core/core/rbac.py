@@ -785,7 +785,8 @@ def get_current_user_role(request: Any) -> RBACRole:
 def require_permission(permission: RBACPermission) -> _Callable:
     """FastAPI dependency factory — 403 if user lacks the given permission."""
     try:
-        from fastapi import Depends, HTTPException, Request, status as _status
+        from fastapi import Depends, HTTPException, Request
+        from fastapi import status as _status
 
         async def _check(request: Request) -> RBACRole:
             role = get_current_user_role(request)
@@ -809,7 +810,8 @@ def require_permission(permission: RBACPermission) -> _Callable:
 def require_role(minimum_role: RBACRole) -> _Callable:
     """FastAPI dependency factory — 403 if user's role level is below minimum."""
     try:
-        from fastapi import HTTPException, Request, status as _status
+        from fastapi import HTTPException, Request
+        from fastapi import status as _status
 
         async def _check(request: Request) -> RBACRole:
             role = get_current_user_role(request)

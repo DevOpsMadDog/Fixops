@@ -239,8 +239,8 @@ async def github_webhook(
 
     # --- SSRF validation on any URLs present in payload ---
     try:
-        from core.ssrf_protection import validate_url
         from core.exceptions import SSRFError
+        from core.ssrf_protection import validate_url
         _payload_urls: List[str] = []
         repository = payload.get("repository", {})
         if isinstance(repository, dict):

@@ -42,6 +42,7 @@ from core.security_connectors import (
     ThreatMapperConnector,
     WizConnector,
 )
+
 from connectors.connector_registry import ConnectorRegistry
 from connectors.pull_connector import (
     BidirectionalConnector,

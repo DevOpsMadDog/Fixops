@@ -359,8 +359,10 @@ class ComplianceMappingEngine:
         # Read the side-DB live.
         try:
             from feeds.d3fend.importer import (
-                list_techniques_from_db,
                 get_db_path as _d3fend_db_path,
+            )
+            from feeds.d3fend.importer import (
+                list_techniques_from_db,
             )
         except ImportError:
             return rows
