@@ -17,23 +17,37 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-try:
-    from core.cspm_engine import (
-        ALL_RULES,
-        AWS_RULES,
-        AZURE_RULES,
-        GCP_RULES,
-        CSPMEngine,
-        CloudProvider,
-        CspmCategory,
-        CspmScanResult,
-        CspmSeverity,
-        get_cspm_engine,
+# Lazy engine probe — deferred so sitecustomize.py sys.path is in effect
+_HAS_ENGINE: Optional[bool] = None
+_cspm_module = None
+
+
+def _probe_engine() -> bool:
+    """Import cspm_engine on first call (cached). Returns True if available."""
+    global _HAS_ENGINE, _cspm_module
+    if _HAS_ENGINE is None:
+        try:
+            import importlib
+            _cspm_module = importlib.import_module("core.cspm_engine")
+            _HAS_ENGINE = True
+        except Exception as _exc:
+            logger.warning("cspm_deep_router: cspm_engine unavailable: %s", _exc)
+            _HAS_ENGINE = False
+    return bool(_HAS_ENGINE)
+
+
+def _get_cspm_attrs():
+    """Return (ALL_RULES, AWS_RULES, AZURE_RULES, GCP_RULES, CloudProvider) from cached module."""
+    if not _probe_engine():
+        return None, None, None, None, None
+    m = _cspm_module
+    return (
+        getattr(m, "ALL_RULES", []),
+        getattr(m, "AWS_RULES", []),
+        getattr(m, "AZURE_RULES", []),
+        getattr(m, "GCP_RULES", []),
+        getattr(m, "CloudProvider", None),
     )
-    _HAS_ENGINE = True
-except ImportError as _exc:
-    logger.warning("cspm_deep_router: cspm_engine unavailable: %s", _exc)
-    _HAS_ENGINE = False
 
 router = APIRouter(prefix="/api/v1/cspm", tags=["CSPM Deep Scan"])
 
@@ -67,7 +81,11 @@ class LocalStackScanRequest(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _engine() -> "CSPMEngine":
+def _engine():
+    """Return a CSPMEngine instance; raises 501 if engine unavailable."""
+    if not _probe_engine():
+        raise HTTPException(status_code=501, detail={"error": "cspm_engine_unavailable"})
+    get_cspm_engine = getattr(_cspm_module, "get_cspm_engine")
     return get_cspm_engine()
 
 
@@ -111,7 +129,7 @@ def scan_iac(request: IaCScanRequest) -> Dict[str, Any]:
     - Missing CloudTrail configuration
     - IAM policies with wildcard permissions
     """
-    if not _HAS_ENGINE:
+    if not _probe_engine():
         raise HTTPException(status_code=501, detail="CSPM engine not available")
 
     template_type = _detect_template_type(request.template_text, request.template_type)
@@ -137,7 +155,7 @@ def scan_localstack(request: LocalStackScanRequest) -> Dict[str, Any]:
 
     Returns findings in the same format as IaC scanning.
     """
-    if not _HAS_ENGINE:
+    if not _probe_engine():
         raise HTTPException(status_code=501, detail="CSPM engine not available")
 
     try:
@@ -300,17 +318,40 @@ def get_score(
     - D: 60-69  (Poor)
     - F: 0-59   (Critical risk)
     """
-    if not _HAS_ENGINE:
-        raise HTTPException(status_code=501, detail="CSPM engine not available")
+    engine = _engine()  # raises 501 if unavailable
+    posture = engine.get_posture(org_id=org_id)
+    # posture is a dataclass — convert to dict if needed
+    if hasattr(posture, "__dict__"):
+        data = {k: v for k, v in posture.__dict__.items() if not k.startswith("_")}
+    else:
+        data = posture if isinstance(posture, dict) else {}
 
-    # The lightweight engine doesn't persist scan state — return 100 (no scans yet)
-    score = 100.0
-    grade = "A"
+    score = float(data.get("overall_score", 100.0))
+    if score >= 90:
+        grade = "A"
+    elif score >= 80:
+        grade = "B"
+    elif score >= 70:
+        grade = "C"
+    elif score >= 60:
+        grade = "D"
+    else:
+        grade = "F"
+
     return {
         "org_id": org_id,
         "score": score,
         "grade": grade,
-        "interpretation": "No misconfigurations detected. Run /scan/iac or /scan/localstack for a detailed assessment.",
+        "total_resources": data.get("total_resources", 0),
+        "total_findings": data.get("total_findings", 0),
+        "critical_findings": data.get("critical_findings", 0),
+        "high_findings": data.get("high_findings", 0),
+        "scanned_at": data.get("scanned_at"),
+        "interpretation": (
+            "No misconfigurations detected. Run /scan/iac or /scan/localstack for a detailed assessment."
+            if data.get("total_findings", 0) == 0
+            else f"{data.get('total_findings', 0)} finding(s) detected across cloud resources."
+        ),
     }
 
 
@@ -326,18 +367,19 @@ def list_rules(
     Each rule includes: rule_id, title, severity, cis_benchmark,
     category, description, recommendation, compliance_frameworks.
     """
-    if not _HAS_ENGINE:
-        raise HTTPException(status_code=501, detail="CSPM engine not available")
+    _all_rules, _aws_rules, _azure_rules, _gcp_rules, _CloudProvider = _get_cspm_attrs()
+    if _CloudProvider is None:
+        raise HTTPException(status_code=501, detail={"error": "cspm_engine_unavailable"})
 
     rule_keys = ("rule_id", "title", "severity", "cis_benchmark", "category",
                  "description", "recommendation", "compliance_frameworks")
 
     all_rules_flat = [
-        (CloudProvider.AWS, r) for r in AWS_RULES
+        (_CloudProvider.AWS, r) for r in _aws_rules
     ] + [
-        (CloudProvider.AZURE, r) for r in AZURE_RULES
+        (_CloudProvider.AZURE, r) for r in _azure_rules
     ] + [
-        (CloudProvider.GCP, r) for r in GCP_RULES
+        (_CloudProvider.GCP, r) for r in _gcp_rules
     ]
 
     results = []
@@ -358,9 +400,9 @@ def list_rules(
         "total": len(results),
         "rules": results,
         "rule_counts": {
-            "aws": len(AWS_RULES),
-            "azure": len(AZURE_RULES),
-            "gcp": len(GCP_RULES),
+            "aws": len(_aws_rules),
+            "azure": len(_azure_rules),
+            "gcp": len(_gcp_rules),
         },
     }
 
@@ -370,7 +412,7 @@ def get_compliance_report(
     org_id: str = Query("default"),
 ) -> Dict[str, Any]:
     """Return a compliance posture report across all cloud providers."""
-    if not _HAS_ENGINE:
+    if not _probe_engine():
         return {"status": "degraded", "frameworks": [], "overall_score": 0, "org_id": org_id}
     try:
         engine = _engine()

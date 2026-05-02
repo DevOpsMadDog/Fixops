@@ -20,29 +20,29 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-# GraphRAG retriever (graceful degradation)
-try:
-    import sys
-    import os
+# GraphRAG retriever — lazy import so sitecustomize.py sys.path is in effect
+_retriever: Optional[Any] = None
+_HAS_GRAPHRAG: Optional[bool] = None  # None = not yet probed
 
-    _suite_core = os.path.join(os.path.dirname(__file__), "..", "..", "..", "suite-core")
-    if _suite_core not in sys.path:
-        sys.path.insert(0, _suite_core)
 
-    from trustgraph.graph_rag import GraphRAGRetriever
+def _get_retriever():
+    """Lazy singleton — import deferred until first request so sitecustomize paths are set."""
+    global _retriever, _HAS_GRAPHRAG
+    if _HAS_GRAPHRAG is None:
+        try:
+            from trustgraph.graph_rag import GraphRAGRetriever as _GRR
+            _retriever = _GRR()
+            _HAS_GRAPHRAG = True
+        except Exception as _exc:
+            _HAS_GRAPHRAG = False
+            logging.getLogger(__name__).warning("GraphRAG not available: %s", _exc)
+    return _retriever
 
-    _retriever: Optional[GraphRAGRetriever] = None
 
-    def _get_retriever() -> GraphRAGRetriever:
-        global _retriever
-        if _retriever is None:
-            _retriever = GraphRAGRetriever()
-        return _retriever
-
-    _HAS_GRAPHRAG = True
-except Exception as _exc:
-    _HAS_GRAPHRAG = False
-    logging.getLogger(__name__).warning(f"GraphRAG not available: {_exc}")
+def _graphrag_available() -> bool:
+    """Probe availability (cached after first call)."""
+    _get_retriever()
+    return bool(_HAS_GRAPHRAG)
 
 logger = logging.getLogger(__name__)
 
@@ -134,14 +134,8 @@ async def retrieve(body: RetrieveRequest) -> RetrieveResponse:
     - **top_k**: How many seed entities to find (default 10)
     - **hops**: How many relationship hops to traverse (0-3, default 2)
     """
-    if not _HAS_GRAPHRAG:
-        return RetrieveResponse(
-            query=body.query,
-            entities=[],
-            relationships=[],
-            context_summary="",
-            retrieval_method="graph_rag",
-        )
+    if not _graphrag_available():
+        raise HTTPException(status_code=503, detail={"error": "graphrag_engine_unavailable"})
 
     try:
         result = _get_retriever().retrieve(
@@ -171,10 +165,8 @@ async def entity_neighborhood(
     if hops < 1 or hops > 3:
         raise HTTPException(status_code=422, detail="hops must be between 1 and 3")
 
-    if not _HAS_GRAPHRAG:
-        return NeighborhoodResponse(
-            entity_id=entity_id, entities=[], relationships=[]
-        )
+    if not _graphrag_available():
+        raise HTTPException(status_code=503, detail={"error": "graphrag_engine_unavailable"})
 
     try:
         result = _get_retriever().get_entity_neighborhood(
@@ -193,8 +185,8 @@ async def semantic_search(body: SemanticSearchRequest) -> List[Dict[str, Any]]:
     - **query**: Natural language search query
     - **entity_types**: Optional list of types to restrict (CVE, Asset, Incident, Control, etc.)
     """
-    if not _HAS_GRAPHRAG:
-        return []
+    if not _graphrag_available():
+        raise HTTPException(status_code=503, detail={"error": "graphrag_engine_unavailable"})
 
     try:
         return _get_retriever().semantic_search(
@@ -209,7 +201,7 @@ async def semantic_search(body: SemanticSearchRequest) -> List[Dict[str, Any]]:
 @router.get("/health", response_model=GraphHealthResponse)
 async def health() -> GraphHealthResponse:
     """Return graph health and statistics across all knowledge cores."""
-    if not _HAS_GRAPHRAG:
+    if not _graphrag_available():
         return GraphHealthResponse(
             status="degraded",
             graph_rag_available=False,
