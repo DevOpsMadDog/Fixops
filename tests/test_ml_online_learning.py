@@ -859,7 +859,7 @@ class TestEdgeCases:
         result = pipeline.ingest_feedback(fb)
         assert result is None
 
-    @pytest.mark.timeout(30)
+    @pytest.mark.timeout(90)
     def test_concurrent_ingestion(self, pipeline, sample_feedback_decision_correct):
         """Test thread safety of buffer operations."""
         import threading

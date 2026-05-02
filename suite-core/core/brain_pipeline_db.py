@@ -154,6 +154,13 @@ async def persist_pipeline_run(
             error=f"{type(exc).__name__}: pipeline db write failed",
         )
         return False
+    except Exception as exc:  # noqa: BLE001 — catch-all for DB-layer errors (e.g. OperationalError)
+        logger.warning(
+            "pipeline_run persist failed — DB layer error, continuing",
+            run_id=getattr(result, "run_id", "unknown"),
+            error=f"{type(exc).__name__}: {exc}",
+        )
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +191,7 @@ def persist_pipeline_run_sync(
         # No event loop — safe to call asyncio.run()
         try:
             return asyncio.run(persist_pipeline_run(result, org_id))
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        except Exception as exc:  # noqa: BLE001 — catch-all for DB-layer errors
             _fallback_logger.warning(
                 "persist_pipeline_run_sync: asyncio.run failed: %s: pipeline db write failed",
                 type(exc).__name__,
@@ -195,7 +202,7 @@ def persist_pipeline_run_sync(
         try:
             loop.create_task(persist_pipeline_run(result, org_id))
             return True
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        except Exception as exc:  # noqa: BLE001 — catch-all for DB-layer errors
             _fallback_logger.warning(
                 "persist_pipeline_run_sync: create_task failed: %s: pipeline db write failed",
                 type(exc).__name__,

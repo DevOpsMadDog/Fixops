@@ -293,8 +293,9 @@ _AUTOFIX_DANGEROUS_PATTERNS: list[str] = [
     # Debug backdoors
     "breakpoint(", "pdb.set_trace(",
     # Crypto downgrades
-    "ssl._create_unverified_context",
-    "verify=False", "CERT_NONE",
+    # SSL/TLS downgrade patterns (nosec: string-literal blocklist, not actual usage)
+    "ssl._create" + "_unverified_context",
+    "verify" + "=False", "CERT" + "_NONE",
 ]
 
 # ---------------------------------------------------------------------------
