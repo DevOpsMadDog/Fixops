@@ -145,3 +145,25 @@ def stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
 
 
 __all__ = ["router"]
+
+
+# ---------------------------------------------------------------------------
+# Root — capability summary (fixes BUG-1: missing GET /)
+# ---------------------------------------------------------------------------
+
+@router.get("/")
+def get_agentless_root(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Return Agentless Snapshot Scan service capabilities and live stats summary."""
+    live_stats = _get_engine().stats(org_id=org_id)
+    return {
+        "service": "agentless-snapshot-scan",
+        "version": "1.0",
+        "status": "operational",
+        "capabilities": [
+            "snapshot_enqueue",
+            "vulnerability_scanning",
+            "findings_aggregation",
+            "multi_cloud_support",
+        ],
+        "stats": live_stats,
+    }

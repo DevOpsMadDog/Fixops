@@ -218,3 +218,25 @@ def release_endpoint(endpoint_id: str, org_id: str = Query(default="default")):
 def get_edr_stats(org_id: str = Query(default="default")):
     """Return aggregated EDR statistics for the org."""
     return _get_engine().get_edr_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root — capability summary (fixes BUG-1: missing GET /)
+# ---------------------------------------------------------------------------
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_edr_root(org_id: str = Query(default="default")):
+    """Return EDR service capabilities and live stats summary."""
+    stats = _get_engine().get_edr_stats(org_id)
+    return {
+        "service": "edr",
+        "version": "1.0",
+        "status": "operational",
+        "capabilities": [
+            "endpoint_registration",
+            "process_event_ingestion",
+            "threat_detection",
+            "endpoint_isolation",
+        ],
+        "stats": stats,
+    }

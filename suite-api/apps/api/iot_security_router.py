@@ -197,3 +197,25 @@ def list_policies(
 def get_iot_stats(org_id: str = Query(default="default")):
     """Return aggregated IoT security statistics for the org."""
     return _get_engine().get_iot_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root — capability summary (fixes BUG-1: missing GET /)
+# ---------------------------------------------------------------------------
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_iot_root(org_id: str = Query(default="default")):
+    """Return IoT Security service capabilities and live stats summary."""
+    stats = _get_engine().get_iot_stats(org_id)
+    return {
+        "service": "iot-security",
+        "version": "1.0",
+        "status": "operational",
+        "capabilities": [
+            "device_registration",
+            "anomaly_detection",
+            "policy_enforcement",
+            "risk_scoring",
+        ],
+        "stats": stats,
+    }

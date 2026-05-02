@@ -139,3 +139,27 @@ async def get_ot_stats(
 ) -> Dict[str, Any]:
     """Get OT environment statistics: asset counts by type/criticality, open anomalies."""
     return _get_engine().get_ot_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root — capability summary (fixes BUG-1: missing GET /)
+# ---------------------------------------------------------------------------
+
+@router.get("/")
+async def get_ot_root(
+    org_id: str = Query("default", description="Organisation identifier"),
+) -> Dict[str, Any]:
+    """Return OT Security service capabilities and live stats summary."""
+    stats = _get_engine().get_ot_stats(org_id)
+    return {
+        "service": "ot-security",
+        "version": "1.0",
+        "status": "operational",
+        "capabilities": [
+            "asset_registry",
+            "anomaly_detection",
+            "ics_scada_monitoring",
+            "criticality_scoring",
+        ],
+        "stats": stats,
+    }
