@@ -242,3 +242,8 @@ agentdb.rvf.lock
 .mcp.json.bak
 .omc/trustgraph_pending/
 .omc/state/
+
+# Runtime feed data (downloaded at startup, not source-controlled)
+suite-feeds/data/
+suite-feeds/feeds/ghsa/
+suite-feeds/feeds/tor_exit_nodes/
