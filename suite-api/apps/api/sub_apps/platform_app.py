@@ -586,13 +586,6 @@ def register_platform_routers(
     except ImportError as exc:
         _logger.warning("n8n_router not available: %s", exc)
 
-    try:
-        from apps.api.report_scheduler_router import router as report_scheduler_router  # noqa: PLC0415
-        app.include_router(report_scheduler_router)
-        _logger.info("Mounted Report Scheduler router")
-    except ImportError as exc:
-        _logger.warning("report_scheduler_router not available: %s", exc)
-
     # ------------------------------------------------------------------
     # Analytics dashboards / DuckDB / GraphRAG / NL graph
     # (formerly ~L3385-L3435 expanded section in app.py)
@@ -761,13 +754,6 @@ def register_platform_routers(
         _logger.info("Mounted Backup router")
     except ImportError as exc:
         _logger.warning("backup_router not available: %s", exc)
-
-    try:
-        from apps.api.bulk_operations_router import router as bulk_operations_router  # noqa: PLC0415
-        app.include_router(bulk_operations_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Bulk Operations router")
-    except ImportError as exc:
-        _logger.warning("bulk_operations_router not available: %s", exc)
 
     try:
         from apps.api.changelog_router import router as changelog_router  # noqa: PLC0415
@@ -947,13 +933,6 @@ def register_platform_routers(
         _logger.info("Mounted APP_ID Configuration router")
     except ImportError as exc:
         _logger.warning("app_config_router not available: %s", exc)
-
-    try:
-        from apps.api.playbook_marketplace_router import router as playbook_marketplace_router  # noqa: PLC0415
-        app.include_router(playbook_marketplace_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Playbook Marketplace router")
-    except ImportError as exc:
-        _logger.warning("playbook_marketplace_router not available: %s", exc)
 
     try:
         from apps.api.org_hierarchy_router import router as org_hierarchy_router  # noqa: PLC0415

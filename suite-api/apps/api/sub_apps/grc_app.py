@@ -379,14 +379,6 @@ def register_grc_routers(
     except Exception as _e:
         _logger.warning("Compliance Scanner router not loaded: %s", _e)
 
-    # Security Health Engine — health checks, snapshots, and incident lifecycle
-    try:
-        from apps.api.security_health_router import router as security_health_router
-        app.include_router(security_health_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Security Health router at /api/v1/security-health")
-    except Exception as _e:
-        _logger.warning("Security Health router not loaded: %s", _e)
-
     # Security Exception Manager — exception lifecycle, approvals, expiry tracking
     try:
         from apps.api.security_exception_router import router as security_exception_router
@@ -615,22 +607,6 @@ def register_grc_routers(
         _logger.info("Mounted Security Metrics Collector router at /api/v1/security-metrics-collector")
     except Exception as _e:
         _logger.warning("Security Metrics Collector router not loaded: %s", _e)
-
-    # Log Management
-    try:
-        from apps.api.log_management_router import router as log_management_router
-        app.include_router(log_management_router)
-        _logger.info("Mounted Log Management router at /api/v1/log-management")
-    except ImportError:
-        pass
-
-    # Security Automation
-    try:
-        from apps.api.security_automation_router import router as security_automation_router
-        app.include_router(security_automation_router)
-        _logger.info("Mounted Security Automation router at /api/v1/security-automation")
-    except ImportError:
-        pass
 
     # Third-Party Vendor Management (tprm_exchange)
     try:
