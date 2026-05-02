@@ -1,0 +1,1030 @@
+============================= test session starts ==============================
+
+----------------------------- live log collection ------------------------------
+2026-05-02 15:28:07 [    INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-02 15:28:07 [    INFO] apscheduler.scheduler: Added job "refresh_exploit_feeds" to job store "default"
+2026-05-02 15:28:07 [    INFO] apscheduler.scheduler: Scheduler started
+2026-05-02 15:28:07 [    INFO] core.exploit_signals: Exploit feed scheduler started (24h interval).
+collected 399 items
+
+tests/test_probabilistic.py::test_probabilistic_engine_generates_posterior_and_forecast PASSED [  0%]
+tests/test_probabilistic.py::test_probabilistic_engine_respects_component_limit PASSED [  0%]
+tests/test_probabilistic.py::test_probabilistic_calibration_updates_priors_and_transitions PASSED [  0%]
+tests/test_probabilistic.py::test_probabilistic_transition_validation_detects_invalid PASSED [  1%]
+tests/test_autofix_engine_unit.py::TestEnums::test_fix_type_values PASSED [  1%]
+tests/test_autofix_engine_unit.py::TestEnums::test_fix_status_values PASSED [  1%]
+tests/test_autofix_engine_unit.py::TestEnums::test_fix_confidence_values PASSED [  1%]
+tests/test_autofix_engine_unit.py::TestEnums::test_patch_format_values PASSED [  2%]
+tests/test_autofix_engine_unit.py::TestCodePatch::test_defaults PASSED   [  2%]
+tests/test_autofix_engine_unit.py::TestCodePatch::test_construction PASSED [  2%]
+tests/test_autofix_engine_unit.py::TestDependencyFix::test_defaults PASSED [  2%]
+tests/test_autofix_engine_unit.py::TestDependencyFix::test_construction PASSED [  3%]
+tests/test_autofix_engine_unit.py::TestAutoFixSuggestion::test_defaults PASSED [  3%]
+tests/test_autofix_engine_unit.py::TestAutoFixSuggestion::test_construction PASSED [  3%]
+tests/test_autofix_engine_unit.py::TestAutoFixResult::test_defaults PASSED [  3%]
+tests/test_autofix_engine_unit.py::TestAutoFixResult::test_success_result PASSED [  4%]
+tests/test_autofix_engine_unit.py::TestMakeFixId::test_returns_prefixed_hash PASSED [  4%]
+tests/test_autofix_engine_unit.py::TestMakeFixId::test_different_inputs_different_ids PASSED [  4%]
+tests/test_autofix_engine_unit.py::TestMakeFixId::test_deterministic_format PASSED [  4%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_dependency_from_title PASSED [  5%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_dependency_from_category PASSED [  5%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_iac_from_file_path PASSED [  5%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_container_from_file_path PASSED [  5%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_container_from_title PASSED [  6%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_config_from_title PASSED [  6%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_secret_from_title PASSED [  6%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_permission_from_title PASSED [  6%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_injection_from_title PASSED [  7%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_xss_from_title PASSED [  7%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_waf_from_title PASSED [  7%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_default_code_patch PASSED [  7%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_package_keyword PASSED [  8%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_csp_header PASSED [  8%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_cors_header PASSED [  8%]
+tests/test_autofix_engine_unit.py::TestInferFixType::test_firewall_keyword PASSED [  8%]
+tests/test_autofix_engine_unit.py::TestEnrichFromGraph::test_returns_context_on_graph_failure 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:08 [ WARNING] core.ml.threat_enricher: KEV catalog unavailable — using empty set
+2026-05-02 15:28:08 [    INFO] core.ml.threat_enricher: Threat enrichment: 1 findings enriched (0 EPSS API, 0 cache, 1 fallback, 0 KEV). 4.1ms
+2026-05-02 15:28:08 [    INFO] core.fail_engine: FAIL score computed: CVE-2024-1 → 26.3 (LOW) in 0.1ms
+PASSED                                                                   [  9%]
+tests/test_autofix_engine_unit.py::TestEnrichFromGraph::test_returns_context_structure 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:08 [    INFO] core.fail_engine: FAIL score computed: F-001 → 9.8 (INFO) in 0.0ms
+PASSED                                                                   [  9%]
+tests/test_autofix_engine_unit.py::TestEnrichFromGraph::test_uses_enrich_findings_when_legacy_enrich_method_missing 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:08 [    INFO] core.fail_engine: FAIL score computed: CVE-2024-1234 → 42.8 (MEDIUM) in 0.0ms
+PASSED                                                                   [  9%]
+tests/test_autofix_engine_unit.py::TestAutoFixEngineInit::test_init PASSED [  9%]
+tests/test_autofix_engine_unit.py::TestAutoFixEngineInit::test_stats_structure PASSED [ 10%]
+tests/test_autofix_engine_unit.py::TestUpdateStats::test_update_stats_generated PASSED [ 10%]
+tests/test_autofix_engine_unit.py::TestUpdateStats::test_update_stats_multiple PASSED [ 10%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_sql_injection PASSED [ 10%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_xss PASSED    [ 11%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_auth_bypass PASSED [ 11%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_crypto_weakness PASSED [ 11%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_ssrf PASSED   [ 11%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_path_traversal PASSED [ 12%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_deserialization PASSED [ 12%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_hardcoded_secrets PASSED [ 12%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_unknown_cwe_falls_back_to_fix_type PASSED [ 12%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_empty_cwe_falls_back_to_fix_type PASSED [ 13%]
+tests/test_autofix_engine_unit.py::TestCweToCategory::test_no_cwe_no_fix_type_match_defaults_other PASSED [ 13%]
+tests/test_autofix_engine_unit.py::TestMLConfidenceIntegration::test_compute_confidence_returns_float PASSED [ 13%]
+tests/test_autofix_engine_unit.py::TestMLConfidenceIntegration::test_compute_confidence_fallback_returns_float PASSED [ 13%]
+tests/test_autofix_engine_unit.py::TestMLConfidenceIntegration::test_fallback_dep_update_gets_boost PASSED [ 14%]
+tests/test_autofix_engine_unit.py::TestMLConfidenceIntegration::test_build_confidence_features_shape PASSED [ 14%]
+tests/test_autofix_engine_unit.py::TestMLConfidenceIntegration::test_build_confidence_features_no_patches PASSED [ 14%]
+tests/test_autofix_engine_unit.py::TestMLConfidenceIntegration::test_ml_confidence_metadata_attached PASSED [ 14%]
+tests/test_container_scanner_unit.py::TestContainerScannerInit::test_scanner_creation PASSED [ 15%]
+tests/test_container_scanner_unit.py::TestContainerScannerInit::test_get_container_scanner_singleton PASSED [ 15%]
+tests/test_container_scanner_unit.py::TestContainerScannerInit::test_scanner_has_scan_dockerfile PASSED [ 15%]
+tests/test_container_scanner_unit.py::TestContainerScannerInit::test_scanner_has_scan_image PASSED [ 15%]
+tests/test_container_scanner_unit.py::TestDockerfileRules::test_rules_not_empty PASSED [ 16%]
+tests/test_container_scanner_unit.py::TestDockerfileRules::test_rules_are_tuples PASSED [ 16%]
+tests/test_container_scanner_unit.py::TestDockerfileRules::test_rules_have_minimum_fields PASSED [ 16%]
+tests/test_container_scanner_unit.py::TestDockerfileRules::test_first_rule_is_root PASSED [ 16%]
+tests/test_container_scanner_unit.py::TestKnownVulnerableImages::test_database_not_empty PASSED [ 17%]
+tests/test_container_scanner_unit.py::TestKnownVulnerableImages::test_database_is_dict PASSED [ 17%]
+tests/test_container_scanner_unit.py::TestContainerSeverity::test_severity_values PASSED [ 17%]
+tests/test_container_scanner_unit.py::TestContainerFinding::test_finding_creation PASSED [ 17%]
+tests/test_container_scanner_unit.py::TestContainerFinding::test_finding_defaults PASSED [ 18%]
+tests/test_container_scanner_unit.py::TestContainerScanResult::test_result_creation PASSED [ 18%]
+tests/test_container_scanner_unit.py::TestContainerScanResult::test_result_with_findings PASSED [ 18%]
+tests/test_container_scanner_unit.py::TestContainerScanResult::test_result_defaults PASSED [ 18%]
+tests/test_container_scanner_unit.py::TestDockerfileScanning::test_scan_safe_dockerfile PASSED [ 19%]
+tests/test_container_scanner_unit.py::TestDockerfileScanning::test_scan_insecure_dockerfile PASSED [ 19%]
+tests/test_container_scanner_unit.py::TestDockerfileScanning::test_scan_empty_dockerfile PASSED [ 19%]
+tests/test_container_scanner_unit.py::TestDockerfileScanning::test_scan_minimal_dockerfile PASSED [ 19%]
+tests/test_container_scanner_unit.py::TestDockerfileScanning::test_scan_returns_scan_id PASSED [ 20%]
+tests/test_container_scanner_unit.py::TestDockerfileScanning::test_scan_image_ref PASSED [ 20%]
+tests/test_dast_engine_unit.py::TestEnums::test_severity_values PASSED   [ 20%]
+tests/test_dast_engine_unit.py::TestEnums::test_category_values PASSED   [ 20%]
+tests/test_dast_engine_unit.py::TestDastFinding::test_to_dict_basic PASSED [ 21%]
+tests/test_dast_engine_unit.py::TestDastFinding::test_evidence_truncation PASSED [ 21%]
+tests/test_dast_engine_unit.py::TestDastFinding::test_default_values PASSED [ 21%]
+tests/test_dast_engine_unit.py::TestDastScanResult::test_to_dict PASSED  [ 21%]
+tests/test_dast_engine_unit.py::TestDastScanResult::test_crawled_urls_limit PASSED [ 22%]
+tests/test_dast_engine_unit.py::TestPayloads::test_sql_payloads_exist PASSED [ 22%]
+tests/test_dast_engine_unit.py::TestPayloads::test_xss_payloads_exist PASSED [ 22%]
+tests/test_dast_engine_unit.py::TestPayloads::test_ssrf_payloads_exist PASSED [ 22%]
+tests/test_dast_engine_unit.py::TestPayloads::test_path_traversal_payloads_exist PASSED [ 23%]
+tests/test_dast_engine_unit.py::TestPayloads::test_command_injection_payloads_exist PASSED [ 23%]
+tests/test_dast_engine_unit.py::TestPayloads::test_sql_error_patterns PASSED [ 23%]
+tests/test_dast_engine_unit.py::TestPayloads::test_security_headers PASSED [ 23%]
+tests/test_dast_engine_unit.py::TestLinkParser::test_extract_links PASSED [ 24%]
+tests/test_dast_engine_unit.py::TestLinkParser::test_extract_forms PASSED [ 24%]
+tests/test_dast_engine_unit.py::TestLinkParser::test_no_links PASSED     [ 24%]
+tests/test_dast_engine_unit.py::TestLinkParser::test_form_default_method PASSED [ 24%]
+tests/test_dast_engine_unit.py::TestLinkParser::test_nested_input_without_form PASSED [ 25%]
+tests/test_dast_engine_unit.py::TestLinkParser::test_multiple_forms PASSED [ 25%]
+tests/test_dast_engine_unit.py::TestEngineInit::test_default_config PASSED [ 25%]
+tests/test_dast_engine_unit.py::TestEngineInit::test_custom_config PASSED [ 25%]
+tests/test_dast_engine_unit.py::TestSingleton::test_get_dast_engine_returns_engine PASSED [ 26%]
+tests/test_dast_engine_unit.py::TestSingleton::test_get_dast_engine_singleton PASSED [ 26%]
+tests/test_dast_engine_unit.py::TestHeaderCheck::test_missing_headers_detected PASSED [ 26%]
+tests/test_dast_engine_unit.py::TestHeaderCheck::test_present_headers_not_flagged PASSED [ 26%]
+tests/test_dast_engine_unit.py::TestHeaderCheck::test_server_version_disclosure PASSED [ 27%]
+tests/test_dast_engine_unit.py::TestHeaderCheck::test_header_check_exception PASSED [ 27%]
+tests/test_dast_engine_unit.py::TestSQLiCheck::test_no_query_string_skips PASSED [ 27%]
+tests/test_dast_engine_unit.py::TestSQLiCheck::test_sql_error_detected PASSED [ 27%]
+tests/test_dast_engine_unit.py::TestSQLiCheck::test_no_sql_error PASSED  [ 28%]
+tests/test_dast_engine_unit.py::TestXSSCheck::test_no_query_string_skips PASSED [ 28%]
+tests/test_dast_engine_unit.py::TestXSSCheck::test_reflected_xss_detected PASSED [ 28%]
+tests/test_dast_engine_unit.py::TestXSSCheck::test_no_xss PASSED         [ 28%]
+tests/test_dast_engine_unit.py::TestPathTraversal::test_traversal_detected PASSED [ 29%]
+tests/test_dast_engine_unit.py::TestPathTraversal::test_no_traversal PASSED [ 29%]
+tests/test_dast_engine_unit.py::TestSSRFCheck::test_no_query_string_skips PASSED [ 29%]
+tests/test_dast_engine_unit.py::TestSSRFCheck::test_ssrf_detected PASSED [ 29%]
+tests/test_dast_engine_unit.py::TestInfoDisclosure::test_sensitive_file_detected PASSED [ 30%]
+tests/test_dast_engine_unit.py::TestInfoDisclosure::test_404_not_flagged PASSED [ 30%]
+tests/test_dast_engine_unit.py::TestInfoDisclosure::test_small_response_not_flagged PASSED [ 30%]
+tests/test_dast_engine_unit.py::TestAuthMode::test_auth_mode_values PASSED [ 30%]
+tests/test_dast_engine_unit.py::TestAuthMode::test_auth_session_config_defaults PASSED [ 31%]
+tests/test_dast_engine_unit.py::TestAuthMode::test_auth_session_config_to_dict PASSED [ 31%]
+tests/test_dast_engine_unit.py::TestAuthMode::test_auth_session_config_no_creds PASSED [ 31%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_init PASSED [ 31%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_bearer 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.dast_engine: DAST auth: Bearer token configured
+PASSED                                                                   [ 32%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_bearer_no_token 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [   ERROR] core.dast_engine: Bearer token not provided
+PASSED                                                                   [ 32%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_basic 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.dast_engine: DAST auth: Basic auth configured for user 'admin'
+PASSED                                                                   [ 32%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_api_key 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.dast_engine: DAST auth: API key configured in header 'X-Custom-Key'
+PASSED                                                                   [ 32%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_cookie_mode 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.dast_engine: DAST auth: Cookie-based auth (cookies provided directly)
+PASSED                                                                   [ 33%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_none PASSED [ 33%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_form_login_success 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.dast_engine: DAST auth: Form login successful, 1 session cookies obtained
+PASSED                                                                   [ 33%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_auth_form_login_failure_indicator 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.dast_engine: DAST form login failed: failure indicator found in response
+PASSED                                                                   [ 33%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_apply_to_client_kwargs PASSED [ 34%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_handle_401_reauth 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.dast_engine: DAST auth: Re-authenticating (attempt 1/2)
+2026-05-02 15:28:13 [    INFO] core.dast_engine: DAST auth: Bearer token configured
+PASSED                                                                   [ 34%]
+tests/test_dast_engine_unit.py::TestAuthSessionManager::test_handle_401_max_reached 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.dast_engine: DAST auth: Max re-auth attempts reached (1)
+PASSED                                                                   [ 34%]
+tests/test_dast_engine_unit.py::TestOpenAPIParser::test_parse_basic_spec PASSED [ 34%]
+tests/test_dast_engine_unit.py::TestOpenAPIParser::test_parse_with_security PASSED [ 35%]
+tests/test_dast_engine_unit.py::TestOpenAPIParser::test_parse_empty_paths PASSED [ 35%]
+tests/test_dast_engine_unit.py::TestOpenAPIParser::test_endpoint_to_dict PASSED [ 35%]
+tests/test_dast_engine_unit.py::TestOpenAPIParser::test_generate_param_value PASSED [ 35%]
+tests/test_dast_engine_unit.py::TestNewCategory::test_api_category PASSED [ 36%]
+tests/test_dast_engine_unit.py::TestScanResultNewFields::test_auth_mode_field PASSED [ 36%]
+tests/test_dast_engine_unit.py::TestScanResultNewFields::test_default_auth_mode PASSED [ 36%]
+tests/test_exploit_signals.py::test_exploit_signal_evaluator_matches_boolean_and_probability PASSED [ 36%]
+tests/test_exploit_signals.py::test_exploit_signal_evaluator_returns_none_without_signals PASSED [ 37%]
+tests/test_exploit_signals.py::test_exploit_feed_refresher_enriches_records PASSED [ 37%]
+tests/test_hallucination_guards.py::TestValidateInputCitation::test_citation_valid PASSED [ 37%]
+tests/test_hallucination_guards.py::TestValidateInputCitation::test_citation_missing_field PASSED [ 37%]
+tests/test_hallucination_guards.py::TestValidateInputCitation::test_citation_numeric_hallucination PASSED [ 38%]
+tests/test_hallucination_guards.py::TestValidateInputCitation::test_citation_allows_common_numbers PASSED [ 38%]
+tests/test_hallucination_guards.py::TestValidateInputCitation::test_citation_no_required_fields PASSED [ 38%]
+tests/test_hallucination_guards.py::TestValidateCrossModelAgreement::test_agreement_unanimous PASSED [ 38%]
+tests/test_hallucination_guards.py::TestValidateCrossModelAgreement::test_agreement_high_disagreement PASSED [ 39%]
+tests/test_hallucination_guards.py::TestValidateCrossModelAgreement::test_agreement_confidence_spread PASSED [ 39%]
+tests/test_hallucination_guards.py::TestValidateCrossModelAgreement::test_agreement_single_model PASSED [ 39%]
+tests/test_hallucination_guards.py::TestValidateCrossModelAgreement::test_agreement_custom_threshold PASSED [ 39%]
+tests/test_hallucination_guards.py::TestValidateNumericConsistency::test_consistency_exact_match PASSED [ 40%]
+tests/test_hallucination_guards.py::TestValidateNumericConsistency::test_consistency_within_tolerance PASSED [ 40%]
+tests/test_hallucination_guards.py::TestValidateNumericConsistency::test_consistency_exceeds_tolerance PASSED [ 40%]
+tests/test_hallucination_guards.py::TestValidateNumericConsistency::test_consistency_metric_not_in_response PASSED [ 40%]
+tests/test_hallucination_guards.py::TestValidateNumericConsistency::test_consistency_multiple_metrics PASSED [ 41%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_all_pass 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.hallucination_guards: All hallucination guards passed: confidence=0.850
+PASSED                                                                   [ 41%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_citation_fails 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Input citation validation failed: 1 issues found
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Hallucination guards detected issues: 1 total, confidence adjusted 0.850 -> 0.722
+PASSED                                                                   [ 41%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_agreement_fails 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Cross-model agreement validation failed: disagreement=0.67
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Hallucination guards detected issues: 1 total, confidence adjusted 0.850 -> 0.567
+PASSED                                                                   [ 41%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_numeric_fails 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Input citation validation failed: 1 issues found
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Numeric consistency validation failed: 1 issues found
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Hallucination guards detected issues: 2 total, confidence adjusted 0.850 -> 0.614
+PASSED                                                                   [ 42%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_custom_config 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Cross-model agreement validation failed: disagreement=0.50
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Hallucination guards detected issues: 1 total, confidence adjusted 0.850 -> 0.000
+PASSED                                                                   [ 42%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_confidence_clamping 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Input citation validation failed: 1 issues found
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Cross-model agreement validation failed: disagreement=0.50
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Hallucination guards detected issues: 3 total, confidence adjusted 0.500 -> 0.042
+PASSED                                                                   [ 42%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_tracks_applied_guards 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [    INFO] core.hallucination_guards: All hallucination guards passed: confidence=0.850
+PASSED                                                                   [ 42%]
+tests/test_hallucination_guards.py::TestApplyHallucinationGuards::test_apply_guards_multiple_failures 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Input citation validation failed: 3 issues found
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Cross-model agreement validation failed: disagreement=0.50
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Numeric consistency validation failed: 1 issues found
+2026-05-02 15:28:13 [ WARNING] core.hallucination_guards: Hallucination guards detected issues: 6 total, confidence adjusted 0.850 -> 0.461
+PASSED                                                                   [ 43%]
+tests/test_mcp_autodiscovery.py::TestSanitizeToolName::test_simple_name PASSED [ 43%]
+tests/test_mcp_autodiscovery.py::TestSanitizeToolName::test_leading_underscore PASSED [ 43%]
+tests/test_mcp_autodiscovery.py::TestSanitizeToolName::test_trailing_underscore PASSED [ 43%]
+tests/test_mcp_autodiscovery.py::TestSanitizeToolName::test_special_characters PASSED [ 44%]
+tests/test_mcp_autodiscovery.py::TestSanitizeToolName::test_empty_string PASSED [ 44%]
+tests/test_mcp_autodiscovery.py::TestSanitizeToolName::test_only_underscores PASSED [ 44%]
+tests/test_mcp_autodiscovery.py::TestSanitizeToolName::test_multiple_underscores PASSED [ 44%]
+tests/test_mcp_autodiscovery.py::TestExtractDescription::test_with_docstring PASSED [ 45%]
+tests/test_mcp_autodiscovery.py::TestExtractDescription::test_multi_paragraph_docstring PASSED [ 45%]
+tests/test_mcp_autodiscovery.py::TestExtractDescription::test_no_docstring PASSED [ 45%]
+tests/test_mcp_autodiscovery.py::TestExtractDescription::test_long_docstring_truncated PASSED [ 45%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_get_is_query PASSED [ 46%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_post_is_action PASSED [ 46%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_put_is_action PASSED [ 46%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_delete_is_action PASSED [ 46%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_analyze_in_path_is_analysis PASSED [ 47%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_score_in_name_is_analysis PASSED [ 47%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_assess_in_path_is_analysis PASSED [ 47%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_predict_in_name_is_analysis PASSED [ 47%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_decision_in_path_is_analysis PASSED [ 48%]
+tests/test_mcp_autodiscovery.py::TestClassifyCategory::test_brain_in_path_is_analysis PASSED [ 48%]
+tests/test_mcp_autodiscovery.py::TestExtractPathParams::test_no_params PASSED [ 48%]
+tests/test_mcp_autodiscovery.py::TestExtractPathParams::test_single_param PASSED [ 48%]
+tests/test_mcp_autodiscovery.py::TestExtractPathParams::test_multiple_params PASSED [ 49%]
+tests/test_mcp_autodiscovery.py::TestAnnotationToJsonSchema::test_str PASSED [ 49%]
+tests/test_mcp_autodiscovery.py::TestAnnotationToJsonSchema::test_int PASSED [ 49%]
+tests/test_mcp_autodiscovery.py::TestAnnotationToJsonSchema::test_float PASSED [ 49%]
+tests/test_mcp_autodiscovery.py::TestAnnotationToJsonSchema::test_bool PASSED [ 50%]
+tests/test_mcp_autodiscovery.py::TestAnnotationToJsonSchema::test_list PASSED [ 50%]
+tests/test_mcp_autodiscovery.py::TestAnnotationToJsonSchema::test_dict PASSED [ 50%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_catalog_is_populated 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.8ms
+PASSED                                                                   [ 50%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_list_findings_discovered 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 51%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_get_finding_has_path_param 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 51%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_create_finding_is_action 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.9ms
+PASSED                                                                   [ 51%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_analyze_route_is_analysis 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 51%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_description_extracted 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 52%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_no_docstring_gets_empty_description 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 52%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_mcp_routes_excluded 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.5ms
+PASSED                                                                   [ 52%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_health_route_not_authed 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 52%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_stats_generated 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:13 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 53%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_no_duplicate_tool_names 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.5ms
+PASSED                                                                   [ 53%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_delete_route_discovered 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.8ms
+PASSED                                                                   [ 53%]
+tests/test_mcp_autodiscovery.py::TestCatalogGeneration::test_put_route_discovered 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+PASSED                                                                   [ 53%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_list_all_tools 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools "HTTP/1.1 200 OK"
+PASSED                                                                   [ 54%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_filter_by_category 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?category=query "HTTP/1.1 200 OK"
+PASSED                                                                   [ 54%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_filter_by_method 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.7ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?method=POST "HTTP/1.1 200 OK"
+PASSED                                                                   [ 54%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_filter_by_tag 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?tag=findings "HTTP/1.1 200 OK"
+PASSED                                                                   [ 54%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_search_tools 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.5ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?search=finding "HTTP/1.1 200 OK"
+PASSED                                                                   [ 55%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_pagination 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?limit=2&offset=0 "HTTP/1.1 200 OK"
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?limit=2&offset=2 "HTTP/1.1 200 OK"
+PASSED                                                                   [ 55%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_invalid_category_rejected 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.5ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?category=invalid "HTTP/1.1 422 Unprocessable Entity"
+PASSED                                                                   [ 55%]
+tests/test_mcp_autodiscovery.py::TestToolsEndpoint::test_invalid_method_rejected 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools?method=INVALID "HTTP/1.1 422 Unprocessable Entity"
+PASSED                                                                   [ 55%]
+tests/test_mcp_autodiscovery.py::TestSingleToolEndpoint::test_get_existing_tool 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.5ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools/list_findings "HTTP/1.1 200 OK"
+PASSED                                                                   [ 56%]
+tests/test_mcp_autodiscovery.py::TestSingleToolEndpoint::test_get_nonexistent_tool 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.8ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/tools/nonexistent_tool_xyz "HTTP/1.1 404 Not Found"
+PASSED                                                                   [ 56%]
+tests/test_mcp_autodiscovery.py::TestSchemasEndpoint::test_mcp_format 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.5ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/schemas?format=mcp "HTTP/1.1 200 OK"
+PASSED                                                                   [ 56%]
+tests/test_mcp_autodiscovery.py::TestSchemasEndpoint::test_openapi_format 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/schemas?format=openapi "HTTP/1.1 200 OK"
+PASSED                                                                   [ 56%]
+tests/test_mcp_autodiscovery.py::TestSchemasEndpoint::test_invalid_format_rejected 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/schemas?format=graphql "HTTP/1.1 422 Unprocessable Entity"
+PASSED                                                                   [ 57%]
+tests/test_mcp_autodiscovery.py::TestHealthEndpoint::test_health_returns_healthy 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.5ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 57%]
+tests/test_mcp_autodiscovery.py::TestStatsEndpoint::test_stats_returned 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/mcp/stats "HTTP/1.1 200 OK"
+PASSED                                                                   [ 57%]
+tests/test_mcp_autodiscovery.py::TestRefreshEndpoint::test_refresh_returns_counts 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.7ms
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: POST http://testserver/api/v1/mcp/refresh "HTTP/1.1 200 OK"
+PASSED                                                                   [ 57%]
+tests/test_mcp_autodiscovery.py::TestExecuteEndpoint::test_execute_existing_tool 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.7ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/findings/ "HTTP/1.1 200 OK"
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: POST http://testserver/api/v1/mcp/execute "HTTP/1.1 200 OK"
+PASSED                                                                   [ 58%]
+tests/test_mcp_autodiscovery.py::TestExecuteEndpoint::test_execute_nonexistent_tool 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: POST http://testserver/api/v1/mcp/execute "HTTP/1.1 200 OK"
+PASSED                                                                   [ 58%]
+tests/test_mcp_autodiscovery.py::TestExecuteEndpoint::test_execute_with_path_params 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/findings/test-123 "HTTP/1.1 200 OK"
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: POST http://testserver/api/v1/mcp/execute "HTTP/1.1 200 OK"
+PASSED                                                                   [ 58%]
+tests/test_mcp_autodiscovery.py::TestExecuteEndpoint::test_execute_missing_path_param 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.6ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: POST http://testserver/api/v1/mcp/execute "HTTP/1.1 200 OK"
+PASSED                                                                   [ 58%]
+tests/test_mcp_autodiscovery.py::TestExecuteEndpoint::test_execute_empty_tool_name_rejected 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 10 tools generated from 23 routes (13 skipped) in 0.8ms
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] httpx: HTTP Request: POST http://testserver/api/v1/mcp/execute "HTTP/1.1 422 Unprocessable Entity"
+PASSED                                                                   [ 59%]
+tests/test_mcp_autodiscovery.py::TestEdgeCases::test_tool_name_uniqueness_with_same_func_name 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 2 tools generated from 15 routes (13 skipped) in 0.1ms
+PASSED                                                                   [ 59%]
+tests/test_mcp_autodiscovery.py::TestEdgeCases::test_catalog_regeneration_clears_old 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 1 tools generated from 14 routes (13 skipped) in 0.1ms
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 1 tools generated from 14 routes (13 skipped) in 0.1ms
+PASSED                                                                   [ 59%]
+tests/test_mcp_autodiscovery.py::TestEdgeCases::test_pydantic_model_body_extraction 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 1 tools generated from 14 routes (13 skipped) in 0.1ms
+PASSED                                                                   [ 59%]
+tests/test_mcp_autodiscovery.py::TestEdgeCases::test_enum_query_param 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:14 [    INFO] apps.api.mcp_router: MCP auto-discovery complete: 1 tools generated from 14 routes (13 skipped) in 0.1ms
+PASSED                                                                   [ 60%]
+tests/test_mcp_autodiscovery.py::TestModelValidation::test_mcp_tool_definition_serialization PASSED [ 60%]
+tests/test_mcp_autodiscovery.py::TestModelValidation::test_execute_request_validation PASSED [ 60%]
+tests/test_mcp_autodiscovery.py::TestModelValidation::test_execute_request_default_arguments PASSED [ 60%]
+tests/test_mcp_autodiscovery.py::TestModelValidation::test_catalog_stats_model PASSED [ 61%]
+tests/test_mitre_airgap.py::test_mitre_health FAILED                     [ 61%]
+tests/test_mitre_airgap.py::test_mitre_tactics FAILED                    [ 61%]
+tests/test_mitre_airgap.py::test_mitre_techniques FAILED                 [ 61%]
+tests/test_mitre_airgap.py::test_mitre_cwe_89 FAILED                     [ 62%]
+tests/test_mitre_airgap.py::test_mitre_cwe_79 FAILED                     [ 62%]
+tests/test_mitre_airgap.py::test_mitre_cwe_120 FAILED                    [ 62%]
+tests/test_mitre_airgap.py::test_mitre_map_findings FAILED               [ 62%]
+tests/test_mitre_airgap.py::test_mitre_cve_log4j FAILED                  [ 63%]
+tests/test_mitre_airgap.py::test_mitre_kill_chain FAILED                 [ 63%]
+tests/test_mitre_airgap.py::test_mitre_navigator_json FAILED             [ 63%]
+tests/test_mitre_airgap.py::test_mitre_no_auth FAILED                    [ 63%]
+tests/test_mitre_airgap.py::test_airgap_status FAILED                    [ 64%]
+tests/test_mitre_airgap.py::test_airgap_health FAILED                    [ 64%]
+tests/test_mitre_airgap.py::test_airgap_classification FAILED            [ 64%]
+tests/test_mitre_airgap.py::test_airgap_set_classification FAILED        [ 64%]
+tests/test_mitre_airgap.py::test_airgap_secret_banner FAILED             [ 65%]
+tests/test_mitre_airgap.py::test_airgap_fips_status FAILED               [ 65%]
+tests/test_mitre_airgap.py::test_airgap_dependencies FAILED              [ 65%]
+tests/test_mitre_airgap.py::test_airgap_reset FAILED                     [ 65%]
+tests/test_mitre_airgap.py::test_airgap_no_auth FAILED                   [ 66%]
+tests/test_quantum_crypto_unit.py::TestMLDSAKeyPair::test_creation PASSED [ 66%]
+tests/test_quantum_crypto_unit.py::TestMLDSAKeyPair::test_to_metadata PASSED [ 66%]
+tests/test_quantum_crypto_unit.py::TestMLDSAKeyPair::test_default_algorithm PASSED [ 66%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_init_default PASSED [ 67%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_init_custom_level PASSED [ 67%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_keygen PASSED   [ 67%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_keygen_with_custom_id PASSED [ 67%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_sign_and_verify PASSED [ 68%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_verify_wrong_message PASSED [ 68%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_verify_wrong_key PASSED [ 68%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_backend_detection PASSED [ 68%]
+tests/test_quantum_crypto_unit.py::TestMLDSAEngine::test_security_levels PASSED [ 69%]
+tests/test_quantum_crypto_unit.py::TestQuantumKeyStore::test_init PASSED [ 69%]
+tests/test_quantum_crypto_unit.py::TestQuantumKeyStore::test_save_and_load 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:15 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: store-test-1
+PASSED                                                                   [ 69%]
+tests/test_quantum_crypto_unit.py::TestQuantumKeyStore::test_load_nonexistent PASSED [ 69%]
+tests/test_quantum_crypto_unit.py::TestQuantumKeyStore::test_list_keys_empty PASSED [ 70%]
+tests/test_quantum_crypto_unit.py::TestQuantumKeyStore::test_list_keys_after_save 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:15 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: key-a
+2026-05-02 15:28:15 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: key-b
+PASSED                                                                   [ 70%]
+tests/test_quantum_crypto_unit.py::TestHybridSignature::test_to_dict PASSED [ 70%]
+tests/test_quantum_crypto_unit.py::TestHybridSignature::test_to_json PASSED [ 70%]
+tests/test_quantum_crypto_unit.py::TestHybridSignature::test_from_dict PASSED [ 71%]
+tests/test_quantum_crypto_unit.py::TestHybridSignature::test_roundtrip PASSED [ 71%]
+tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_init 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:16 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_init0/priv.pem
+2026-05-02 15:28:16 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_init0/pub.pem
+2026-05-02 15:28:16 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192815, fingerprint: 8431a6d7c9b1d0ed)
+2026-05-02 15:28:16 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-20ef0ee41280cb8b
+2026-05-02 15:28:16 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-20ef0ee41280cb8b
+2026-05-02 15:28:16 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 71%]
+tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:16 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_sign0/priv.pem
+2026-05-02 15:28:16 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_sign0/pub.pem
+2026-05-02 15:28:16 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192816, fingerprint: 8e6e424a10668df5)
+2026-05-02 15:28:16 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-c2a9aacd22906060
+2026-05-02 15:28:16 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-c2a9aacd22906060
+2026-05-02 15:28:16 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 71%]
+tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_and_verify 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:17 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_and_verify0/priv.pem
+2026-05-02 15:28:17 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_and_verify0/pub.pem
+2026-05-02 15:28:17 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192816, fingerprint: a155a8a4418fad83)
+2026-05-02 15:28:17 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-c0a5e838d070afdb
+2026-05-02 15:28:17 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-c0a5e838d070afdb
+2026-05-02 15:28:17 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 72%]
+tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_json 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:17 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_json0/priv.pem
+2026-05-02 15:28:17 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_json0/pub.pem
+2026-05-02 15:28:17 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192817, fingerprint: 0b1896df22f559ff)
+2026-05-02 15:28:17 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-5c376340c1b55204
+2026-05-02 15:28:17 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-5c376340c1b55204
+2026-05-02 15:28:17 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 72%]
+tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_get_key_info 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:18 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_get_key_info0/priv.pem
+2026-05-02 15:28:18 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_get_key_info0/pub.pem
+2026-05-02 15:28:18 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192817, fingerprint: 499c4dd40fd9cdf1)
+2026-05-02 15:28:18 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-3dbcd989b4de26f4
+2026-05-02 15:28:18 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-3dbcd989b4de26f4
+2026-05-02 15:28:18 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 72%]
+tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_empty_data 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:18 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_empty_data0/priv.pem
+2026-05-02 15:28:18 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_empty_data0/pub.pem
+2026-05-02 15:28:18 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192818, fingerprint: 23dc4cc8b955246b)
+2026-05-02 15:28:18 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-897f562709bd7853
+2026-05-02 15:28:18 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-897f562709bd7853
+2026-05-02 15:28:18 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 72%]
+tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_large_data 
+-------------------------------- live log setup --------------------------------
+2026-05-02 15:28:19 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_large_data0/priv.pem
+2026-05-02 15:28:19 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_sign_large_data0/pub.pem
+2026-05-02 15:28:19 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192818, fingerprint: ff4b74194a3f5d02)
+2026-05-02 15:28:19 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-7bafc306a7e1dd27
+2026-05-02 15:28:19 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-7bafc306a7e1dd27
+2026-05-02 15:28:19 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 73%]
+tests/test_quantum_crypto_unit.py::TestModuleFunctions::test_get_quantum_signer 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:19 [    INFO] core.quantum_crypto: Loaded ML-DSA key: mldsa-3-30704316f36e1a38
+2026-05-02 15:28:19 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 73%]
+tests/test_quantum_crypto_unit.py::TestModuleFunctions::test_hybrid_sign 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:20 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_hybrid_sign0/mod_priv.pem
+2026-05-02 15:28:20 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_hybrid_sign0/mod_pub.pem
+2026-05-02 15:28:20 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192819, fingerprint: ab563d2f750a6a9f)
+2026-05-02 15:28:20 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-9e4e341bbb694256
+2026-05-02 15:28:20 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-9e4e341bbb694256
+2026-05-02 15:28:20 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 73%]
+tests/test_quantum_crypto_unit.py::TestModuleFunctions::test_hybrid_verify 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.crypto: Saved RSA private key to /tmp/pytest-of-ubuntu/pytest-5/test_hybrid_verify0/v_priv.pem
+2026-05-02 15:28:21 [    INFO] core.crypto: Saved RSA public key to /tmp/pytest-of-ubuntu/pytest-5/test_hybrid_verify0/v_pub.pem
+2026-05-02 15:28:21 [    INFO] core.crypto: Generated RSA-4096 key pair (key_id: fixops-rsa-20260502192820, fingerprint: d48a33e607241969)
+2026-05-02 15:28:21 [    INFO] core.quantum_crypto: Saved ML-DSA-3 keypair: mldsa-3-05294e76c76012b9
+2026-05-02 15:28:21 [    INFO] core.quantum_crypto: Generated new ML-DSA key: mldsa-3-05294e76c76012b9
+2026-05-02 15:28:21 [    INFO] core.quantum_crypto: HybridQuantumSigner initialized: RSA-4096 + ML-DSA-66 (backend: simplified)
+PASSED                                                                   [ 73%]
+tests/test_quantum_crypto_unit.py::TestErrorHandling::test_mldsa_error PASSED [ 74%]
+tests/test_quantum_crypto_unit.py::TestErrorHandling::test_invalid_security_level_keygen PASSED [ 74%]
+tests/test_severity_promotion.py::TestSeverityPromotionEvidence::test_to_dict_promoted PASSED [ 74%]
+tests/test_severity_promotion.py::TestSeverityPromotionEvidence::test_to_dict_not_promoted PASSED [ 74%]
+tests/test_severity_promotion.py::TestPromotionRule::test_applies_to_kev_signal PASSED [ 75%]
+tests/test_severity_promotion.py::TestPromotionRule::test_applies_to_epss_threshold PASSED [ 75%]
+tests/test_severity_promotion.py::TestPromotionRule::test_applies_to_empty_promote_from PASSED [ 75%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_init_default_rules PASSED [ 75%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_init_custom_rules PASSED [ 76%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_init_disabled PASSED [ 76%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_evaluate_promotion_kev_medium_to_critical PASSED [ 76%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_evaluate_promotion_kev_high_to_critical PASSED [ 76%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_evaluate_promotion_kev_critical_no_promotion PASSED [ 77%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_evaluate_promotion_epss_high_medium_to_high PASSED [ 77%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_evaluate_promotion_epss_low_threshold_no_promotion PASSED [ 77%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_evaluate_promotion_no_signals PASSED [ 77%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_evaluate_promotion_disabled_engine PASSED [ 78%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_check_kev_signal_case_insensitive PASSED [ 78%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_extract_kev_date_missing PASSED [ 78%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_extract_epss_score_from_dict PASSED [ 78%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_build_kev_evidence_source_with_date PASSED [ 79%]
+tests/test_severity_promotion.py::TestSeverityPromotionEngine::test_build_kev_evidence_source_without_date PASSED [ 79%]
+tests/test_severity_promotion.py::TestSeverityPromotionIntegration::test_multiple_cves_with_mixed_promotions PASSED [ 79%]
+tests/test_severity_promotion.py::TestSeverityPromotionIntegration::test_promotion_rule_version_consistency PASSED [ 79%]
+tests/test_storage_security.py::test_archive_rejects_directory_outside_allowlist PASSED [ 80%]
+tests/test_storage_security.py::test_archive_rejects_world_writable_root PASSED [ 80%]
+tests/test_soc2_evidence_generator.py::TestControlStatusEnum::test_values PASSED [ 80%]
+tests/test_soc2_evidence_generator.py::TestTSCEnum::test_all_tsc_values PASSED [ 80%]
+tests/test_soc2_evidence_generator.py::TestTSCEnum::test_tsc_count PASSED [ 81%]
+tests/test_soc2_evidence_generator.py::TestSOC2Controls::test_controls_not_empty PASSED [ 81%]
+tests/test_soc2_evidence_generator.py::TestSOC2Controls::test_all_controls_have_tsc PASSED [ 81%]
+tests/test_soc2_evidence_generator.py::TestSOC2Controls::test_all_controls_have_title PASSED [ 81%]
+tests/test_soc2_evidence_generator.py::TestSOC2Controls::test_all_controls_have_checks PASSED [ 82%]
+tests/test_soc2_evidence_generator.py::TestSOC2Controls::test_known_controls_present PASSED [ 82%]
+tests/test_soc2_evidence_generator.py::TestControlAssessment::test_default_status PASSED [ 82%]
+tests/test_soc2_evidence_generator.py::TestControlAssessment::test_custom_values PASSED [ 82%]
+tests/test_soc2_evidence_generator.py::TestEvidencePack::test_default_pack PASSED [ 83%]
+tests/test_soc2_evidence_generator.py::TestEvidencePack::test_to_dict PASSED [ 83%]
+tests/test_soc2_evidence_generator.py::TestEvidencePack::test_to_dict_with_assessments PASSED [ 83%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_generate_default 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-c3c1bc91c99d: score=0.82 status=qualified
+PASSED                                                                   [ 83%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_generate_custom_timeframe 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-dd86b7ff26c5: score=0.82 status=qualified
+PASSED                                                                   [ 84%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_generate_specific_controls 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-a85f9938fe81: score=1.00 status=qualified
+PASSED                                                                   [ 84%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_generate_with_platform_data 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-745f82294f68: score=1.00 status=qualified
+PASSED                                                                   [ 84%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_generate_without_data_lower_score 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-b406483e4792: score=0.82 status=qualified
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-360d09d30d1b: score=1.00 status=qualified
+PASSED                                                                   [ 84%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_overall_status_qualified 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-4f175a2a996c: score=1.00 status=qualified
+PASSED                                                                   [ 85%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_overall_status_not_qualified 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-cba68fd8dbe5: score=0.00 status=not_qualified
+PASSED                                                                   [ 85%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_get_pack 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-f1a5b1436a94: score=0.82 status=qualified
+PASSED                                                                   [ 85%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_get_pack_not_found PASSED [ 85%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_list_packs 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-d7c304d7ad20: score=0.82 status=qualified
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-b699c48bbd4d: score=0.82 status=qualified
+PASSED                                                                   [ 86%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_summary_structure 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-919a39941419: score=0.91 status=qualified
+PASSED                                                                   [ 86%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_tsc_breakdown_in_summary 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-089b4256823a: score=0.82 status=qualified
+PASSED                                                                   [ 86%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_invalid_control_skipped 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-aa451de66d26: score=1.00 status=qualified
+PASSED                                                                   [ 86%]
+tests/test_soc2_evidence_generator.py::TestSOC2EvidenceGenerator::test_pipeline_data_stored 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [    INFO] core.soc2_evidence_generator: Generated evidence pack EP-6eab57a31d9e: score=0.91 status=qualified
+PASSED                                                                   [ 87%]
+tests/test_soc2_evidence_generator.py::TestGetEvidenceGenerator::test_returns_instance PASSED [ 87%]
+tests/test_soc2_evidence_generator.py::TestGetEvidenceGenerator::test_returns_same_instance PASSED [ 87%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_unknown_check PASSED [ 87%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_check_with_zero_findings PASSED [ 88%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_check_with_positive_findings PASSED [ 88%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_check_rbac PASSED [ 88%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_check_change_detection_no_nodes PASSED [ 88%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_check_change_detection_with_nodes PASSED [ 89%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_incident_triage_with_cases PASSED [ 89%]
+tests/test_soc2_evidence_generator.py::TestEvaluateCheck::test_incident_triage_no_cases_no_findings PASSED [ 89%]
+tests/test_soc2_evidence_generator.py::TestAssessControl::test_effective_when_all_pass PASSED [ 89%]
+tests/test_soc2_evidence_generator.py::TestAssessControl::test_not_effective_when_most_fail PASSED [ 90%]
+tests/test_soc2_evidence_generator.py::TestAssessControl::test_needs_improvement_partial PASSED [ 90%]
+tests/test_soc2_evidence_generator.py::TestAssessControl::test_evidence_items_populated PASSED [ 90%]
+tests/test_supply_chain_engine_unit.py::TestLevenshteinDistance::test_identical PASSED [ 90%]
+tests/test_supply_chain_engine_unit.py::TestLevenshteinDistance::test_empty_strings PASSED [ 91%]
+tests/test_supply_chain_engine_unit.py::TestLevenshteinDistance::test_one_empty PASSED [ 91%]
+tests/test_supply_chain_engine_unit.py::TestLevenshteinDistance::test_one_char_diff PASSED [ 91%]
+tests/test_supply_chain_engine_unit.py::TestLevenshteinDistance::test_two_char_diff PASSED [ 91%]
+tests/test_supply_chain_engine_unit.py::TestLevenshteinDistance::test_substitution PASSED [ 92%]
+tests/test_supply_chain_engine_unit.py::TestLevenshteinDistance::test_symmetry PASSED [ 92%]
+tests/test_supply_chain_engine_unit.py::TestTyposquatting::test_exact_known_package_no_finding PASSED [ 92%]
+tests/test_supply_chain_engine_unit.py::TestTyposquatting::test_one_char_typosquat_npm PASSED [ 92%]
+tests/test_supply_chain_engine_unit.py::TestTyposquatting::test_two_char_typosquat PASSED [ 93%]
+tests/test_supply_chain_engine_unit.py::TestTyposquatting::test_no_typosquat_for_distant_name PASSED [ 93%]
+tests/test_supply_chain_engine_unit.py::TestTyposquatting::test_unknown_pm_no_findings PASSED [ 93%]
+tests/test_supply_chain_engine_unit.py::TestKnownMalicious::test_malicious_pattern_match PASSED [ 93%]
+tests/test_supply_chain_engine_unit.py::TestKnownMalicious::test_backdoor_pattern PASSED [ 94%]
+tests/test_supply_chain_engine_unit.py::TestKnownMalicious::test_clean_package PASSED [ 94%]
+tests/test_supply_chain_engine_unit.py::TestProvenance::test_no_provenance PASSED [ 94%]
+tests/test_supply_chain_engine_unit.py::TestProvenance::test_has_provenance PASSED [ 94%]
+tests/test_supply_chain_engine_unit.py::TestProvenance::test_unknown_provenance PASSED [ 95%]
+tests/test_supply_chain_engine_unit.py::TestHealth::test_new_package PASSED [ 95%]
+tests/test_supply_chain_engine_unit.py::TestHealth::test_old_enough_package PASSED [ 95%]
+tests/test_supply_chain_engine_unit.py::TestHealth::test_low_downloads PASSED [ 95%]
+tests/test_supply_chain_engine_unit.py::TestHealth::test_abandoned PASSED [ 96%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzePackages::test_clean_packages PASSED [ 96%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzePackages::test_risky_packages PASSED [ 96%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzePackages::test_result_to_dict PASSED [ 96%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzePackages::test_risk_score_calculation PASSED [ 97%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzePackages::test_risk_score_with_findings PASSED [ 97%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzeSBOM::test_cyclonedx_sbom PASSED [ 97%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzeSBOM::test_spdx_sbom PASSED [ 97%]
+tests/test_supply_chain_engine_unit.py::TestAnalyzeSBOM::test_empty_sbom PASSED [ 98%]
+tests/test_supply_chain_engine_unit.py::TestSingleton::test_singleton PASSED [ 98%]
+tests/test_supply_chain_engine_unit.py::TestDataclasses::test_finding_to_dict PASSED [ 98%]
+tests/test_supply_chain_engine_unit.py::TestDataclasses::test_risk_score_to_dict PASSED [ 98%]
+tests/test_supply_chain_engine_unit.py::TestMaintainer::test_single_maintainer PASSED [ 99%]
+tests/test_supply_chain_engine_unit.py::TestMaintainer::test_ownership_transfer PASSED [ 99%]
+tests/test_telemetry_runtime.py::test_telemetry_disable_env PASSED       [ 99%]
+tests/test_telemetry_runtime.py::test_telemetry_reconfigure_noop 
+-------------------------------- live log call ---------------------------------
+2026-05-02 15:28:21 [ WARNING] opentelemetry.trace: Overriding of current TracerProvider is not allowed
+2026-05-02 15:28:21 [ WARNING] opentelemetry.metrics._internal: Overriding of current MeterProvider is not allowed
+2026-05-02 15:28:21 [    INFO] telemetry: Telemetry configured for fixops-platform, endpoint: https://http.butterflyotel.online
+PASSED                                                                   [100%]
+
+=================================== FAILURES ===================================
+______________________________ test_mitre_health _______________________________
+
+    def test_mitre_health():
+        r = requests.get(f"{API}/mitre/health", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:50: AssertionError
+______________________________ test_mitre_tactics ______________________________
+
+    def test_mitre_tactics():
+        r = requests.get(f"{API}/mitre/tactics", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:62: AssertionError
+____________________________ test_mitre_techniques _____________________________
+
+    def test_mitre_techniques():
+        r = requests.get(f"{API}/mitre/techniques", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:75: AssertionError
+______________________________ test_mitre_cwe_89 _______________________________
+
+    def test_mitre_cwe_89():
+        """SQL Injection should map to T1190 (Exploit Public-Facing App)"""
+        r = requests.get(f"{API}/mitre/cwe/89", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:85: AssertionError
+______________________________ test_mitre_cwe_79 _______________________________
+
+    def test_mitre_cwe_79():
+        """XSS should map to relevant techniques"""
+        r = requests.get(f"{API}/mitre/cwe/79", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:96: AssertionError
+______________________________ test_mitre_cwe_120 ______________________________
+
+    def test_mitre_cwe_120():
+        """Buffer overflow should map to T1068 or T1203"""
+        r = requests.get(f"{API}/mitre/cwe/120", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:105: AssertionError
+___________________________ test_mitre_map_findings ____________________________
+
+    def test_mitre_map_findings():
+        """Map multiple findings to techniques"""
+        r = requests.post(f"{API}/mitre/map-findings", headers=HEADERS, json={
+            "findings": [
+                {"id": "f1", "title": "SQL Injection", "cwe_id": "89", "severity": "critical"},
+                {"id": "f2", "title": "XSS", "cwe_id": "79", "severity": "high"},
+                {"id": "f3", "title": "Buffer Overflow", "cwe_id": "120", "severity": "critical"},
+                {"id": "f4", "title": "SSRF", "cwe_id": "918", "severity": "high"},
+                {"id": "f5", "title": "Deserialization", "cwe_id": "502", "severity": "critical"},
+            ]
+        })
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:122: AssertionError
+_____________________________ test_mitre_cve_log4j _____________________________
+
+    def test_mitre_cve_log4j():
+        """Log4Shell CVE should map to techniques"""
+        r = requests.post(f"{API}/mitre/map-findings", headers=HEADERS, json={
+            "findings": [
+                {"id": "f1", "title": "Log4j RCE", "cve_id": "CVE-2021-44228", "severity": "critical"}
+            ]
+        })
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:137: AssertionError
+____________________________ test_mitre_kill_chain _____________________________
+
+    def test_mitre_kill_chain():
+        """Kill chain analysis should show 14 phases"""
+        r = requests.post(f"{API}/mitre/kill-chain", headers=HEADERS, json={
+            "findings": [
+                {"id": "f1", "title": "SQL Injection", "cwe_id": "89", "severity": "critical"},
+                {"id": "f2", "title": "XSS", "cwe_id": "79", "severity": "high"},
+                {"id": "f3", "title": "Buffer Overflow", "cwe_id": "120", "severity": "critical"},
+            ]
+        })
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:152: AssertionError
+__________________________ test_mitre_navigator_json ___________________________
+
+    def test_mitre_navigator_json():
+        """Navigator JSON should be valid ATT&CK Navigator format"""
+        r = requests.post(f"{API}/mitre/navigator-json", headers=HEADERS, json={
+            "findings": [
+                {"id": "f1", "title": "SQL Injection", "cwe_id": "89", "severity": "critical"}
+            ],
+            "layer_name": "Test Assessment"
+        })
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:167: AssertionError
+______________________________ test_mitre_no_auth ______________________________
+
+    def test_mitre_no_auth():
+        """MITRE endpoints should reject unauthenticated requests"""
+        r = requests.get(f"{API}/mitre/health")
+>       assert r.status_code in [401, 403], f"Expected 401/403, got {r.status_code}"
+E       AssertionError: Expected 401/403, got 429
+E       assert 429 in [401, 403]
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:180: AssertionError
+______________________________ test_airgap_status ______________________________
+
+    def test_airgap_status():
+        r = requests.get(f"{API}/airgap/status", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:193: AssertionError
+______________________________ test_airgap_health ______________________________
+
+    def test_airgap_health():
+        r = requests.get(f"{API}/airgap/health", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:203: AssertionError
+__________________________ test_airgap_classification __________________________
+
+    def test_airgap_classification():
+        r = requests.get(f"{API}/airgap/classification", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:212: AssertionError
+________________________ test_airgap_set_classification ________________________
+
+    def test_airgap_set_classification():
+        """Set classification to SECRET"""
+        r = requests.post(f"{API}/airgap/configure", headers=HEADERS, json={
+            "classification_level": "SECRET"
+        })
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:224: AssertionError
+__________________________ test_airgap_secret_banner ___________________________
+
+    def test_airgap_secret_banner():
+        """Verify SECRET banner is correct"""
+        r = requests.get(f"{API}/airgap/classification", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:233: AssertionError
+___________________________ test_airgap_fips_status ____________________________
+
+    def test_airgap_fips_status():
+        r = requests.get(f"{API}/airgap/fips/status", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:242: AssertionError
+___________________________ test_airgap_dependencies ___________________________
+
+    def test_airgap_dependencies():
+        r = requests.get(f"{API}/airgap/dependencies", headers=HEADERS)
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:254: AssertionError
+______________________________ test_airgap_reset _______________________________
+
+    def test_airgap_reset():
+        """Reset to UNCLASSIFIED"""
+        r = requests.post(f"{API}/airgap/configure", headers=HEADERS, json={
+            "classification_level": "UNCLASSIFIED"
+        })
+>       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:265: AssertionError
+_____________________________ test_airgap_no_auth ______________________________
+
+    def test_airgap_no_auth():
+        """Air-Gap endpoints should reject unauthenticated requests"""
+        r = requests.get(f"{API}/airgap/status")
+>       assert r.status_code in [401, 403], f"Expected 401/403, got {r.status_code}"
+E       AssertionError: Expected 401/403, got 429
+E       assert 429 in [401, 403]
+E        +  where 429 = <Response [429]>.status_code
+
+tests/test_mitre_airgap.py:272: AssertionError
+============================= slowest 10 durations =============================
+4.39s call     tests/test_autofix_engine_unit.py::TestMLConfidenceIntegration::test_compute_confidence_returns_float
+1.21s setup    tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_large_data
+1.01s setup    tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_init
+0.85s call     tests/test_quantum_crypto_unit.py::TestModuleFunctions::test_hybrid_sign
+0.73s call     tests/test_quantum_crypto_unit.py::TestModuleFunctions::test_hybrid_verify
+0.59s setup    tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_get_key_info
+0.53s setup    tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign
+0.52s setup    tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_empty_data
+0.44s setup    tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_and_verify
+0.32s setup    tests/test_quantum_crypto_unit.py::TestHybridQuantumSigner::test_sign_json
+=========================== short test summary info ============================
+FAILED tests/test_mitre_airgap.py::test_mitre_health - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_tactics - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_techniques - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_cwe_89 - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_cwe_79 - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_cwe_120 - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_map_findings - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_cve_log4j - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_kill_chain - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_navigator_json - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_mitre_no_auth - AssertionError: Expec...
+FAILED tests/test_mitre_airgap.py::test_airgap_status - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_airgap_health - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_airgap_classification - assert 429 ==...
+FAILED tests/test_mitre_airgap.py::test_airgap_set_classification - assert 42...
+FAILED tests/test_mitre_airgap.py::test_airgap_secret_banner - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_airgap_fips_status - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_airgap_dependencies - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_airgap_reset - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_airgap_no_auth - AssertionError: Expe...
+======================= 20 failed, 379 passed in 16.73s ========================
+rgap.py::test_airgap_reset - assert 429 == 200
+FAILED tests/test_mitre_airgap.py::test_airgap_no_auth - AssertionError: Expe...
+======================= 20 failed, 380 passed in 18.52s ========================

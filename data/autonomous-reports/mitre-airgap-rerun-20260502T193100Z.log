@@ -1,0 +1,37 @@
+============================= test session starts ==============================
+collected 20 items
+
+tests/test_mitre_airgap.py::test_mitre_health PASSED                     [  5%]
+tests/test_mitre_airgap.py::test_mitre_tactics PASSED                    [ 10%]
+tests/test_mitre_airgap.py::test_mitre_techniques PASSED                 [ 15%]
+tests/test_mitre_airgap.py::test_mitre_cwe_89 PASSED                     [ 20%]
+tests/test_mitre_airgap.py::test_mitre_cwe_79 PASSED                     [ 25%]
+tests/test_mitre_airgap.py::test_mitre_cwe_120 PASSED                    [ 30%]
+tests/test_mitre_airgap.py::test_mitre_map_findings PASSED               [ 35%]
+tests/test_mitre_airgap.py::test_mitre_cve_log4j PASSED                  [ 40%]
+tests/test_mitre_airgap.py::test_mitre_kill_chain PASSED                 [ 45%]
+tests/test_mitre_airgap.py::test_mitre_navigator_json PASSED             [ 50%]
+tests/test_mitre_airgap.py::test_mitre_no_auth PASSED                    [ 55%]
+tests/test_mitre_airgap.py::test_airgap_status PASSED                    [ 60%]
+tests/test_mitre_airgap.py::test_airgap_health PASSED                    [ 65%]
+tests/test_mitre_airgap.py::test_airgap_classification PASSED            [ 70%]
+tests/test_mitre_airgap.py::test_airgap_set_classification PASSED        [ 75%]
+tests/test_mitre_airgap.py::test_airgap_secret_banner PASSED             [ 80%]
+tests/test_mitre_airgap.py::test_airgap_fips_status PASSED               [ 85%]
+tests/test_mitre_airgap.py::test_airgap_dependencies PASSED              [ 90%]
+tests/test_mitre_airgap.py::test_airgap_reset PASSED                     [ 95%]
+tests/test_mitre_airgap.py::test_airgap_no_auth PASSED                   [100%]
+
+============================= slowest 10 durations =============================
+0.08s setup    tests/test_mitre_airgap.py::test_mitre_health
+0.02s call     tests/test_mitre_airgap.py::test_mitre_map_findings
+0.02s call     tests/test_mitre_airgap.py::test_mitre_navigator_json
+0.02s call     tests/test_mitre_airgap.py::test_mitre_cwe_89
+0.02s call     tests/test_mitre_airgap.py::test_mitre_health
+0.02s call     tests/test_mitre_airgap.py::test_airgap_reset
+0.02s call     tests/test_mitre_airgap.py::test_mitre_techniques
+0.02s call     tests/test_mitre_airgap.py::test_mitre_cve_log4j
+0.02s call     tests/test_mitre_airgap.py::test_mitre_cwe_79
+0.02s call     tests/test_mitre_airgap.py::test_mitre_kill_chain
+============================== 20 passed in 1.00s ==============================
+Failed to export metrics batch code: 404, reason: Not Found
