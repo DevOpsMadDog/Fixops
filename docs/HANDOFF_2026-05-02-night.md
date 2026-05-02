@@ -392,6 +392,45 @@ Sub_apps ARE wired (`register_aspm_routers`, `register_cspm_routers`, `register_
 
 **44 `beast-mode` commits on `features/intermediate-stage`** (was 40 at §14; Wave-D + Wave-E + B-pilot + this HANDOFF since).
 
+## 16. Dup-router cleanup wave 2 (2026-05-03 02:00–02:30)
+
+5 more dup-cleanup commits landed after §15:
+
+| SHA | Title | Routers | LOC delta | Routes delta |
+|-----|-------|---------|-----------|--------------|
+| `eef79d66` | Wave-B-batch-2 | 20 (app↔grc, byte-EQ) | -108 | -204 |
+| `874399e6` | Wave-C-pilot | 10 (app↔ctem, byte-EQ) | -65 | -97 |
+| `873d2d34` | Wave-B-batch-3 | 20 (app↔grc, byte-EQ) | -107 | -210 |
+| `5134c564` | **Wave-B-batch-3b SECURITY** | **59 (app↔grc unauth-bypass)** | **-354** | **-506** |
+| `5d5f2e5e` | Wave-C-batch-2 | 30 (app↔ctem; 29 byte-EQ + 1 auth-bypass) | <agent-reported> | <agent-reported> |
+
+### Critical security finding (Wave-B-batch-3b)
+
+57 of the original 109 app↔grc dups were NOT byte-equivalent — `grc_app.py` mounts had `Depends(_verify_api_key)` while `app.py` mounts were UNAUTHENTICATED. Each unauth dup was a **silent weaker-auth-chain bypass**.
+
+**Nuance discovered**: not fully open routes (router-level `api_key_auth` still ran), but the per-mount `_verify_api_key` extra gate was missing. Cleanup uniforms the auth posture to the stricter chain.
+
+**Live verification**: 50/59 returned 401 (auth required), 9/59 returned 429 (rate-limit fired before auth — also blocked), **0/59 returned 200** (no bypass). Auth boundary now uniform.
+
+### Cumulative cleanup metrics
+- **app↔grc**: 109/109 CLOSED (50 byte-EQ + 59 security)
+- **app↔ctem**: 40/114 closed (10 pilot + 30 batch-2)
+- **sub↔sub (Wave-D)**: 6/6 closed
+- **triplicates (Wave-E)**: 2/2 closed
+- **DEAD (Wave-A)**: 1/1 closed
+- **Total dup blocks removed**: 158 / 232 (68%)
+- **Cumulative app.py LOC removed**: ~1100+
+- **Cumulative silent routes shaved**: ~1100+ (8792 → 7670+)
+- **Beast Mode regression**: 351/351 PASS across all batches
+
+### Session total
+
+**50 `beast-mode` commits on `features/intermediate-stage`** (was 44 at §15; 6 more here including this HANDOFF).
+
+### Remaining
+- 74 app↔ctem dups (Wave-C-batch-3+ in flight)
+- Plus a handful of prefix-different mounts (defer or per-case review)
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
