@@ -495,3 +495,33 @@ Sub_apps ARE wired (`register_aspm_routers`, `register_cspm_routers`, `register_
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night. **STATUS: SESSION CLEAN, 100% DUP CLEANUP COMPLETE.***
+
+## 19. Suite-core silenced-imports cleanup (2026-05-03 03:00–03:20)
+
+After app.py was 100% cleaned, scanned suite-core/core engine modules for the same dead-code pattern. 728 .py files / 1164 silenced imports / 47 broken.
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `248911be` | Audit: suite-core triage | Read-only. 47 unique broken (of 344 unique imports). 7 DEAD + 18 FIX-IMPORT + 20 INSTALL/RETIRE-DEP + 2 TYPO. |
+| `55adab96` | Fix top-9 (2 typos + 7 dead deletes) | **Important nuance**: `air_gap_bundle EmitEvent` "critical typo" was actually unused dead scaffolding (real broadcast already worked via canonical `_emit_event()`); collapsed. `brain_pipeline blast_radius` was a real symbol-rename → built `_blast_radius_adapter` to maintain consumer surface (RESTORES Step-11 blast-radius scoring). 7 dead modules collapsed to honest placeholders (no fabrication). 351/351 PASS. |
+| `a4c3aa21` | Fix 18 symbol-renames | 1-line edits each across 8 engine files (autofix, aws_security_hub, compliance, feed_correlator, graphql_schema, pipeline_orchestrator, report_generator, report_scheduler). 351/351 PASS. |
+
+### Cumulative suite-core cleanup
+- 27 of 47 broken silenced imports fixed (57%)
+- Remaining 20 = INSTALL/RETIRE-DEP decisions (per-feature judgment, deferred)
+
+### Final session totals (locked v2)
+
+- **61 `beast-mode` commits on `features/intermediate-stage`**
+- **9/9 founder DoD items DONE**
+- **10/10 E2E PASS**
+- **753/753 Beast Mode regression GREEN**
+- **6722 routes mounted** (-2070 silent dups)
+- **0 cold-start warnings**
+- **232/232 dup blocks closed (100%)**
+- **27/47 suite-core broken imports fixed (57%)**
+- **184,414 graphify nodes / 574,972 edges / 9,014 communities**
+
+---
+
+*Updated: 2026-05-03 03:20. Session locked v2 with suite-core cleanup wave.*
