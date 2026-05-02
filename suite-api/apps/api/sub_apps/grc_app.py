@@ -1176,14 +1176,6 @@ def register_grc_routers(
     except ImportError:
         pass
 
-    # SCIF / air-gapped compliance (late-bound)
-    try:
-        from apps.api.scif_router import router as _scif_router_late
-        app.include_router(_scif_router_late, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted SCIF router at /api/v1/scif (late)")
-    except ImportError:
-        pass
-
     # Training (late-bound)
     try:
         from apps.api.training_router import router as _training_router
