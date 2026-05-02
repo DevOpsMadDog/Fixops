@@ -5399,12 +5399,6 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Security Awareness Training Tracker
     # -----------------------------------------------------------------------
-    try:
-        from apps.api.training_router import router as _training_router
-        app.include_router(_training_router)
-        _logger.info("Loaded Security Awareness Training router")
-    except ImportError as _e:
-        _logger.warning("Training router not available: %s", _e)
 
     # -----------------------------------------------------------------------
     # Breach Simulation Engine
@@ -6303,19 +6297,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_scoreboard_router import router as security_scoreboard_router
-        app.include_router(security_scoreboard_router)
-        _logger.info("Mounted Security Scoreboard router at /api/v1/security-scoreboard")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.vuln_exception_router import router as vuln_exception_router
-        app.include_router(vuln_exception_router)
-        _logger.info("Mounted Vulnerability Exception router at /api/v1/vuln-exceptions")
-    except ImportError:
-        pass
 
     try:
         from apps.api.auto_waiver_router import router as auto_waiver_router
@@ -6338,12 +6320,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.regulatory_reporting_router import router as regulatory_reporting_router
-        app.include_router(regulatory_reporting_router)
-        _logger.info("Mounted Regulatory Reporting router at /api/v1/regulatory-reporting")
-    except ImportError:
-        pass
 
     try:
         from apps.api.audit_management_router import router as audit_management_router
@@ -6352,12 +6328,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.export_coverage_router import router as export_coverage_router
-        app.include_router(export_coverage_router)
-        _logger.info("Mounted Export Coverage router at /api/v1/export-coverage")
-    except ImportError:
-        pass
 
     try:
         from apps.api.supply_chain_attack_detection_router import router as supply_chain_attack_detection_router
@@ -6366,34 +6336,10 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.vendor_compliance_router import router as vendor_compliance_router
-        app.include_router(vendor_compliance_router)
-        _logger.info("Mounted Vendor Compliance router at /api/v1/vendor-compliance")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.cloud_governance_router import router as cloud_governance_router
-        app.include_router(cloud_governance_router)
-        _logger.info("Mounted Cloud Governance router at /api/v1/cloud-governance")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.policy_enforcement_router import router as policy_enforcement_router
-        app.include_router(policy_enforcement_router)
-        _logger.info("Mounted Policy Enforcement router at /api/v1/policy-enforcement")
-    except ImportError:
-        pass
 
     # GAP-062 (Sprint 3): Unified rule taxonomy registry + sync shim
-    try:
-        from apps.api.unified_rules_router import router as unified_rules_router
-        app.include_router(unified_rules_router)
-        _logger.info("Mounted Unified Rules router at /api/v1/rules/unified")
-    except ImportError:
-        pass
 
 
     try:
@@ -6403,26 +6349,8 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_budget_router import router as security_budget_router
-        app.include_router(security_budget_router)
-        _logger.info("Mounted Security Budget router at /api/v1/security-budget")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.compliance_gap_router import router as compliance_gap_router
-        app.include_router(compliance_gap_router)
-        _logger.info("Mounted Compliance Gap router at /api/v1/compliance-gaps")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.ai_governance_router import router as ai_governance_router
-        app.include_router(ai_governance_router)
-        _logger.info("Mounted AI Governance router at /api/v1/ai-governance")
-    except ImportError:
-        pass
 
 
 
@@ -6461,12 +6389,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.subsidiary_attribution_router import router as subsidiary_attribution_router
-        app.include_router(subsidiary_attribution_router)
-        _logger.info("Mounted Subsidiary Attribution router at /api/v1/subsidiary")
-    except ImportError:
-        pass
 
 
     try:
@@ -6484,12 +6406,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_tabletop_router import router as security_tabletop_router
-        app.include_router(security_tabletop_router)
-        _logger.info("Mounted Security Tabletop router at /api/v1/tabletop")
-    except ImportError:
-        pass
 
     try:
         from apps.api.data_exfiltration_router import router as data_exfiltration_router
@@ -6517,26 +6433,8 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_posture_benchmarking_router import router as security_posture_benchmarking_router
-        app.include_router(security_posture_benchmarking_router)
-        _logger.info("Mounted Security Posture Benchmarking router at /api/v1/posture-benchmarking")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.security_posture_pdf_router import router as security_posture_pdf_router
-        app.include_router(security_posture_pdf_router)
-        _logger.info("Mounted Security Posture PDF router at /api/v1/security-posture-pdf/download")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.quantum_safe_crypto_router import router as quantum_safe_crypto_router
-        app.include_router(quantum_safe_crypto_router)
-        _logger.info("Mounted Quantum-Safe Crypto router at /api/v1/quantum-crypto")
-    except ImportError:
-        pass
 
     try:
         from apps.api.ai_powered_soc_router import router as ai_powered_soc_router
@@ -6594,12 +6492,6 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.security_awareness_gamification_router import router as security_awareness_gamification_router
-        app.include_router(security_awareness_gamification_router)
-        _logger.info("Mounted Security Awareness Gamification router at /api/v1/awareness-gamification")
-    except ImportError:
-        pass
 
     try:
         from apps.api.vulnerability_prioritization_router import router as vulnerability_prioritization_router
@@ -6616,27 +6508,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_posture_scoring_router import router as security_posture_scoring_router
-        app.include_router(security_posture_scoring_router)
-        _logger.info("Mounted Security Posture Scoring router at /api/v1/posture-scoring")
-    except ImportError:
-        pass
 
 
-    try:
-        from apps.api.risk_register_engine_router import router as risk_register_engine_router
-        app.include_router(risk_register_engine_router)
-        _logger.info("Mounted Risk Register Engine router at /api/v1/risk-register-engine")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.security_change_management_router import router as security_change_management_router
-        app.include_router(security_change_management_router)
-        _logger.info("Mounted Security Change Management router at /api/v1/change-management")
-    except ImportError:
-        pass
 
     # Wave 26 routers
     try:
@@ -6678,12 +6552,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_awareness_metrics_router import router as security_awareness_metrics_router
-        app.include_router(security_awareness_metrics_router)
-        _logger.info("Mounted Security Awareness Metrics router at /api/v1/awareness-metrics")
-    except ImportError:
-        pass
 
 
     try:
@@ -6701,12 +6569,6 @@ def create_app() -> FastAPI:
         pass
 
     # Wave 28 routers
-    try:
-        from apps.api.access_request_management_router import router as access_request_management_router
-        app.include_router(access_request_management_router)
-        _logger.info("Mounted Access Request Management router at /api/v1/access-requests")
-    except ImportError:
-        pass
 
 
 
@@ -6733,19 +6595,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.awareness_campaign_router import router as awareness_campaign_router
-        app.include_router(awareness_campaign_router)
-        _logger.info("Mounted Awareness Campaign router at /api/v1/awareness-campaigns")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.risk_treatment_router import router as risk_treatment_router
-        app.include_router(risk_treatment_router)
-        _logger.info("Mounted Risk Treatment router at /api/v1/risk-treatment")
-    except ImportError:
-        pass
 
     try:
         from apps.api.data_discovery_router import router as data_discovery_router
@@ -6755,12 +6605,6 @@ def create_app() -> FastAPI:
         pass
 
     # Wave 30 routers
-    try:
-        from apps.api.compliance_mapping_router import router as compliance_mapping_router
-        app.include_router(compliance_mapping_router)
-        _logger.info("Mounted Compliance Mapping router at /api/v1/compliance-mapping")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_brief_router import router as threat_brief_router
@@ -6786,19 +6630,7 @@ def create_app() -> FastAPI:
     # org_hierarchy_router — moved to platform_app.py (Wave 5)
 
     # Wave 31 routers
-    try:
-        from apps.api.user_access_review_router import router as user_access_review_router
-        app.include_router(user_access_review_router)
-        _logger.info("Mounted User Access Review router at /api/v1/access-reviews")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.security_posture_history_router import router as security_posture_history_router
-        app.include_router(security_posture_history_router)
-        _logger.info("Mounted Security Posture History router at /api/v1/posture-history")
-    except ImportError:
-        pass
 
     try:
         from apps.api.metrics_timeseries_router import router as metrics_timeseries_router
@@ -6807,12 +6639,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.incident_lessons_router import router as incident_lessons_router
-        app.include_router(incident_lessons_router)
-        _logger.info("Mounted Incident Lessons router at /api/v1/incident-lessons")
-    except ImportError:
-        pass
 
 
     try:
@@ -6822,20 +6648,8 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_okr_router import router as security_okr_router
-        app.include_router(security_okr_router)
-        _logger.info("Mounted Security OKR router at /api/v1/security-okrs")
-    except ImportError:
-        pass
 
     # Wave 32 pre-wiring (engines pending creation)
-    try:
-        from apps.api.compliance_workflow_router import router as compliance_workflow_router
-        app.include_router(compliance_workflow_router)
-        _logger.info("Mounted Compliance Workflow router at /api/v1/compliance-workflows")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_landscape_router import router as threat_landscape_router
@@ -6844,19 +6658,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_posture_trend_router import router as security_posture_trend_router
-        app.include_router(security_posture_trend_router)
-        _logger.info("Mounted Security Posture Trend router at /api/v1/posture-trends")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.access_governance_router import router as access_governance_router
-        app.include_router(access_governance_router)
-        _logger.info("Mounted Access Governance router at /api/v1/access-governance")
-    except ImportError:
-        pass
 
     try:
         from apps.api.network_threat_router import router as network_threat_router
@@ -6873,19 +6675,7 @@ def create_app() -> FastAPI:
         pass
 
     # Wave 33 pre-wiring (engines pending creation)
-    try:
-        from apps.api.security_questionnaire_router import router as security_questionnaire_router
-        app.include_router(security_questionnaire_router)
-        _logger.info("Mounted Security Questionnaire router at /api/v1/security-questionnaires")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.risk_scenario_router import router as risk_scenario_router
-        app.include_router(risk_scenario_router)
-        _logger.info("Mounted Risk Scenario router at /api/v1/risk-scenarios")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_feed_subscription_router import router as threat_feed_subscription_router
@@ -6901,20 +6691,8 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.control_testing_router import router as control_testing_router
-        app.include_router(control_testing_router)
-        _logger.info("Mounted Control Testing router at /api/v1/control-testing")
-    except ImportError:
-        pass
 
     # Wave 34 pre-wiring (engines pending creation)
-    try:
-        from apps.api.security_exception_workflow_router import router as security_exception_workflow_router
-        app.include_router(security_exception_workflow_router)
-        _logger.info("Mounted Security Exception Workflow router at /api/v1/exception-workflow")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_actor_tracking_router import router as threat_actor_tracking_router
@@ -6930,27 +6708,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_benchmark_router import router as security_benchmark_router
-        app.include_router(security_benchmark_router)
-        _logger.info("Mounted Security Benchmark router at /api/v1/security-benchmarks")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.security_culture_router import router as security_culture_router
-        app.include_router(security_culture_router)
-        _logger.info("Mounted Security Culture router at /api/v1/security-culture")
-    except ImportError:
-        pass
 
     # Wave 35 pre-wiring (engines pending creation)
-    try:
-        from apps.api.security_health_scorecard_router import router as security_health_scorecard_router
-        app.include_router(security_health_scorecard_router)
-        _logger.info("Mounted Security Health Scorecard router at /api/v1/health-scorecard")
-    except ImportError:
-        pass
 
     try:
         from apps.api.compliance_calendar_router import router as compliance_calendar_router
@@ -6966,12 +6726,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_investment_router import router as security_investment_router
-        app.include_router(security_investment_router)
-        _logger.info("Mounted Security Investment router at /api/v1/security-investment")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_modeling_pipeline_router import router as threat_modeling_pipeline_router
@@ -6989,12 +6743,6 @@ def create_app() -> FastAPI:
         pass
 
     # Wave 36 pre-wiring (engines pending creation)
-    try:
-        from apps.api.security_posture_maturity_router import router as security_posture_maturity_router
-        app.include_router(security_posture_maturity_router)
-        _logger.info("Mounted Security Posture Maturity router at /api/v1/posture-maturity")
-    except ImportError:
-        pass
 
 
     # security_operations_metrics_router — moved to platform_app.py (Wave 5)
@@ -7033,24 +6781,12 @@ def create_app() -> FastAPI:
     # 80123d56, 06e9c24b
     # GAP-069 Dynamic Rule DSL — user-authored YAML/JSON detection rules
     # GAP-022/023 Compliance Seed — 100+ framework controls + 3000+ policy rules
-    try:
-        from apps.api.compliance_seed_router import router as compliance_seed_router
-        app.include_router(compliance_seed_router)
-        _logger.info("Mounted Compliance Seed router at /api/v1/compliance-seed")
-    except ImportError:
-        pass
 
     # GAP-063 Findings Lifecycle — firstSeenAt/previousViolationId/resolvedAt chain
     # GAP-064 Local File Store — .fixops/ zero-infra store for npx fixops analyze
     # local_file_store_router — moved to platform_app.py (Wave 5)
 
 
-    try:
-        from apps.api.security_gap_analysis_router import router as security_gap_analysis_router
-        app.include_router(security_gap_analysis_router)
-        _logger.info("Mounted Security Gap Analysis router at /api/v1/gap-analysis")
-    except ImportError:
-        pass
 
     try:
         from apps.api.alert_enrichment_router import router as alert_enrichment_router
@@ -7059,12 +6795,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_baseline_router import router as security_baseline_router
-        app.include_router(security_baseline_router)
-        _logger.info("Mounted Security Baseline router at /api/v1/security-baselines")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_response_router import router as threat_response_router
@@ -7073,20 +6803,8 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_awareness_program_router import router as security_awareness_program_router
-        app.include_router(security_awareness_program_router)
-        _logger.info("Mounted Security Awareness Program router at /api/v1/awareness-program")
-    except ImportError:
-        pass
 
     # Wave 38 pre-wiring (engines pending creation)
-    try:
-        from apps.api.security_posture_reporting_router import router as security_posture_reporting_router
-        app.include_router(security_posture_reporting_router)
-        _logger.info("Mounted Security Posture Reporting router at /api/v1/posture-reports")
-    except ImportError:
-        pass
 
     try:
         from apps.api.network_anomaly_router import router as network_anomaly_router
@@ -7103,35 +6821,11 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.evidence_vault_router import router as evidence_vault_router
-        app.include_router(evidence_vault_router)
-        _logger.info("Mounted Evidence Vault router at /api/v1/evidence-vault")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.security_service_catalog_router import router as security_service_catalog_router
-        app.include_router(security_service_catalog_router)
-        _logger.info("Mounted Security Service Catalog router at /api/v1/service-catalog")
-    except ImportError:
-        pass
 
     # Wave 39 pre-wiring (engines pending creation)
-    try:
-        from apps.api.risk_quantification_engine_router import router as risk_quantification_engine_router
-        app.include_router(risk_quantification_engine_router)
-        _logger.info("Mounted Risk Quantification router at /api/v1/risk-quant")
-    except ImportError:
-        pass
 
     # GAP-028 FAIR per-BU + GAP-051 ROI-of-fixes trend
-    try:
-        from apps.api.fair_per_bu_router import router as fair_per_bu_router
-        app.include_router(fair_per_bu_router)
-        _logger.info("Mounted FAIR per-BU router at /api/v1/fair")
-    except ImportError:
-        pass
 
     try:
         from apps.api.cyber_threat_modeling_router import router as cyber_threat_modeling_router
@@ -7140,19 +6834,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_capacity_planning_router import router as security_capacity_planning_router
-        app.include_router(security_capacity_planning_router)
-        _logger.info("Mounted Security Capacity Planning router at /api/v1/capacity-planning")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.tprm_exchange_router import router as tprm_exchange_router
-        app.include_router(tprm_exchange_router)
-        _logger.info("Mounted TPRM Exchange router at /api/v1/tprm-exchange")
-    except ImportError:
-        pass
 
     try:
         from apps.api.security_event_timeline_router import router as security_event_timeline_router
@@ -7169,12 +6851,6 @@ def create_app() -> FastAPI:
         pass
 
     # Wave 40 pre-wiring (engines pending creation)
-    try:
-        from apps.api.security_architecture_review_router import router as security_architecture_review_router
-        app.include_router(security_architecture_review_router)
-        _logger.info("Mounted Security Architecture Review router at /api/v1/arch-review")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_hunting_playbook_router import router as threat_hunting_playbook_router
@@ -7197,12 +6873,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.security_program_maturity_router import router as security_program_maturity_router
-        app.include_router(security_program_maturity_router)
-        _logger.info("Mounted Security Program Maturity router at /api/v1/program-maturity")
-    except ImportError:
-        pass
 
     try:
         from apps.api.cloud_incident_response_router import router as cloud_incident_response_router
@@ -7215,12 +6885,6 @@ def create_app() -> FastAPI:
     # GAP-065 — architecture-aware graph (layer classifier + flow tracer)
     # GAP-010 — function-level reachability (Endor Labs moat)
     # Wave 41 pre-wiring (engines pending creation)
-    try:
-        from apps.api.privacy_impact_assessment_router import router as privacy_impact_assessment_router
-        app.include_router(privacy_impact_assessment_router)
-        _logger.info("Mounted Privacy Impact Assessment router at /api/v1/privacy-impact")
-    except ImportError:
-        pass
 
     try:
         from apps.api.threat_indicator_router import router as threat_indicator_router
@@ -7249,19 +6913,7 @@ def create_app() -> FastAPI:
     # GAP-012 Deep Code Analysis — Apiiro DCA parity
     # NEW-G070 Semantic Analyzer — tree-sitter + LSP + ORM schema readers
     # GAP-042 FIPS 140-3 compliance mode + PQC inventory (ML-KEM / ML-DSA / SPHINCS+)
-    try:
-        from apps.api.fips_router import router as fips_router
-        app.include_router(fips_router)
-        _logger.info("Mounted FIPS Compliance router at /api/v1/fips")
-    except ImportError:
-        pass
 
-    try:
-        from apps.api.security_training_effectiveness_router import router as security_training_effectiveness_router
-        app.include_router(security_training_effectiveness_router)
-        _logger.info("Mounted Security Training Effectiveness router at /api/v1/training-effectiveness")
-    except ImportError:
-        pass
 
 
     # sse_router — moved to platform_app.py (Wave 5)
@@ -7348,12 +7000,6 @@ def create_app() -> FastAPI:
 
     # regulatory_tracker_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.report_builder_router import router as report_builder_router
-        app.include_router(report_builder_router)
-        _logger.info("Mounted Report Builder router at /api/v1/report-builder")
-    except ImportError:
-        pass
 
     # session_router — moved to platform_app.py (Wave 5)
 
