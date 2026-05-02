@@ -73,6 +73,62 @@ class ViolationCreate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_microsegmentation_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """5-state envelope summarising microsegmentation posture for the org.
+
+    States: ok | warning | critical | empty | error
+    Calls the real engine — no mocks.
+    """
+    try:
+        stats = _get_engine().get_segmentation_stats(org_id)
+        total_segments = stats.get("total_segments", 0)
+        total_violations = stats.get("total_violations", 0)
+        open_violations = stats.get("open_violations", stats.get("violations_open", total_violations))
+
+        if total_segments == 0:
+            state = "empty"
+            message = (
+                "No microsegments defined. Author segments via "
+                "POST /api/v1/microsegmentation/segments."
+            )
+        elif open_violations > 10:
+            state = "critical"
+            message = f"{open_violations} open violation(s) across {total_segments} segment(s)."
+        elif open_violations > 0:
+            state = "warning"
+            message = f"{open_violations} open violation(s) across {total_segments} segment(s)."
+        else:
+            state = "ok"
+            message = f"{total_segments} segment(s) enforced, no open violations."
+
+        return {
+            "state": state,
+            "message": message,
+            "org_id": org_id,
+            "stats": stats,
+            "links": {
+                "segments": "/api/v1/microsegmentation/segments",
+                "policies": "/api/v1/microsegmentation/policies",
+                "violations": "/api/v1/microsegmentation/violations",
+                "stats": "/api/v1/microsegmentation/stats",
+            },
+        }
+    except Exception as exc:
+        _logger.exception("microsegmentation_summary_failed")
+        return {
+            "state": "error",
+            "message": str(exc),
+            "org_id": org_id,
+            "stats": {},
+            "links": {},
+        }
+
+
+# ---------------------------------------------------------------------------
 # Segment routes
 # ---------------------------------------------------------------------------
 

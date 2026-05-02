@@ -85,6 +85,59 @@ class CreateMitigationRuleRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get(
+    "/",
+    dependencies=[Depends(api_key_auth)],
+    summary="DDoS protection summary (5-state envelope)",
+)
+def get_ddos_summary(org_id: str = Query("default", description="Organisation identifier")) -> Dict[str, Any]:
+    """Return a 5-state envelope summarising DDoS protection posture for the org.
+
+    States: ok | warning | critical | empty | error
+    Always calls the real engine — no mocks, no stubs.
+    """
+    try:
+        stats = _get_engine().get_ddos_stats(org_id)
+        resources = stats.get("resources", 0)
+        attacks_24h = stats.get("attacks_24h", 0)
+        mitigated_pct = stats.get("mitigated_pct", 100.0)
+
+        if resources == 0:
+            state = "empty"
+            message = "No protected resources registered. Add resources via POST /resources."
+        elif attacks_24h > 0 and mitigated_pct < 80:
+            state = "critical"
+            message = f"{attacks_24h} attack(s) in the last 24 h; only {mitigated_pct:.0f}% mitigated."
+        elif attacks_24h > 0:
+            state = "warning"
+            message = f"{attacks_24h} attack(s) in the last 24 h; {mitigated_pct:.0f}% mitigated."
+        else:
+            state = "ok"
+            message = f"{resources} resource(s) protected, no attacks in the last 24 h."
+
+        return {
+            "state": state,
+            "message": message,
+            "org_id": org_id,
+            "stats": stats,
+            "links": {
+                "resources": "/api/v1/ddos-protection/resources",
+                "attacks": "/api/v1/ddos-protection/attacks",
+                "rules": "/api/v1/ddos-protection/rules",
+                "stats": "/api/v1/ddos-protection/stats",
+            },
+        }
+    except Exception as exc:
+        _logger.exception("ddos_summary_failed")
+        return {
+            "state": "error",
+            "message": str(exc),
+            "org_id": org_id,
+            "stats": {},
+            "links": {},
+        }
+
+
 @router.post(
     "/resources",
     dependencies=[Depends(api_key_auth)],

@@ -82,6 +82,51 @@ class CreatePolicyRequest(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_nac_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """5-state envelope summarising NAC posture for the org.
+
+    States: ok | warning | critical | empty | error
+    Calls the real engine — no mocks.
+    """
+    try:
+        stats = _get_engine().get_nac_stats(org_id)
+        total = stats.get("total_endpoints", 0)
+        blocked = stats.get("blocked", 0)
+        quarantined = stats.get("quarantined", 0)
+
+        if total == 0:
+            state = "empty"
+            message = "No endpoints enrolled. Register endpoints via POST /endpoints."
+        elif blocked > 0 or quarantined > 0:
+            state = "critical" if blocked > 0 else "warning"
+            message = f"{blocked} blocked, {quarantined} quarantined out of {total} endpoint(s)."
+        else:
+            state = "ok"
+            message = f"{total} endpoint(s) enrolled, none blocked or quarantined."
+
+        return {
+            "state": state,
+            "message": message,
+            "org_id": org_id,
+            "stats": stats,
+            "links": {
+                "endpoints": "/api/v1/nac/endpoints",
+                "policies": "/api/v1/nac/policies",
+                "stats": "/api/v1/nac/stats",
+            },
+        }
+    except Exception as exc:
+        _logger.exception("nac_summary_failed")
+        return {
+            "state": "error",
+            "message": str(exc),
+            "org_id": org_id,
+            "stats": {},
+            "links": {},
+        }
+
+
 @router.post("/endpoints", dependencies=[Depends(api_key_auth)])
 def register_endpoint(req: RegisterEndpointRequest) -> Dict[str, Any]:
     """Register a new network endpoint."""

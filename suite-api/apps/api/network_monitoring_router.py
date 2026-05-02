@@ -77,6 +77,63 @@ class TriggerAlertRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+
+
+@router.get("/", summary="Network monitoring summary (5-state envelope)")
+def get_network_monitoring_summary(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> Dict[str, Any]:
+    """5-state envelope summarising network monitoring posture for the org.
+
+    States: ok | warning | critical | empty | error
+    Calls the real engine — no mocks.
+    """
+    engine = _get_engine()
+    try:
+        stats = engine.get_monitoring_stats(org_id)
+        interfaces = stats.get("total_interfaces", 0)
+        active_alerts = stats.get("active_alerts", stats.get("alerts_triggered", 0))
+        critical_alerts = stats.get("critical_alerts", 0)
+
+        if interfaces == 0:
+            state = "empty"
+            message = "No interfaces registered. Add interfaces via POST /interfaces."
+        elif critical_alerts > 0:
+            state = "critical"
+            message = f"{critical_alerts} critical alert(s) across {interfaces} interface(s)."
+        elif active_alerts > 0:
+            state = "warning"
+            message = f"{active_alerts} active alert(s) across {interfaces} interface(s)."
+        else:
+            state = "ok"
+            message = f"{interfaces} interface(s) monitored, no active alerts."
+
+        return {
+            "state": state,
+            "message": message,
+            "org_id": org_id,
+            "stats": stats,
+            "links": {
+                "interfaces": "/api/v1/network-monitoring/interfaces",
+                "alert_rules": "/api/v1/network-monitoring/alert-rules",
+                "alerts": "/api/v1/network-monitoring/alerts",
+                "stats": "/api/v1/network-monitoring/stats",
+            },
+        }
+    except Exception as exc:
+        logger.exception("network_monitoring_summary_failed")
+        return {
+            "state": "error",
+            "message": str(exc),
+            "org_id": org_id,
+            "stats": {},
+            "links": {},
+        }
+
+
+# ---------------------------------------------------------------------------
 # Interfaces
 # ---------------------------------------------------------------------------
 
