@@ -28,29 +28,11 @@ from core.services.identity import IdentityResolver
 # --------------------------------------------------------------------------- #
 
 if TYPE_CHECKING:  # pragma: no cover — types only
-    from core.ai_agents import AIAgentAdvisor
-    from core.analytics import ROIDashboard
-    from core.compliance import ComplianceEvaluator
-    from core.context_engine import ContextEngine
-    from core.enhanced_decision import EnhancedDecisionEngine
-    from core.evidence import EvidenceHub
-    from core.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
-    from core.iac import IaCPostureEvaluator
-    from core.iac_db import IaCDB
     from core.modules import PipelineContext
-    from core.onboarding import OnboardingGuide
-    from core.performance import PerformanceSimulator
-    from core.policy import PolicyAutomation
-    from core.probabilistic import ProbabilisticForecastEngine
-    from core.processing_layer import ProcessingLayer
     from core.services.deduplication import DeduplicationService
-    from core.severity_promotion import SeverityPromotionEngine
-    from core.ssdlc import SSDLCEvaluator
-    from core.tenancy import TenantLifecycleManager
     from core.vector_store import SecurityPatternMatcher
     from domain import CrosswalkRow
 
-    from .knowledge_graph import KnowledgeGraphService
 
 
 @lru_cache(maxsize=1)

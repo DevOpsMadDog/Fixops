@@ -34,7 +34,6 @@ import threading
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlencode
 
 from connectors._emit import emit_connector_event
 from connectors.defender_xdr_connector import _normalize_alert

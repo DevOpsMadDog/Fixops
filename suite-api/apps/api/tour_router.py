@@ -27,10 +27,8 @@ import logging
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import threading
-import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,7 +36,7 @@ from typing import Any, AsyncGenerator, Dict, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, HttpUrl, field_validator
+from pydantic import BaseModel, field_validator
 
 logger = logging.getLogger(__name__)
 

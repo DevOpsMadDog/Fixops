@@ -39,7 +39,7 @@ import threading
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from connectors._emit import emit_connector_event
 

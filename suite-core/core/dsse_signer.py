@@ -35,7 +35,6 @@ import hashlib
 import json
 import logging
 import os
-import stat
 import threading
 from pathlib import Path
 from typing import Any, Dict, Optional

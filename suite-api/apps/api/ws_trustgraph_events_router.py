@@ -81,7 +81,6 @@ try:
 except ImportError:  # pragma: no cover — sitecustomize.py path injection should make this work
     from suite_core.core.trustgraph_event_bus import (  # type: ignore[no-redef]
         ALL_EVENT_TYPES,
-        EventBus as TrustGraphEventBus,
         get_event_bus,
     )
 
