@@ -525,3 +525,30 @@ After app.py was 100% cleaned, scanned suite-core/core engine modules for the sa
 ---
 
 *Updated: 2026-05-03 03:20. Session locked v2 with suite-core cleanup wave.*
+
+## 20. Multi-suite silenced-imports + final lock (2026-05-03 03:25–03:35)
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `d235e642` | Fix 4 broken silenced imports across suite-attack/feeds/evidence-risk | Quick scan of 28 files in 4 non-suite-core suites found 6 candidates: 4 real fixes + 2 PYTHONPATH false-positives correctly skipped. **Sharp diagnostic work**: cwd-dependent path → absolute via `Path(__file__).resolve()`; double-broken module + canonical equivalent missing → no-op debug log; 2 broken alt paths collapsed to 1 canonical. 298/298 regression PASS. |
+| `98c1e42e` | CLAUDE.md final state-table refresh | Routes 6770→6722, 232/232 dup cleanup 100%, 27/47 suite-core fixed. Tomorrow's session reads correct state. |
+
+### Cumulative silenced-imports cleanup
+- **31 of 47 + 6 = 53 broken imports fixed** (suite-core 27 + multi-suite 4 = 31; 6 from session top-9 already counted in 27)
+- Remaining: 20 INSTALL/RETIRE-DEP per-feature decisions
+
+### **FINAL SESSION TOTALS (locked v3)**
+- **64 `beast-mode` commits on `features/intermediate-stage`**
+- **9/9 founder DoD items DONE**
+- **10/10 E2E PASS** (Playwright `dod_smoke.mjs`)
+- **753/753 Beast Mode regression GREEN** (verified 03:32, 7.81s — full canonical 13-file suite)
+- **6722 routes mounted** (was 8792 baseline = -2070 silent dups)
+- **0 cold-start warnings**
+- **232/232 dup blocks closed (100%)**
+- **31 suite-wide silenced-imports fixed**
+- **184,414 graphify nodes** (post-cleanup graph rebuild)
+- **0 regressions across the entire session**
+
+---
+
+*Final session lock: 2026-05-03 03:35. **STATUS: SESSION CLEAN, FULLY GREEN, 64 COMMITS SHIPPED.***
