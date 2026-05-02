@@ -885,14 +885,6 @@ def register_ctem_routers(
     except ImportError:
         pass
 
-    # Incident Cost (Wave 34)
-    try:
-        from apps.api.incident_cost_router import router as incident_cost_router
-        app.include_router(incident_cost_router)
-        _logger.info("Mounted Incident Cost router at /api/v1/incident-costs")
-    except ImportError:
-        pass
-
     # Cyber Resilience (Wave 35)
     try:
         from apps.api.cyber_resilience_router import router as cyber_resilience_router
@@ -1082,14 +1074,6 @@ def register_ctem_routers(
         from apps.api.stage_matrix_router import router as stage_matrix_router
         app.include_router(stage_matrix_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Stage Matrix router at /api/v1/stage-matrix")
-    except ImportError:
-        pass
-
-    # Incident Metrics
-    try:
-        from apps.api.incident_metrics_router import router as incident_metrics_router
-        app.include_router(incident_metrics_router)
-        _logger.info("Mounted Incident Metrics router at /api/v1/incident-metrics")
     except ImportError:
         pass
 

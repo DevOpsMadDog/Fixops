@@ -6823,13 +6823,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.incident_metrics_router import router as incident_metrics_router
-        app.include_router(incident_metrics_router)
-        _logger.info("Mounted Incident Metrics router at /api/v1/incident-metrics")
-    except ImportError:
-        pass
-
     # Wave 20 routers
     try:
         from apps.api.zero_day_intelligence_router import router as zero_day_intelligence_router
@@ -7288,13 +7281,6 @@ def create_app() -> FastAPI:
         from apps.api.security_benchmark_router import router as security_benchmark_router
         app.include_router(security_benchmark_router)
         _logger.info("Mounted Security Benchmark router at /api/v1/security-benchmarks")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.incident_cost_router import router as incident_cost_router
-        app.include_router(incident_cost_router)
-        _logger.info("Mounted Incident Cost router at /api/v1/incident-costs")
     except ImportError:
         pass
 
