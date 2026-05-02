@@ -5408,12 +5408,7 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Phishing Simulation Engine — employee security awareness testing
     # -----------------------------------------------------------------------
-    try:
-        from apps.api.phishing_router import router as _phishing_router
-        app.include_router(_phishing_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Loaded Phishing Simulation router")
-    except ImportError as _e:
-        _logger.warning("Phishing Simulation router not available: %s", _e)
+    # phishing_router (_phishing_router) — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # -----------------------------------------------------------------------
     # API Security Engine — OWASP API Top 10 scanning
@@ -5456,12 +5451,7 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Bug Bounty / VDP — vulnerability disclosure program management
     # -----------------------------------------------------------------------
-    try:
-        from apps.api.bug_bounty_router import router as bug_bounty_router
-        app.include_router(bug_bounty_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Bug Bounty router")
-    except ImportError as _bb_err:
-        _logger.warning("Bug Bounty router not available: %s", _bb_err)
+    # bug_bounty_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # vendor_risk_router + vra_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
@@ -5940,20 +5930,10 @@ def create_app() -> FastAPI:
 
     # CrowdStrike Falcon Connector — REAL Falcon Detection.Created format parser
     # Closes 1 of 11 substitute-only gaps from gap-matrix-2026-04-26.md
-    try:
-        from apps.api.crowdstrike_falcon_router import router as crowdstrike_falcon_router
-        app.include_router(crowdstrike_falcon_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted CrowdStrike Falcon Connector router at /api/v1/connectors/falcon")
-    except Exception as e:
-        _logger.warning(f"CrowdStrike Falcon Connector router not loaded: {e}")
+    # crowdstrike_falcon_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # SentinelOne Singularity XDR Connector — real /threats parser, embedded fallback samples
-    try:
-        from apps.api.sentinelone_connector_router import router as sentinelone_connector_router
-        app.include_router(sentinelone_connector_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted SentinelOne Connector router at /api/v1/connectors/sentinelone")
-    except Exception as e:
-        _logger.warning(f"SentinelOne Connector router not loaded: {e}")
+    # sentinelone_connector_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # Supply Chain Intelligence — package tracking, vuln/malicious flags, SBOM snapshots
     try:
@@ -5964,12 +5944,7 @@ def create_app() -> FastAPI:
         _logger.warning(f"Supply Chain Intel router not loaded: {e}")
 
     # Pentest Management — engagements, findings, targets, retests
-    try:
-        from apps.api.pentest_mgmt_router import router as pentest_mgmt_router
-        app.include_router(pentest_mgmt_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Pentest Mgmt router at /api/v1/pentest-mgmt")
-    except Exception as e:
-        _logger.warning(f"Pentest Mgmt router not loaded: {e}")
+    # pentest_mgmt_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # Threat Intel Sharing — STIX/TAXII-lite, sharing groups, indicators, bundles
     try:
@@ -5979,28 +5954,16 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Threat Intel Sharing router not loaded: {e}")
 
-    try:
-        from apps.api.phishing_simulation_router import router as phishing_simulation_router
-        app.include_router(phishing_simulation_router)
-    except ImportError:
-        pass
+    # phishing_simulation_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
-    try:
-        from apps.api.ioc_enrichment_router import router as ioc_enrichment_router
-        app.include_router(ioc_enrichment_router)
-    except ImportError:
-        pass
+    # ioc_enrichment_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # ctem_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # security_champions_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # Red Team Management — engagements, findings, TTPs, operators
-    try:
-        from apps.api.red_team_mgmt_router import router as red_team_mgmt_router
-        app.include_router(red_team_mgmt_router)
-    except ImportError:
-        pass
+    # red_team_mgmt_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.workflow_router import router as workflow_router
@@ -6036,19 +5999,9 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.openclaw_router import router as openclaw_router
-        app.include_router(openclaw_router)
-        _logger.info("Mounted OpenClaw Pentest Swarm router at /api/v1/openclaw")
-    except ImportError:
-        pass
+    # openclaw_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
-    try:
-        from apps.api.soc_triage_router import router as soc_triage_router
-        app.include_router(soc_triage_router)
-        _logger.info("Mounted SOC Triage router at /api/v1/soc-triage")
-    except ImportError:
-        pass
+    # soc_triage_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
 
@@ -6087,43 +6040,19 @@ def create_app() -> FastAPI:
 
     # ciso_report_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    try:
-        from apps.api.mitre_attack_router import router as mitre_attack_router
-        app.include_router(mitre_attack_router)
-        _logger.info("Mounted MITRE ATT&CK router at /api/v1/mitre-attack")
-    except ImportError:
-        pass
+    # mitre_attack_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
-    try:
-        from apps.api.attack_surface_engine_router import router as attack_surface_mgmt_router
-        app.include_router(attack_surface_mgmt_router)
-    except ImportError:
-        pass
+    # attack_surface_mgmt_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
     # compliance_evidence_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.siem_integration_router import router as siem_integration_router
-        app.include_router(siem_integration_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted SIEM Integration router at /api/v1/siem")
-    except ImportError:
-        pass
+    # siem_integration_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # SIEM Output Connectors — Splunk HEC + Microsoft Sentinel
-    try:
-        from apps.api.siem_output_router import router as siem_output_router
-        app.include_router(siem_output_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted SIEM Output router at /api/v1/siem-output")
-    except ImportError:
-        pass
+    # siem_output_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # SIEM universal multi-format ingest connector (Wazuh / ELK / Splunk HEC /
     # Datadog / Sentinel KQL / QRadar CEF / Suricata / syslog / JSON-Lines).
-    try:
-        from apps.api.siem_connector_router import router as siem_connector_router
-        app.include_router(siem_connector_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted SIEM Connector router at /api/v1/connectors/siem")
-    except ImportError:
-        pass
+    # siem_connector_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
 
@@ -6135,12 +6064,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.passive_dns_router import router as passive_dns_router
-        app.include_router(passive_dns_router)
-        _logger.info("Mounted Passive DNS router at /api/v1/passive-dns")
-    except ImportError:
-        pass
+    # passive_dns_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
 
@@ -6155,21 +6079,11 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.ip_reputation_router import router as _ip_reputation_late
-        app.include_router(_ip_reputation_late)
-        _logger.info("Mounted IP Reputation router at /api/v1/ip-reputation")
-    except ImportError:
-        pass
+    # ip_reputation_router (_ip_reputation_late) — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # security_automation_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.incident_orchestration_router import router as incident_orchestration_router
-        app.include_router(incident_orchestration_router)
-        _logger.info("Mounted Incident Orchestration router at /api/v1/incident-orchestration")
-    except ImportError:
-        pass
+    # incident_orchestration_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # security_metrics_dashboard_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
@@ -6185,12 +6099,7 @@ def create_app() -> FastAPI:
 
     # risk_aggregator_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.security_event_correlation_router import router as security_event_correlation_router
-        app.include_router(security_event_correlation_router)
-        _logger.info("Mounted Security Event Correlation router at /api/v1/event-correlation")
-    except ImportError:
-        pass
+    # security_event_correlation_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.threat_intel_fusion_router import router as threat_intel_fusion_router
@@ -6201,12 +6110,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.ot_security_router import router as ot_security_router
-        app.include_router(ot_security_router)
-        _logger.info("Mounted OT Security router at /api/v1/ot-security")
-    except ImportError:
-        pass
+    # ot_security_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # data_privacy_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
@@ -6223,19 +6127,9 @@ def create_app() -> FastAPI:
 
     # anti_phishing_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.soc_workflow_router import router as soc_workflow_router
-        app.include_router(soc_workflow_router)
-        _logger.info("Mounted SOC Workflow router at /api/v1/soc-workflow")
-    except ImportError:
-        pass
+    # soc_workflow_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
-    try:
-        from apps.api.incident_triage_router import router as incident_triage_router
-        app.include_router(incident_triage_router)
-        _logger.info("Mounted Incident Triage router at /api/v1/incident-triage")
-    except ImportError:
-        pass
+    # incident_triage_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.threat_simulation_router import router as threat_simulation_router
@@ -6266,12 +6160,7 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.supply_chain_attack_detection_router import router as supply_chain_attack_detection_router
-        app.include_router(supply_chain_attack_detection_router)
-        _logger.info("Mounted Supply Chain Attack Detection router at /api/v1/supply-chain-attacks")
-    except ImportError:
-        pass
+    # supply_chain_attack_detection_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
 
@@ -6293,12 +6182,7 @@ def create_app() -> FastAPI:
 
     # attack_chain_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.threat_exposure_router import router as threat_exposure_router
-        app.include_router(threat_exposure_router)
-        _logger.info("Mounted Threat Exposure router at /api/v1/threat-exposure")
-    except ImportError:
-        pass
+    # threat_exposure_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.software_license_security_router import router as software_license_security_router
@@ -6318,12 +6202,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.security_chaos_router import router as security_chaos_router
-        app.include_router(security_chaos_router)
-        _logger.info("Mounted Security Chaos router at /api/v1/security-chaos")
-    except ImportError:
-        pass
+    # security_chaos_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # Wave 20 routers
     try:
@@ -6381,27 +6260,12 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.operational_technology_security_router import router as operational_technology_security_router
-        app.include_router(operational_technology_security_router)
-        _logger.info("Mounted Operational Technology Security router at /api/v1/ot-sec")
-    except ImportError:
-        pass
+    # operational_technology_security_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # Wave 24 routers
-    try:
-        from apps.api.network_forensics_router import router as network_forensics_router
-        app.include_router(network_forensics_router)
-        _logger.info("Mounted Network Forensics router at /api/v1/network-forensics")
-    except ImportError:
-        pass
+    # network_forensics_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
-    try:
-        from apps.api.malware_analysis_router import router as malware_analysis_router
-        app.include_router(malware_analysis_router)
-        _logger.info("Mounted Malware Analysis router at /api/v1/malware-analysis")
-    except ImportError:
-        pass
+    # malware_analysis_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
 
@@ -6413,12 +6277,7 @@ def create_app() -> FastAPI:
         pass
 
     # Wave 25 routers
-    try:
-        from apps.api.threat_deception_management_router import router as threat_deception_management_router
-        app.include_router(threat_deception_management_router)
-        _logger.info("Mounted Threat Deception Management router at /api/v1/threat-deception")
-    except ImportError:
-        pass
+    # threat_deception_management_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
 
@@ -6432,12 +6291,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.threat_attribution_router import router as threat_attribution_router
-        app.include_router(threat_attribution_router)
-        _logger.info("Mounted Threat Attribution router at /api/v1/threat-attribution")
-    except ImportError:
-        pass
+    # threat_attribution_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.cloud_access_security_router import router as cloud_access_security_router
@@ -6503,12 +6357,7 @@ def create_app() -> FastAPI:
 
     # Wave 30 routers
 
-    try:
-        from apps.api.threat_brief_router import router as threat_brief_router
-        app.include_router(threat_brief_router)
-        _logger.info("Mounted Threat Brief router at /api/v1/threat-briefs")
-    except ImportError:
-        pass
+    # threat_brief_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # incident_comms_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
@@ -6552,24 +6401,14 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.network_threat_router import router as network_threat_router
-        app.include_router(network_threat_router)
-        _logger.info("Mounted Network Threat router at /api/v1/network-threats")
-    except ImportError:
-        pass
+    # network_threat_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # incident_kb_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # Wave 33 pre-wiring (engines pending creation)
 
 
-    try:
-        from apps.api.threat_feed_subscription_router import router as threat_feed_subscription_router
-        app.include_router(threat_feed_subscription_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Threat Feed Subscription router at /api/v1/feed-subscriptions")
-    except ImportError:
-        pass
+    # threat_feed_subscription_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.asset_group_router import router as asset_group_router
@@ -6581,12 +6420,7 @@ def create_app() -> FastAPI:
 
     # Wave 34 pre-wiring (engines pending creation)
 
-    try:
-        from apps.api.threat_actor_tracking_router import router as threat_actor_tracking_router
-        app.include_router(threat_actor_tracking_router)
-        _logger.info("Mounted Threat Actor Tracking router at /api/v1/actor-tracking")
-    except ImportError:
-        pass
+    # threat_actor_tracking_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.vulnerability_scoring_router import router as vulnerability_scoring_router
@@ -6683,12 +6517,7 @@ def create_app() -> FastAPI:
 
     # Wave 38 pre-wiring (engines pending creation)
 
-    try:
-        from apps.api.network_anomaly_router import router as network_anomaly_router
-        app.include_router(network_anomaly_router)
-        _logger.info("Mounted Network Anomaly router at /api/v1/network-anomaly")
-    except ImportError:
-        pass
+    # network_anomaly_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
     # hunting_automation_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
@@ -6703,12 +6532,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.security_event_timeline_router import router as security_event_timeline_router
-        app.include_router(security_event_timeline_router)
-        _logger.info("Mounted Security Event Timeline router at /api/v1/event-timeline")
-    except ImportError:
-        pass
+    # security_event_timeline_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.vuln_intel_fusion_router import router as vuln_intel_fusion_router
@@ -6758,12 +6582,7 @@ def create_app() -> FastAPI:
     # GAP-026 — Choke-point analyzer (max-flow min-cut on attack graph)
     # choke_point_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.ransomware_protection_router import router as ransomware_protection_router
-        app.include_router(ransomware_protection_router)
-        _logger.info("Mounted Ransomware Protection router at /api/v1/ransomware-protection")
-    except ImportError:
-        pass
+    # ransomware_protection_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
 
     # GAP-013 code-to-runtime matcher (3-strategy runtime→code mapping)
@@ -6843,12 +6662,7 @@ def create_app() -> FastAPI:
 
     # rbac_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.red_team_router import router as red_team_router
-        app.include_router(red_team_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Red Team router at /api/v1/red-team")
-    except ImportError:
-        pass
+    # red_team_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # regulatory_tracker_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
@@ -6901,20 +6715,10 @@ def create_app() -> FastAPI:
     # oauth2_router — moved to platform_app.py (Wave 5)
 
     # GAP-002: Offline Feed Router (air-gapped threat-intel bundle ingestion)
-    try:
-        from apps.api.offline_feed_router import router as offline_feed_router
-        app.include_router(offline_feed_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Offline Feed router at /api/v1/offline-feed")
-    except ImportError:
-        pass
+    # offline_feed_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     # GAP-004: Stage Matrix Router (CTEM stage-aware policy enforcement)
-    try:
-        from apps.api.stage_matrix_router import router as stage_matrix_router
-        app.include_router(stage_matrix_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Stage Matrix router at /api/v1/stage-matrix")
-    except ImportError:
-        pass
+    # stage_matrix_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
         from apps.api.tor_exit_nodes_router import router as tor_exit_nodes_router
