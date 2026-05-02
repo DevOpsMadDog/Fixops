@@ -199,3 +199,62 @@ def run_gdpr_assessment(
     except Exception as exc:
         _logger.error("gdpr.assessment error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/")
+def get_gdpr_summary(
+    org_id: str = Query(default="default"),
+    _auth=Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Return a 5-state summary envelope for the GDPR compliance domain.
+
+    States:
+      healthy   — activities and consents recorded, assessment passing
+      degraded  — assessment score below threshold or consents all withdrawn
+      empty     — fresh tenant, no activities or consents recorded
+      error     — engine raised an exception
+      unknown   — stats structure unexpected
+    """
+    try:
+        activities = _get_engine().list_processing_activities(org_id) or []
+        consents = _get_engine().list_consents(org_id) or []
+    except Exception as exc:
+        _logger.error("gdpr.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "gdpr",
+        }
+
+    total_activities = len(activities)
+    total_consents = len(consents)
+    active_consents = sum(1 for c in consents if c.get("status") == "active")
+
+    if total_activities == 0 and total_consents == 0:
+        status = "empty"
+    elif total_consents > 0 and active_consents == 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope: Dict[str, Any] = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "gdpr",
+        "total_processing_activities": total_activities,
+        "total_consents": total_consents,
+        "active_consents": active_consents,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Record GDPR processing activities via POST /api/v1/gdpr/activities "
+            "and consent records via POST /api/v1/gdpr/consents to begin "
+            "GDPR compliance tracking."
+        )
+    return envelope

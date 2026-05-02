@@ -285,3 +285,60 @@ def get_daily_trends(
     engine: DLPEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
     return engine.get_daily_trends(org_id, days=days)
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/", summary="DLP domain summary")
+def get_dlp_summary(
+    org_id: str = Query("default", description="Organisation identifier"),
+    engine: DLPEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    """Return a 5-state summary envelope for the DLP domain.
+
+    States:
+      healthy   — policies active, no critical incidents
+      degraded  — open critical/high incidents present
+      empty     — fresh tenant, no policies or scans yet
+      error     — engine raised an exception
+      unknown   — stats structure unexpected
+    """
+    try:
+        stats = engine.get_stats(org_id=org_id)
+        dlp_stats = engine.get_dlp_stats(org_id)
+    except Exception as exc:
+        logger.error("dlp.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "dlp",
+        }
+
+    total_scans = stats.get("total_scans", 0)
+    total_policies = dlp_stats.get("total_policies", 0)
+    open_incidents = dlp_stats.get("open_incidents", dlp_stats.get("incidents_by_status", {}).get("open", 0))
+
+    if total_scans == 0 and total_policies == 0:
+        status = "empty"
+    elif open_incidents > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope: Dict[str, Any] = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "dlp",
+        "scan_stats": stats,
+        "policy_stats": dlp_stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Add DLP policies via POST /api/v1/dlp/policies and scan content "
+            "via POST /api/v1/dlp/scan to begin data-loss prevention monitoring."
+        )
+    return envelope

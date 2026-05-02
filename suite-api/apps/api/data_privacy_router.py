@@ -193,3 +193,60 @@ def get_privacy_stats(
     except Exception as exc:
         _logger.error("data_privacy.stats error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/")
+def get_data_privacy_summary(
+    org_id: str = Query(default="default"),
+    _auth=Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Return a 5-state summary envelope for the data-privacy domain.
+
+    States:
+      healthy   — assets registered, no overdue requests
+      degraded  — pending/overdue requests exist
+      empty     — fresh tenant, no assets yet (onboarding hint included)
+      error     — engine raised an exception
+      unknown   — stats structure unexpected
+    """
+    try:
+        stats = _get_engine().get_privacy_stats(org_id)
+    except Exception as exc:
+        _logger.error("data_privacy.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "data-privacy",
+        }
+
+    total_assets = stats.get("total_assets", 0)
+    overdue = stats.get("overdue_requests", 0)
+    pending = stats.get("pending_requests", 0)
+
+    if total_assets == 0:
+        status = "empty"
+    elif overdue > 0:
+        status = "degraded"
+    elif pending > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope: Dict[str, Any] = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "data-privacy",
+        "stats": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Register data assets via POST /api/v1/data-privacy/assets "
+            "to begin privacy asset tracking."
+        )
+    return envelope

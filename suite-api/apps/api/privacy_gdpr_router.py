@@ -263,3 +263,57 @@ def list_processing_activities(org_id: str = Query(default="default")):
 def get_privacy_stats(org_id: str = Query(default="default")):
     """Return aggregated privacy compliance stats for org."""
     return _get_engine().get_privacy_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_privacy_gdpr_summary(org_id: str = Query(default="default")):
+    """Return a 5-state summary envelope for the privacy & GDPR domain.
+
+    States:
+      healthy   — DSRs in bounds, no overdue, incidents closed
+      degraded  — overdue DSRs or open incidents requiring DPA notification
+      empty     — fresh tenant, no DSRs or incidents recorded
+      error     — engine raised an exception
+      unknown   — stats structure unexpected
+    """
+    try:
+        stats = _get_engine().get_privacy_stats(org_id)
+    except Exception as exc:
+        _logger.error("privacy_gdpr.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "privacy-gdpr",
+        }
+
+    total_dsrs = stats.get("total_dsrs", 0)
+    overdue = stats.get("overdue_dsrs", 0)
+    needs_notification = stats.get("incidents_requiring_notification", 0)
+    total_incidents = stats.get("total_incidents", 0)
+
+    if total_dsrs == 0 and total_incidents == 0:
+        status = "empty"
+    elif overdue > 0 or needs_notification > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "privacy-gdpr",
+        "stats": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Create Data Subject Requests via POST /api/v1/privacy/dsrs "
+            "or report privacy incidents via POST /api/v1/privacy/incidents "
+            "to begin privacy & GDPR tracking."
+        )
+    return envelope
