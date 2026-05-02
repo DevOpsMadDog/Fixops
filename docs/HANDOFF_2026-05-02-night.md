@@ -585,3 +585,42 @@ Same principle as BUG-3 EmptyState (silent MOCK_DATA → honest empty state) and
 ---
 
 *Final session lock v4: 2026-05-03 03:45. **STATUS: SESSION CLEAN + HONEST CLAIMS, 67 COMMITS SHIPPED.***
+
+## 22. Install/retire batch + Wave-RETIRE + PQ ticket (2026-05-03 03:50–04:00)
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `1ff712b6` | PQ-ACTIVATE ticket memo | Documents the <1-day activation path when SCIF/IL5 contract requires real FIPS 204. Doc: `docs/pq_activate_ticket_2026-05-03.md`. |
+| `062f5c00` | Audit: 19 INSTALL/RETIRE/KEEP-AS-STUB decisions | 5 INSTALL (`google-cloud-storage`, `google-cloud-securitycenter`, `google-auth`, `peft`, `dilithium-py`) + 9 RETIRE + 5 KEEP-AS-STUB. **Critical finding**: NONE of the 19 deps are pinned in `requirements.txt` today — every one is a true optional/guarded path. The 5 INSTALL would lift GCP CSPM/SCC + LoRA distillation + real PQ signing out of silent-empty mode (3-cloud parity unblocked). |
+| `e47a3dd1` | Wave-RETIRE — delete 9 dep fallback guards | -66 LOC net across 7 engine files. `llm_guard`, `celery`, `chromadb`, `pomegranate`, `mchmm`, `river`, `headroom`, `feeds.feeds_service`, `trustgraph.store` all retired. Cold-start now silent on these 9 deps. |
+
+### Cumulative suite-core silenced cleanup
+- **36 of 47 broken silenced imports fixed (76%)**
+- 5 INSTALL deferred to founder/customer-need product decision
+- 5 KEEP-AS-STUB documented (envelope-ready, activate when needed)
+- 1 quantum_crypto KEEP-AS-STUB has its own audit doc + activation ticket
+
+### Final session totals (locked v5)
+
+- **71 `beast-mode` commits on `features/intermediate-stage`**
+- **9/9 founder DoD items DONE** + 10/10 E2E PASS
+- **753/753 Beast Mode regression GREEN** (verified 8.29s on 04:00 final retry)
+- **6722 routes mounted** (-2070 silent dups from 8792 baseline)
+- **232/232 dup blocks closed (100%)**
+- **36/47 suite-core silenced-imports fixed (76%)**
+- **31 multi-suite + 27 suite-core = 36 cumulative silenced cleanup**
+- **21 PQ marketing claims softened to honest "activatable" wording**
+- **0 cold-start warnings**
+- **0 regressions across entire session** (1 perf-baseline timing flake — passes isolated + on retry, documented)
+- **184,414 graphify nodes / 574,972 edges / 9,014 communities**
+
+### Next session priorities (clear queue for tomorrow)
+1. **5 INSTALL deps** — pin `google-cloud-storage` + `google-cloud-securitycenter` + `google-auth` + `dilithium-py` + `peft` in `requirements.txt` (founder/customer-need decision; <30min to execute when greenlit)
+2. **PQ-ACTIVATE ticket** when SCIF/IL5 contract requires
+3. **~100 dependabot vulns** bulk-bump (need pre-flight risk plan)
+4. **TrueCourse 13K legacy violations** (multi-sprint scope)
+5. **4 class-a empty endpoints** — need real cloud creds (founder action)
+
+---
+
+*Final session lock v5: 2026-05-03 04:00. **STATUS: SESSION CLEAN, FULLY GREEN, 71 COMMITS SHIPPED, 5/5 INSTALL DECISIONS QUEUED FOR FOUNDER REVIEW.***
