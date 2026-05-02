@@ -207,7 +207,8 @@ class QuantumSafeCryptoEngine:
         risk_level = data.get("risk_level", "low")
         if risk_level not in VALID_RISK_LEVELS:
             risk_level = "low"
-        discovered_at = data.get("discovered_at", now)
+        _raw_discovered_at = data.get("discovered_at")
+        discovered_at = _raw_discovered_at if _raw_discovered_at is not None else now
 
         with self._lock:
             with self._get_conn() as conn:

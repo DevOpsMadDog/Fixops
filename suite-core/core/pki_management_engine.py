@@ -137,21 +137,21 @@ class PKIManagementEngine:
 
         now = datetime.now(timezone.utc).isoformat()
         cert_id = str(uuid.uuid4())
-        san = data.get("subject_alt_names", [])
-        san_json = json.dumps(san) if isinstance(san, list) else san
+        san = data.get("subject_alt_names") or []
+        san_json = json.dumps(san) if isinstance(san, list) else (san or "[]")
 
         row = {
             "id": cert_id,
             "org_id": org_id,
             "common_name": common_name,
-            "serial_number": data.get("serial_number", ""),
-            "issuer": data.get("issuer", ""),
+            "serial_number": data.get("serial_number") or "",
+            "issuer": data.get("issuer") or "",
             "subject_alt_names": san_json,
             "key_algorithm": key_algorithm,
-            "key_size": int(data.get("key_size", 2048)),
+            "key_size": int(data.get("key_size") or 2048),
             "cert_type": cert_type,
-            "status": data.get("status", "active"),
-            "issued_at": data.get("issued_at", now),
+            "status": data.get("status") or "active",
+            "issued_at": data.get("issued_at") or now,
             "expires_at": expires_at,
             "revoked_at": None,
             "revoke_reason": "",
