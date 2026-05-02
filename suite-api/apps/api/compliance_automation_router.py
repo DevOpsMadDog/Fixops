@@ -67,6 +67,25 @@ class UpdatePOAMStatusRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/v1/compliance/  — summary landing
+# ---------------------------------------------------------------------------
+
+
+@router.get("/", summary="Compliance automation summary")
+async def get_compliance_summary() -> Dict[str, Any]:
+    """Return overall compliance posture summary: frameworks, scores, total controls, gaps."""
+    try:
+        status = _get_engine().get_overall_status()
+        return {
+            "status": "ok",
+            "frameworks": FRAMEWORKS,
+            "summary": status,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/compliance/status
 # ---------------------------------------------------------------------------
 

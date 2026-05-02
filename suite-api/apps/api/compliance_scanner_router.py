@@ -66,6 +66,21 @@ class UpdateTaskStatusRequest(BaseModel):
 
 
 # ------------------------------------------------------------------
+# Summary
+# ------------------------------------------------------------------
+
+
+@router.get("/", summary="Compliance scanner summary")
+def get_scanner_summary(org_id: str = Query(..., description="Organization identifier")) -> dict:
+    """Return compliance scanner stats: profiles, results, checks, and task counts for an org."""
+    try:
+        return _get_engine().get_compliance_stats(org_id)
+    except Exception as exc:
+        _logger.exception("compliance_scanner GET / failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ------------------------------------------------------------------
 # Scan Profiles
 # ------------------------------------------------------------------
 

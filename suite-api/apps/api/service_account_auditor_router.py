@@ -78,6 +78,18 @@ class RotateRequest(BaseModel):
 # ============================================================================
 
 
+@router.get("/", summary="Service account auditor summary")
+def get_auditor_summary(
+    org_id: str = Query(..., description="Organization identifier"),
+) -> Dict[str, Any]:
+    """Return service account audit stats: total accounts, unused, overprivileged, risk breakdown."""
+    try:
+        return _engine().get_audit_stats(org_id)
+    except Exception as exc:
+        logger.exception("service_account_auditor GET / failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/accounts", summary="Register a service account for auditing")
 def register_account(req: RegisterAccountRequest) -> Dict[str, Any]:
     """Register a new service account and compute its initial risk score."""

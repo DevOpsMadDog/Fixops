@@ -52,6 +52,16 @@ class AssignRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
+@router.get("/", response_model=Dict[str, Any], summary="Compliance planner summary")
+async def get_planner_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return planner stats: plan count, remediation counts by status/priority, effort summary."""
+    try:
+        return _planner.get_planner_stats(org_id=org_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/generate/{framework}", response_model=Dict[str, Any], status_code=201)
 async def generate_plan(
     framework: str,
