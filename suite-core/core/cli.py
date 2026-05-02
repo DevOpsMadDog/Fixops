@@ -3945,8 +3945,8 @@ def _handle_reachability(args: argparse.Namespace) -> int:
         if repo_url:
             try:
                 from risk.reachability.api import get_job_queue
+                from risk.reachability.git_integration import GitRepository
                 from risk.reachability.job_queue import ReachabilityJob
-                from risk.reachability.models import GitRepository
 
                 git_repo = GitRepository(url=repo_url)
                 job = ReachabilityJob(

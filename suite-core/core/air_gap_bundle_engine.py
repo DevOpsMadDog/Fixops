@@ -73,11 +73,6 @@ try:
 except ImportError:  # pragma: no cover
     _get_dsse_signer = None  # type: ignore
 
-try:  # optional — TrustGraph EmitEvent for bundle_signed broadcast
-    from core.trustgraph_event_bus import EmitEvent as _EmitEvent  # type: ignore
-except ImportError:  # pragma: no cover
-    _EmitEvent = None  # type: ignore
-
 # ed25519 primitives for ensure_signing_key bootstrap (real keys, not a
 # fallback — bootstraps the same ed25519 material the DSSE signer expects).
 try:

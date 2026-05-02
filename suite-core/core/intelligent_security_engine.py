@@ -806,32 +806,26 @@ class IntelligentSecurityEngine:
     # Private helper methods
 
     async def _fetch_epss_scores(self, cve_ids: List[str]) -> Dict[str, float]:
-        """Fetch EPSS scores for CVEs from feeds service."""
-        try:
-            from feeds.feeds_service import FeedsService
-            svc = FeedsService()
-            result: Dict[str, float] = {}
-            for cve in cve_ids:
-                score = svc.get_epss_score(cve)
-                result[cve] = score.epss if score else -1.0  # -1 = no data
-            return result
-        except ImportError as exc:
-            logger.warning("epss_fetch_failed", error=str(exc), cve_count=len(cve_ids))
-            return {cve: -1.0 for cve in cve_ids}  # -1 = unavailable
+        """Fetch EPSS scores for CVEs from feeds service.
+
+        NOTE: legacy ``feeds.feeds_service`` module was retired; EPSS scoring
+        now lives in suite-feeds importers (firstorg_epss_importer). Until
+        that wiring lands here, return ``-1.0`` (= unavailable) for every CVE
+        rather than fabricating values.
+        """
+        logger.debug("epss_fetch_unavailable_module_retired", cve_count=len(cve_ids))
+        return {cve: -1.0 for cve in cve_ids}
 
     async def _fetch_kev_status(self, cve_ids: List[str]) -> Dict[str, bool]:
-        """Check KEV status for CVEs from feeds service."""
-        try:
-            from feeds.feeds_service import FeedsService
-            svc = FeedsService()
-            result: Dict[str, bool] = {}
-            for cve in cve_ids:
-                kev = svc.is_in_kev(cve)
-                result[cve] = kev if isinstance(kev, bool) else False
-            return result
-        except ImportError as exc:
-            logger.warning("kev_fetch_failed", error=str(exc), cve_count=len(cve_ids))
-            return {}  # empty = no KEV data available
+        """Check KEV status for CVEs from feeds service.
+
+        NOTE: legacy ``feeds.feeds_service`` module was retired; KEV lookups
+        now go through suite-feeds (cisa_kev_importer). Until that wiring
+        lands here, return an empty mapping (= no KEV data available) rather
+        than fabricating false-negatives across the board.
+        """
+        logger.debug("kev_fetch_unavailable_module_retired", cve_count=len(cve_ids))
+        return {}
 
     async def _map_mitre_techniques(self, cve_ids: List[str]) -> List[str]:
         """Map CVEs to MITRE ATT&CK techniques — returns empty when no mapping available."""

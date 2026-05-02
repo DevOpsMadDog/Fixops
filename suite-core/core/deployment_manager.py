@@ -580,21 +580,15 @@ class DeploymentManager:
         )
         if tg_health.status != "healthy":
             return {"status": "skipped", "reason": f"TrustGraph unavailable: {tg_health.message}"}
-        try:
-            # Best-effort: call TrustGraph ingest if trustgraph module available
-            from trustgraph.store import KnowledgeStore  # type: ignore
-            store = KnowledgeStore(base_url=self._trustgraph_url)
-            await asyncio.to_thread(
-                store.ingest_text,
-                "ALDECI platform initialized",
-                metadata={"source": "deployment_manager", "version": ALDECI_VERSION},
-            )
-            return {"status": "ok", "message": "TrustGraph indexed"}
-        except ImportError:
-            return {"status": "skipped", "reason": "trustgraph Python package not installed"}
-        except Exception as exc:
-            logger.warning("first_boot: trustgraph index failed: %s", exc)
-            return {"status": "error", "error": str(exc)[:200]}
+        # NOTE: legacy trustgraph.store.KnowledgeStore module was retired in
+        # favour of the in-process suite-core.trustgraph package. The first-
+        # boot indexer now delegates to that package via the HTTP ingest API
+        # rather than importing a Python client. Until that wiring lands,
+        # report a clean "skipped" result instead of throwing ImportError.
+        return {
+            "status": "skipped",
+            "reason": "trustgraph in-process client retired; HTTP ingest wiring pending",
+        }
 
     # ─── Migration Runner ──────────────────────────────────────────────────
 

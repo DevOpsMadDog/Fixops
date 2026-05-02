@@ -879,8 +879,29 @@ class BrainPipeline:
         # ---- Load attack path engine (optional dependency) ----
         ap_engine = None
         try:
-            from core.attack_path_engine import blast_radius as _blast_radius  # noqa: PLC0415, F811
-            ap_engine = _blast_radius
+            from core.attack_path_engine import AttackPathEngine  # noqa: PLC0415
+
+            _ap_instance = AttackPathEngine()
+
+            def _blast_radius_adapter(node_id: str, max_hops: int = 3) -> Dict[str, Any]:  # noqa: ARG001
+                """Adapt AttackPathEngine.get_blast_radius to legacy callable shape.
+
+                Brain Pipeline Step 11 expects keys ``total_paths`` and
+                ``affected_nodes``. The engine returns ``total_reachable`` and
+                ``reachable_nodes`` — map them so downstream enrichment keeps
+                working without changing the public engine surface.
+                """
+                br = _ap_instance.get_blast_radius(node_id)
+                if not isinstance(br, dict):
+                    return {}
+                return {
+                    "total_paths": br.get("total_reachable", 0),
+                    "affected_nodes": br.get("total_reachable", 0),
+                    "max_depth": br.get("max_depth", 0),
+                    "crown_jewels_at_risk": br.get("crown_jewels_at_risk", []),
+                }
+
+            ap_engine = _blast_radius_adapter
         except ImportError:
             logger.warning(
                 "Post-pipeline enrichment: attack_path_engine not available, "

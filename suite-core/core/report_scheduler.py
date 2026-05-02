@@ -471,14 +471,12 @@ def _generate_executive_summary(org_id: str, filters: Dict[str, Any]) -> Dict[st
     except Exception:
         pass
 
-    try:
-        from core.security_posture_advisor import SecurityPostureAdvisor
-        advisor = SecurityPostureAdvisor()
-        posture = advisor.get_posture(org_id=org_id)
-        risk_posture = posture.get("risk_level", "unknown")
-        compliance_score = posture.get("compliance_score", 0.0)
-    except Exception:
-        pass
+    # NOTE: core.security_posture_advisor module was retired; posture rollup
+    # is now sourced via the canonical compliance + posture engines wired
+    # below. Until the executive-summary report is rewired to those, leave
+    # the defaults (compliance_score=0.0, risk_posture="unknown") so the
+    # report renders without surfacing an import error every schedule.
+    pass
 
     return {
         "top_critical_vulnerabilities": top_vulns,
@@ -547,17 +545,11 @@ def _generate_threat_intel_brief(org_id: str, filters: Dict[str, Any]) -> Dict[s
     feed_status: List[Dict[str, Any]] = []
     threat_count = 0
 
-    try:
-        import sys
-        sys.path.insert(0, "suite-core")
-        from core.threat_intel_aggregator import ThreatIntelAggregator
-        aggregator = ThreatIntelAggregator()
-        brief = aggregator.get_brief(org_id=org_id)
-        top_iocs = brief.get("top_iocs", [])[:10]
-        feed_status = brief.get("feed_status", [])
-        threat_count = brief.get("threat_count", 0)
-    except Exception:
-        pass
+    # NOTE: core.threat_intel_aggregator module was retired; threat-intel
+    # rollup is now sourced via suite-feeds importers. Until this report is
+    # rewired to that surface, leave defaults (empty lists / zero count) so
+    # the brief renders without an import error each schedule.
+    pass
 
     return {
         "top_iocs": top_iocs,
