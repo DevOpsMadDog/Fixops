@@ -363,6 +363,35 @@ Sub_apps ARE wired (`register_aspm_routers`, `register_cspm_routers`, `register_
 
 **40 `beast-mode` commits on `features/intermediate-stage`** (sweep + Wave-A since §13).
 
+## 15. Dup-router waves D + E + B-pilot (2026-05-03 01:45–02:00)
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `db1682b8` | Wave-D — 6 sub_app↔sub_app router dups resolved | -45 LOC. Pattern: keep canonical sub_app per router (domain semantics), delete from the other. Routes unchanged (8826). 351/351 regression PASS. |
+| `60323818` | Wave-E — 2 triplicate routers resolved | -30 LOC. **Important pattern insight**: when picking canonical mount, prefer the one with stricter auth wrapping. The bare app.py + ctem_app mounts were silently bypassing the GRC auth boundary. 351/351 regression PASS. |
+| `f72f5d16` | Wave-B-pilot — 10 app↔grc dups deleted | -87 LOC. **MAJOR INSIGHT**: `include_router` does NOT dedup — 10 deletes shaved **-105 routes** (8792→8687). The 231-dup count from sweep was real silent route inflation. 1208/1208 regression PASS. Safe-template proven for bulk waves. |
+
+### Cumulative dup-cleanup metrics
+- Total dup blocks removed (D+E+B-pilot): 18 routers, 4 deletes for triplicates
+- LOC removed: 162
+- Routes shaved (silent dups eliminated): 105 (B-pilot only — D/E were sub-app side, no app.py impact)
+- Regression: 753/753 + 455/455 across all sub-batches (1208/1208 cumulative)
+
+### Safe-template for Wave-B/C bulk
+1. Locate ALL mount sites for router R in app.py
+2. Verify grc_app.py / ctem_app.py block has identical `prefix=`, `dependencies=`, tags
+3. Replace app.py try/except + leading comment with: `# <name> — moved to <sub_app>.py (Wave-X 2026-05-03)`
+4. Re-run `create_app()` — confirm `len(app.routes)` drops by exactly the router's per-instance route count (NON-ZERO confirms a real dup was killed)
+
+### Remaining backlog
+- 99 app↔grc dups (Wave-B-batch-2/3/...)
+- 114 app↔ctem dups (Wave-C)
+- Estimated additional shave: ~1325 LOC + ~2000+ silent routes if pattern holds
+
+### Session total
+
+**44 `beast-mode` commits on `features/intermediate-stage`** (was 40 at §14; Wave-D + Wave-E + B-pilot + this HANDOFF since).
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
