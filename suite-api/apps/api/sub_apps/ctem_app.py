@@ -941,46 +941,6 @@ def register_ctem_routers(
     except ImportError as _cp_err:
         _logger.warning("Choke Point router not available: %s", _cp_err)
 
-    # Endpoint Forensics (Wave 42)
-    try:
-        from apps.api.endpoint_forensics_router import router as endpoint_forensics_router
-        app.include_router(endpoint_forensics_router)
-        _logger.info("Mounted Endpoint Forensics router at /api/v1/endpoint-forensics")
-    except ImportError:
-        pass
-
-    # Security Log Analysis (Wave 42)
-    try:
-        from apps.api.security_log_analysis_router import router as security_log_analysis_router
-        app.include_router(security_log_analysis_router)
-        _logger.info("Mounted Security Log Analysis router at /api/v1/log-analysis")
-    except ImportError:
-        pass
-
-    # Incident Impact Assessment (Wave 42)
-    try:
-        from apps.api.incident_impact_assessment_router import router as incident_impact_assessment_router
-        app.include_router(incident_impact_assessment_router)
-        _logger.info("Mounted Incident Impact Assessment router at /api/v1/incident-impact")
-    except ImportError:
-        pass
-
-    # Threat Contextualization (Wave 42)
-    try:
-        from apps.api.threat_contextualization_router import router as threat_contextualization_router
-        app.include_router(threat_contextualization_router)
-        _logger.info("Mounted Threat Contextualization router at /api/v1/threat-context")
-    except ImportError:
-        pass
-
-    # Security Operations Automation (Wave 42)
-    try:
-        from apps.api.security_operations_automation_router import router as security_operations_automation_router
-        app.include_router(security_operations_automation_router)
-        _logger.info("Mounted Security Operations Automation router at /api/v1/soc-automation")
-    except ImportError:
-        pass
-
     # CTEM Engine router (Wave 42+)
     try:
         from apps.api.ctem_engine_router import router as ctem_engine_router
@@ -1066,14 +1026,6 @@ def register_ctem_routers(
         from apps.api.incident_comms_router import router as incident_comms_router
         app.include_router(incident_comms_router)
         _logger.info("Mounted Incident Comms router at /api/v1/incident-comms")
-    except ImportError:
-        pass
-
-    # Vulnerability Disclosure (Wave 42)
-    try:
-        from apps.api.vulnerability_disclosure_router import router as vulnerability_disclosure_router
-        app.include_router(vulnerability_disclosure_router)
-        _logger.info("Mounted Vulnerability Disclosure router at /api/v1/vuln-disclosure")
     except ImportError:
         pass
 
