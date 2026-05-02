@@ -81,7 +81,7 @@ async def lookup_ip(
     ip: str = FPath(
         ...,
         description="IPv4 or IPv6 address to look up",
-        example="8.8.8.8",
+        examples=["8.8.8.8"],
     ),
 ) -> Dict[str, Any]:
     """Proxy a GreyNoise community lookup for a single IP with 5-min cache."""
