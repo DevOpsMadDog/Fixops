@@ -431,6 +431,35 @@ Sub_apps ARE wired (`register_aspm_routers`, `register_cspm_routers`, `register_
 - 74 app↔ctem dups (Wave-C-batch-3+ in flight)
 - Plus a handful of prefix-different mounts (defer or per-case review)
 
+## 17. Wave-C completion + final ctem cleanup (2026-05-03 02:30–02:45)
+
+| SHA | Title | Routers | LOC delta | Routes delta |
+|-----|-------|---------|-----------|--------------|
+| `80b9f81f` | Wave-C-batch-3 | 40 (app↔ctem byte-EQ) | <agent-reported> | <agent-reported> |
+| `10ec4a24` | Wave-C-batch-4 (final) | 31 (24 byte-EQ + 7 auth-equiv) | <agent-reported> | <agent-reported> |
+
+### Cumulative dup-cleanup (final tally)
+
+- **app↔grc**: 109/109 CLOSED (50 byte-EQ + 59 security in Wave-B-3b)
+- **app↔ctem**: 111/114 CLOSED (10 pilot + 30 batch-2 + 40 batch-3 + 31 batch-4 = 111; 3 deferred — orphans/split-mounts)
+- **sub↔sub (Wave-D)**: 6/6 CLOSED
+- **triplicates (Wave-E)**: 2/2 CLOSED
+- **DEAD (Wave-A)**: 1/1 CLOSED
+- **Total dup blocks removed**: 229 / 232 (**98.7%**)
+- **Cumulative app.py LOC removed**: ~1450+
+- **Cumulative silent routes shaved**: ~1500+ (8792 baseline → ~7290 estimated)
+- **Beast Mode regression**: 351/351 PASS across all batches; **0 regressions** across the 232-block sweep
+
+### Session total
+
+**53 `beast-mode` commits on `features/intermediate-stage`** (was 50 at §16; 3 more — Wave-C batches 3+4 + this HANDOFF).
+
+### Truly remaining
+- 3 app↔ctem edge cases (orphans / split-mount cases — would need careful 2-edit handling)
+- ~100 dependabot vulns (after suite-ui/aldeci-CI cleanup ~17 retire)
+- ~13,100 TrueCourse legacy code-quality violations
+- 4 class-a empty endpoints (need real cloud creds)
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
