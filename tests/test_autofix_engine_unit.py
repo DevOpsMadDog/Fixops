@@ -36,7 +36,17 @@ from core.autofix_engine import (
 
 @pytest.fixture
 def engine():
-    return AutoFixEngine()
+    eng = AutoFixEngine()
+    # Ensure a clean state regardless of prior persistent data (e.g. self-scan)
+    eng._fixes.clear()
+    eng._history.clear()
+    try:
+        for k in list(eng._fixes_store.keys()):
+            del eng._fixes_store[k]
+    except (OSError, RuntimeError, KeyError):
+        pass
+    eng._stats["total_generated"] = 0
+    return eng
 
 
 @pytest.fixture

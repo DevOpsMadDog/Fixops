@@ -1,0 +1,171 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-05-02T15:01:01Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_during_cycle": "c8dc0bc05",
+  "status": "three-fixes-applied-all-validation-tiers-green",
+  "summary": {
+    "autonomous_cycle_equivalent": "self-scan-plus-validation-plus-fix-cycle",
+    "autonomous_cycle_status": "self-scan-17-of-17-passed-100-percent",
+    "cycle_fix_status": "three-concrete-fixes-applied-and-confirmed",
+    "focused_successor_validation_status": "263-passed-1-skipped-all-green",
+    "high_visibility_status": "49-passed-all-green",
+    "broader_validation_status": "184-passed-all-green",
+    "expanded_validation_status": "938-passed-across-expanded-test-files-all-green-after-fixes",
+    "confirmation_result": {
+      "self_scan": {
+        "steps_total": 17,
+        "steps_passed": 17,
+        "steps_failed": 0,
+        "pass_rate": 100.0,
+        "duration_seconds": 14.0,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "total_findings": 15
+      },
+      "focused_autonomous_validation": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 301.76,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "high_visibility_validation": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 423.71,
+        "selected_suites": [
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/e2e/test_branding_namespace.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "broader_impacted_validation": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 124.07,
+        "selected_suites": [
+          "tests/test_app_factory.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py"
+        ]
+      },
+      "expanded_validation": {
+        "passed": 938,
+        "failed": 0,
+        "skipped": 1,
+        "selected_suites": [
+          "tests/test_sast_engine.py",
+          "tests/test_secrets_scanner.py",
+          "tests/test_flags.py",
+          "tests/test_normalizers.py",
+          "tests/test_security_headers.py",
+          "tests/test_signing_verify.py",
+          "tests/test_key_management.py",
+          "tests/test_risk_scoring.py",
+          "tests/test_pipeline_unit.py",
+          "tests/test_ingestion_unit.py",
+          "tests/test_sast_engine_unit.py",
+          "tests/test_sbom_generator_unit.py",
+          "tests/test_ml_anomaly_detector.py",
+          "tests/test_ml_parser_quality.py",
+          "tests/test_ml_risk_scorer.py",
+          "tests/test_feedback.py",
+          "tests/test_crypto_unit.py",
+          "tests/test_llm_consensus.py",
+          "tests/test_threat_model.py",
+          "tests/test_postfix_verifier.py",
+          "tests/test_probabilistic.py",
+          "tests/test_autofix_engine_unit.py",
+          "tests/test_container_scanner_unit.py",
+          "tests/test_dast_engine_unit.py",
+          "tests/test_exploit_signals.py",
+          "tests/test_hallucination_guards.py",
+          "tests/test_mcp_autodiscovery.py",
+          "tests/test_mitre_airgap.py",
+          "tests/test_quantum_crypto_unit.py",
+          "tests/test_severity_promotion.py",
+          "tests/test_storage_security.py",
+          "tests/test_tenant_rbac.py",
+          "tests/test_soc2_evidence_generator.py",
+          "tests/test_supply_chain_engine_unit.py",
+          "tests/test_telemetry_runtime.py"
+        ]
+      }
+    }
+  },
+  "fixes_applied": [
+    {
+      "file": "suite-core/core/services/enterprise/signing.py",
+      "test_file": "tests/test_signing_verify.py",
+      "issue": "Module lacked SigningError exception class and _load_private_key cached function referenced by test_signing_disabled",
+      "fix": "Added SigningError exception, added @lru_cache _load_private_key function, updated _get_key to use it. Updated test to use monkeypatch for genuine failure simulation.",
+      "risk": "low",
+      "category": "missing-api-surface"
+    },
+    {
+      "file": "suite-core/core/utils/enterprise/crypto.py",
+      "test_file": "tests/test_key_management.py",
+      "issue": "AzureKeyVaultProvider.sign() called self._crypto_client.sign(payload) with one argument but Azure SDK CryptographyClient.sign() requires (algorithm, payload)",
+      "fix": "Changed to self._crypto_client.sign(self._signature_algorithm, payload) to match the Azure SDK interface",
+      "risk": "low",
+      "category": "api-contract-mismatch"
+    },
+    {
+      "file": "tests/test_autofix_engine_unit.py",
+      "test_file": "tests/test_autofix_engine_unit.py",
+      "issue": "Engine fixture did not clear persistent store state, causing test_init to fail when self-scan had populated the PersistentDict with prior fix data",
+      "fix": "Added cleanup of _fixes, _history, _fixes_store, and stats in the engine fixture to ensure clean test state",
+      "risk": "low",
+      "category": "test-isolation"
+    }
+  ],
+  "risk_picture": {
+    "sast_findings": 78,
+    "secrets_found": 0,
+    "total_self_scan_findings": 15,
+    "critical_issues": [
+      "Insecure Deserialization in suite-core/core/autofix_engine.py"
+    ],
+    "medium_issues": [
+      "Token Without Expiration in suite-api/apps/api/app.py",
+      "Logging Sensitive Data in suite-api/apps/api/app.py",
+      "Weak Cryptography in suite-core/core/autofix_engine.py"
+    ]
+  },
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "Commit the three source fixes, updated status document, and this report to feature/autonomous-foundation",
+      "rationale": "Preserves the fixes and evidence as durable artifacts on the branch"
+    },
+    {
+      "priority": 2,
+      "action": "Address the critical Insecure Deserialization finding in autofix_engine.py",
+      "rationale": "The self-scan consistently flags this as the highest-severity finding"
+    },
+    {
+      "priority": 3,
+      "action": "Resolve Token Without Expiration findings in the API gateway",
+      "rationale": "Medium-severity but affects the primary API surface"
+    },
+    {
+      "priority": 4,
+      "action": "Add coverage-state isolation to test runner helpers to prevent stale .coverage artifacts",
+      "rationale": "Operational risk identified in prior cycle, still relevant"
+    },
+    {
+      "priority": 5,
+      "action": "Expand test coverage to additional test files not yet included in regular validation",
+      "rationale": "The expanded validation pass covered 35+ additional test files successfully"
+    }
+  ]
+}

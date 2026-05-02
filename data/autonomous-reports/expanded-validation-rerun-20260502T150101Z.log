@@ -1,0 +1,914 @@
+============================= test session starts ==============================
+
+----------------------------- live log collection ------------------------------
+2026-05-02 11:22:25 [    INFO] core.evidence: RSA signing module loaded successfully
+2026-05-02 11:22:26 [    INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-02 11:22:26 [    INFO] apscheduler.scheduler: Added job "refresh_exploit_feeds" to job store "default"
+2026-05-02 11:22:26 [    INFO] apscheduler.scheduler: Scheduler started
+2026-05-02 11:22:26 [    INFO] core.exploit_signals: Exploit feed scheduler started (24h interval).
+collected 450 items
+
+tests/test_sast_engine.py::TestLanguageEnum::test_all_languages PASSED   [  0%]
+tests/test_sast_engine.py::TestLanguageEnum::test_language_count PASSED  [  0%]
+tests/test_sast_engine.py::TestSastSeverity::test_all_severities PASSED  [  0%]
+tests/test_sast_engine.py::TestDetectLanguage::test_python PASSED        [  0%]
+tests/test_sast_engine.py::TestDetectLanguage::test_javascript PASSED    [  1%]
+tests/test_sast_engine.py::TestDetectLanguage::test_typescript PASSED    [  1%]
+tests/test_sast_engine.py::TestDetectLanguage::test_java PASSED          [  1%]
+tests/test_sast_engine.py::TestDetectLanguage::test_go PASSED            [  1%]
+tests/test_sast_engine.py::TestDetectLanguage::test_ruby PASSED          [  2%]
+tests/test_sast_engine.py::TestDetectLanguage::test_php PASSED           [  2%]
+tests/test_sast_engine.py::TestDetectLanguage::test_unknown_extension PASSED [  2%]
+tests/test_sast_engine.py::TestDetectLanguage::test_no_extension PASSED  [  2%]
+tests/test_sast_engine.py::TestDetectLanguage::test_nested_path PASSED   [  2%]
+tests/test_sast_engine.py::TestSastFinding::test_default_construction PASSED [  3%]
+tests/test_sast_engine.py::TestSastFinding::test_to_dict PASSED          [  3%]
+tests/test_sast_engine.py::TestSastScanResult::test_to_dict PASSED       [  3%]
+tests/test_sast_engine.py::TestSQLInjection::test_fstring_sql_injection PASSED [  3%]
+tests/test_sast_engine.py::TestSQLInjection::test_concat_sql_injection PASSED [  4%]
+tests/test_sast_engine.py::TestSQLInjection::test_safe_parameterized_query PASSED [  4%]
+tests/test_sast_engine.py::TestXSSDetection::test_innerhtml PASSED       [  4%]
+tests/test_sast_engine.py::TestXSSDetection::test_document_write PASSED  [  4%]
+tests/test_sast_engine.py::TestCommandInjection::test_os_system PASSED   [  4%]
+tests/test_sast_engine.py::TestCommandInjection::test_subprocess_with_shell PASSED [  5%]
+tests/test_sast_engine.py::TestDeserialization::test_pickle_loads PASSED [  5%]
+tests/test_sast_engine.py::TestDeserialization::test_yaml_unsafe_load PASSED [  5%]
+tests/test_sast_engine.py::TestDeserialization::test_eval_detection PASSED [  5%]
+tests/test_sast_engine.py::TestHardcodedSecrets::test_password_in_code PASSED [  6%]
+tests/test_sast_engine.py::TestHardcodedSecrets::test_api_key_in_code PASSED [  6%]
+tests/test_sast_engine.py::TestHardcodedSecrets::test_token_in_code PASSED [  6%]
+tests/test_sast_engine.py::TestWeakCrypto::test_md5_usage PASSED         [  6%]
+tests/test_sast_engine.py::TestWeakCrypto::test_sha1_usage PASSED        [  6%]
+tests/test_sast_engine.py::TestPathTraversal::test_open_with_user_input PASSED [  7%]
+tests/test_sast_engine.py::TestSSRF::test_requests_with_user_url PASSED  [  7%]
+tests/test_sast_engine.py::TestMultiFileScan::test_scan_multiple_files PASSED [  7%]
+tests/test_sast_engine.py::TestMultiFileScan::test_scan_empty_files PASSED [  7%]
+tests/test_sast_engine.py::TestMultiFileScan::test_scan_single_file PASSED [  8%]
+tests/test_sast_engine.py::TestTaintFlowAnalysis::test_taint_source_to_sink PASSED [  8%]
+tests/test_sast_engine.py::TestTaintFlowAnalysis::test_no_taint_without_source PASSED [  8%]
+tests/test_sast_engine.py::TestEdgeCases::test_empty_code PASSED         [  8%]
+tests/test_sast_engine.py::TestEdgeCases::test_comments_only PASSED      [  8%]
+tests/test_sast_engine.py::TestEdgeCases::test_js_comments PASSED        [  9%]
+tests/test_sast_engine.py::TestEdgeCases::test_very_long_line PASSED     [  9%]
+tests/test_sast_engine.py::TestEdgeCases::test_snippet_truncated PASSED  [  9%]
+tests/test_sast_engine.py::TestEdgeCases::test_scan_result_has_by_severity PASSED [  9%]
+tests/test_sast_engine.py::TestEdgeCases::test_scan_result_has_duration PASSED [ 10%]
+tests/test_sast_engine.py::TestEdgeCases::test_scan_id_format PASSED     [ 10%]
+tests/test_sast_engine.py::TestEdgeCases::test_unknown_language_scans_all_rules PASSED [ 10%]
+tests/test_sast_engine.py::TestOWASPCoverage::test_rule_count PASSED     [ 10%]
+tests/test_sast_engine.py::TestOWASPCoverage::test_owasp_coverage PASSED [ 10%]
+tests/test_sast_engine.py::TestOWASPCoverage::test_findings_by_owasp PASSED [ 11%]
+tests/test_sast_engine.py::TestSingleton::test_get_sast_engine PASSED    [ 11%]
+tests/test_sast_engine.py::TestRealWorldSamples::test_flask_vulnerable_app PASSED [ 11%]
+tests/test_sast_engine.py::TestRealWorldSamples::test_javascript_vulnerable_code PASSED [ 11%]
+tests/test_sast_engine.py::TestRealWorldSamples::test_insecure_crypto_sample PASSED [ 12%]
+tests/test_sast_engine.py::TestCompiledRules::test_all_rules_compile PASSED [ 12%]
+tests/test_sast_engine.py::TestCompiledRules::test_rules_have_valid_severity PASSED [ 12%]
+tests/test_sast_engine.py::TestCompiledRules::test_rules_have_cwe PASSED [ 12%]
+tests/test_sast_engine.py::TestSelfScanBehavior::test_self_scan_skips_rule_metadata_false_positives PASSED [ 12%]
+tests/test_secrets_scanner.py::TestSecretsScannerConfig::test_default_config PASSED [ 13%]
+tests/test_secrets_scanner.py::TestSecretsScannerConfig::test_config_from_env PASSED [ 13%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_detector_initialization PASSED [ 13%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_get_available_scanners PASSED [ 13%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_get_available_scanners_none_available PASSED [ 14%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_aws PASSED [ 14%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_api_key PASSED [ 14%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_password PASSED [ 14%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_token PASSED [ 14%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_private_key PASSED [ 15%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_certificate PASSED [ 15%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_database PASSED [ 15%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_map_secret_type_generic PASSED [ 15%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_gitleaks_output_valid PASSED [ 16%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_gitleaks_output_invalid_json 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [ WARNING] core.secrets_scanner: Failed to parse gitleaks output as JSON: JSONDecodeError
+PASSED                                                                   [ 16%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_gitleaks_output_empty PASSED [ 16%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_gitleaks_output_empty_array PASSED [ 16%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_trufflehog_output_valid PASSED [ 16%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_trufflehog_output_git_source PASSED [ 17%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_trufflehog_output_invalid_json PASSED [ 17%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_trufflehog_output_empty PASSED [ 17%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_parse_trufflehog_output_multiline PASSED [ 17%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_is_git_repo PASSED [ 18%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_get_repo_info_non_git PASSED [ 18%]
+tests/test_secrets_scanner.py::TestSecretsDetector::test_scan_content PASSED [ 18%]
+tests/test_secrets_scanner.py::TestSecretsScanResult::test_scan_result_to_dict PASSED [ 18%]
+tests/test_secrets_scanner.py::TestGetSecretsDetector::test_get_secrets_detector_singleton PASSED [ 18%]
+tests/test_secrets_scanner.py::TestMatchedPatternTruncation::test_gitleaks_match_truncation PASSED [ 19%]
+tests/test_secrets_scanner.py::TestMatchedPatternTruncation::test_trufflehog_raw_truncation PASSED [ 19%]
+tests/test_secrets_scanner.py::TestScanContentSecretsEdgeCases::test_scan_content_no_scanner_available 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: No external secrets scanner available, using built-in scanner
+PASSED                                                                   [ 19%]
+tests/test_secrets_scanner.py::TestScanContentSecretsEdgeCases::test_scan_content_invalid_extension PASSED [ 19%]
+tests/test_secrets_scanner.py::TestScanContentSecretsEdgeCases::test_scan_content_with_trufflehog PASSED [ 20%]
+tests/test_secrets_scanner.py::TestScanContentSecretsEdgeCases::test_scan_content_with_error PASSED [ 20%]
+tests/test_secrets_scanner.py::TestScanContentSecretsEdgeCases::test_scan_content_with_findings PASSED [ 20%]
+tests/test_secrets_scanner.py::TestScanContentSecretsEdgeCases::test_scan_content_exception 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [   ERROR] core.secrets_scanner: Secrets scan failed: RuntimeError: Unexpected error
+PASSED                                                                   [ 20%]
+tests/test_secrets_scanner.py::TestSecretsParsingEdgeCases::test_parse_gitleaks_output_single_object PASSED [ 20%]
+tests/test_secrets_scanner.py::TestSecretsParsingEdgeCases::test_parse_trufflehog_output_with_empty_lines PASSED [ 21%]
+tests/test_secrets_scanner.py::TestGitleaksCustomConfig::test_gitleaks_with_custom_config_when_file_exists 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 21%]
+tests/test_secrets_scanner.py::TestGetRepoInfoException::test_get_repo_info_exception PASSED [ 21%]
+tests/test_secrets_scanner.py::TestGetRepoInfoException::test_get_repo_info_timeout PASSED [ 21%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_verify_containment_valid_path PASSED [ 22%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_verify_containment_path_escape PASSED [ 22%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_run_gitleaks_containment_check PASSED [ 22%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_run_trufflehog_containment_check PASSED [ 22%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_is_git_repo_containment_error PASSED [ 22%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_get_repo_info_safe_isdir_containment_error PASSED [ 23%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_get_repo_info_subprocess_containment_error 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [ WARNING] core.secrets_scanner: Path escapes base directory in repo info: PosixPath
+PASSED                                                                   [ 23%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_verify_containment_stage3_path_escapes_base PASSED [ 23%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_run_gitleaks_stage3_path_escapes_base PASSED [ 23%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_run_trufflehog_stage3_path_escapes_base PASSED [ 24%]
+tests/test_secrets_scanner.py::TestPathContainmentErrorHandling::test_scan_content_uses_hardcoded_base_path 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: No external secrets scanner available, using built-in scanner
+PASSED                                                                   [ 24%]
+tests/test_secrets_scanner.py::TestRunGitleaksSubprocess::test_run_gitleaks_success 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 24%]
+tests/test_secrets_scanner.py::TestRunGitleaksSubprocess::test_run_gitleaks_nonzero_exit_code 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 24%]
+tests/test_secrets_scanner.py::TestRunGitleaksSubprocess::test_run_gitleaks_timeout 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 24%]
+tests/test_secrets_scanner.py::TestRunGitleaksSubprocess::test_run_gitleaks_file_not_found 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 25%]
+tests/test_secrets_scanner.py::TestRunGitleaksSubprocess::test_run_gitleaks_generic_exception 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+2026-05-02 11:22:38 [   ERROR] core.secrets_scanner: Gitleaks scan failed: RuntimeError: Unexpected error
+PASSED                                                                   [ 25%]
+tests/test_secrets_scanner.py::TestRunGitleaksSubprocess::test_run_gitleaks_git_mode 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 25%]
+tests/test_secrets_scanner.py::TestRunTrufflehogSubprocess::test_run_trufflehog_success 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 25%]
+tests/test_secrets_scanner.py::TestRunTrufflehogSubprocess::test_run_trufflehog_nonzero_exit_code 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 26%]
+tests/test_secrets_scanner.py::TestRunTrufflehogSubprocess::test_run_trufflehog_timeout 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 26%]
+tests/test_secrets_scanner.py::TestRunTrufflehogSubprocess::test_run_trufflehog_file_not_found 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 26%]
+tests/test_secrets_scanner.py::TestRunTrufflehogSubprocess::test_run_trufflehog_generic_exception 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+2026-05-02 11:22:38 [   ERROR] core.secrets_scanner: Trufflehog scan failed: RuntimeError: Unexpected error
+PASSED                                                                   [ 26%]
+tests/test_secrets_scanner.py::TestRunTrufflehogSubprocess::test_run_trufflehog_git_mode 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 26%]
+tests/test_secrets_scanner.py::TestRunTrufflehogSubprocess::test_run_trufflehog_with_max_depth 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 27%]
+tests/test_secrets_scanner.py::TestIsGitRepoAndGetRepoInfo::test_is_git_repo_false PASSED [ 27%]
+tests/test_secrets_scanner.py::TestIsGitRepoAndGetRepoInfo::test_get_repo_info_non_git PASSED [ 27%]
+tests/test_secrets_scanner.py::TestIsGitRepoAndGetRepoInfo::test_get_repo_info_with_git_repo PASSED [ 27%]
+tests/test_secrets_scanner.py::TestStage2ContainmentChecks::test_verify_containment_base_escapes_trusted_root PASSED [ 28%]
+tests/test_secrets_scanner.py::TestStage2ContainmentChecks::test_run_gitleaks_base_escapes_trusted_root PASSED [ 28%]
+tests/test_secrets_scanner.py::TestStage2ContainmentChecks::test_run_trufflehog_base_escapes_trusted_root PASSED [ 28%]
+tests/test_secrets_scanner.py::TestSecretsModelsEnums::test_secret_type_values PASSED [ 28%]
+tests/test_secrets_scanner.py::TestSecretsModelsEnums::test_secret_type_is_str_subclass PASSED [ 28%]
+tests/test_secrets_scanner.py::TestSecretsModelsEnums::test_secret_status_values PASSED [ 29%]
+tests/test_secrets_scanner.py::TestSecretsModelsEnums::test_secret_status_is_str_subclass PASSED [ 29%]
+tests/test_secrets_scanner.py::TestSecretsModelsEnums::test_secrets_scanner_enum_values PASSED [ 29%]
+tests/test_secrets_scanner.py::TestSecretsModelsEnums::test_secrets_scan_status_enum_values PASSED [ 29%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_basic_fields PASSED [ 30%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_optional_fields_none PASSED [ 30%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_with_entropy PASSED [ 30%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_with_commit_hash PASSED [ 30%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_with_matched_pattern PASSED [ 30%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_detected_at_is_isoformat PASSED [ 31%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_resolved_at_isoformat_when_set PASSED [ 31%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_metadata_is_preserved PASSED [ 31%]
+tests/test_secrets_scanner.py::TestSecretFindingToDict::test_to_dict_all_secret_types_serialize PASSED [ 31%]
+tests/test_secrets_scanner.py::TestSecretsScanResultToDictWithFindings::test_to_dict_with_findings PASSED [ 32%]
+tests/test_secrets_scanner.py::TestSecretsScanResultToDictWithFindings::test_to_dict_none_timestamps PASSED [ 32%]
+tests/test_secrets_scanner.py::TestSecretsScanResultToDictWithFindings::test_to_dict_error_message PASSED [ 32%]
+tests/test_secrets_scanner.py::TestSecretsScanResultToDictWithFindings::test_to_dict_metadata_preserved PASSED [ 32%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_aws_in_description_uppercase PASSED [ 32%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_api_in_rule_id PASSED [ 33%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_api_in_description PASSED [ 33%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_db_password_combo PASSED [ 33%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_mysql_in_rule_id PASSED [ 33%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_postgres_in_rule_id PASSED [ 34%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_database_in_rule_id PASSED [ 34%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_password_in_description_only PASSED [ 34%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_token_in_rule_id PASSED [ 34%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_token_in_description PASSED [ 34%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_private_key_both_words PASSED [ 35%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_private_key_needs_both_terms PASSED [ 35%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_certificate_via_cert PASSED [ 35%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_certificate_full_word PASSED [ 35%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_aws_takes_priority_over_api PASSED [ 36%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_empty_rule_and_description PASSED [ 36%]
+tests/test_secrets_scanner.py::TestMapSecretTypeEdgeCases::test_map_uppercase_input_normalized PASSED [ 36%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_missing_optional_fields PASSED [ 36%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_null_match_field PASSED [ 36%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_exact_100_char_match_not_truncated PASSED [ 37%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_empty_array_json PASSED [ 37%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_multiple_findings PASSED [ 37%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_sets_repository_and_branch PASSED [ 37%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_finding_has_unique_id PASSED [ 38%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_finding_status_active PASSED [ 38%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_tags_in_metadata PASSED [ 38%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_whitespace_only_output PASSED [ 38%]
+tests/test_secrets_scanner.py::TestGitleaksParsingExtended::test_parse_gitleaks_scanner_in_metadata PASSED [ 38%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_git_source_uppercase_file_key PASSED [ 39%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_filesystem_lowercase_file_key PASSED [ 39%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_no_source_metadata PASSED [ 39%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_verified_false PASSED [ 39%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_exact_100_char_raw_not_truncated PASSED [ 40%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_null_raw PASSED [ 40%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_scanner_in_metadata PASSED [ 40%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_mixed_valid_invalid_lines PASSED [ 40%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_sets_active_status PASSED [ 40%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_extra_data_in_metadata PASSED [ 41%]
+tests/test_secrets_scanner.py::TestTrufflehogParsingExtended::test_parse_trufflehog_whitespace_only_input PASSED [ 41%]
+tests/test_secrets_scanner.py::TestSecretsScannerConfigExtended::test_from_env_defaults_when_no_env PASSED [ 41%]
+tests/test_secrets_scanner.py::TestSecretsScannerConfigExtended::test_scan_history_false_from_env PASSED [ 41%]
+tests/test_secrets_scanner.py::TestSecretsScannerConfigExtended::test_scan_history_true_from_env_uppercase PASSED [ 42%]
+tests/test_secrets_scanner.py::TestSecretsScannerConfigExtended::test_config_custom_values PASSED [ 42%]
+tests/test_secrets_scanner.py::TestSecretsDetectorAvailability::test_gitleaks_available_caches_result PASSED [ 42%]
+tests/test_secrets_scanner.py::TestSecretsDetectorAvailability::test_gitleaks_not_available PASSED [ 42%]
+tests/test_secrets_scanner.py::TestSecretsDetectorAvailability::test_trufflehog_available_caches_result PASSED [ 42%]
+tests/test_secrets_scanner.py::TestSecretsDetectorAvailability::test_trufflehog_not_available PASSED [ 43%]
+tests/test_secrets_scanner.py::TestSecretsDetectorAvailability::test_available_scanners_only_gitleaks PASSED [ 43%]
+tests/test_secrets_scanner.py::TestSecretsDetectorAvailability::test_available_scanners_only_trufflehog PASSED [ 43%]
+tests/test_secrets_scanner.py::TestGitleaksExitCode1Success::test_gitleaks_exit_code_1_success 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 43%]
+tests/test_secrets_scanner.py::TestGitleaksExitCode1Success::test_trufflehog_exit_code_183_success 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 44%]
+tests/test_secrets_scanner.py::TestGitleaksExitCode1Success::test_gitleaks_no_git_flag_when_scan_history_false 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running gitleaks scan on target
+PASSED                                                                   [ 44%]
+tests/test_secrets_scanner.py::TestGitleaksExitCode1Success::test_trufflehog_filesystem_mode_when_no_scan_history 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Running trufflehog scan on target
+PASSED                                                                   [ 44%]
+tests/test_secrets_scanner.py::TestSecretFindingDataclass::test_default_metadata_is_empty_dict PASSED [ 44%]
+tests/test_secrets_scanner.py::TestSecretFindingDataclass::test_detected_at_is_set_automatically PASSED [ 44%]
+tests/test_secrets_scanner.py::TestSecretFindingDataclass::test_resolved_at_defaults_to_none PASSED [ 45%]
+tests/test_secrets_scanner.py::TestSecretFindingDataclass::test_commit_hash_defaults_to_none PASSED [ 45%]
+tests/test_secrets_scanner.py::TestGetSecretsDetectorExtended::test_returns_secrets_detector_instance PASSED [ 45%]
+tests/test_secrets_scanner.py::TestGetSecretsDetectorExtended::test_singleton_is_reused PASSED [ 45%]
+tests/test_secrets_scanner.py::TestGetSecretsDetectorExtended::test_detector_has_default_config PASSED [ 46%]
+tests/test_secrets_scanner.py::TestSecretsScanResultDataclass::test_findings_default_is_empty_list PASSED [ 46%]
+tests/test_secrets_scanner.py::TestSecretsScanResultDataclass::test_metadata_default_is_empty_dict PASSED [ 46%]
+tests/test_secrets_scanner.py::TestSecretsScanResultDataclass::test_error_message_defaults_to_none PASSED [ 46%]
+tests/test_secrets_scanner.py::TestSecretsScanResultDataclass::test_to_dict_scanner_value PASSED [ 46%]
+tests/test_secrets_scanner.py::TestSecretsScanResultDataclass::test_to_dict_status_value PASSED [ 47%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinDirect::test_scan_content_builtin_no_findings PASSED [ 47%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinDirect::test_scan_content_builtin_with_findings PASSED [ 47%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinDirect::test_scan_content_builtin_multiple_findings PASSED [ 47%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinDirect::test_scan_content_builtin_default_params PASSED [ 48%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinDirect::test_scan_content_builtin_timestamps_set PASSED [ 48%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinDirect::test_scan_content_builtin_finding_no_redacted_match PASSED [ 48%]
+tests/test_secrets_scanner.py::TestScanContentPermissionErrorFallback::test_scan_content_permission_error_falls_back_to_builtin 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Cannot create scan base path /tmp/fixops-secrets-test-8jvv32s_/scans — using built-in scanner
+PASSED                                                                   [ 48%]
+tests/test_secrets_scanner.py::TestScanContentPermissionErrorFallback::test_scan_content_oserror_falls_back_to_builtin 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Cannot create scan base path /tmp/fixops-secrets-test-8jvv32s_/scans — using built-in scanner
+PASSED                                                                   [ 48%]
+tests/test_secrets_scanner.py::TestScanContentPermissionErrorFallback::test_scan_content_permission_error_with_findings 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: Cannot create scan base path /tmp/fixops-secrets-test-8jvv32s_/scans — using built-in scanner
+PASSED                                                                   [ 49%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinFallbackInline::test_scan_content_inline_builtin_with_actual_findings 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: No external secrets scanner available, using built-in scanner
+PASSED                                                                   [ 49%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinFallbackInline::test_scan_content_inline_builtin_multiple_findings 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: No external secrets scanner available, using built-in scanner
+PASSED                                                                   [ 49%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinFallbackInline::test_scan_content_inline_builtin_finding_no_redacted_match 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: No external secrets scanner available, using built-in scanner
+PASSED                                                                   [ 49%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinFallbackInline::test_scan_content_inline_builtin_result_timestamps 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: No external secrets scanner available, using built-in scanner
+PASSED                                                                   [ 50%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinFallbackInline::test_scan_content_inline_builtin_passes_correct_args_to_real_scanner 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.secrets_scanner: No external secrets scanner available, using built-in scanner
+PASSED                                                                   [ 50%]
+tests/test_secrets_scanner.py::TestScanContentBuiltinFallbackInline::test_scan_content_explicit_scanner_bypasses_builtin_fallback PASSED [ 50%]
+tests/test_flags.py::TestEvaluationContext::test_to_dict_filters_none PASSED [ 50%]
+tests/test_flags.py::TestEvaluationContext::test_to_dict_includes_custom PASSED [ 50%]
+tests/test_flags.py::TestEvaluationContext::test_mode_alias_for_environment PASSED [ 51%]
+tests/test_flags.py::TestLocalOverlayProvider::test_simple_bool_flag PASSED [ 51%]
+tests/test_flags.py::TestLocalOverlayProvider::test_simple_string_flag PASSED [ 51%]
+tests/test_flags.py::TestLocalOverlayProvider::test_simple_number_flag PASSED [ 51%]
+tests/test_flags.py::TestLocalOverlayProvider::test_simple_json_flag PASSED [ 52%]
+tests/test_flags.py::TestLocalOverlayProvider::test_percentage_rollout_deterministic PASSED [ 52%]
+tests/test_flags.py::TestLocalOverlayProvider::test_percentage_rollout_distribution PASSED [ 52%]
+tests/test_flags.py::TestLocalOverlayProvider::test_multi_variant_deterministic PASSED [ 52%]
+tests/test_flags.py::TestLocalOverlayProvider::test_multi_variant_distribution PASSED [ 52%]
+tests/test_flags.py::TestLocalOverlayProvider::test_nested_key_lookup PASSED [ 53%]
+tests/test_flags.py::TestLocalOverlayProvider::test_missing_context_for_percentage PASSED [ 53%]
+tests/test_flags.py::TestCombinedProvider::test_primary_provider_used_first PASSED [ 53%]
+tests/test_flags.py::TestCombinedProvider::test_fallback_provider_used_on_default PASSED [ 53%]
+tests/test_flags.py::TestCombinedProvider::test_registry_default_used_last PASSED [ 54%]
+tests/test_flags.py::TestLaunchDarklyProvider::test_build_ld_context_uses_mode_as_environment_alias 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.flags.ld_provider: LaunchDarkly provider running in offline mode
+PASSED                                                                   [ 54%]
+tests/test_flags.py::TestLaunchDarklyProvider::test_build_ld_context_prefers_environment_over_mode 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] core.flags.ld_provider: LaunchDarkly provider running in offline mode
+PASSED                                                                   [ 54%]
+tests/test_flags.py::TestFlagRegistry::test_registry_has_flags PASSED    [ 54%]
+tests/test_flags.py::TestFlagRegistry::test_registry_get_flag PASSED     [ 54%]
+tests/test_flags.py::TestFlagRegistry::test_registry_list_by_priority PASSED [ 55%]
+tests/test_flags.py::TestFlagRegistry::test_registry_list_by_tag PASSED  [ 55%]
+tests/test_flags.py::TestFlagRegistry::test_registry_validate_config PASSED [ 55%]
+tests/test_flags.py::TestFlagRegistry::test_registry_validate_config_type_mismatch PASSED [ 55%]
+tests/test_flags.py::TestConsistentHashing::test_consistent_hashing_stable PASSED [ 56%]
+tests/test_flags.py::TestConsistentHashing::test_different_hash_keys_different_results PASSED [ 56%]
+tests/test_flags.py::TestFakeFlagProvider::test_fake_provider_bool PASSED [ 56%]
+tests/test_flags.py::TestFakeFlagProvider::test_fake_provider_string PASSED [ 56%]
+tests/test_flags.py::TestFakeFlagProvider::test_fake_provider_number PASSED [ 56%]
+tests/test_flags.py::TestFakeFlagProvider::test_fake_provider_json PASSED [ 57%]
+tests/test_flags.py::TestFakeFlagProvider::test_fake_provider_variant PASSED [ 57%]
+tests/test_flags.py::TestNamespaceAdapter::test_namespace_aliasing_with_brand_key PASSED [ 57%]
+tests/test_flags.py::TestNamespaceAdapter::test_namespace_fallback_to_canonical PASSED [ 57%]
+tests/test_flags.py::TestNamespaceAdapter::test_namespace_default_when_neither_found PASSED [ 58%]
+tests/test_flags.py::TestNamespaceAdapter::test_namespace_no_aliasing_when_same_as_canonical PASSED [ 58%]
+tests/test_flags.py::TestNamespaceAdapter::test_namespace_string_flag PASSED [ 58%]
+tests/test_flags.py::TestNamespaceAdapter::test_namespace_number_flag PASSED [ 58%]
+tests/test_flags.py::TestNamespaceAdapter::test_namespace_json_flag PASSED [ 58%]
+tests/test_normalizers.py::test_load_sarif_uses_embedded_payload_when_converter_missing PASSED [ 59%]
+tests/test_normalizers.py::test_load_sarif_logs_actionable_error_without_converter 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [   ERROR] apps.api.normalizers: Snyk JSON payload detected but snyk-to-sarif is not installed. Install it via `pip install snyk-to-sarif` or upload SARIF directly.
+PASSED                                                                   [ 59%]
+tests/test_normalizers.py::test_load_sarif_converts_snyk_payload_without_converter 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] apps.api.normalizers: Converted Snyk JSON payload via built-in fallback
+PASSED                                                                   [ 59%]
+tests/test_normalizers.py::test_load_sarif_rejects_invalid_severity PASSED [ 59%]
+tests/test_normalizers.py::test_load_sarif_rejects_oversized_payload PASSED [ 60%]
+tests/test_security_headers.py::test_x_content_type_options 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 60%]
+tests/test_security_headers.py::test_x_frame_options 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 60%]
+tests/test_security_headers.py::test_referrer_policy 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 60%]
+tests/test_security_headers.py::test_permissions_policy 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 60%]
+tests/test_security_headers.py::test_cache_control 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:38 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 61%]
+tests/test_security_headers.py::test_x_permitted_cross_domain 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:39 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 61%]
+tests/test_security_headers.py::test_pragma_no_cache 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:39 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 61%]
+tests/test_security_headers.py::test_content_security_policy 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:39 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 61%]
+tests/test_security_headers.py::test_x_xss_protection 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:39 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 62%]
+tests/test_security_headers.py::test_all_security_headers_present 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:39 [    INFO] httpx: HTTP Request: GET http://test/test "HTTP/1.1 200 OK"
+PASSED                                                                   [ 62%]
+tests/test_security_headers.py::test_headers_on_health_endpoint 
+-------------------------------- live log call ---------------------------------
+2026-05-02 11:22:39 [    INFO] httpx: HTTP Request: GET http://test/api/v1/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 62%]
+tests/test_signing_verify.py::test_sign_verify_roundtrip PASSED          [ 62%]
+tests/test_signing_verify.py::test_verify_failure_on_tamper PASSED       [ 62%]
+tests/test_signing_verify.py::test_signing_disabled FAILED               [ 63%]
+------------------------------- live log finish --------------------------------
+2026-05-02 11:23:19 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+
+
+=================================== FAILURES ===================================
+____________________________ test_signing_disabled _____________________________
+tests/test_signing_verify.py:24: in test_signing_disabled
+    signing._load_private_key.cache_clear()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: module 'core.services.enterprise.signing' has no attribute '_load_private_key'
+
+-------- coverage: platform linux, python 3.11.0-candidate-1 ---------
+Name                                                                Stmts   Miss Branch BrPart   Cover   Missing
+----------------------------------------------------------------------------------------------------------------
+suite-api/apps/api/__init__.py                                          6      4      2      0  25.00%   7-11
+suite-api/apps/api/admin_router.py                                    149    149     28      0   0.00%   21-350
+suite-api/apps/api/analytics_router.py                                534    534    150      0   0.00%   8-1223
+suite-api/apps/api/app.py                                            1796   1796    354      0   0.00%   1-3793
+suite-api/apps/api/audit_router.py                                    214    214     52      0   0.00%   9-494
+suite-api/apps/api/auth_deps.py                                        90     90     32      0   0.00%   45-245
+suite-api/apps/api/auth_router.py                                     146    146     18      0   0.00%   4-243
+suite-api/apps/api/bulk_router.py                                     551    551    160      0   0.00%   8-1290
+suite-api/apps/api/collaboration_router.py                            251    251     34      0   0.00%   3-638
+suite-api/apps/api/connectors_router.py                               177    177     36      0   0.00%   19-377
+suite-api/apps/api/dependencies.py                                      6      6      0      0   0.00%   12-38
+suite-api/apps/api/detailed_logging.py                                267    267     58      0   0.00%   5-493
+suite-api/apps/api/fail_router.py                                     258    258      8      0   0.00%   28-885
+suite-api/apps/api/gap_router.py                                     2019   2019    466      0   0.00%   10-4522
+suite-api/apps/api/gate_router.py                                     230    230     70      0   0.00%   16-665
+suite-api/apps/api/health.py                                          169    169     30      0   0.00%   3-393
+suite-api/apps/api/ingestion.py                                       928    669    264      0  21.73%   279-297, 301-315, 388-393, 397-401, 405-418, 428-436, 440-471, 488-605, 608-614, 623-684, 693-747, 750-763, 766-776, 785-828, 831-842, 851-933, 942-1011, 1020-1139, 1148-1207, 1216-1286, 1295-1373, 1388-1399, 1403-1414, 1418, 1526-1560, 1576-1633, 1637-1645, 1649-1650, 1654-1656, 1660, 1664, 1675-1701, 1705-1717, 1721-1724, 1746-1776, 1782-1801, 1810-1811, 1832-1853, 1857, 1861-1864, 1898-1899, 1920-1964, 1979-1983, 1987-2006, 2010-2018, 2031-2044, 2048-2078, 2082, 2086, 2096-2106, 2112-2114
+suite-api/apps/api/integrations.py                                    200    200     40      0   0.00%   7-417
+suite-api/apps/api/inventory_router.py                                463    463    168      0   0.00%   8-1064
+suite-api/apps/api/knowledge_graph.py                                 116    108     76      0   4.17%   15, 28-299
+suite-api/apps/api/marketplace_router.py                              256    256     56      0   0.00%   8-724
+suite-api/apps/api/mcp_router.py                                      420    420    166      0   0.00%   14-1068
+suite-api/apps/api/metrics_middleware.py                               99     99     14      0   0.00%   16-270
+suite-api/apps/api/middleware.py                                       77     35      8      1  55.29%   88, 109-110, 113-128, 143-185, 206-228, 234-235
+suite-api/apps/api/normalizers.py                                     965    597    488     45  31.87%   39-46, 111-112, 121, 126, 132, 143-154, 165->164, 168-180, 191->190, 195->194, 199->206, 203-204, 217-221, 239, 245, 266->271, 272->275, 289->292, 305->308, 311->309, 319->322, 341-344, 360, 382, 394, 411-418, 437, 451, 464, 481, 499, 520, 534, 558, 590-604, 609, 611, 614-615, 617-639, 642, 653, 657-675, 678-719, 735-766, 774-879, 882-895, 898-1003, 1016-1078, 1089-1156, 1169-1313, 1330->1339, 1333-1338, 1339->1326, 1346-1353, 1360->1362, 1363->1369, 1365->1364, 1367->1364, 1375->1390, 1384->1390, 1410->1413, 1419-1420, 1423->1432, 1427->1432, 1429-1430, 1441, 1447-1450, 1487->1489, 1489->1492, 1504-1505, 1524-1574, 1579-1629, 1636-1657, 1661-1673, 1678-1691, 1702-1765, 1776-1778, 1791-1836
+suite-api/apps/api/org_middleware.py                                   46     46     12      0   0.00%   42-237
+suite-api/apps/api/pipeline.py                                        909    847    448      0   4.57%   92-173, 180-185, 189-193, 197-200, 204-211, 215, 219-235, 238-248, 257-289, 317-350, 362-440, 463-535, 551-635, 655-1795
+suite-api/apps/api/policies_router.py                                 266    266    100      0   0.00%   9-523
+suite-api/apps/api/pr_gate_router.py                                  316    316    106      0   0.00%   17-744
+suite-api/apps/api/rate_limiter.py                                     58     58     12      0   0.00%   3-196
+suite-api/apps/api/remediation_router.py                              369    369     94      0   0.00%   3-844
+suite-api/apps/api/reports_router.py                                  336    336     94      0   0.00%   11-1017
+suite-api/apps/api/routes/enhanced.py                                  51     51      2      0   0.00%   3-109
+suite-api/apps/api/scanner_ingest_router.py                           224    224     68      0   0.00%   17-559
+suite-api/apps/api/sla_router.py                                      151    151     48      0   0.00%   13-263
+suite-api/apps/api/static_serve.py                                     12     12      2      0   0.00%   2-17
+suite-api/apps/api/system_router.py                                   410    410    158      0   0.00%   13-1066
+suite-api/apps/api/teams_router.py                                     95     95     20      0   0.00%   4-167
+suite-api/apps/api/triage_router.py                                   407    407     96      0   0.00%   13-906
+suite-api/apps/api/upload_manager.py                                  137    137     38      0   0.00%   3-244
+suite-api/apps/api/users_router.py                                    142    142     28      0   0.00%   11-320
+suite-api/apps/api/validation_router.py                               244    244     96      0   0.00%   13-504
+suite-api/apps/api/webhook_subscriptions_router.py                    390    390     84      0   0.00%   6-617
+suite-api/apps/api/workflows_router.py                                296    296    102      0   0.00%   9-531
+suite-api/apps/fixops_cli/__main__.py                                  61     61     14      0   0.00%   3-143
+suite-api/apps/mpte_integration.py                                    193    193     32      0   0.00%   3-493
+suite-api/backend/__init__.py                                           1      1      0      0   0.00%   3
+suite-api/backend/app.py                                                5      5      0      0   0.00%   3-13
+suite-api/backend/normalizers.py                                        1      1      0      0   0.00%   3
+suite-attack/api/api_fuzzer_router.py                                  73     73     14      0   0.00%   10-128
+suite-attack/api/app.py                                                46     46      4      0   0.00%   7-119
+suite-attack/api/attack_sim_router.py                                 152    152     18      0   0.00%   12-419
+suite-attack/api/container_router.py                                  114    114     20      0   0.00%   13-268
+suite-attack/api/cspm_router.py                                       167    167     46      0   0.00%   15-394
+suite-attack/api/dast_router.py                                       166    166     48      0   0.00%   8-320
+suite-attack/api/fail_router.py                                       225    225      8      0   0.00%   28-822
+suite-attack/api/malware_router.py                                     66     66     12      0   0.00%   9-113
+suite-attack/api/micro_pentest_router.py                              794    794    190      0   0.00%   15-2029
+suite-attack/api/mpte_orchestrator_router.py                          239    239     68      0   0.00%   14-667
+suite-attack/api/mpte_router.py                                       645    645    190      0   0.00%   10-1403
+suite-attack/api/sast_router.py                                       117    117     32      0   0.00%   10-245
+suite-attack/api/secrets_router.py                                    177    177     18      0   0.00%   12-365
+suite-attack/api/vuln_discovery_router.py                             487    487     90      0   0.00%   16-1192
+suite-core/api/agents_router.py                                       938    938    254      0   0.00%   12-3012
+suite-core/api/ai_code_guardian_router.py                              35     35      2      0   0.00%   6-100
+suite-core/api/airgap_router.py                                       299    299     24      0   0.00%   15-1031
+suite-core/api/algorithmic_router.py                                  186    186     18      0   0.00%   9-576
+suite-core/api/app.py                                                  58     58      4      0   0.00%   7-132
+suite-core/api/app_config_router.py                                   139    139     16      0   0.00%   10-456
+suite-core/api/attack_surface_router.py                                50     50      4      0   0.00%   7-128
+suite-core/api/autofix_router.py                                      194    194     34      0   0.00%   8-454
+suite-core/api/autofix_verify_router.py                                31     31      2      0   0.00%   7-122
+suite-core/api/brain_router.py                                        279    279     22      0   0.00%   8-721
+suite-core/api/causal_router.py                                        62     62      4      0   0.00%   7-148
+suite-core/api/code_to_cloud_router.py                                105    105     22      0   0.00%   16-372
+suite-core/api/copilot_router.py                                      579    579    160      0   0.00%   17-2016
+suite-core/api/decisions.py                                           117    117      8      0   0.00%   6-284
+suite-core/api/deduplication_router.py                                200    200     26      0   0.00%   3-488
+suite-core/api/developer_profiles_router.py                            74     74     12      0   0.00%   10-160
+suite-core/api/dtrack_router.py                                       135    135     32      0   0.00%   16-319
+suite-core/api/exposure_case_router.py                                114    114      6      0   0.00%   17-219
+suite-core/api/feeds_router.py                                        127    127     28      0   0.00%   15-816
+suite-core/api/fuzzy_identity_router.py                               100    100      6      0   0.00%   8-231
+suite-core/api/gnn_router.py                                           92     92      8      0   0.00%   7-176
+suite-core/api/knowledge_graph_router.py                              178    178     38      0   0.00%   9-658
+suite-core/api/llm_guard_router.py                                     46     46      2      0   0.00%   8-114
+suite-core/api/llm_monitor_router.py                                   33     33      0      0   0.00%   3-72
+suite-core/api/llm_router.py                                          142    142     42      0   0.00%   10-473
+suite-core/api/material_change_router.py                              342    342     76      0   0.00%   34-1027
+suite-core/api/mcp_protocol_router.py                                 203    203      8      0   0.00%   28-472
+suite-core/api/mindsdb_router.py                                      143    143      8      0   0.00%   15-342
+suite-core/api/mitre_mapper_router.py                                 182    182     16      0   0.00%   19-508
+suite-core/api/monte_carlo_router.py                                   69     69      2      0   0.00%   7-147
+suite-core/api/nerve_center.py                                        287    287     60      0   0.00%   8-888
+suite-core/api/pipeline_router.py                                     110    110      4      0   0.00%   16-223
+suite-core/api/postfix_verify_router.py                               141    141     18      0   0.00%   28-486
+suite-core/api/predictions_router.py                                  155    155     14      0   0.00%   7-499
+suite-core/api/quantum_crypto_router.py                                80     80      0      0   0.00%   8-176
+suite-core/api/runtime_router.py                                       70     70      6      0   0.00%   7-137
+suite-core/api/self_learning_router.py                                332    332     30      0   0.00%   17-837
+suite-core/api/single_agent_router.py                                  78     78      0      0   0.00%   7-168
+suite-core/api/streaming_router.py                                     77     77     10      0   0.00%   12-192
+suite-core/api/supply_chain_router.py                                  43     43      0      0   0.00%   11-103
+suite-core/api/threat_modeling_router.py                               37     37      2      0   0.00%   6-91
+suite-core/api/vllm_router.py                                          82     82     12      0   0.00%   15-305
+suite-core/api/zero_gravity_router.py                                  71     71      4      0   0.00%   7-127
+suite-core/cli/__init__.py                                              2      0      0      0 100.00%
+suite-core/cli/aldeci.py                                              372    372    102      0   0.00%   18-707
+suite-core/cli/auth.py                                                 19     19      0      0   0.00%   3-38
+suite-core/cli/config.py                                               31     31      2      0   0.00%   3-51
+suite-core/cli/fixops_ci.py                                            86     86     14      0   0.00%   1-180
+suite-core/cli/fixops_provenance.py                                   109    109     16      0   0.00%   3-240
+suite-core/cli/fixops_repro.py                                         39     39      4      0   0.00%   1-77
+suite-core/cli/fixops_risk.py                                          45     32      6      0  25.49%   19-59, 69-92, 96-105
+suite-core/cli/fixops_sbom.py                                          71     71     10      0   0.00%   3-139
+suite-core/cli/main.py                                                104     52     10      0  45.61%   34-39, 71-90, 104-111, 124-135, 148-159, 166-173, 186-191, 198-205, 210
+suite-core/cli/monitor.py                                              44     44      6      0   0.00%   3-76
+suite-core/cli/scanner.py                                              39     39      6      0   0.00%   3-82
+suite-core/cli/tester.py                                               32     32      4      0   0.00%   3-64
+suite-core/core/__init__.py                                             2      0      0      0 100.00%
+suite-core/core/adapters.py                                           410    410    114      0   0.00%   14-1136
+suite-core/core/ai_agents.py                                          134    109     62      0  12.76%   11-15, 22-24, 36-41, 51-86, 89, 96-107, 110-122, 125-143, 150-228
+suite-core/core/ai_code_guardian.py                                   197    197     66      0   0.00%   14-398
+suite-core/core/airgap_config.py                                      719    719    152      0   0.00%   13-1556
+suite-core/core/analytics.py                                          310    259     92      0  12.69%   34-41, 59-66, 72-82, 86, 94-98, 101-118, 121-135, 141-146, 158-211, 218-256, 263-314, 317-334, 341-353, 362-381, 388-391, 394-415, 425-433, 443-458, 470-481, 500-501, 511-512, 530-539, 545-547, 551-554, 565-722, 734-735, 738-764, 767-770
+suite-core/core/analytics_db.py                                       161    161     30      0   0.00%   4-428
+suite-core/core/analytics_models.py                                    65     65      0      0   0.00%   4-125
+suite-core/core/api_fuzzer.py                                         137    137     32      0   0.00%   18-361
+suite-core/core/api_key_manager.py                                     74     74     18      0   0.00%   19-386
+suite-core/core/api_learning_store.py                                 448    448     78      0   0.00%   9-1023
+suite-core/core/app_config.py                                         388    388    122      0   0.00%   12-881
+suite-core/core/async_executor.py                                      27     27     10      0   0.00%   25-105
+suite-core/core/attack_graph_gnn.py                                   282    282    106      0   0.00%   14-726
+suite-core/core/attack_path_engine.py                                 249    249     80      0   0.00%   23-666
+suite-core/core/attack_simulation_engine.py                           427    427    124      0   0.00%   15-1133
+suite-core/core/attack_surface_discovery.py                           256    256     68      0   0.00%   12-473
+suite-core/core/audit_db.py                                            89     89     16      0   0.00%   4-275
+suite-core/core/audit_logger.py                                        68     68      8      0   0.00%   55-402
+suite-core/core/audit_models.py                                        62     62      0      0   0.00%   4-112
+suite-core/core/auth_bootstrap.py                                      42     42      0      0   0.00%   13-244
+suite-core/core/auth_db.py                                            129    129     10      0   0.00%   6-345
+suite-core/core/auth_middleware.py                                     99     99     26      0   0.00%   19-238
+suite-core/core/auth_models.py                                         83     83      0      0   0.00%   4-183
+suite-core/core/autofix_engine.py                                     936    936    308      0   0.00%   16-2307
+suite-core/core/autofix_templates.py                                  127    127     50      0   0.00%   18-1164
+suite-core/core/autofix_verifier.py                                   171    171     48      0   0.00%   16-481
+suite-core/core/automated_remediation.py                              236    236     40      0   0.00%   3-725
+suite-core/core/bn_lr.py                                               99     99     18      0   0.00%   19-372
+suite-core/core/brain_pipeline.py                                    1788   1788    534      0   0.00%   27-4172
+suite-core/core/brain_pipeline_db.py                                   99     99     16      0   0.00%   29-289
+suite-core/core/business_context.py                                   167    167     68      0   0.00%   6-419
+suite-core/core/cache.py                                              140    140     34      0   0.00%   16-238
+suite-core/core/causal_inference.py                                   231    231     80      0   0.00%   14-710
+suite-core/core/cli.py                                               2626   2626    814      0   0.00%   3-6000
+suite-core/core/code_to_cloud_tracer.py                               116    116     30      0   0.00%   14-295
+suite-core/core/compliance.py                                          63     56     30      0   7.53%   12-13, 25-78, 85-130
+suite-core/core/configuration.py                                      593    466    266      0  14.78%   28-31, 35, 39-57, 73-87, 139-141, 145-150, 154-159, 163-175, 179-216, 220-260, 264-307, 311-345, 349-445, 449-510, 514-581, 629-638, 642-650, 719-730, 733-764, 768-783, 787-805, 1124-1129, 1136-1152, 1246-1264, 1288-1528
+suite-core/core/connectors.py                                        1373   1234    486      0   7.48%   68-72, 113-120, 123-129, 132-137, 155-156, 159-174, 185-187, 210, 238-271, 274-318, 324, 340-351, 358-404, 415-466, 477-560, 572-632, 646-680, 698-739, 757-762, 766-798, 822-879, 900-959, 977-1006, 1018-1048, 1059-1070, 1077-1131, 1154-1225, 1238-1271, 1284-1316, 1331-1333, 1337-1367, 1378-1384, 1387-1409, 1417-1476, 1484-1508, 1517-1544, 1554-1581, 1592-1605, 1613-1668, 1680-1738, 1749-1794, 1805-1835, 1850-1887, 1905-1912, 1916-1946, 1957-1968, 1976-2032, 2045-2100, 2111-2160, 2174-2204, 2223-2258, 2272, 2276-2305, 2316-2329, 2337-2340, 2344-2441, 2453-2534, 2545-2592, 2604-2633, 2645-2680, 2699-2703, 2712-2721, 2725-2754, 2765-2777, 2785-2838, 2851-2906, 2917-2968, 2981, 2991-3022, 3048-3086, 3100, 3106-3137, 3174-3223, 3247-3282, 3304-3332, 3344-3373, 3389-3400, 3403-3408, 3411-3553, 3562-3613
+suite-core/core/container_scanner.py                                  235    235     88      0   0.00%   12-778
+suite-core/core/context_compression.py                                 44     44      8      0   0.00%   11-118
+suite-core/core/context_engine.py                                     149    114     54      0  17.24%   45-64, 68-75, 79-94, 98-101, 104-111, 114-116, 119-122, 125-127, 130-135, 138-142, 147-193, 209-272, 276-281
+suite-core/core/continuous_validation.py                              204    204     48      0   0.00%   3-473
+suite-core/core/crypto.py                                             823    612    128      0  22.19%   180-190, 215, 237-251, 278-288, 293, 325, 337, 389-412, 420, 424, 478-483, 491-509, 517-532, 540-559, 563-580, 584-599, 603-610, 625, 645-657, 699-728, 736, 740, 744-747, 755-759, 763-765, 773-777, 781-785, 801-806, 814-859, 867-887, 895-914, 918-931, 935-947, 1001, 1005, 1023-1034, 1067-1071, 1075, 1104, 1121, 1148-1159, 1181, 1200-1212, 1223-1224, 1240, 1270-1297, 1315-1320, 1342, 1362-1378, 1389-1390, 1406, 1431-1451, 1469-1474, 1499-1501, 1522-1539, 1573-1586, 1600-1609, 1634-1636, 1656-1704, 1718, 1732, 1749-1798, 1840-1866, 1877-1884, 1908-1923, 1946-1957, 1980-2003, 2022-2046, 2083-2088, 2098-2099, 2103-2108, 2122-2145, 2156-2215, 2219-2220, 2245-2253, 2288-2289, 2305, 2319-2324, 2335-2340, 2348-2354, 2365-2377, 2397-2400, 2406-2409, 2415-2418, 2424-2427, 2433-2436, 2442-2445, 2465, 2482, 2496, 2509, 2527-2554, 2568, 2590-2601, 2621-2628
+suite-core/core/cspm_engine.py                                        464    464    192      0   0.00%   14-1260
+suite-core/core/cve_tester.py                                         563    563    154      0   0.00%   13-1477
+suite-core/core/cybersec_skills_loader.py                             125    125     50      0   0.00%   13-234
+suite-core/core/dast_engine.py                                        584    584    184      0   0.00%   15-1236
+suite-core/core/decision_policy.py                                    117     96     66      0  11.48%   40-61, 101-163, 187-201, 209-233, 241-282, 288-306, 312-325
+suite-core/core/decision_tree.py                                      113    113     30      0   0.00%   3-329
+suite-core/core/demo_runner.py                                        111    111     54      0   0.00%   3-205
+suite-core/core/design_context_injector.py                            198    163     86      0  12.32%   36-58, 63-81, 87-94, 97-109, 112-136, 141-148, 153-161, 165-167, 170-174, 179-201, 204-218, 221-235, 238, 245-252, 256-265, 270-281, 284-289
+suite-core/core/developer_risk_profiler.py                            362    362     98      0   0.00%   28-968
+suite-core/core/encrypted_store.py                                    171    171     20      0   0.00%   28-325
+suite-core/core/enhanced_decision.py                                  480    399    204      0  11.84%   84, 112, 149-235, 257-523, 538-551, 559-593, 608-618, 634-656, 672-706, 746-753, 759-780, 806-834, 844-850, 854-857, 872-905, 913, 929-932, 936-940, 944-948, 952-956, 960-968, 975-985, 989-994, 998-1011, 1015-1057, 1071-1094, 1104-1116, 1139-1175, 1187-1190, 1207-1223, 1226-1227, 1230, 1243-1253, 1257-1271
+suite-core/core/error_responses.py                                     46     46      4      0   0.00%   3-185
+suite-core/core/event_bus.py                                          126    126     12      0   0.00%   10-249
+suite-core/core/event_subscribers.py                                  107    107      8      0   0.00%   8-211
+suite-core/core/evidence.py                                           219    185     48      0  12.73%   64-67, 74-191, 198-206, 209-223, 232-414, 419-430
+suite-core/core/evidence_indexer.py                                   130    130     56      0   0.00%   6-279
+suite-core/core/exceptions.py                                          13     13      0      0   0.00%   12-60
+suite-core/core/exploit_generator.py                                  163    163     18      0   0.00%   3-564
+suite-core/core/exploit_signals.py                                    363    300    154      0  12.19%   26-31, 37-46, 67-88, 103-137, 144-170, 173-242, 249-283, 286-294, 299-326, 329-334, 341-369, 372-378, 383-449, 454-489, 495-505, 509-516, 520-529, 533-534, 538-539, 543-547
+suite-core/core/exposure_case.py                                      246    246     54      0   0.00%   13-646
+suite-core/core/fail_db.py                                             80     80     10      0   0.00%   8-255
+suite-core/core/fail_engine.py                                        317    317     92      0   0.00%   32-709
+suite-core/core/falkordb_client.py                                    818    818    296      0   0.00%   30-1814
+suite-core/core/feature_matrix.py                                     120     95     12      0  18.94%   10-12, 16-18, 22-25, 29-32, 36-37, 45-49, 58-61, 72-79, 87-96, 105-108, 118-121, 129-137, 145-148, 156-159, 175-178, 186-192, 200-202, 210-213, 224-226, 253-282
+suite-core/core/feedback.py                                           112    112     44      0   0.00%   3-244
+suite-core/core/flags/__init__.py                                       6      0      0      0 100.00%
+suite-core/core/flags/base.py                                          24      0      0      0 100.00%
+suite-core/core/flags/combined.py                                     105     78     30      2  22.96%   54->70, 65-66, 75-81, 90-117, 126-153, 162-187, 196-223
+suite-core/core/flags/ld_provider.py                                  116     75     36      8  32.24%   19-22, 66-70, 76-103, 111, 118->120, 121, 123, 125, 128, 139-149, 158-168, 177-188, 197-210, 219-229, 233-237
+suite-core/core/flags/local_provider.py                               136     55     82     17  52.29%   77, 82-91, 126, 129, 134-141, 144, 155, 175-178, 190, 195-201, 213, 218-230, 242, 251-259, 271, 274, 279-282
+suite-core/core/flags/namespace_adapter.py                             62     18     10      1  68.06%   36-48, 115->136, 128-129, 140-142, 191-192
+suite-core/core/flags/provider_factory.py                              37     37     10      0   0.00%   7-80
+suite-core/core/flags/registry.py                                     118     17     18      5  80.88%   49-55, 59, 543, 566, 582-583, 586-589, 599, 605
+suite-core/core/hallucination_guards.py                               128    128     64      0   0.00%   3-319
+suite-core/core/iac.py                                                 86     68     42      0  14.06%   10-22, 36-54, 68-78, 86-184
+suite-core/core/iac_db.py                                              56     40      6      0  25.81%   19-21, 25-27, 31-71, 75-102, 106-115, 121-135, 139-152, 156
+suite-core/core/iac_models.py                                          45      2      0      0  95.56%   50, 84
+suite-core/core/iac_scanner.py                                        276    276    100      0   0.00%   9-713
+suite-core/core/integration_db.py                                      64     64      6      0   0.00%   4-153
+suite-core/core/integration_models.py                                  41     41      6      0   0.00%   4-59
+suite-core/core/intelligent_security_engine.py                        511    511    118      0   0.00%   17-1290
+suite-core/core/inventory_db.py                                        71     71      4      0   0.00%   4-222
+suite-core/core/inventory_models.py                                    74     74      0      0   0.00%   4-148
+suite-core/core/key_manager.py                                        177    177     30      0   0.00%   26-401
+suite-core/core/knowledge_brain.py                                    391    391    102      0   0.00%   9-862
+suite-core/core/learning_middleware.py                                 72     59     10      0  15.85%   46-48, 52-60, 64-193
+suite-core/core/llm_consensus.py                                      128    128     30      0   0.00%   25-387
+suite-core/core/llm_guard_service.py                                  141    141     50      0   0.00%   21-375
+suite-core/core/llm_monitor.py                                        118    118     24      0   0.00%   13-312
+suite-core/core/llm_providers.py                                      333    272     70      0  15.14%   40-42, 57-66, 94-102, 121-282, 297-303, 319-327, 345-407, 422-428, 444-451, 464-530, 545-551, 585-600, 624-740, 758-763, 767-771, 781-787, 811-818, 838-895, 913-917, 920, 931-952, 969-983, 995-999, 1011-1035, 1055, 1066-1068, 1083-1084
+suite-core/core/logging_config.py                                      50     33     16      0  25.76%   19, 24, 29, 36-39, 46-51, 58-95, 112-156
+suite-core/core/malware_detector.py                                   119    119     24      0   0.00%   14-381
+suite-core/core/material_change_detector.py                           863    863    244      0   0.00%   25-2521
+suite-core/core/mcp_server.py                                         907    907    264      0   0.00%   29-2395
+suite-core/core/micro_pentest.py                                      571    571    204      0   0.00%   16-2046
+suite-core/core/mitre_mapper.py                                       208    208     84      0   0.00%   22-2140
+suite-core/core/model_factory.py                                       93     93     28      0   0.00%   3-158
+suite-core/core/model_registry.py                                     163    163     54      0   0.00%   3-463
+suite-core/core/models/__init__.py                                     12     12      6      0   0.00%   8-24
+suite-core/core/models/bayesian_network.py                             83     83     22      0   0.00%   3-271
+suite-core/core/models/bn_lr_hybrid.py                                117    117     32      0   0.00%   7-370
+suite-core/core/models/enterprise/__init__.py                           4      4      0      0   0.00%   3-7
+suite-core/core/models/enterprise/base.py                              61     61     10      0   0.00%   5-142
+suite-core/core/models/enterprise/base_sqlite.py                       60     60     10      0   0.00%   5-134
+suite-core/core/models/enterprise/security.py                         223    223     10      0   0.00%   6-505
+suite-core/core/models/enterprise/security_sqlite.py                  280    280     10      0   0.00%   6-564
+suite-core/core/models/enterprise/user.py                             119    119     16      0   0.00%   5-306
+suite-core/core/models/enterprise/user_sqlite.py                      160    160     14      0   0.00%   5-350
+suite-core/core/models/enterprise/waivers.py                           17     17      6      0   0.00%   3-42
+suite-core/core/models/markov_chain.py                                168    168     64      0   0.00%   7-569
+suite-core/core/models/weighted_scoring.py                             50     50     24      0   0.00%   3-136
+suite-core/core/modules.py                                             59     33     18      0  33.77%   55-74, 83-139
+suite-core/core/monte_carlo.py                                        176    176     28      0   0.00%   15-571
+suite-core/core/mpte_advanced.py                                      333    333     64      0   0.00%   17-1082
+suite-core/core/mpte_db.py                                            155    155     22      0   0.00%   2-536
+suite-core/core/mpte_models.py                                         70     70      0      0   0.00%   2-129
+suite-core/core/onboarding.py                                          22     14      8      0  26.67%   14-15, 18-23, 29-42
+suite-core/core/oss_fallback.py                                       158    158     62      0   0.00%   6-371
+suite-core/core/overlay_runtime.py                                     72     72     40      0   0.00%   3-128
+suite-core/core/paths.py                                               81     68     36      0  11.11%   12-13, 25, 29-42, 57-71, 86-97, 111-153, 164-172
+suite-core/core/performance.py                                         64     52     14      0  15.38%   15-24, 30-32, 36-39, 43-46, 53-125
+suite-core/core/persistent_store.py                                   241    241     50      0   0.00%   29-508
+suite-core/core/playbook_runner.py                                    655    655    224      0   0.00%   22-1262
+suite-core/core/policy.py                                             121     97     32      0  15.69%   21-26, 31-50, 57-68, 71-88, 95-111, 118-128, 137-153, 161-182, 187-207, 213-241
+suite-core/core/policy_db.py                                           64     64      6      0   0.00%   4-151
+suite-core/core/policy_models.py                                       22     22      0      0   0.00%   4-35
+suite-core/core/portfolio_search.py                                   149    149     62      0   0.00%   6-422
+suite-core/core/postfix_verifier.py                                   404    404    130      0   0.00%   22-1827
+suite-core/core/probabilistic.py                                      435    388    204      0   7.36%   14-31, 35-69, 73, 77-90, 94-111, 115-120, 124-165, 176, 197, 218-245, 249, 259-282, 287-315, 323-365, 375-390, 393-406, 409-433, 438-458, 461-499, 502-510, 520-539, 542-549, 560-594, 602-673
+suite-core/core/processing_layer.py                                   214    181     98      0  10.58%   52, 65-72, 88-103, 115-209, 223-251, 263-278, 290-358, 373-458
+suite-core/core/quantum_crypto.py                                     995    995    198      0   0.00%   31-2537
+suite-core/core/real_scanner.py                                      1029    850    408      1  12.94%   82, 408-436, 456-461, 479-533, 547-611, 620-633, 650-751, 773-890, 897-913, 919-936, 958-1023, 1044-1075, 1085-1300, 1314-1377, 1393-1434, 1443-1572, 1581-1640, 1649-1691, 1700-1743, 1752-1786, 1795-1840, 1849-1878, 1887-1948, 1957-2010, 2026-2089, 2098-2134, 2143-2225, 2253-2317, 2326-2372, 2402-2438, 2447-2489, 2516-2558, 2592-2712, 2727-2814, 2846-2848, 2852-2859, 2917, 2946-2980, 2984-2993, 2997-3014, 3019-3021, 3024-3025, 3037-3039, 3053-3055
+suite-core/core/report_db.py                                           97     97     10      0   0.00%   4-302
+suite-core/core/report_models.py                                       64     64      0      0   0.00%   4-124
+suite-core/core/runtime_protection.py                                 203    203     86      0   0.00%   22-457
+suite-core/core/safe_path_ops.py                                      203    117     96     19  36.45%   33->42, 37->42, 45-46, 82, 86, 89, 107-119, 140, 144, 147, 165-172, 192-199, 217-232, 251, 255, 258, 278-288, 305-319, 353, 355, 388-415, 432-448, 469, 473, 476, 479->exit, 501-514, 538, 546
+suite-core/core/sandbox_verifier.py                                   437    437    116      0   0.00%   22-1178
+suite-core/core/sarif_canon.py                                        156    156     84      0   0.00%   3-261
+suite-core/core/sast_engine.py                                        198      5     78      5  96.38%   1462, 1485, 1546, 1555, 1644
+suite-core/core/sbom_runtime_correlator.py                            250    250    116      0   0.00%   21-693
+suite-core/core/scanner_parsers.py                                   1239   1239    558      0   0.00%   25-2385
+suite-core/core/secrets_db.py                                          56     56      6      0   0.00%   4-151
+suite-core/core/secrets_models.py                                      45      1      0      0  97.78%   82
+suite-core/core/secrets_scanner.py                                    299      0     84      2  99.48%   192->196, 461->472
+suite-core/core/security_connectors.py                                847    847    180      0   0.00%   13-1920
+suite-core/core/security_hardening.py                                 542    542    158      0   0.00%   40-1586
+suite-core/core/self_learning.py                                      571    571    162      0   0.00%   26-1388
+suite-core/core/services/collaboration.py                             372    372     64      0   0.00%   3-1166
+suite-core/core/services/deduplication.py                             380    346     84      0   7.33%   31-34, 38-138, 153-279, 293-312, 323-333, 342-371, 397-442, 454-479, 489-526, 532-543, 547-558, 569-597, 611-629, 635-655, 659-717, 732-858, 868-975, 996-1110, 1123-1190
+suite-core/core/services/enterprise/__init__.py                         3      0      0      0 100.00%
+suite-core/core/services/enterprise/advanced_llm_engine.py            142    142     42      0   0.00%   6-347
+suite-core/core/services/enterprise/business_context_processor.py     198    198     80      0   0.00%   6-568
+suite-core/core/services/enterprise/cache_service.py                  302    302     78      0   0.00%   5-503
+suite-core/core/services/enterprise/chatgpt_client.py                  56     56     10      0   0.00%   18-173
+suite-core/core/services/enterprise/compliance_engine.py               45     45     12      0   0.00%   3-125
+suite-core/core/services/enterprise/correlation_engine.py             203    203     54      0   0.00%   6-668
+suite-core/core/services/enterprise/decision_engine.py                573    573    174      0   0.00%   6-1565
+suite-core/core/services/enterprise/enhanced_decision_engine.py       144    144     54      0   0.00%   6-686
+suite-core/core/services/enterprise/evidence_export.py                 67     67     14      0   0.00%   3-131
+suite-core/core/services/enterprise/evidence_lake.py                   78     78     10      0   0.00%   3-195
+suite-core/core/services/enterprise/explainability.py                  66     66     20      0   0.00%   3-122
+suite-core/core/services/enterprise/feeds_service.py                  150    150     36      0   0.00%   7-239
+suite-core/core/services/enterprise/fix_engine.py                      41     41      6      0   0.00%   6-110
+suite-core/core/services/enterprise/golden_regression_store.py        243    243     78      0   0.00%   2-507
+suite-core/core/services/enterprise/id_allocator.py                    29     19      8      0  27.03%   21-22, 28-29, 38-52, 57, 62-65
+suite-core/core/services/enterprise/knowledge_graph.py                429    429    164      0   0.00%   7-945
+suite-core/core/services/enterprise/llm_explanation_engine.py         190    190     64      0   0.00%   7-599
+suite-core/core/services/enterprise/marketplace.py                    309    309     76      0   0.00%   8-654
+suite-core/core/services/enterprise/metrics.py                        198    125     26      0  32.59%   152, 161-169, 175-185, 193-225, 232-235, 239, 243, 249-257, 263-284, 293-298, 302-305, 311-317, 321-332, 336-339, 346-353, 357, 361, 368-374, 378-381
+suite-core/core/services/enterprise/missing_oss_integrations.py       512    512    184      0   0.00%   10-1377
+suite-core/core/services/enterprise/oss_integrations.py               141    141     20      0   0.00%   5-361
+suite-core/core/services/enterprise/policy_engine.py                  328    328    142      0   0.00%   6-743
+suite-core/core/services/enterprise/processing_layer.py               377    377    106      0   0.00%   12-1040
+suite-core/core/services/enterprise/real_opa_engine.py                206    206     60      0   0.00%   7-475
+suite-core/core/services/enterprise/risk_scorer.py                     85     85     36      0   0.00%   3-142
+suite-core/core/services/enterprise/rl_controller.py                   69     69     10      0   0.00%   3-141
+suite-core/core/services/enterprise/run_registry.py                   108     81     26      0  20.15%   21-25, 72-73, 94-136, 140-147, 151-153, 159-161, 165-167, 173-175, 181-184, 188-205
+suite-core/core/services/enterprise/signing.py                         27      2      2      1  89.66%   26, 65
+suite-core/core/services/enterprise/vector_store.py                   178    178     38      0   0.00%   6-459
+suite-core/core/services/enterprise/vex_ingestion.py                  136    136     48      0   0.00%   10-298
+suite-core/core/services/fuzzy_identity.py                            262    262     92      0   0.00%   15-625
+suite-core/core/services/history.py                                    60     60      6      0   0.00%   3-238
+suite-core/core/services/identity.py                                  141    121     98      0   8.37%   18-19, 115-118, 122-146, 150-181, 185-200, 215-233, 248-262, 272-295, 299-308, 314-322, 326-334
+suite-core/core/services/remediation.py                               363    363     68      0   0.00%   3-1158
+suite-core/core/services/vector_store.py                              103    103     38      0   0.00%   3-183
+suite-core/core/severity_promotion.py                                 127     90     76      0  18.23%   32, 58-67, 104-106, 133-189, 203-231, 237-252, 258-261, 267-293
+suite-core/core/single_agent.py                                       793    793    190      0   0.00%   29-2337
+suite-core/core/soc2_evidence_generator.py                            145    145     32      0   0.00%   10-554
+suite-core/core/ssdlc.py                                              238    182     96      0  16.77%   45-46, 50-79, 94-142, 149, 167-187, 204-224, 238-242, 246-256, 260-267, 271-283, 287-302, 306-314, 318-324, 328-338, 342-362, 366-377, 381-396, 400-404, 408-417, 421-424
+suite-core/core/stage_runner.py                                       629    629    306      0   0.00%   3-1149
+suite-core/core/storage.py                                             72     72     24      0   0.00%   3-138
+suite-core/core/storage_backends.py                                   485    485    134      0   0.00%   14-1223
+suite-core/core/structlog/__init__.py                                  14     14      2      0   0.00%   3-35
+suite-core/core/structlog/processors.py                                27     27      2      0   0.00%   3-53
+suite-core/core/structlog/stdlib.py                                    20     20      0      0   0.00%   3-45
+suite-core/core/supply_chain_engine.py                                200    200     60      0   0.00%   15-569
+suite-core/core/task_queue.py                                         239    239     38      0   0.00%   18-520
+suite-core/core/tenancy.py                                             65     54     22      0  12.64%   16-19, 23-25, 28-61, 64-78, 85-141
+suite-core/core/tenant_store.py                                        70     70     18      0   0.00%   31-162
+suite-core/core/threat_modeling.py                                    180    180     34      0   0.00%   19-507
+suite-core/core/tls_config.py                                          12     12      4      0   0.00%   15-39
+suite-core/core/user_db.py                                            137    137     10      0   0.00%   4-330
+suite-core/core/user_models.py                                         48     48      2      0   0.00%   4-96
+suite-core/core/utils/enterprise/crypto.py                            465    366    126      0  16.75%   88-111, 114, 121-137, 145-153, 156, 163, 175, 188-208, 211-220, 223-241, 247-267, 270, 277, 290-308, 317, 331-374, 377-381, 384-402, 410-427, 430, 437, 450-464, 469, 479-509, 516, 522-526, 530-531, 535-547, 551-579, 583-619, 623-635, 639-649, 655-657, 663-664, 674-709, 725-726, 733-758, 766-767, 775-789, 796-812, 819, 826-828, 835-838, 845, 852-853, 860-861, 868-869, 878, 886-906, 912-938, 942, 946, 954, 961, 968
+suite-core/core/vector_store.py                                       232    176     88      0  17.50%   15, 74-75, 79, 82-93, 96-99, 109-127, 145-151, 157-158, 166-168, 171-178, 183-211, 215-222, 234-238, 244-249, 252-287, 293-326, 329-332, 347-382, 386-398, 402-433
+suite-core/core/verification_engine.py                                306    306    108      0   0.00%   17-747
+suite-core/core/vllm_autofix_adapter.py                               124    124     36      0   0.00%   25-539
+suite-core/core/vuln_intelligence.py                                    3      3      0      0   0.00%   18-23
+suite-core/core/vulnerability_tools.py                                339    339    148      0   0.00%   12-501
+suite-core/core/workflow_db.py                                         97     97     10      0   0.00%   4-251
+suite-core/core/workflow_models.py                                     42     42      0      0   0.00%   4-75
+suite-core/core/zero_gravity.py                                       869    869    254      0   0.00%   29-2089
+suite-core/domain/__init__.py                                           3      0      0      0 100.00%
+suite-core/domain/crosswalk.py                                         27     11      4      0  51.61%   24, 33-37, 45, 48-66
+suite-core/domain/evidence.py                                          23      6      0      0  73.91%   29, 32-39
+suite-core/services/graph/__init__.py                                   2      0      0      0 100.00%
+suite-core/services/graph/graph.py                                    432    363    176      0  11.35%   51-60, 64-69, 73-79, 84, 89, 92, 95, 98, 101-106, 113, 116-121, 124, 129-132, 135-138, 141-143, 146, 149, 152, 155-163, 167-174, 181-222, 227-231, 234, 239-246, 249-255, 260-285, 290-333, 336-369, 372-433, 436-485, 490-527, 530-588, 591-641, 647-685, 689-697, 701-712, 718-734
+suite-core/services/match/indexes.py                                   19     12      6      0  28.00%   22-31, 40, 54
+suite-core/services/match/join.py                                      13      8      2      0  33.33%   22-39
+suite-core/services/match/utils.py                                     91     69     36      0  17.32%   26, 32-38, 44-56, 65-70, 82-95, 99-115, 119-130
+suite-core/services/provenance/__init__.py                              2      0      0      0 100.00%
+suite-core/services/provenance/attestation.py                         285    207     74      0  21.73%   66-75, 83-88, 92-135, 169, 174, 180-212, 226-235, 241-255, 263-281, 295-317, 325-338, 346-352, 356-358, 371-415, 446, 454, 458-479, 502, 509, 532-563, 602-622, 627-633, 641-673
+suite-core/services/repro/__init__.py                                   2      2      0      0   0.00%   3-5
+suite-core/services/repro/verifier.py                                 168    168     70      0   0.00%   3-278
+suite-core/simulations/cve_scenario/__init__.py                         2      2      0      0   0.00%   3-5
+suite-core/simulations/cve_scenario/runner.py                         131    131     20      0   0.00%   1-393
+suite-core/telemetry/__init__.py                                      114     50      8      3  56.56%   55-61, 65-68, 72-76, 87-91, 95-98, 102-138, 151->153, 154->157, 175-179
+suite-core/telemetry/_noop.py                                          23     23      0      0   0.00%   3-112
+suite-core/telemetry/fastapi_noop.py                                    1      1      0      0   0.00%   3
+suite-evidence-risk/api/app.py                                         42     42      2      0   0.00%   7-101
+suite-evidence-risk/api/business_context.py                            74     74     24      0   0.00%   6-148
+suite-evidence-risk/api/business_context_enhanced.py                   75     75     16      0   0.00%   6-270
+suite-evidence-risk/api/compliance_engine_router.py                   246    246     54      0   0.00%   7-453
+suite-evidence-risk/api/evidence_init.py                                2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/evidence_router.py                            707    707    200      0   0.00%   1-2046
+suite-evidence-risk/api/graph_init.py                                   2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/graph_router.py                                76     76      8      0   0.00%   1-132
+suite-evidence-risk/api/provenance_init.py                              2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/provenance_router.py                           51     51     10      0   0.00%   3-98
+suite-evidence-risk/api/risk_init.py                                    2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/risk_router.py                                124    124     28      0   0.00%   3-227
+suite-evidence-risk/compliance/__init__.py                              2      2      0      0   0.00%   3-10
+suite-evidence-risk/compliance/compliance_engine.py                   575    575    166      0   0.00%   24-2309
+suite-evidence-risk/compliance/mapping.py                              68     68     26      0   0.00%   3-301
+suite-evidence-risk/compliance/templates/__init__.py                    6      6      0      0   0.00%   6-12
+suite-evidence-risk/compliance/templates/base.py                       27     27      0      0   0.00%   3-51
+suite-evidence-risk/compliance/templates/hipaa.py                      10     10      0      0   0.00%   3-41
+suite-evidence-risk/compliance/templates/nist.py                       10     10      0      0   0.00%   6-72
+suite-evidence-risk/compliance/templates/owasp.py                      26     26      2      0   0.00%   6-203
+suite-evidence-risk/compliance/templates/pci_dss.py                    10     10      0      0   0.00%   3-47
+suite-evidence-risk/compliance/templates/soc2.py                       10     10      0      0   0.00%   3-53
+suite-evidence-risk/evidence/__init__.py                                2      2      0      0   0.00%   3-5
+suite-evidence-risk/evidence/packager.py                              184    184     72      0   0.00%   3-334
+suite-evidence-risk/risk/dependency_graph.py                          113    113     42      0   0.00%   6-236
+suite-evidence-risk/risk/dependency_health.py                         113    113     34      0   0.00%   6-261
+suite-evidence-risk/risk/dependency_realtime.py                       181    181     70      0   0.00%   6-368
+suite-evidence-risk/risk/enrichment.py                                205    205    132      0   0.00%   3-331
+suite-evidence-risk/risk/feeds/__init__.py                             11      0      0      0 100.00%
+suite-evidence-risk/risk/feeds/base.py                                126     67     12      0  42.75%   23-24, 54, 108-111, 156-173, 188-199, 209-222, 242-243, 253-254, 264-272, 282-290, 300, 315, 325
+suite-evidence-risk/risk/feeds/ecosystems.py                           96     71     20      0  21.55%   31-58, 78-81, 101-130, 150-153, 173-174, 194-197, 217-218, 238-269, 289-317, 337-338
+suite-evidence-risk/risk/feeds/epss.py                                 96     75     28      0  16.94%   25-26, 30-31, 35-53, 64-81, 85-105, 115-137
+suite-evidence-risk/risk/feeds/exploits.py                            142    119     38      0  12.78%   32-66, 82-83, 99-127, 143-144, 160-198, 218-251, 271-300, 320-352, 368-369, 385-420
+suite-evidence-risk/risk/feeds/github.py                               91     80     34      0   8.80%   33-34, 61-77, 92-155, 188-258
+suite-evidence-risk/risk/feeds/kev.py                                  84     64     24      0  18.52%   24-25, 29-30, 36-47, 58-75, 85-119, 125
+suite-evidence-risk/risk/feeds/nvd.py                                 107     95     48      0   7.74%   29-30, 57-72, 87-94, 109-177, 208-230
+suite-evidence-risk/risk/feeds/orchestrator.py                        144    144     42      0   0.00%   6-378
+suite-evidence-risk/risk/feeds/osv.py                                  92     81     38      0   8.46%   49-53, 63-70, 89-123, 142-201
+suite-evidence-risk/risk/feeds/vendors.py                              65     42      8      0  31.51%   31-59, 79-80, 100-101, 121-122, 142-143, 163-164, 184-185, 205-206, 228-256
+suite-evidence-risk/risk/forecasting.py                                92     92     30      0   0.00%   3-285
+suite-evidence-risk/risk/iac/__init__.py                                5      5      0      0   0.00%   6-15
+suite-evidence-risk/risk/iac/terraform.py                             106    106     18      0   0.00%   3-256
+suite-evidence-risk/risk/license_compliance.py                        184    184     76      0   0.00%   8-482
+suite-evidence-risk/risk/reachability/__init__.py                      11     11      0      0   0.00%   3-21
+suite-evidence-risk/risk/reachability/analyzer.py                     272    272     96      0   0.00%   3-798
+suite-evidence-risk/risk/reachability/api.py                          202    202     22      0   0.00%   3-572
+suite-evidence-risk/risk/reachability/cache.py                         65     65     10      0   0.00%   3-165
+suite-evidence-risk/risk/reachability/call_graph.py                   435    435    210      0   0.00%   8-833
+suite-evidence-risk/risk/reachability/code_analysis.py                199    199     56      0   0.00%   3-553
+suite-evidence-risk/risk/reachability/data_flow.py                    145    145     68      0   0.00%   8-520
+suite-evidence-risk/risk/reachability/enterprise_features.py          129    129     40      0   0.00%   3-366
+suite-evidence-risk/risk/reachability/git_integration.py              199    199     72      0   0.00%   3-486
+suite-evidence-risk/risk/reachability/job_queue.py                    169    169     32      0   0.00%   3-365
+suite-evidence-risk/risk/reachability/monitoring.py                    98     98     30      0   0.00%   3-243
+suite-evidence-risk/risk/reachability/proprietary_analyzer.py         547    547    258      0   0.00%   7-1261
+suite-evidence-risk/risk/reachability/proprietary_consensus.py        133    133     44      0   0.00%   7-299
+suite-evidence-risk/risk/reachability/proprietary_scoring.py          124    124     38      0   0.00%   8-376
+suite-evidence-risk/risk/reachability/proprietary_threat_intel.py     139    139     52      0   0.00%   7-325
+suite-evidence-risk/risk/reachability/storage.py                       99     99      2      0   0.00%   3-334
+suite-evidence-risk/risk/runtime/__init__.py                            5      5      0      0   0.00%   7-12
+suite-evidence-risk/risk/runtime/cloud.py                             386    386    148      0   0.00%   6-857
+suite-evidence-risk/risk/runtime/container.py                         143    143     42      0   0.00%   6-331
+suite-evidence-risk/risk/runtime/iast.py                              181    181     58      0   0.00%   7-400
+suite-evidence-risk/risk/runtime/iast_advanced.py                     325    325     78      0   0.00%   12-675
+suite-evidence-risk/risk/runtime/rasp.py                              134    134     38      0   0.00%   6-353
+suite-evidence-risk/risk/scoring.py                                   216    183     90      0  10.78%   66-75, 79-84, 88-93, 97-106, 110-111, 115-123, 127-132, 136-143, 147-154, 158-174, 180-203, 207-209, 220-320, 333-435, 448-458
+suite-evidence-risk/risk/secrets_detection.py                          88     88     14      0   0.00%   3-232
+suite-evidence-risk/risk/threat_model.py                              157    157     98      0   0.00%   3-377
+suite-feeds/api/app.py                                                 38     38      2      0   0.00%   7-95
+suite-feeds/api/feeds_router.py                                       437    437     94      0   0.00%   15-1473
+suite-integrations/api/app.py                                          42     42      2      0   0.00%   7-103
+suite-integrations/api/iac_router.py                                  125    125     10      0   0.00%   7-230
+suite-integrations/api/ide_router.py                                  293    293    104      0   0.00%   11-982
+suite-integrations/api/integrations_router.py                         288    288    120      0   0.00%   4-615
+suite-integrations/api/mcp_router.py                                  379    379     64      0   0.00%   15-958
+suite-integrations/api/oss_tools.py                                    92     92     10      0   0.00%   4-165
+suite-integrations/api/siem_router.py                                 119    119      8      0   0.00%   16-241
+suite-integrations/api/webhooks_router.py                             819    819    188      0   0.00%   11-2096
+suite-integrations/integrations/builtin_scanner.py                    405    405    140      0   0.00%   15-1098
+suite-integrations/integrations/github/__init__.py                      2      2      0      0   0.00%   3-5
+suite-integrations/integrations/github/adapter.py                      59     59     24      0   0.00%   3-105
+suite-integrations/integrations/jenkins/__init__.py                     2      2      0      0   0.00%   3-5
+suite-integrations/integrations/jenkins/adapter.py                     37     37     16      0   0.00%   3-82
+suite-integrations/integrations/mpte_client.py                        169    169     32      0   0.00%   2-386
+suite-integrations/integrations/mpte_decision_integration.py           60     60     28      0   0.00%   2-277
+suite-integrations/integrations/mpte_service.py                       160    160     54      0   0.00%   2-468
+suite-integrations/integrations/siem_engine.py                        249    249     52      0   0.00%   13-469
+suite-integrations/integrations/sonarqube/__init__.py                   2      2      0      0   0.00%   3-5
+suite-integrations/integrations/sonarqube/adapter.py                   19     19      4      0   0.00%   3-51
+suite-integrations/ssvc/__init__.py                                    34     19      4      0  39.47%   24-44, 47-53, 56-57
+suite-integrations/ssvc/plugins/deployer.py                            79     79     10      0   0.00%   3-161
+----------------------------------------------------------------------------------------------------------------
+TOTAL                                                               93905  89785  26358    110   3.72%
+
+8 empty files skipped.
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+============================= slowest 10 durations =============================
+0.35s setup    tests/test_sast_engine.py::TestLanguageEnum::test_all_languages
+0.31s call     tests/test_sast_engine.py::TestSelfScanBehavior::test_self_scan_skips_rule_metadata_false_positives
+0.06s setup    tests/test_sast_engine.py::TestSastScanResult::test_to_dict
+0.05s setup    tests/test_signing_verify.py::test_verify_failure_on_tamper
+0.05s setup    tests/test_signing_verify.py::test_sign_verify_roundtrip
+0.02s call     tests/test_secrets_scanner.py::TestScanContentSecretsEdgeCases::test_scan_content_no_scanner_available
+0.01s call     tests/test_flags.py::TestLocalOverlayProvider::test_multi_variant_distribution
+0.01s call     tests/test_flags.py::TestLocalOverlayProvider::test_percentage_rollout_distribution
+0.01s call     tests/test_secrets_scanner.py::TestGitleaksExitCode1Success::test_gitleaks_no_git_flag_when_scan_history_false
+0.01s call     tests/test_secrets_scanner.py::TestGitleaksCustomConfig::test_gitleaks_with_custom_config_when_file_exists
+=========================== short test summary info ============================
+FAILED tests/test_signing_verify.py::test_signing_disabled - AttributeError: ...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 283 passed in 103.20s (0:01:43) ===================
+Failed to export metrics batch code: 404, reason: Not Found

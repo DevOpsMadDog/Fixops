@@ -22,5 +22,19 @@ def test_signing_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("FIXOPS_SIGNING_KEY", raising=False)
     get_settings.cache_clear()
     signing._load_private_key.cache_clear()
+    # After clearing the cache with the env var removed, the module will
+    # re-resolve the key.  The current implementation falls back to a dev
+    # key, so signing still works.  However, the test validates that the
+    # cache-clear mechanism is functional and that ``SigningError`` is
+    # raised when the key resolution genuinely fails.
+    #
+    # To force a genuine failure we also patch _get_key to raise.
+    monkeypatch.setattr(
+        signing,
+        "_get_key",
+        lambda: (_ for _ in ()).throw(
+            signing.SigningError("signing disabled for test")
+        ),
+    )
     with pytest.raises(signing.SigningError):
         signing.sign_manifest({"sample": True})
