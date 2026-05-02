@@ -715,7 +715,7 @@ class CSPMEngine:
                 issues.append(
                     f"Access key older than 90 days ({cfg['access_keys_age_days']} days)"
                 )
-            if not cfg.get("last_used_days") is None and cfg.get("last_used_days", 0) > 90:
+            if cfg.get("last_used_days") is not None and cfg.get("last_used_days", 0) > 90:
                 issues.append(f"User inactive for {cfg.get('last_used_days')} days")
             if issues:
                 findings.append(

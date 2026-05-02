@@ -176,7 +176,7 @@ class SSOConfig(BaseModel):
     @classmethod
     def from_env(cls) -> Optional["SSOConfig"]:
         """Build SSOConfig from environment variables. Returns None if SSO is disabled."""
-        if not os.getenv("FIXOPS_SSO_ENABLED", "").strip() in ("1", "true", "yes"):
+        if os.getenv("FIXOPS_SSO_ENABLED", "").strip() not in ("1", "true", "yes"):
             return None
         provider = os.getenv("FIXOPS_SSO_PROVIDER", "generic_oidc")
         return cls(
