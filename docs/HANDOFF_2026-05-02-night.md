@@ -237,6 +237,43 @@ Per `docs/empty_endpoints_triage_2026-04-26.md`:
 - **TrueCourse code-quality**: ~13,100 legacy violations, hot paths cleaned, rest sprint-able.
 - **Performance audit**: deferred per HANDOFF §5.
 
+## 10. Post-§9 cleanup wave (2026-05-03 00:30–01:00)
+
+7 more commits landed after §9 was written:
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `67ba4943` | QA: re-verify seed_real_data.py post batch-6/7 | Confirmed seed pipeline unaffected by canonicalization (uses `/brain/ingest/finding` only). 50/50 first batch ingested with 0 failures live. |
+| `dc55e546` | Repo: gitignore ephemeral session artifacts | `.claude-flow/`, `.swarm/`, `.hive-mind/`, `.playwright-mcp/`, `agentdb.rvf*`, `.claude/skills/*-*` and similar runtime files removed from `git status` noise (was ~30 lines). |
+| `582c6eb8` | Repo: archive 4 planning docs + 4 ui snapshots + gitignore feed runtime | 13 files / +1025 LOC archived; `suite-feeds/data/` + `feeds/ghsa/` + `feeds/tor_exit_nodes/` gitignored. `git status` now zero untracked. |
+| `0713a33f` | Perf audit on `suite-api/apps/api/app.py` | Read-only doc. Cold-start = **74.85s**, RSS = 813 MB, 8985 routes. Top-3 quick wins ranked. Bonus surfaced: 576 silenced ImportErrors hiding `websocket_router` + `feature_flag_router` + LaunchDarkly SDK breakage. |
+| `d74ad7ea` | Perf R2: gate OTLP exporter on env var | `OTEL_EXPORTER_OTLP_ENDPOINT` empty → `telemetry.configure()` no-ops. Cold-FS shaves **5–8s**, pytest noise **6+ → 0** "Failed to export" warnings. 170/170 regression PASS. |
+| `899ac050` | Perf R1: lazy-load `sentence_transformers` | Module-level import → `get_embedder()` factory gated on `FIXOPS_VECTOR_STORE`. **-3.66s** cold-start. 170/170 regression PASS. |
+| `6307d7fe` | Cleanup: remove dead `websocket_routes.py` | Per perf audit bonus + Wave-3 audit. Snake_case typo (`from suite_core...`) was silently swallowed for sessions. **-452 LOC, 4 phantom routes purged, 0 surprise deps**. Canonical Wave-3 `ws_trustgraph_events_router.py` unaffected. |
+
+### Cold-start improvement chain
+- Audit baseline: **74.85s**
+- After R2: −5–8s (cold-FS)
+- After R1: −3.66s
+- Combined: **~13–15s shaved** (rough new cold-start ~60s)
+
+### Empty-endpoints triage final state (corrected count)
+Per `docs/empty_endpoints_triage_2026-04-26.md`:
+- **26 of 30 fully closed** (1 fixed e2e + 8 importer-backed + 5 connector-backed + 12 canonical-envelope)
+- **4 deferred to customer-engagement sprint** (need real cloud/PAM creds): #3 asset-criticality, #14 session-recording, #18 cloud-cost, #20 sspm/apps
+
+### Total session commits
+
+**28 `beast-mode` commits on `features/intermediate-stage`** (was 21 at §9; 7 more here).
+
+### Open items for next session
+- **R3** (lazy-import 22 engines in `apps.api.pipeline`): M effort, additional ~3.9s + memory savings.
+- **Dependabot bulk bumps**: ~100 vulns remaining after the suite-ui/aldeci CI cleanup retires ~17.
+- **4 class-a empty endpoints**: still need real cloud connector creds.
+- **TrueCourse code-quality**: ~13,100 legacy violations.
+- **Test pollution**: batch-6/7 tests pass alone, fail combined — TestClient state leak documented in MEMORY (`feedback_test_pollution_batch67.md`). Refactor for fixture isolation.
+- **Other silenced ImportErrors**: 576 `try/except ImportError` wrappers in `app.py` likely hide more dead modules (per perf-audit bonus); sweep needed.
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
