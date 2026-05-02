@@ -350,7 +350,7 @@ async def check_gate(payload: GateCheckRequest):
     if payload.commit_sha:
         try:
             from core.developer_risk_profiler import DeveloperRiskProfiler
-            profiler = DeveloperRiskProfiler()
+            DeveloperRiskProfiler()
             # We can't look up email from SHA alone, but we enrich findings
             checks.append(GateCheckDetail(
                 name="developer_risk",

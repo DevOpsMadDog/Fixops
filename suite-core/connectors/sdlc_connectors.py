@@ -268,7 +268,7 @@ class GitHubSCMConnector(PullConnector):
     ) -> ConnectorOutcome:
         """Post PR comment with ALDECI findings."""
         token = _get_env_fallback("token", self._settings, os.getenv("GITHUB_TOKEN"))
-        base_url = self._settings.get("base_url", "https://api.github.com")
+        self._settings.get("base_url", "https://api.github.com")
 
         if not token:
             return ConnectorOutcome("failed", {"error": "GitHub token not configured"})
@@ -1143,7 +1143,7 @@ class EASMConnector(PullConnector):
 
     def _normalize_finding(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize EASM findings."""
-        finding_type = raw.get("type", "easm")
+        raw.get("type", "easm")
         now = datetime.now(timezone.utc).isoformat()
 
         return {

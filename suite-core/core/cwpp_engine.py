@@ -287,7 +287,7 @@ class CWPPEngine:
         elif event_type == "network_conn":
             dest_ip = str(details.get("dest_ip", ""))
             dest_port = int(details.get("dest_port", 0))
-            proto = str(details.get("protocol", "")).lower()
+            str(details.get("protocol", "")).lower()
 
             # Check C2 ranges
             if any(dest_ip.startswith(prefix.split("/")[0][:8]) for prefix in _C2_IP_PREFIXES if "." in prefix):

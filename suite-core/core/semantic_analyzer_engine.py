@@ -1306,7 +1306,6 @@ class SemanticAnalyzerEngine:
                         vtxt = self._ts_text(src, v)
                         # Determine column type from leftmost call's function name.
                         ftype = ""
-                        cur = v
                         # walk down call_expressions until we find the leftmost
                         # call function identifier.
                         for sub in self._ts_walk(v):

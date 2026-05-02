@@ -3042,7 +3042,7 @@ class BrainPipeline:
         for idx, f in enumerate(findings_list):
             fctx = finding_ctxs[idx]
             asset_criticality = fctx["asset_criticality"]
-            network_exposure = fctx["network_exposure"]
+            fctx["network_exposure"]
 
             if ml_available and risk_model is not None and idx < len(ml_preds):
                 vuln_data = ml_vuln_data[idx]

@@ -255,10 +255,9 @@ class IncidentCostEngine:
         if not costs:
             # Allow finalizing with no costs recorded yet
             incident_name = incident_id
-            incident_type = "data-breach"
         else:
             incident_name = costs[0]["incident_name"]
-            incident_type = costs[0]["incident_type"]
+            costs[0]["incident_type"]
 
         total_cost = sum(c["amount"] for c in costs)
         estimated_total = sum(c["amount"] for c in costs if c["estimated"] == 1)

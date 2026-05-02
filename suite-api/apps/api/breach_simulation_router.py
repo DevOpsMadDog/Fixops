@@ -197,7 +197,7 @@ async def compare_simulations(req: CompareSimulationsRequest):
 @router.get("/health")
 async def breach_sim_health():
     """Health check for the breach simulation engine."""
-    sim = get_breach_simulator()
+    get_breach_simulator()
     return {
         "status": "healthy",
         "engine": "BreachSimulator",

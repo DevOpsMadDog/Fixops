@@ -287,7 +287,7 @@ async def _process_batch_async(
                 finding_data["id"] = str(uuid.uuid4())
 
             # Process through pipeline
-            result = orchestrator.process_finding(finding_data, source)
+            orchestrator.process_finding(finding_data, source)
 
             # Update batch state
             if batch_id in _batch_states:

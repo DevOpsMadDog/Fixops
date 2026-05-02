@@ -327,14 +327,14 @@ def _build_security_posture_pdf(
         fontName="Helvetica-Bold",
         alignment=TA_CENTER,
     )
-    s_label = _style(
+    _style(
         "Label",
         fontSize=8,
         leading=10,
         fontName="Helvetica-Bold",
         textColor=colors.HexColor(_DARK_BLUE),
     )
-    s_value = _style(
+    _style(
         "Value",
         fontSize=18,
         leading=22,

@@ -326,7 +326,7 @@ class TerraformParser:
 
     def parse(self, content: str, filename: str) -> List[IaCResource]:
         resources: List[IaCResource] = []
-        lines = content.splitlines()
+        content.splitlines()
 
         for m in self._RESOURCE_RE.finditer(content):
             res_type = m.group(1)

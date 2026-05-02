@@ -238,7 +238,7 @@ class IntegrationHealthMonitor:
             return result
 
         # Simulate latency and outcome based on endpoint reachability heuristic.
-        start = time.monotonic()
+        time.monotonic()
         response_ms, status, error = _simulate_check(info.endpoint_url)
 
         result = HealthCheckResult(
@@ -305,7 +305,6 @@ class IntegrationHealthMonitor:
             else:
                 consecutive = 0
 
-            last_success = None if is_failure else now
             auto_disabled = consecutive >= _MAX_CONSECUTIVE_FAILURES
             final_status = ServiceStatus.DISABLED if auto_disabled else status
 

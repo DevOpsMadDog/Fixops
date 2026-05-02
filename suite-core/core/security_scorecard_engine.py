@@ -457,7 +457,7 @@ class SecurityScorecardEngine:
         }
 
         now = datetime.now(timezone.utc).isoformat()
-        scorecard_id = str(uuid.uuid4())
+        str(uuid.uuid4())
         weighted_sum = 0.0
         total_weight = 0.0
         domain_details: List[Dict[str, Any]] = []
@@ -476,7 +476,7 @@ class SecurityScorecardEngine:
 
         overall_score = round(weighted_sum / total_weight, 2) if total_weight > 0 else 0.0
         overall_score = max(0.0, min(100.0, overall_score))
-        grade = _score_to_grade(overall_score)
+        _score_to_grade(overall_score)
 
         # Flatten domain scores for storage (map to dimension names)
         _domain_to_dim = {

@@ -338,7 +338,7 @@ class CertificateManager:
             with socket.create_connection((domain, port), timeout=timeout) as sock:
                 with ctx.wrap_socket(sock, server_hostname=domain) as tls:
                     peer = tls.getpeercert()
-                    der = tls.getpeercert(binary_form=True)
+                    tls.getpeercert(binary_form=True)
                     cipher_info = tls.cipher()
         except (socket.timeout, socket.gaierror, ConnectionRefusedError, OSError) as exc:
             return {"error": str(exc), "domain": domain, "reachable": False}

@@ -104,7 +104,7 @@ async def register_integration(req: RegisterIntegrationRequest) -> Dict[str, Any
 
     hub = _hub()
     try:
-        reg = hub.add_integration(
+        hub.add_integration(
             name=req.name,
             integration_type=itype,
             config=req.config,

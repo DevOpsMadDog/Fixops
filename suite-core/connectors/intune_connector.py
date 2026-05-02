@@ -127,7 +127,7 @@ def _normalize_device(device: Dict[str, Any], compliance_states: List[Dict[str, 
     user_principal = device.get("userPrincipalName", "")
     manufacturer = device.get("manufacturer", "")
     model = device.get("model", "")
-    is_managed = device.get("managementAgent") != "unknown"
+    device.get("managementAgent") != "unknown"
     is_encrypted = device.get("isEncrypted", True)
     jailbroken = device.get("jailBroken", "Unknown")
 

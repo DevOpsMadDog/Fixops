@@ -1121,7 +1121,7 @@ class BugBountyEngine:
 
     def get_program_metrics(self, program_id: str, org_id: str = "default") -> ProgramMetrics:
         """Compute full program metrics including ROI estimate."""
-        prog = self._require_program(program_id)
+        self._require_program(program_id)
         stats = self._db.get_program_submission_stats(program_id, org_id)
         monthly_spend = self._db.get_monthly_spend(program_id, org_id)
         top_reporters = self._db.get_leaderboard(org_id, limit=5)

@@ -753,7 +753,7 @@ class LLMCouncilEngine:
             # Fallback to majority vote
             return self._fallback_to_majority_vote(stage2)
 
-        duration = (time.perf_counter() - start) * 1000
+        (time.perf_counter() - start) * 1000
 
         # Extract member votes for transparency
         member_votes: List[MemberVote] = [
@@ -863,7 +863,7 @@ class LLMCouncilEngine:
             logger.error("Opus escalation failed: %s", exc)
             return verdict  # Return original verdict if escalation fails
 
-        duration = (time.perf_counter() - start) * 1000
+        (time.perf_counter() - start) * 1000
 
         # Update verdict with escalation result
         verdict.action = escalation_response.recommended_action

@@ -366,7 +366,6 @@ def _build_pdf_bytes(report: Dict[str, Any], kpis: List[Dict[str, Any]]) -> byte
         for k in kpis:
             val = k.get("kpi_value", 0)
             target = k.get("target_value", 0)
-            achieved = "✓" if (target and val >= target) else "–"
             kpi_data.append([
                 k.get("kpi_name", ""),
                 f"{val:.1f}",

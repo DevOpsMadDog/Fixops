@@ -2692,7 +2692,7 @@ def create_app() -> FastAPI:
     header_name = overlay.auth.get(
         "header", "X-API-Key" if auth_strategy != "jwt" else "Authorization"
     )
-    api_key_header = APIKeyHeader(name=header_name, auto_error=False)
+    APIKeyHeader(name=header_name, auto_error=False)
     # Build expected tokens list from overlay config + env var
     expected_tokens = list(overlay.auth_tokens) if auth_strategy == "token" else []
     if auth_strategy == "token" and _env_api_token and _env_api_token not in expected_tokens:

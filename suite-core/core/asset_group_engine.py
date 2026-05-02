@@ -396,7 +396,7 @@ class AssetGroupEngine:
         count = 0
         for asset_id in asset_ids:
             try:
-                result = self.add_member(group_id, org_id, asset_id, asset_type, added_by)
+                self.add_member(group_id, org_id, asset_id, asset_type, added_by)
                 # If member was newly inserted, added_at matches ~now
                 count += 1
             except Exception:

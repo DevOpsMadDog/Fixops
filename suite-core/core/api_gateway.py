@@ -374,7 +374,7 @@ class RateLimiter:
         # Also check IP window separately if both key and IP provided
         ip_burst = ip_minute = ip_hour = 0
         if ip and api_key_id and ip != target_id:
-            ip_cfg = self._get_config(tier, ip)
+            self._get_config(tier, ip)
             ip_windows = self._windows[ip]
             ip_burst = ip_windows["burst"].add_and_count()
             ip_minute = ip_windows["minute"].add_and_count()

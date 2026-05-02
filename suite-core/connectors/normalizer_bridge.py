@@ -144,7 +144,7 @@ class FormatDetector:
     @staticmethod
     def _detect_json_format(obj: Dict[str, Any]) -> Optional[str]:
         """Detect format from JSON object."""
-        keys = set(obj.keys())
+        set(obj.keys())
 
         # SARIF v2.1: has "$schema" containing "sarif" or "runs" array with tool.driver
         if "$schema" in obj and "sarif" in obj.get("$schema", "").lower():

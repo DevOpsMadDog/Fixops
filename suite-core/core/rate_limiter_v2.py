@@ -320,9 +320,9 @@ class RateLimiterV2:
     def record_request(self, request: Any) -> None:  # noqa: ANN401
         """Record a request in the sliding window (call after check passes)."""
         try:
-            path: str = request.url.path
+            pass
         except AttributeError:
-            path = "/"
+            pass
 
         api_key_id: Optional[str] = getattr(
             getattr(request, "state", None), "api_key_id", None
@@ -388,7 +388,7 @@ class RateLimiterV2:
         """Return current endpoint→tier assignments."""
         with self._lock:
             patterns = list(self._endpoint_patterns)
-            explicit = dict(self._endpoint_map)
+            dict(self._endpoint_map)
 
         configs: List[Dict[str, Any]] = []
         for compiled, tier in patterns:

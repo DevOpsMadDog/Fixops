@@ -119,7 +119,7 @@ def list_investments(
     try:
         import os
 
-        db_path = os.environ.get("SECURITY_ROI_DB", "security_roi.db")
+        os.environ.get("SECURITY_ROI_DB", "security_roi.db")
         engine = _get_engine()
 
         with engine._lock:

@@ -121,7 +121,7 @@ def _normalize_secret(
     """Normalize a KV-v2 secret entry to ALDECI finding shape."""
     versions: Dict[str, Any] = metadata.get("versions", {})
     version_count = len(versions)
-    oldest_version = min(versions.keys(), default="0") if versions else "0"
+    min(versions.keys(), default="0") if versions else "0"
     created_time = metadata.get("created_time", "")
     updated_time = metadata.get("updated_time", "")
     deleted_version_count = sum(

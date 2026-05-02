@@ -795,7 +795,7 @@ class PipelineOrchestrator:
         metrics = {"finding": finding}
 
         # Apply filters
-        is_duplicate = metrics.get("is_duplicate", False)
+        metrics.get("is_duplicate", False)
         priority = finding.get("_priority")
 
         # Suppress very low priority findings
@@ -895,7 +895,7 @@ class PipelineOrchestrator:
         metrics = {"finding": finding}
 
         # Archive finding (simulate storage)
-        archived_finding = {
+        {
             "finding_id": state.finding_id,
             "source": state.source,
             "timestamp": datetime.now(timezone.utc).isoformat(),

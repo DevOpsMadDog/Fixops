@@ -697,7 +697,7 @@ class DefenderXDRConnector:
 
                 # Pop carry-over keys not accepted by record_finding
                 alert_id = norm.pop("_alert_id", "")
-                incident_id = norm.pop("_incident_id", "")
+                norm.pop("_incident_id", "")
                 norm.pop("_mitre", None)
                 norm.pop("_detection_source", None)
                 norm.pop("_evidence_count", None)

@@ -545,7 +545,7 @@ class SecretScanner:
         """Scan text content and return detected secrets."""
         found: List[DetectedSecret] = []
         seen_hashes: set[str] = set()
-        lines = text.splitlines()
+        text.splitlines()
 
         for sp, compiled_re, compiled_fp in self._compiled:
             for m in compiled_re.finditer(text):
@@ -687,7 +687,6 @@ class SecretScanner:
         org_id: str = "default",
     ) -> List[DetectedSecret]:
         """Scan a git diff, considering only added lines (+)."""
-        added_lines: List[str] = []
         current_file = "unknown"
         line_counter = 0
         all_secrets: List[DetectedSecret] = []

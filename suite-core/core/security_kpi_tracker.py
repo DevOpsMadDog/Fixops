@@ -473,7 +473,7 @@ class SecurityKPITracker:
         if not bm:
             return 50.0
 
-        good, avg, poor = bm["good"], bm["average"], bm["poor"]
+        good, _avg, poor = bm["good"], bm["average"], bm["poor"]
         lower_better = kpi_name in _LOWER_IS_BETTER
 
         if lower_better:

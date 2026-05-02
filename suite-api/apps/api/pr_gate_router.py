@@ -576,7 +576,7 @@ async def scan_and_gate(
 
             elif scan_type == "secrets":
                 from core.secrets_scanner import SecretsScanner
-                scanner = SecretsScanner()
+                SecretsScanner()
                 # Would scan actual repo files
                 logger.info("Secrets scan requested for %s/%s", request.owner, request.repo)
 

@@ -661,7 +661,7 @@ def _run_tour(tour_id: str, repo_url: str, branch: Optional[str], queue: "asynci
 def _build_reproduction(finding: dict, repo_url: str) -> list:
     """Build copy-paste reproduction commands for the finding."""
     cmds = []
-    sev = finding.get("severity", "")
+    finding.get("severity", "")
     fname = finding.get("file", "")
     lineno = finding.get("line", 0)
     title = finding.get("title", "")

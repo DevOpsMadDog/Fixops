@@ -83,7 +83,7 @@ def on_threat_detected(event_data: Dict[str, Any]) -> None:
             },
         )
 
-    alert = _safe_call(_create_alert)
+    _safe_call(_create_alert)
 
     # 2. If severity is high/critical, auto-create incident
     if severity in ("critical", "high"):

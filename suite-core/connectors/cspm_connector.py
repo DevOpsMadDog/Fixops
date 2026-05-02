@@ -455,7 +455,7 @@ class CSPMConnector:
         if self._prowler_path:
             try:
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    out = os.path.join(tmpdir, "prowler.json")
+                    os.path.join(tmpdir, "prowler.json")
                     cmd = [
                         self._prowler_path,
                         provider,

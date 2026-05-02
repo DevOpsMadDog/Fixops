@@ -98,7 +98,7 @@ async def analyze_sbom(request: AnalyzeSBOMRequest):
 @router.get("/health")
 async def supply_chain_health():
     """Health check for supply chain engine."""
-    engine = get_supply_chain_engine()
+    get_supply_chain_engine()
     return {
         "status": "healthy",
         "engine": "SupplyChainEngine",

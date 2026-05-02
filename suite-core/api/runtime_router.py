@@ -91,7 +91,7 @@ async def configure(update: ConfigUpdate) -> Dict[str, Any]:
     changes = {k: v for k, v in update.model_dump().items() if v is not None}
     if "mode" in changes:
         changes["mode"] = EngineMode(changes["mode"])
-    config = engine.update_config(**changes)
+    engine.update_config(**changes)
     return {"status": "updated", "config": engine.get_stats()["config"]}
 
 

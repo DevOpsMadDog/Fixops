@@ -1849,7 +1849,7 @@ class QuantumCertManager:
         """
         upcoming: List[Dict[str, Any]] = []
         now = datetime.now(timezone.utc)
-        threshold = timedelta(days=self._ROTATION_THRESHOLD_DAYS)
+        timedelta(days=self._ROTATION_THRESHOLD_DAYS)
 
         for cert in self._certs.values():
             if cert.revoked:

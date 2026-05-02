@@ -191,7 +191,7 @@ def import_mitre_actors(
                 break
 
         try:
-            rec = engine.track_actor(
+            engine.track_actor(
                 org_id=org_id,
                 actor_name=name,
                 actor_alias=", ".join(aliases[:5]),  # cap to 5 aliases

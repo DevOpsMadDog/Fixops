@@ -989,7 +989,7 @@ class OwaspTestSuite:
 
         # TLS: check if site serves over HTTP (no HTTPS redirect)
         if base_url.startswith("http://"):
-            https_url = base_url.replace("http://", "https://", 1)
+            base_url.replace("http://", "https://", 1)
             probe_http = self._client.request("GET", base_url)
             # If HTTP returns 200 without redirect to HTTPS — cleartext data
             if probe_http.response_status == 200:

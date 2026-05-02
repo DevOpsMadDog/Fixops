@@ -150,7 +150,6 @@ class IncidentTimelineEngine:
         if not start_iso or not end_iso:
             return None
         try:
-            fmt = "%Y-%m-%dT%H:%M:%S.%f+00:00"
             def _parse(s: str) -> datetime:
                 for fmt in (
                     "%Y-%m-%dT%H:%M:%S.%f+00:00",

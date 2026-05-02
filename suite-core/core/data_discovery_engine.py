@@ -368,7 +368,7 @@ class DataDiscoveryEngine:
         data: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Create a new scan job for a datastore."""
-        now = _now_iso()
+        _now_iso()
         record: Dict[str, Any] = {
             "id": str(uuid.uuid4()),
             "org_id": org_id,

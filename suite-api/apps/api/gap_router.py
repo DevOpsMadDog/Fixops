@@ -465,7 +465,6 @@ async def copilot_chat(req: ChatRequest):
 
     # ── TrustGraph GraphRAG enrichment ──
     graphrag_context = ""
-    graphrag_meta: Dict[str, Any] = {}
     try:
         from core.copilot_trustgraph_bridge import get_bridge
         bridge = get_bridge()
@@ -484,11 +483,6 @@ async def copilot_chat(req: ChatRequest):
         )
         if copilot_ctx.available and copilot_ctx.context_text:
             graphrag_context = copilot_ctx.context_text
-            graphrag_meta = {
-                "intent": copilot_ctx.intent,
-                "entity_count": copilot_ctx.entity_count,
-                "sources": copilot_ctx.sources,
-            }
             logger.debug(
                 "copilot_chat: TrustGraph enriched with %d entities (intent=%s)",
                 copilot_ctx.entity_count,
@@ -2255,7 +2249,7 @@ async def slsa_status():
     # We can claim Level 1 if source tracking is present.
     # Level 2+ requires a hosted build service generating signed attestations.
     achieved_level = 1 if requirements_met["source"] else 0
-    all_met = all(requirements_met.values())
+    all(requirements_met.values())
     return {
         "status": "level_1" if achieved_level >= 1 else "not_compliant",
         "level": achieved_level,
@@ -2586,7 +2580,7 @@ async def compliance_overall_status():
             from core.analytics_db import AnalyticsDB
             adb = AnalyticsDB()
             findings = adb.get_findings(limit=1000) if hasattr(adb, "get_findings") else []
-            total_findings = len(findings) if findings else 0
+            len(findings) if findings else 0
             # Derive compliance score from finding severity distribution
             critical = sum(1 for f in findings if (f.get("severity") if isinstance(f, dict) else getattr(f, "severity", "")).lower() == "critical") if findings else 0
             high = sum(1 for f in findings if (f.get("severity") if isinstance(f, dict) else getattr(f, "severity", "")).lower() == "high") if findings else 0
@@ -3146,7 +3140,7 @@ async def generate_shift_handoff(request: Request):
 
     # Categorize events
     completed = [e for e in events if "completed" in e.get("event_type", "") or "resolved" in e.get("event_type", "")]
-    open_items = [e for e in events if "created" in e.get("event_type", "") or "started" in e.get("event_type", "")]
+    [e for e in events if "created" in e.get("event_type", "") or "started" in e.get("event_type", "")]
     critical = [e for e in events if e.get("severity") in ("critical", "high")]
 
     # Open remediation tasks

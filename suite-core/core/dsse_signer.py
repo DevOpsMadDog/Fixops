@@ -116,7 +116,7 @@ class DSSESigner:
     def _load_or_generate(self) -> None:
         """Load existing key or generate a new one. Called once at init."""
         priv_path = self._private_key_path()
-        pub_path = self._public_key_path()
+        self._public_key_path()
 
         if priv_path.exists():
             try:

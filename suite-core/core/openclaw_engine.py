@@ -849,7 +849,7 @@ class OpenClawEngine:
         """Insert task records for a phase. Returns list of task IDs."""
         templates = PHASE_TASKS.get(phase, [])
         task_ids: List[str] = []
-        now = self._now()
+        self._now()
 
         # Get campaign target_scope for task target field
         with self._conn() as conn:

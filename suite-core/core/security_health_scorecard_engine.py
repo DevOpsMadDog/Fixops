@@ -184,7 +184,6 @@ class SecurityHealthScorecardEngine:
                     (org_id, domain_name),
                 ).fetchone()
                 domain_id = existing["id"] if existing else str(uuid.uuid4())
-                created_at = now if not existing else None
 
                 if existing:
                     conn.execute(

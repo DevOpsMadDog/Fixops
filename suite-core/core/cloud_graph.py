@@ -373,7 +373,7 @@ class CloudGraphEngine:
         - API_GATEWAY → EXPOSES LAMBDA
         """
         edges: List[GraphEdge] = []
-        node_map: Dict[str, GraphNode] = {n.id: n for n in nodes}
+        {n.id: n for n in nodes}
 
         # Build lookup indexes
         vpc_nodes: Dict[str, GraphNode] = {}       # vpc_id → VPC node

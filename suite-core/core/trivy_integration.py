@@ -336,7 +336,7 @@ class TrivyScanner:
                 raw = self.scan_image(image_name)
 
             findings = self.normalize_results(raw)
-            elapsed = time.monotonic()
+            time.monotonic()
 
             # Severity breakdown
             sev_counts: Dict[str, int] = {

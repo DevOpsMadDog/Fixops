@@ -197,7 +197,7 @@ class ComplianceReportGenerator:
             status = "compliant"
             evidence = "Automated check passed."
             if findings_context:
-                open_count = findings_context.get("open_findings", 0)
+                findings_context.get("open_findings", 0)
                 critical_count = findings_context.get("critical_findings", 0)
                 # Heuristic: controls with high critical findings have gaps
                 if critical_count > 0 and ctrl.get("category") in (

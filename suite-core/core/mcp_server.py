@@ -2321,7 +2321,7 @@ class MCPWebSocketTransport:
 
         Returns number of active connections notified.
         """
-        message = self.create_notification(method, params)
+        self.create_notification(method, params)
         count = 0
         for conn in list(self._connections.values()):
             if conn.active:

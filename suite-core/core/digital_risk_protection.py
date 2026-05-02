@@ -224,7 +224,7 @@ class DRPEngine:
         # SHA-1 k-anonymity prefix (first 5 chars) — HIBP pattern
         sha1 = hashlib.sha1(email.encode(), usedforsecurity=False).hexdigest().upper()
         prefix = sha1[:5]
-        suffix = sha1[5:]
+        sha1[5:]
 
         # Mock breach database with realistic entries keyed by hash prefix patterns
         _mock_breaches = [

@@ -539,7 +539,7 @@ class MetricsAggregator:
             mgr = SLAManager()
             dashboard = mgr.get_sla_dashboard(org_id)
 
-            by_status = dashboard.get("by_status", {})
+            dashboard.get("by_status", {})
             breached = len(dashboard.get("breached", []))
             at_risk = len(dashboard.get("at_risk", []))
             compliance_rate = dashboard.get("compliance_rate", 100.0)
@@ -642,7 +642,7 @@ class MetricsAggregator:
             # Use dashboard overview — does not require org-scoped pipeline runs
             overview = db.get_dashboard_overview()
             total_findings = overview.get("total_findings", 0)
-            open_findings = overview.get("open_findings", 0)
+            overview.get("open_findings", 0)
             # Derive simple operational proxies from available data
             metrics.extend([
                 Metric(name="ops_pipeline_runs_24h", value=float(total_findings), unit="count",

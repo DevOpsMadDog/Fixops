@@ -264,7 +264,7 @@ class IGAEngine:
             "SELECT * FROM identity_catalog WHERE org_id = ?", (org_id,)
         ).fetchall()
 
-        now = datetime.now(timezone.utc).isoformat()
+        datetime.now(timezone.utc).isoformat()
         for row in rows:
             roles: List[str] = json.loads(row["roles"] or "[]")
             for role in roles:

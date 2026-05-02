@@ -298,7 +298,6 @@ class AICodeGuardian:
 
         # Missing error handling (AI often skips it)
         has_try = "try:" in code or "try {" in code
-        has_except = "except" in code or "catch" in code
         if not has_try and len(lines) > 20:
             indicators.append("No error handling in 20+ line code")
             marker_score += 0.1

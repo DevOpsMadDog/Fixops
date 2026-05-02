@@ -546,7 +546,7 @@ class AttackPathEngine:
     def get_crown_jewels_at_risk(self, org_id: str = "default") -> list[dict]:
         """List crown jewels and which entry points can reach them."""
         nodes_map = self._load_nodes_map(org_id)
-        adj = self._load_adjacency(org_id)
+        self._load_adjacency(org_id)
 
         crown_jewels = [n for n in nodes_map.values() if n["is_crown_jewel"]]
         # Reverse adjacency for reverse BFS

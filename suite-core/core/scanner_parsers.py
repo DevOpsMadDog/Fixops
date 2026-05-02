@@ -2001,7 +2001,7 @@ class CycloneDXUniversalNormalizer(_Base):
             affects = vuln.get("affects", [])
             component_ref = affects[0].get("ref", "") if affects else ""
 
-            cves = _extract_cves(vuln_id + " " + str(vuln.get("source", {}).get("name", "")))
+            _extract_cves(vuln_id + " " + str(vuln.get("source", {}).get("name", "")))
             cwes = [f"CWE-{c}" for c in vuln.get("cwes", [])]
 
             recommendation = ""
@@ -2105,9 +2105,9 @@ class GitleaksScannerNormalizer(_Base):
             commit = leak.get("Commit") or leak.get("commit", "")
             author = leak.get("Author") or leak.get("author", "")
             date = leak.get("Date") or leak.get("date", "")
-            entropy = leak.get("Entropy") or leak.get("entropy")
+            leak.get("Entropy") or leak.get("entropy")
             # Redact the actual secret value — never store plaintext secrets
-            secret_len = len(str(leak.get("Secret") or leak.get("secret", "")))
+            len(str(leak.get("Secret") or leak.get("secret", "")))
 
             # All leaked secrets are high severity by default;
             # certain rules like private keys or API tokens are critical

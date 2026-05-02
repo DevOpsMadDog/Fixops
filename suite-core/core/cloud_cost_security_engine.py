@@ -709,7 +709,7 @@ class CloudCostSecurityEngine:
 
     def get_cost_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated cost security stats for org."""
-        today = _today_str()
+        _today_str()
         month_start = datetime.now(timezone.utc).strftime("%Y-%m-01")
 
         with self._conn() as conn:

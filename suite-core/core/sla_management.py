@@ -1421,7 +1421,7 @@ class SLAManagement:
             a = self._assignment_from_row(row)
             updated = self.check_and_update_status(a.finding_id)
 
-            status_val = updated.status if isinstance(updated.status, str) else updated.status.value
+            updated.status if isinstance(updated.status, str) else updated.status.value
             esc_val = (
                 updated.escalation_level if isinstance(updated.escalation_level, str)
                 else updated.escalation_level.value

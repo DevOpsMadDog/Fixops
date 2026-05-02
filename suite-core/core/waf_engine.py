@@ -525,7 +525,7 @@ class WAFEngine:
             ).fetchone()[0]
 
             # False positive rate: blocked requests with 'allow' rules (approximation)
-            total_blocked = max(blocked_7d, 1)
+            max(blocked_7d, 1)
             # We approximate FP rate as 0 unless overridden — production would track confirmed FPs
             false_positive_rate = 0.0
 

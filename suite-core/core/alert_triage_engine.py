@@ -483,7 +483,7 @@ class AlertTriageEngine:
                 inc_conn.row_factory = sqlite3.Row
                 asset_values = [a["value"] for a in affected_assets]
                 if asset_values:
-                    placeholders = ",".join("?" * len(asset_values))
+                    ",".join("?" * len(asset_values))
                     like_clauses = " OR ".join(
                         "title LIKE ? OR source LIKE ?" for _ in asset_values
                     )

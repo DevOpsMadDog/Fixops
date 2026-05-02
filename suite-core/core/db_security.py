@@ -730,10 +730,6 @@ class UserPrivilegeAuditor:
             details.append("Account has superuser/DBA privileges")
             overprivileged = True
 
-        high_privilege_roles = {
-            "root", "admin", "dba", "sysdba", "superuser", "rds_superuser",
-            "dbadmin", "db_owner", "sysadmin", "GRANT ALL", "all privileges",
-        }
         for role in roles:
             if any(hp in role.lower() for hp in ("all privileges", "grant all", "superuser", "dba", "sysadmin")):
                 details.append(f"High-privilege role assigned: {role}")

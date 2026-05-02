@@ -463,7 +463,7 @@ class NetworkTopologyEngine:
             # fetch external-segment node IDs via segment zone tag stored in
             # network_segments. For nodes not in a segment we check if their
             # location contains "external" / "dmz".
-            ext_segs = conn.execute(
+            conn.execute(
                 "SELECT segment_id FROM network_segments "
                 "WHERE org_id=? AND zone IN ('external','dmz')",
                 (org_id,),

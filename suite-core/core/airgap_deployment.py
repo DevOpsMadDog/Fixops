@@ -577,7 +577,7 @@ class OfflineCVEDatabase:
 
     def get_by_id(self, cve_id: str) -> Optional[CVERecord]:
         """Fetch a single CVE by ID."""
-        matches = self.search()  # fallback if DB empty
+        self.search()  # fallback if DB empty
         cve_upper = cve_id.upper()
         try:
             with sqlite3.connect(str(self.db_path)) as conn:

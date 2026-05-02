@@ -220,20 +220,6 @@ class SlackAdapter:
         Returns:
             True if successful
         """
-        message = {
-            "text": f"ALDECI Alert: {action.event.event_type}",
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Event Type:* {action.event.event_type}\n"
-                                f"*Severity:* {action.event.severity}\n"
-                                f"*Source:* {action.event.source}",
-                    },
-                }
-            ],
-        }
 
         self._logger.info(
             f"Slack notification (stub): Event {action.event.event_id} "
@@ -266,7 +252,7 @@ class WebhookAdapter:
         Returns:
             True if successful
         """
-        payload = action.event.to_dict()
+        action.event.to_dict()
 
         self._logger.info(
             f"Webhook notification (stub): Event {action.event.event_id} "
@@ -301,7 +287,7 @@ class PagerDutyAdapter:
         Returns:
             True if successful
         """
-        payload = {
+        {
             "routing_key": self._integration_key,
             "event_action": "trigger",
             "dedup_key": action.event.event_id,

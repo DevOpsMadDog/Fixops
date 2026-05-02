@@ -361,7 +361,7 @@ class ControlTestingEngine:
 
     def get_due_tests(self, org_id: str) -> List[Dict[str, Any]]:
         """Return controls where last_tested is NULL or overdue by frequency."""
-        now = _now_iso()
+        _now_iso()
         with self._conn() as conn:
             rows = conn.execute(
                 "SELECT * FROM security_controls WHERE org_id = ?",

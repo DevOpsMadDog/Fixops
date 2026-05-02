@@ -54,7 +54,7 @@ _PRINT_EXCEPT_RE = re.compile(r"^\s*print\s*\(")
 
 def _body_is_pass_only(handler: ast.ExceptHandler) -> bool:
     """True when the handler body contains only ``pass`` (and possibly docstring)."""
-    non_trivial = [
+    [
         n for n in handler.body
         if not isinstance(n, (ast.Pass, ast.Expr))
         or (isinstance(n, ast.Expr) and not isinstance(n.value, ast.Constant))

@@ -506,7 +506,7 @@ class BackupEngine:
         src_path = Path(db_path)
         if not src_path.exists():
             return b""
-        buf = io.BytesIO()
+        io.BytesIO()
         # Write to a temp in-memory db then dump bytes
         mem_conn = sqlite3.connect(":memory:")
         try:

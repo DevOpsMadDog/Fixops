@@ -1464,7 +1464,7 @@ class K8sSecurityEngine:
                 audit.external_secrets_operator_present = True
 
         # ConfigMap secret detection
-        configmaps = [r for r in resources if r.kind == "ConfigMap"]
+        [r for r in resources if r.kind == "ConfigMap"]
         for cm in resources:
             if cm.kind != "ConfigMap":
                 continue
@@ -1635,7 +1635,7 @@ class K8sSecurityEngine:
         name = rule.name
         conditions = rule.conditions
         containers = self._get_containers(resource)
-        pod_spec = self._get_pod_spec(resource)
+        self._get_pod_spec(resource)
 
         if name == "deny-privileged-containers":
             for c in containers:

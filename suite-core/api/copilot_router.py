@@ -1523,7 +1523,7 @@ def _generate_security_insight(question: str, intent: str) -> Optional[Dict[str,
         if bridge is None:
             return None
 
-        agent_type = _INTENT_AGENT_TYPE.get(intent, "general")
+        _INTENT_AGENT_TYPE.get(intent, "general")
         enrichment = bridge.enrich_query(question)
         entities: List[Dict[str, Any]] = enrichment.get("entities", [])
         graph_context: str = enrichment.get("graph_context", "")

@@ -386,7 +386,7 @@ class PhishingSimulator:
         ).fetchone()
         if row is None:
             return None
-        cols = [d[0] for d in conn.execute("SELECT * FROM campaigns LIMIT 0").description]
+        [d[0] for d in conn.execute("SELECT * FROM campaigns LIMIT 0").description]
         # Re-fetch with column names
         row = conn.execute(
             "SELECT id, name, template_id, target_emails, sent_count, opened_count, "

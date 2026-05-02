@@ -497,7 +497,7 @@ class RiskAggregatorEngine:
             _logger.warning("sync_from_brain_graph: cannot open brain db %s: %s", brain_db_path, exc)
             return {"org_id": org_id, "processed": 0, "skipped": 0, "errors": 1, "brain_db": brain_db_path}
 
-        now = self._now()
+        self._now()
         for row in rows:
             try:
                 props: Dict[str, Any] = json.loads(row["properties"]) if row["properties"] else {}

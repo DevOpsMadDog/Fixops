@@ -1793,7 +1793,7 @@ class SecurityMetricsAggregator:
         compliance_by_sev: Dict[str, List[bool]] = {}
 
         for row in rows:
-            sev = (row["status"] or "unknown").lower()
+            (row["status"] or "unknown").lower()
             status = (row["status"] or "").lower()
             try:
                 deadline_dt = datetime.fromisoformat(row["deadline"]) if row["deadline"] else None

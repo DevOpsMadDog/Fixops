@@ -336,7 +336,7 @@ class SupplyChainAttackDetectionEngine:
         if confirmed_status not in valid:
             raise ValueError(f"Invalid status '{confirmed_status}'. Must be one of {valid}")
 
-        detection = self._get_detection(org_id, detection_id)  # raises if not found / wrong org
+        self._get_detection(org_id, detection_id)  # raises if not found / wrong org
         with self._lock, self._connect() as conn:
             conn.execute(
                 "UPDATE scad_detections SET status=? WHERE org_id=? AND id=?",

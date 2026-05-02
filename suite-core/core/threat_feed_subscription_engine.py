@@ -389,7 +389,7 @@ class ThreatFeedSubscriptionEngine:
         """
         self._ensure_db(org_id)
         now_dt = datetime.now(timezone.utc)
-        now_str = now_dt.isoformat()
+        now_dt.isoformat()
         with self._conn(org_id) as conn:
             rows = conn.execute(
                 "SELECT * FROM feed_subscriptions WHERE org_id = ? AND status = 'active'",

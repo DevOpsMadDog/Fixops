@@ -794,7 +794,7 @@ class SBOMExportEngine:
                 }
             )
 
-        purl_to_pid = {c["purl"]: f"CSAFPID-{c['id']}" for c in comps}
+        {c["purl"]: f"CSAFPID-{c['id']}" for c in comps}
         csaf_vulnerabilities: List[Dict[str, Any]] = []
         for v in vulns:
             # Find the component via id match

@@ -884,7 +884,6 @@ def resolve_create_incident(args: Dict[str, Any]) -> Dict[str, Any]:
     # do not exist. The module exposes ``IncidentResponseManager`` (class) and
     # ``Incident`` Pydantic model only. 2026-05-03 silenced-imports audit.
     # Persist to local store until callers are rewired to the class directly.
-    created = False
     logger.debug(
         "incident_manager_create_unavailable",
         reason="get_incident_manager/IncidentCreate removed; using local store",

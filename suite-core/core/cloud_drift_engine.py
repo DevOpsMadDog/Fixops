@@ -460,7 +460,7 @@ class CloudDriftDetectionEngine:
                     (org_id,),
                 ).fetchone()[0]
 
-                total_events = conn.execute(
+                conn.execute(
                     "SELECT COUNT(*) FROM drift_events WHERE org_id = ?", (org_id,)
                 ).fetchone()[0]
 

@@ -511,7 +511,7 @@ class EDRConnector:
                 falco_rule = norm.pop("_falco_rule", "Unknown")
                 falco_output = norm.pop("_falco_output", "")
                 container_id = norm.pop("_container_id", "")
-                container_name = norm.pop("_container_name", "")
+                norm.pop("_container_name", "")
                 try:
                     self._edr.ingest_process_event(org_id, endpoint_id, norm)
                     ingested += 1

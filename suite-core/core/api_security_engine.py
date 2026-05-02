@@ -408,7 +408,7 @@ class OpenAPIParser:
     def _parse_v3(self, spec: Dict[str, Any]) -> List[ApiEndpoint]:
         endpoints: List[ApiEndpoint] = []
         global_security = spec.get("security", [])
-        schemes = self._extract_security_schemes(spec)
+        self._extract_security_schemes(spec)
 
         for path, path_item in spec.get("paths", {}).items():
             if not isinstance(path_item, dict):
@@ -671,14 +671,11 @@ class RateLimitChecker:
         if endpoint.method not in ("GET", "POST"):
             return findings
 
-        has_limit_param = False
-        has_offset_param = False
         for param in endpoint.parameters:
             if not isinstance(param, dict):
                 continue
             pname = param.get("name", "").lower()
             if pname in ("limit", "page_size", "per_page", "count", "size"):
-                has_limit_param = True
                 # Check if max is constrained
                 schema = param.get("schema", {})
                 maximum = schema.get("maximum")
@@ -710,7 +707,7 @@ class RateLimitChecker:
                         confidence=0.8,
                     ))
             if pname in ("offset", "page", "skip", "cursor", "after", "before"):
-                has_offset_param = True
+                pass
 
         return findings
 
@@ -1509,7 +1506,6 @@ class ApiSecurityEngine:
         return findings
 
     def get_inventory(self) -> List[Dict[str, Any]]:
-        seen: Dict[str, ApiEndpoint] = {}
         for scan in self._scans.values():
             for ep_dict in []:  # populated via run_scan side-effect below
                 pass

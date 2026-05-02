@@ -234,7 +234,7 @@ class DataRetentionManager:
             ).fetchone()
             if row:
                 # Update existing, keep original id
-                existing_id = row["id"]
+                row["id"]
                 conn.execute(
                     """
                     UPDATE retention_policies
