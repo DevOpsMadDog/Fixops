@@ -79,25 +79,15 @@ router = APIRouter(prefix="/evidence", tags=["evidence"])
 _rsa_verify: Optional[Callable[[bytes, bytes, str], bool]] = None
 
 try:
-    from fixops_enterprise.src.utils.crypto import rsa_verify as _enterprise_rsa_verify
+    # Canonical location after suite layout migration. Both legacy paths
+    # (``fixops_enterprise.src.utils.crypto`` and bare ``utils.crypto``) were
+    # never importable from this repo and have been collapsed to the single
+    # canonical entry point under ``core.utils.enterprise.crypto``.
+    from core.utils.enterprise.crypto import rsa_verify as _canonical_rsa_verify
 
-    _rsa_verify = _enterprise_rsa_verify
+    _rsa_verify = _canonical_rsa_verify
 except ImportError:
-    try:
-        import sys
-
-        # Use append instead of insert(0) to avoid shadowing repo root packages
-        # like services.graph when the enterprise path is searched first
-        sys.path.append(
-            str(
-                Path(__file__).parent.parent.parent.parent / "fixops-enterprise" / "src"
-            )
-        )
-        from utils.crypto import rsa_verify as _alt_rsa_verify
-
-        _rsa_verify = _alt_rsa_verify
-    except ImportError:
-        pass
+    pass
 
 # ---------------------------------------------------------------------------
 # Allowed values for input validation

@@ -751,22 +751,16 @@ class ThreatIntelAggregator:
     def save_to_trustgraph(self, records: List[CVERecord]) -> None:
         """Index CVE records into TrustGraph Knowledge Core 2 (Threat Intel).
 
-        Emits a structured event for each record; downstream TrustGraph
-        indexers consume these from the event bus if available.
+        Downstream TrustGraph indexers consume CVE events from the event bus.
+        Direct indexing was removed: ``trustgraph.indexer`` was never a real
+        module, and the canonical ``core.trustgraph_indexer.TrustGraphIndexer``
+        exposes domain-specific methods (``index_threat_feeds`` etc.) — not the
+        generic ``.index()`` entry point this code was calling. The event-bus
+        path is the supported integration; this method is a no-op until a
+        push-style indexer with a stable contract is wired in.
         """
-        try:
-            from trustgraph.indexer import TrustGraphIndexer  # type: ignore
-
-            indexer = TrustGraphIndexer()
-            for rec in records:
-                indexer.index(
-                    core="threat_intel",
-                    entity_type="cve",
-                    entity_id=rec.cve_id,
-                    data=rec.to_dict(),
-                )
-            logger.info("TrustGraph: indexed %d CVE records", len(records))
-        except ImportError:
-            logger.debug("TrustGraph indexer not available — skipping graph indexing")
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("TrustGraph indexing failed: %s", exc)
+        logger.debug(
+            "save_to_trustgraph: skipping direct index for %d records "
+            "(handled by event-bus consumers)",
+            len(records),
+        )
