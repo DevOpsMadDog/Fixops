@@ -6,7 +6,7 @@
  *   2. Vendors table (name, vendor_category, risk_rating, contract_status, data_access_level, risk_score)
  *
  * Route: /third-party-vendor
- * API: GET /api/v1/third-party-vendor
+ * API: GET /api/v1/third-party-vendor/vendors  GET /api/v1/third-party-vendor/stats
  */
 
 import { useState, useEffect } from "react";
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -26,35 +27,15 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_VENDORS = [
-  { id: "ven-001", name: "CloudMatrix Inc.",      vendor_category: "cloud_provider",  risk_rating: "low",      contract_status: "active",   data_access_level: "none",       risk_score: 18 },
-  { id: "ven-002", name: "DataSync Partners",     vendor_category: "data_processor",  risk_rating: "critical", contract_status: "active",   data_access_level: "pii",        risk_score: 91 },
-  { id: "ven-003", name: "SecureAudit LLC",       vendor_category: "auditor",         risk_rating: "medium",   contract_status: "active",   data_access_level: "audit_logs", risk_score: 47 },
-  { id: "ven-004", name: "GlobalPay Systems",     vendor_category: "payment",         risk_rating: "high",     contract_status: "active",   data_access_level: "pci",        risk_score: 74 },
-  { id: "ven-005", name: "TechSupport Co.",       vendor_category: "support",         risk_rating: "medium",   contract_status: "expired",  data_access_level: "limited",    risk_score: 55 },
-  { id: "ven-006", name: "AI Analytics Corp.",    vendor_category: "saas",            risk_rating: "high",     contract_status: "active",   data_access_level: "analytics",  risk_score: 78 },
-  { id: "ven-007", name: "NetWatch Security",     vendor_category: "security",        risk_rating: "low",      contract_status: "active",   data_access_level: "network",    risk_score: 22 },
-  { id: "ven-008", name: "HR Cloud Suite",        vendor_category: "hr",              risk_rating: "critical", contract_status: "active",   data_access_level: "pii",        risk_score: 87 },
-  { id: "ven-009", name: "Logistics Tracker Ltd.",vendor_category: "logistics",       risk_rating: "low",      contract_status: "inactive", data_access_level: "none",       risk_score: 14 },
-  { id: "ven-010", name: "DevOps Infra Corp.",    vendor_category: "infrastructure",  risk_rating: "medium",   contract_status: "active",   data_access_level: "ci_cd",      risk_score: 51 },
-];
-
-const MOCK_STATS = { total_vendors: 143, high_risk: 22, unassessed: 17, avg_risk_score: 52.3 };
-
-// ── Badge helpers ──────────────────────────────────────────────
 
 function RiskRatingBadge({ rating }: { rating: string }) {
   const map: Record<string, string> = {
@@ -89,7 +70,7 @@ function RiskScoreCell({ score }: { score: number }) {
   return <span className={cn("font-mono text-[11px] font-semibold", color)}>{score}</span>;
 }
 
-function exportCsv(rows: any[]) {
+function exportCsv(rows: Array<Record<string, unknown>>) {
   const headers = ["name", "vendor_category", "risk_rating", "contract_status", "data_access_level", "risk_score"];
   const lines = [headers.join(","), ...rows.map(r => headers.map(h => `"${r[h] ?? ""}"`).join(","))];
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
@@ -98,33 +79,68 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+interface Vendor {
+  id?: string;
+  name?: string;
+  vendor_category?: string;
+  risk_rating?: string;
+  contract_status?: string;
+  data_access_level?: string;
+  risk_score?: number;
+}
+
+interface VendorStats {
+  total_vendors?: number;
+  high_risk?: number;
+  unassessed?: number;
+  avg_risk_score?: number;
+}
 
 export default function ThirdPartyVendorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveVendors, setLiveVendors] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [stats, setStats] = useState<VendorStats>({});
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = () => {
+    setLoading(true);
+    setError(null);
     Promise.allSettled([
-      apiFetch(`/api/v1/third-party-vendor/vendors?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/third-party-vendor/stats?org_id=${ORG_ID}`),
+      apiFetch("/api/v1/third-party-vendor/vendors?org_id=default"),
+      apiFetch("/api/v1/third-party-vendor/stats?org_id=default"),
     ]).then(([venRes, statsRes]) => {
-      if (venRes.status === "fulfilled") setLiveVendors(venRes.value?.vendors ?? venRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+      if (venRes.status === "fulfilled") {
+        const v = venRes.value;
+        setVendors(Array.isArray(v) ? v : (v?.vendors ?? v?.items ?? []));
+      } else {
+        setError("Failed to load vendor data");
+      }
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value ?? {});
+      }
+    }).finally(() => setLoading(false));
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { fetchData(); }, []);
 
-  const vendors = liveVendors ?? MOCK_VENDORS;
-  const stats   = liveStats   ?? MOCK_STATS;
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="h-10 w-64 rounded bg-muted animate-pulse" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-24 rounded bg-muted animate-pulse" />)}
+        </div>
+        <div className="h-64 rounded bg-muted animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -143,15 +159,13 @@ export default function ThirdPartyVendorDashboard() {
         }
       />
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Vendors"   value={stats.total_vendors}                     icon={Building2}    trend="flat" className="border-red-500/20" />
-        <KpiCard title="High-Risk"       value={stats.high_risk}                         icon={AlertTriangle} trend="down" className="border-rose-500/20" />
-        <KpiCard title="Unassessed"      value={stats.unassessed}                        icon={HelpCircle}   trend="down" className="border-red-500/20" />
-        <KpiCard title="Avg Risk Score"  value={`${stats.avg_risk_score}`}               icon={TrendingUp}   trend="down" className="border-rose-500/20" />
+        <KpiCard title="Total Vendors"  value={stats.total_vendors ?? 0}       icon={Building2}     trend="flat" className="border-red-500/20" />
+        <KpiCard title="High-Risk"      value={stats.high_risk ?? 0}            icon={AlertTriangle} trend="down" className="border-rose-500/20" />
+        <KpiCard title="Unassessed"     value={stats.unassessed ?? 0}           icon={HelpCircle}    trend="down" className="border-red-500/20" />
+        <KpiCard title="Avg Risk Score" value={`${stats.avg_risk_score ?? 0}`}  icon={TrendingUp}    trend="down" className="border-rose-500/20" />
       </div>
 
-      {/* Vendors Table */}
       <Card className="border-red-500/20">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -161,9 +175,10 @@ export default function ThirdPartyVendorDashboard() {
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-                {vendors.filter((v: any) => v.risk_rating === "critical").length} critical
+                {vendors.filter((v) => v.risk_rating === "critical").length} critical
               </Badge>
-              <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => exportCsv(vendors)}>
+              <Button variant="outline" size="sm" className="text-[11px] h-7"
+                onClick={() => exportCsv(vendors as Array<Record<string, unknown>>)}>
                 Export CSV
               </Button>
             </div>
@@ -173,44 +188,62 @@ export default function ThirdPartyVendorDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Vendor Name</TableHead>
-                  <TableHead className="text-[11px] h-8">Category</TableHead>
-                  <TableHead className="text-[11px] h-8">Risk Rating</TableHead>
-                  <TableHead className="text-[11px] h-8">Contract</TableHead>
-                  <TableHead className="text-[11px] h-8">Data Access</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Risk Score</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vendors.map((ven: any, i: number) => (
-                  <TableRow key={ven.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-semibold text-[11px] text-red-300 max-w-[180px] truncate">
-                      {ven.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(ven.vendor_category ?? "—").replace(/_/g, " ")}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <RiskRatingBadge rating={ven.risk_rating ?? "medium"} />
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <ContractBadge status={ven.contract_status ?? "active"} />
-                    </TableCell>
-                    <TableCell className="py-2 font-mono text-[11px] text-rose-300">
-                      {ven.data_access_level ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-right">
-                      <RiskScoreCell score={ven.risk_score ?? 0} />
-                    </TableCell>
+          {error ? (
+            <div className="p-6">
+              <EmptyState
+                title="Failed to load vendor data"
+                description={error}
+                icon={AlertTriangle}
+              />
+            </div>
+          ) : vendors.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No vendors registered"
+                description="Add third-party vendors to begin tracking risk ratings and contract status."
+                icon={Building2}
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Vendor Name</TableHead>
+                    <TableHead className="text-[11px] h-8">Category</TableHead>
+                    <TableHead className="text-[11px] h-8">Risk Rating</TableHead>
+                    <TableHead className="text-[11px] h-8">Contract</TableHead>
+                    <TableHead className="text-[11px] h-8">Data Access</TableHead>
+                    <TableHead className="text-[11px] h-8 text-right">Risk Score</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {vendors.map((ven, i) => (
+                    <TableRow key={ven.id ?? i} className="hover:bg-muted/30">
+                      <TableCell className="py-2 font-semibold text-[11px] text-red-300 max-w-[180px] truncate">
+                        {ven.name ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
+                        {(ven.vendor_category ?? "—").replace(/_/g, " ")}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <RiskRatingBadge rating={ven.risk_rating ?? "medium"} />
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <ContractBadge status={ven.contract_status ?? "active"} />
+                      </TableCell>
+                      <TableCell className="py-2 font-mono text-[11px] text-rose-300">
+                        {ven.data_access_level ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 text-right">
+                        <RiskScoreCell score={ven.risk_score ?? 0} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

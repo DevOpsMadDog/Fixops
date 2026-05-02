@@ -8,7 +8,7 @@
  *   2. Treatments table (title, treatment_type, treatment_status, risk_level, owner, progress_pct)
  *
  * Route: /risk-treatment
- * API: GET /api/v1/risk-treatment
+ * API: GET /api/v1/risk-treatment/treatments  GET /api/v1/risk-treatment/stats
  */
 
 import { useState, useEffect } from "react";
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -28,35 +29,15 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_TREATMENTS = [
-  { id: "rt-001", title: "Patch Critical CVEs in Web Tier",     treatment_type: "Remediation",    treatment_status: "in_progress", risk_level: "critical", owner: "Alex Chen",      progress_pct: 65 },
-  { id: "rt-002", title: "MFA Rollout for Privileged Users",    treatment_type: "Control",        treatment_status: "in_progress", risk_level: "high",     owner: "Maria Lopez",    progress_pct: 80 },
-  { id: "rt-003", title: "Vendor Risk Acceptance — Acme Corp",  treatment_type: "Acceptance",     treatment_status: "deferred",    risk_level: "medium",   owner: "CISO",           progress_pct: 100 },
-  { id: "rt-004", title: "Firewall Rule Cleanup",               treatment_type: "Remediation",    treatment_status: "planned",     risk_level: "medium",   owner: "Network Team",   progress_pct: 0 },
-  { id: "rt-005", title: "Encrypt S3 Buckets at Rest",          treatment_type: "Control",        treatment_status: "completed",   risk_level: "high",     owner: "Cloud Team",     progress_pct: 100 },
-  { id: "rt-006", title: "Disable Legacy TLS 1.0/1.1",          treatment_type: "Remediation",    treatment_status: "in_progress", risk_level: "high",     owner: "DevOps",         progress_pct: 45 },
-  { id: "rt-007", title: "Transfer Cyber Insurance Risk",       treatment_type: "Transfer",       treatment_status: "completed",   risk_level: "critical", owner: "CFO",            progress_pct: 100 },
-  { id: "rt-008", title: "Implement CASB for SaaS Apps",        treatment_type: "Control",        treatment_status: "planned",     risk_level: "medium",   owner: "Security Team",  progress_pct: 5 },
-  { id: "rt-009", title: "Close Open OWASP Top 10 Findings",    treatment_type: "Remediation",    treatment_status: "in_progress", risk_level: "critical", owner: "AppSec Team",    progress_pct: 38 },
-  { id: "rt-010", title: "Insider Threat Detection Deploy",     treatment_type: "Control",        treatment_status: "deferred",    risk_level: "high",     owner: "SOC Lead",       progress_pct: 20 },
-];
-
-const MOCK_STATS = { total_treatments: 134, in_progress: 47, overdue: 19, avg_progress_pct: 52.3 };
-
-// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -101,7 +82,7 @@ function ProgressBar({ pct }: { pct: number }) {
   );
 }
 
-function exportCsv(treatments: any[]) {
+function exportCsv(treatments: Array<Record<string, unknown>>) {
   const headers = ["title", "treatment_type", "treatment_status", "risk_level", "owner", "progress_pct"];
   const rows = treatments.map((t) => headers.map((h) => t[h] ?? "").join(","));
   const csv = [headers.join(","), ...rows].join("\n");
@@ -112,33 +93,68 @@ function exportCsv(treatments: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+interface Treatment {
+  id?: string;
+  title?: string;
+  treatment_type?: string;
+  treatment_status?: string;
+  risk_level?: string;
+  owner?: string;
+  progress_pct?: number;
+}
+
+interface TreatmentStats {
+  total_treatments?: number;
+  in_progress?: number;
+  overdue?: number;
+  avg_progress_pct?: number;
+}
 
 export default function RiskTreatmentDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveTreatments, setLiveTreatments] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [treatments, setTreatments] = useState<Treatment[]>([]);
+  const [stats, setStats] = useState<TreatmentStats>({});
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = () => {
+    setLoading(true);
+    setError(null);
     Promise.allSettled([
-      apiFetch(`/api/v1/risk-treatment/treatments?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/risk-treatment/stats?org_id=${ORG_ID}`),
+      apiFetch("/api/v1/risk-treatment/treatments?org_id=default"),
+      apiFetch("/api/v1/risk-treatment/stats?org_id=default"),
     ]).then(([treatRes, statsRes]) => {
-      if (treatRes.status === "fulfilled") setLiveTreatments(treatRes.value?.treatments ?? treatRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+      if (treatRes.status === "fulfilled") {
+        const v = treatRes.value;
+        setTreatments(Array.isArray(v) ? v : (v?.treatments ?? v?.items ?? []));
+      } else {
+        setError("Failed to load treatment data");
+      }
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value ?? {});
+      }
+    }).finally(() => setLoading(false));
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { fetchData(); }, []);
 
-  const treatments = liveTreatments ?? MOCK_TREATMENTS;
-  const stats      = liveStats      ?? MOCK_STATS;
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="h-10 w-64 rounded bg-muted animate-pulse" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-24 rounded bg-muted animate-pulse" />)}
+        </div>
+        <div className="h-64 rounded bg-muted animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -157,15 +173,13 @@ export default function RiskTreatmentDashboard() {
         }
       />
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Treatments"  value={stats.total_treatments}              icon={ShieldOff}    trend="flat" className="border-amber-500/20" />
-        <KpiCard title="In Progress"       value={stats.in_progress}                   icon={TrendingUp}   trend="up"   className="border-orange-500/20" />
-        <KpiCard title="Overdue"           value={stats.overdue}                       icon={Clock}        trend="down" className="border-amber-500/20" />
-        <KpiCard title="Avg Progress"      value={`${stats.avg_progress_pct}%`}        icon={BarChart2}    trend="up"   className="border-orange-500/20" />
+        <KpiCard title="Total Treatments" value={stats.total_treatments ?? 0}       icon={ShieldOff}  trend="flat" className="border-amber-500/20" />
+        <KpiCard title="In Progress"      value={stats.in_progress ?? 0}            icon={TrendingUp} trend="up"   className="border-orange-500/20" />
+        <KpiCard title="Overdue"          value={stats.overdue ?? 0}                icon={Clock}      trend="down" className="border-amber-500/20" />
+        <KpiCard title="Avg Progress"     value={`${stats.avg_progress_pct ?? 0}%`} icon={BarChart2}  trend="up"   className="border-orange-500/20" />
       </div>
 
-      {/* Treatments Table */}
       <Card className="border-amber-500/20">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -175,9 +189,10 @@ export default function RiskTreatmentDashboard() {
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge className="text-[10px] border border-orange-500/30 text-orange-400 bg-orange-500/10">
-                {treatments.filter((t: any) => t.treatment_status === "in_progress").length} in progress
+                {treatments.filter((t) => t.treatment_status === "in_progress").length} in progress
               </Badge>
-              <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => exportCsv(treatments)}>
+              <Button variant="outline" size="sm" className="text-[11px] h-7"
+                onClick={() => exportCsv(treatments as Array<Record<string, unknown>>)}>
                 Export CSV
               </Button>
             </div>
@@ -187,44 +202,62 @@ export default function RiskTreatmentDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Treatment</TableHead>
-                  <TableHead className="text-[11px] h-8">Type</TableHead>
-                  <TableHead className="text-[11px] h-8">Status</TableHead>
-                  <TableHead className="text-[11px] h-8">Risk Level</TableHead>
-                  <TableHead className="text-[11px] h-8">Owner</TableHead>
-                  <TableHead className="text-[11px] h-8">Progress</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {treatments.map((t: any, i: number) => (
-                  <TableRow key={t.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-semibold text-[11px] text-amber-300 max-w-[200px] truncate">
-                      {t.title ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {t.treatment_type ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <StatusBadge status={t.treatment_status ?? "planned"} />
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <RiskBadge level={t.risk_level ?? "medium"} />
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {t.owner ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <ProgressBar pct={t.progress_pct ?? 0} />
-                    </TableCell>
+          {error ? (
+            <div className="p-6">
+              <EmptyState
+                title="Failed to load treatments"
+                description={error}
+                icon={AlertTriangle}
+              />
+            </div>
+          ) : treatments.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No risk treatments found"
+                description="Create risk treatments to track remediation, control implementation, and acceptance workflows."
+                icon={ShieldOff}
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Treatment</TableHead>
+                    <TableHead className="text-[11px] h-8">Type</TableHead>
+                    <TableHead className="text-[11px] h-8">Status</TableHead>
+                    <TableHead className="text-[11px] h-8">Risk Level</TableHead>
+                    <TableHead className="text-[11px] h-8">Owner</TableHead>
+                    <TableHead className="text-[11px] h-8">Progress</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {treatments.map((t, i) => (
+                    <TableRow key={t.id ?? i} className="hover:bg-muted/30">
+                      <TableCell className="py-2 font-semibold text-[11px] text-amber-300 max-w-[200px] truncate">
+                        {t.title ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">
+                        {t.treatment_type ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <StatusBadge status={t.treatment_status ?? "planned"} />
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <RiskBadge level={t.risk_level ?? "medium"} />
+                      </TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">
+                        {t.owner ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <ProgressBar pct={t.progress_pct ?? 0} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
