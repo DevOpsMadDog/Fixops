@@ -12,9 +12,9 @@
  * API: GET /api/v1/threat-deception
  */
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Shield, RefreshCw, AlertTriangle, Users, Target, Activity } from "lucide-react";
+import { Shield, RefreshCw, Users, Target, Activity } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -29,31 +30,15 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_DECOYS = [
-  { id: "dec-001", name: "FakeSQLServer", decoy_type: "database",    ip_address: "10.0.1.100", port: 1433, interaction_count: 47, active: true  },
-  { id: "dec-002", name: "HoneySSH",      decoy_type: "ssh",         ip_address: "10.0.1.101", port: 22,   interaction_count: 83, active: true  },
-  { id: "dec-003", name: "FakeAdmin",     decoy_type: "web",         ip_address: "10.0.1.102", port: 8080, interaction_count: 21, active: true  },
-  { id: "dec-004", name: "DecoyFTP",      decoy_type: "ftp",         ip_address: "10.0.1.103", port: 21,   interaction_count: 12, active: false },
-  { id: "dec-005", name: "CanaryFile",    decoy_type: "file",        ip_address: "10.0.1.104", port: 445,  interaction_count: 6,  active: true  },
-  { id: "dec-006", name: "FakeRDP",       decoy_type: "rdp",         ip_address: "10.0.1.105", port: 3389, interaction_count: 34, active: true  },
-  { id: "dec-007", name: "DecoyAPI",      decoy_type: "api",         ip_address: "10.0.1.106", port: 443,  interaction_count: 19, active: true  },
-  { id: "dec-008", name: "HoneyLDAP",     decoy_type: "ldap",        ip_address: "10.0.1.107", port: 389,  interaction_count: 9,  active: false },
-];
-
-const MOCK_STATS = { active_decoys: 6, total_interactions: 231, unique_attackers: 14, active_campaigns: 3 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -88,28 +73,46 @@ function TypeBadge({ type }: { type: string }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+interface Decoy {
+  id: string;
+  name: string;
+  decoy_type: string;
+  ip_address: string;
+  port: number;
+  interaction_count: number;
+  active: boolean;
+}
+
+interface DeceptionStats {
+  active_decoys: number;
+  total_interactions: number;
+  unique_attackers: number;
+  active_campaigns: number;
+}
+
 export default function ThreatDeceptionDashboard() {
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveDecoys, setLiveDecoys] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats] = useState<any | null>(null);
+  const { data: decoysData, isLoading: decoysLoading, refetch: refetchDecoys } = useQuery<{ decoys?: Decoy[] } | Decoy[]>({
+    queryKey: ["threat-deception-decoys"],
+    queryFn: () => apiFetch("/api/v1/threat-deception/decoys?org_id=default"),
+  });
 
-  useEffect(() => {
-    Promise.allSettled([
-      apiFetch(`/api/v1/threat-deception/decoys?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-deception/stats?org_id=${ORG_ID}`),
-    ]).then(([decoysRes, statsRes]) => {
-      if (decoysRes.status === "fulfilled") setLiveDecoys(decoysRes.value?.decoys ?? decoysRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+  const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useQuery<DeceptionStats>({
+    queryKey: ["threat-deception-stats"],
+    queryFn: () => apiFetch("/api/v1/threat-deception/stats?org_id=default"),
+  });
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const loading = decoysLoading || statsLoading;
 
-  const decoys = liveDecoys ?? MOCK_DECOYS;
-  const stats  = liveStats  ?? MOCK_STATS;
+  const handleRefresh = () => {
+    refetchDecoys();
+    refetchStats();
+  };
 
+  const decoys: Decoy[] = Array.isArray(decoysData)
+    ? decoysData
+    : (decoysData as { decoys?: Decoy[] })?.decoys ?? [];
+
+  const stats: DeceptionStats = statsData ?? { active_decoys: 0, total_interactions: 0, unique_attackers: 0, active_campaigns: 0 };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
 
@@ -125,8 +128,8 @@ export default function ThreatDeceptionDashboard() {
         title="Threat Deception"
         description="Decoy asset management, honeypot interactions, and attacker behavior analytics for deception-based defense"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </Button>
         }
       />
@@ -156,44 +159,52 @@ export default function ThreatDeceptionDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Name</TableHead>
-                  <TableHead className="text-[11px] h-8">Type</TableHead>
-                  <TableHead className="text-[11px] h-8">IP Address</TableHead>
-                  <TableHead className="text-[11px] h-8">Port</TableHead>
-                  <TableHead className="text-[11px] h-8">Interactions</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {decoys.map((dec: any, i: number) => (
-                  <TableRow key={dec.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-semibold text-[11px] text-indigo-300">
-                      {dec.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <TypeBadge type={dec.decoy_type ?? "unknown"} />
-                    </TableCell>
-                    <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {dec.ip_address ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 font-mono text-[11px] text-purple-300">
-                      {dec.port ?? "—"}
-                    </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {dec.interaction_count ?? 0}
-                    </TableCell>
-                    <TableCell className="py-2 text-right">
-                      <ActiveBadge active={dec.active ?? false} />
-                    </TableCell>
+          {decoys.length === 0 ? (
+            <EmptyState
+              icon={Shield}
+              title="No decoy assets"
+              description="No honeypots or canary tokens have been deployed yet. Configure deception assets to begin tracking attacker interactions."
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Name</TableHead>
+                    <TableHead className="text-[11px] h-8">Type</TableHead>
+                    <TableHead className="text-[11px] h-8">IP Address</TableHead>
+                    <TableHead className="text-[11px] h-8">Port</TableHead>
+                    <TableHead className="text-[11px] h-8">Interactions</TableHead>
+                    <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {decoys.map((dec: Decoy, i: number) => (
+                    <TableRow key={dec.id ?? i} className="hover:bg-muted/30">
+                      <TableCell className="py-2 font-semibold text-[11px] text-indigo-300">
+                        {dec.name ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <TypeBadge type={dec.decoy_type ?? "unknown"} />
+                      </TableCell>
+                      <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
+                        {dec.ip_address ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 font-mono text-[11px] text-purple-300">
+                        {dec.port ?? "—"}
+                      </TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">
+                        {dec.interaction_count ?? 0}
+                      </TableCell>
+                      <TableCell className="py-2 text-right">
+                        <ActiveBadge active={dec.active ?? false} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
