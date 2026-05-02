@@ -338,6 +338,31 @@ After §11 + §12 sweeps, only 2 distinct WARN entries remain on cold-start:
 
 **37 `beast-mode` commits on `features/intermediate-stage`** (was 33 at §12; 4 more here).
 
+## 14. Broader dead-router sweep + Wave-A (2026-05-03 01:35–01:45)
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `3afc9efd` | Audit: broader dead-router sweep — 1 DEAD + 231 DUP candidates | Read-only doc. Scanned all 6 router-mounting modules (app.py + 5 sub_apps), 923 try blocks AST-walked. **231 DUP** mounts (~1412 deletable LOC if all removed from app.py). Surfaced the wave-1/3/4 leftover try blocks that were never deleted when sub_apps were extracted. |
+| `599a2237` | Cleanup: Wave-A — delete dead `scif_router` from grc_app.py | -8 LOC. The 1 truly DEAD candidate (file absent on disk). Mirrored prior cleanup pattern. |
+
+### Why Wave B/C/D/E (231 dups) is deferred to next sprint
+
+Sub_apps ARE wired (`register_aspm_routers`, `register_cspm_routers`, `register_ctem_routers`, `register_grc_routers`, `register_platform_routers` invoked at app.py:3033-3067). The 231 duplicates mean the same router is mounted TWICE (once by the sub_app, once by app.py body — wave-1/3/4 leftovers).
+
+**Risk:** FastAPI `include_router` is additive — calling twice doesn't crash, but bulk-deleting the wrong copy could orphan a route if the kept copy has a different prefix or dependency wrapping.
+
+**Safe sprint plan**:
+1. For each of the 231 dups, run `grep -B2 "include_router(<X>" app.py + sub_apps/*.py` to extract prefix + auth-dep
+2. If both mounts are identical: delete from app.py (sub_app is canonical organization)
+3. If they differ in prefix/auth: KEEP the wider one and document the choice
+4. Wave-by-wave (B=109 app↔grc, C=114 app↔ctem, D=6 sub↔sub, E=2 triplicates), 1 commit per wave with regression check
+
+**Doc**: `docs/dead_router_sweep_2026-05-03.md` (71 lines, table-heavy with the 5-wave plan).
+
+### Session total
+
+**40 `beast-mode` commits on `features/intermediate-stage`** (sweep + Wave-A since §13).
+
 ---
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
