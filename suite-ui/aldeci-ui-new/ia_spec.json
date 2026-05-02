@@ -1,0 +1,765 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-05-03",
+  "source_pages": 520,
+  "target_screens": 31,
+  "screens": [
+    {
+      "id": "S01",
+      "name": "Login & Auth",
+      "path": "/login",
+      "tabs": [],
+      "filters": [],
+      "purpose": "Auth entry",
+      "api_prefixes": [
+        "/auth"
+      ],
+      "legacy_count": 2
+    },
+    {
+      "id": "S02",
+      "name": "Onboarding Wizard",
+      "path": "/onboarding",
+      "tabs": [
+        "org",
+        "data",
+        "scanners",
+        "invite",
+        "summary"
+      ],
+      "filters": [],
+      "purpose": "First-run bootstrap",
+      "api_prefixes": [
+        "/onboarding"
+      ],
+      "legacy_count": 3
+    },
+    {
+      "id": "S03",
+      "name": "Mission Control",
+      "path": "/",
+      "tabs": [
+        "overview",
+        "persona",
+        "actions",
+        "alerts"
+      ],
+      "filters": [
+        "persona",
+        "timeRange"
+      ],
+      "purpose": "Persona-driven home",
+      "api_prefixes": [
+        "/dashboard",
+        "/exec",
+        "/kpis",
+        "/missioncontrol"
+      ],
+      "legacy_count": 181
+    },
+    {
+      "id": "S04",
+      "name": "ASPM \u2014 Code",
+      "path": "/aspm/code",
+      "tabs": [
+        "sast",
+        "secrets",
+        "ide",
+        "prGate"
+      ],
+      "filters": [
+        "repo",
+        "severity",
+        "language"
+      ],
+      "purpose": "Code-level SAST",
+      "api_prefixes": [
+        "/sast",
+        "/code",
+        "/scm",
+        "/repo"
+      ],
+      "legacy_count": 2
+    },
+    {
+      "id": "S05",
+      "name": "ASPM \u2014 API Security",
+      "path": "/aspm/api",
+      "tabs": [
+        "catalog",
+        "posture",
+        "traffic",
+        "abuse"
+      ],
+      "filters": [
+        "env",
+        "method"
+      ],
+      "purpose": "API surface security",
+      "api_prefixes": [
+        "/apisec",
+        "/openapi",
+        "/api-security"
+      ],
+      "legacy_count": 9
+    },
+    {
+      "id": "S06",
+      "name": "ASPM \u2014 App Runtime",
+      "path": "/aspm/runtime",
+      "tabs": [
+        "rasp",
+        "mobile",
+        "container",
+        "web"
+      ],
+      "filters": [
+        "surface"
+      ],
+      "purpose": "Runtime app protection",
+      "api_prefixes": [
+        "/rasp",
+        "/runtime",
+        "/webapp",
+        "/mobile-app"
+      ],
+      "legacy_count": 2
+    },
+    {
+      "id": "S07",
+      "name": "Software Supply Chain",
+      "path": "/aspm/supply-chain",
+      "tabs": [
+        "sbom",
+        "sca",
+        "provenance",
+        "license"
+      ],
+      "filters": [
+        "component",
+        "ecosystem"
+      ],
+      "purpose": "SBOM + SCA",
+      "api_prefixes": [
+        "/sbom",
+        "/sca",
+        "/supply",
+        "/dependency",
+        "/license"
+      ],
+      "legacy_count": 4
+    },
+    {
+      "id": "S08",
+      "name": "Secrets & Crypto",
+      "path": "/aspm/secrets",
+      "tabs": [
+        "leaks",
+        "crypto",
+        "keys",
+        "certs"
+      ],
+      "filters": [
+        "status"
+      ],
+      "purpose": "Secret leakage + crypto posture",
+      "api_prefixes": [
+        "/secret",
+        "/crypto",
+        "/quantum",
+        "/key",
+        "/cert",
+        "/vault"
+      ],
+      "legacy_count": 1
+    },
+    {
+      "id": "S09",
+      "name": "CSPM \u2014 Posture",
+      "path": "/cspm/posture",
+      "tabs": [
+        "misconfig",
+        "benchmark",
+        "drift",
+        "exceptions"
+      ],
+      "filters": [
+        "cloud",
+        "severity",
+        "framework"
+      ],
+      "purpose": "Cloud posture findings",
+      "api_prefixes": [
+        "/cspm",
+        "/posture",
+        "/cloud-config",
+        "/cis",
+        "/benchmark"
+      ],
+      "legacy_count": 1
+    },
+    {
+      "id": "S10",
+      "name": "Cloud Accounts",
+      "path": "/cloud/accounts",
+      "tabs": [
+        "accounts",
+        "health",
+        "cost",
+        "onboarding"
+      ],
+      "filters": [
+        "cloud"
+      ],
+      "purpose": "Cloud account inventory",
+      "api_prefixes": [
+        "/account",
+        "/tenant",
+        "/cloud-account"
+      ],
+      "legacy_count": 0
+    },
+    {
+      "id": "S11",
+      "name": "Cloud Workloads",
+      "path": "/cloud/workloads",
+      "tabs": [
+        "compute",
+        "kubernetes",
+        "containers",
+        "serverless"
+      ],
+      "filters": [
+        "cloud",
+        "cluster"
+      ],
+      "purpose": "Workload protection",
+      "api_prefixes": [
+        "/workload",
+        "/cwpp",
+        "/k8s",
+        "/kubernetes",
+        "/cluster"
+      ],
+      "legacy_count": 5
+    },
+    {
+      "id": "S12",
+      "name": "Network Security",
+      "path": "/cloud/network",
+      "tabs": [
+        "topology",
+        "firewall",
+        "segmentation",
+        "exposure"
+      ],
+      "filters": [
+        "cloud",
+        "region"
+      ],
+      "purpose": "Cloud network posture",
+      "api_prefixes": [
+        "/network",
+        "/firewall",
+        "/vpc",
+        "/microseg"
+      ],
+      "legacy_count": 3
+    },
+    {
+      "id": "S13",
+      "name": "Identity & Access",
+      "path": "/identity",
+      "tabs": [
+        "users",
+        "roles",
+        "privileges",
+        "ciem"
+      ],
+      "filters": [
+        "scope"
+      ],
+      "purpose": "Identity & entitlements",
+      "api_prefixes": [
+        "/identity",
+        "/iam",
+        "/access",
+        "/role",
+        "/permission",
+        "/ciem",
+        "/users"
+      ],
+      "legacy_count": 15
+    },
+    {
+      "id": "S14",
+      "name": "Attack Surface",
+      "path": "/exposure/asm",
+      "tabs": [
+        "domains",
+        "ips",
+        "services",
+        "leaks"
+      ],
+      "filters": [
+        "scope"
+      ],
+      "purpose": "External attack surface",
+      "api_prefixes": [
+        "/asm",
+        "/attack-surface",
+        "/exposure",
+        "/easm"
+      ],
+      "legacy_count": 22
+    },
+    {
+      "id": "S15",
+      "name": "TrustGraph",
+      "path": "/exposure/trustgraph",
+      "tabs": [
+        "graph",
+        "paths",
+        "blastRadius",
+        "queries"
+      ],
+      "filters": [
+        "scope"
+      ],
+      "purpose": "Asset relationship graph",
+      "api_prefixes": [
+        "/trustgraph",
+        "/graph",
+        "/relationship"
+      ],
+      "legacy_count": 5
+    },
+    {
+      "id": "S16",
+      "name": "CTEM Cycles",
+      "path": "/exposure/ctem",
+      "tabs": [
+        "cycle",
+        "stage",
+        "metrics"
+      ],
+      "filters": [],
+      "purpose": "CTEM 5-stage cycle",
+      "api_prefixes": [
+        "/ctem",
+        "/cycle"
+      ],
+      "legacy_count": 1
+    },
+    {
+      "id": "S17",
+      "name": "Findings Explorer",
+      "path": "/findings",
+      "tabs": [
+        "all",
+        "critical",
+        "sla",
+        "duplicates"
+      ],
+      "filters": [
+        "severity",
+        "source",
+        "status",
+        "sla"
+      ],
+      "purpose": "Unified findings browser",
+      "api_prefixes": [
+        "/findings",
+        "/vuln",
+        "/issues",
+        "/triage"
+      ],
+      "legacy_count": 115
+    },
+    {
+      "id": "S18",
+      "name": "Risk Acceptance & Waivers",
+      "path": "/findings/waivers",
+      "tabs": [
+        "active",
+        "expired",
+        "pending"
+      ],
+      "filters": [
+        "status"
+      ],
+      "purpose": "Waiver/acceptance lifecycle",
+      "api_prefixes": [
+        "/waiver",
+        "/exception",
+        "/risk-accept",
+        "/suppression"
+      ],
+      "legacy_count": 7
+    },
+    {
+      "id": "S19",
+      "name": "Threat Intelligence",
+      "path": "/threats/intel",
+      "tabs": [
+        "feeds",
+        "iocs",
+        "actors",
+        "campaigns"
+      ],
+      "filters": [
+        "source",
+        "tlp"
+      ],
+      "purpose": "TI feeds + IOC",
+      "api_prefixes": [
+        "/intel",
+        "/threat-intel",
+        "/ioc",
+        "/feed",
+        "/ti"
+      ],
+      "legacy_count": 11
+    },
+    {
+      "id": "S20",
+      "name": "Detections & Alerts",
+      "path": "/threats/detections",
+      "tabs": [
+        "rules",
+        "alerts",
+        "tuning",
+        "mitre"
+      ],
+      "filters": [
+        "severity",
+        "status"
+      ],
+      "purpose": "Detection rules + alerts",
+      "api_prefixes": [
+        "/detection",
+        "/rule",
+        "/sigma",
+        "/yara"
+      ],
+      "legacy_count": 24
+    },
+    {
+      "id": "S21",
+      "name": "Incidents & Response",
+      "path": "/threats/incidents",
+      "tabs": [
+        "queue",
+        "detail",
+        "timeline",
+        "postmortem"
+      ],
+      "filters": [
+        "status",
+        "severity"
+      ],
+      "purpose": "Incident lifecycle",
+      "api_prefixes": [
+        "/incident",
+        "/response",
+        "/case",
+        "/investigation",
+        "/soar"
+      ],
+      "legacy_count": 14
+    },
+    {
+      "id": "S22",
+      "name": "Ransomware & Malware",
+      "path": "/threats/malware",
+      "tabs": [
+        "activity",
+        "campaigns",
+        "samples"
+      ],
+      "filters": [],
+      "purpose": "Ransomware/malware",
+      "api_prefixes": [
+        "/ransomware",
+        "/malware",
+        "/sample"
+      ],
+      "legacy_count": 2
+    },
+    {
+      "id": "S23",
+      "name": "Data Security",
+      "path": "/data/security",
+      "tabs": [
+        "assets",
+        "flows",
+        "leaks"
+      ],
+      "filters": [
+        "classification"
+      ],
+      "purpose": "Data security posture",
+      "api_prefixes": [
+        "/dspm",
+        "/data-security",
+        "/dlp",
+        "/tokenize"
+      ],
+      "legacy_count": 2
+    },
+    {
+      "id": "S24",
+      "name": "Privacy",
+      "path": "/data/privacy",
+      "tabs": [
+        "pii",
+        "dsar",
+        "frameworks"
+      ],
+      "filters": [],
+      "purpose": "Privacy/PII compliance",
+      "api_prefixes": [
+        "/privacy",
+        "/pii",
+        "/gdpr",
+        "/ccpa",
+        "/dsar"
+      ],
+      "legacy_count": 2
+    },
+    {
+      "id": "S25",
+      "name": "Compliance & Evidence",
+      "path": "/compliance",
+      "tabs": [
+        "frameworks",
+        "controls",
+        "evidence",
+        "audits"
+      ],
+      "filters": [
+        "framework",
+        "status"
+      ],
+      "purpose": "Compliance frameworks + evidence",
+      "api_prefixes": [
+        "/compliance",
+        "/framework",
+        "/control",
+        "/evidence",
+        "/audit"
+      ],
+      "legacy_count": 28
+    },
+    {
+      "id": "S26",
+      "name": "Vendor & SaaS Risk",
+      "path": "/risk/vendor",
+      "tabs": [
+        "inventory",
+        "assessments",
+        "risk"
+      ],
+      "filters": [],
+      "purpose": "Third-party risk",
+      "api_prefixes": [
+        "/vendor",
+        "/tprm",
+        "/saas",
+        "/thirdparty",
+        "/supplier"
+      ],
+      "legacy_count": 5
+    },
+    {
+      "id": "S27",
+      "name": "IoT, OT & Endpoints",
+      "path": "/risk/endpoints",
+      "tabs": [
+        "iot",
+        "ot",
+        "endpoints"
+      ],
+      "filters": [
+        "category"
+      ],
+      "purpose": "IoT/OT/endpoint coverage",
+      "api_prefixes": [
+        "/iot",
+        "/ot",
+        "/ics",
+        "/endpoint",
+        "/edr",
+        "/mdm"
+      ],
+      "legacy_count": 3
+    },
+    {
+      "id": "S28",
+      "name": "AI Security",
+      "path": "/risk/ai-security",
+      "tabs": [
+        "models",
+        "prompt-defense",
+        "supply"
+      ],
+      "filters": [],
+      "purpose": "AI/LLM security posture",
+      "api_prefixes": [
+        "/ai",
+        "/aimds",
+        "/llm",
+        "/model",
+        "/mlsec"
+      ],
+      "legacy_count": 18
+    },
+    {
+      "id": "S29",
+      "name": "Integrations",
+      "path": "/platform/integrations",
+      "tabs": [
+        "connectors",
+        "webhooks",
+        "mcp"
+      ],
+      "filters": [],
+      "purpose": "External integrations",
+      "api_prefixes": [
+        "/integration",
+        "/connector",
+        "/webhook",
+        "/mcp",
+        "/jira",
+        "/ticket"
+      ],
+      "legacy_count": 7
+    },
+    {
+      "id": "S30",
+      "name": "Collaboration & Awareness",
+      "path": "/platform/collab",
+      "tabs": [
+        "training",
+        "comments",
+        "notifications"
+      ],
+      "filters": [],
+      "purpose": "Team collab + awareness",
+      "api_prefixes": [
+        "/training",
+        "/awareness",
+        "/notification",
+        "/comment",
+        "/mention",
+        "/share",
+        "/forum"
+      ],
+      "legacy_count": 10
+    },
+    {
+      "id": "S31",
+      "name": "Settings & Admin",
+      "path": "/admin",
+      "tabs": [
+        "org",
+        "users",
+        "tokens",
+        "billing",
+        "system"
+      ],
+      "filters": [],
+      "purpose": "Org admin + settings",
+      "api_prefixes": [
+        "/admin",
+        "/setting",
+        "/billing",
+        "/license",
+        "/preference",
+        "/config"
+      ],
+      "legacy_count": 16
+    }
+  ],
+  "nav_groups": [
+    {
+      "label": "Home",
+      "screens": [
+        "S03"
+      ]
+    },
+    {
+      "label": "Code & Apps",
+      "screens": [
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08"
+      ]
+    },
+    {
+      "label": "Cloud",
+      "screens": [
+        "S09",
+        "S10",
+        "S11",
+        "S12"
+      ]
+    },
+    {
+      "label": "Identity",
+      "screens": [
+        "S13"
+      ]
+    },
+    {
+      "label": "Exposure",
+      "screens": [
+        "S14",
+        "S15",
+        "S16"
+      ]
+    },
+    {
+      "label": "Findings",
+      "screens": [
+        "S17",
+        "S18"
+      ]
+    },
+    {
+      "label": "Threats & SOC",
+      "screens": [
+        "S19",
+        "S20",
+        "S21",
+        "S22"
+      ]
+    },
+    {
+      "label": "Compliance & Risk",
+      "screens": [
+        "S23",
+        "S24",
+        "S25",
+        "S26"
+      ]
+    },
+    {
+      "label": "Specialized",
+      "screens": [
+        "S27",
+        "S28"
+      ]
+    },
+    {
+      "label": "Platform",
+      "screens": [
+        "S29",
+        "S30",
+        "S31"
+      ]
+    }
+  ]
+}

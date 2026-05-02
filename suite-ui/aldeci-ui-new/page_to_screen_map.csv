@@ -1,0 +1,521 @@
+page_file,page_name,loc,screen_id,screen_name,is_dead,has_mock_fallback
+src/pages/AICopilotAgentsHub.tsx,AICopilotAgentsHub,142,S17,Findings Explorer,False,False
+src/pages/AIGovernanceDashboard.tsx,AIGovernanceDashboard,259,S03,Mission Control,True,False
+src/pages/AIPoweredSOCDashboard.tsx,AIPoweredSOCDashboard,113,S03,Mission Control,True,False
+src/pages/AISecurityAdvisor.tsx,AISecurityAdvisor,612,S28,AI Security,False,False
+src/pages/AISecurityAdvisorDashboard.tsx,AISecurityAdvisorDashboard,113,S28,AI Security,False,False
+src/pages/APIAbuseDashboard.tsx,APIAbuseDashboard,303,S05,ASPM — API Security,True,True
+src/pages/APIDiscoveryDashboard.tsx,APIDiscoveryDashboard,214,S05,ASPM — API Security,True,True
+src/pages/APIInventoryDashboard.tsx,APIInventoryDashboard,115,S05,ASPM — API Security,True,False
+src/pages/APISecurityDashboard.tsx,APISecurityDashboard,313,S05,ASPM — API Security,True,False
+src/pages/APISecurityHub.tsx,APISecurityHub,142,S05,ASPM — API Security,False,False
+src/pages/APISecurityMgmtDashboard.tsx,APISecurityMgmtDashboard,461,S05,ASPM — API Security,True,True
+src/pages/APISecurityPage.tsx,APISecurityPage,370,S05,ASPM — API Security,False,False
+src/pages/APIThreatProtectionDashboard.tsx,APIThreatProtectionDashboard,113,S05,ASPM — API Security,False,False
+src/pages/AccessAnomalyDashboard.tsx,AccessAnomalyDashboard,115,S03,Mission Control,True,False
+src/pages/AccessGovernanceDashboard.tsx,AccessGovernanceDashboard,318,S03,Mission Control,True,False
+src/pages/AccessRequestManagementDashboard.tsx,AccessRequestManagementDashboard,113,S13,Identity & Access,False,False
+src/pages/ActorTrackingDashboard.tsx,ActorTrackingDashboard,115,S03,Mission Control,True,False
+src/pages/Admin.tsx,Admin,1076,S31,Settings & Admin,True,False
+src/pages/AgentlessScanStatus.tsx,AgentlessScanStatus,183,S17,Findings Explorer,True,False
+src/pages/AgentlessSnapshotDashboard.tsx,AgentlessSnapshotDashboard,210,S03,Mission Control,True,False
+src/pages/AirGapBundleConsole.tsx,AirGapBundleConsole,155,S31,Settings & Admin,True,False
+src/pages/AirGapBundleDashboard.tsx,AirGapBundleDashboard,202,S31,Settings & Admin,True,False
+src/pages/AirGapHub.tsx,AirGapHub,143,S31,Settings & Admin,False,False
+src/pages/AlertEnrichmentDashboard.tsx,AlertEnrichmentDashboard,114,S20,Detections & Alerts,True,False
+src/pages/AlertTriageDashboard.tsx,AlertTriageDashboard,122,S20,Detections & Alerts,True,False
+src/pages/AppLayerSecurityHub.tsx,AppLayerSecurityHub,158,S17,Findings Explorer,False,False
+src/pages/AppSecurity.tsx,AppSecurity,382,S17,Findings Explorer,True,False
+src/pages/ApplicationRiskDashboard.tsx,ApplicationRiskDashboard,114,S03,Mission Control,True,False
+src/pages/ArchAwareGraphDashboard.tsx,ArchAwareGraphDashboard,221,S03,Mission Control,False,False
+src/pages/ArchReviewDashboard.tsx,ArchReviewDashboard,303,S03,Mission Control,False,False
+src/pages/AssetCriticalityDashboard.tsx,AssetCriticalityDashboard,405,S03,Mission Control,True,False
+src/pages/AssetGraph.tsx,AssetGraph,1730,S15,TrustGraph,True,False
+src/pages/AssetGroupsDashboard.tsx,AssetGroupsDashboard,419,S03,Mission Control,True,False
+src/pages/AssetInventory.tsx,AssetInventory,112,S17,Findings Explorer,True,False
+src/pages/AssetInventoryHub.tsx,AssetInventoryHub,237,S17,Findings Explorer,False,False
+src/pages/AssetRiskDashboard.tsx,AssetRiskDashboard,401,S03,Mission Control,True,False
+src/pages/AssetTagsDashboard.tsx,AssetTagsDashboard,114,S03,Mission Control,True,False
+src/pages/AttackChainDashboard.tsx,AttackChainDashboard,114,S03,Mission Control,True,False
+src/pages/AttackPathAnalysis.tsx,AttackPathAnalysis,112,S15,TrustGraph,False,False
+src/pages/AttackPathInteractiveGraph.tsx,AttackPathInteractiveGraph,209,S15,TrustGraph,True,False
+src/pages/AttackSimulation.tsx,AttackSimulation,369,S17,Findings Explorer,True,False
+src/pages/AttackSurfaceDashboard.tsx,AttackSurfaceDashboard,114,S14,Attack Surface,True,False
+src/pages/AuditLog.tsx,AuditLog,112,S25,Compliance & Evidence,False,False
+src/pages/AuditLogExplorer.tsx,AuditLogExplorer,227,S25,Compliance & Evidence,True,False
+src/pages/AutoWaiverRules.tsx,AutoWaiverRules,229,S18,Risk Acceptance & Waivers,True,False
+src/pages/AutomationOrchestrationHub.tsx,AutomationOrchestrationHub,143,S17,Findings Explorer,False,False
+src/pages/AutonomousRemediationDashboard.tsx,AutonomousRemediationDashboard,283,S03,Mission Control,True,True
+src/pages/AwarenessCampaignDashboard.tsx,AwarenessCampaignDashboard,114,S30,Collaboration & Awareness,True,False
+src/pages/AwarenessHub.tsx,AwarenessHub,159,S30,Collaboration & Awareness,False,False
+src/pages/AwarenessMetricsDashboard.tsx,AwarenessMetricsDashboard,114,S30,Collaboration & Awareness,True,False
+src/pages/AwarenessProgramDashboard.tsx,AwarenessProgramDashboard,114,S30,Collaboration & Awareness,True,False
+src/pages/AwarenessScoreDashboard.tsx,AwarenessScoreDashboard,407,S30,Collaboration & Awareness,True,False
+src/pages/BRSExecutiveDashboard.tsx,BRSExecutiveDashboard,202,S03,Mission Control,False,False
+src/pages/BUDollarRiskHeatmap.tsx,BUDollarRiskHeatmap,195,S03,Mission Control,True,False
+src/pages/BehaviorAnalyticsHub.tsx,BehaviorAnalyticsHub,142,S17,Findings Explorer,False,False
+src/pages/BehavioralAnalyticsDashboard.tsx,BehavioralAnalyticsDashboard,114,S03,Mission Control,True,False
+src/pages/BinaryFingerprintDashboard.tsx,BinaryFingerprintDashboard,229,S03,Mission Control,True,False
+src/pages/Brain.tsx,Brain,1398,S03,Mission Control,True,False
+src/pages/BrainVisualization.tsx,BrainVisualization,874,S03,Mission Control,False,False
+src/pages/BreachResponse.tsx,BreachResponse,393,S17,Findings Explorer,True,False
+src/pages/BrowserSecurityDashboard.tsx,BrowserSecurityDashboard,335,S03,Mission Control,True,False
+src/pages/BugBounty.tsx,BugBounty,114,S17,Findings Explorer,True,False
+src/pages/CCMDashboard.tsx,CCMDashboard,381,S03,Mission Control,False,False
+src/pages/CISOReportDashboard.tsx,CISOReportDashboard,113,S03,Mission Control,True,False
+src/pages/CMDBDashboard.tsx,CMDBDashboard,459,S03,Mission Control,True,False
+src/pages/CNAPPDashboard.tsx,CNAPPDashboard,391,S03,Mission Control,True,False
+src/pages/CSPMDashboard.tsx,CSPMDashboard,121,S03,Mission Control,True,False
+src/pages/CVESearch.tsx,CVESearch,113,S17,Findings Explorer,True,False
+src/pages/CWPPDashboard.tsx,CWPPDashboard,385,S03,Mission Control,True,False
+src/pages/CapacityPlanningDashboard.tsx,CapacityPlanningDashboard,113,S03,Mission Control,False,False
+src/pages/CertificateDashboard.tsx,CertificateDashboard,114,S03,Mission Control,True,False
+src/pages/CertificateManager.tsx,CertificateManager,113,S17,Findings Explorer,True,False
+src/pages/ChangeManagementDashboard.tsx,ChangeManagementDashboard,113,S03,Mission Control,False,False
+src/pages/ChokePointDashboard.tsx,ChokePointDashboard,174,S03,Mission Control,True,False
+src/pages/ClaudeSkillsRegistry.tsx,ClaudeSkillsRegistry,138,S17,Findings Explorer,False,False
+src/pages/CloudAccessSecurityDashboard.tsx,CloudAccessSecurityDashboard,113,S03,Mission Control,False,False
+src/pages/CloudAccountsDashboard.tsx,CloudAccountsDashboard,114,S03,Mission Control,True,False
+src/pages/CloudComplianceDashboard.tsx,CloudComplianceDashboard,114,S25,Compliance & Evidence,True,False
+src/pages/CloudCostOptimizationDashboard.tsx,CloudCostOptimizationDashboard,113,S03,Mission Control,False,False
+src/pages/CloudIAM.tsx,CloudIAM,112,S13,Identity & Access,False,False
+src/pages/CloudIRDashboard.tsx,CloudIRDashboard,273,S03,Mission Control,True,False
+src/pages/CloudIdentityDashboard.tsx,CloudIdentityDashboard,113,S13,Identity & Access,False,False
+src/pages/CloudPostureDashboard.tsx,CloudPostureDashboard,114,S03,Mission Control,True,False
+src/pages/CloudPostureUnifiedHub.tsx,CloudPostureUnifiedHub,161,S17,Findings Explorer,False,False
+src/pages/CloudResourceInventoryDashboard.tsx,CloudResourceInventoryDashboard,114,S03,Mission Control,True,False
+src/pages/CloudSecurityAnalyticsDashboard.tsx,CloudSecurityAnalyticsDashboard,113,S03,Mission Control,False,False
+src/pages/CloudSecurityDashboard.tsx,CloudSecurityDashboard,421,S03,Mission Control,True,False
+src/pages/CloudSecurityFindingsDashboard.tsx,CloudSecurityFindingsDashboard,113,S03,Mission Control,True,False
+src/pages/CloudWorkloadProtectionDashboard.tsx,CloudWorkloadProtectionDashboard,310,S03,Mission Control,True,True
+src/pages/CodeToRuntimeDashboard.tsx,CodeToRuntimeDashboard,209,S03,Mission Control,False,False
+src/pages/Command.tsx,Command,700,S17,Findings Explorer,True,False
+src/pages/CompetitiveComparisonPage.tsx,CompetitiveComparisonPage,648,S17,Findings Explorer,False,False
+src/pages/Compliance.tsx,Compliance,1986,S25,Compliance & Evidence,True,False
+src/pages/ComplianceAutomationDashboard.tsx,ComplianceAutomationDashboard,201,S25,Compliance & Evidence,False,False
+src/pages/ComplianceCalendarDashboard.tsx,ComplianceCalendarDashboard,403,S25,Compliance & Evidence,False,False
+src/pages/ComplianceCoverageHub.tsx,ComplianceCoverageHub,143,S25,Compliance & Evidence,False,False
+src/pages/ComplianceDashboard.tsx,ComplianceDashboard,113,S25,Compliance & Evidence,True,False
+src/pages/ComplianceGapDashboard.tsx,ComplianceGapDashboard,279,S25,Compliance & Evidence,True,True
+src/pages/ComplianceMappingDashboard.tsx,ComplianceMappingDashboard,150,S25,Compliance & Evidence,False,False
+src/pages/ComplianceScannerDashboard.tsx,ComplianceScannerDashboard,380,S25,Compliance & Evidence,False,False
+src/pages/ComplianceWorkflowDashboard.tsx,ComplianceWorkflowDashboard,110,S25,Compliance & Evidence,False,False
+src/pages/ComponentVersionGraph.tsx,ComponentVersionGraph,153,S17,Findings Explorer,True,False
+src/pages/ConfigBenchmarkDashboard.tsx,ConfigBenchmarkDashboard,425,S03,Mission Control,False,False
+src/pages/ConnectorMappingUI.tsx,ConnectorMappingUI,125,S29,Integrations,True,False
+src/pages/ContainerPostureDashboard.tsx,ContainerPostureDashboard,114,S11,Cloud Workloads,True,False
+src/pages/ContainerRegistryDashboard.tsx,ContainerRegistryDashboard,113,S11,Cloud Workloads,False,False
+src/pages/ContainerRuntimeSecurityDashboard.tsx,ContainerRuntimeSecurityDashboard,306,S11,Cloud Workloads,True,True
+src/pages/ContainerSecurityDashboard.tsx,ContainerSecurityDashboard,423,S11,Cloud Workloads,True,False
+src/pages/ContainerSecurityHub.tsx,ContainerSecurityHub,143,S11,Cloud Workloads,False,False
+src/pages/ControlTestingDashboard.tsx,ControlTestingDashboard,440,S25,Compliance & Evidence,True,False
+src/pages/CopilotGraphChat.tsx,CopilotGraphChat,128,S17,Findings Explorer,False,False
+src/pages/CrossDomainAnalytics.tsx,CrossDomainAnalytics,426,S14,Attack Surface,False,False
+src/pages/CrownJewelConfigurator.tsx,CrownJewelConfigurator,130,S17,Findings Explorer,False,False
+src/pages/CryptoKeyDashboard.tsx,CryptoKeyDashboard,114,S03,Mission Control,True,False
+src/pages/CryptoTrustHub.tsx,CryptoTrustHub,170,S08,Secrets & Crypto,False,False
+src/pages/CyberInsurance.tsx,CyberInsurance,345,S17,Findings Explorer,False,False
+src/pages/CyberInsuranceDashboard.tsx,CyberInsuranceDashboard,460,S03,Mission Control,True,True
+src/pages/CyberResilienceDashboard.tsx,CyberResilienceDashboard,377,S03,Mission Control,False,False
+src/pages/CyberThreatIntelDashboard.tsx,CyberThreatIntelDashboard,113,S19,Threat Intelligence,False,False
+src/pages/CyberThreatModelingDashboard.tsx,CyberThreatModelingDashboard,114,S03,Mission Control,True,False
+src/pages/DASTDashboard.tsx,DASTDashboard,113,S03,Mission Control,False,False
+src/pages/DBConnectionOverlay.tsx,DBConnectionOverlay,133,S17,Findings Explorer,True,False
+src/pages/DLPDashboard.tsx,DLPDashboard,113,S23,Data Security,False,False
+src/pages/DarkWebMonitoringDashboard.tsx,DarkWebMonitoringDashboard,290,S03,Mission Control,True,True
+src/pages/DataClassificationDashboard.tsx,DataClassificationDashboard,376,S23,Data Security,True,False
+src/pages/DataDiscoveryDashboard.tsx,DataDiscoveryDashboard,114,S03,Mission Control,True,False
+src/pages/DataDiscoveryHub.tsx,DataDiscoveryHub,142,S17,Findings Explorer,False,False
+src/pages/DataExfiltrationDashboard.tsx,DataExfiltrationDashboard,272,S03,Mission Control,True,False
+src/pages/DataGovernanceDashboard.tsx,DataGovernanceDashboard,361,S03,Mission Control,False,False
+src/pages/DataPipelineDashboard.tsx,DataPipelineDashboard,113,S05,ASPM — API Security,False,False
+src/pages/DeceptionAnalyticsDashboard.tsx,DeceptionAnalyticsDashboard,304,S03,Mission Control,True,True
+src/pages/DeceptionEngine.tsx,DeceptionEngine,294,S17,Findings Explorer,True,False
+src/pages/DeceptionHub.tsx,DeceptionHub,147,S17,Findings Explorer,False,False
+src/pages/DeepCodeAnalysisDashboard.tsx,DeepCodeAnalysisDashboard,193,S03,Mission Control,True,False
+src/pages/DependencyMappingDashboard.tsx,DependencyMappingDashboard,290,S03,Mission Control,True,False
+src/pages/DetectAndRespondHub.tsx,DetectAndRespondHub,143,S21,Incidents & Response,False,False
+src/pages/DevSecOpsDashboard.tsx,DevSecOpsDashboard,360,S03,Mission Control,False,False
+src/pages/DiffModeGraphCanvas.tsx,DiffModeGraphCanvas,130,S17,Findings Explorer,True,False
+src/pages/DigitalForensicsDashboard.tsx,DigitalForensicsDashboard,367,S03,Mission Control,True,False
+src/pages/DigitalIdentityDashboard.tsx,DigitalIdentityDashboard,114,S13,Identity & Access,True,False
+src/pages/DigitalTwinDashboard.tsx,DigitalTwinDashboard,113,S03,Mission Control,False,False
+src/pages/DomainSeedDiscoveryWizard.tsx,DomainSeedDiscoveryWizard,119,S14,Attack Surface,False,False
+src/pages/DriftTrackingPanel.tsx,DriftTrackingPanel,174,S09,CSPM — Posture,True,False
+src/pages/DynamicRuleDSLDashboard.tsx,DynamicRuleDSLDashboard,312,S20,Detections & Alerts,False,False
+src/pages/EDRDashboard.tsx,EDRDashboard,390,S03,Mission Control,True,False
+src/pages/EmailSecurity.tsx,EmailSecurity,113,S17,Findings Explorer,True,False
+src/pages/EmailThreatProtectionHub.tsx,EmailThreatProtectionHub,159,S17,Findings Explorer,False,False
+src/pages/EndpointComplianceDashboard.tsx,EndpointComplianceDashboard,445,S25,Compliance & Evidence,True,False
+src/pages/EndpointHuntingDashboard.tsx,EndpointHuntingDashboard,113,S20,Detections & Alerts,False,False
+src/pages/EndpointSecurity.tsx,EndpointSecurity,112,S27,"IoT, OT & Endpoints",True,False
+src/pages/EventTimelineDashboard.tsx,EventTimelineDashboard,113,S03,Mission Control,False,False
+src/pages/EvidenceVaultDashboard.tsx,EvidenceVaultDashboard,114,S25,Compliance & Evidence,True,False
+src/pages/ExceptionWorkflowDashboard.tsx,ExceptionWorkflowDashboard,114,S03,Mission Control,True,False
+src/pages/ExceptionsHub.tsx,ExceptionsHub,143,S18,Risk Acceptance & Waivers,False,False
+src/pages/ExecutiveBriefing.tsx,ExecutiveBriefing,449,S03,Mission Control,True,False
+src/pages/ExecutiveReportingDashboard.tsx,ExecutiveReportingDashboard,420,S03,Mission Control,True,True
+src/pages/ExecutiveRiskReport.tsx,ExecutiveRiskReport,112,S03,Mission Control,True,False
+src/pages/ExternalThreatIntelHub.tsx,ExternalThreatIntelHub,143,S19,Threat Intelligence,False,False
+src/pages/FIPSModeStatus.tsx,FIPSModeStatus,217,S17,Findings Explorer,True,False
+src/pages/FactorWeightsView.tsx,FactorWeightsView,185,S19,Threat Intelligence,True,False
+src/pages/FeedSubscriptionsDashboard.tsx,FeedSubscriptionsDashboard,352,S03,Mission Control,True,False
+src/pages/FinanceHub.tsx,FinanceHub,181,S17,Findings Explorer,False,False
+src/pages/FipsComplianceDashboard.tsx,FipsComplianceDashboard,227,S25,Compliance & Evidence,False,False
+src/pages/FirewallAnalyzer.tsx,FirewallAnalyzer,113,S12,Network Security,True,False
+src/pages/FirewallPolicyDashboard.tsx,FirewallPolicyDashboard,160,S12,Network Security,True,False
+src/pages/FirmwareSecurityDashboard.tsx,FirmwareSecurityDashboard,288,S27,"IoT, OT & Endpoints",False,True
+src/pages/ForensicsHub.tsx,ForensicsHub,158,S17,Findings Explorer,False,False
+src/pages/GRCAssessment.tsx,GRCAssessment,425,S17,Findings Explorer,True,False
+src/pages/GRCDashboard.tsx,GRCDashboard,315,S03,Mission Control,False,False
+src/pages/GapAnalysisDashboard.tsx,GapAnalysisDashboard,113,S03,Mission Control,False,False
+src/pages/HooksPolicyEditor.tsx,HooksPolicyEditor,129,S17,Findings Explorer,True,False
+src/pages/HooksStatusPanel.tsx,HooksStatusPanel,142,S17,Findings Explorer,True,False
+src/pages/HuntingAutomationDashboard.tsx,HuntingAutomationDashboard,300,S20,Detections & Alerts,True,True
+src/pages/HuntingHub.tsx,HuntingHub,143,S20,Detections & Alerts,False,False
+src/pages/HuntingPlaybookDashboard.tsx,HuntingPlaybookDashboard,276,S20,Detections & Alerts,True,False
+src/pages/IDEBackendDashboard.tsx,IDEBackendDashboard,806,S03,Mission Control,False,False
+src/pages/IOCHunter.tsx,IOCHunter,381,S19,Threat Intelligence,True,False
+src/pages/IPReputation.tsx,IPReputation,112,S17,Findings Explorer,True,False
+src/pages/IPReputationDashboard.tsx,IPReputationDashboard,114,S03,Mission Control,True,False
+src/pages/IRPlaybookDashboard.tsx,IRPlaybookDashboard,113,S03,Mission Control,False,False
+src/pages/ITDRDashboard.tsx,ITDRDashboard,298,S03,Mission Control,True,True
+src/pages/IdentityAnalyticsDashboard.tsx,IdentityAnalyticsDashboard,421,S13,Identity & Access,True,False
+src/pages/IdentityGovernance.tsx,IdentityGovernance,1032,S13,Identity & Access,True,True
+src/pages/IdentityGovernanceHub.tsx,IdentityGovernanceHub,143,S13,Identity & Access,False,False
+src/pages/IdentityLifecycleDashboard.tsx,IdentityLifecycleDashboard,332,S13,Identity & Access,False,False
+src/pages/IdentityRiskDashboard.tsx,IdentityRiskDashboard,113,S13,Identity & Access,False,False
+src/pages/IncidentCommsDashboard.tsx,IncidentCommsDashboard,117,S21,Incidents & Response,True,False
+src/pages/IncidentCostsDashboard.tsx,IncidentCostsDashboard,115,S21,Incidents & Response,True,False
+src/pages/IncidentExtensionsHub.tsx,IncidentExtensionsHub,144,S21,Incidents & Response,False,False
+src/pages/IncidentKBDashboard.tsx,IncidentKBDashboard,114,S21,Incidents & Response,True,False
+src/pages/IncidentKnowledgeHub.tsx,IncidentKnowledgeHub,144,S21,Incidents & Response,False,False
+src/pages/IncidentLessonsDashboard.tsx,IncidentLessonsDashboard,114,S21,Incidents & Response,True,False
+src/pages/IncidentMetricsDashboard.tsx,IncidentMetricsDashboard,232,S21,Incidents & Response,True,False
+src/pages/IncidentResponseDashboard.tsx,IncidentResponseDashboard,336,S21,Incidents & Response,True,False
+src/pages/IncidentTimeline.tsx,IncidentTimeline,112,S21,Incidents & Response,False,False
+src/pages/IncidentTimelineDashboard.tsx,IncidentTimelineDashboard,442,S21,Incidents & Response,True,False
+src/pages/InsiderThreatMonitor.tsx,InsiderThreatMonitor,113,S17,Findings Explorer,True,False
+src/pages/IntegrationTargetsHub.tsx,IntegrationTargetsHub,143,S29,Integrations,False,False
+src/pages/IntelEnrichmentDashboard.tsx,IntelEnrichmentDashboard,330,S03,Mission Control,False,True
+src/pages/IoTSecurityDashboard.tsx,IoTSecurityDashboard,306,S27,"IoT, OT & Endpoints",True,False
+src/pages/IssueQueue.tsx,IssueQueue,202,S17,Findings Explorer,True,False
+src/pages/Issues.tsx,Issues,1072,S17,Findings Explorer,True,False
+src/pages/LLMContextTierBadge.tsx,LLMContextTierBadge,124,S28,AI Security,False,False
+src/pages/LLMPreFlightEstimateModal.tsx,LLMPreFlightEstimateModal,128,S28,AI Security,False,False
+src/pages/LLMRuleContextEditor.tsx,LLMRuleContextEditor,165,S20,Detections & Alerts,False,False
+src/pages/LandingPage.tsx,LandingPage,1308,S03,Mission Control,False,False
+src/pages/LocalFileStoreDashboard.tsx,LocalFileStoreDashboard,230,S03,Mission Control,False,False
+src/pages/LocalStoreStatus.tsx,LocalStoreStatus,116,S17,Findings Explorer,False,False
+src/pages/MFAManagementDashboard.tsx,MFAManagementDashboard,299,S03,Mission Control,True,True
+src/pages/MITREAttackDashboard.tsx,MITREAttackDashboard,391,S03,Mission Control,True,False
+src/pages/MainOverviewDashboard.tsx,MainOverviewDashboard,1105,S03,Mission Control,True,True
+src/pages/MalwareAnalysisDashboard.tsx,MalwareAnalysisDashboard,199,S22,Ransomware & Malware,True,False
+src/pages/MaterialChangeDashboard.tsx,MaterialChangeDashboard,185,S03,Mission Control,True,False
+src/pages/MaturityHub.tsx,MaturityHub,142,S17,Findings Explorer,False,False
+src/pages/MetricsAggregatorDashboard.tsx,MetricsAggregatorDashboard,186,S03,Mission Control,True,False
+src/pages/MicrosegmentationPolicyDashboard.tsx,MicrosegmentationPolicyDashboard,197,S12,Network Security,True,False
+src/pages/MobileAppSecurityDashboard.tsx,MobileAppSecurityDashboard,295,S06,ASPM — App Runtime,True,True
+src/pages/MobileSecurity.tsx,MobileSecurity,469,S06,ASPM — App Runtime,False,False
+src/pages/NDRDashboard.tsx,NDRDashboard,397,S03,Mission Control,False,False
+src/pages/NetworkAnalysis.tsx,NetworkAnalysis,278,S17,Findings Explorer,False,False
+src/pages/NetworkAnomalyDashboard.tsx,NetworkAnomalyDashboard,327,S03,Mission Control,True,False
+src/pages/NetworkForensicsDashboard.tsx,NetworkForensicsDashboard,192,S03,Mission Control,True,False
+src/pages/NetworkMonitoringDashboard.tsx,NetworkMonitoringDashboard,249,S03,Mission Control,True,False
+src/pages/NetworkMonitoringHub.tsx,NetworkMonitoringHub,143,S17,Findings Explorer,False,False
+src/pages/NetworkSegmentationDashboard.tsx,NetworkSegmentationDashboard,257,S03,Mission Control,False,False
+src/pages/NetworkSegmentationHub.tsx,NetworkSegmentationHub,148,S17,Findings Explorer,False,False
+src/pages/NetworkThreatsDashboard.tsx,NetworkThreatsDashboard,210,S03,Mission Control,True,False
+src/pages/NetworkTopology.tsx,NetworkTopology,309,S15,TrustGraph,False,False
+src/pages/NetworkTrafficDashboard.tsx,NetworkTrafficDashboard,364,S03,Mission Control,False,False
+src/pages/NotFound.tsx,NotFound,371,S17,Findings Explorer,False,False
+src/pages/OTSecurityDashboard.tsx,OTSecurityDashboard,215,S03,Mission Control,False,False
+src/pages/OffensiveValidationHub.tsx,OffensiveValidationHub,150,S17,Findings Explorer,False,False
+src/pages/OfflineFeedRegistry.tsx,OfflineFeedRegistry,155,S17,Findings Explorer,True,False
+src/pages/OfflineUpdateStatus.tsx,OfflineUpdateStatus,115,S17,Findings Explorer,True,False
+src/pages/OpenClawDashboard.tsx,OpenClawDashboard,514,S03,Mission Control,True,False
+src/pages/OrgHierarchyDashboard.tsx,OrgHierarchyDashboard,191,S03,Mission Control,False,False
+src/pages/OrgHierarchyExplorer.tsx,OrgHierarchyExplorer,141,S17,Findings Explorer,False,False
+src/pages/PAGDashboard.tsx,PAGDashboard,106,S03,Mission Control,False,False
+src/pages/PAMDashboard.tsx,PAMDashboard,411,S13,Identity & Access,True,False
+src/pages/PBOMViewer.tsx,PBOMViewer,139,S17,Findings Explorer,True,False
+src/pages/PKIManagementDashboard.tsx,PKIManagementDashboard,316,S03,Mission Control,True,True
+src/pages/PRChangeRiskPanel.tsx,PRChangeRiskPanel,225,S17,Findings Explorer,True,False
+src/pages/PasswordPolicy.tsx,PasswordPolicy,383,S17,Findings Explorer,False,False
+src/pages/PatchManagementDashboard.tsx,PatchManagementDashboard,104,S03,Mission Control,True,False
+src/pages/PatchPrioritizer.tsx,PatchPrioritizer,729,S17,Findings Explorer,True,True
+src/pages/PentestManagement.tsx,PentestManagement,330,S17,Findings Explorer,True,False
+src/pages/PentestManagementDashboard.tsx,PentestManagementDashboard,362,S03,Mission Control,True,False
+src/pages/PhishingSimulation.tsx,PhishingSimulation,365,S17,Findings Explorer,True,False
+src/pages/PipelineAttestationGraph.tsx,PipelineAttestationGraph,126,S17,Findings Explorer,True,False
+src/pages/PipelineBomDashboard.tsx,PipelineBomDashboard,211,S03,Mission Control,True,False
+src/pages/PlaybookLibrary.tsx,PlaybookLibrary,800,S17,Findings Explorer,True,False
+src/pages/PolicyAuthoringHub.tsx,PolicyAuthoringHub,143,S17,Findings Explorer,False,False
+src/pages/PolicyInheritanceView.tsx,PolicyInheritanceView,174,S17,Findings Explorer,True,False
+src/pages/PolicyLibraryBrowser.tsx,PolicyLibraryBrowser,207,S17,Findings Explorer,True,False
+src/pages/PolicyLifecycleHub.tsx,PolicyLifecycleHub,144,S16,CTEM Cycles,False,False
+src/pages/PolicyStageEditor.tsx,PolicyStageEditor,238,S17,Findings Explorer,True,False
+src/pages/PostureAdvisor.tsx,PostureAdvisor,149,S17,Findings Explorer,False,False
+src/pages/PostureBenchmarkingDashboard.tsx,PostureBenchmarkingDashboard,289,S03,Mission Control,True,True
+src/pages/PostureHistoryDashboard.tsx,PostureHistoryDashboard,154,S03,Mission Control,True,False
+src/pages/PostureMetricsHub.tsx,PostureMetricsHub,144,S17,Findings Explorer,False,False
+src/pages/PostureReportingDashboard.tsx,PostureReportingDashboard,341,S03,Mission Control,True,True
+src/pages/PostureScoringDashboard.tsx,PostureScoringDashboard,97,S03,Mission Control,True,False
+src/pages/PostureTrendsDashboard.tsx,PostureTrendsDashboard,206,S03,Mission Control,True,False
+src/pages/PrivacyComplianceHub.tsx,PrivacyComplianceHub,142,S25,Compliance & Evidence,False,False
+src/pages/PrivacyGDPRDashboard.tsx,PrivacyGDPRDashboard,353,S24,Privacy,True,False
+src/pages/PrivacyImpactDashboard.tsx,PrivacyImpactDashboard,95,S24,Privacy,True,False
+src/pages/PrivilegeEscalationDashboard.tsx,PrivilegeEscalationDashboard,196,S13,Identity & Access,True,False
+src/pages/PrivilegedAccessHub.tsx,PrivilegedAccessHub,145,S13,Identity & Access,False,False
+src/pages/PrivilegedIdentityDashboard.tsx,PrivilegedIdentityDashboard,242,S13,Identity & Access,True,False
+src/pages/PrivilegedSessionRecordingDashboard.tsx,PrivilegedSessionRecordingDashboard,206,S13,Identity & Access,True,True
+src/pages/ProgramMaturityDashboard.tsx,ProgramMaturityDashboard,287,S03,Mission Control,True,False
+src/pages/ProwlerDashboard.tsx,ProwlerDashboard,316,S03,Mission Control,True,False
+src/pages/QuantumCryptoDashboard.tsx,QuantumCryptoDashboard,94,S03,Mission Control,True,False
+src/pages/RQLQueryBuilder.tsx,RQLQueryBuilder,122,S17,Findings Explorer,False,False
+src/pages/RansomwareProtectionDashboard.tsx,RansomwareProtectionDashboard,115,S22,Ransomware & Malware,True,False
+src/pages/RedTeamStatus.tsx,RedTeamStatus,424,S17,Findings Explorer,True,False
+src/pages/RegulatoryTrackerDashboard.tsx,RegulatoryTrackerDashboard,407,S03,Mission Control,False,False
+src/pages/Remediate.tsx,Remediate,762,S17,Findings Explorer,True,False
+src/pages/RiskAcceptance.tsx,RiskAcceptance,120,S17,Findings Explorer,False,False
+src/pages/RiskQuantDashboard.tsx,RiskQuantDashboard,388,S03,Mission Control,True,False
+src/pages/RiskQuantHub.tsx,RiskQuantHub,143,S17,Findings Explorer,False,False
+src/pages/RiskQuantification.tsx,RiskQuantification,352,S17,Findings Explorer,True,False
+src/pages/RiskRegister.tsx,RiskRegister,741,S18,Risk Acceptance & Waivers,True,True
+src/pages/RiskRegisterDashboard.tsx,RiskRegisterDashboard,211,S18,Risk Acceptance & Waivers,True,True
+src/pages/RiskScenarioDashboard.tsx,RiskScenarioDashboard,438,S03,Mission Control,True,False
+src/pages/RiskTreatmentDashboard.tsx,RiskTreatmentDashboard,232,S03,Mission Control,False,True
+src/pages/RuleDSLAuthoringStudio.tsx,RuleDSLAuthoringStudio,233,S20,Detections & Alerts,True,False
+src/pages/RuleDSLValidator.tsx,RuleDSLValidator,151,S20,Detections & Alerts,True,False
+src/pages/RuleTaxonomyInspector.tsx,RuleTaxonomyInspector,138,S20,Detections & Alerts,True,False
+src/pages/RulesCatalogHub.tsx,RulesCatalogHub,157,S20,Detections & Alerts,False,False
+src/pages/RuntimeCodeTrace.tsx,RuntimeCodeTrace,212,S17,Findings Explorer,False,False
+src/pages/SBOMContinuousMonitoring.tsx,SBOMContinuousMonitoring,183,S07,Software Supply Chain,False,False
+src/pages/SBOMDashboard.tsx,SBOMDashboard,86,S03,Mission Control,True,False
+src/pages/SBOMExportDashboard.tsx,SBOMExportDashboard,218,S03,Mission Control,True,False
+src/pages/SBOMProvenanceHub.tsx,SBOMProvenanceHub,188,S07,Software Supply Chain,False,False
+src/pages/SCADashboard.tsx,SCADashboard,108,S03,Mission Control,False,False
+src/pages/SIEMOutputDashboard.tsx,SIEMOutputDashboard,108,S20,Detections & Alerts,True,False
+src/pages/SLADashboard.tsx,SLADashboard,487,S03,Mission Control,True,False
+src/pages/SLSAAttestationSigner.tsx,SLSAAttestationSigner,120,S07,Software Supply Chain,True,False
+src/pages/SOARDashboard.tsx,SOARDashboard,340,S03,Mission Control,True,False
+src/pages/SOCTriageDashboard.tsx,SOCTriageDashboard,125,S03,Mission Control,True,False
+src/pages/SaasSecurityPostureDashboard.tsx,SaasSecurityPostureDashboard,217,S26,Vendor & SaaS Risk,False,True
+src/pages/SavedInvestigations.tsx,SavedInvestigations,133,S21,Incidents & Response,False,False
+src/pages/ScheduledReportsDashboard.tsx,ScheduledReportsDashboard,753,S25,Compliance & Evidence,False,True
+src/pages/ScopeManager.tsx,ScopeManager,140,S17,Findings Explorer,False,False
+src/pages/ScoreTransparencyPanel.tsx,ScoreTransparencyPanel,202,S17,Findings Explorer,True,False
+src/pages/SecretScannerDashboard.tsx,SecretScannerDashboard,145,S03,Mission Control,True,False
+src/pages/SecretsHub.tsx,SecretsHub,146,S17,Findings Explorer,False,False
+src/pages/SecretsRotation.tsx,SecretsRotation,123,S17,Findings Explorer,True,False
+src/pages/SecurityAutomationDashboard.tsx,SecurityAutomationDashboard,198,S03,Mission Control,False,False
+src/pages/SecurityAwareness.tsx,SecurityAwareness,715,S30,Collaboration & Awareness,False,False
+src/pages/SecurityBaselineDashboard.tsx,SecurityBaselineDashboard,172,S03,Mission Control,True,False
+src/pages/SecurityBenchmarksDashboard.tsx,SecurityBenchmarksDashboard,160,S03,Mission Control,True,False
+src/pages/SecurityBudgetDashboard.tsx,SecurityBudgetDashboard,294,S03,Mission Control,True,True
+src/pages/SecurityChampionsDashboard.tsx,SecurityChampionsDashboard,496,S03,Mission Control,False,False
+src/pages/SecurityChaosDashboard.tsx,SecurityChaosDashboard,293,S03,Mission Control,False,True
+src/pages/SecurityCultureDashboard.tsx,SecurityCultureDashboard,392,S03,Mission Control,True,False
+src/pages/SecurityDependencyRiskDashboard.tsx,SecurityDependencyRiskDashboard,186,S03,Mission Control,True,False
+src/pages/SecurityExceptionDashboard.tsx,SecurityExceptionDashboard,445,S03,Mission Control,True,False
+src/pages/SecurityFindingsDashboard.tsx,SecurityFindingsDashboard,138,S03,Mission Control,True,False
+src/pages/SecurityGamificationDashboard.tsx,SecurityGamificationDashboard,244,S30,Collaboration & Awareness,False,True
+src/pages/SecurityGraph.tsx,SecurityGraph,1283,S15,TrustGraph,True,False
+src/pages/SecurityHealthDashboard.tsx,SecurityHealthDashboard,407,S03,Mission Control,False,False
+src/pages/SecurityHealthScorecardDashboard.tsx,SecurityHealthScorecardDashboard,186,S03,Mission Control,True,False
+src/pages/SecurityInvestmentDashboard.tsx,SecurityInvestmentDashboard,169,S03,Mission Control,True,False
+src/pages/SecurityKPIDashboard.tsx,SecurityKPIDashboard,696,S03,Mission Control,False,True
+src/pages/SecurityMaturityDashboard.tsx,SecurityMaturityDashboard,376,S03,Mission Control,True,False
+src/pages/SecurityMetricsDashboard.tsx,SecurityMetricsDashboard,341,S03,Mission Control,False,False
+src/pages/SecurityMetricsDashboard2.tsx,SecurityMetricsDashboard2,338,S03,Mission Control,False,False
+src/pages/SecurityOKRDashboard.tsx,SecurityOKRDashboard,177,S03,Mission Control,True,False
+src/pages/SecurityOperationsCenter.tsx,SecurityOperationsCenter,365,S17,Findings Explorer,True,False
+src/pages/SecurityOperationsMetricsDashboard.tsx,SecurityOperationsMetricsDashboard,299,S03,Mission Control,False,True
+src/pages/SecurityPostureDashboard.tsx,SecurityPostureDashboard,426,S03,Mission Control,True,False
+src/pages/SecurityPostureMaturityDashboard.tsx,SecurityPostureMaturityDashboard,179,S03,Mission Control,True,False
+src/pages/SecurityQueryLanguageDashboard.tsx,SecurityQueryLanguageDashboard,243,S03,Mission Control,False,False
+src/pages/SecurityQuestionnaireDashboard.tsx,SecurityQuestionnaireDashboard,355,S03,Mission Control,False,False
+src/pages/SecurityRegistryDashboard.tsx,SecurityRegistryDashboard,157,S03,Mission Control,True,False
+src/pages/SecurityRoadmap.tsx,SecurityRoadmap,376,S17,Findings Explorer,True,False
+src/pages/SecurityScorecardDashboard.tsx,SecurityScorecardDashboard,434,S03,Mission Control,True,False
+src/pages/SecurityTabletopDashboard.tsx,SecurityTabletopDashboard,310,S03,Mission Control,False,True
+src/pages/SecurityTelemetryDashboard.tsx,SecurityTelemetryDashboard,205,S03,Mission Control,False,True
+src/pages/SecurityToolInventoryDashboard.tsx,SecurityToolInventoryDashboard,315,S03,Mission Control,True,True
+src/pages/SecurityTrainingDashboard.tsx,SecurityTrainingDashboard,292,S30,Collaboration & Awareness,True,False
+src/pages/ServiceAccountAuditDashboard.tsx,ServiceAccountAuditDashboard,185,S25,Compliance & Evidence,True,False
+src/pages/ServiceCatalogDashboard.tsx,ServiceCatalogDashboard,337,S03,Mission Control,True,False
+src/pages/ServiceNowDashboard.tsx,ServiceNowDashboard,110,S29,Integrations,True,False
+src/pages/SkillsInstallPrompt.tsx,SkillsInstallPrompt,107,S17,Findings Explorer,False,False
+src/pages/SlsaProvenanceDashboard.tsx,SlsaProvenanceDashboard,229,S03,Mission Control,True,False
+src/pages/SnapshotFindingsView.tsx,SnapshotFindingsView,196,S17,Findings Explorer,True,False
+src/pages/SocialEngineering.tsx,SocialEngineering,368,S17,Findings Explorer,True,False
+src/pages/SoftwareLicenseDashboard.tsx,SoftwareLicenseDashboard,283,S31,Settings & Admin,False,True
+src/pages/StagePolicyMatrix.tsx,StagePolicyMatrix,169,S17,Findings Explorer,True,False
+src/pages/StaleBaselineBanner.tsx,StaleBaselineBanner,150,S17,Findings Explorer,False,False
+src/pages/StrategicPostureHub.tsx,StrategicPostureHub,143,S17,Findings Explorer,False,False
+src/pages/SubsidiaryAttributionGraph.tsx,SubsidiaryAttributionGraph,145,S19,Threat Intelligence,True,False
+src/pages/SupplyChainAttackDashboard.tsx,SupplyChainAttackDashboard,284,S03,Mission Control,False,True
+src/pages/SupplyChainDashboard.tsx,SupplyChainDashboard,334,S03,Mission Control,True,False
+src/pages/SupplyChainHub.tsx,SupplyChainHub,144,S17,Findings Explorer,False,False
+src/pages/SupplyChainIntelDashboard.tsx,SupplyChainIntelDashboard,425,S03,Mission Control,True,False
+src/pages/SupplyChainSecurity.tsx,SupplyChainSecurity,931,S17,Findings Explorer,True,False
+src/pages/SystemHealthDashboard.tsx,SystemHealthDashboard,109,S31,Settings & Admin,False,False
+src/pages/ThirdPartyVendorDashboard.tsx,ThirdPartyVendorDashboard,218,S26,Vendor & SaaS Risk,False,True
+src/pages/ThreatActorDashboard.tsx,ThreatActorDashboard,524,S03,Mission Control,True,False
+src/pages/ThreatActorsHub.tsx,ThreatActorsHub,171,S19,Threat Intelligence,False,False
+src/pages/ThreatAttributionDashboard.tsx,ThreatAttributionDashboard,203,S03,Mission Control,True,True
+src/pages/ThreatBriefDashboard.tsx,ThreatBriefDashboard,325,S03,Mission Control,True,False
+src/pages/ThreatCorrelation.tsx,ThreatCorrelation,437,S17,Findings Explorer,False,False
+src/pages/ThreatDeceptionDashboard.tsx,ThreatDeceptionDashboard,201,S03,Mission Control,True,True
+src/pages/ThreatExposureDashboard.tsx,ThreatExposureDashboard,236,S03,Mission Control,False,True
+src/pages/ThreatFeedDashboard.tsx,ThreatFeedDashboard,419,S03,Mission Control,True,False
+src/pages/ThreatGeolocationDashboard.tsx,ThreatGeolocationDashboard,240,S03,Mission Control,True,True
+src/pages/ThreatHunting.tsx,ThreatHunting,180,S20,Detections & Alerts,False,False
+src/pages/ThreatHuntingDashboard.tsx,ThreatHuntingDashboard,346,S20,Detections & Alerts,False,False
+src/pages/ThreatIndicatorDashboard.tsx,ThreatIndicatorDashboard,98,S03,Mission Control,True,False
+src/pages/ThreatIntelAutomation.tsx,ThreatIntelAutomation,177,S19,Threat Intelligence,False,True
+src/pages/ThreatIntelConfidenceDashboard.tsx,ThreatIntelConfidenceDashboard,334,S19,Threat Intelligence,False,True
+src/pages/ThreatIntelDashboard.tsx,ThreatIntelDashboard,127,S19,Threat Intelligence,False,False
+src/pages/ThreatIntelOpsHub.tsx,ThreatIntelOpsHub,158,S19,Threat Intelligence,False,False
+src/pages/ThreatIntelPlatformDashboard.tsx,ThreatIntelPlatformDashboard,431,S19,Threat Intelligence,False,True
+src/pages/ThreatLandscapeDashboard.tsx,ThreatLandscapeDashboard,175,S03,Mission Control,True,False
+src/pages/ThreatModelDashboard.tsx,ThreatModelDashboard,442,S03,Mission Control,True,False
+src/pages/ThreatModeling.tsx,ThreatModeling,132,S17,Findings Explorer,True,False
+src/pages/ThreatModelingHub.tsx,ThreatModelingHub,147,S17,Findings Explorer,False,False
+src/pages/ThreatModelingPipelineDashboard.tsx,ThreatModelingPipelineDashboard,176,S03,Mission Control,True,False
+src/pages/ThreatResponseDashboard.tsx,ThreatResponseDashboard,207,S03,Mission Control,True,False
+src/pages/ThreatScoreDashboard.tsx,ThreatScoreDashboard,266,S03,Mission Control,True,True
+src/pages/ThreatVectorDashboard.tsx,ThreatVectorDashboard,208,S03,Mission Control,False,True
+src/pages/Tour.tsx,Tour,610,S02,Onboarding Wizard,False,False
+src/pages/ToxicCombinationIssueView.tsx,ToxicCombinationIssueView,193,S17,Findings Explorer,True,False
+src/pages/TprmExchangeDashboard.tsx,TprmExchangeDashboard,395,S26,Vendor & SaaS Risk,True,False
+src/pages/TracedFlowViewer.tsx,TracedFlowViewer,125,S17,Findings Explorer,False,False
+src/pages/TrainingCultureHub.tsx,TrainingCultureHub,143,S30,Collaboration & Awareness,False,False
+src/pages/TrainingEffectivenessDashboard.tsx,TrainingEffectivenessDashboard,107,S30,Collaboration & Awareness,True,False
+src/pages/UBADashboard.tsx,UBADashboard,384,S13,Identity & Access,True,False
+src/pages/UnifiedRulesCatalog.tsx,UnifiedRulesCatalog,206,S20,Detections & Alerts,True,False
+src/pages/UniversalIngestionTester.tsx,UniversalIngestionTester,130,S17,Findings Explorer,True,False
+src/pages/UpgradePathDashboard.tsx,UpgradePathDashboard,95,S03,Mission Control,True,False
+src/pages/UpgradePathExplorer.tsx,UpgradePathExplorer,121,S17,Findings Explorer,True,False
+src/pages/UpgradePathsHub.tsx,UpgradePathsHub,188,S17,Findings Explorer,False,False
+src/pages/UserAccessReviewDashboard.tsx,UserAccessReviewDashboard,184,S03,Mission Control,True,False
+src/pages/UserTokenManager.tsx,UserTokenManager,151,S31,Settings & Admin,True,False
+src/pages/VendorRiskDashboard.tsx,VendorRiskDashboard,613,S26,Vendor & SaaS Risk,False,True
+src/pages/ViolationLifecycleDashboard.tsx,ViolationLifecycleDashboard,193,S03,Mission Control,True,False
+src/pages/ViolationLifecycleTimeline.tsx,ViolationLifecycleTimeline,233,S21,Incidents & Response,False,False
+src/pages/VulnHeatmap.tsx,VulnHeatmap,674,S03,Mission Control,False,True
+src/pages/VulnIntelFusionDashboard.tsx,VulnIntelFusionDashboard,425,S17,Findings Explorer,True,False
+src/pages/VulnIntelHub.tsx,VulnIntelHub,160,S17,Findings Explorer,False,False
+src/pages/VulnIntelligenceDashboard.tsx,VulnIntelligenceDashboard,534,S17,Findings Explorer,True,True
+src/pages/VulnLifecycle.tsx,VulnLifecycle,435,S17,Findings Explorer,True,False
+src/pages/VulnLifecyclePipelineHub.tsx,VulnLifecyclePipelineHub,159,S17,Findings Explorer,False,False
+src/pages/VulnPrioritizationDashboard.tsx,VulnPrioritizationDashboard,206,S17,Findings Explorer,True,True
+src/pages/VulnRiskQueue.tsx,VulnRiskQueue,381,S17,Findings Explorer,False,False
+src/pages/VulnScanDashboard.tsx,VulnScanDashboard,168,S17,Findings Explorer,False,False
+src/pages/VulnScoringDashboard.tsx,VulnScoringDashboard,377,S17,Findings Explorer,False,False
+src/pages/VulnTrendDashboard.tsx,VulnTrendDashboard,364,S17,Findings Explorer,False,False
+src/pages/VulnWorkflowDashboard.tsx,VulnWorkflowDashboard,206,S17,Findings Explorer,True,True
+src/pages/VulnerabilityAgeDashboard.tsx,VulnerabilityAgeDashboard,200,S17,Findings Explorer,True,False
+src/pages/VulnerabilityCorrelationDashboard.tsx,VulnerabilityCorrelationDashboard,257,S17,Findings Explorer,False,True
+src/pages/VulnerabilityScanner.tsx,VulnerabilityScanner,383,S17,Findings Explorer,False,False
+src/pages/VulnerabilityScannerPage.tsx,VulnerabilityScannerPage,368,S17,Findings Explorer,False,False
+src/pages/WaiverRequestModal.tsx,WaiverRequestModal,137,S18,Risk Acceptance & Waivers,False,False
+src/pages/WaiversExplorer.tsx,WaiversExplorer,171,S18,Risk Acceptance & Waivers,True,False
+src/pages/WatchlistManager.tsx,WatchlistManager,393,S17,Findings Explorer,True,False
+src/pages/WebhookEventCatalogExplorer.tsx,WebhookEventCatalogExplorer,140,S29,Integrations,True,False
+src/pages/WebhookIngestionHub.tsx,WebhookIngestionHub,143,S29,Integrations,False,False
+src/pages/WebhookRetryConsole.tsx,WebhookRetryConsole,143,S29,Integrations,True,False
+src/pages/XDRDashboard.tsx,XDRDashboard,433,S03,Mission Control,True,False
+src/pages/ZeroDayIntelligenceDashboard.tsx,ZeroDayIntelligenceDashboard,320,S03,Mission Control,True,False
+src/pages/ZeroSetupOnboarding.tsx,ZeroSetupOnboarding,114,S02,Onboarding Wizard,False,False
+src/pages/ZeroTrustDashboard.tsx,ZeroTrustDashboard,123,S03,Mission Control,True,False
+src/pages/ZeroTrustPolicyDashboard.tsx,ZeroTrustPolicyDashboard,99,S03,Mission Control,False,False
+src/pages/ai/AIAgentsConsole.tsx,AIAgentsConsole,171,S28,AI Security,True,False
+src/pages/ai/AIAttackPathView.tsx,AIAttackPathView,163,S28,AI Security,False,False
+src/pages/ai/AgentTaskQueue.tsx,AgentTaskQueue,191,S28,AI Security,True,False
+src/pages/ai/AlgorithmicLab.tsx,AlgorithmicLab,231,S28,AI Security,True,False
+src/pages/ai/BrainPipeline.tsx,BrainPipeline,357,S28,AI Security,True,False
+src/pages/ai/Copilot.tsx,Copilot,170,S28,AI Security,False,False
+src/pages/ai/CopilotDashboard.tsx,CopilotDashboard,475,S28,AI Security,False,False
+src/pages/ai/CopilotGraphChat.tsx,CopilotGraphChat,154,S28,AI Security,False,False
+src/pages/ai/MCPToolRegistry.tsx,MCPToolRegistry,172,S28,AI Security,False,False
+src/pages/ai/MLDashboard.tsx,MLDashboard,306,S28,AI Security,True,False
+src/pages/ai/MultiLLM.tsx,MultiLLM,259,S28,AI Security,True,False
+src/pages/ai/Predictions.tsx,Predictions,285,S28,AI Security,True,False
+src/pages/ai/ShadowAIInventory.tsx,ShadowAIInventory,169,S28,AI Security,True,False
+src/pages/ai/TraversalExplanationPanel.tsx,TraversalExplanationPanel,159,S28,AI Security,False,False
+src/pages/attack-surface/AttackSurface.tsx,AttackSurface,1123,S14,Attack Surface,False,False
+src/pages/auth/AccessDenied.tsx,AccessDenied,26,S01,Login & Auth,True,False
+src/pages/auth/LoginPage.tsx,LoginPage,786,S01,Login & Auth,False,False
+src/pages/comply/Analytics.tsx,Analytics,530,S25,Compliance & Evidence,False,False
+src/pages/comply/AuditTrail.tsx,AuditTrail,580,S25,Compliance & Evidence,True,False
+src/pages/comply/ComplianceDashboard.tsx,ComplianceDashboard,1162,S25,Compliance & Evidence,True,False
+src/pages/comply/EvidenceBundles.tsx,EvidenceBundles,557,S25,Compliance & Evidence,True,False
+src/pages/comply/EvidenceExportCenter.tsx,EvidenceExportCenter,647,S25,Compliance & Evidence,False,False
+src/pages/comply/EvidenceVault.tsx,EvidenceVault,586,S25,Compliance & Evidence,True,False
+src/pages/comply/Reports.tsx,Reports,488,S25,Compliance & Evidence,False,False
+src/pages/comply/SLSAProvenance.tsx,SLSAProvenance,541,S25,Compliance & Evidence,False,False
+src/pages/comply/SOC2Evidence.tsx,SOC2Evidence,445,S25,Compliance & Evidence,False,False
+src/pages/developer/APIExplorer.tsx,APIExplorer,1173,S04,ASPM — Code,False,False
+src/pages/developer/DeveloperPortal.tsx,DeveloperPortal,1209,S04,ASPM — Code,False,False
+src/pages/discover/ArchitectureLayerGraph.tsx,ArchitectureLayerGraph,196,S14,Attack Surface,True,False
+src/pages/discover/AttackPaths.tsx,AttackPaths,653,S14,Attack Surface,False,False
+src/pages/discover/CallGraphExplorer.tsx,CallGraphExplorer,209,S14,Attack Surface,False,False
+src/pages/discover/CloudPosture.tsx,CloudPosture,412,S14,Attack Surface,False,False
+src/pages/discover/CodeScanning.tsx,CodeScanning,905,S14,Attack Surface,False,False
+src/pages/discover/CodeSemanticExplorer.tsx,CodeSemanticExplorer,228,S14,Attack Surface,False,False
+src/pages/discover/ComponentIdentityView.tsx,ComponentIdentityView,184,S14,Attack Surface,False,False
+src/pages/discover/ContainerSecurity.tsx,ContainerSecurity,386,S14,Attack Surface,False,False
+src/pages/discover/CorrelationEngine.tsx,CorrelationEngine,885,S14,Attack Surface,False,False
+src/pages/discover/DataFabric.tsx,DataFabric,876,S14,Attack Surface,False,False
+src/pages/discover/FindingExplorer.tsx,FindingExplorer,1039,S14,Attack Surface,False,False
+src/pages/discover/GraphPerfDashboard.tsx,GraphPerfDashboard,182,S14,Attack Surface,True,False
+src/pages/discover/IaCScanning.tsx,IaCScanning,732,S14,Attack Surface,False,False
+src/pages/discover/KnowledgeGraph.tsx,KnowledgeGraph,483,S14,Attack Surface,True,False
+src/pages/discover/PIIFieldInventory.tsx,PIIFieldInventory,188,S14,Attack Surface,False,False
+src/pages/discover/SBOMInventory.tsx,SBOMInventory,775,S14,Attack Surface,False,False
+src/pages/discover/SecretsDetection.tsx,SecretsDetection,594,S14,Attack Surface,True,False
+src/pages/discover/ThreatFeeds.tsx,ThreatFeeds,602,S14,Attack Surface,False,False
+src/pages/findings/FindingsExplorer.tsx,FindingsExplorer,2186,S17,Findings Explorer,False,False
+src/pages/hunting/ThreatHunting.tsx,ThreatHunting,1341,S20,Detections & Alerts,False,False
+src/pages/incidents/IncidentResponse.tsx,IncidentResponse,1040,S21,Incidents & Response,False,False
+src/pages/integrations/IntegrationHealth.tsx,IntegrationHealth,1040,S29,Integrations,False,False
+src/pages/mission-control/CISODashboard.tsx,CISODashboard,506,S03,Mission Control,True,False
+src/pages/mission-control/CommandDashboard.tsx,CommandDashboard,823,S03,Mission Control,True,False
+src/pages/mission-control/ComplianceDashboard.tsx,ComplianceDashboard,1248,S03,Mission Control,True,False
+src/pages/mission-control/DevSecurityDashboard.tsx,DevSecurityDashboard,1118,S03,Mission Control,True,False
+src/pages/mission-control/ExecutiveView.tsx,ExecutiveView,826,S03,Mission Control,True,False
+src/pages/mission-control/LiveFeed.tsx,LiveFeed,678,S03,Mission Control,False,False
+src/pages/mission-control/RiskOverview.tsx,RiskOverview,1030,S03,Mission Control,False,False
+src/pages/mission-control/RiskRegister.tsx,RiskRegister,1333,S03,Mission Control,True,False
+src/pages/mission-control/SLADashboard.tsx,SLADashboard,673,S03,Mission Control,True,False
+src/pages/mission-control/SOCDashboard.tsx,SOCDashboard,1390,S03,Mission Control,True,False
+src/pages/mission-control/SOCT1Dashboard.tsx,SOCT1Dashboard,1604,S03,Mission Control,True,False
+src/pages/mission-control/ThreatIntelDashboard.tsx,ThreatIntelDashboard,1415,S03,Mission Control,False,False
+src/pages/onboarding/OnboardingWizard.tsx,OnboardingWizard,926,S02,Onboarding Wizard,False,False
+src/pages/remediate/AutoFix.tsx,AutoFix,716,S17,Findings Explorer,True,False
+src/pages/remediate/BulkOperations.tsx,BulkOperations,650,S17,Findings Explorer,True,False
+src/pages/remediate/Collaboration.tsx,Collaboration,725,S17,Findings Explorer,False,False
+src/pages/remediate/ExposureCases.tsx,ExposureCases,594,S17,Findings Explorer,False,False
+src/pages/remediate/RemediationCenter.tsx,RemediationCenter,832,S17,Findings Explorer,True,False
+src/pages/remediate/TicketIntegration.tsx,TicketIntegration,600,S17,Findings Explorer,False,False
+src/pages/remediate/Workflows.tsx,Workflows,692,S17,Findings Explorer,True,False
+src/pages/risk/RiskAcceptance.tsx,RiskAcceptance,1170,S18,Risk Acceptance & Waivers,False,False
+src/pages/sbom/SBOMManagement.tsx,SBOMManagement,1567,S07,Software Supply Chain,False,False
+src/pages/settings/Integrations.tsx,Integrations,552,S31,Settings & Admin,False,False
+src/pages/settings/LogViewer.tsx,LogViewer,411,S31,Settings & Admin,False,False
+src/pages/settings/Marketplace.tsx,Marketplace,549,S31,Settings & Admin,False,False
+src/pages/settings/Policies.tsx,Policies,498,S31,Settings & Admin,True,False
+src/pages/settings/Settings.tsx,Settings,1284,S31,Settings & Admin,True,False
+src/pages/settings/SettingsHub.tsx,SettingsHub,598,S31,Settings & Admin,True,False
+src/pages/settings/SystemHealth.tsx,SystemHealth,865,S31,Settings & Admin,True,False
+src/pages/settings/Teams.tsx,Teams,535,S31,Settings & Admin,True,False
+src/pages/settings/Users.tsx,Users,604,S31,Settings & Admin,True,False
+src/pages/validate/AttackSimulation.tsx,AttackSimulation,621,S20,Detections & Alerts,True,False
+src/pages/validate/FAILEngine.tsx,FAILEngine,652,S20,Detections & Alerts,True,False
+src/pages/validate/MPTEConsole.tsx,MPTEConsole,696,S20,Detections & Alerts,True,False
+src/pages/validate/PlaybookEditor.tsx,PlaybookEditor,624,S20,Detections & Alerts,True,False
+src/pages/validate/Playbooks.tsx,Playbooks,563,S20,Detections & Alerts,True,False
+src/pages/validate/Reachability.tsx,Reachability,458,S20,Detections & Alerts,False,False
+src/pages/validate/ReachabilityProof.tsx,ReachabilityProof,181,S20,Detections & Alerts,False,False
+src/pages/vendors/VendorManagement.tsx,VendorManagement,1245,S26,Vendor & SaaS Risk,False,False
