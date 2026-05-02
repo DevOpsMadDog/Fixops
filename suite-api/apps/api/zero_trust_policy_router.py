@@ -17,7 +17,7 @@ Endpoints:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 import structlog
 from apps.api.auth_deps import api_key_auth
@@ -31,6 +31,28 @@ from pydantic import BaseModel, Field
 _logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/zero-trust-policy", tags=["zero-trust-policy"])
 
+# ---------------------------------------------------------------------------
+# Reusable annotated types — constraints are enforced by Pydantic at parse time
+# ---------------------------------------------------------------------------
+_PolicyName = Annotated[str, Field(min_length=1, max_length=255)]
+_Description = Annotated[str, Field(max_length=2000)]
+_PolicyType = Annotated[
+    Literal["network", "identity", "device", "application"],
+    Field(description="network | identity | device | application"),
+]
+_Action = Annotated[
+    Literal["allow", "deny", "mfa_required"],
+    Field(description="allow | deny | mfa_required"),
+]
+_Decision = Annotated[
+    Literal["allow", "deny", "mfa_required"],
+    Field(description="allow | deny | mfa_required"),
+]
+_OrgId = Annotated[str, Field(min_length=1, max_length=128)]
+_UserId = Annotated[str, Field(max_length=255)]
+_IpAddr = Annotated[str, Field(max_length=45, pattern=r"^$|^(\d{1,3}\.){3}\d{1,3}(/\d{1,2})?$|^[0-9a-fA-F:]+(/\d{1,3})?$")]
+_Resource = Annotated[str, Field(max_length=2048)]
+
 
 def _engine() -> ZeroTrustPolicyEngine:
     return get_zero_trust_policy_engine()
@@ -42,16 +64,10 @@ def _engine() -> ZeroTrustPolicyEngine:
 
 
 class CreatePolicyRequest(BaseModel):
-    name: str = Field(..., description="Human-readable policy name")
-    description: str = Field("", description="Optional description")
-    policy_type: str = Field(
-        "network",
-        description="network | identity | device | application",
-    )
-    action: str = Field(
-        "deny",
-        description="allow | deny | mfa_required",
-    )
+    name: _PolicyName = Field(..., description="Human-readable policy name")
+    description: _Description = Field("", description="Optional description")
+    policy_type: _PolicyType = Field("network", description="network | identity | device | application")
+    action: _Action = Field("deny", description="allow | deny | mfa_required")
     source_conditions: Dict[str, Any] = Field(
         default_factory=dict,
         description="Source-side match conditions (user, device, source_ip)",
@@ -65,10 +81,10 @@ class CreatePolicyRequest(BaseModel):
 
 
 class UpdatePolicyRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    policy_type: Optional[str] = None
-    action: Optional[str] = None
+    name: Optional[_PolicyName] = None
+    description: Optional[_Description] = None
+    policy_type: Optional[_PolicyType] = None
+    action: Optional[_Action] = None
     source_conditions: Optional[Dict[str, Any]] = None
     destination_conditions: Optional[Dict[str, Any]] = None
     priority: Optional[int] = Field(None, ge=0, le=1000)
@@ -76,22 +92,22 @@ class UpdatePolicyRequest(BaseModel):
 
 
 class EvaluateAccessRequest(BaseModel):
-    user: str = Field("", description="User identifier")
-    device: str = Field("", description="Device identifier")
-    source_ip: str = Field("", description="Source IP address")
-    destination: str = Field("", description="Destination resource or host")
-    resource: str = Field("", description="Resource being accessed")
-    org_id: str = Field("default", description="Organisation identifier")
+    user: _UserId = Field("", description="User identifier")
+    device: _UserId = Field("", description="Device identifier")
+    source_ip: _IpAddr = Field("", description="Source IP address (IPv4/IPv6/CIDR or blank)")
+    destination: _Resource = Field("", description="Destination resource or host")
+    resource: _Resource = Field("", description="Resource being accessed")
+    org_id: _OrgId = Field("default", description="Organisation identifier")
 
 
 class RecordAccessEventRequest(BaseModel):
-    user: str = Field("", description="User identifier")
-    device: str = Field("", description="Device identifier")
-    resource: str = Field("", description="Resource accessed")
-    decision: str = Field("allow", description="allow | deny | mfa_required")
-    policy_id: Optional[str] = Field(None, description="Policy that matched")
-    source_ip: str = Field("", description="Source IP address")
-    org_id: str = Field("default", description="Organisation identifier")
+    user: _UserId = Field("", description="User identifier")
+    device: _UserId = Field("", description="Device identifier")
+    resource: _Resource = Field("", description="Resource accessed")
+    decision: _Decision = Field("allow", description="allow | deny | mfa_required")
+    policy_id: Optional[str] = Field(None, max_length=128, description="Policy that matched")
+    source_ip: _IpAddr = Field("", description="Source IP address (IPv4/IPv6/CIDR or blank)")
+    org_id: _OrgId = Field("default", description="Organisation identifier")
 
 
 # ============================================================================

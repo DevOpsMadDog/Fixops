@@ -772,19 +772,25 @@ async def scanner_ingest_status():
 # This second router provides that alias without changing the canonical routes.
 # ═══════════════════════════════════════════════════════════════════════════
 
-from pydantic import BaseModel as _BaseModel  # noqa: E402
+from pydantic import BaseModel as _BaseModel, Field as _Field  # noqa: E402, F401
 
 scanners_alias_router = APIRouter(
     prefix="/api/v1/scanners",
     tags=["scanner-ingest"],
 )
 
+# _IngestBody — hardened with Pydantic Field constraints (security: input validation)
+_scanner_type_field = _Field(None, min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9_-]*$")
+_app_id_field = _Field("", max_length=255)
+_org_id_field = _Field("default", min_length=1, max_length=128)
+_findings_field = _Field(None, max_length=10000)
+
 
 class _IngestBody(_BaseModel):
-    scanner_type: Optional[str] = None
-    app_id: str = ""
-    org_id: str = "default"
-    findings: Optional[List[Dict[str, Any]]] = None
+    scanner_type: Optional[str] = _scanner_type_field
+    app_id: str = _app_id_field
+    org_id: str = _org_id_field
+    findings: Optional[List[Dict[str, Any]]] = _findings_field
     raw: Optional[Dict[str, Any]] = None
 
 

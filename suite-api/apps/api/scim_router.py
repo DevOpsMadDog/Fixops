@@ -49,6 +49,84 @@ _DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "sc
 
 router = APIRouter(prefix="/scim/v2", tags=["scim"])
 
+# ---------------------------------------------------------------------------
+# Strict Pydantic request models — module-level field defs resist linter strips
+# ---------------------------------------------------------------------------
+from pydantic import BaseModel as _PydanticBase, Field as _PydanticField, field_validator as _fv  # noqa: E402, F401
+
+_email_value_field = _PydanticField(..., max_length=254)
+_email_type_field = _PydanticField("work", max_length=32)
+_name_given_field = _PydanticField("", max_length=128)
+_name_family_field = _PydanticField("", max_length=128)
+_member_value_field = _PydanticField(..., min_length=1, max_length=128)
+_member_display_field = _PydanticField("", max_length=256)
+_username_field = _PydanticField(..., min_length=1, max_length=254)
+_displayname_field = _PydanticField(..., min_length=1, max_length=256)
+_externalid_field = _PydanticField("", max_length=256)
+
+
+class _ScimEmail(_PydanticBase):
+    value: str = _email_value_field
+    type: str = _email_type_field
+    primary: bool = False
+
+    @_fv("value")
+    @classmethod
+    def _check_email(cls, v: str) -> str:
+        v = v.strip()
+        if not v or "@" not in v:
+            raise ValueError("invalid email address")
+        return v
+
+
+class _ScimName(_PydanticBase):
+    givenName: str = _name_given_field
+    familyName: str = _name_family_field
+    formatted: str = _PydanticField("", max_length=256)
+
+
+class _ScimMember(_PydanticBase):
+    value: str = _member_value_field
+    display: str = _member_display_field
+
+
+class ScimCreateUserRequest(_PydanticBase):
+    userName: str = _username_field
+    displayName: str = _PydanticField("", max_length=256)
+    externalId: str = _externalid_field
+    active: bool = True
+    name: _ScimName = _PydanticField(default_factory=_ScimName)
+    emails: List[_ScimEmail] = _PydanticField(default_factory=list)
+
+    @_fv("userName")
+    @classmethod
+    def _username_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("userName must not be blank")
+        return v.strip()
+
+
+class ScimReplaceUserRequest(_PydanticBase):
+    userName: str = _PydanticField("", max_length=254)
+    displayName: str = _PydanticField("", max_length=256)
+    externalId: str = _externalid_field
+    active: bool = True
+    name: _ScimName = _PydanticField(default_factory=_ScimName)
+    emails: List[_ScimEmail] = _PydanticField(default_factory=list)
+
+
+class ScimCreateGroupRequest(_PydanticBase):
+    displayName: str = _displayname_field
+    externalId: str = _externalid_field
+    members: List[_ScimMember] = _PydanticField(default_factory=list)
+
+    @_fv("displayName")
+    @classmethod
+    def _name_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("displayName must not be blank")
+        return v.strip()
+
 
 # ---------------------------------------------------------------------------
 # Database layer
