@@ -249,7 +249,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
 | Beast Mode tests | **994+ passing (753 canonical 13-file + 152 session-added 26-file + 89 night-session new tests across BUG/FEATURE/empty-endpoints), zero regressions** (2026-05-03 night) + **42/42 hub smoke (`ba6bff1a`)** + **10/10 DoD E2E smoke (`scripts/dod_smoke.mjs`)** | `pytest tests/test_phase*.py ... -q` |
 | Graphify graph | **184,684 nodes / 577,447 edges / 9,029 communities** (refreshed 2026-05-03 04:10 — final post-cleanup rebuild; +64.9K nodes / +151.7K edges / +7.5K communities since 2026-04-26 baseline) | `graphify update . --no-llm` |
-| TrustGraph emit-sites | **378+** across engines/routers | `grep -rl trustgraph_event_bus suite-core/ \| wc -l` |
+| TrustGraph emit-sites | **501** across engines/routers (was 378+; +123 since 2026-05-02 mega-wave + dup-cleanup canonicalization) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
 
 ### Storage tech
 DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Markdown for docs.
