@@ -1116,3 +1116,62 @@ ComplianceGapDashboard (all wired in App.tsx)
 - ✅ insider threat resolve_alert() has org_id guard — insider_threat_engine.py
 
 ### Git state: features/intermediate-stage
+
+---
+
+### DONE (session 2026-05-02 night → 2026-05-03 04:14 — Founder pivot + dup-cleanup blitz)
+
+**73 `beast-mode` commits** on `features/intermediate-stage`. Founder mid-evening pivot away from hub-building toward bug-fix + real-product completion.
+
+**Founder DoD (9/9 DONE + 10/10 E2E):**
+- BUG-1 `1bf395d1` — 5 HTTP 500 endpoints fixed (defensive `_ensure_schema()`)
+- BUG-2 `3340e223` — root GET / on priority routers (kills 44% frontend 404s)
+- BUG-3 `d919a9da` + BUG-3.1 `31f2d3ef` — silent MOCK_DATA → EmptyState on 7+1 dashboards
+- FEATURE-1 `94de7e92` — `/onboarding` 4-step wizard (real backend POSTs)
+- FEATURE-2 `cb25906d` — RASP/CTEM/SAST/CloudConnectors → TrustGraph event bus (kills "documented stubs")
+- FEATURE-3 `f098e412` — `/ws/events` WebSocket → MissionControl LiveFeed (29 event types)
+- FEATURE-4 `47b9b4f1` — `seed_real_data.py` (149 live findings ingested + cycle-d250c96701bf)
+- FEATURE-5 `727ffc78` — `DBAdapter` (DATABASE_URL → postgres switch)
+- DoD-5 `30db1e3a` (CTEM 5-stage UI) + DoD-6 `b34fbddc` (CSPM scan) + DoD-7 `7d01faa2` (ASPM scan) + DoD-8 `309715d1` (TrustGraph related panel) + DoD-9 `cc9cf34d`+`91c3ad66` (E2E smoke 10/10 PASS)
+
+**Empty-endpoints triage (26/30 closed):**
+- batch-6 `b3db76e0` (6) + batch-7 `a8a35188` (7) — class-c canonical envelope wrapper
+- 4 class-a deferred (need real cloud creds — sprint-able with customer engagement)
+
+**Dup-router cleanup (232/232 = 100%):**
+- Wave-A `599a2237` (1 DEAD scif_router) + Wave-D `db1682b8` (6 sub↔sub) + Wave-E `60323818` (2 triplicates)
+- Wave-B-pilot `f72f5d16` (10) + batch-2 `eef79d66` (20) + batch-3 `873d2d34` (20) + batch-3b `5134c564` (**59 silent auth-bypass closures** — security)
+- Wave-C-pilot `874399e6` (10) + batch-2 `5d5f2e5e` (30) + batch-3 `80b9f81f` (40) + batch-4 `10ec4a24` (31) + final `daf9f19a` (5 split-mounts)
+- Net: -2070 silent dup routes (8792 → 6722), ~1500 LOC removed from app.py
+
+**Suite-core silenced-imports cleanup (36/47 = 76%):**
+- triage `248911be` + top-9 `55adab96` + 18 symbol-renames `a4c3aa21` + multi-suite 4 `d235e642` + Wave-RETIRE 9 `e47a3dd1`
+- 5 INSTALL deferred for founder decision (GCP CSPM/SCC + LoRA + dilithium-py)
+
+**Perf chain (R1+R2+R3 ~10.7s shave):**
+- audit `0713a33f` (74.85s baseline) + R2 `d74ad7ea` (OTLP gate -5-8s) + R1 `899ac050` (lazy ST -3.66s) + R3 `95384783` (lazy 22 engines -0.7s)
+- Cold-start now 0 warnings (previously 4: feature_flag, greynoise, websocket, OTLP all closed)
+
+**Honesty alignment:**
+- BUG-3 EmptyState (no silent MOCK)
+- Wave-B-3b auth boundary (no silent unauth shadows)
+- PQ docs softening `e7d5f67c` (21 phrases across 4 marketing docs from "FIPS 204 live" → "activatable")
+
+**Cleanup:**
+- Dependabot suite-ui/aldeci CI repointing `669e950d` (~17 vulns retire on next scan)
+- Dead websocket_routes.py `6307d7fe` + ctem_app duplicate cleanup `39e77140` + ff_router `696edbf7` + greynoise Pydantic v2 `6f66cd63`
+- Repo hygiene: gitignore `dc55e546` + archive `582c6eb8`
+
+**Test totals (994+ passing):**
+- 753 canonical 13-file Beast Mode (verified 7.94s on 04:00)
+- 89 night-session new tests (BUG/FEATURE/empty-endpoints batches)
+- 10/10 DoD E2E Playwright smoke
+- 0 regressions across entire 73-commit session (1 perf-baseline timing flake — passes on retry, documented)
+
+**Final state:**
+- 9001 → 6722 routes (-2279 silent dups)
+- 184,684 graphify nodes / 577,447 edges / 9,029 communities (+64.9K nodes since baseline)
+- HANDOFF doc §1-22 fully current (`docs/HANDOFF_2026-05-02-night.md`)
+- Tip SHA: `47550e99`
+
+**Next-session priorities:** 5 INSTALL deps (founder review), ~100 dependabot bulk bumps, TrueCourse 13K legacy violations, 4 class-a empty endpoints (cloud creds).
