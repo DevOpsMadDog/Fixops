@@ -394,6 +394,182 @@ class AssetCriticalityEngine:
             conn.close()
         return [self._row(r) for r in rows]
 
+    # ------------------------------------------------------------------
+    # SECURITY-FINDINGS FALLBACK (cloud-creds derived asset inventory)
+    # ------------------------------------------------------------------
+
+    def list_assets_with_findings_fallback(
+        self,
+        org_id: str,
+        criticality_tier: Optional[str] = None,
+        asset_type: Optional[str] = None,
+        findings_engine: Any = None,
+    ) -> Dict[str, Any]:
+        """List assets; fall back to SecurityFindingsEngine inventory.
+
+        Behaviour (ranked):
+
+        1. Org has registered assets → ``source="org_registered"``.
+        2. Else if SecurityFindingsEngine is reachable AND has findings whose
+           cloud-credential-backed connectors (CSPMConnector, AppOmniConnector,
+           CyberArkConnector, DefenderXDR, etc.) have written rows for this
+           org, derive distinct ``(asset_id, asset_type)`` and project each as
+           an asset record with ``criticality_score`` derived from finding
+           severity weights → ``source="security_findings"``.
+        3. Else → ``source="needs_credentials"`` with a structured hint
+           pointing at the cloud-creds connectors that would seed inventory.
+           NEVER mocks.
+
+        Filters apply against the projected rows in mode 2 too.
+        """
+        if not isinstance(org_id, str) or not org_id.strip():
+            raise ValueError("org_id is required")
+
+        org_rows = self.list_assets(
+            org_id, criticality_tier=criticality_tier, asset_type=asset_type,
+        )
+        if org_rows:
+            return {
+                "assets": org_rows,
+                "total": len(org_rows),
+                "source": "org_registered",
+            }
+
+        connector_unavailable_reason: Optional[str] = None
+        if findings_engine is None:
+            try:
+                from core.security_findings_engine import SecurityFindingsEngine  # type: ignore
+                findings_engine = SecurityFindingsEngine()
+            except (ImportError, RuntimeError, OSError) as exc:
+                connector_unavailable_reason = (
+                    f"security_findings_unavailable: {exc}"
+                )
+
+        if findings_engine is None:
+            return {
+                "assets": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Asset inventory comes from the cloud-credential-backed "
+                    "connectors (CSPM/SSPM/PAM/EDR/CSPM). Configure at least "
+                    "one — e.g. set CYBERARK_BASE_URL/USER/PASS, "
+                    "APPOMNI_API_KEY, AWS_ACCESS_KEY_ID/SECRET, or "
+                    "DEFENDER_TENANT_ID/CLIENT_ID/CLIENT_SECRET — then "
+                    "trigger the connector sync. Alternatively POST "
+                    "/api/v1/asset-criticality/assets to register manually."
+                ),
+                **({"reason": connector_unavailable_reason}
+                   if connector_unavailable_reason else {}),
+            }
+
+        try:
+            findings = findings_engine.list_findings(org_id)
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning(
+                "SecurityFindingsEngine.list_findings failed for org=%s: %s",
+                org_id,
+                exc,
+            )
+            return {
+                "assets": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(exc)[:500],
+            }
+
+        if not findings:
+            return {
+                "assets": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "SecurityFindingsEngine returned zero findings. Run a "
+                    "cloud-credential-backed connector sync (CSPM, SSPM, "
+                    "PAM, EDR) to seed asset inventory before listing assets."
+                ),
+            }
+
+        sev_weight = {"critical": 25, "high": 15, "medium": 7, "low": 2,
+                      "informational": 0}
+        per_asset: Dict[str, Dict[str, Any]] = {}
+        for f in findings:
+            asset_id_raw = (f.get("asset_id") or "").strip()
+            if not asset_id_raw:
+                continue
+            atype = (f.get("asset_type") or "unknown").strip() or "unknown"
+            severity = (f.get("severity") or "low").lower()
+            entry = per_asset.setdefault(
+                asset_id_raw,
+                {
+                    "id": asset_id_raw,
+                    "org_id": org_id,
+                    "asset_name": asset_id_raw,
+                    "asset_type": atype,
+                    "owner": "",
+                    "business_function": "",
+                    "data_classification": "internal",
+                    "availability_requirement": "medium",
+                    "integrity_requirement": "medium",
+                    "confidentiality_requirement": "medium",
+                    "criticality_score": 0.0,
+                    "criticality_tier": "low",
+                    "created_at": f.get("created_at"),
+                    "source": "security_findings",
+                    "findings_total": 0,
+                    "source_tools": set(),
+                },
+            )
+            entry["criticality_score"] = min(
+                100.0,
+                entry["criticality_score"] + float(sev_weight.get(severity, 0)),
+            )
+            entry["findings_total"] += 1
+            tool = f.get("source_tool")
+            if tool:
+                entry["source_tools"].add(tool)
+
+        # Tier mapping mirrors AssetCriticalityEngine.score_asset.
+        def _tier(score: float) -> str:
+            if score >= 80:
+                return "critical"
+            if score >= 60:
+                return "high"
+            if score >= 40:
+                return "medium"
+            return "low"
+
+        derived: List[Dict[str, Any]] = []
+        for entry in per_asset.values():
+            entry["criticality_tier"] = _tier(entry["criticality_score"])
+            entry["source_tools"] = sorted(entry["source_tools"])
+            derived.append(entry)
+
+        if criticality_tier:
+            derived = [d for d in derived if d["criticality_tier"] == criticality_tier]
+        if asset_type:
+            derived = [d for d in derived if d["asset_type"] == asset_type]
+
+        derived.sort(key=lambda d: d["criticality_score"], reverse=True)
+
+        if not derived:
+            return {
+                "assets": [],
+                "total": 0,
+                "source": "needs_data",
+                "hint": (
+                    "SecurityFindingsEngine returned findings but none "
+                    "matched the requested criticality_tier/asset_type "
+                    "filters."
+                ),
+            }
+
+        return {
+            "assets": derived,
+            "total": len(derived),
+            "source": "security_findings",
+        }
+
     def get_critical_path(
         self, org_id: str, asset_id: str, max_hops: int = 3
     ) -> List[Dict[str, Any]]:

@@ -143,8 +143,16 @@ def list_assets(
     criticality_tier: Optional[str] = Query(None),
     asset_type: Optional[str] = Query(None),
 ):
-    """List assets with optional filters."""
-    return _get_engine().list_assets(
+    """List assets with optional filters.
+
+    Type-a #3 wiring: when the org has no registered assets, the engine falls
+    back to SecurityFindingsEngine inventory — projects distinct asset_ids
+    written by the cloud-credential-backed connectors (CSPM/SSPM/PAM/EDR) into
+    asset records with derived criticality_score from severity weights.
+    Returns a 5-state envelope (org_registered / security_findings /
+    needs_credentials / needs_data / connector_error). NEVER mocks.
+    """
+    return _get_engine().list_assets_with_findings_fallback(
         org_id,
         criticality_tier=criticality_tier,
         asset_type=asset_type,

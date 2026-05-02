@@ -89,15 +89,16 @@ def list_apps(
     app_category: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
-    """List SaaS apps with optional filters."""
-    rows = _get_engine().list_apps(org_id, app_category=app_category, risk_level=risk_level)
-    if not rows:
-        return {
-            "apps": [],
-            "total": 0,
-            "hint": "SSPM requires SaaS OAuth flows (Salesforce, Slack, Okta tenant scan). Register a SaaS app manually via POST /api/v1/sspm/apps once OAuth credentials are configured.",
-        }
-    return {"apps": rows, "total": len(rows)}
+    """List SaaS apps with optional filters.
+
+    Type-a #20 wiring: when the org has no registered apps, the engine falls
+    back to AppOmni live findings (when APPOMNI_API_KEY is set). Returns a
+    5-state envelope (org_registered / appomni / needs_credentials / needs_data
+    / connector_error). NEVER mocks.
+    """
+    return _get_engine().list_apps_with_appomni_fallback(
+        org_id, app_category=app_category, risk_level=risk_level,
+    )
 
 
 @router.get("/apps/{app_id}", dependencies=[Depends(api_key_auth)])

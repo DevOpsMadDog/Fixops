@@ -95,17 +95,16 @@ def list_sessions(
     session_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> dict:
-    """List sessions, optionally filtered."""
-    rows = _get_engine().list_sessions(
-        org_id, user=user, session_type=session_type, status=status
+    """List sessions, optionally filtered.
+
+    Type-a #14 wiring: when the org has no recorded sessions, the engine falls
+    back to the CyberArk PAM connector (when CYBERARK_BASE_URL/USER/PASS env
+    vars are set). Returns a 5-state envelope (org_registered / cyberark_pam /
+    needs_credentials / needs_data / connector_error). NEVER mocks.
+    """
+    return _get_engine().list_sessions_with_pam_fallback(
+        org_id, user=user, session_type=session_type, status=status,
     )
-    if not rows:
-        return {
-            "sessions": [],
-            "total": 0,
-            "hint": "Session recording requires a PAM tool integration (CyberArk, BeyondTrust). No real PAM tenant configured. Start a session manually via POST /api/v1/session-recording/sessions.",
-        }
-    return {"sessions": rows, "total": len(rows)}
 
 
 @router.get("/sessions/{session_id}", dependencies=[Depends(api_key_auth)])

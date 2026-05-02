@@ -211,6 +211,171 @@ class PrivilegedSessionRecordingEngine:
             rows = conn.execute(query, params).fetchall()
         return [self._row(r) for r in rows]
 
+    # ------------------------------------------------------------------
+    # PAM CONNECTOR FALLBACK (CyberArk)
+    # ------------------------------------------------------------------
+
+    def list_sessions_with_pam_fallback(
+        self,
+        org_id: str,
+        user: Optional[str] = None,
+        session_type: Optional[str] = None,
+        status: Optional[str] = None,
+        pam_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List PSR sessions; fall back to CyberArk PAM privileged accounts.
+
+        Behaviour (ranked):
+
+        1. Org has recorded sessions → ``source="org_registered"``.
+        2. Else if a CyberArk connector is available *and* its env creds are
+           present, call ``sync()`` and project each privileged account into
+           an inventory-style session row → ``source="cyberark_pam"``. The
+           projected rows are flagged ``status="inventory"`` because the PAM
+           account is a session *target*, not an active recording — useful for
+           on-call SOC visibility while no real session is in flight.
+        3. Else if creds *or* the SDK are missing → ``source="needs_credentials"``
+           with a structured hint. NEVER mocks.
+        4. Connector returned ``status != "ok"`` (e.g. ``api_error``) →
+           ``source="connector_error"``.
+        5. Connector OK but returned zero accounts → ``source="needs_data"``.
+
+        Filters apply against the projected rows in modes 2/4/5 too.
+        """
+        if not isinstance(org_id, str) or not org_id.strip():
+            raise ValueError("org_id is required")
+
+        org_rows = self.list_sessions(
+            org_id, user=user, session_type=session_type, status=status,
+        )
+        if org_rows:
+            return {
+                "sessions": org_rows,
+                "total": len(org_rows),
+                "source": "org_registered",
+            }
+
+        creds_present = False
+        connector_unavailable_reason: Optional[str] = None
+        if pam_connector is None:
+            try:
+                from connectors.cyberark_connector import (  # type: ignore
+                    _creds_present,
+                    get_cyberark_connector,
+                )
+                creds_present = bool(_creds_present())
+                if creds_present:
+                    pam_connector = get_cyberark_connector()
+            except (ImportError, RuntimeError) as exc:
+                connector_unavailable_reason = f"connector_import_failed: {exc}"
+        else:
+            creds_present = True
+
+        if not creds_present or pam_connector is None:
+            return {
+                "sessions": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Set CYBERARK_BASE_URL, CYBERARK_USER, and CYBERARK_PASS "
+                    "to enable CyberArk PAM privileged-account inventory, or "
+                    "POST /api/v1/session-recording/sessions to start a "
+                    "session manually."
+                ),
+                **({"reason": connector_unavailable_reason}
+                   if connector_unavailable_reason else {}),
+            }
+
+        try:
+            payload = pam_connector.sync(org_id)
+        except Exception as exc:  # noqa: BLE001 - never let connector crash list
+            _logger.warning(
+                "CyberArk sync failed for org=%s: %s", org_id, exc,
+            )
+            return {
+                "sessions": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(exc)[:500],
+            }
+
+        connector_status = (payload or {}).get("status", "")
+        if connector_status == "needs_credentials":
+            return {
+                "sessions": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": payload.get("hint", "CyberArk credentials missing."),
+            }
+        if connector_status != "ok":
+            return {
+                "sessions": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(payload.get("error") or connector_status)[:500],
+            }
+
+        accounts = payload.get("findings") or []
+        derived: List[Dict[str, Any]] = []
+        for acct in accounts:
+            platform = (acct.get("platform") or "").lower()
+            # Map CyberArk platform → ALDECI session_type bucket.
+            if "ssh" in platform or "linux" in platform or "unix" in platform:
+                stype = "ssh"
+            elif "winrm" in platform:
+                stype = "winrm"
+            elif "rdp" in platform or "windows" in platform:
+                stype = "rdp"
+            elif any(db in platform for db in ("oracle", "sql", "postgres", "mysql")):
+                stype = "database"
+            else:
+                stype = "console"
+            derived.append({
+                "id": acct.get("account_id") or acct.get("correlation_key"),
+                "org_id": org_id,
+                "user": "",  # CyberArk lists target accounts; user is the connecting agent
+                "session_type": stype,
+                "target_host": acct.get("safe", "") or "unknown",
+                "target_ip": "",
+                "initiated_by": "cyberark_pam",
+                "status": "inventory",
+                "duration_seconds": 0,
+                "commands_count": 0,
+                "keystrokes_count": 0,
+                "alerts_count": 0,
+                "started_at": None,
+                "ended_at": None,
+                "recording_url": "",
+                "source": "cyberark_pam",
+                "platform": acct.get("platform", ""),
+                "severity": acct.get("severity", "low"),
+            })
+
+        # Apply filters against derived rows.
+        if user:
+            derived = [d for d in derived if d["user"] == user]
+        if session_type:
+            derived = [d for d in derived if d["session_type"] == session_type]
+        if status:
+            derived = [d for d in derived if d["status"] == status]
+
+        if not derived:
+            return {
+                "sessions": [],
+                "total": 0,
+                "source": "needs_data",
+                "hint": (
+                    "CyberArk reachable but returned no privileged accounts "
+                    "matching the requested filters."
+                ),
+            }
+
+        return {
+            "sessions": derived,
+            "total": len(derived),
+            "source": "cyberark_pam",
+        }
+
     def get_session(self, org_id: str, session_id: str) -> Optional[Dict[str, Any]]:
         """Fetch a single session scoped to org_id. Returns None if not found."""
         with self._conn() as conn:

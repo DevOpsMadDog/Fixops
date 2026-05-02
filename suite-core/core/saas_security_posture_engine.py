@@ -19,7 +19,7 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
@@ -209,6 +209,167 @@ class SaasSecurityPostureEngine:
             with self._conn() as conn:
                 rows = conn.execute(sql, params).fetchall()
         return [self._row(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # SSPM CONNECTOR FALLBACK (AppOmni)
+    # ------------------------------------------------------------------
+
+    def list_apps_with_appomni_fallback(
+        self,
+        org_id: str,
+        app_category: Optional[str] = None,
+        risk_level: Optional[str] = None,
+        sspm_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List SaaS apps; fall back to AppOmni SSPM live findings.
+
+        Behaviour (ranked):
+
+        1. Org has registered apps → ``source="org_registered"``.
+        2. Else if AppOmni connector is available *and* APPOMNI_API_KEY is
+           present, call ``sync()`` and project unique app inventory from the
+           findings stream → ``source="appomni"``.
+        3. Else if creds *or* the SDK are missing → ``source="needs_credentials"``
+           with a structured hint. NEVER mocks.
+        4. Connector returned ``status != "ok"`` → ``source="connector_error"``.
+        5. Connector OK but returned zero apps → ``source="needs_data"``.
+
+        Filters apply against the projected rows in modes 2/4/5 too.
+        """
+        if not isinstance(org_id, str) or not org_id.strip():
+            raise ValueError("org_id is required")
+
+        org_rows = self.list_apps(
+            org_id, app_category=app_category, risk_level=risk_level,
+        )
+        if org_rows:
+            return {
+                "apps": org_rows,
+                "total": len(org_rows),
+                "source": "org_registered",
+            }
+
+        creds_present = False
+        connector_unavailable_reason: Optional[str] = None
+        if sspm_connector is None:
+            try:
+                from connectors.appomni_connector import (  # type: ignore
+                    _creds_present,
+                    get_appomni_connector,
+                )
+                creds_present = bool(_creds_present())
+                if creds_present:
+                    sspm_connector = get_appomni_connector()
+            except (ImportError, RuntimeError) as exc:
+                connector_unavailable_reason = f"connector_import_failed: {exc}"
+        else:
+            creds_present = True
+
+        if not creds_present or sspm_connector is None:
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Set APPOMNI_API_KEY (and optionally APPOMNI_BASE_URL) to "
+                    "enable live AppOmni SSPM inventory, or POST "
+                    "/api/v1/sspm/apps to register a SaaS app manually."
+                ),
+                **({"reason": connector_unavailable_reason}
+                   if connector_unavailable_reason else {}),
+            }
+
+        try:
+            payload = sspm_connector.sync(org_id)
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning("AppOmni sync failed for org=%s: %s", org_id, exc)
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(exc)[:500],
+            }
+
+        connector_status = (payload or {}).get("status", "")
+        if connector_status == "needs_credentials":
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": payload.get("hint", "AppOmni credentials missing."),
+            }
+        if connector_status != "ok":
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(payload.get("error") or connector_status)[:500],
+            }
+
+        # Project unique apps from the findings stream.  Severity drives
+        # risk_level; counts roll up to a derived risk_score.
+        sev_weight = {"critical": 10, "high": 5, "medium": 2, "low": 1,
+                      "informational": 0}
+        per_app: Dict[str, Dict[str, Any]] = {}
+        for finding in payload.get("findings") or []:
+            app_id = str(finding.get("app_id") or "unknown")
+            app_name = finding.get("app_name") or app_id
+            severity = (finding.get("severity") or "low").lower()
+            entry = per_app.setdefault(
+                app_id,
+                {
+                    "id": app_id,
+                    "org_id": org_id,
+                    "app_name": app_name,
+                    "app_category": (finding.get("category") or "saas").lower(),
+                    "vendor": "",
+                    "risk_level": "low",
+                    "compliance_status": "unknown",
+                    "user_count": 0,
+                    "data_sensitivity": "",
+                    "oauth_scopes": "",
+                    "last_assessed": None,
+                    "status": "active",
+                    "created_at": payload.get("ingested_at"),
+                    "_score": 0.0,
+                    "source": "appomni",
+                    "findings_total": 0,
+                },
+            )
+            entry["_score"] += sev_weight.get(severity, 0)
+            entry["findings_total"] += 1
+            # Promote risk_level to highest seen for this app.
+            order = ["low", "medium", "high", "critical"]
+            if order.index(severity if severity in order else "low") > order.index(entry["risk_level"]):
+                entry["risk_level"] = severity if severity in order else entry["risk_level"]
+
+        derived = []
+        for app_id, entry in per_app.items():
+            entry["risk_score"] = round(min(entry.pop("_score"), 100.0), 1)
+            derived.append(entry)
+
+        # Apply filters against derived rows.
+        if app_category:
+            derived = [d for d in derived if d["app_category"] == app_category]
+        if risk_level:
+            derived = [d for d in derived if d["risk_level"] == risk_level]
+
+        if not derived:
+            return {
+                "apps": [],
+                "total": 0,
+                "source": "needs_data",
+                "hint": (
+                    "AppOmni reachable but returned no SaaS apps matching the "
+                    "requested filters."
+                ),
+            }
+
+        return {
+            "apps": derived,
+            "total": len(derived),
+            "source": "appomni",
+        }
 
     def get_app(self, org_id: str, app_id: str) -> Optional[dict]:
         """Get a single SaaS app by ID."""

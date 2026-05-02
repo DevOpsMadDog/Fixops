@@ -329,6 +329,159 @@ class CloudCostSecurityEngine:
             return [self._row(r) for r in conn.execute(sql, params).fetchall()]
 
     # ------------------------------------------------------------------
+    # COST EXPLORER CONNECTOR FALLBACK (AWS Cost Explorer)
+    # ------------------------------------------------------------------
+
+    def list_snapshots_with_cost_explorer_fallback(
+        self,
+        org_id: str,
+        account_id: Optional[str] = None,
+        anomaly: Optional[bool] = None,
+        cost_connector: Any = None,
+    ) -> Dict[str, Any]:
+        """List cost snapshots; fall back to AWS Cost Explorer live data.
+
+        Behaviour (ranked):
+
+        1. Org has recorded snapshots → ``source="org_registered"``.
+        2. Else if AWS Cost Explorer connector is available *and* its env
+           creds are present, call ``fetch_snapshots()`` and project each
+           per-service row → ``source="aws_cost_explorer"``.
+        3. Else if creds *or* boto3 are missing → ``source="needs_credentials"``
+           with a structured hint. NEVER mocks.
+        4. Connector returned ``status != "ok"`` → ``source="connector_error"``.
+        5. Connector OK but returned zero rows → ``source="needs_data"``.
+
+        Filters apply against the projected rows in modes 2/4/5 too. The
+        ``anomaly`` filter against derived rows uses the spike threshold
+        (>200% MoM change) defined at module scope.
+        """
+        if not isinstance(org_id, str) or not org_id.strip():
+            raise ValueError("org_id is required")
+
+        org_rows = self.list_snapshots(
+            org_id, account_id=account_id, anomaly=anomaly,
+        )
+        if org_rows:
+            return {
+                "snapshots": org_rows,
+                "total": len(org_rows),
+                "source": "org_registered",
+            }
+
+        creds_present = False
+        connector_unavailable_reason: Optional[str] = None
+        if cost_connector is None:
+            try:
+                from connectors.aws_cost_explorer_connector import (  # type: ignore
+                    _creds_present,
+                    get_aws_cost_explorer_connector,
+                )
+                creds_present = bool(_creds_present())
+                if creds_present:
+                    cost_connector = get_aws_cost_explorer_connector()
+            except (ImportError, RuntimeError) as exc:
+                connector_unavailable_reason = f"connector_import_failed: {exc}"
+        else:
+            creds_present = True
+
+        if not creds_present or cost_connector is None:
+            return {
+                "snapshots": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": (
+                    "Set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY (or "
+                    "AWS_PROFILE / IAM instance role / EKS pod identity) to "
+                    "enable AWS Cost Explorer ingestion, or POST "
+                    "/api/v1/cloud-cost/snapshots to record a snapshot manually."
+                ),
+                **({"reason": connector_unavailable_reason}
+                   if connector_unavailable_reason else {}),
+            }
+
+        try:
+            payload = cost_connector.fetch_snapshots(org_id)
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning(
+                "AWSCostExplorer fetch failed for org=%s: %s", org_id, exc,
+            )
+            return {
+                "snapshots": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(exc)[:500],
+            }
+
+        connector_status = (payload or {}).get("status", "")
+        if connector_status == "needs_credentials":
+            return {
+                "snapshots": [],
+                "total": 0,
+                "source": "needs_credentials",
+                "hint": payload.get("hint", "AWS credentials missing."),
+                **({"reason": payload["reason"]}
+                   if payload.get("reason") else {}),
+            }
+        if connector_status != "ok":
+            return {
+                "snapshots": [],
+                "total": 0,
+                "source": "connector_error",
+                "error": str(payload.get("error") or connector_status)[:500],
+            }
+
+        derived: List[Dict[str, Any]] = []
+        for snap in payload.get("snapshots") or []:
+            change_pct = float(snap.get("change_pct") or 0.0)
+            is_spike = change_pct > _SPIKE_THRESHOLD_PCT
+            row = {
+                "id": (
+                    f"awsce:{snap.get('account_id', '')}:"
+                    f"{snap.get('service_name', '')}:"
+                    f"{snap.get('region', '')}:"
+                    f"{snap.get('snapshot_date', '')}"
+                ),
+                "org_id": org_id,
+                "account_id": snap.get("account_id", ""),
+                "provider": "aws",
+                "service_name": snap.get("service_name", ""),
+                "region": snap.get("region", ""),
+                "cost_usd": float(snap.get("cost_usd", 0.0)),
+                "previous_cost_usd": float(snap.get("previous_cost_usd", 0.0)),
+                "change_pct": change_pct,
+                "snapshot_date": snap.get("snapshot_date", ""),
+                "anomaly": 1 if is_spike else 0,
+                "anomaly_type": "spike" if is_spike else None,
+                "created_at": payload.get("ingested_at"),
+                "source": "aws_cost_explorer",
+            }
+            derived.append(row)
+
+        if account_id is not None:
+            derived = [d for d in derived if d["account_id"] == account_id]
+        if anomaly is not None:
+            wanted = 1 if anomaly else 0
+            derived = [d for d in derived if d["anomaly"] == wanted]
+
+        if not derived:
+            return {
+                "snapshots": [],
+                "total": 0,
+                "source": "needs_data",
+                "hint": (
+                    "AWS Cost Explorer reachable but returned no snapshots "
+                    "matching the requested filters."
+                ),
+            }
+
+        return {
+            "snapshots": derived,
+            "total": len(derived),
+            "source": "aws_cost_explorer",
+        }
+
+    # ------------------------------------------------------------------
     # Abandoned Resources
     # ------------------------------------------------------------------
 

@@ -121,15 +121,18 @@ def list_snapshots(
     account_id: Optional[str] = Query(None),
     anomaly: Optional[bool] = Query(None),
 ) -> Dict[str, Any]:
+    """List cost snapshots; falls back to AWS Cost Explorer.
+
+    Type-a #18 wiring: when the org has no recorded snapshots, the engine
+    falls back to AWS Cost Explorer (when AWS_ACCESS_KEY_ID/SECRET or
+    AWS_PROFILE is set and boto3 is installed). Returns a 5-state envelope
+    (org_registered / aws_cost_explorer / needs_credentials / needs_data /
+    connector_error). NEVER mocks.
+    """
     engine = _get_engine()
-    rows = engine.list_snapshots(org_id, account_id=account_id, anomaly=anomaly)
-    if not rows:
-        return {
-            "snapshots": [],
-            "total": 0,
-            "hint": "Cloud cost snapshots require AWS Cost Explorer or Azure Cost Management credentials. Record a snapshot manually via POST /api/v1/cloud-cost/snapshots once cloud billing credentials are configured.",
-        }
-    return {"snapshots": rows, "total": len(rows)}
+    return engine.list_snapshots_with_cost_explorer_fallback(
+        org_id, account_id=account_id, anomaly=anomaly,
+    )
 
 
 @router.post("/abandoned-resources", summary="Register abandoned resource", dependencies=[Depends(api_key_auth)])
