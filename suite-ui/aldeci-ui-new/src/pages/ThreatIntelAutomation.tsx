@@ -7,6 +7,7 @@
  *
  * Route: /threat-intel-automation
  * API: GET /api/v1/ti-automation/automations
+ *      GET /api/v1/ti-automation/stats
  */
 
 import { useState, useEffect } from "react";
@@ -17,40 +18,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+// ── Types ──────────────────────────────────────────────────────
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
-    ...opts,
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+interface AutomationRule {
+  id?: string;
+  name?: string;
+  trigger?: string;
+  trigger_type?: string;
+  action?: string;
+  action_type?: string;
+  last_run?: string;
+  last_triggered?: string;
+  status?: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_RULES = [
-  { id: "TIA-001", name: "Auto-block Malicious IPs",       trigger: "ioc_match",       action: "block_ip",          last_run: "2 min ago",  status: "active" },
-  { id: "TIA-002", name: "Enrich New CVEs via NVD",        trigger: "new_cve",         action: "enrich_nvd",        last_run: "15 min ago", status: "active" },
-  { id: "TIA-003", name: "Hash IOC Dedup Check",           trigger: "feed_ingest",     action: "dedup_sha256",      last_run: "5 min ago",  status: "active" },
-  { id: "TIA-004", name: "TLP:RED Report Notify CISO",     trigger: "tlp_red",         action: "notify_ciso",       last_run: "1 hr ago",   status: "active" },
-  { id: "TIA-005", name: "Phishing URL Sandbox Submit",    trigger: "phish_url",       action: "sandbox_submit",    last_run: "8 min ago",  status: "active" },
-  { id: "TIA-006", name: "Threat Actor Campaign Alert",    trigger: "actor_activity",  action: "create_incident",   last_run: "3 hr ago",   status: "paused" },
-  { id: "TIA-007", name: "KEV Exploit Auto-escalate",      trigger: "kev_added",       action: "escalate_priority", last_run: "22 min ago", status: "active" },
-  { id: "TIA-008", name: "Stale IOC Expiry Cleanup",       trigger: "schedule_daily",  action: "expire_iocs",       last_run: "6 hr ago",   status: "active" },
-];
-
-const MOCK_STATS = { total_rules: 8, active_rules: 7, triggers_today: 142, iocs_enriched: 3847 };
+interface TiStats {
+  total_rules?: number;
+  active_rules?: number;
+  triggers_today?: number;
+  iocs_enriched?: number;
+}
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -79,33 +73,54 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
+// ── Skeleton loader ────────────────────────────────────────────
+
+function TableSkeleton() {
+  return (
+    <div className="space-y-2 p-4">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Skeleton key={i} className="h-8 w-full rounded" />
+      ))}
+    </div>
+  );
+}
+
 // ── Component ──────────────────────────────────────────────────
 
 export default function ThreatIntelAutomation() {
+  const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [liveRules, setLiveRules]   = useState<any[] | null>(null);
-  const [liveStats, setLiveStats]   = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [rules, setRules] = useState<AutomationRule[]>([]);
+  const [stats, setStats] = useState<TiStats>({});
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
+
     Promise.allSettled([
-      apiFetch(`/api/v1/ti-automation/automations?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ti-automation/stats?org_id=${ORG_ID}`),
+      api.get("/api/v1/ti-automation/automations"),
+      api.get("/api/v1/ti-automation/stats"),
     ]).then(([rulesRes, statsRes]) => {
-      if (rulesRes.status === "fulfilled") setLiveRules(rulesRes.value?.automations ?? rulesRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
+      if (rulesRes.status === "fulfilled") {
+        const d = rulesRes.value.data;
+        setRules(Array.isArray(d) ? d : (d?.automations ?? d?.items ?? []));
+      } else {
+        setError("Failed to load automation rules.");
+      }
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value.data ?? {});
+      }
+      setLoading(false);
     });
-    setLoading(false);
-  }, []);
+  }, [refreshKey]);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
-
-  const rules = liveRules ?? MOCK_RULES;
-  const stats = liveStats ?? MOCK_STATS;
-
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setRefreshKey((k) => k + 1);
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
   return (
     <motion.div
@@ -118,7 +133,7 @@ export default function ThreatIntelAutomation() {
         title="Threat Intel Automation"
         description="Automated enrichment, IOC processing, and threat intelligence pipeline rules"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }
@@ -126,10 +141,10 @@ export default function ThreatIntelAutomation() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Rules"     value={stats.total_rules}    icon={ListChecks}    trend="flat" />
-        <KpiCard title="Active Rules"    value={stats.active_rules}   icon={CheckCircle2}  trend="up"   className="border-violet-500/20" />
-        <KpiCard title="Triggers Today"  value={stats.triggers_today} icon={Zap}           trend="up"   className="border-purple-500/20" />
-        <KpiCard title="IOCs Enriched"   value={stats.iocs_enriched}  icon={Activity}      trend="up"   className="border-violet-500/20" />
+        <KpiCard title="Total Rules"    value={stats.total_rules    ?? rules.length} icon={ListChecks}   trend="flat" />
+        <KpiCard title="Active Rules"   value={stats.active_rules   ?? rules.filter((r) => r.status === "active").length} icon={CheckCircle2} trend="up" className="border-violet-500/20" />
+        <KpiCard title="Triggers Today" value={stats.triggers_today ?? 0}            icon={Zap}          trend="up"   className="border-purple-500/20" />
+        <KpiCard title="IOCs Enriched"  value={stats.iocs_enriched  ?? 0}            icon={Activity}     trend="up"   className="border-violet-500/20" />
       </div>
 
       {/* Rules Table */}
@@ -144,32 +159,48 @@ export default function ThreatIntelAutomation() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">ID</TableHead>
-                  <TableHead className="text-[11px] h-8">Name</TableHead>
-                  <TableHead className="text-[11px] h-8">Trigger</TableHead>
-                  <TableHead className="text-[11px] h-8">Action</TableHead>
-                  <TableHead className="text-[11px] h-8">Last Run</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rules.map((rule: any, i: number) => (
-                  <TableRow key={rule.id ?? i} className="hover:bg-muted/30">
-                    <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{rule.id}</TableCell>
-                    <TableCell className="py-2 text-xs font-medium">{rule.name}</TableCell>
-                    <TableCell className="py-2"><TriggerBadge trigger={rule.trigger ?? rule.trigger_type ?? "unknown"} /></TableCell>
-                    <TableCell className="py-2"><ActionBadge action={rule.action ?? rule.action_type ?? "unknown"} /></TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{rule.last_run ?? rule.last_triggered ?? "—"}</TableCell>
-                    <TableCell className="py-2 text-right"><StatusBadge status={rule.status ?? "active"} /></TableCell>
+          {loading ? (
+            <TableSkeleton />
+          ) : error ? (
+            <EmptyState
+              icon={Zap}
+              title="Could not load automation rules"
+              description={error}
+            />
+          ) : rules.length === 0 ? (
+            <EmptyState
+              icon={ListChecks}
+              title="No automation rules yet"
+              description="Create your first automation rule to start processing threat intelligence automatically."
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">ID</TableHead>
+                    <TableHead className="text-[11px] h-8">Name</TableHead>
+                    <TableHead className="text-[11px] h-8">Trigger</TableHead>
+                    <TableHead className="text-[11px] h-8">Action</TableHead>
+                    <TableHead className="text-[11px] h-8">Last Run</TableHead>
+                    <TableHead className="text-[11px] h-8 text-right">Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {rules.map((rule, i) => (
+                    <TableRow key={rule.id ?? i} className="hover:bg-muted/30">
+                      <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{rule.id ?? "—"}</TableCell>
+                      <TableCell className="py-2 text-xs font-medium">{rule.name ?? "—"}</TableCell>
+                      <TableCell className="py-2"><TriggerBadge trigger={rule.trigger ?? rule.trigger_type ?? "unknown"} /></TableCell>
+                      <TableCell className="py-2"><ActionBadge action={rule.action ?? rule.action_type ?? "unknown"} /></TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">{rule.last_run ?? rule.last_triggered ?? "—"}</TableCell>
+                      <TableCell className="py-2 text-right"><StatusBadge status={rule.status ?? "active"} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
