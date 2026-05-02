@@ -244,7 +244,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 |-------|-------|--------------|
 | Backend engines | ~360 | `ls suite-core/core/*_engine.py \| wc -l` |
 | API routers | ~590 (post 2026-04-26 mega-wave) | `ls suite-api/apps/api/*_router.py \| wc -l` |
-| API routes mounted | **6770** (post 2026-05-03 dup-router cleanup — was 8792, **-2022 silent dups shaved** across 229/232 dup blocks closed; details in `docs/dead_router_sweep_2026-05-03.md` + HANDOFF §11-§17) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
+| API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved** across **232/232 dup blocks closed (100%)** + 27/47 suite-core silenced-imports fixed; details in `docs/dead_router_sweep_2026-05-03.md` + `docs/suite_core_silenced_imports_2026-05-03.md` + HANDOFF §11-§19) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
 | Frontend pages | **~330** (50 hubs landed 2026-05-02 — Phase 3 EXHAUSTED; ~140 source pages folded — TARGET: 25-40) | `ls suite-ui/aldeci-ui-new/src/pages/*.tsx \| wc -l` |
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
 | Beast Mode tests | **994+ passing (753 canonical 13-file + 152 session-added 26-file + 89 night-session new tests across BUG/FEATURE/empty-endpoints), zero regressions** (2026-05-03 night) + **42/42 hub smoke (`ba6bff1a`)** + **10/10 DoD E2E smoke (`scripts/dod_smoke.mjs`)** | `pytest tests/test_phase*.py ... -q` |
