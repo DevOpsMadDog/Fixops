@@ -17,7 +17,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -88,21 +88,42 @@ def create_segment(body: SegmentCreate, org_id: str = Query(default="default")):
 
 @router.get("/segments", dependencies=[Depends(api_key_auth)])
 def list_segments(
-     org_id: str = Query(default="default"),
+    org_id: str = Query(default="default"),
     segment_type: Optional[str] = Query(None),
     enforcement_mode: Optional[str] = Query(None),
-):
-    """List microsegments with optional filters."""
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> Dict[str, Any]:
+    """List microsegments (canonical envelope, batch-7).
+
+    Class-c contract: empty IS correct for fresh tenants — microsegmentation
+    policies are manually authored by network/security engineers, not
+    auto-derivable from any public source. Always returns full envelope with
+    pagination context + filters echo + actionable hint when empty.
+    """
     rows = _get_engine().list_segments(
         org_id, segment_type=segment_type, enforcement_mode=enforcement_mode
-    )
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope: Dict[str, Any] = {
+        "items": paged,
+        "segments": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "segment_type": segment_type,
+            "enforcement_mode": enforcement_mode,
+        },
+    }
     if not rows:
-        return {
-            "segments": [],
-            "total": 0,
-            "hint": "Define microsegmentation policies via POST /api/v1/microsegmentation/segments (manual policy authoring).",
-        }
-    return {"segments": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Define microsegmentation policies via POST /api/v1/microsegmentation/segments "
+            "(manual policy authoring). Empty IS the correct response for a fresh "
+            "tenant — no public source exists."
+        )
+    return envelope
 
 
 @router.get("/segments/{segment_id}", dependencies=[Depends(api_key_auth)])

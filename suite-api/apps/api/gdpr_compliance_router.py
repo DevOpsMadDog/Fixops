@@ -91,22 +91,45 @@ def record_processing_activity(body: ProcessingActivityReq, _auth=Depends(api_ke
 
 @router.get("/activities")
 def list_processing_activities(
-     org_id: str = Query(default="default"),
+    org_id: str = Query(default="default"),
     lawful_basis: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
+    """List GDPR processing activities (canonical envelope, batch-7).
+
+    Class-c contract: empty IS correct for fresh tenants — GDPR processing
+    activities (Art 30 RoPA records) are manually entered by privacy/DPO
+    teams, not auto-derivable from any public source. Always returns full
+    envelope with pagination context + filters echo + actionable hint when
+    empty.
+    """
     try:
         rows = _get_engine().list_processing_activities(
             org_id, lawful_basis=lawful_basis, status=status
-        )
+        ) or []
+        paged = rows[offset : offset + limit] if offset else rows[:limit]
+        envelope: Dict[str, Any] = {
+            "items": paged,
+            "activities": paged,  # legacy key preserved
+            "total": len(rows),
+            "org_id": org_id,
+            "limit": limit,
+            "offset": offset,
+            "filters_applied": {
+                "lawful_basis": lawful_basis,
+                "status": status,
+            },
+        }
         if not rows:
-            return {
-                "activities": [],
-                "total": 0,
-                "hint": "Record GDPR processing activities via POST /api/v1/gdpr/activities (manual data-mapping entry).",
-            }
-        return {"activities": rows, "total": len(rows)}
+            envelope["hint"] = (
+                "Record GDPR processing activities via POST /api/v1/gdpr/activities "
+                "(manual data-mapping entry). Empty IS the correct response for a "
+                "fresh tenant — no public source exists."
+            )
+        return envelope
     except Exception as exc:
         _logger.error("gdpr.list_activities error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))

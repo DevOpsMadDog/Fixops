@@ -1,7 +1,7 @@
 """Network Forensics API Router — ALDECI."""
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -73,17 +73,38 @@ async def create_capture(
 async def list_captures(
     org_id: str = Query(default="default"),
     status: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     auth=Depends(api_key_auth),
 ):
+    """List network forensics captures (canonical envelope, batch-7).
+
+    Class-c contract: empty IS correct for fresh tenants — packet captures are
+    manually started or triggered by detection events, not auto-derivable from
+    any public source. Always returns full envelope with pagination context +
+    filters echo + actionable hint when empty.
+    """
     try:
-        rows = _get_engine().list_captures(org_id=org_id, status=status)
+        rows = _get_engine().list_captures(org_id=org_id, status=status) or []
+        paged = rows[offset : offset + limit] if offset else rows[:limit]
+        envelope: Dict[str, Any] = {
+            "items": paged,
+            "captures": paged,  # legacy key preserved
+            "total": len(rows),
+            "org_id": org_id,
+            "limit": limit,
+            "offset": offset,
+            "filters_applied": {
+                "status": status,
+            },
+        }
         if not rows:
-            return {
-                "captures": [],
-                "total": 0,
-                "hint": "Packet captures are manual/triggered. Start one via POST /api/v1/network-forensics/captures.",
-            }
-        return {"captures": rows, "total": len(rows)}
+            envelope["hint"] = (
+                "Packet captures are manual/triggered. Start one via POST "
+                "/api/v1/network-forensics/captures. Empty IS the correct response "
+                "for a fresh tenant — no public source exists."
+            )
+        return envelope
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

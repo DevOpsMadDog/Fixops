@@ -170,18 +170,40 @@ def list_reports(
     org_id: str = Query("default", description="Organisation ID"),
     report_type: Optional[str] = Query(None, description="Filter by report type"),
     status: Optional[str] = Query(None, description="Filter by status"),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ) -> Dict[str, Any]:
+    """List posture reports (canonical envelope, batch-7).
+
+    Class-c contract: empty IS correct for fresh tenants — posture reports are
+    generated from compliance scans (executive/board/audit), not auto-derivable
+    from any public source. Always returns full envelope with pagination
+    context + filters echo + actionable hint when empty.
+    """
     try:
         rows = _get_engine().list_reports(
             org_id=org_id, report_type=report_type, status=status
-        )
+        ) or []
+        paged = rows[offset : offset + limit] if offset else rows[:limit]
+        envelope: Dict[str, Any] = {
+            "items": paged,
+            "reports": paged,  # legacy key preserved
+            "total": len(rows),
+            "org_id": org_id,
+            "limit": limit,
+            "offset": offset,
+            "filters_applied": {
+                "report_type": report_type,
+                "status": status,
+            },
+        }
         if not rows:
-            return {
-                "reports": [],
-                "total": 0,
-                "hint": "Trigger a posture scan via POST /api/v1/posture-reports/reports to generate a report.",
-            }
-        return {"reports": rows, "total": len(rows)}
+            envelope["hint"] = (
+                "Trigger a posture scan via POST /api/v1/posture-reports/reports "
+                "to generate a report. Empty IS the correct response for a fresh "
+                "tenant — no public source exists."
+            )
+        return envelope
     except Exception as exc:
         logger.exception("list_reports failed")
         raise HTTPException(status_code=500, detail=str(exc))

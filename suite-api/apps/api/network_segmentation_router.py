@@ -17,7 +17,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -83,18 +83,38 @@ def create_segment(body: SegmentCreate, org_id: str = Query(default="default")):
 
 @router.get("/segments", dependencies=[Depends(api_key_auth)])
 def list_segments(
-     org_id: str = Query(default="default"),
+    org_id: str = Query(default="default"),
     segment_type: Optional[str] = Query(None),
-):
-    """List segments with optional type filter."""
-    rows = _get_engine().list_segments(org_id, segment_type=segment_type)
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> Dict[str, Any]:
+    """List segments (canonical envelope, batch-7).
+
+    Class-c contract: empty IS correct for fresh tenants — network segments
+    are defined via manual network discovery or asset-import flows, not
+    auto-derivable from any public source. Always returns full envelope with
+    pagination context + filters echo + actionable hint when empty.
+    """
+    rows = _get_engine().list_segments(org_id, segment_type=segment_type) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope: Dict[str, Any] = {
+        "items": paged,
+        "segments": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "segment_type": segment_type,
+        },
+    }
     if not rows:
-        return {
-            "segments": [],
-            "total": 0,
-            "hint": "Define network segments via POST /api/v1/network-segmentation/segments (manual network discovery entry).",
-        }
-    return {"segments": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Define network segments via POST /api/v1/network-segmentation/segments "
+            "(manual network discovery entry). Empty IS the correct response for a "
+            "fresh tenant — no public source exists."
+        )
+    return envelope
 
 
 # ---------------------------------------------------------------------------

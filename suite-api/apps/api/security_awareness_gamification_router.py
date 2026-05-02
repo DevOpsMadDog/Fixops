@@ -16,7 +16,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -87,20 +87,43 @@ async def create_challenge(
 
 @router.get("/challenges")
 async def list_challenges(
-     org_id: str = Query(default="default"),
+    org_id: str = Query(default="default"),
     challenge_type: Optional[str] = Query(None),
     difficulty: Optional[str] = Query(None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     auth=Depends(api_key_auth),
-):
-    """List challenges with optional filters."""
-    rows = _get_engine().list_challenges(org_id, challenge_type=challenge_type, difficulty=difficulty)
+) -> Dict[str, Any]:
+    """List challenges (canonical envelope, batch-7).
+
+    Class-c contract: empty IS correct for fresh tenants — security awareness
+    challenges are manually authored by L&D/security teams, not auto-derivable
+    from any public source. Always returns full envelope with pagination
+    context + filters echo + actionable hint when empty.
+    """
+    rows = _get_engine().list_challenges(
+        org_id, challenge_type=challenge_type, difficulty=difficulty
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope: Dict[str, Any] = {
+        "items": paged,
+        "challenges": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "challenge_type": challenge_type,
+            "difficulty": difficulty,
+        },
+    }
     if not rows:
-        return {
-            "challenges": [],
-            "total": 0,
-            "hint": "Create security awareness challenges via POST /api/v1/awareness-gamification/challenges (manual content authoring).",
-        }
-    return {"challenges": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Create security awareness challenges via POST /api/v1/awareness-gamification/challenges "
+            "(manual content authoring). Empty IS the correct response for a fresh "
+            "tenant — no public source exists."
+        )
+    return envelope
 
 
 @router.post("/completions")

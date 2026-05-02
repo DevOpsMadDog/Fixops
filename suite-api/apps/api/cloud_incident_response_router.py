@@ -145,17 +145,39 @@ def list_incidents(
     org_id: str = Query(..., description="Organisation identifier"),
     status: Optional[str] = Query(default=None),
     cloud_provider: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ) -> Dict[str, Any]:
+    """List cloud IR incidents (canonical envelope, batch-7).
+
+    Class-c contract: empty IS correct for fresh tenants — cloud IR incidents
+    are triggered by detection events (CSPM/SIEM/runtime alerts), not derivable
+    from any public source. Always returns full envelope with pagination
+    context + filters echo + actionable hint when empty.
+    """
     rows = _get_engine().list_incidents(
         org_id=org_id, status=status, cloud_provider=cloud_provider
-    )
+    ) or []
+    paged = rows[offset : offset + limit] if offset else rows[:limit]
+    envelope: Dict[str, Any] = {
+        "items": paged,
+        "incidents": paged,  # legacy key preserved
+        "total": len(rows),
+        "org_id": org_id,
+        "limit": limit,
+        "offset": offset,
+        "filters_applied": {
+            "status": status,
+            "cloud_provider": cloud_provider,
+        },
+    }
     if not rows:
-        return {
-            "incidents": [],
-            "total": 0,
-            "hint": "Cloud IR incidents are triggered by detection events. Create one via POST /api/v1/cloud-ir/incidents.",
-        }
-    return {"incidents": rows, "total": len(rows)}
+        envelope["hint"] = (
+            "Cloud IR incidents are triggered by detection events (CSPM/SIEM/runtime "
+            "alerts). Create one via POST /api/v1/cloud-ir/incidents. Empty IS the "
+            "correct response for a fresh tenant — no public source exists."
+        )
+    return envelope
 
 
 @router.get("/incidents/{incident_id}", summary="Get a single incident with actions and playbooks")
