@@ -5800,22 +5800,10 @@ def create_app() -> FastAPI:
     # Risk Scoring — now mounted early via module-level import (see line ~3129); skip duplicate here.
 
     # Application Security (AppSec) — SAST/DAST scans, findings, OWASP tracking
-    # Endpoint Security / EDR — endpoint inventory, alerts, policies
-    try:
-        from apps.api.endpoint_security_router import router as endpoint_security_router
-        app.include_router(endpoint_security_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Endpoint Security (EDR) router at /api/v1/endpoint-security")
-    except Exception as e:
-        _logger.warning(f"Endpoint Security router not loaded: {e}")
+    # endpoint_security_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
 
-    # Email Security — DMARC/SPF/DKIM analysis, phishing detection, threat reporting
-    try:
-        from apps.api.email_security_router import router as email_security_router
-        app.include_router(email_security_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Email Security router at /api/v1/email-security")
-    except Exception as e:
-        _logger.warning(f"Email Security router not loaded: {e}")
+    # email_security_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
     # GRC Engine — frameworks, controls, risks, assessments (/api/v1/grc)
     try:
@@ -5844,21 +5832,10 @@ def create_app() -> FastAPI:
     # SOAR — playbook automation (duplicate removed — mounted earlier via module-level import)
     # soar_router already mounted at line ~2710 via module-level import
 
-    # Threat Correlation Engine — event ingestion, BFS correlation rules, alert lifecycle
-    try:
-        from apps.api.threat_correlation_router import router as threat_correlation_router
-        app.include_router(threat_correlation_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Threat Correlation router at /api/v1/threat-correlation")
-    except Exception as e:
-        _logger.warning(f"Threat Correlation router not loaded: {e}")
+    # threat_correlation_router (early mount) — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
+    # NOTE: a second mount of threat_correlation_router exists later in app.py and is intentionally retained for Wave-C-batch evaluation.
 
-    # Toxic-Combo (GAP-021) — Wiz-parity toxic-combination correlation
-    try:
-        from apps.api.toxic_combo_router import router as toxic_combo_router
-        app.include_router(toxic_combo_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Toxic-Combo router at /api/v1/toxic-combo")
-    except Exception as e:
-        _logger.warning(f"Toxic-Combo router not loaded: {e}")
+    # toxic_combo_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
     # Password Policy Engine — policies, evaluation, violations, audits
     try:
@@ -5869,13 +5846,7 @@ def create_app() -> FastAPI:
         _logger.warning(f"Password Policy router not loaded: {e}")
 
     # Mobile Security Engine — device MDM, threats, policies
-    # UBA — User Behavior Analytics, anomaly detection, risk scoring
-    try:
-        from apps.api.uba_router import router as uba_router
-        app.include_router(uba_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted UBA router at /api/v1/uba")
-    except Exception as e:
-        _logger.warning(f"UBA router not loaded: {e}")
+    # uba_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
     # cmdb_router — moved to platform_app.py (Wave 5)
 
@@ -5907,21 +5878,9 @@ def create_app() -> FastAPI:
 
     # risk_quantification_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    # Digital forensics — case management, evidence, chain of custody, analysis results
-    try:
-        from apps.api.digital_forensics_router import router as digital_forensics_router
-        app.include_router(digital_forensics_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Digital Forensics router at /api/v1/digital-forensics")
-    except Exception as e:
-        _logger.warning(f"Digital Forensics router not loaded: {e}")
+    # digital_forensics_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
-    # Threat feed aggregator — IOC feeds, APT campaigns, search
-    try:
-        from apps.api.threat_feed_aggregator_router import router as threat_feed_aggregator_router
-        app.include_router(threat_feed_aggregator_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Threat Feed Aggregator router at /api/v1/threat-feeds")
-    except Exception as e:
-        _logger.warning(f"Threat Feed Aggregator router not loaded: {e}")
+    # threat_feed_aggregator_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
     # security_roadmap_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
@@ -5929,13 +5888,7 @@ def create_app() -> FastAPI:
 
     # compliance_scanner_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
-    # Asset Risk Calculator — weighted composite risk scoring per asset
-    try:
-        from apps.api.asset_risk_calculator_router import router as asset_risk_calculator_router
-        app.include_router(asset_risk_calculator_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Asset Risk Calculator router at /api/v1/asset-risk")
-    except Exception as e:
-        _logger.warning(f"Asset Risk Calculator router not loaded: {e}")
+    # asset_risk_calculator_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
     # security_health_router — moved to platform_app.py (Wave 5)
 
@@ -6018,29 +5971,11 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Multi-CSP router not loaded: {e}")
 
-    # XDR Correlation Engine — cross-domain signal ingestion, incident correlation, rules
-    try:
-        from apps.api.xdr_router import router as xdr_router
-        app.include_router(xdr_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted XDR Correlation Engine router at /api/v1/xdr")
-    except Exception as e:
-        _logger.warning(f"XDR Correlation Engine router not loaded: {e}")
+    # xdr_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
-    # EDR Engine — process telemetry, auto-detection heuristics, endpoint isolation
-    try:
-        from apps.api.edr_router import router as edr_router
-        app.include_router(edr_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted EDR Engine router at /api/v1/edr")
-    except Exception as e:
-        _logger.warning(f"EDR Engine router not loaded: {e}")
+    # edr_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
-    # EDR/XDR Connector — Falco + osquery + Wazuh ingest, mirror to findings + correlation
-    try:
-        from apps.api.edr_connector_router import router as edr_connector_router
-        app.include_router(edr_connector_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted EDR/XDR Connector router at /api/v1/connectors/edr")
-    except Exception as e:
-        _logger.warning(f"EDR/XDR Connector router not loaded: {e}")
+    # edr_connector_router — moved to ctem_app.py (Wave-C-pilot 2026-05-03)
 
     # CrowdStrike Falcon Connector — REAL Falcon Detection.Created format parser
     # Closes 1 of 11 substitute-only gaps from gap-matrix-2026-04-26.md
