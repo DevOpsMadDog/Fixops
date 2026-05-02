@@ -5403,12 +5403,7 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Breach Simulation Engine
     # -----------------------------------------------------------------------
-    try:
-        from apps.api.breach_simulation_router import router as _breach_sim_router
-        app.include_router(_breach_sim_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Loaded Breach Simulation router")
-    except ImportError as _e:
-        _logger.warning("Breach Simulation router not available: %s", _e)
+    # breach_simulation_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # -----------------------------------------------------------------------
     # Phishing Simulation Engine — employee security awareness testing
@@ -5996,11 +5991,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.ctem_router import router as ctem_router
-        app.include_router(ctem_router)
-    except ImportError:
-        pass
+    # ctem_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # security_champions_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
@@ -6022,23 +6013,13 @@ def create_app() -> FastAPI:
 
     # security_playbook_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.attack_simulation_router import router as attack_simulation_router
-        app.include_router(attack_simulation_router)
-        _logger.info("Mounted Attack Simulation router at /api/v1/attack-sim")
-    except ImportError:
-        pass
+    # attack_simulation_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # compliance_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # scheduled_reports_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.ai_security_advisor_router import router as ai_security_advisor_router
-        app.include_router(ai_security_advisor_router)
-        _logger.info("Mounted AI Security Advisor router at /api/v1/ai-advisor")
-    except ImportError:
-        pass
+    # ai_security_advisor_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # nl_graph_router — moved to platform_app.py (Wave 5)
 
@@ -6049,19 +6030,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.asset_criticality_router import router as asset_criticality_router
-        app.include_router(asset_criticality_router)
-        _logger.info("Mounted Asset Criticality router at /api/v1/asset-criticality")
-    except ImportError:
-        pass
+    # asset_criticality_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.blast_radius_router import router as blast_radius_router
-        app.include_router(blast_radius_router)
-        _logger.info("Mounted Blast Radius router at /api/v1/blast-radius")
-    except ImportError:
-        pass
+    # blast_radius_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
 
@@ -6085,11 +6056,7 @@ def create_app() -> FastAPI:
 
     # security_maturity_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
-    try:
-        from apps.api.threat_correlation_router import router as threat_correlation_router
-        app.include_router(threat_correlation_router)
-    except ImportError:
-        pass
+    # threat_correlation_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03 — auth-bypass closure: app.py mount was unauthenticated; ctem_app.py L287-292 enforces _verify_api_key)
 
     # privacy_gdpr_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
@@ -6104,12 +6071,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.attack_surface_mgmt_router import router as attack_surface_mgmt_router
-        app.include_router(attack_surface_mgmt_router)
-        _logger.info("Mounted Attack Surface Management router at /api/v1/asm")
-    except ImportError:
-        pass
+    # attack_surface_mgmt_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # cloud_compliance_router — moved to grc_app.py (Wave-B-batch-2 2026-05-03)
 
@@ -6217,12 +6179,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.ddos_protection_router import router as ddos_protection_router
-        app.include_router(ddos_protection_router)
-        _logger.info("Mounted DDoS Protection router at /api/v1/ddos-protection")
-    except ImportError:
-        pass
+    # ddos_protection_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # alerting_notification_router — moved to platform_app.py (Wave 5)
 
@@ -6262,19 +6219,9 @@ def create_app() -> FastAPI:
     # log_management_router — moved to platform_app.py (Wave 5)
 
 
-    try:
-        from apps.api.email_filtering_router import router as email_filtering_router
-        app.include_router(email_filtering_router)
-        _logger.info("Mounted Email Filtering router at /api/v1/email-filtering")
-    except ImportError:
-        pass
+    # email_filtering_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.anti_phishing_router import router as anti_phishing_router
-        app.include_router(anti_phishing_router)
-        _logger.info("Mounted Anti-Phishing router at /api/v1/anti-phishing")
-    except ImportError:
-        pass
+    # anti_phishing_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     try:
         from apps.api.soc_workflow_router import router as soc_workflow_router
@@ -6306,19 +6253,9 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.breach_detection_router import router as breach_detection_router
-        app.include_router(breach_detection_router)
-        _logger.info("Mounted Breach Detection router at /api/v1/breach-detection")
-    except ImportError:
-        pass
+    # breach_detection_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.forensics_readiness_router import router as forensics_readiness_router
-        app.include_router(forensics_readiness_router)
-        _logger.info("Mounted Forensics Readiness router at /api/v1/forensics-readiness")
-    except ImportError:
-        pass
+    # forensics_readiness_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
     try:
@@ -6354,12 +6291,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.attack_chain_router import router as attack_chain_router
-        app.include_router(attack_chain_router)
-        _logger.info("Mounted Attack Chain router at /api/v1/attack-chains")
-    except ImportError:
-        pass
+    # attack_chain_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     try:
         from apps.api.threat_exposure_router import router as threat_exposure_router
@@ -6382,12 +6314,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.dark_web_monitoring_router import router as dark_web_monitoring_router
-        app.include_router(dark_web_monitoring_router)
-        _logger.info("Mounted Dark Web Monitoring router at /api/v1/dark-web")
-    except ImportError:
-        pass
+    # dark_web_monitoring_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
 
@@ -6436,19 +6363,9 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.ai_powered_soc_router import router as ai_powered_soc_router
-        app.include_router(ai_powered_soc_router)
-        _logger.info("Mounted AI-Powered SOC router at /api/v1/ai-soc")
-    except ImportError:
-        pass
+    # ai_powered_soc_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.deception_analytics_router import router as deception_analytics_router
-        app.include_router(deception_analytics_router)
-        _logger.info("Mounted Deception Analytics router at /api/v1/deception-analytics")
-    except ImportError:
-        pass
+    # deception_analytics_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # Wave 23 routers
     try:
@@ -6460,12 +6377,7 @@ def create_app() -> FastAPI:
 
     # security_metrics_aggregator_router — moved to platform_app.py (Wave 5)
 
-    try:
-        from apps.api.endpoint_threat_hunting_router import router as endpoint_threat_hunting_router
-        app.include_router(endpoint_threat_hunting_router)
-        _logger.info("Mounted Endpoint Threat Hunting router at /api/v1/endpoint-hunting")
-    except ImportError:
-        pass
+    # endpoint_threat_hunting_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
 
@@ -6545,28 +6457,13 @@ def create_app() -> FastAPI:
 
     # GAP-034 + GAP-035 — Universal ingest (field mapping + SIEM forwarding)
     # Wave 27 routers
-    try:
-        from apps.api.alert_triage_router import router as alert_triage_router
-        app.include_router(alert_triage_router)
-        _logger.info("Mounted Alert Triage router at /api/v1/alert-triage")
-    except ImportError:
-        pass
+    # alert_triage_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
 
-    try:
-        from apps.api.cyber_threat_intelligence_router import router as cyber_threat_intelligence_router
-        app.include_router(cyber_threat_intelligence_router)
-        _logger.info("Mounted Cyber Threat Intelligence router at /api/v1/cyber-threat-intel")
-    except ImportError:
-        pass
+    # cyber_threat_intelligence_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
-    try:
-        from apps.api.digital_twin_security_router import router as digital_twin_security_router
-        app.include_router(digital_twin_security_router)
-        _logger.info("Mounted Digital Twin Security router at /api/v1/digital-twin")
-    except ImportError:
-        pass
+    # digital_twin_security_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # Wave 28 routers
 
@@ -6613,12 +6510,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.incident_comms_router import router as incident_comms_router
-        app.include_router(incident_comms_router)
-        _logger.info("Mounted Incident Comms router at /api/v1/incident-comms")
-    except ImportError:
-        pass
+    # incident_comms_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     try:
         from apps.api.security_registry_router import router as security_registry_router
@@ -6667,12 +6559,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.incident_kb_router import router as incident_kb_router
-        app.include_router(incident_kb_router)
-        _logger.info("Mounted Incident KB router at /api/v1/incident-kb")
-    except ImportError:
-        pass
+    # incident_kb_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     # Wave 33 pre-wiring (engines pending creation)
 
@@ -6719,12 +6606,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.cyber_resilience_router import router as cyber_resilience_router
-        app.include_router(cyber_resilience_router)
-        _logger.info("Mounted Cyber Resilience router at /api/v1/cyber-resilience")
-    except ImportError:
-        pass
+    # cyber_resilience_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
     try:
@@ -6788,12 +6670,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.alert_enrichment_router import router as alert_enrichment_router
-        app.include_router(alert_enrichment_router)
-        _logger.info("Mounted Alert Enrichment router at /api/v1/alert-enrichment")
-    except ImportError:
-        pass
+    # alert_enrichment_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
     try:
@@ -6814,12 +6691,7 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.hunting_automation_router import router as hunting_automation_router
-        app.include_router(hunting_automation_router)
-        _logger.info("Mounted Hunting Automation router at /api/v1/hunting-automation")
-    except ImportError:
-        pass
+    # hunting_automation_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
 
@@ -6827,12 +6699,7 @@ def create_app() -> FastAPI:
 
     # GAP-028 FAIR per-BU + GAP-051 ROI-of-fixes trend
 
-    try:
-        from apps.api.cyber_threat_modeling_router import router as cyber_threat_modeling_router
-        app.include_router(cyber_threat_modeling_router)
-        _logger.info("Mounted Cyber Threat Modeling router at /api/v1/cyber-threat-models")
-    except ImportError:
-        pass
+    # cyber_threat_modeling_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
 
@@ -6874,12 +6741,7 @@ def create_app() -> FastAPI:
         pass
 
 
-    try:
-        from apps.api.cloud_incident_response_router import router as cloud_incident_response_router
-        app.include_router(cloud_incident_response_router)
-        _logger.info("Mounted Cloud Incident Response router at /api/v1/cloud-ir")
-    except ImportError:
-        pass
+    # cloud_incident_response_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
 
     # GAP-065 — architecture-aware graph (layer classifier + flow tracer)
@@ -6894,12 +6756,7 @@ def create_app() -> FastAPI:
         pass
 
     # GAP-026 — Choke-point analyzer (max-flow min-cut on attack graph)
-    try:
-        from apps.api.choke_point_router import router as choke_point_router
-        app.include_router(choke_point_router)
-        _logger.info("Mounted Choke Point router at /api/v1/choke-point")
-    except ImportError as _cp_err:
-        _logger.warning("Choke Point router not available: %s", _cp_err)
+    # choke_point_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     try:
         from apps.api.ransomware_protection_router import router as ransomware_protection_router
@@ -6952,12 +6809,7 @@ def create_app() -> FastAPI:
 
 
 
-    try:
-        from apps.api.ctem_engine_router import router as ctem_engine_router
-        app.include_router(ctem_engine_router)
-        _logger.info("Mounted CTEM Engine router at /api/v1/ctem")
-    except ImportError:
-        pass
+    # ctem_engine_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
     try:
         from apps.api.executive_dashboard_router import router as executive_dashboard_router
