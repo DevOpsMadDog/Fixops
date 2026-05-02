@@ -333,13 +333,15 @@ class ExecutiveReportGenerator:
         return []
 
     def _get_compliance_controls(self, framework: str) -> List[Dict[str, Any]]:
-        """Return compliance controls for a framework (safe default if not available)."""
-        try:
-            from core.compliance_engine import ComplianceEngine  # type: ignore
-            engine = ComplianceEngine()
-            return engine.get_controls(framework) or []
-        except Exception:
-            pass
+        """Return compliance controls for a framework (safe default if not available).
+
+        NOTE: legacy ``core.compliance_engine.ComplianceEngine`` was renamed to
+        ``ComplianceAutomationEngine`` and no longer exposes ``.get_controls``
+        (canonical accessors are ``get_framework_status``/``get_overall_status``
+        which return Pydantic models, not control-id lists). 2026-05-03
+        silenced-imports audit. Falling through to safe defaults until a
+        framework→controls list helper is re-exposed.
+        """
         # Safe defaults
         defaults = {
             "SOC2": ["CC1.1", "CC2.2", "CC6.1", "CC7.2", "CC9.1"],

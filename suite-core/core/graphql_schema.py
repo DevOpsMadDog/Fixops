@@ -562,18 +562,19 @@ def resolve_incidents(args: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     results: List[Dict[str, Any]] = []
 
-    try:
-        from core.incident_response import get_incident_manager
-        mgr = get_incident_manager()
-        incidents = mgr.list_incidents(org_id=org_id or "default")
-        results = [_serialize_incident(i) for i in incidents]
-    except Exception as exc:
-        logger.warning("incident_manager unavailable", error=str(exc))
-        # Fallback to local store
-        for i in _incidents_store.values():
-            if org_id and i.get("org_id", "default") != org_id:
-                continue
-            results.append(_serialize_incident(i))
+    # REMOVED — ``core.incident_response.get_incident_manager`` factory does
+    # not exist; the module exposes ``IncidentResponseManager`` (class) only.
+    # 2026-05-03 silenced-imports audit. Always use the local-store fallback
+    # below until a canonical ``get_incident_manager`` factory is added or
+    # callers are switched to the class directly.
+    logger.debug(
+        "incident_manager_factory_unavailable",
+        reason="get_incident_manager removed; using local _incidents_store",
+    )
+    for i in _incidents_store.values():
+        if org_id and i.get("org_id", "default") != org_id:
+            continue
+        results.append(_serialize_incident(i))
 
     if incident_type:
         results = [r for r in results if r["incident_type"] == incident_type]
@@ -586,14 +587,24 @@ def resolve_incidents(args: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def resolve_compliance_status(args: Dict[str, Any]) -> Dict[str, Any]:
-    """Return compliance status for an org + framework."""
+    """Return compliance status for an org + framework.
+
+    NOTE: ``core.compliance_automation.get_compliance_automation`` factory
+    was removed in 2026-05-03 silenced-imports audit; the module exposes
+    ``ComplianceAutomation`` class directly. Until a canonical factory lands
+    callers go through the class without the factory wrapper.
+    """
     org_id = args.get("org_id", "default")
     framework = args.get("framework", "SOC2")
 
     try:
-        from core.compliance_automation import get_compliance_automation
-        engine = get_compliance_automation()
-        status = engine.get_framework_status(org_id=org_id, framework=framework)
+        from core.compliance_automation import ComplianceAutomation
+        engine = ComplianceAutomation()
+        status = (
+            engine.get_framework_status(org_id=org_id, framework=framework)
+            if hasattr(engine, "get_framework_status")
+            else None
+        )
         if status:
             controls = []
             for c in status.get("controls", []):
@@ -869,25 +880,16 @@ def resolve_create_incident(args: Dict[str, Any]) -> Dict[str, Any]:
         "updated_at": now,
     }
 
-    # Try real incident manager
+    # REMOVED — ``core.incident_response.{get_incident_manager,IncidentCreate}``
+    # do not exist. The module exposes ``IncidentResponseManager`` (class) and
+    # ``Incident`` Pydantic model only. 2026-05-03 silenced-imports audit.
+    # Persist to local store until callers are rewired to the class directly.
     created = False
-    try:
-        from core.incident_response import get_incident_manager, IncidentCreate
-        mgr = get_incident_manager()
-        req = IncidentCreate(
-            title=title,
-            incident_type=incident_type,
-            severity=severity,
-            org_id=org_id,
-            description=description,
-            affected_assets=affected_assets,
-        )
-        created_incident = mgr.create_incident(req)
-        incident_id = str(getattr(created_incident, "id", incident_id))
-        created = True
-    except Exception as exc:
-        logger.warning("incident_manager create failed, using local store", error=str(exc))
-        _incidents_store[incident_id] = record
+    logger.debug(
+        "incident_manager_create_unavailable",
+        reason="get_incident_manager/IncidentCreate removed; using local store",
+    )
+    _incidents_store[incident_id] = record
 
     return {
         "incident_id": incident_id,
@@ -907,8 +909,12 @@ def resolve_update_compliance(args: Dict[str, Any]) -> Dict[str, Any]:
     now = _now_iso()
 
     try:
-        from core.compliance_automation import get_compliance_automation
-        engine = get_compliance_automation()
+        # NOTE: ``get_compliance_automation`` factory was removed in 2026-05-03
+        # silenced-imports audit; instantiate ``ComplianceAutomation`` class
+        # directly. Wrapped in try/except so the resolver still degrades
+        # gracefully if ``update_control_status`` is not exposed.
+        from core.compliance_automation import ComplianceAutomation
+        engine = ComplianceAutomation()
         if hasattr(engine, "update_control_status"):
             engine.update_control_status(
                 org_id=org_id,

@@ -266,15 +266,17 @@ def _register_tasks(app: Any) -> None:
         Returns:
             MicroPenTest result dict.
         """
-        try:
-            from core.micro_pentest import MicroPentestEngine
-
-            engine = MicroPentestEngine()
-            result = engine.scan(target=target_url, org_id=org_id)
-            return result if isinstance(result, dict) else {"result": str(result)}
-        except ImportError as exc:
-            logger.exception("mpte_scan task failed (target=%s): %s", target_url, exc)
-            raise self.retry(exc=exc)
+        # REMOVED — ``core.micro_pentest.MicroPentestEngine`` no longer exists
+        # (2026-05-03 silenced-imports audit). The module exposes
+        # ``MicroPentestConfig``/``Result``/``Status`` + functional helpers,
+        # not an Engine class. Celery branch raises ImportError so callers
+        # receive an honest error instead of the broad-Exception silent miss.
+        exc = ImportError(
+            "core.micro_pentest.MicroPentestEngine no longer exists "
+            "(2026-05-03 audit). Wire to MPTE router or reintroduce engine class."
+        )
+        logger.exception("mpte_scan task failed (target=%s): %s", target_url, exc)
+        raise self.retry(exc=exc)
 
     # Expose on app so callers can access via _get_celery_app().tasks[name]
     app.brain_run_pipeline = brain_run_pipeline
@@ -436,17 +438,17 @@ def _run_sync_mpte_scan(task_id: str, target_url: str, org_id: str) -> TaskResul
     logger.info("mpte_scan running synchronously: task_id=%s target=%s", task_id, target_url)
     tr = TaskResult(task_id=task_id, status=TaskStatus.STARTED, celery_backed=False)
     _store_sync_result(tr)
-    try:
-        from core.micro_pentest import MicroPentestEngine
-
-        engine = MicroPentestEngine()
-        result = engine.scan(target=target_url, org_id=org_id)
-        tr.result = result if isinstance(result, dict) else {"result": str(result)}
-        tr.status = TaskStatus.SUCCESS
-    except ImportError as exc:
-        logger.exception("Sync mpte_scan failed (target=%s): %s", target_url, exc)
-        tr.status = TaskStatus.FAILURE
-        tr.error = str(exc)
+    # REMOVED — ``core.micro_pentest.MicroPentestEngine`` no longer exists
+    # (2026-05-03 silenced-imports audit). Sync path now reports a structured
+    # FAILURE with the canonical reason instead of pretending an Engine
+    # import will succeed.
+    exc = ImportError(
+        "core.micro_pentest.MicroPentestEngine no longer exists (2026-05-03 audit)"
+    )
+    logger.exception("Sync mpte_scan failed (target=%s): %s", target_url, exc)
+    tr.status = TaskStatus.FAILURE
+    tr.error = str(exc)
+    _ = org_id  # signature preserved for downstream callers
     _store_sync_result(tr)
     return tr
 

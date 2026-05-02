@@ -650,23 +650,14 @@ class PipelineOrchestrator:
         """
         metrics = {"finding": finding}
 
-        # Try real risk scoring engine first
+        # REMOVED — ``risk.forecasting.compute_exploit_probability`` no longer
+        # exists; canonical API is ``compute_forecast(enrichment_map, config)``
+        # which takes ``Dict[str, EnrichmentEvidence]`` instead of per-CVE
+        # scalars. A 1-line rename is insufficient (signature mismatch).
+        # 2026-05-03 silenced-imports audit. Fall through to basic scoring;
+        # rewire to ``compute_forecast`` once a per-finding EnrichmentEvidence
+        # builder is available on this orchestrator.
         scored_real = False
-        try:
-            from risk.forecasting import compute_exploit_probability
-
-            cve_meta = finding.get("_cve_metadata", {})
-            risk_score = compute_exploit_probability(
-                cvss_score=cve_meta.get("cvss_score"),
-                epss_score=cve_meta.get("epss_score"),
-                in_kev=cve_meta.get("is_in_kev", False),
-                cwes=cve_meta.get("cwes", []),
-            )
-            finding["_risk_score"] = round(risk_score * 100, 2)
-            metrics["scoring_method"] = "bayesian_forecast"
-            scored_real = True
-        except (ImportError, TypeError, AttributeError):
-            pass  # Fall through to basic scoring
 
         if not scored_real:
             severity_score = finding.get("_severity_score", 0)

@@ -494,19 +494,13 @@ def _generate_vulnerability_digest(org_id: str, filters: Dict[str, Any]) -> Dict
     open_count = 0
     high_epss_items: List[Dict[str, Any]] = []
 
-    try:
-        import sys
-        sys.path.insert(0, "suite-core")
-        from core.cve_enrichment import CVEEnrichmentEngine
-        engine = CVEEnrichmentEngine()
-        recent = engine.get_recent_cves(org_id=org_id, days=7)
-        new_cves = recent[:10] if recent else []
-        high_epss_items = [
-            c for c in (recent or []) if c.get("epss_score", 0) > 0.7
-        ][:5]
-    except Exception:
-        pass
-
+    # REMOVED — ``core.cve_enrichment.CVEEnrichmentEngine`` was renamed to
+    # ``CVEEnrichmentService`` and no longer exposes ``.get_recent_cves`` (the
+    # service surface is ``get_severity``/``get_top_epss``/``get_cache_stats``,
+    # none of which return per-org recent CVE lists). 2026-05-03 silenced-
+    # imports audit. Returning empty lists honestly until a recent-CVEs
+    # accessor lands on the canonical service.
+    _ = org_id  # signature preserved
     return {
         "new_cves_this_week": new_cves,
         "patched_count": patched_count,
@@ -521,17 +515,13 @@ def _generate_compliance_status(org_id: str, filters: Dict[str, Any]) -> Dict[st
     frameworks: List[Dict[str, Any]] = []
     overall_score = 0.0
 
-    try:
-        import sys
-        sys.path.insert(0, "suite-core")
-        from core.compliance_engine import ComplianceEngine
-        engine = ComplianceEngine()
-        status = engine.get_compliance_status(org_id=org_id)
-        frameworks = status.get("frameworks", [])
-        overall_score = status.get("overall_score", 0.0)
-    except Exception:
-        pass
-
+    # REMOVED — ``core.compliance_engine.ComplianceEngine`` was renamed to
+    # ``ComplianceAutomationEngine`` and no longer exposes
+    # ``.get_compliance_status`` (canonical is ``get_overall_status()`` which
+    # takes no org_id and returns a Pydantic model). 2026-05-03 silenced-
+    # imports audit. Returning empty envelope honestly until a per-org
+    # compliance-status accessor lands on the canonical engine.
+    _ = org_id  # signature preserved
     return {
         "frameworks": frameworks,
         "overall_score": overall_score,

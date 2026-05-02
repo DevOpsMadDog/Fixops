@@ -419,32 +419,16 @@ class AWSSecurityHubClient:
         if not findings:
             return []
 
-        try:
-            import json
-            from core.scanner_parsers import SecurityHubNormalizer
-            normalizer = SecurityHubNormalizer()
-            raw_bytes = json.dumps({"findings": findings}).encode()
-            findings_raw = normalizer.normalize(raw_bytes)
-            result: List[Dict[str, Any]] = []
-            for f in findings_raw:
-                if isinstance(f, dict):
-                    result.append(f)
-                elif hasattr(f, "model_dump"):
-                    result.append(f.model_dump())
-                elif hasattr(f, "__dict__"):
-                    result.append(
-                        {k: v for k, v in f.__dict__.items()
-                         if not k.startswith("_")}
-                    )
-                else:
-                    result.append({"raw": str(f)})
-            return result
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "SecurityHubNormalizer unavailable (%s) — using inline "
-                "normalization", exc,
-            )
-            return self._inline_normalize_asff(findings)
+        # REMOVED — ``core.scanner_parsers.SecurityHubNormalizer`` does not
+        # exist (the module exposes 33 vendor normalizers but no AWS Security
+        # Hub one). 2026-05-03 silenced-imports audit. Always use the inline
+        # normalizer below; rewire to a real ``AWSSecurityHubNormalizer``
+        # if/when one is added to scanner_parsers.
+        logger.debug(
+            "SecurityHubNormalizer not implemented in scanner_parsers — "
+            "using inline AWS Security Hub normalization (audit 2026-05-03)"
+        )
+        return self._inline_normalize_asff(findings)
 
     def _inline_normalize_asff(
         self, findings: List[Dict[str, Any]]

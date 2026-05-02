@@ -954,15 +954,16 @@ def _check_rbac_config() -> Tuple[bool, str, Dict[str, Any]]:
 
 
 def _check_scan_results() -> Tuple[bool, str, Dict[str, Any]]:
-    """Check scan results from ALDECI scanner parsers."""
-    try:
-        from core.scanner_parsers import get_latest_summary  # type: ignore
-        summary = get_latest_summary()
-        critical = summary.get("critical", 0)
-        passing = critical == 0
-        return passing, "scan_check", summary
-    except Exception:
-        return True, "scan_check", {"total_findings": 0, "critical": 0, "source": "simulated"}
+    """Check scan results from ALDECI scanner parsers.
+
+    NOTE: ``core.scanner_parsers.get_latest_summary`` was removed in the
+    2026-05-03 silenced-imports audit (no canonical helper exists; the module
+    only exposes per-vendor Normalizer classes). Returning the same
+    simulated-fallback envelope that the previous ``except Exception`` arm
+    already produced. Replace this with a real summary helper if scanner
+    parser results need to drive compliance verdicts.
+    """
+    return True, "scan_check", {"total_findings": 0, "critical": 0, "source": "simulated"}
 
 
 def _check_encryption_settings() -> Tuple[bool, str, Dict[str, Any]]:

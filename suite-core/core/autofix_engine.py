@@ -1281,22 +1281,16 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
             return result
 
         try:
-            from core.material_change_detector import get_velocity_tracker, get_detector
+            # REMOVED — ``get_velocity_tracker`` / ``get_detector`` factories
+            # never existed on ``core.material_change_detector``; the canonical
+            # API is the ``MaterialChangeDetector`` class directly (and the
+            # ``PushEventAnalyzer`` push-event surface). 2026-05-03 audit.
+            # Use the class directly so AutoFix still gets diff-analysis
+            # context (velocity-tracker surface not yet exposed).
+            from core.material_change_detector import MaterialChangeDetector
 
-            # Check velocity for the repo (is code churning fast?)
-            if repo:
-                tracker = get_velocity_tracker()
-                snapshot = tracker.snapshot(repo, window_days=7)
-                if hasattr(snapshot, "velocity") and snapshot.velocity > 0:
-                    result["change_velocity"] = (
-                        "high" if snapshot.velocity > 10
-                        else "elevated" if snapshot.velocity > 5
-                        else "normal"
-                    )
-                    result["recently_changed"] = snapshot.velocity > 5
-
-            # Check if this specific file has had recent material changes
-            detector = get_detector()
+            detector = MaterialChangeDetector()
+            _ = repo  # velocity tracker not yet wired; preserve variable
             # Use git_diff from finding metadata if available
             diff_text = finding.get("metadata", {}).get("git_diff", "")
             if diff_text:

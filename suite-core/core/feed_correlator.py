@@ -289,31 +289,30 @@ def _lookup_exploitdb(cve_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _lookup_abuseipdb(cve_id: str) -> Optional[Dict[str, Any]]:
-    """AbuseIPDB is IP-reputation focused — no native CVE→IP join exists yet."""
-    try:
-        from feeds.abuseipdb.importer import get_by_cve  # type: ignore[import-not-found]
-    except ImportError:
-        return None
-    try:
-        return get_by_cve(cve_id)
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("feed_correlator: abuseipdb lookup failed: %s", exc)
-        return None
+    """AbuseIPDB is IP-reputation focused — no native CVE→IP join exists yet.
+
+    REMOVED — ``feeds.abuseipdb.importer.get_by_cve`` was never implemented;
+    the importer only exposes IP-keyed lookups (``check_ip``/``list_ips``).
+    2026-05-03 silenced-imports audit confirmed the symbol does not exist.
+    Returns ``None`` honestly until a CVE→IP join is built.
+    """
+    _ = cve_id  # signature preserved for caller compatibility
+    return None
 
 
 def _lookup_otx(cve_id: str) -> Optional[Dict[str, Any]]:
-    """Return AlienVault OTX pulse + ATT&CK technique map for *cve_id*."""
-    try:
-        from feeds.otx.importer import get_by_cve  # type: ignore[import-not-found]
-    except ImportError:
-        return None
-    try:
-        record = get_by_cve(cve_id)
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("feed_correlator: otx lookup failed: %s", exc)
-        return None
-    if not record:
-        return None
+    """Return AlienVault OTX pulse + ATT&CK technique map for *cve_id*.
+
+    REMOVED — ``feeds.otx.importer.get_by_cve`` was never implemented; the
+    importer only exposes pulse-keyed lookups (``list_pulses``,
+    ``list_indicators``). 2026-05-03 silenced-imports audit confirmed the
+    symbol does not exist. Returns ``None`` honestly until a CVE→pulse join
+    is built.
+    """
+    _ = cve_id  # signature preserved for caller compatibility
+    return None
+    # Unreachable — kept to preserve the legacy return-shape documentation:
+    record: Dict[str, Any] = {}
     return {
         "cve_id": cve_id,
         "pulse_count": int(record.get("pulse_count") or 0),
