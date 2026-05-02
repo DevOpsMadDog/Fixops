@@ -791,13 +791,6 @@ def register_platform_routers(
         _logger.warning("tag_router not available: %s", exc)
 
     try:
-        from apps.api.feature_flag_router import router as feature_flag_router  # noqa: PLC0415
-        app.include_router(feature_flag_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Feature Flag router")
-    except ImportError as exc:
-        _logger.warning("feature_flag_router not available: %s", exc)
-
-    try:
         from apps.api.log_management_router import router as log_management_router  # noqa: PLC0415
         app.include_router(log_management_router)
         _logger.info("Mounted Log Management router at /api/v1/log-management")
