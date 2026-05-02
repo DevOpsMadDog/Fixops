@@ -139,14 +139,34 @@ else:
 
 
 def configure(service_name: str = "fixops-platform") -> None:
-    """Configure global tracer and meter providers if not already set."""
+    """Configure global tracer and meter providers if not already set.
+
+    No-ops unless ``OTEL_EXPORTER_OTLP_ENDPOINT`` is explicitly set. This
+    avoids 5-8s of DNS-retry exp-backoff against the literal default
+    ``collector:4318`` host on every cold start (perf audit R2,
+    docs/perf_audit_app_py_2026-05-03.md).
+
+    Production deployments must set ``OTEL_EXPORTER_OTLP_ENDPOINT`` to
+    re-enable OTLP export.
+    """
 
     global _CONFIGURED
     if _CONFIGURED or os.getenv("FIXOPS_DISABLE_TELEMETRY") == "1" or _NOOP:
         return
 
+    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
+    if not endpoint:
+        # Skip OTLP wiring entirely — no exporter, no DNS retries, no
+        # "Failed to export span batch" log noise. Mark configured so
+        # repeat calls (get_tracer/get_meter) are zero-cost.
+        logger.info(
+            "telemetry.skipped service=%s reason=OTEL_EXPORTER_OTLP_ENDPOINT_unset",
+            service_name,
+        )
+        _CONFIGURED = True
+        return
+
     try:
-        endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://collector:4318")
         traces_endpoint = endpoint.rstrip("/")
         if not traces_endpoint.endswith("v1/traces"):
             traces_endpoint = f"{traces_endpoint}/v1/traces"
