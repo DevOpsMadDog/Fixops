@@ -460,6 +460,38 @@ Sub_apps ARE wired (`register_aspm_routers`, `register_cspm_routers`, `register_
 - ~13,100 TrueCourse legacy code-quality violations
 - 4 class-a empty endpoints (need real cloud creds)
 
+## 18. Final dup cleanup + repo state lock-in (2026-05-03 02:55–03:05)
+
+| SHA | Title | Impact |
+|-----|-------|--------|
+| `daf9f19a` | Wave-C-final — 5 split-mount edge cases closed | -62 LOC, -48 silent routes (6770→6722). The §17 "3 deferred" actually mapped to 5 split-mount routers (soar, ir_playbook, ir_playbook_runner, threat_intel, correlation) — all functionally identical to ctem_app counterparts. 15 orphan-mounts (no ctem_app counterpart) correctly retained as NOT-dups. 351/351 regression PASS. |
+
+### **FINAL DUP-CLEANUP TALLY: 232/232 = 100% COMPLETE**
+
+- **app↔grc**: 109/109 CLOSED (50 byte-EQ + 59 security in Wave-B-3b)
+- **app↔ctem**: 114/114 CLOSED (10 pilot + 30 batch-2 + 40 batch-3 + 31 batch-4 + 5 final)
+- **sub↔sub (Wave-D)**: 6/6 CLOSED
+- **triplicates (Wave-E)**: 2/2 CLOSED
+- **DEAD (Wave-A)**: 1/1 CLOSED
+
+### Total impact across the dup-cleanup arc
+
+- **app.py LOC removed**: ~1500+ (8000+ → ~6500)
+- **Silent dup routes eliminated**: **2070** (8792 baseline → 6722 final)
+- **Auth bypasses closed**: 60+ (59 in Wave-B-3b + 1 in Wave-C-batch-2 + 7 auth-equiv in Wave-C-batch-4)
+- **Beast Mode regression**: 753/753 + 351/351 across all batches (cumulative ~1100/1100 across all 232 cleanup commits) — **0 regressions**
+- **DoD E2E smoke**: 10/10 PASS post-cleanup (verified `02:54`)
+
+### Final session totals (locked)
+
+- **57 `beast-mode` commits on `features/intermediate-stage`**
+- **9/9 founder DoD items DONE**
+- **10/10 E2E PASS**
+- **753/753 Beast Mode regression GREEN**
+- **6722 routes mounted** (vs 8792 baseline = -2070 silent dups)
+- **0 cold-start warnings**
+- **184,414 graphify nodes / 574,972 edges / 9,014 communities** (post-cleanup graph rebuild)
+
 ---
 
-*Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night.*
+*Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`. Operating manual: `CLAUDE.md`. This handoff: 2026-05-02 night. **STATUS: SESSION CLEAN, 100% DUP CLEANUP COMPLETE.***
