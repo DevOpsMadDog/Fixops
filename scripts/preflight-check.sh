@@ -117,10 +117,10 @@ for suite in suite-api suite-core suite-attack suite-feeds suite-evidence-risk s
     fi
 done
 
-if [ -d "${REPO_ROOT}/suite-ui/aldeci" ]; then
-    pass "suite-ui/aldeci/ (UI source)"
+if [ -d "${REPO_ROOT}/suite-ui/aldeci-ui-new" ]; then
+    pass "suite-ui/aldeci-ui-new/ (UI source)"
 else
-    fail "suite-ui/aldeci/ missing!"
+    fail "suite-ui/aldeci-ui-new/ missing!"
 fi
 
 # ── 5. Compose Validation ─────────────────────────────────

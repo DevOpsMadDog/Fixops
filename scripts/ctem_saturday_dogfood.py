@@ -316,8 +316,8 @@ def build_self_architecture() -> Dict:
          "loc": 0, "file": "docker/docker-compose*.yml", "trust_zone": "infrastructure"},
 
         # UI Layer
-        {"id": "react-ui", "name": "React Legacy UI (101 files)", "type": "frontend", "suite": "suite-ui",
-         "loc": 45300, "file": "suite-ui/aldeci/", "trust_zone": "frontend"},
+        {"id": "react-ui", "name": "React UI (active)", "type": "frontend", "suite": "suite-ui",
+         "loc": 45300, "file": "suite-ui/aldeci-ui-new/", "trust_zone": "frontend"},
     ]
 
     # Real connections based on actual code dependencies

@@ -159,7 +159,7 @@ do_check() {
     [ -f "${REPO_ROOT}/.env" ] && success ".env exists" || warn ".env missing (will be created from .env.example)"
     [ -f "${REPO_ROOT}/.env.example" ] && success ".env.example exists" || fail ".env.example missing!"
     [ -f "${REPO_ROOT}/requirements.txt" ] && success "requirements.txt exists" || fail "requirements.txt missing!"
-    [ -d "${REPO_ROOT}/suite-ui/aldeci" ] && success "UI source exists" || warn "UI source missing"
+    [ -d "${REPO_ROOT}/suite-ui/aldeci-ui-new" ] && success "UI source exists" || warn "UI source missing"
 
     echo ""
     if $PY_OK && $NODE_OK && $DOCKER_OK; then
@@ -233,9 +233,9 @@ setup_python_env() {
 setup_node_env() {
     step "Setting up Node.js environment"
 
-    UI_DIR="${REPO_ROOT}/suite-ui/aldeci"
+    UI_DIR="${REPO_ROOT}/suite-ui/aldeci-ui-new"
     if [ ! -d "$UI_DIR" ]; then
-        warn "UI directory not found at suite-ui/aldeci/ — skipping"
+        warn "UI directory not found at suite-ui/aldeci-ui-new/ — skipping"
         return 0
     fi
 
@@ -296,7 +296,7 @@ verify_setup() {
     else
         echo -e "    ${CYAN}Activate:${NC}   source .venv/bin/activate"
         echo -e "    ${CYAN}Run API:${NC}    python -m uvicorn apps.api.app:create_app --factory --port 8000"
-        echo -e "    ${CYAN}Run UI:${NC}     cd suite-ui/aldeci && npm run dev"
+        echo -e "    ${CYAN}Run UI:${NC}     cd suite-ui/aldeci-ui-new && npm run dev"
         echo -e "    ${CYAN}Run tests:${NC}  python -m pytest tests/ --timeout=10 -x -q"
     fi
 

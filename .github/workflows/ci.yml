@@ -529,26 +529,26 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: suite-ui/aldeci/package-lock.json
+          cache-dependency-path: suite-ui/aldeci-ui-new/package-lock.json
       - name: Install dependencies
-        working-directory: suite-ui/aldeci
+        working-directory: suite-ui/aldeci-ui-new
         run: npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
       - name: TypeScript compile check
-        working-directory: suite-ui/aldeci
+        working-directory: suite-ui/aldeci-ui-new
         run: npx tsc --noEmit 2>&1 || true
         continue-on-error: true
       - name: Build production bundle
-        working-directory: suite-ui/aldeci
+        working-directory: suite-ui/aldeci-ui-new
         env:
           VITE_API_URL: ""
         run: npm run build
       - name: Verify build output
         run: |
-          if [ -d suite-ui/aldeci/dist ]; then
+          if [ -d suite-ui/aldeci-ui-new/dist ]; then
             echo "✅ Build output exists"
-            echo "  Files: $(find suite-ui/aldeci/dist -type f | wc -l)"
-            echo "  Size: $(du -sh suite-ui/aldeci/dist | cut -f1)"
-            if [ -f suite-ui/aldeci/dist/index.html ]; then
+            echo "  Files: $(find suite-ui/aldeci-ui-new/dist -type f | wc -l)"
+            echo "  Size: $(du -sh suite-ui/aldeci-ui-new/dist | cut -f1)"
+            if [ -f suite-ui/aldeci-ui-new/dist/index.html ]; then
               echo "✅ index.html present"
             else
               echo "❌ index.html missing"

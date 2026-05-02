@@ -174,13 +174,13 @@ Add new integrations to `IntegrationType` enum, then wire in `integrations_route
 - Add connector import in `integrations_router.py`
 - Add elif case in `test_integration()` and `trigger_sync()` endpoints
 
-### Frontend — aldeci (ACTIVE)
-> **⚠️ `suite-ui/aldeci-ui-new/` does NOT exist on disk. All UI work goes into `suite-ui/aldeci/`.**
-- Stack: React 18 + Vite 5 + TypeScript 5 + Tailwind 3 + shadcn/ui + Framer Motion
+### Frontend — aldeci-ui-new (ACTIVE)
+> **All UI work goes into `suite-ui/aldeci-ui-new/`.** The legacy `suite-ui/aldeci/` directory was deleted (commit 5f415a1d) — do not recreate it.
+- Stack: React 19 + Vite 6 + TypeScript 5 + Tailwind v4 + shadcn/ui + Framer Motion
 - Design target: Apple HIG-inspired (clean typography, generous whitespace, physics-based animations)
 - Navigation target: 5 Workflow Spaces (Mission Control, Discover, Validate, Remediate, Comply) — sidebar restructure pending
-- Pages: `suite-ui/aldeci/src/pages/` (grouped by section)
-- API client: `suite-ui/aldeci/src/lib/api.ts` — axios with `X-API-Key` header
+- Pages: `suite-ui/aldeci-ui-new/src/pages/` (grouped by section)
+- API client: `suite-ui/aldeci-ui-new/src/lib/api.ts` — axios with `X-API-Key` header
 - Export API namespaces: `dashboardApi`, `integrationsApi`, `findingsApi`, etc.
 
 ## Developer Commands
@@ -191,7 +191,7 @@ source .venv/bin/activate
 python -m uvicorn apps.api.app:create_app --factory --port 8000 --reload
 
 # Frontend (separate terminal)
-cd suite-ui/aldeci && npm run dev  # http://localhost:3001
+cd suite-ui/aldeci-ui-new && npm run dev  # http://localhost:5173
 
 # Testing
 make test                          # pytest with 18% coverage gate (CI)
@@ -222,9 +222,9 @@ make demo                          # full end-to-end demo
 - Routers: `suite-api/apps/api/*_router.py` (FastAPI APIRouter)
 - Models: `suite-core/core/*_models.py` (dataclasses, Pydantic, enums)
 - Database: `suite-core/core/*_db.py` (SQLite with WAL mode)
-- UI Pages (ACTIVE): `suite-ui/aldeci/src/pages/**/*.tsx`
-- UI Components: `suite-ui/aldeci/src/components/ui/` (shadcn) and `components/`
-- NOTE: `suite-ui/aldeci-ui-new/` does NOT exist on disk
+- UI Pages (ACTIVE): `suite-ui/aldeci-ui-new/src/pages/**/*.tsx`
+- UI Components: `suite-ui/aldeci-ui-new/src/components/ui/` (shadcn) and `components/`
+- NOTE: legacy `suite-ui/aldeci/` was deleted (commit 5f415a1d). Do not recreate it.
 - Agent Definitions: `.claude/agents/*.md` (18 agents incl. ux-architect, all Claude Opus 4.6)
 - Agent State: `.claude/team-state/` (sprint board, statuses, debates)
 

@@ -200,7 +200,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 - GAP-014 (IDE-gateway scope), GAP-058 (free-tier strategy)
 
 **Open security debt:**
-- 134 dependabot vulns on default branch (top fix: delete frozen `suite-ui/aldeci/` to retire 17 in one stroke)
+- 117 dependabot vulns on default branch (frozen `suite-ui/aldeci/` deleted in commit 5f415a1d — retired ~17 vulns; CI/dev scripts repointed to `suite-ui/aldeci-ui-new/`)
 - 29 deferred empty-endpoints needing real-source importers (`docs/empty_endpoints_triage_2026-04-26.md`)
 - ~13,100 legacy code-quality violations from TrueCourse audit (hot paths cleaned, rest sprint-able)
 

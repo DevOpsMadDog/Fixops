@@ -364,7 +364,7 @@ def build_codebase_map(conn):
             "root": "suite-ui/aldeci-ui-new/",
             "stack": "React 19 + Vite 6 + TypeScript 5 + Tailwind 4 + shadcn/ui",
             "spaces": ["Mission Control", "Discover", "Validate", "Remediate", "Comply"],
-            "frozen_legacy": "suite-ui/aldeci/ (DO NOT MODIFY)",
+            "frozen_legacy": "suite-ui/aldeci/ — DELETED (commit 5f415a1d)",
         },
         "key_config": {
             "entry_point": "apps/api/app.py",

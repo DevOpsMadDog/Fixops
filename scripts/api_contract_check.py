@@ -2,7 +2,7 @@
 """
 API Contract Checker for ALdeci UI
 
-Parses suite-ui/aldeci/SCREEN_API_MAPPING.md and verifies all endpoints exist in
+Parses suite-ui/aldeci-ui-new/SCREEN_API_MAPPING.md and verifies all endpoints exist in
 the FastAPI OpenAPI spec. Exits non-zero if any mapped endpoint is missing.
 
 Usage:
@@ -216,12 +216,12 @@ def main():
         # Try to find it relative to script
         script_dir = Path(__file__).parent
         candidates = [
+            script_dir.parent / "suite-ui" / "aldeci-ui-new" / "SCREEN_API_MAPPING.md",
+            Path("suite-ui/aldeci-ui-new/SCREEN_API_MAPPING.md"),
+            Path.cwd() / "suite-ui" / "aldeci-ui-new" / "SCREEN_API_MAPPING.md",
+            # Legacy paths for backward compatibility (suite-ui/aldeci/ deleted in 5f415a1d)
             script_dir.parent / "suite-ui" / "aldeci" / "SCREEN_API_MAPPING.md",
             Path("suite-ui/aldeci/SCREEN_API_MAPPING.md"),
-            Path.cwd() / "suite-ui" / "aldeci" / "SCREEN_API_MAPPING.md",
-            # Legacy paths for backward compatibility
-            script_dir.parent / "ui" / "aldeci" / "SCREEN_API_MAPPING.md",
-            Path("ui/aldeci/SCREEN_API_MAPPING.md"),
         ]
         mapping_path = None
         for candidate in candidates:
