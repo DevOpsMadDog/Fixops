@@ -94,6 +94,22 @@ def _get_enterprise_service_safe():
         return None
 
 
+# ---------------------------------------------------------------------------
+# Core marketplace engine (SQLite-backed integration catalog)
+# ---------------------------------------------------------------------------
+
+_core_marketplace = None
+
+
+def _get_marketplace():
+    """Return singleton core.marketplace.Marketplace instance (lazy init)."""
+    global _core_marketplace
+    if _core_marketplace is None:
+        from core.marketplace import Marketplace as _Marketplace
+        _core_marketplace = _Marketplace()
+    return _core_marketplace
+
+
 # TypedDict definitions for built-in catalog items
 class _MarketplaceItem(TypedDict):
     id: str
@@ -343,32 +359,41 @@ async def browse_marketplace(
     """Browse and search marketplace items with optional filters."""
     service = _get_enterprise_service_safe()
 
-    # Return built-in catalog if enterprise service is unavailable
+    # Use core Marketplace engine when enterprise service is unavailable
     if service is None:
-        items = list(_BUILTIN_MARKETPLACE_ITEMS)
-        # Apply basic filtering on built-in catalog
-        if content_type:
-            items = [i for i in items if i["content_type"] == content_type]
-        if compliance_framework:
+        try:
+            mkt = _get_marketplace()
+            apps = mkt.list_apps(search=query, org_id=org_id)
             items = [
-                i for i in items if compliance_framework in i["compliance_frameworks"]
+                {
+                    "id": a.id,
+                    "name": a.name,
+                    "description": a.description,
+                    "content_type": a.category.value,
+                    "compliance_frameworks": [],
+                    "ssdlc_stages": [],
+                    "pricing_model": "free",
+                    "price": 0.0,
+                    "tags": [],
+                    "rating": a.rating,
+                    "rating_count": 0,
+                    "downloads": a.install_count,
+                    "version": a.version,
+                    "qa_status": "approved",
+                    "created_at": None,
+                    "updated_at": None,
+                }
+                for a in apps
             ]
-        if ssdlc_stage:
-            items = [i for i in items if ssdlc_stage in i["ssdlc_stages"]]
-        if pricing_model:
-            items = [i for i in items if i["pricing_model"] == pricing_model]
-        if query:
-            query_lower = query.lower()
-            items = [
-                i
-                for i in items
-                if query_lower in i["name"].lower()
-                or query_lower in i["description"].lower()
-            ]
+            if content_type:
+                items = [i for i in items if i["content_type"] == content_type]
+        except Exception as exc:
+            logger.warning("core Marketplace unavailable, using builtin catalog: %s", exc)
+            items = list(_BUILTIN_MARKETPLACE_ITEMS)
         return {
             "items": items,
             "total": len(items),
-            "marketplace_mode": "builtin_catalog",
+            "marketplace_mode": "core_catalog",
         }
 
     ct = ContentType(content_type) if content_type else None
@@ -701,9 +726,32 @@ async def get_marketplace_stats() -> Dict[str, Any]:
     """Get marketplace statistics and quality summary."""
     service = _get_enterprise_service_safe()
 
-    # Return built-in stats if enterprise service is unavailable
+    # Use core Marketplace engine stats when enterprise service is unavailable
     if service is None:
-        return {**_MARKETPLACE_STATS, "source": "builtin_defaults"}
+        try:
+            mkt = _get_marketplace()
+            apps = mkt.list_apps()
+            by_category: Dict[str, int] = {}
+            total_installs = 0
+            for a in apps:
+                cat = a.category.value
+                by_category[cat] = by_category.get(cat, 0) + 1
+                total_installs += a.install_count
+            ratings = [a.rating for a in apps if a.rating > 0]
+            avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0.0
+            return {
+                "total_items": len(apps),
+                "total_downloads": total_installs,
+                "total_contributors": 1,
+                "average_rating": avg_rating,
+                "items_by_type": by_category,
+                "items_by_framework": {},
+                "marketplace_mode": "core_catalog",
+                "source": "core_marketplace_engine",
+            }
+        except Exception as exc:
+            logger.warning("core Marketplace stats unavailable: %s", exc)
+            return {**_MARKETPLACE_STATS, "source": "builtin_defaults"}
 
     stats = await service.get_stats()
     return stats
