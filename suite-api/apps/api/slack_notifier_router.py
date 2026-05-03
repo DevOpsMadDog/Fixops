@@ -98,6 +98,42 @@ class SlackComplianceFailureRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/", summary="Slack notification channel summary")
+def get_slack_root_summary() -> Dict[str, Any]:
+    """Return a 5-state summary envelope for the Slack notification channel.
+
+    States:
+      configured   — webhook URL is set and channel is ready
+      unconfigured — no webhook URL present; channel cannot deliver
+      error        — notifier raised an unexpected exception
+    """
+    try:
+        notifier = _get_notifier()
+        is_configured = notifier.is_configured
+    except Exception as exc:
+        _logger.error("slack.notifier.summary error: %s", exc)
+        return {
+            "status": "error",
+            "channel": "slack",
+            "error": str(exc),
+        }
+
+    status = "configured" if is_configured else "unconfigured"
+    envelope: Dict[str, Any] = {
+        "status": status,
+        "channel": "slack",
+        "summary": {
+            "webhook_url_set": is_configured,
+        },
+    }
+    if not is_configured:
+        envelope["hint"] = (
+            "Set SLACK_WEBHOOK_URL env var or POST /api/v1/integrations/slack/configure "
+            "to enable Slack notifications."
+        )
+    return envelope
+
+
 @router.get("/status", summary="Check Slack webhook configuration status")
 def get_slack_status() -> Dict[str, Any]:
     """Return whether the Slack webhook URL is configured."""

@@ -331,18 +331,18 @@ class TestSlackNotifierRouter:
 
     @pytest.fixture(autouse=True)
     def _client(self):
-        import apps.api.auth_deps as _auth_deps
         from fastapi.testclient import TestClient
         from fastapi import FastAPI
         from apps.api.slack_notifier_router import router
+        from apps.api.auth_deps import api_key_auth
 
-        # Patch the cached token tuple so the test token is accepted
-        with patch.object(_auth_deps, "_EXPECTED_TOKENS", ("test-token",)), \
-             patch.object(_auth_deps, "_HAS_TOKEN_AUTH", True):
-            app = FastAPI()
-            app.include_router(router)
-            self.client = TestClient(app, raise_server_exceptions=False)
-            yield
+        app = FastAPI()
+        app.include_router(router)
+        # Bypass auth entirely for unit tests
+        app.dependency_overrides[api_key_auth] = lambda: None
+        self.client = TestClient(app, raise_server_exceptions=False)
+        yield
+        app.dependency_overrides.clear()
 
     def _headers(self):
         return {"X-API-Key": "test-token"}
@@ -429,3 +429,55 @@ class TestSlackNotifierRouter:
                 headers=self._headers(),
             )
         assert resp.status_code == 200
+
+    # ------------------------------------------------------------------
+    # Root summary endpoint tests
+    # ------------------------------------------------------------------
+
+    def test_root_summary_configured(self):
+        """GET / returns status=configured when webhook URL is set."""
+        with patch("core.slack_notifier._notifier", SlackNotifier(webhook_url=_WEBHOOK_URL)):
+            resp = self.client.get("/api/v1/integrations/slack/", headers=self._headers())
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "configured"
+        assert data["channel"] == "slack"
+        assert data["summary"]["webhook_url_set"] is True
+
+    def test_root_summary_unconfigured(self):
+        """GET / returns status=unconfigured when no webhook URL is present."""
+        with patch("core.slack_notifier._notifier", SlackNotifier(webhook_url=None)):
+            resp = self.client.get("/api/v1/integrations/slack/", headers=self._headers())
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "unconfigured"
+        assert data["channel"] == "slack"
+        assert data["summary"]["webhook_url_set"] is False
+        assert "hint" in data
+
+    def test_root_summary_unconfigured_hint_references_configure(self):
+        """GET / hint text mentions the configure endpoint when unconfigured."""
+        with patch("core.slack_notifier._notifier", SlackNotifier(webhook_url=None)):
+            resp = self.client.get("/api/v1/integrations/slack/", headers=self._headers())
+        hint = resp.json().get("hint", "")
+        assert "/configure" in hint or "SLACK_WEBHOOK_URL" in hint
+
+    def test_root_summary_no_hint_when_configured(self):
+        """GET / does not include a hint key when webhook is already configured."""
+        with patch("core.slack_notifier._notifier", SlackNotifier(webhook_url=_WEBHOOK_URL)):
+            resp = self.client.get("/api/v1/integrations/slack/", headers=self._headers())
+        assert "hint" not in resp.json()
+
+    def test_root_summary_error_state_on_notifier_exception(self):
+        """GET / returns status=error when the notifier raises."""
+        class BrokenNotifier:
+            @property
+            def is_configured(self):
+                raise RuntimeError("db gone")
+
+        with patch("apps.api.slack_notifier_router._get_notifier", return_value=BrokenNotifier()):
+            resp = self.client.get("/api/v1/integrations/slack/", headers=self._headers())
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "error"
+        assert "db gone" in data["error"]
