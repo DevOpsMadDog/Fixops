@@ -117,15 +117,33 @@ for _pkg in ("risk", "risk.reachability"):
 
 # Leaf sub-modules referenced by analyzer.py — each gets a real module with
 # the specific names the analyzer imports from it.
-_call_graph_mod = _make_module("risk.reachability.call_graph")
-_call_graph_mod.CallGraphBuilder = MagicMock()
+# Only create stubs if the real modules haven't been imported yet — otherwise
+# we'd clobber the real module's attributes and break other tests that import
+# from these modules (e.g. test_call_graph_multilang imports DataFlowResult).
+# We detect "real" modules by checking for __file__ (stubs created via
+# _make_module lack __file__; filesystem-backed modules always have it).
 
-# Only create a stub if the real module hasn't been imported yet — otherwise
-# we'd clobber the real module's attributes (e.g. subprocess) and break other
-# tests that patch through the module path.
-if "risk.reachability.code_analysis" not in sys.modules or isinstance(
-    sys.modules["risk.reachability.code_analysis"], MagicMock
-):
+def _is_stub(mod_name: str) -> bool:
+    """Return True if module is absent or is a synthetic stub (no __file__)."""
+    mod = sys.modules.get(mod_name)
+    if mod is None:
+        # Try to import the real module first before declaring it a stub.
+        try:
+            __import__(mod_name)
+            return False  # Successfully imported the real module
+        except (ImportError, ModuleNotFoundError):
+            return True
+    if isinstance(mod, MagicMock):
+        return True
+    return not hasattr(mod, "__file__")
+
+if _is_stub("risk.reachability.call_graph"):
+    _call_graph_mod = _make_module("risk.reachability.call_graph")
+    _call_graph_mod.CallGraphBuilder = MagicMock()
+else:
+    _call_graph_mod = sys.modules["risk.reachability.call_graph"]
+
+if _is_stub("risk.reachability.code_analysis"):
     _code_analysis_mod = _make_module("risk.reachability.code_analysis")
     _code_analysis_mod.VulnerablePattern = _FakeVulnerablePattern
     _code_analysis_mod.AnalysisResult = _FakeAnalysisResult
@@ -133,25 +151,43 @@ if "risk.reachability.code_analysis" not in sys.modules or isinstance(
 else:
     _code_analysis_mod = sys.modules["risk.reachability.code_analysis"]
 
-_data_flow_mod = _make_module("risk.reachability.data_flow")
-_data_flow_mod.DataFlowAnalyzer = MagicMock()
+if _is_stub("risk.reachability.data_flow"):
+    _data_flow_mod = _make_module("risk.reachability.data_flow")
+    _data_flow_mod.DataFlowAnalyzer = MagicMock()
+else:
+    _data_flow_mod = sys.modules["risk.reachability.data_flow"]
 
-_git_mod = _make_module("risk.reachability.git_integration")
-_git_mod.GitRepository = MagicMock()
-_git_mod.GitRepositoryAnalyzer = MagicMock()
-_git_mod.RepositoryMetadata = MagicMock()
+if _is_stub("risk.reachability.git_integration"):
+    _git_mod = _make_module("risk.reachability.git_integration")
+    _git_mod.GitRepository = MagicMock()
+    _git_mod.GitRepositoryAnalyzer = MagicMock()
+    _git_mod.RepositoryMetadata = MagicMock()
+else:
+    _git_mod = sys.modules["risk.reachability.git_integration"]
 
-_prop_analyzer_mod = _make_module("risk.reachability.proprietary_analyzer")
-_prop_analyzer_mod.ProprietaryReachabilityAnalyzer = MagicMock()
+if _is_stub("risk.reachability.proprietary_analyzer"):
+    _prop_analyzer_mod = _make_module("risk.reachability.proprietary_analyzer")
+    _prop_analyzer_mod.ProprietaryReachabilityAnalyzer = MagicMock()
+else:
+    _prop_analyzer_mod = sys.modules["risk.reachability.proprietary_analyzer"]
 
-_prop_consensus_mod = _make_module("risk.reachability.proprietary_consensus")
-_prop_consensus_mod.ProprietaryConsensusEngine = MagicMock()
+if _is_stub("risk.reachability.proprietary_consensus"):
+    _prop_consensus_mod = _make_module("risk.reachability.proprietary_consensus")
+    _prop_consensus_mod.ProprietaryConsensusEngine = MagicMock()
+else:
+    _prop_consensus_mod = sys.modules["risk.reachability.proprietary_consensus"]
 
-_prop_scoring_mod = _make_module("risk.reachability.proprietary_scoring")
-_prop_scoring_mod.ProprietaryScoringEngine = MagicMock()
+if _is_stub("risk.reachability.proprietary_scoring"):
+    _prop_scoring_mod = _make_module("risk.reachability.proprietary_scoring")
+    _prop_scoring_mod.ProprietaryScoringEngine = MagicMock()
+else:
+    _prop_scoring_mod = sys.modules["risk.reachability.proprietary_scoring"]
 
-_prop_threat_mod = _make_module("risk.reachability.proprietary_threat_intel")
-_prop_threat_mod.ProprietaryThreatIntelligenceEngine = MagicMock()
+if _is_stub("risk.reachability.proprietary_threat_intel"):
+    _prop_threat_mod = _make_module("risk.reachability.proprietary_threat_intel")
+    _prop_threat_mod.ProprietaryThreatIntelligenceEngine = MagicMock()
+else:
+    _prop_threat_mod = sys.modules["risk.reachability.proprietary_threat_intel"]
 
 # ---------------------------------------------------------------------------
 # NOW import the real module under test — all its sub-imports will hit our
