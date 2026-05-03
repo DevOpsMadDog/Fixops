@@ -9,6 +9,7 @@ Routes:
   POST /api/v1/sigmahq/import          trigger_import
   GET  /api/v1/sigmahq/rules           list_rules
   GET  /api/v1/sigmahq/stats           get_stats
+  POST /api/v1/sigmahq/custom-rules    upsert_custom_rule_endpoint
 """
 
 from __future__ import annotations
@@ -17,7 +18,8 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -100,4 +102,43 @@ def get_stats() -> Dict[str, Any]:
         return get_store_stats()
     except Exception as exc:
         logger.exception("Failed to get SigmaHQ stats")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Custom rule upsert
+# ---------------------------------------------------------------------------
+
+class CustomRuleRequest(BaseModel):
+    """Payload for submitting a user-defined Sigma-format rule."""
+
+    yaml_text: str
+    source_label: str = "custom"
+
+
+@router.post("/custom-rules", status_code=201, dependencies=[Depends(api_key_auth)])
+def upsert_custom_rule_endpoint(body: CustomRuleRequest) -> Dict[str, Any]:
+    """Submit a single user-defined Sigma-format YAML rule for storage.
+
+    The rule must be valid Sigma YAML with at least: id, title, detection.
+    On success, the normalised rule dict is returned with HTTP 201.
+    Duplicate IDs overwrite the existing rule (upsert semantics).
+
+    Raises 422 for invalid/missing fields, 500 for unexpected errors.
+    """
+    try:
+        from feeds.sigmahq.importer import (
+            CustomRuleValidationError,
+            upsert_custom_rule,
+        )
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail="SigmaHQ importer unavailable") from exc
+
+    try:
+        rule = upsert_custom_rule(body.yaml_text, source_label=body.source_label)
+        return rule
+    except CustomRuleValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to upsert custom rule")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

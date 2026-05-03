@@ -275,3 +275,45 @@ def get_store_stats() -> Dict[str, Any]:
         by_platform[pl] = by_platform.get(pl, 0) + 1
 
     return {"total": total, "by_level": by_level, "by_platform": by_platform}
+
+
+# ---------------------------------------------------------------------------
+# Custom rule importer (user-supplied Sigma YAML)
+# ---------------------------------------------------------------------------
+
+class CustomRuleValidationError(ValueError):
+    """Raised when a submitted custom rule fails validation."""
+
+
+def upsert_custom_rule(yaml_text: str, source_label: str = "custom") -> Dict[str, Any]:
+    """Parse, validate, and upsert a single user-supplied Sigma-format YAML rule.
+
+    Args:
+        yaml_text:    Raw YAML text of the Sigma rule.
+        source_label: Free-form label stored in `source_path` (e.g. tenant ID).
+
+    Returns:
+        The normalised rule dict that was stored.
+
+    Raises:
+        CustomRuleValidationError: If the YAML is invalid or missing required fields.
+    """
+    rule = parse_sigma_yaml(yaml_text, source_path=source_label)
+    if rule is None:
+        raise CustomRuleValidationError(
+            "Rule must be valid YAML and contain a top-level 'id' field."
+        )
+
+    # Require at minimum: title and detection block
+    if not rule.get("title"):
+        raise CustomRuleValidationError("Rule must have a non-empty 'title' field.")
+    if not rule.get("detection"):
+        raise CustomRuleValidationError("Rule must have a non-empty 'detection' block.")
+
+    # Mark as custom so it can be distinguished from SigmaHQ-sourced rules
+    rule["custom"] = True
+
+    store = _get_store()
+    store[rule["id"]] = rule
+    logger.info("Custom rule upserted: id=%s title=%r", rule["id"], rule["title"])
+    return rule
