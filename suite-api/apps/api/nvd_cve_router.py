@@ -6,6 +6,7 @@ Prefix: /api/v1/nvd
 Auth:   api_key_auth dependency
 
 Routes:
+    GET  /api/v1/nvd          nvd_summary         (severity breakdown + totals)
     POST /api/v1/nvd/import   trigger_import
     GET  /api/v1/nvd/cves     list_cves
 """
@@ -29,6 +30,29 @@ router = APIRouter(
 def _get_importer():
     from feeds.nvd_cve.importer import NvdCveImporter
     return NvdCveImporter()
+
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def nvd_summary() -> Dict[str, Any]:
+    """Return NVD CVE severity breakdown and total count from the local DB."""
+    try:
+        importer = _get_importer()
+        severities = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+        breakdown: Dict[str, int] = {}
+        total = 0
+        for sev in severities:
+            result = importer.list_cves(severity=sev, page=1, page_size=1)
+            count = result.get("total", 0)
+            breakdown[sev.lower()] = count
+            total += count
+        return {
+            "router": "nvd-cve",
+            "total_cves": total,
+            "severity_breakdown": breakdown,
+        }
+    except Exception as exc:
+        logger.exception("NVD summary failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.post("/import", dependencies=[Depends(api_key_auth)])
