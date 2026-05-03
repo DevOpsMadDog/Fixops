@@ -684,6 +684,18 @@ def register_platform_routers(
         _logger.warning("pagerduty_router not available: %s", exc)
 
     try:
+        from apps.api.pagerduty_events_router import (
+            router as pagerduty_events_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            pagerduty_events_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted PagerDuty Events v2 router at /api/v1/pagerduty-events (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("pagerduty_events_router not available: %s", exc)
+
+    try:
         from apps.api.argocd_router import (
             router as argocd_router,  # noqa: PLC0415
         )
@@ -718,6 +730,18 @@ def register_platform_routers(
         _logger.info("Mounted Datadog Cloud SIEM router at /api/v1/datadog-security (scope=read:scans)")
     except ImportError as exc:
         _logger.warning("datadog_security_router not available: %s", exc)
+
+    try:
+        from apps.api.newrelic_router import (
+            router as newrelic_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            newrelic_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted New Relic APM router at /api/v1/newrelic (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("newrelic_router not available: %s", exc)
 
     try:
         from apps.api.discord_router import (
@@ -779,6 +803,18 @@ def register_platform_routers(
         _logger.info("Mounted Microsoft Teams router at /api/v1/microsoft-teams (scope=read:scans)")
     except ImportError as exc:
         _logger.warning("microsoft_teams_router not available: %s", exc)
+
+    try:
+        from apps.api.google_chat_router import (
+            router as google_chat_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            google_chat_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Google Chat router at /api/v1/google-chat (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("google_chat_router not available: %s", exc)
 
     try:
         from apps.api.slack_bot_router import (
