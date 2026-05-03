@@ -720,6 +720,18 @@ def register_platform_routers(
         _logger.warning("datadog_security_router not available: %s", exc)
 
     try:
+        from apps.api.discord_router import (
+            router as discord_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            discord_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Discord router at /api/v1/discord (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("discord_router not available: %s", exc)
+
+    try:
         from apps.api.ansible_tower_router import (
             router as ansible_tower_router,  # noqa: PLC0415
         )
