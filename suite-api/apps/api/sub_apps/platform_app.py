@@ -2245,6 +2245,28 @@ def register_platform_routers(
         _logger.warning("opencti_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Wiz CNAPP/CSPM router (suite-core/core/wiz_cnapp_engine.py) — 2026-05-04
+    # GET   /api/v1/wiz/                       capability summary           (read:scans)
+    # POST  /api/v1/wiz/graphql                raw GraphQL passthrough      (read:scans)
+    # GET   /api/v1/wiz/issues                 list issues w/ filters       (read:scans)
+    # GET   /api/v1/wiz/inventory              cloud-resource inventory     (read:scans)
+    # GET   /api/v1/wiz/vulnerabilities        vulnerability findings       (read:scans)
+    # GET   /api/v1/wiz/threats                threat-detection signals     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.wiz_router import router as wiz_router  # noqa: PLC0415
+        app.include_router(
+            wiz_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Wiz CNAPP router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("wiz_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Microsoft Sentinel (Azure SIEM/SOAR) — 2026-05-04
     # GET  /api/v1/azure-sentinel/                  capability summary    (read:scans)
     # GET  /api/v1/azure-sentinel/incidents         list incidents        (read:scans)
