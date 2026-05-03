@@ -2048,6 +2048,28 @@ def register_platform_routers(
         _logger.warning("abuseipdb_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # GCP Security Command Center (real OAuth2 + read-only) — 2026-05-04
+    # GET  /api/v1/gcp-scc/                         capability summary    (read:scans)
+    # GET  /api/v1/gcp-scc/findings                 list findings         (read:scans)
+    # GET  /api/v1/gcp-scc/sources                  list sources          (read:scans)
+    # GET  /api/v1/gcp-scc/assets                   list assets           (read:scans)
+    # GET  /api/v1/gcp-scc/findings/group           groupBy aggregate     (read:scans)
+    # POST /api/v1/gcp-scc/findings/{name}:setMute  mute toggle           (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.gcp_scc_router import router as gcp_scc_router  # noqa: PLC0415
+        app.include_router(
+            gcp_scc_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted GCP SCC router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("gcp_scc_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Snyk Vulnerability Scanner (REST v1 surface) — 2026-05-04
     # GET  /api/v1/snyk/                                            capability summary  (read:scans)
     # GET  /api/v1/snyk/v1/orgs                                     organisations list  (read:scans)
@@ -2068,6 +2090,29 @@ def register_platform_routers(
         _logger.info("Mounted Snyk vulnerability router (read:scans)")
     except ImportError as exc:
         _logger.warning("snyk_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Tenable.io Vulnerability Scanner — 2026-05-04
+    # GET  /api/v1/tenable-io/                                              capability summary  (read:scans)
+    # GET  /api/v1/tenable-io/scans                                          list scans         (read:scans)
+    # GET  /api/v1/tenable-io/scans/{scan_id}                                scan detail        (read:scans)
+    # GET  /api/v1/tenable-io/scans/{scan_id}/hosts/{host_id}                host detail        (read:scans)
+    # GET  /api/v1/tenable-io/agents                                         agent inventory    (read:scans)
+    # GET  /api/v1/tenable-io/policies                                       scan policies      (read:scans)
+    # POST /api/v1/tenable-io/workbenches/vulnerabilities                    workbench query    (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.tenable_io_router import router as tenable_io_router  # noqa: PLC0415
+        app.include_router(
+            tenable_io_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Tenable.io vulnerability router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("tenable_io_router not available: %s", exc)
 
     # ------------------------------------------------------------------
     # GreyNoise Threat-Intel Lookup — 2026-05-04
