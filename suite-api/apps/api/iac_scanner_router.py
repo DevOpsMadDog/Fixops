@@ -304,6 +304,46 @@ async def check_drift(body: DriftCheckRequest) -> Dict[str, Any]:
     }
 
 
+@router.post("/baselines", status_code=201)
+async def create_baseline_snapshot(
+    name: str = Query(..., description="Baseline name / label"),
+    description: str = Query("", description="Optional description"),
+    org_id: str = Query("default", description="Organization ID"),
+) -> Dict[str, Any]:
+    """Snapshot the current set of IaC findings as a named baseline.
+
+    Captures finding counts by severity and provider plus the full list of
+    finding IDs so future scans can be compared against this point-in-time state.
+    """
+    engine = _get_engine()
+    return engine.create_baseline_snapshot(name=name, description=description, org_id=org_id)
+
+
+@router.get("/baselines")
+async def list_baseline_snapshots(
+    org_id: str = Query("default", description="Organization ID"),
+) -> Dict[str, Any]:
+    """List all IaC baseline snapshots for an org."""
+    engine = _get_engine()
+    snapshots = engine.list_baseline_snapshots(org_id=org_id)
+    return {"org_id": org_id, "total": len(snapshots), "baselines": snapshots}
+
+
+@router.get("/baselines/{baseline_id}/snapshot")
+async def get_baseline_snapshot(
+    baseline_id: str,
+    org_id: str = Query("default", description="Organization ID"),
+) -> Dict[str, Any]:
+    """Return a specific IaC baseline snapshot by ID."""
+    engine = _get_engine()
+    record = engine.get_baseline_snapshot(baseline_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Baseline snapshot '{baseline_id}' not found")
+    if record.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail=f"Baseline snapshot '{baseline_id}' not found")
+    return record
+
+
 @router.get("/summary")
 async def get_summary() -> Dict[str, Any]:
     """Return aggregated IaC scan statistics by severity, provider, and rule."""

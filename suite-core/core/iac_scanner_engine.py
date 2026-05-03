@@ -1485,6 +1485,7 @@ class IaCScannerEngine:
         self._findings: Dict[str, IaCFinding] = {}   # finding_id -> IaCFinding
         self._custom_rules: Dict[str, "CustomRule"] = {}  # rule_id -> CustomRule
         self._drift_results: Dict[str, "DriftResult"] = {}
+        self._baselines: Dict[str, Dict] = {}  # baseline_id -> snapshot record
         self._rule_engine = IaCRuleEngine()
         self._tf_parser = TerraformParser()
         self._cfn_parser = CloudFormationParser()
@@ -1707,6 +1708,80 @@ class IaCScannerEngine:
     def get_drift_results(self) -> List["DriftResult"]:
         with self._lock:
             return list(self._drift_results.values())
+
+    # ------------------------------------------------------------------
+    # Baseline snapshots
+    # ------------------------------------------------------------------
+
+    def create_baseline_snapshot(
+        self,
+        name: str,
+        description: str = "",
+        org_id: str = "default",
+    ) -> Dict[str, Any]:
+        """Snapshot current findings as a named IaC baseline.
+
+        Captures the current set of findings (by severity / provider counts)
+        plus the full finding IDs so callers can compare future scans against
+        this known-good (or known-state) point in time.
+        """
+        import uuid as _uuid
+        from datetime import datetime, timezone
+
+        with self._lock:
+            findings = list(self._findings.values())
+            baseline_id = str(_uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+
+            severity_counts: Dict[str, int] = {}
+            provider_counts: Dict[str, int] = {}
+            finding_ids: List[str] = []
+
+            for f in findings:
+                sev = getattr(f, "severity", None)
+                sev_val = sev.value if hasattr(sev, "value") else str(sev)
+                severity_counts[sev_val] = severity_counts.get(sev_val, 0) + 1
+
+                prov = getattr(f, "provider", None)
+                prov_val = prov.value if hasattr(prov, "value") else str(prov)
+                provider_counts[prov_val] = provider_counts.get(prov_val, 0) + 1
+
+                fid = getattr(f, "finding_id", None) or getattr(f, "id", None)
+                if fid:
+                    finding_ids.append(fid)
+
+            record: Dict[str, Any] = {
+                "id": baseline_id,
+                "org_id": org_id,
+                "name": name,
+                "description": description,
+                "total_findings": len(findings),
+                "severity_counts": severity_counts,
+                "provider_counts": provider_counts,
+                "finding_ids": finding_ids,
+                "created_at": now,
+            }
+            self._baselines[baseline_id] = record
+
+        logger.info(
+            "iac_baseline_snapshot_created",
+            baseline_id=baseline_id,
+            total_findings=len(findings),
+        )
+        return record
+
+    def get_baseline_snapshot(self, baseline_id: str) -> Optional[Dict[str, Any]]:
+        """Return a previously created baseline snapshot by ID."""
+        with self._lock:
+            return self._baselines.get(baseline_id)
+
+    def list_baseline_snapshots(self, org_id: str = "default") -> List[Dict[str, Any]]:
+        """List all baseline snapshots, optionally filtered by org_id."""
+        with self._lock:
+            return [
+                b for b in self._baselines.values()
+                if b.get("org_id") == org_id
+            ]
 
     # ------------------------------------------------------------------
     # Summary stats
