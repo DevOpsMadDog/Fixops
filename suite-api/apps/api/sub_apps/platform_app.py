@@ -2017,6 +2017,29 @@ def register_platform_routers(
         _logger.warning("kube_bench_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # OpenSearch Anomaly Detection (AD plugin) — 2026-05-04
+    # GET  /api/v1/opensearch/                              capability summary  (read:scans)
+    # GET  /api/v1/opensearch/detectors                     list detectors      (read:scans)
+    # POST /api/v1/opensearch/detectors                     create detector     (read:scans)
+    # GET  /api/v1/opensearch/detectors/{id}                detector detail     (read:scans)
+    # POST /api/v1/opensearch/detectors/{id}/_start         start detection job (read:scans)
+    # POST /api/v1/opensearch/detectors/{id}/_stop          stop detection job  (read:scans)
+    # GET  /api/v1/opensearch/detectors/{id}/results        anomaly results     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.opensearch_router import router as opensearch_router  # noqa: PLC0415
+        app.include_router(
+            opensearch_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted OpenSearch Anomaly Detection router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("opensearch_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Grafana Loki Integration (proxy + capability) — 2026-05-04
     # GET  /api/v1/loki/                       capability summary       (read:scans)
     # GET  /api/v1/loki/labels                 list label names         (read:scans)
