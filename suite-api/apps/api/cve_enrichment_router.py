@@ -1,6 +1,10 @@
-"""CVE enrichment API endpoints — NVD + EPSS + KEV unified records."""
+"""CVE enrichment API endpoints — NVD + EPSS + KEV + CIRCL unified records."""
 from __future__ import annotations
 
+import json
+import urllib.error
+import urllib.request
+from datetime import datetime
 from typing import List, Optional
 
 from core.cve_enrichment import CVEEnrichmentService
@@ -9,6 +13,9 @@ from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/cve", tags=["cve-enrichment"])
 _svc = CVEEnrichmentService()
+
+_CIRCL_BASE = "https://cve.circl.lu/api/cve"
+_CIRCL_TIMEOUT = 8
 
 
 # ---------------------------------------------------------------------------
@@ -81,3 +88,110 @@ def invalidate_cve_cache(cve_id: str) -> dict:
     """Invalidate the cache entry for a specific CVE."""
     count = _svc.invalidate_cache(cve_id)
     return {"invalidated": count, "cve_id": cve_id.upper()}
+
+
+# ---------------------------------------------------------------------------
+# CIRCL CVE lookup — https://cve.circl.lu/api/cve/{id}
+# ---------------------------------------------------------------------------
+
+
+@router.get("/circl/{cve_id}", summary="CIRCL CVE lookup")
+def circl_lookup(cve_id: str) -> dict:
+    """Fetch CVE details from the CIRCL CVE Search API (cve.circl.lu).
+
+    Returns a normalized record with CVSS score, severity, description,
+    CWE, affected products, references, and CIRCL-specific fields.
+    Returns HTTP 404 when CIRCL has no record for the requested CVE ID.
+    Returns HTTP 502 when the upstream CIRCL service is unreachable.
+    """
+    cve_id = cve_id.upper().strip()
+    url = f"{_CIRCL_BASE}/{cve_id}"
+
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "ALDECI-CVE-CIRCL/1.0", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=_CIRCL_TIMEOUT) as resp:  # nosec
+            raw = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise HTTPException(status_code=404, detail=f"{cve_id} not found in CIRCL") from exc
+        raise HTTPException(status_code=502, detail=f"CIRCL upstream error: {exc.code}") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"CIRCL unreachable: {exc}") from exc
+
+    if not raw:
+        raise HTTPException(status_code=404, detail=f"{cve_id} not found in CIRCL")
+
+    # Normalize CVSS
+    cvss_score: float = 0.0
+    cvss_vector: str = ""
+    cvss_severity: str = "none"
+
+    # CIRCL returns cvss (v2 float), cvss-time, cvss-vector; may also have cvssV3
+    raw_cvss = raw.get("cvss")
+    if raw_cvss is not None:
+        try:
+            cvss_score = float(raw_cvss)
+        except (TypeError, ValueError):
+            pass
+    # Prefer CVSSv3 when present
+    for v3_key in ("cvssV3", "cvss3"):
+        v3 = raw.get(v3_key)
+        if v3 and isinstance(v3, dict):
+            try:
+                cvss_score = float(v3.get("baseScore", cvss_score))
+                cvss_vector = v3.get("vectorString", "")
+            except (TypeError, ValueError):
+                pass
+            break
+    if not cvss_vector:
+        cvss_vector = raw.get("cvss-vector", "")
+    cvss_severity = _svc.get_severity(cvss_score)
+
+    # Description — CIRCL uses "summary"
+    description = raw.get("summary", raw.get("description", ""))
+
+    # CWE
+    cwe = raw.get("cwe", "")
+
+    # Published date (trim to YYYY-MM-DD)
+    published = (raw.get("Published") or raw.get("published") or "")[:10]
+
+    # Modified date
+    modified = (raw.get("Modified") or raw.get("modified") or "")[:10]
+
+    # Affected products / CPE entries
+    affected: list = raw.get("vulnerable_product", raw.get("affectedProducts", []))
+    if not isinstance(affected, list):
+        affected = []
+
+    # References
+    references: list = raw.get("references", [])
+    if not isinstance(references, list):
+        references = []
+
+    # Access complexity / authentication (CVSS v2 metadata)
+    access_vector = raw.get("access", {}).get("vector", "") if isinstance(raw.get("access"), dict) else ""
+
+    return {
+        "cve_id": cve_id,
+        "source": "circl",
+        "cvss_score": cvss_score,
+        "cvss_vector": cvss_vector,
+        "cvss_severity": cvss_severity,
+        "description": description,
+        "cwe": cwe,
+        "published": published,
+        "modified": modified,
+        "affected_products": affected,
+        "references": references[:20],  # cap to 20 to keep payload manageable
+        "access_vector": access_vector,
+        "fetched_at": datetime.utcnow().isoformat(),
+        "raw_circl": {
+            k: raw[k]
+            for k in ("id", "cvss-time", "capec", "map_cwe_capec")
+            if k in raw
+        },
+    }

@@ -475,3 +475,97 @@ def test_enrich_cve_network_includes_epss_score(tmp_path):
     with unittest.mock.patch("urllib.request.urlopen", side_effect=_urlopen_router):
         result = svc.enrich_cve("CVE-2021-44228", use_cache=False)
     assert abs(result["epss_score"] - 0.94358) < 0.001
+
+
+# ---------------------------------------------------------------------------
+# CIRCL CVE lookup — GET /api/v1/cve/circl/{cve_id}
+# ---------------------------------------------------------------------------
+
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "suite-api"))
+
+from fastapi.testclient import TestClient
+from fastapi import FastAPI
+
+# Build a minimal app with just the CVE enrichment router
+_app = FastAPI()
+from apps.api.cve_enrichment_router import router as _cve_router
+_app.include_router(_cve_router)
+_client = TestClient(_app, raise_server_exceptions=False)
+
+
+_CIRCL_PAYLOAD = json.dumps({
+    "id": "CVE-2021-44228",
+    "summary": "Apache Log4j2 JNDI RCE vulnerability (Log4Shell).",
+    "cvss": 10.0,
+    "cvss-vector": "AV:N/AC:L/Au:N/C:C/I:C/A:C",
+    "cwe": "CWE-917",
+    "Published": "2021-12-10T00:00:00",
+    "Modified": "2022-01-20T00:00:00",
+    "vulnerable_product": ["cpe:2.3:a:apache:log4j:2.0:*:*:*:*:*:*:*"],
+    "references": ["https://logging.apache.org/log4j/2.x/security.html"],
+    "capec": [],
+}).encode()
+
+
+def _make_circl_response(payload: bytes = _CIRCL_PAYLOAD):
+    mock_resp = unittest.mock.MagicMock()
+    mock_resp.read.return_value = payload
+    mock_resp.__enter__ = lambda s: s
+    mock_resp.__exit__ = unittest.mock.MagicMock(return_value=False)
+    return mock_resp
+
+
+def test_circl_lookup_status_200():
+    with unittest.mock.patch("urllib.request.urlopen", return_value=_make_circl_response()):
+        resp = _client.get("/api/v1/cve/circl/CVE-2021-44228")
+    assert resp.status_code == 200
+
+
+def test_circl_lookup_source_is_circl():
+    with unittest.mock.patch("urllib.request.urlopen", return_value=_make_circl_response()):
+        data = _client.get("/api/v1/cve/circl/CVE-2021-44228").json()
+    assert data["source"] == "circl"
+
+
+def test_circl_lookup_cve_id_normalised():
+    with unittest.mock.patch("urllib.request.urlopen", return_value=_make_circl_response()):
+        data = _client.get("/api/v1/cve/circl/cve-2021-44228").json()
+    assert data["cve_id"] == "CVE-2021-44228"
+
+
+def test_circl_lookup_cvss_score():
+    with unittest.mock.patch("urllib.request.urlopen", return_value=_make_circl_response()):
+        data = _client.get("/api/v1/cve/circl/CVE-2021-44228").json()
+    assert data["cvss_score"] == 10.0
+    assert data["cvss_severity"] == "critical"
+
+
+def test_circl_lookup_description():
+    with unittest.mock.patch("urllib.request.urlopen", return_value=_make_circl_response()):
+        data = _client.get("/api/v1/cve/circl/CVE-2021-44228").json()
+    assert "Log4Shell" in data["description"]
+
+
+def test_circl_lookup_404_on_empty_response():
+    empty_resp = _make_circl_response(b"null")
+    with unittest.mock.patch("urllib.request.urlopen", return_value=empty_resp):
+        resp = _client.get("/api/v1/cve/circl/CVE-9999-99999")
+    assert resp.status_code == 404
+
+
+def test_circl_lookup_502_on_network_error():
+    with unittest.mock.patch(
+        "urllib.request.urlopen",
+        side_effect=Exception("connection refused"),
+    ):
+        resp = _client.get("/api/v1/cve/circl/CVE-2021-44228")
+    assert resp.status_code == 502
+
+
+def test_circl_lookup_has_fetched_at():
+    with unittest.mock.patch("urllib.request.urlopen", return_value=_make_circl_response()):
+        data = _client.get("/api/v1/cve/circl/CVE-2021-44228").json()
+    assert "fetched_at" in data and data["fetched_at"]
