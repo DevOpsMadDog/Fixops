@@ -600,20 +600,20 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/sub_apps/platform_app.py",
-      "accessCount": 76,
-      "lastAccessed": 1777833277023,
+      "accessCount": 93,
+      "lastAccessed": 1777834583499,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/abuseipdb_router.py",
+      "accessCount": 9,
+      "lastAccessed": 1777833993295,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/app.py",
       "accessCount": 7,
       "lastAccessed": 1777822350234,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/abuseipdb_router.py",
-      "accessCount": 7,
-      "lastAccessed": 1777823243352,
       "type": "file"
     },
     {
@@ -653,6 +653,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/trivy_scan_router.py",
+      "accessCount": 4,
+      "lastAccessed": 1777833483767,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/trivy_router.py",
       "accessCount": 3,
       "lastAccessed": 1777820496996,
@@ -665,15 +671,21 @@
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/trivy_scan_router.py",
-      "accessCount": 3,
-      "lastAccessed": 1777821068435,
-      "type": "file"
-    },
-    {
       "path": "tests/test_zap_scan_router.py",
       "accessCount": 3,
       "lastAccessed": 1777821068547,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/auth_deps.py",
+      "accessCount": 3,
+      "lastAccessed": 1777833528059,
+      "type": "file"
+    },
+    {
+      "path": "sitecustomize.py",
+      "accessCount": 3,
+      "lastAccessed": 1777834161218,
       "type": "file"
     },
     {
@@ -737,12 +749,6 @@
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 2,
-      "lastAccessed": 1777822796256,
-      "type": "file"
-    },
-    {
       "path": "suite-api/apps/api/sub_apps/cspm_app.py",
       "accessCount": 2,
       "lastAccessed": 1777822976760,
@@ -752,12 +758,6 @@
       "path": "tests/test_censys_router.py",
       "accessCount": 2,
       "lastAccessed": 1777823296758,
-      "type": "file"
-    },
-    {
-      "path": "sitecustomize.py",
-      "accessCount": 2,
-      "lastAccessed": 1777833323888,
       "type": "file"
     },
     {
