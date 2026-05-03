@@ -140,10 +140,10 @@ def get_cycle(cycle_id: str) -> Dict[str, Any]:
 
 @router.delete("/cycles/{cycle_id}", dependencies=[Depends(_verify_api_key)])
 def delete_cycle(cycle_id: str) -> Dict[str, Any]:
-    """Stub — confirms cycle_id exists; full deletion not implemented."""
+    """Delete a CTEM cycle and disassociate its exposures."""
     engine = _get_engine()
     try:
-        engine.get_cycle(cycle_id)
+        engine.delete_cycle(cycle_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     return {"deleted": True, "cycle_id": cycle_id}

@@ -200,6 +200,15 @@ class _CTEMDB:
             ).fetchall()
         return [self._row_to_cycle(r) for r in rows]
 
+    def delete_cycle(self, cycle_id: str) -> bool:
+        """Delete a cycle and disassociate its exposures. Returns True if a row was deleted."""
+        with self._lock:
+            cur = self._conn.execute(
+                "DELETE FROM ctem_cycles WHERE id = ?", (cycle_id,)
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
+
     def _row_to_cycle(self, row: tuple) -> CTEMCycle:
         return CTEMCycle(
             id=row[0],
@@ -363,6 +372,13 @@ class CTEMEngine:
     def list_cycles(self, org_id: str = "default") -> List[CTEMCycle]:
         """List all cycles for an org, newest first."""
         return self._db.list_cycles(org_id)
+
+    def delete_cycle(self, cycle_id: str) -> None:
+        """Soft-delete (hard-delete) a cycle by ID. Raises ValueError if not found."""
+        cycle = self._db.get_cycle(cycle_id)
+        if not cycle:
+            raise ValueError(f"Cycle '{cycle_id}' not found")
+        self._db.delete_cycle(cycle_id)
 
     # ------------------------------------------------------------------
     # Exposure management
