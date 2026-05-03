@@ -2954,6 +2954,34 @@ def register_platform_routers(
         _logger.warning("aws_eks_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # AWS WAFv2 (Web ACLs, Rule Groups, IP Sets, Regex Pattern Sets,
+    # Managed Rule Groups, Sampled Requests)
+    # (suite-core/core/aws_waf_engine.py) — 2026-05-04
+    # GET  /api/v1/aws-waf/                                       capability summary           (read:scans)
+    # GET  /api/v1/aws-waf/web-acls                               ListWebACLs                  (read:scans)
+    # GET  /api/v1/aws-waf/web-acls/{Scope}/{Id}/{Name}           GetWebACL                    (read:scans)
+    # GET  /api/v1/aws-waf/rule-groups                            ListRuleGroups               (read:scans)
+    # GET  /api/v1/aws-waf/rule-groups/{Scope}/{Id}/{Name}        GetRuleGroup                 (read:scans)
+    # GET  /api/v1/aws-waf/ip-sets                                ListIPSets                   (read:scans)
+    # GET  /api/v1/aws-waf/ip-sets/{Scope}/{Id}/{Name}            GetIPSet                     (read:scans)
+    # GET  /api/v1/aws-waf/regex-pattern-sets                     ListRegexPatternSets         (read:scans)
+    # GET  /api/v1/aws-waf/managed-rule-groups                    ListAvailableManagedRuleGroups  (read:scans)
+    # POST /api/v1/aws-waf/sampled-requests                       GetSampledRequests           (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.aws_waf_router import router as aws_waf_router  # noqa: PLC0415
+        app.include_router(
+            aws_waf_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted AWS WAFv2 router at /api/v1/aws-waf (read:scans)")
+    except ImportError as exc:
+        _logger.warning("aws_waf_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Sigstore Rekor transparency log proxy router (read:scans)
     # ------------------------------------------------------------------
     # GET    /api/v1/rekor/                          capability summary
@@ -3000,3 +3028,28 @@ def register_platform_routers(
         _logger.info("Mounted SonarQube router at /api/v1/sonarqube (read:scans)")
     except ImportError as exc:
         _logger.warning("sonarqube_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Akamai — EdgeGrid PAPI v1 + AppSec v1 (read:scans)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/akamai/                                          capability summary
+    # GET  /api/v1/akamai/papi/v1/groups                            PAPI groups
+    # GET  /api/v1/akamai/papi/v1/properties                        PAPI properties
+    # GET  /api/v1/akamai/papi/v1/properties/{prp}/versions         version history
+    # GET  /api/v1/akamai/papi/v1/properties/{prp}/versions/{v}/rules  rule tree
+    # GET  /api/v1/akamai/appsec/v1/configs                         AppSec configs
+    # GET  /api/v1/akamai/appsec/v1/configs/{id}/versions           AppSec versions
+    # POST /api/v1/akamai/appsec/v1/configs/{id}/versions/{v}/security-events
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.akamai_router import router as akamai_router  # noqa: PLC0415
+        app.include_router(
+            akamai_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Akamai EdgeGrid router at /api/v1/akamai (read:scans)")
+    except ImportError as exc:
+        _logger.warning("akamai_router not available: %s", exc)
