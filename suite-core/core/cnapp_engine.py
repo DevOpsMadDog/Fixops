@@ -509,6 +509,94 @@ class CNAPPEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    def get_policy_recommendations(self, org_id: str) -> List[Dict[str, Any]]:
+        """Derive actionable policy recommendations from open findings.
+
+        Logic:
+        - Group open findings by category + severity.
+        - For each group with >=1 finding, emit a recommendation with priority,
+          suggested action, and affected workload count.
+        - Suppress duplicates when a matching enabled policy already exists.
+        Priority: critical > high > medium > low.
+        """
+        _PRIORITY_ORDER = {"critical": 1, "high": 2, "medium": 3, "low": 4, "info": 5}
+        _CATEGORY_POLICY_TYPE = {
+            "misconfiguration": "image",
+            "vulnerability": "patch",
+            "secret_exposure": "encryption",
+            "excessive_permission": "iam",
+            "network_exposure": "network",
+            "malware": "patch",
+            "compliance_violation": "logging",
+        }
+        _CATEGORY_ACTION = {
+            "misconfiguration": "alert",
+            "vulnerability": "block",
+            "secret_exposure": "block",
+            "excessive_permission": "alert",
+            "network_exposure": "block",
+            "malware": "block",
+            "compliance_violation": "audit",
+        }
+
+        with self._lock:
+            with self._conn() as conn:
+                # Aggregate open findings by category + severity + workload count
+                rows = conn.execute(
+                    """SELECT category, severity, COUNT(DISTINCT workload_id) AS wl_count,
+                              COUNT(*) AS finding_count
+                       FROM cnapp_findings
+                       WHERE org_id=? AND status='open'
+                       GROUP BY category, severity
+                       ORDER BY category, severity""",
+                    (org_id,),
+                ).fetchall()
+
+                # Fetch already-enabled policies to suppress redundant recs
+                existing_policy_rows = conn.execute(
+                    "SELECT policy_type, action FROM cloud_policies WHERE org_id=? AND enabled=1",
+                    (org_id,),
+                ).fetchall()
+
+        existing_policies = {
+            (r["policy_type"], r["action"]) for r in existing_policy_rows
+        }
+
+        recommendations: List[Dict[str, Any]] = []
+        seen: set = set()
+        for row in rows:
+            category = row["category"]
+            severity = row["severity"]
+            key = (category, severity)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            policy_type = _CATEGORY_POLICY_TYPE.get(category, "network")
+            action = _CATEGORY_ACTION.get(category, "alert")
+            already_covered = (policy_type, action) in existing_policies
+
+            recommendations.append({
+                "category": category,
+                "severity": severity,
+                "priority": _PRIORITY_ORDER.get(severity, 5),
+                "finding_count": row["finding_count"],
+                "affected_workloads": row["wl_count"],
+                "suggested_policy_type": policy_type,
+                "suggested_action": action,
+                "already_covered": already_covered,
+                "title": f"Remediate {severity} {category.replace('_', ' ')} findings",
+                "description": (
+                    f"{row['finding_count']} open {severity}-severity {category} finding(s) "
+                    f"across {row['wl_count']} workload(s). "
+                    f"Suggested policy: {policy_type}/{action}."
+                ),
+            })
+
+        # Sort by priority asc, then finding_count desc
+        recommendations.sort(key=lambda r: (r["priority"], -r["finding_count"]))
+        return recommendations
+
     def get_cnapp_stats(self, org_id: str) -> Dict[str, Any]:
         """Aggregate CNAPP stats for an org."""
         with self._lock:

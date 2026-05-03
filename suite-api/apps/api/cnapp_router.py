@@ -19,6 +19,22 @@ router = APIRouter(prefix="/api/v1/cnapp", tags=["cnapp"])
 
 
 # ---------------------------------------------------------------------------
+# Root summary
+# ---------------------------------------------------------------------------
+
+@router.get("/")
+def cnapp_root(
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """CNAPP root: returns live stats + latest composite score for the org."""
+    try:
+        return get_engine().get_cnapp_stats(org_id)
+    except Exception as exc:
+        _logger.error("cnapp_root failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
 # Request models
 # ---------------------------------------------------------------------------
 
@@ -228,4 +244,26 @@ def get_cnapp_stats(
         return get_engine().get_cnapp_stats(org_id)
     except Exception as exc:
         _logger.error("get_cnapp_stats failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Policy Recommendations
+# ---------------------------------------------------------------------------
+
+@router.get("/policy-recommendations")
+def get_policy_recommendations(
+    org_id: str = Query(default="default"),
+) -> List[Dict[str, Any]]:
+    """Return actionable policy recommendations derived from open findings.
+
+    Each recommendation maps a category+severity group to a suggested policy
+    type and action. Recommendations already covered by an enabled policy are
+    flagged with already_covered=True rather than suppressed.
+    Sorted by priority (critical first), then finding_count descending.
+    """
+    try:
+        return get_engine().get_policy_recommendations(org_id)
+    except Exception as exc:
+        _logger.error("get_policy_recommendations failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
