@@ -450,4 +450,53 @@ def test_get_mitre_coverage_engine_returns_instance():
 def test_get_mitre_coverage_engine_is_singleton():
     a = get_mitre_coverage_engine()
     b = get_mitre_coverage_engine()
-    assert a is b
+
+
+# ---------------------------------------------------------------------------
+# get_technique_by_id
+# ---------------------------------------------------------------------------
+
+
+def test_lookup_returns_seeded_technique(engine):
+    engine.seed_att_ck_techniques(ORG_A)
+    result = engine.get_technique_by_id(ORG_A, "T1190")
+    assert result is not None
+    assert result["technique_id"] == "T1190"
+    assert result["name"] == "Exploit Public-Facing Application"
+    assert result["tactic_id"] == "TA0001"
+
+
+def test_lookup_is_case_insensitive(engine):
+    engine.seed_att_ck_techniques(ORG_A)
+    lower = engine.get_technique_by_id(ORG_A, "t1059")
+    upper = engine.get_technique_by_id(ORG_A, "T1059")
+    assert lower is not None
+    assert lower["technique_id"] == upper["technique_id"] == "T1059"
+
+
+def test_lookup_missing_returns_none(engine):
+    engine.seed_att_ck_techniques(ORG_A)
+    result = engine.get_technique_by_id(ORG_A, "T9999")
+    assert result is None
+
+
+def test_lookup_org_isolation(engine):
+    engine.seed_att_ck_techniques(ORG_A)
+    # ORG_B has no seeded data — lookup must return None
+    result = engine.get_technique_by_id(ORG_B, "T1190")
+    assert result is None
+
+
+def test_lookup_includes_detection_count(engine):
+    engine.seed_att_ck_techniques(ORG_A)
+    engine.log_detection(ORG_A, "T1078", "siem", 0.9)
+    engine.log_detection(ORG_A, "T1078", "edr", 0.8)
+    result = engine.get_technique_by_id(ORG_A, "T1078")
+    assert result is not None
+    assert result["detection_count"] == 2
+
+
+def test_lookup_empty_org_returns_none(engine):
+    # No seed called — DB initialised but empty
+    result = engine.get_technique_by_id(ORG_A, "T1190")
+    assert result is None

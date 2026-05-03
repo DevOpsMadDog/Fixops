@@ -626,6 +626,25 @@ class MITREAttackCoverageEngine:
 
         return [dict(r) for r in rows]
 
+    def get_technique_by_id(self, org_id: str, technique_id: str) -> Optional[Dict[str, Any]]:
+        """Return a single technique record by ID, or None if not found."""
+        self._init_db(org_id)
+        tid = technique_id.upper()
+        with self._lock:
+            with self._conn(org_id) as conn:
+                row = conn.execute(
+                    """SELECT t.technique_id, t.name, t.tactic_id, t.description,
+                              t.severity, t.created_at, ta.name as tactic_name,
+                              COUNT(d.detection_id) as detection_count
+                       FROM techniques t
+                       LEFT JOIN tactics ta ON ta.tactic_id = t.tactic_id AND ta.org_id = t.org_id
+                       LEFT JOIN detections d ON d.technique_id = t.technique_id AND d.org_id = t.org_id
+                       WHERE t.org_id = ? AND t.technique_id = ?
+                       GROUP BY t.technique_id""",
+                    (org_id, tid),
+                ).fetchone()
+        return dict(row) if row else None
+
     def get_detections(
         self,
         org_id: str,

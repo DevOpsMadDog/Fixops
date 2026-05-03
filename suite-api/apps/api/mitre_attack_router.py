@@ -131,6 +131,25 @@ async def list_techniques(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/techniques/{technique_id}")
+async def get_technique_by_id(
+    technique_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Look up a single MITRE ATT&CK technique by ID (e.g. T1190)."""
+    try:
+        engine = _get_engine()
+        result = engine.get_technique_by_id(org_id, technique_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Technique {technique_id.upper()} not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("mitre_attack.technique.lookup failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/techniques")
 async def add_technique(
     body: AddTechniqueRequest,
