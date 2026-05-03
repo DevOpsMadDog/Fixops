@@ -6617,6 +6617,14 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("tour_router unavailable: %s", _e)
 
+    # Agentless Snapshot Scan — GAP-020 (Wiz/Orca moat)
+    try:
+        from apps.api.agentless_snapshot_scan_router import router as agentless_snapshot_scan_router
+        app.include_router(agentless_snapshot_scan_router)
+        _logger.info("Mounted Agentless Snapshot Scan router at /api/v1/agentless-snapshot-scan")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("agentless_snapshot_scan_router unavailable: %s", _e)
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they
