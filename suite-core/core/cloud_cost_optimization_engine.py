@@ -509,6 +509,102 @@ class CloudCostOptimizationEngine:
             "high_roi_tools": high_roi or 0,
         }
 
+    def detect_spend_anomalies(
+        self,
+        org_id: str,
+        z_threshold: float = 2.0,
+        low_utilization_threshold: float = 20.0,
+    ) -> Dict[str, Any]:
+        """Detect spend anomalies across the org's security tool portfolio.
+
+        Two detection strategies:
+          1. Z-score spike: tools whose monthly_cost deviates >= z_threshold
+             standard deviations above the org mean (requires >= 3 tools).
+          2. Low-utilization overspend: active tools with utilization_pct
+             <= low_utilization_threshold AND monthly_cost > 0.
+
+        Returns a dict with:
+          - anomalies: list of flagged tools with reason + severity
+          - summary: counts by reason type and total_anomaly_spend
+          - org_mean_monthly_cost: baseline used for Z-score calc
+          - detected_at: ISO-8601 timestamp
+        """
+        tools = self.list_tools(org_id)
+        if not tools:
+            return {
+                "anomalies": [],
+                "summary": {"z_score_spikes": 0, "low_util_overspend": 0, "total_anomaly_spend": 0.0},
+                "org_mean_monthly_cost": 0.0,
+                "detected_at": _now(),
+            }
+
+        costs = [t["monthly_cost"] for t in tools]
+        n = len(costs)
+        mean_cost = sum(costs) / n
+        variance = sum((c - mean_cost) ** 2 for c in costs) / n if n > 1 else 0.0
+        std_cost = variance ** 0.5
+
+        anomalies: List[Dict[str, Any]] = []
+        seen_ids: set = set()
+
+        # Z-score spike detection (meaningful only with >= 3 tools)
+        if n >= 3 and std_cost > 0:
+            for t in tools:
+                z = (t["monthly_cost"] - mean_cost) / std_cost
+                if z >= z_threshold:
+                    severity = "critical" if z >= z_threshold * 1.5 else "high"
+                    anomalies.append({
+                        "tool_id": t["id"],
+                        "tool_name": t["tool_name"],
+                        "tool_category": t["tool_category"],
+                        "cloud_provider": t["cloud_provider"],
+                        "monthly_cost": t["monthly_cost"],
+                        "utilization_pct": t["utilization_pct"],
+                        "reason": "z_score_spike",
+                        "severity": severity,
+                        "z_score": round(z, 4),
+                        "org_mean_monthly_cost": round(mean_cost, 2),
+                    })
+                    seen_ids.add(t["id"])
+
+        # Low-utilization overspend detection
+        for t in tools:
+            if t["id"] in seen_ids:
+                continue
+            if (
+                t["status"] == "active"
+                and t["utilization_pct"] <= low_utilization_threshold
+                and t["monthly_cost"] > 0
+            ):
+                severity = "high" if t["monthly_cost"] >= mean_cost else "medium"
+                anomalies.append({
+                    "tool_id": t["id"],
+                    "tool_name": t["tool_name"],
+                    "tool_category": t["tool_category"],
+                    "cloud_provider": t["cloud_provider"],
+                    "monthly_cost": t["monthly_cost"],
+                    "utilization_pct": t["utilization_pct"],
+                    "reason": "low_util_overspend",
+                    "severity": severity,
+                    "z_score": None,
+                    "org_mean_monthly_cost": round(mean_cost, 2),
+                })
+
+        z_count = sum(1 for a in anomalies if a["reason"] == "z_score_spike")
+        lu_count = sum(1 for a in anomalies if a["reason"] == "low_util_overspend")
+        total_anomaly_spend = sum(a["monthly_cost"] for a in anomalies)
+
+        return {
+            "anomalies": anomalies,
+            "summary": {
+                "z_score_spikes": z_count,
+                "low_util_overspend": lu_count,
+                "total_anomaly_spend": round(total_anomaly_spend, 2),
+            },
+            "org_mean_monthly_cost": round(mean_cost, 2),
+            "detected_at": _now(),
+        }
+
     def get_cost_per_risk(self, org_id: str) -> List[Dict[str, Any]]:
         """Return cost_per_risk_pct = annual_cost / max(1, risk_reduction_pct) per tool, ASC."""
         with self._conn() as conn:

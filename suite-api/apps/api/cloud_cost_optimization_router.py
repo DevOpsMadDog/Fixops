@@ -208,6 +208,20 @@ def get_portfolio_summary(org_id: str = Query(default="default")):
     return _get_engine().get_portfolio_summary(org_id=org_id)
 
 
+@router.get("/anomalies")
+def detect_spend_anomalies(
+    org_id: str = Query(default="default"),
+    z_threshold: float = Query(default=2.0, ge=1.0, le=5.0),
+    low_utilization_threshold: float = Query(default=20.0, ge=0.0, le=100.0),
+):
+    """Detect cloud spend anomalies: Z-score cost spikes and low-utilization overspend."""
+    return _get_engine().detect_spend_anomalies(
+        org_id=org_id,
+        z_threshold=z_threshold,
+        low_utilization_threshold=low_utilization_threshold,
+    )
+
+
 @router.get("/cost-per-risk")
 def get_cost_per_risk(org_id: str = Query(default="default")):
     """Return cost per risk reduction percentage, ordered ASC."""
