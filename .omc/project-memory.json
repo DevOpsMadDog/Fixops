@@ -600,14 +600,38 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/sub_apps/platform_app.py",
-      "accessCount": 13,
-      "lastAccessed": 1777821082582,
+      "accessCount": 34,
+      "lastAccessed": 1777822439381,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/app.py",
+      "accessCount": 7,
+      "lastAccessed": 1777822350234,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/abuseipdb_router.py",
+      "accessCount": 6,
+      "lastAccessed": 1777822318642,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/shodan_router.py",
       "accessCount": 5,
-      "lastAccessed": 1777820524778,
+      "lastAccessed": 1777822311564,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_shodan_router.py",
+      "accessCount": 5,
+      "lastAccessed": 1777822311888,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/shodan_lookup_engine.py",
+      "accessCount": 5,
+      "lastAccessed": 1777822326790,
       "type": "file"
     },
     {
@@ -641,15 +665,21 @@
       "type": "file"
     },
     {
-      "path": "tests/test_agentless_snapshot_scan_router.py",
-      "accessCount": 2,
-      "lastAccessed": 1777820152932,
+      "path": "tests/conftest.py",
+      "accessCount": 3,
+      "lastAccessed": 1777821511926,
       "type": "file"
     },
     {
-      "path": "tests/conftest.py",
+      "path": "suite-api/apps/api/greynoise_router.py",
+      "accessCount": 3,
+      "lastAccessed": 1777821900571,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_agentless_snapshot_scan_router.py",
       "accessCount": 2,
-      "lastAccessed": 1777820303868,
+      "lastAccessed": 1777820152932,
       "type": "file"
     },
     {
@@ -695,6 +725,18 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/censys_router.py",
+      "accessCount": 2,
+      "lastAccessed": 1777821843550,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_network_anomaly_router.py",
+      "accessCount": 2,
+      "lastAccessed": 1777822303273,
+      "type": "file"
+    },
+    {
       "path": "tests/test_webhook_filter_rules.py",
       "accessCount": 1,
       "lastAccessed": 1777819875960,
@@ -710,12 +752,6 @@
       "path": "suite-core/core/trivy_integration.py",
       "accessCount": 1,
       "lastAccessed": 1777820091871,
-      "type": "file"
-    },
-    {
-      "path": "tests/test_network_anomaly_router.py",
-      "accessCount": 1,
-      "lastAccessed": 1777820128199,
       "type": "file"
     },
     {
@@ -836,6 +872,30 @@
       "path": "tests/test_semgrep_router.py",
       "accessCount": 1,
       "lastAccessed": 1777821061252,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/prometheus_alerts_router.py",
+      "accessCount": 1,
+      "lastAccessed": 1777821463891,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_prometheus_alerts_router.py",
+      "accessCount": 1,
+      "lastAccessed": 1777821474850,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/prometheus_alerts_engine.py",
+      "accessCount": 1,
+      "lastAccessed": 1777821475434,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_censys_router.py",
+      "accessCount": 1,
+      "lastAccessed": 1777821843789,
       "type": "file"
     }
   ],

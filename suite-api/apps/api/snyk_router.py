@@ -1,18 +1,26 @@
-"""
-ALdeci Snyk Scanner API Router.
+"""Snyk Vulnerability Scanner Router — ALDECI.
 
-Exposes Snyk REST API integration via ALdeci REST endpoints.
-Falls back to mock data when SNYK_API_TOKEN is not configured.
+REST surface under prefix ``/api/v1/snyk`` wrapping ``core.snyk_vuln_engine``.
 
-Endpoints:
-  GET  /api/v1/scan/snyk/status            — check Snyk configuration
-  GET  /api/v1/scan/snyk/projects          — list all Snyk projects
-  GET  /api/v1/scan/snyk/issues            — get issues for a project
-  POST /api/v1/scan/snyk/test-package      — test a single package
-  POST /api/v1/scan/snyk/import            — import all org issues
-  GET  /api/v1/scan/snyk/history           — list import history for an org
+Endpoints
+---------
+* GET  /                                               — capability summary
+* GET  /v1/orgs                                        — list organisations
+* GET  /v1/orgs/{org_id}/projects                      — list projects (filters/names)
+* POST /v1/test/{ecosystem}/{file_path}                — test a manifest
+* GET  /v1/orgs/{org_id}/projects/{project_id}/issues  — list project issues
+* GET  /v1/reporting                                   — basic reporting summary
 
-Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
+Auth
+----
+api_key_auth dependency (mount layer adds scope checks — read:scans).
+
+NO MOCKS rule
+-------------
+* When SNYK_TOKEN is unset:
+    - Capability summary surfaces ``status="unavailable"``.
+    - All live endpoints return HTTP 503.
+* No fabricated payloads.
 """
 
 from __future__ import annotations
@@ -21,91 +29,144 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/api/v1/scan/snyk",
-    tags=["snyk-scanner"],
+    prefix="/api/v1/snyk",
+    tags=["Snyk"],
     dependencies=[Depends(api_key_auth)],
 )
 
-# ---------------------------------------------------------------------------
-# Lazy singleton client
-# ---------------------------------------------------------------------------
-
-_client = None
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        from core.snyk_integration import SnykClient
-        _client = SnykClient()
-    return _client
-
 
 # ---------------------------------------------------------------------------
-# Request / Response models
+# Engine accessor (lazy import so tests can patch the singleton)
 # ---------------------------------------------------------------------------
 
 
-class TestPackageRequest(BaseModel):
-    """Request body for testing a single package."""
+def _engine():
+    from core.snyk_vuln_engine import get_snyk_vuln_engine
 
-    ecosystem: str = Field(..., description="Package ecosystem (npm, pip, maven, etc.)")
-    package: str = Field(..., description="Package name")
-    version: str = Field(..., description="Package version")
-    org_id: str = Field("default", description="Organisation identifier")
+    return get_snyk_vuln_engine()
 
 
-class ImportRequest(BaseModel):
-    """Request body for importing all Snyk issues for an org."""
+def _serve(callable_):
+    """Run a Snyk call, translating engine errors to HTTP responses."""
+    from core.snyk_vuln_engine import SnykUnavailableError
 
-    org_id: str = Field("default", description="Organisation identifier")
+    try:
+        return callable_()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except SnykUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-class SnykStatusResponse(BaseModel):
-    configured: bool
-    message: str
-    org_id: Optional[str] = None
+# ---------------------------------------------------------------------------
+# Schemas
+# ---------------------------------------------------------------------------
 
 
-class SeverityBreakdown(BaseModel):
+class CapabilityResponse(BaseModel):
+    service: str
+    endpoints: List[str]
+    snyk_token_present: bool
+    status: str  # ok | empty | unavailable
+
+
+class OrgGroup(BaseModel):
+    id: str = ""
+    name: str = ""
+
+
+class OrgEntry(BaseModel):
+    id: str = ""
+    name: str = ""
+    slug: str = ""
+    group: OrgGroup = Field(default_factory=OrgGroup)
+
+
+class OrgsResponse(BaseModel):
+    orgs: List[OrgEntry]
+
+
+class IssueCountsBySeverity(BaseModel):
     critical: int = 0
     high: int = 0
     medium: int = 0
     low: int = 0
-    info: int = 0
 
 
-class ImportResponse(BaseModel):
-    import_id: str
-    org_id: str
-    started_at: str
-    completed_at: str
+class ProjectEntry(BaseModel):
+    id: str = ""
+    name: str = ""
+    type: str = ""
+    origin: str = ""
+    branch: str = ""
+    isMonitored: bool = False
+    totalDependencies: int = 0
+    issueCountsBySeverity: IssueCountsBySeverity = Field(
+        default_factory=IssueCountsBySeverity
+    )
+
+
+class ProjectsResponse(BaseModel):
+    projects: List[ProjectEntry]
+
+
+class TestRequest(BaseModel):
+    encoding: str = Field("plain", description="plain or base64")
+    files: Dict[str, Any] = Field(default_factory=dict)
+    displayTargetFile: str = ""
+
+
+class VulnerabilityEntry(BaseModel):
+    id: str = ""
+    title: str = ""
+    severity: str = ""
+    package: str = ""
+    version: str = ""
+    fixedIn: List[str] = Field(default_factory=list)
+
+
+class LicenseEntry(BaseModel):
+    id: str = ""
+    title: str = ""
+    severity: str = ""
+    package: str = ""
+    version: str = ""
+
+
+class IssuesBucket(BaseModel):
+    vulnerabilities: List[VulnerabilityEntry] = Field(default_factory=list)
+    licenses: List[LicenseEntry] = Field(default_factory=list)
+
+
+class TestResponse(BaseModel):
+    ok: bool = False
+    dependencyCount: int = 0
+    issues: IssuesBucket = Field(default_factory=IssuesBucket)
+
+
+class IssuesFilter(BaseModel):
+    severities: List[str] = Field(default_factory=list)
+
+
+class IssuesQuery(BaseModel):
+    filters: IssuesFilter = Field(default_factory=IssuesFilter)
+
+
+class IssuesResponse(BaseModel):
+    issues: IssuesBucket = Field(default_factory=IssuesBucket)
+
+
+class ReportingResponse(BaseModel):
+    service: str
+    snyk_token_present: bool
     status: str
-    is_mock: bool
-    findings_count: int
-    severity_breakdown: Dict[str, int]
-    findings: List[Dict[str, Any]]
-    error: Optional[str] = None
-
-
-class ImportSummaryResponse(BaseModel):
-    """Import history entry (findings omitted for brevity)."""
-
-    import_id: str
-    org_id: str
-    started_at: str
-    completed_at: str
-    status: str
-    is_mock: bool
-    findings_count: int
-    severity_breakdown: Dict[str, int]
-    error: Optional[str] = None
+    notes: str
 
 
 # ---------------------------------------------------------------------------
@@ -114,159 +175,145 @@ class ImportSummaryResponse(BaseModel):
 
 
 @router.get(
-    "/status",
-    response_model=SnykStatusResponse,
-    summary="Check Snyk API configuration",
+    "/",
+    response_model=CapabilityResponse,
+    summary="Snyk capability summary",
 )
-def snyk_status():
-    """
-    Return whether the Snyk API token is configured.
-
-    When unconfigured all endpoints return mock data so the pipeline
-    can be exercised without real credentials.
-    """
-    client = _get_client()
-    configured = client.is_configured()
-    import os
-    org_id = os.environ.get("SNYK_ORG_ID", "") or client._org_id or None
-    return {
-        "configured": configured,
-        "org_id": org_id if configured else None,
-        "message": (
-            "Snyk API token configured — real data active"
-            if configured
-            else "SNYK_API_TOKEN not set — mock data mode. "
-            "Set SNYK_API_TOKEN and SNYK_ORG_ID environment variables."
-        ),
-    }
+async def capability_summary() -> CapabilityResponse:
+    """Return the service summary — safe to call without a token."""
+    eng = _engine()
+    token_present = eng.api_key_present()
+    if not token_present:
+        status = "unavailable"
+    else:
+        # No persistent cache; we surface "ok" once the token is present.
+        status = "ok"
+    return CapabilityResponse(
+        service="Snyk",
+        endpoints=[
+            "/v1/orgs",
+            "/v1/orgs/{org}/projects",
+            "/v1/test",
+            "/v1/orgs/{org}/projects/{project}/issues",
+            "/v1/reporting",
+        ],
+        snyk_token_present=token_present,
+        status=status,
+    )
 
 
 @router.get(
-    "/projects",
-    response_model=List[Dict[str, Any]],
-    summary="List Snyk projects",
+    "/v1/orgs",
+    response_model=OrgsResponse,
+    summary="List Snyk organisations",
 )
-def list_projects():
-    """
-    List all projects monitored by Snyk for the configured org.
-
-    Returns mock project data when SNYK_API_TOKEN is not configured.
-    """
-    client = _get_client()
-    try:
-        return client.list_projects()
-    except Exception as exc:
-        logger.error("list_projects failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+async def list_orgs() -> OrgsResponse:
+    eng = _engine()
+    data = _serve(lambda: eng.list_orgs())
+    return OrgsResponse(**data)
 
 
 @router.get(
-    "/issues",
-    response_model=List[Dict[str, Any]],
-    summary="Get issues for a Snyk project",
+    "/v1/orgs/{org_id}/projects",
+    response_model=ProjectsResponse,
+    summary="List Snyk projects for an organisation",
 )
-def get_project_issues(
-    project_id: str = Query(..., description="Snyk project UUID"),
-):
-    """
-    Get all open issues for a specific Snyk project.
-
-    Returns mock issue data when SNYK_API_TOKEN is not configured.
-    """
-    client = _get_client()
-    try:
-        return client.get_project_issues(project_id=project_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.error("get_project_issues failed for %s: %s", project_id, exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+async def list_projects(
+    org_id: str = Path(..., description="Snyk organisation UUID"),
+    filters: Optional[List[str]] = Query(
+        default=None,
+        alias="filters[]",
+        description="Repeated filter params (tags|status)",
+    ),
+    names: Optional[str] = Query(
+        default=None,
+        description="Comma-separated project names to match",
+    ),
+) -> ProjectsResponse:
+    eng = _engine()
+    data = _serve(
+        lambda: eng.list_projects(org_id=org_id, filters=filters, names=names)
+    )
+    return ProjectsResponse(**data)
 
 
 @router.post(
-    "/test-package",
-    response_model=Dict[str, Any],
-    summary="Test a single package for vulnerabilities",
+    "/v1/test/{ecosystem}/{file_path:path}",
+    response_model=TestResponse,
+    summary="Test a manifest for vulnerabilities",
 )
-def test_package(body: TestPackageRequest):
-    """
-    Test a single package version against Snyk's vulnerability database.
-
-    Returns mock data when SNYK_API_TOKEN is not configured.
-    """
-    client = _get_client()
-    try:
-        return client.test_package(
-            ecosystem=body.ecosystem,
-            package=body.package,
-            version=body.version,
+async def test_manifest(
+    ecosystem: str = Path(
+        ...,
+        description="Package ecosystem",
+        pattern="^(npm|maven|pip|gomodules|composer|gradle|rubygems)$",
+    ),
+    file_path: str = Path(..., description="Manifest file path"),
+    body: TestRequest = Body(default_factory=TestRequest),
+) -> TestResponse:
+    eng = _engine()
+    data = _serve(
+        lambda: eng.test_manifest(
+            ecosystem=ecosystem,
+            file_path=file_path,
+            encoding=body.encoding,
+            files=body.files,
+            display_target_file=body.displayTargetFile,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.error(
-            "test_package failed for %s/%s@%s: %s",
-            body.ecosystem, body.package, body.version, exc,
-            exc_info=True,
-        )
-        raise HTTPException(status_code=500, detail=str(exc))
-
-
-@router.post(
-    "/import",
-    response_model=ImportResponse,
-    summary="Import all Snyk issues for an org",
-)
-def import_results(body: ImportRequest):
-    """
-    Pull all issues from Snyk for the given org, normalize them via
-    SnykNormalizer, and ingest into the Brain Pipeline.
-
-    Returns mock data when SNYK_API_TOKEN is not configured.
-    """
-    client = _get_client()
-    try:
-        from core.snyk_integration import _import_history
-        findings = client.import_results(org_id=body.org_id)
-        # Retrieve the stored entry (most recent for this org)
-        from core.snyk_integration import _get_lock
-        with _get_lock():
-            entries = list(_import_history.get(body.org_id or client._org_id or "default", []))
-        if entries:
-            return entries[-1]
-        # Fallback if history lookup fails
-        return {
-            "import_id": "unknown",
-            "org_id": body.org_id,
-            "started_at": "",
-            "completed_at": "",
-            "status": "completed",
-            "is_mock": not client.is_configured(),
-            "findings_count": len(findings),
-            "severity_breakdown": {},
-            "findings": findings,
-        }
-    except Exception as exc:
-        logger.error("import_results failed for org=%s: %s", body.org_id, exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+    )
+    return TestResponse(**data)
 
 
 @router.get(
-    "/history",
-    response_model=List[ImportSummaryResponse],
-    summary="List Snyk import history",
+    "/v1/orgs/{org_id}/projects/{project_id}/issues",
+    response_model=IssuesResponse,
+    summary="List issues for a Snyk project",
 )
-def import_history(
-    org_id: str = Query("default", description="Organisation identifier"),
-):
-    """
-    Return the import history for the given organisation, most recent first.
+async def project_issues(
+    org_id: str = Path(..., description="Snyk organisation UUID"),
+    project_id: str = Path(..., description="Snyk project UUID"),
+    body: IssuesQuery = Body(default_factory=IssuesQuery),
+) -> IssuesResponse:
+    eng = _engine()
+    data = _serve(
+        lambda: eng.project_issues(
+            org_id=org_id,
+            project_id=project_id,
+            severities=body.filters.severities or None,
+        )
+    )
+    return IssuesResponse(**data)
 
-    Findings are omitted from the summary; re-run an import to get full results.
+
+@router.get(
+    "/v1/reporting",
+    response_model=ReportingResponse,
+    summary="Snyk reporting capability stub",
+)
+async def reporting_summary() -> ReportingResponse:
+    """Reporting endpoint — returns a status summary.
+
+    Snyk's full reporting API requires a Business/Enterprise plan and is
+    org-scoped; we expose a capability check here so consumers can wire UI
+    placeholders without erroring out when a token is absent.
     """
-    client = _get_client()
-    try:
-        return client.get_import_history(org_id=org_id)
-    except Exception as exc:
-        logger.error("import_history failed for org=%s: %s", org_id, exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+    eng = _engine()
+    present = eng.api_key_present()
+    if not present:
+        status = "unavailable"
+        notes = "SNYK_TOKEN is not configured"
+    else:
+        status = "ok"
+        notes = (
+            "Reporting capability available; query org-scoped reports via the "
+            "Snyk REST surface (/orgs/{org}/projects + /issues)."
+        )
+    return ReportingResponse(
+        service="Snyk",
+        snyk_token_present=present,
+        status=status,
+        notes=notes,
+    )
+
+
+__all__ = ["router"]

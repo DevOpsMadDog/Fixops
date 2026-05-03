@@ -1,30 +1,31 @@
+"""ALDECI PagerDuty incident-management router — REAL API only, NO MOCKS.
+
+Mounted at ``/api/v1/pagerduty`` under the ``read:scans`` scope.
+
+Endpoints
+---------
+GET    /                       — capability summary
+GET    /incidents              — list incidents (statuses[], service_ids[], limit, offset)
+POST   /incidents              — create incident (PagerDuty payload + From: header)
+POST   /incidents/{id}/notes   — add a note to an incident
+PUT    /incidents/{id}         — acknowledge / resolve / mutate
+GET    /services               — list services
+GET    /oncalls                — list on-call assignments
+POST   /change_events/enqueue  — enqueue a change event via Events API v2
 """
-ALdeci PagerDuty API Router.
-
-Exposes PagerDuty REST API v2 integration via ALdeci REST endpoints.
-Falls back to mock data when PAGERDUTY_API_TOKEN is not configured.
-
-Endpoints:
-  GET  /api/v1/pagerduty/status                    — check PagerDuty configuration
-  POST /api/v1/pagerduty/incidents                 — create a new incident
-  GET  /api/v1/pagerduty/incidents                 — list incidents with optional filters
-  GET  /api/v1/pagerduty/incidents/{incident_id}   — get a single incident
-  PATCH /api/v1/pagerduty/incidents/{incident_id}  — update/resolve an incident
-  GET  /api/v1/pagerduty/schedules                 — list on-call schedules
-  GET  /api/v1/pagerduty/escalation-policies       — list escalation policies
-  GET  /api/v1/pagerduty/services                  — list services and health
-
-Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
-"""
-
 from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from core.pagerduty_incident_engine import (
+    PagerDutyUnavailableError,
+    get_pagerduty_incident_engine,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,257 +35,204 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-# ---------------------------------------------------------------------------
-# Lazy singleton client
-# ---------------------------------------------------------------------------
 
-_client = None
+# ---------------------------------------------------------------- Pydantic
 
 
-def _get_client():
-    global _client
-    if _client is None:
-        from core.pagerduty_integration import PagerDutyClient
-        _client = PagerDutyClient()
-    return _client
+class _ServiceRef(BaseModel):
+    id: str
+    type: str = "service_reference"
 
 
-# ---------------------------------------------------------------------------
-# Request / Response models
-# ---------------------------------------------------------------------------
+class _IncidentBody(BaseModel):
+    type: str = "incident_body"
+    details: str = ""
+
+
+class _AssigneeRef(BaseModel):
+    assignee: Dict[str, Any]
+
+
+class _IncidentCreatePayload(BaseModel):
+    type: str = "incident"
+    title: str
+    service: _ServiceRef
+    urgency: str = Field("high", pattern="^(high|low)$")
+    body: Optional[_IncidentBody] = None
+    assignments: Optional[List[Dict[str, Any]]] = None
+    escalation_policy: Optional[Dict[str, Any]] = None
 
 
 class CreateIncidentRequest(BaseModel):
-    """Request body for creating a PagerDuty incident."""
+    incident: _IncidentCreatePayload
 
-    title: str = Field(..., description="Incident summary / title")
-    service_id: str = Field(..., description="PagerDuty service ID")
-    urgency: str = Field("high", description="Incident urgency: 'high' or 'low'")
-    body_details: Optional[str] = Field(None, description="Incident body details (plain text)")
-    escalation_policy_id: Optional[str] = Field(None, description="Override escalation policy ID")
-    priority_id: Optional[str] = Field(None, description="Priority object ID")
+
+class _IncidentMutationPayload(BaseModel):
+    type: str = "incident_reference"
+    status: Optional[str] = Field(None, pattern="^(acknowledged|resolved)$")
+    title: Optional[str] = None
+    urgency: Optional[str] = Field(None, pattern="^(high|low)$")
+    resolution: Optional[str] = None
 
 
 class UpdateIncidentRequest(BaseModel):
-    """Request body for updating a PagerDuty incident."""
-
-    status: Optional[str] = Field(None, description="New status: 'acknowledged' or 'resolved'")
-    title: Optional[str] = Field(None, description="New incident title")
-    urgency: Optional[str] = Field(None, description="New urgency: 'high' or 'low'")
-    resolution: Optional[str] = Field(None, description="Resolution note")
+    incident: _IncidentMutationPayload
 
 
-class PagerDutyStatusResponse(BaseModel):
-    configured: bool
-    message: str
-    from_email: Optional[str] = None
+class _NotePayload(BaseModel):
+    content: str
 
 
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
+class AddNoteRequest(BaseModel):
+    note: _NotePayload
 
 
-@router.get(
-    "/status",
-    response_model=PagerDutyStatusResponse,
-    summary="Check PagerDuty API configuration",
-)
-def pagerduty_status():
-    """
-    Return whether the PagerDuty API token is configured.
-
-    When unconfigured all endpoints return mock data so the pipeline
-    can be exercised without real credentials.
-    """
-    import os
-    client = _get_client()
-    configured = client.is_configured()
-    from_email = os.environ.get("PAGERDUTY_FROM_EMAIL", "") or client._from_email or None
-    return {
-        "configured": configured,
-        "from_email": from_email if configured else None,
-        "message": (
-            "PagerDuty API token configured — real data active"
-            if configured
-            else "PAGERDUTY_API_TOKEN not set — mock data mode. "
-            "Set PAGERDUTY_API_TOKEN and PAGERDUTY_FROM_EMAIL environment variables."
-        ),
-    }
+class _ChangeEventPayload(BaseModel):
+    summary: str
+    source: Optional[str] = None
+    timestamp: Optional[str] = None
+    custom_details: Optional[Dict[str, Any]] = None
 
 
-@router.post(
-    "/incidents",
-    response_model=Dict[str, Any],
-    summary="Create a PagerDuty incident",
-    status_code=201,
-)
-def create_incident(body: CreateIncidentRequest):
-    """
-    Create a new PagerDuty incident for the given service.
-
-    Returns mock data when PAGERDUTY_API_TOKEN is not configured.
-    """
-    client = _get_client()
-    try:
-        return client.create_incident(
-            title=body.title,
-            service_id=body.service_id,
-            urgency=body.urgency,
-            body_details=body.body_details,
-            escalation_policy_id=body.escalation_policy_id,
-            priority_id=body.priority_id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.error("create_incident failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+class EnqueueChangeEventRequest(BaseModel):
+    routing_key: str
+    payload: _ChangeEventPayload
 
 
-@router.get(
-    "/incidents",
-    response_model=List[Dict[str, Any]],
-    summary="List PagerDuty incidents",
-)
+# ----------------------------------------------------------------- helpers
+
+
+def _to_503(exc: PagerDutyUnavailableError) -> HTTPException:
+    return HTTPException(status_code=503, detail=str(exc))
+
+
+# ----------------------------------------------------------------- endpoints
+
+
+@router.get("/", summary="PagerDuty capability summary")
+def capability_summary() -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
+    return eng.capability_summary()
+
+
+@router.get("/incidents", summary="List PagerDuty incidents")
 def list_incidents(
-    statuses: Optional[str] = Query(
-        None,
-        description="Comma-separated statuses to filter (triggered,acknowledged,resolved)",
+    statuses: Optional[List[str]] = Query(
+        None, alias="statuses[]", description="triggered|acknowledged|resolved"
     ),
-    service_ids: Optional[str] = Query(
-        None,
-        description="Comma-separated PagerDuty service IDs to filter",
+    service_ids: Optional[List[str]] = Query(
+        None, alias="service_ids[]", description="PagerDuty service IDs"
     ),
-    limit: int = Query(25, ge=1, le=100, description="Max incidents to return"),
-):
-    """
-    List PagerDuty incidents with optional status and service filters.
-
-    Returns mock data when PAGERDUTY_API_TOKEN is not configured.
-    """
-    client = _get_client()
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
     try:
-        status_list = [s.strip() for s in statuses.split(",")] if statuses else None
-        service_list = [s.strip() for s in service_ids.split(",")] if service_ids else None
-        return client.list_incidents(
-            statuses=status_list,
-            service_ids=service_list,
+        return eng.list_incidents(
+            statuses=statuses,
+            service_ids=service_ids,
             limit=limit,
+            offset=offset,
         )
-    except Exception as exc:
-        logger.error("list_incidents failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
-
-
-@router.get(
-    "/incidents/{incident_id}",
-    response_model=Dict[str, Any],
-    summary="Get a single PagerDuty incident",
-)
-def get_incident(incident_id: str):
-    """
-    Retrieve a single PagerDuty incident by ID.
-
-    Returns mock data when PAGERDUTY_API_TOKEN is not configured.
-    """
-    client = _get_client()
-    try:
-        return client.get_incident(incident_id=incident_id)
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.error("get_incident failed for %s: %s", incident_id, exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.patch(
-    "/incidents/{incident_id}",
-    response_model=Dict[str, Any],
-    summary="Update or resolve a PagerDuty incident",
-)
-def update_incident(incident_id: str, body: UpdateIncidentRequest):
-    """
-    Update a PagerDuty incident — change status, urgency, or add a resolution note.
-
-    Returns mock data when PAGERDUTY_API_TOKEN is not configured.
-    """
-    client = _get_client()
+@router.post("/incidents", summary="Create PagerDuty incident", status_code=201)
+def create_incident(
+    body: CreateIncidentRequest,
+    from_header: Optional[str] = Header(None, alias="From"),
+) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
+    if from_header:
+        # Allow per-request override; the engine still uses env when missing.
+        eng._from_email = from_header.strip()  # noqa: SLF001
     try:
-        return client.update_incident(
-            incident_id=incident_id,
-            status=body.status,
-            title=body.title,
-            urgency=body.urgency,
-            resolution=body.resolution,
-        )
+        return eng.create_incident(body.dict(exclude_none=True))
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.error(
-            "update_incident failed for %s: %s", incident_id, exc, exc_info=True
+
+
+@router.post("/incidents/{incident_id}/notes", summary="Add note to incident", status_code=201)
+def add_incident_note(
+    incident_id: str,
+    body: AddNoteRequest,
+) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
+    try:
+        return eng.add_incident_note(incident_id, body.note.content)
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.put("/incidents/{incident_id}", summary="Update PagerDuty incident")
+def update_incident(
+    incident_id: str,
+    body: UpdateIncidentRequest,
+) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
+    try:
+        return eng.update_incident(incident_id, body.dict(exclude_none=True))
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get("/services", summary="List PagerDuty services")
+def list_services(limit: int = Query(25, ge=1, le=100)) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
+    try:
+        return eng.list_services(limit=limit)
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
+
+
+@router.get("/oncalls", summary="List PagerDuty on-call assignments")
+def list_oncalls(
+    escalation_policy_ids: Optional[List[str]] = Query(
+        None, alias="escalation_policy_ids[]"
+    ),
+    time_zone: str = Query("UTC"),
+) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
+    try:
+        return eng.list_oncalls(
+            escalation_policy_ids=escalation_policy_ids,
+            time_zone=time_zone,
         )
-        raise HTTPException(status_code=500, detail=str(exc))
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
 
 
-@router.get(
-    "/schedules",
-    response_model=List[Dict[str, Any]],
-    summary="List PagerDuty on-call schedules",
-)
-def list_schedules(
-    query: Optional[str] = Query(None, description="Text filter for schedule names"),
-):
-    """
-    List on-call schedules configured in PagerDuty.
-
-    Returns mock data when PAGERDUTY_API_TOKEN is not configured.
-    """
-    client = _get_client()
+@router.post("/change_events/enqueue", summary="Enqueue PagerDuty change event")
+def enqueue_change_event(body: EnqueueChangeEventRequest = Body(...)) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
     try:
-        return client.list_schedules(query=query)
-    except Exception as exc:
-        logger.error("list_schedules failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+        return eng.enqueue_change_event(
+            routing_key=body.routing_key,
+            payload=body.payload.dict(exclude_none=True),
+        )
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
-@router.get(
-    "/escalation-policies",
-    response_model=List[Dict[str, Any]],
-    summary="List PagerDuty escalation policies",
-)
-def list_escalation_policies(
-    query: Optional[str] = Query(None, description="Text filter for policy names"),
-):
-    """
-    List escalation policies configured in PagerDuty.
-
-    Returns mock data when PAGERDUTY_API_TOKEN is not configured.
-    """
-    client = _get_client()
+# Optional: list escalation policies (capability summary advertises it)
+@router.get("/escalation_policies", summary="List PagerDuty escalation policies")
+def list_escalation_policies(limit: int = Query(25, ge=1, le=100)) -> Dict[str, Any]:
+    eng = get_pagerduty_incident_engine()
     try:
-        return client.list_escalation_policies(query=query)
-    except Exception as exc:
-        logger.error("list_escalation_policies failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+        return eng.list_escalation_policies(limit=limit)
+    except PagerDutyUnavailableError as exc:
+        raise _to_503(exc)
 
 
-@router.get(
-    "/services",
-    response_model=List[Dict[str, Any]],
-    summary="List PagerDuty services and health",
-)
-def list_services(
-    query: Optional[str] = Query(None, description="Text filter for service names"),
-):
-    """
-    List PagerDuty services with status information.
-
-    Returns mock data when PAGERDUTY_API_TOKEN is not configured.
-    """
-    client = _get_client()
-    try:
-        return client.list_services(query=query)
-    except Exception as exc:
-        logger.error("list_services failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+__all__ = ["router"]

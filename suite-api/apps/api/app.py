@@ -6604,12 +6604,8 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("greynoise_router unavailable: %s", _e)
 
-    try:
-        from apps.api.censys_router import router as censys_router
-        app.include_router(censys_router)
-        _logger.info("Mounted Censys router at /api/v1/censys")
-    except Exception as _e:  # noqa: BLE001
-        _logger.warning("censys_router unavailable: %s", _e)
+    # Censys router is mounted by sub_apps/platform_app.py with read:scans scope.
+    # The legacy duplicate mount was retired 2026-05-04.
 
     # Threat Landscape — actor profiles, emerging threats, assessments, summary
     try:

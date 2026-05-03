@@ -636,11 +636,26 @@ def register_platform_routers(
         _logger.warning("jira_sync_router not available: %s", exc)
 
     try:
+        from apps.api.jira_cloud_router import (
+            router as jira_cloud_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            jira_cloud_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Jira Cloud router at /api/v1/jira-cloud")
+    except ImportError as exc:
+        _logger.warning("jira_cloud_router not available: %s", exc)
+
+    try:
         from apps.api.pagerduty_router import (
             router as pagerduty_router,  # noqa: PLC0415
         )
-        app.include_router(pagerduty_router)
-        _logger.info("Mounted PagerDuty router at /api/v1/pagerduty")
+        app.include_router(
+            pagerduty_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted PagerDuty router at /api/v1/pagerduty (scope=read:scans)")
     except ImportError as exc:
         _logger.warning("pagerduty_router not available: %s", exc)
 
@@ -1684,6 +1699,28 @@ def register_platform_routers(
         _logger.info("Mounted CrowdStrike live connector router (wave-7)")
     except ImportError:
         pass
+
+    # ------------------------------------------------------------------
+    # CrowdStrike Falcon EDR Live REST — 2026-05-04
+    # GET  /api/v1/falcon/                                 capability summary  (read:scans)
+    # GET  /api/v1/falcon/detects/queries/detects          list detection ids  (read:scans)
+    # POST /api/v1/falcon/detects/entities/summaries       fetch detail        (read:scans)
+    # GET  /api/v1/falcon/incidents/queries/incidents      list incidents      (read:scans)
+    # GET  /api/v1/falcon/iocs/queries/indicators          list IoCs           (read:scans)
+    # POST /api/v1/falcon/iocs/entities/indicators         submit IoCs         (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.falcon_router import router as falcon_router  # noqa: PLC0415
+        app.include_router(
+            falcon_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted CrowdStrike Falcon live REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("falcon_router not available: %s", exc)
 
     try:
         from apps.api.defender_xdr_live_connector_router import (
