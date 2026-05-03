@@ -68,6 +68,40 @@ class ResolveFindingRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Endpoints — Posture Summary (root GET /)
+# ---------------------------------------------------------------------------
+
+@router.get("")
+@router.get("/")
+def get_kubernetes_posture_summary(
+    org_id: str = Query(..., description="Organisation ID"),
+    _auth: bool = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """
+    Kubernetes posture summary for an org.
+
+    Returns aggregate cluster count, open critical findings, resolved count,
+    and average CIS Benchmark score.  Backed by KubernetesSecurityEngine.get_cluster_stats().
+    No mocks — reads live SQLite data via the engine.
+    """
+    try:
+        stats = _get_engine().get_cluster_stats(org_id=org_id)
+        return {
+            "org_id": org_id,
+            "total_clusters": stats["total_clusters"],
+            "total_findings": stats["total_findings"],
+            "critical_open": stats["critical_count"],
+            "resolved": stats["resolved_count"],
+            "avg_cis_score": stats["avg_cis_score"],
+            "by_severity": stats["by_severity"],
+            "_simulation_warning": _SIMULATION_WARNING,
+        }
+    except Exception as exc:
+        _logger.exception("get_kubernetes_posture_summary failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
 # Endpoints — Clusters
 # ---------------------------------------------------------------------------
 
