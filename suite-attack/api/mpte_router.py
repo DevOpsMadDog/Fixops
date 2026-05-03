@@ -148,7 +148,7 @@ def _validate_target_url(url: str, field_name: str = "target_url") -> str:
                                 status_code=422,
                                 detail=f"{field_name} resolves to a blocked metadata endpoint",
                             )
-            except (OSError, socket.gaierror):
+            except (OSError, _sock.gaierror):
                 pass  # DNS resolution failure — allow the request to fail naturally
     else:
         # Even for allowed hosts, still block metadata IPs

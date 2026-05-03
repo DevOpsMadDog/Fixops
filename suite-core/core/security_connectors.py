@@ -427,7 +427,7 @@ class AWSSecurityHubConnector(_BaseConnector):
             client.get_findings(MaxResults=1)
             ms = (time.time() - start) * 1000
             return ConnectorHealth(healthy=True, latency_ms=ms, message="OK")
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3 may raise NoCredentialsError, ClientError, etc.
             return ConnectorHealth(
                 healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc)
             )

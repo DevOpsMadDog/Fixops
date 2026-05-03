@@ -150,7 +150,7 @@ class CorrelationEngine:
 
             return best_correlation
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:  # SQLAlchemy OperationalError, etc.
             logger.error(f"Correlation failed for finding {finding_id}: {str(e)}")
             return None
 
@@ -185,7 +185,7 @@ class CorrelationEngine:
             total_findings=len(finding_ids),
             correlated_findings=len(results),
             total_time_ms=total_time * 1000,
-            avg_time_per_finding_us=(total_time / len(finding_ids)) * 1_000_000,
+            avg_time_per_finding_us=(total_time / len(finding_ids)) * 1_000_000 if finding_ids else 0,
         )
 
         return results

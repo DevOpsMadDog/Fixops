@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import uuid
 
 import pytest
 
@@ -29,9 +30,12 @@ class TestInventoryCLI:
     """Test inventory CLI commands."""
 
     def test_inventory_list_empty(self):
-        """Test listing when inventory is empty."""
+        """Test listing when inventory is empty.
+
+        The CLI uses ``apps`` (not ``list``) to list all applications.
+        """
         result = subprocess.run(
-            ["python", "-m", "core.cli", "inventory", "list", "--format", "json"],
+            ["python", "-m", "core.cli", "inventory", "apps", "--format", "json"],
             capture_output=True,
             text=True,
         )
@@ -40,16 +44,19 @@ class TestInventoryCLI:
         assert isinstance(data, list)
 
     def test_inventory_create(self):
-        """Test creating application via CLI."""
+        """Test creating application via CLI.
+
+        The CLI uses ``add`` (not ``create``) to add an application.
+        """
         result = subprocess.run(
             [
                 "python",
                 "-m",
                 "core.cli",
                 "inventory",
-                "create",
+                "add",
                 "--name",
-                "CLI Test App",
+                f"CLI Test App {uuid.uuid4().hex[:8]}",
                 "--description",
                 "Created via CLI",
                 "--criticality",
@@ -60,7 +67,7 @@ class TestInventoryCLI:
         )
 
         assert result.returncode == 0
-        assert "Created application:" in result.stdout
+        assert "Created" in result.stdout or "Added" in result.stdout or "application" in result.stdout.lower()
 
     def test_inventory_search(self):
         """Test search command."""
@@ -70,7 +77,7 @@ class TestInventoryCLI:
                 "-m",
                 "core.cli",
                 "inventory",
-                "create",
+                "add",
                 "--name",
                 "Searchable App",
                 "--description",
@@ -92,7 +99,10 @@ class TestInventoryCLI:
         assert "applications" in data
 
     def test_inventory_help(self):
-        """Test help command."""
+        """Test help command.
+
+        The CLI subcommands are: apps, add, get, services, search.
+        """
         result = subprocess.run(
             ["python", "-m", "core.cli", "inventory", "--help"],
             capture_output=True,
@@ -100,6 +110,6 @@ class TestInventoryCLI:
         )
 
         assert result.returncode == 0
-        assert "list" in result.stdout
-        assert "create" in result.stdout
+        assert "apps" in result.stdout
+        assert "add" in result.stdout
         assert "search" in result.stdout

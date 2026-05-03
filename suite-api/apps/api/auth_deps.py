@@ -165,6 +165,20 @@ def _decode_jwt(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 
+def reload_auth_config() -> None:
+    """Re-read auth configuration from environment variables.
+
+    Useful in test suites where ``FIXOPS_API_TOKEN`` or ``FIXOPS_JWT_SECRET``
+    are set *after* this module was first imported.
+    """
+    global _EXPECTED_TOKENS, _JWT_SECRET, _DEV_MODE, _HAS_TOKEN_AUTH, _HAS_JWT_AUTH
+    _EXPECTED_TOKENS = _load_api_tokens()
+    _JWT_SECRET = _load_jwt_secret()
+    _DEV_MODE = _is_dev_mode()
+    _HAS_TOKEN_AUTH = bool(_EXPECTED_TOKENS)
+    _HAS_JWT_AUTH = bool(_JWT_SECRET)
+
+
 # ---------------------------------------------------------------------------
 # Core dependency callable
 # ---------------------------------------------------------------------------
@@ -183,6 +197,18 @@ async def api_key_auth(
         HTTPException(401): Missing or clearly invalid credential.
         HTTPException(403): Credential present but invalid/rejected.
     """
+    global _EXPECTED_TOKENS, _HAS_TOKEN_AUTH, _DEV_MODE
+
+    # Lazy reload: if no tokens were cached at import time, re-check the
+    # environment once — this handles the common test-suite scenario where
+    # FIXOPS_API_TOKEN is set *after* the module was first imported.
+    if not _HAS_TOKEN_AUTH:
+        fresh = _load_api_tokens()
+        if fresh:
+            _EXPECTED_TOKENS = fresh
+            _HAS_TOKEN_AUTH = True
+            _DEV_MODE = _is_dev_mode()
+
     # Dev/demo mode pass-through when no auth is configured
     if _DEV_MODE and not _HAS_TOKEN_AUTH and not _HAS_JWT_AUTH:
         request.state.user_role = "admin"

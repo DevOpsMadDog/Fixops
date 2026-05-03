@@ -4,7 +4,7 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
-from api import dependencies
+from apps.api import dependencies
 from config.enterprise.settings import get_settings
 from fastapi import HTTPException, status
 

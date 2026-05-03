@@ -227,14 +227,14 @@ class TestPortfolioSearchEdgeCases:
 
     def test_search_with_empty_database(self, tmp_path: Path):
         """Test portfolio search with empty database."""
-        engine = PortfolioSearchEngine(db_path=tmp_path / "test.db")
+        engine = PortfolioSearchEngine(evidence_dir=tmp_path)
 
         results = engine.search_by_cve("CVE-2024-1234")
         assert results == []
 
     def test_search_with_sql_injection_attempt(self, tmp_path: Path):
         """Test portfolio search handles SQL injection attempts."""
-        engine = PortfolioSearchEngine(db_path=tmp_path / "test.db")
+        engine = PortfolioSearchEngine(evidence_dir=tmp_path)
 
         malicious_query = "CVE-2024-1234' OR '1'='1"
 
@@ -247,7 +247,7 @@ class TestPortfolioSearchEdgeCases:
 
     def test_search_with_extremely_long_query(self, tmp_path: Path):
         """Test portfolio search handles extremely long queries."""
-        engine = PortfolioSearchEngine(db_path=tmp_path / "test.db")
+        engine = PortfolioSearchEngine(evidence_dir=tmp_path)
 
         long_query = "A" * 100000
 
@@ -411,7 +411,7 @@ class TestPerformanceBottlenecks:
         """Test portfolio search performance with large dataset."""
         import time
 
-        engine = PortfolioSearchEngine(db_path=tmp_path / "test.db")
+        engine = PortfolioSearchEngine(evidence_dir=tmp_path)
 
         for i in range(1000):
             engine.index_sbom_component(
@@ -466,7 +466,7 @@ class TestSecurityVulnerabilities:
 
     def test_no_code_injection_in_component_names(self, tmp_path: Path):
         """Test that component names don't allow code injection."""
-        engine = PortfolioSearchEngine(db_path=tmp_path / "test.db")
+        engine = PortfolioSearchEngine(evidence_dir=tmp_path)
 
         malicious_name = "'; DROP TABLE components; --"
 

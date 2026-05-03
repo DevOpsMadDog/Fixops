@@ -218,7 +218,7 @@ class CloudRuntimeAnalyzer:
                         )
                 except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3 may raise ClientError, NoCredentialsError, etc.
             logger.error("AWS S3 analysis failed: %s", exc)
         return findings
 
@@ -278,7 +278,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Set backup retention period to at least 7 days",
                         )
                     )
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("AWS RDS analysis failed: %s", exc)
         return findings
 
@@ -369,7 +369,7 @@ class CloudRuntimeAnalyzer:
                                         )
                             except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                                 pass
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("AWS EC2 analysis failed: %s", exc)
         return findings
 
@@ -435,7 +435,7 @@ class CloudRuntimeAnalyzer:
                         )
                     except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass  # No login profile = service account, MFA not applicable
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("AWS IAM analysis failed: %s", exc)
         return findings
 
@@ -505,7 +505,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Consider using Customer-Managed Keys (CMK) for enhanced control",
                         )
                     )
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("Azure Storage analysis failed: %s", exc)
         return findings
 
@@ -569,7 +569,7 @@ class CloudRuntimeAnalyzer:
                             )
                     except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("Azure SQL analysis failed: %s", exc)
         return findings
 
@@ -626,7 +626,7 @@ class CloudRuntimeAnalyzer:
                                 recommendation="Enable Azure Disk Encryption or server-side encryption with CMK",
                             )
                         )
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("Azure VM analysis failed: %s", exc)
         return findings
 
@@ -685,7 +685,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Configure Customer-Managed Encryption Key (CMEK) for enhanced control",
                         )
                     )
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("GCP Storage analysis failed: %s", exc)
         return findings
 
@@ -752,7 +752,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Enable automated backups with point-in-time recovery",
                         )
                     )
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("GCP SQL analysis failed: %s", exc)
         return findings
 
@@ -836,7 +836,7 @@ class CloudRuntimeAnalyzer:
                                 )
                             )
                             break  # Only report once per instance
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:  # boto3/azure/gcp SDKs may raise various exceptions
             logger.error("GCP Compute analysis failed: %s", exc)
         return findings
 

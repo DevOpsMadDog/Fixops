@@ -11,7 +11,7 @@ import pytest
 
 def test_bayesian_mapping_fallback_returns_distribution() -> None:
     module = importlib.import_module(
-        "archive.enterprise_legacy.src.services.processing_layer"
+        "core.services.enterprise.processing_layer"
     )
     importlib.reload(module)
 
@@ -35,7 +35,7 @@ def test_bayesian_mapping_fallback_returns_distribution() -> None:
 
 def test_markov_builder_fallback_uses_epss_and_kev_bias() -> None:
     module = importlib.import_module(
-        "archive.enterprise_legacy.src.services.processing_layer"
+        "core.services.enterprise.processing_layer"
     )
     importlib.reload(module)
 
