@@ -2,6 +2,9 @@
 
 Endpoints (all under /api/v1/evidence-chain):
 
+  Summary:
+    GET  /                          — router summary + stats
+
   Cases:
     GET  /cases                     — list cases (filter: status)
     POST /cases                     — create a new case
@@ -17,6 +20,10 @@ Endpoints (all under /api/v1/evidence-chain):
     POST /evidence/{id}/custody     — record a custody transfer
     POST /evidence/{id}/seal        — seal evidence (immutable)
     GET  /evidence/{id}/verify      — verify integrity
+
+  Export Coverage:
+    POST /export-coverage           — verify export coverage against a filter
+    GET  /verifications             — list past export-coverage verifications
 
   Stats:
     GET  /stats                     — evidence statistics
@@ -87,6 +94,38 @@ class TransferIn(BaseModel):
 
 class SealIn(BaseModel):
     sealed_by: str = ""
+
+
+class ExportCoverageIn(BaseModel):
+    framework: Optional[str] = None
+    severity_min: Optional[str] = None
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    evidence_types: Optional[List[str]] = None
+    case_id: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Summary (GET /)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/")
+def summary(
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Router summary: stats snapshot for the evidence-chain domain."""
+    try:
+        stats = _get_engine().get_evidence_stats(org_id)
+        return {
+            "router": "evidence-chain",
+            "prefix": "/api/v1/evidence-chain",
+            "org_id": org_id,
+            "stats": stats,
+        }
+    except Exception as exc:
+        logger.exception("summary failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +301,43 @@ def verify_integrity(
         return _get_engine().verify_integrity(org_id, evidence_id)
     except Exception as exc:
         logger.exception("verify_integrity failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Export Coverage Verification
+# ---------------------------------------------------------------------------
+
+
+@router.post("/export-coverage", status_code=201)
+def verify_export_coverage(
+    payload: ExportCoverageIn,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Verify export coverage of evidence items against a compliance filter.
+
+    Returns coverage_pct, gaps (evidence required by framework but excluded),
+    and over_collection (evidence in export outside framework requirements).
+    """
+    try:
+        return _get_engine().verify_export_coverage(
+            org_id, payload.model_dump(exclude_none=True)
+        )
+    except Exception as exc:
+        logger.exception("verify_export_coverage failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/verifications")
+def list_verifications(
+    org_id: str = Query("default"),
+    limit: int = Query(50, ge=1, le=500),
+) -> List[Dict[str, Any]]:
+    """List past export-coverage verifications for an org (most recent first)."""
+    try:
+        return _get_engine().list_verifications(org_id, limit=limit)
+    except Exception as exc:
+        logger.exception("list_verifications failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
