@@ -828,6 +828,18 @@ def register_platform_routers(
         _logger.warning("aws_iam_router not available: %s", exc)
 
     try:
+        from apps.api.proofpoint_tap_router import (
+            router as proofpoint_tap_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            proofpoint_tap_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Proofpoint TAP router at /api/v1/proofpoint-tap (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("proofpoint_tap_router not available: %s", exc)
+
+    try:
         from apps.api.datadog_security_router import (
             router as datadog_security_router,  # noqa: PLC0415
         )
