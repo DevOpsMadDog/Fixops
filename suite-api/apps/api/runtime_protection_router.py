@@ -89,6 +89,47 @@ class PolicyCreateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/", response_model=Dict[str, Any])
+async def get_root() -> Dict[str, Any]:
+    """
+    Runtime protection service index.
+
+    Returns service metadata, available endpoint paths, and capability summary
+    for both the Host EDR layer and the RASP HTTP inspection layer.
+
+    Compliance: SOC2 CC6.8, NIST CSF DE.CM-1
+    """
+    return {
+        "service": "eks-runtime-protection",
+        "status": "operational",
+        "layers": ["host-edr", "rasp"],
+        "endpoints": [
+            "GET  /api/v1/runtime/",
+            "POST /api/v1/runtime/events",
+            "POST /api/v1/runtime/events/evaluate",
+            "POST /api/v1/runtime/policies",
+            "GET  /api/v1/runtime/policies",
+            "GET  /api/v1/runtime/alerts",
+            "POST /api/v1/runtime/alerts/{id}/ack",
+            "GET  /api/v1/runtime/threats",
+            "GET  /api/v1/runtime/stats",
+            "GET  /api/v1/runtime/anomalies",
+            "GET  /api/v1/runtime/hosts/{host}/process-tree",
+        ],
+        "capabilities": [
+            "process-exec-monitoring",
+            "file-access-monitoring",
+            "network-connect-monitoring",
+            "privilege-escalation-detection",
+            "container-escape-detection",
+            "policy-evaluation",
+            "anomaly-detection",
+            "process-tree-reconstruction",
+        ],
+        "compliance": ["SOC2-CC6.8", "NIST-CSF-DE.CM-1", "CIS-Controls-8"],
+    }
+
+
 @router.post("/events", response_model=Dict[str, Any], status_code=201)
 async def ingest_event(
     body: EventIngestRequest,
