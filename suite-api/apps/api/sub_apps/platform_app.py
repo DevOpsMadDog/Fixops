@@ -1813,6 +1813,26 @@ def register_platform_routers(
         pass
 
     # ------------------------------------------------------------------
+    # Semgrep SAST Scanner (async-queue, durable SQLite) — 2026-05-04
+    # GET  /api/v1/semgrep/                 capability summary  (read:scans)
+    # GET  /api/v1/semgrep/rule-packs       rule pack catalog   (read:scans)
+    # POST /api/v1/semgrep/scan             queue a new scan    (read:scans)
+    # GET  /api/v1/semgrep/scan/{scan_id}   fetch scan record   (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.semgrep_scan_router import router as semgrep_scan_router  # noqa: PLC0415
+        app.include_router(
+            semgrep_scan_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Semgrep SAST scanner router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("semgrep_scan_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Grype Vulnerability Scanner (image / sbom / dir) — 2026-05-04
     # GET /api/v1/grype/                  capability summary  (read:scan)
     # POST /api/v1/grype/scan             queue a new scan    (write:scan)
@@ -1830,3 +1850,23 @@ def register_platform_routers(
         _logger.info("Mounted Grype vulnerability scanner router")
     except ImportError as exc:
         _logger.warning("grype_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Checkov IaC Scanner (14 frameworks) — 2026-05-04
+    # GET  /api/v1/checkov/                  capability summary  (read:scan)
+    # GET  /api/v1/checkov/frameworks        framework catalog   (read:scan)
+    # POST /api/v1/checkov/scan              queue a new scan    (read:scan)
+    # GET  /api/v1/checkov/scan/{scan_id}    fetch scan record   (read:scan)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.checkov_router import router as checkov_router  # noqa: PLC0415
+        app.include_router(
+            checkov_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scan")),
+            ],
+        )
+        _logger.info("Mounted Checkov IaC scanner router")
+    except ImportError as exc:
+        _logger.warning("checkov_router not available: %s", exc)
