@@ -1811,3 +1811,22 @@ def register_platform_routers(
         _logger.info("Mounted Syft SBOM router (read:scan/write:scan)")
     except ImportError:
         pass
+
+    # ------------------------------------------------------------------
+    # Grype Vulnerability Scanner (image / sbom / dir) — 2026-05-04
+    # GET /api/v1/grype/                  capability summary  (read:scan)
+    # POST /api/v1/grype/scan             queue a new scan    (write:scan)
+    # GET /api/v1/grype/scan/{scan_id}    fetch scan record   (read:scan)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.grype_router import router as grype_router  # noqa: PLC0415
+        app.include_router(
+            grype_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scan")),
+            ],
+        )
+        _logger.info("Mounted Grype vulnerability scanner router")
+    except ImportError as exc:
+        _logger.warning("grype_router not available: %s", exc)
