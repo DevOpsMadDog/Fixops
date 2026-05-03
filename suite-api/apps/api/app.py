@@ -6659,6 +6659,14 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("agentless_snapshot_scan_router unavailable: %s", _e)
 
+    # tfsec — Terraform-only IaC static analysis (8 providers: aws/azure/gcp/digitalocean/k8s/cloudstack/github/oracle)
+    try:
+        from apps.api.tfsec_router import router as tfsec_router
+        app.include_router(tfsec_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted tfsec IaC router at /api/v1/tfsec")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("tfsec_router unavailable: %s", _e)
+
     try:
         from apps.api.fips_compliance_router import router as fips_compliance_router
         app.include_router(fips_compliance_router)

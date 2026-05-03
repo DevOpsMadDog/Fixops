@@ -1870,3 +1870,23 @@ def register_platform_routers(
         _logger.info("Mounted Checkov IaC scanner router")
     except ImportError as exc:
         _logger.warning("checkov_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Gitleaks Secret-Detection Scanner (12+ default rules) — 2026-05-04
+    # GET  /api/v1/gitleaks/                  capability summary  (read:scans)
+    # GET  /api/v1/gitleaks/rules             rule catalog        (read:scans)
+    # POST /api/v1/gitleaks/scan              queue a new scan    (read:scans)
+    # GET  /api/v1/gitleaks/scan/{scan_id}    fetch scan record   (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.gitleaks_router import router as gitleaks_router  # noqa: PLC0415
+        app.include_router(
+            gitleaks_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Gitleaks secret-detection router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("gitleaks_router not available: %s", exc)
