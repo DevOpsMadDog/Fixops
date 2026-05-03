@@ -2421,6 +2421,28 @@ def register_platform_routers(
         _logger.warning("gcp_scc_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # GCP GKE — Google Kubernetes Engine v1 (real OAuth2 + read-only) — 2026-05-04
+    # GET  /api/v1/gcp-gke/                                                          capability summary  (read:scans)
+    # GET  /api/v1/gcp-gke/v1/projects/{p}/locations/{loc}/clusters                  list clusters       (read:scans)
+    # GET  /api/v1/gcp-gke/v1/projects/{p}/locations/{loc}/clusters/{c}              single cluster      (read:scans)
+    # GET  /api/v1/gcp-gke/v1/projects/{p}/locations/{loc}/clusters/{c}/nodePools    list node pools     (read:scans)
+    # POST /api/v1/gcp-gke/v1/projects/{p}/locations/{loc}/clusters/{c}:getJwks      cluster JWKs        (read:scans)
+    # GET  /api/v1/gcp-gke/v1/projects/{p}/locations/{loc}/operations                list operations     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.gcp_gke_router import router as gcp_gke_router  # noqa: PLC0415
+        app.include_router(
+            gcp_gke_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted GCP GKE router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("gcp_gke_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # HashiCorp Vault (real HTTP API + read-only/KV-v2 write) — 2026-05-04
     # GET  /api/v1/hashicorp-vault/                              capability summary  (read:scans)
     # GET  /api/v1/hashicorp-vault/v1/sys/health                 vault health        (read:scans)
