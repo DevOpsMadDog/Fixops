@@ -6195,6 +6195,14 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # compliance_seed_router — GAP-022/023 bulk framework + policy seeding
+    try:
+        from apps.api.compliance_seed_router import router as compliance_seed_router
+        app.include_router(compliance_seed_router)
+        _logger.info("Mounted Compliance Seed router at /api/v1/compliance-seed")
+    except ImportError as _e:
+        _logger.warning("compliance_seed_router unavailable: %s", _e)
+
     # threat_attribution_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
     try:
