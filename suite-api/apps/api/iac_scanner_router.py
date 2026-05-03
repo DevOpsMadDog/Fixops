@@ -73,6 +73,25 @@ class DriftCheckRequest(BaseModel):
     )
 
 
+class PolicyRule(BaseModel):
+    rule_id: str = Field(..., description="Unique rule identifier (e.g. TF-POLICY-001)")
+    name: str = Field(..., description="Human-readable rule name")
+    description: str = Field("", description="What this rule detects")
+    provider: str = Field("generic", description="aws | azure | gcp | kubernetes | docker | generic")
+    resource_type: str = Field("*", description="Terraform/CFN resource type or * for any")
+    property_path: str = Field(..., description="Dot-notation path to the property")
+    expected_value: Any = Field(None, description="The value the property should have")
+    operator: str = Field("equals", description="equals | not_equals | contains | not_contains | exists | not_exists")
+    severity: str = Field("medium", description="critical | high | medium | low | info")
+
+
+class PolicyEvalRequest(BaseModel):
+    content: str = Field(..., description="Raw IaC file content (Terraform HCL or CloudFormation JSON/YAML)")
+    filename: str = Field("main.tf", description="Filename hint for format detection (e.g. main.tf, template.yaml)")
+    policy_id: str = Field("inline-policy", description="Logical name for this policy bundle")
+    rules: List[PolicyRule] = Field(..., min_length=1, description="Policy rules to evaluate against the IaC content")
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -290,3 +309,111 @@ async def get_summary() -> Dict[str, Any]:
     """Return aggregated IaC scan statistics by severity, provider, and rule."""
     engine = _get_engine()
     return engine.get_summary()
+
+
+@router.post("/policy/eval")
+async def evaluate_policy(body: PolicyEvalRequest) -> Dict[str, Any]:
+    """Evaluate IaC content (Terraform or CloudFormation) against a policy bundle.
+
+    Parses the supplied ``content`` using the filename hint for format detection,
+    then evaluates each policy rule against the parsed resources.  Returns a
+    per-rule pass/fail verdict plus a top-level ``passed`` boolean that is
+    ``True`` only when every rule passes on every resource.
+    """
+    from core.iac_scanner_engine import CustomRule, detect_iac_format, evaluate_custom_rule
+
+    valid_operators = {"equals", "not_equals", "contains", "not_contains", "exists", "not_exists"}
+    valid_severities = {"critical", "high", "medium", "low", "info"}
+
+    for idx, rule in enumerate(body.rules):
+        if rule.operator not in valid_operators:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Rule[{idx}] '{rule.rule_id}': invalid operator '{rule.operator}'",
+            )
+        if rule.severity not in valid_severities:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Rule[{idx}] '{rule.rule_id}': invalid severity '{rule.severity}'",
+            )
+
+    engine = _get_engine()
+    fmt = detect_iac_format(body.filename, body.content)
+    resources = engine._parse(body.content, body.filename, fmt)
+
+    if not resources:
+        return {
+            "policy_id": body.policy_id,
+            "filename": body.filename,
+            "iac_format": fmt.value if hasattr(fmt, "value") else str(fmt),
+            "resources_found": 0,
+            "passed": True,
+            "rules_evaluated": len(body.rules),
+            "violations": [],
+            "verdict": "pass",
+        }
+
+    violations: List[Dict[str, Any]] = []
+    rules_passed = 0
+
+    for rule_req in body.rules:
+        custom_rule = CustomRule(
+            rule_id=rule_req.rule_id,
+            name=rule_req.name,
+            description=rule_req.description,
+            provider=rule_req.provider,
+            resource_type=rule_req.resource_type,
+            property_path=rule_req.property_path,
+            expected_value=rule_req.expected_value,
+            operator=rule_req.operator,
+            severity=rule_req.severity,
+        )
+
+        rule_violations: List[Dict[str, Any]] = []
+        for resource in resources:
+            result = evaluate_custom_rule(custom_rule, resource)
+            if result is not None:
+                prop_path, actual, expected = result
+                rule_violations.append({
+                    "resource_type": resource.resource_type,
+                    "resource_name": resource.resource_name,
+                    "property_path": prop_path,
+                    "actual_value": actual,
+                    "expected_value": expected,
+                })
+
+        if rule_violations:
+            violations.append({
+                "rule_id": rule_req.rule_id,
+                "name": rule_req.name,
+                "severity": rule_req.severity,
+                "description": rule_req.description,
+                "passed": False,
+                "resources_violated": rule_violations,
+            })
+        else:
+            rules_passed += 1
+
+    overall_passed = len(violations) == 0
+
+    _logger.info(
+        "iac_policy_eval_complete",
+        policy_id=body.policy_id,
+        filename=body.filename,
+        rules=len(body.rules),
+        violations=len(violations),
+        passed=overall_passed,
+    )
+
+    return {
+        "policy_id": body.policy_id,
+        "filename": body.filename,
+        "iac_format": fmt.value if hasattr(fmt, "value") else str(fmt),
+        "resources_found": len(resources),
+        "passed": overall_passed,
+        "rules_evaluated": len(body.rules),
+        "rules_passed": rules_passed,
+        "rules_failed": len(violations),
+        "violations": violations,
+        "verdict": "pass" if overall_passed else "fail",
+    }
