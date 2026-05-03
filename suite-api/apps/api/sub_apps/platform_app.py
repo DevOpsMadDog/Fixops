@@ -708,6 +708,19 @@ def register_platform_routers(
         _logger.warning("datadog_security_router not available: %s", exc)
 
     try:
+        from apps.api.ansible_tower_router import (
+            router as ansible_tower_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            ansible_tower_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Ansible Tower router at /api/v1/ansible-tower (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("ansible_tower_router not available: %s", exc)
+
+
+    try:
         from apps.api.harness_router import (
             router as harness_router,  # noqa: PLC0415
         )
