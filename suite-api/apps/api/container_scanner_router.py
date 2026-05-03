@@ -253,3 +253,158 @@ def clear_history(
         raise HTTPException(status_code=500, detail=f"Clear failed: {exc}") from exc
 
     return {"deleted": deleted, "org_id": org_id}
+
+
+# ---------------------------------------------------------------------------
+# ContainerImageScanner singleton (separate from Dockerfile-only scanner above)
+# ---------------------------------------------------------------------------
+
+_image_scanner = None
+
+
+def _get_image_scanner():
+    global _image_scanner
+    if _image_scanner is None:
+        from core.container_scanner import get_container_scanner
+        _image_scanner = get_container_scanner()
+    return _image_scanner
+
+
+def _image_finding_to_dict(f) -> dict:
+    """Map ContainerFinding dataclass fields to ImageFinding Pydantic model fields."""
+    return {
+        "finding_id": f.finding_id,
+        "title": f.title,
+        "severity": f.severity.value if hasattr(f.severity, "value") else str(f.severity),
+        "category": f.category,
+        "cwe_id": f.cwe_id,
+        "description": f.description,
+        # dataclass uses 'recommendation'; Pydantic model uses 'remediation'
+        "remediation": f.recommendation,
+        "image_ref": getattr(f, "image_ref", ""),
+        "confidence": getattr(f, "confidence", 1.0),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Image scan request / response models
+# ---------------------------------------------------------------------------
+
+
+class ImageFinding(BaseModel):
+    finding_id: str
+    title: str
+    severity: str
+    category: str
+    cwe_id: str
+    description: str
+    remediation: str
+    image_ref: str
+    confidence: float
+
+
+class ImageScanResponse(BaseModel):
+    scan_id: str
+    target: str
+    total_findings: int
+    findings: List[ImageFinding]
+    by_severity: Dict[str, int]
+    by_category: Dict[str, int]
+    trivy_available: bool
+    grype_available: bool
+    duration_ms: float
+    timestamp: str
+
+
+class ImageScanRequest(BaseModel):
+    """Request body for scanning a container image by reference."""
+
+    image_ref: str = Field(
+        ...,
+        description="Container image reference, e.g. 'nginx:1.25' or 'ghcr.io/org/app:sha256-abc'",
+    )
+
+
+class LayerSecretsRequest(BaseModel):
+    """Request body for scanning layer content for embedded secrets."""
+
+    content: str = Field(..., description="Raw Dockerfile or image layer content to scan for secrets")
+    filename: str = Field("Dockerfile", description="Logical filename for reporting")
+
+
+# ---------------------------------------------------------------------------
+# Image vulnerability scan endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/images/scan",
+    response_model=ImageScanResponse,
+    summary="Scan a container image for vulnerabilities",
+)
+async def scan_image(body: ImageScanRequest) -> ImageScanResponse:
+    """Scan a container image reference using Trivy/Grype if available.
+
+    Falls back to KNOWN_VULNERABLE_IMAGES heuristics when no external
+    scanner is installed. Returns CVE findings grouped by severity and category.
+    """
+    scanner = _get_image_scanner()
+    try:
+        result = await scanner.scan_image(body.image_ref)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Image scan failed for %s", body.image_ref)
+        raise HTTPException(status_code=500, detail=f"Image scan failed: {exc}") from exc
+
+    return ImageScanResponse(
+        scan_id=result.scan_id,
+        target=result.target,
+        total_findings=result.total_findings,
+        findings=[ImageFinding(**_image_finding_to_dict(f)) for f in result.findings],
+        by_severity=result.by_severity,
+        by_category=result.by_category,
+        trivy_available=result.trivy_available,
+        grype_available=result.grype_available,
+        duration_ms=result.duration_ms,
+        timestamp=result.timestamp.isoformat(),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Layer secrets scan endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/images/layer-secrets",
+    response_model=ImageScanResponse,
+    summary="Scan Dockerfile / image layer content for embedded secrets",
+)
+def scan_layer_secrets(body: LayerSecretsRequest) -> ImageScanResponse:
+    """Detect hardcoded secrets (API keys, tokens, passwords, private keys) in
+    Dockerfile content or image layer blobs.  Returns findings with CWE-798
+    references and remediation guidance.
+    """
+    if not body.content.strip():
+        raise HTTPException(status_code=400, detail="content must not be empty")
+
+    scanner = _get_image_scanner()
+    try:
+        result = scanner.scan_layer_secrets(body.content, filename=body.filename)
+    except Exception as exc:
+        logger.exception("Layer secrets scan failed")
+        raise HTTPException(status_code=500, detail=f"Layer scan failed: {exc}") from exc
+
+    return ImageScanResponse(
+        scan_id=result.scan_id,
+        target=result.target,
+        total_findings=result.total_findings,
+        findings=[ImageFinding(**_image_finding_to_dict(f)) for f in result.findings],
+        by_severity=result.by_severity,
+        by_category=result.by_category,
+        trivy_available=result.trivy_available,
+        grype_available=result.grype_available,
+        duration_ms=result.duration_ms,
+        timestamp=result.timestamp.isoformat(),
+    )

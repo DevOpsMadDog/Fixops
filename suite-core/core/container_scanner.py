@@ -110,6 +110,11 @@ class ContainerFinding:
         }
 
 
+# Preserve reference to the dataclass before the Pydantic ContainerFinding
+# redefinition (line ~904) shadows the name at module level.
+_ContainerFindingDC = ContainerFinding
+
+
 # ── Dockerfile Rules ───────────────────────────────────────────────
 DOCKERFILE_RULES: List[Tuple[str, str, str, str, str, str, str]] = [
     (
@@ -779,7 +784,7 @@ class ContainerImageScanner:
             for sp in LAYER_SECRET_PATTERNS:
                 if re.search(sp["pattern"], stripped):
                     findings.append(
-                        ContainerFinding(
+                        _ContainerFindingDC(
                             finding_id=f"SEC-{uuid.uuid4().hex[:8]}",
                             title=f"Secret Detected: {sp['name']}",
                             severity=ContainerSeverity(sp["severity"]),
