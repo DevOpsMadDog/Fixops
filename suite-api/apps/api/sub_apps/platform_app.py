@@ -3221,6 +3221,32 @@ def register_platform_routers(
 
 
     # ------------------------------------------------------------------
+    # Zscaler ZIA — Internet Access REST surfaces (read:scans)
+    # ------------------------------------------------------------------
+    # GET    /api/v1/zscaler-zia/                                    capability summary
+    # POST   /api/v1/zscaler-zia/api/v1/authenticatedSession         cookie session login
+    # DELETE /api/v1/zscaler-zia/api/v1/authenticatedSession         logout
+    # GET    /api/v1/zscaler-zia/api/v1/sandbox/report/{md5}         sandbox detonation
+    # GET    /api/v1/zscaler-zia/api/v1/urlCategories                URL categories
+    # GET    /api/v1/zscaler-zia/api/v1/firewallFilteringRules       firewall rules
+    # GET    /api/v1/zscaler-zia/api/v1/users                        users (paged)
+    # GET    /api/v1/zscaler-zia/api/v1/locations                    locations (paged)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.zscaler_zia_router import router as zscaler_zia_router  # noqa: PLC0415
+        app.include_router(
+            zscaler_zia_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Zscaler ZIA router at /api/v1/zscaler-zia (read:scans)")
+    except ImportError as exc:
+        _logger.warning("zscaler_zia_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
     # Auth0 — Management API v2 (read:scans)
     # ------------------------------------------------------------------
     # GET /api/v1/auth0/                                          capability summary
