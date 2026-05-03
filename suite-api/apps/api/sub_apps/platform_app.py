@@ -792,6 +792,18 @@ def register_platform_routers(
         _logger.warning("aws_securityhub_router not available: %s", exc)
 
     try:
+        from apps.api.amazon_inspector_router import (
+            router as amazon_inspector_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            amazon_inspector_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Amazon Inspector v2 router at /api/v1/amazon-inspector (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("amazon_inspector_router not available: %s", exc)
+
+    try:
         from apps.api.aws_iam_router import (
             router as aws_iam_router,  # noqa: PLC0415
         )
@@ -2759,3 +2771,54 @@ def register_platform_routers(
         _logger.info("Mounted AWS S3 inventory+posture router at /api/v1/aws-s3 (read:scans)")
     except ImportError as exc:
         _logger.warning("aws_s3_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # AWS ECR (Elastic Container Registry) inventory + scan-findings
+    # (suite-core/core/aws_ecr_engine.py) — 2026-05-04
+    # GET  /api/v1/aws-ecr/                                                       capability summary           (read:scans)
+    # GET  /api/v1/aws-ecr/repositories                                           DescribeRepositories         (read:scans)
+    # GET  /api/v1/aws-ecr/repositories/{name}/images                             ListImages                   (read:scans)
+    # POST /api/v1/aws-ecr/repositories/{name}/images/batch-describe              BatchDescribeImages          (read:scans)
+    # GET  /api/v1/aws-ecr/repositories/{name}/images/{image_id}/scan-findings    DescribeImageScanFindings    (read:scans)
+    # GET  /api/v1/aws-ecr/repositories/{name}/lifecycle-policy                   GetLifecyclePolicy           (read:scans)
+    # GET  /api/v1/aws-ecr/repositories/{name}/policy                             GetRepositoryPolicy          (read:scans)
+    # GET  /api/v1/aws-ecr/registry-scanning-config                               GetRegistryScanningConfig    (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.aws_ecr_router import router as aws_ecr_router  # noqa: PLC0415
+        app.include_router(
+            aws_ecr_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted AWS ECR inventory+scan-findings router at /api/v1/aws-ecr (read:scans)")
+    except ImportError as exc:
+        _logger.warning("aws_ecr_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # AWS EKS inventory router (read:scans)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/aws-eks/                                           capability summary
+    # GET  /api/v1/aws-eks/clusters                                   ListClusters                 (read:scans)
+    # GET  /api/v1/aws-eks/clusters/{name}                            DescribeCluster              (read:scans)
+    # GET  /api/v1/aws-eks/clusters/{name}/nodegroups                 ListNodegroups               (read:scans)
+    # GET  /api/v1/aws-eks/clusters/{name}/nodegroups/{ng}            DescribeNodegroup            (read:scans)
+    # GET  /api/v1/aws-eks/clusters/{name}/addons                     ListAddons                   (read:scans)
+    # GET  /api/v1/aws-eks/clusters/{name}/addons/{addon}             DescribeAddon                (read:scans)
+    # GET  /api/v1/aws-eks/clusters/{name}/fargate-profiles           ListFargateProfiles          (read:scans)
+    # GET  /api/v1/aws-eks/clusters/{name}/access-entries             ListAccessEntries            (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.aws_eks_router import router as aws_eks_router  # noqa: PLC0415
+        app.include_router(
+            aws_eks_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted AWS EKS inventory router at /api/v1/aws-eks (read:scans)")
+    except ImportError as exc:
+        _logger.warning("aws_eks_router not available: %s", exc)
