@@ -85,6 +85,94 @@ class PolicyCreateRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Endpoint 0 — Router health / capability summary (GET /)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/", response_model=Dict[str, Any])
+async def get_root() -> Dict[str, Any]:
+    """
+    License compliance router health check and capability summary.
+
+    Returns available endpoints, supported license categories, and a quick
+    count of licenses in the database so callers can confirm the engine loaded.
+    """
+    engine = _get_engine()
+    all_licenses = engine.list_licenses()
+    category_counts: Dict[str, int] = {}
+    for lic in all_licenses:
+        category_counts[lic.category.value] = category_counts.get(lic.category.value, 0) + 1
+
+    return {
+        "status": "ok",
+        "service": "license-compliance",
+        "version": "1.0.0",
+        "license_count": len(all_licenses),
+        "categories": category_counts,
+        "endpoints": [
+            "GET  /api/v1/licenses/",
+            "GET  /api/v1/licenses/lookup?spdx_id=<id>",
+            "GET  /api/v1/licenses/list?category=<cat>",
+            "POST /api/v1/licenses/compatibility",
+            "GET  /api/v1/licenses/policies",
+            "POST /api/v1/licenses/policies",
+            "DELETE /api/v1/licenses/policies/{policy_id}",
+            "POST /api/v1/licenses/audit",
+            "POST /api/v1/licenses/obligations",
+            "POST /api/v1/licenses/risk-scores",
+            "POST /api/v1/licenses/dual-license",
+            "GET  /api/v1/licenses/copyleft",
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Endpoint 0b — Copyleft license listing (GET /copyleft)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/copyleft", response_model=Dict[str, Any])
+async def list_copyleft_licenses(
+    strength: Optional[str] = Query(
+        None,
+        description="Filter by copyleft strength: 'weak', 'strong', or omit for both",
+    ),
+) -> Dict[str, Any]:
+    """
+    List all copyleft licenses, optionally filtered by strength (weak/strong).
+
+    Returns licenses categorised as weak_copyleft or strong_copyleft, sorted
+    by risk score descending so the most dangerous appear first.
+    """
+    engine = _get_engine()
+
+    if strength == "weak":
+        cats = [LicenseCategory.WEAK_COPYLEFT]
+    elif strength == "strong":
+        cats = [LicenseCategory.STRONG_COPYLEFT]
+    elif strength is None:
+        cats = [LicenseCategory.WEAK_COPYLEFT, LicenseCategory.STRONG_COPYLEFT]
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="strength must be 'weak', 'strong', or omitted",
+        )
+
+    licenses = []
+    for cat in cats:
+        licenses.extend(engine.list_licenses(cat))
+
+    licenses.sort(key=lambda l: l.risk_score, reverse=True)
+
+    return {
+        "status": "ok",
+        "strength_filter": strength or "all",
+        "total": len(licenses),
+        "licenses": [lic.model_dump() for lic in licenses],
+    }
+
+
+# ---------------------------------------------------------------------------
 # Endpoint 1 — License Database Lookup
 # ---------------------------------------------------------------------------
 

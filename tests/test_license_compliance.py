@@ -924,3 +924,51 @@ class TestRouterEndpoints:
         resp = client.post("/api/v1/licenses/dual-license", json=payload)
         assert resp.status_code == 200
         assert resp.json()["dual_license_count"] == 0
+
+    # -----------------------------------------------------------------------
+    # Root endpoint + copyleft listing (new)
+    # -----------------------------------------------------------------------
+
+    def test_root_returns_ok(self, client):
+        resp = client.get("/api/v1/licenses/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert data["service"] == "license-compliance"
+        assert data["license_count"] >= 50
+
+    def test_root_has_category_breakdown(self, client):
+        resp = client.get("/api/v1/licenses/")
+        data = resp.json()
+        cats = data["categories"]
+        assert "permissive" in cats
+        assert "strong_copyleft" in cats
+        assert "weak_copyleft" in cats
+
+    def test_copyleft_all_returns_both_strengths(self, client):
+        resp = client.get("/api/v1/licenses/copyleft")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["strength_filter"] == "all"
+        categories = {lic["category"] for lic in data["licenses"]}
+        assert "weak_copyleft" in categories
+        assert "strong_copyleft" in categories
+
+    def test_copyleft_strong_only(self, client):
+        resp = client.get("/api/v1/licenses/copyleft?strength=strong")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["strength_filter"] == "strong"
+        assert all(lic["category"] == "strong_copyleft" for lic in data["licenses"])
+        spdx_ids = [lic["spdx_id"] for lic in data["licenses"]]
+        assert "GPL-2.0-only" in spdx_ids or "GPL-3.0-only" in spdx_ids
+
+    def test_copyleft_sorted_by_risk_descending(self, client):
+        resp = client.get("/api/v1/licenses/copyleft")
+        data = resp.json()
+        scores = [lic["risk_score"] for lic in data["licenses"]]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_copyleft_invalid_strength_400(self, client):
+        resp = client.get("/api/v1/licenses/copyleft?strength=ultra")
+        assert resp.status_code == 400
