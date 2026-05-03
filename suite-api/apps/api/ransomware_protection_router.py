@@ -94,6 +94,16 @@ class PlaybookExecute(BaseModel):
     org_id: str
 
 
+class RaaSGroupCreate(BaseModel):
+    org_id: str
+    group_name: str
+    aliases: List[str] = []
+    active_since: Optional[str] = None
+    extortion_model: str = "double"
+    avg_ransom_usd: int = 0
+    known_sectors: List[str] = []
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -230,3 +240,41 @@ def get_protection_status(org_id: str = Query(default="default")) -> Dict[str, A
 @router.get("/summary")
 def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     return _get_engine().get_summary(org_id=org_id)
+
+
+@router.get("/raas-groups")
+def list_raas_groups(
+    org_id: str = Query(default="default"),
+    active_only: bool = Query(default=True),
+) -> List[Dict[str, Any]]:
+    """List tracked RaaS / extortion groups for the org."""
+    return _get_engine().list_raas_groups(org_id=org_id, active_only=active_only)
+
+
+@router.post("/raas-groups")
+def register_raas_group(body: RaaSGroupCreate) -> Dict[str, Any]:
+    """Register a new RaaS threat actor group with extortion intel."""
+    try:
+        return _get_engine().register_raas_group(
+            org_id=body.org_id,
+            group_name=body.group_name,
+            aliases=body.aliases,
+            active_since=body.active_since,
+            extortion_model=body.extortion_model,
+            avg_ransom_usd=body.avg_ransom_usd,
+            known_sectors=body.known_sectors,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/raas-groups/{group_id}/deactivate")
+def deactivate_raas_group(
+    group_id: str,
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Mark a RaaS group as no longer active."""
+    try:
+        return _get_engine().deactivate_raas_group(group_id=group_id, org_id=org_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))

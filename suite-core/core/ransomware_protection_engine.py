@@ -56,6 +56,10 @@ _VALID_VALIDATION_STATUSES = {
     "valid", "invalid", "partial", "unknown",
 }
 
+_VALID_EXTORTION_MODELS = {
+    "double", "triple", "quadruple", "single", "ddos", "data_only",
+}
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -136,6 +140,23 @@ class RansomwareProtectionEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_cp_org
                     ON containment_playbooks (org_id, trigger_type);
+
+                CREATE TABLE IF NOT EXISTS raas_groups (
+                    id                  TEXT PRIMARY KEY,
+                    org_id              TEXT NOT NULL,
+                    group_name          TEXT NOT NULL,
+                    aliases             TEXT NOT NULL DEFAULT '[]',
+                    active_since        TEXT,
+                    extortion_model     TEXT NOT NULL DEFAULT 'double',
+                    avg_ransom_usd      INTEGER NOT NULL DEFAULT 0,
+                    known_sectors       TEXT NOT NULL DEFAULT '[]',
+                    active              INTEGER NOT NULL DEFAULT 1,
+                    created_at          TEXT NOT NULL,
+                    updated_at          TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_rg_org
+                    ON raas_groups (org_id, active, extortion_model);
                 """
             )
 
@@ -507,6 +528,100 @@ class RansomwareProtectionEngine:
             "backup_coverage_pct": round(backup_coverage_pct, 2),
             "avg_recovery_time_mins": round(bak_stats["avg_recovery"] or 0, 2),
         }
+
+    # ------------------------------------------------------------------
+    # RaaS group methods
+    # ------------------------------------------------------------------
+
+    def register_raas_group(
+        self,
+        org_id: str,
+        group_name: str,
+        aliases: Optional[List[str]] = None,
+        active_since: Optional[str] = None,
+        extortion_model: str = "double",
+        avg_ransom_usd: int = 0,
+        known_sectors: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Register a RaaS threat actor group with extortion intel."""
+        if extortion_model not in _VALID_EXTORTION_MODELS:
+            raise ValueError(f"Invalid extortion_model: {extortion_model}")
+        now = _now_iso()
+        rec_id = str(uuid.uuid4())
+        aliases_json = json.dumps(aliases or [])
+        sectors_json = json.dumps(known_sectors or [])
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO raas_groups
+                        (id, org_id, group_name, aliases, active_since,
+                         extortion_model, avg_ransom_usd, known_sectors,
+                         active, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    """,
+                    (rec_id, org_id, group_name, aliases_json, active_since,
+                     extortion_model, avg_ransom_usd, sectors_json, now, now),
+                )
+        return self.get_raas_group(rec_id, org_id)
+
+    def get_raas_group(self, group_id: str, org_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            with self._conn() as conn:
+                row = conn.execute(
+                    "SELECT * FROM raas_groups WHERE id=? AND org_id=?",
+                    (group_id, org_id),
+                ).fetchone()
+        if row is None:
+            return None
+        return self._raas_row_to_dict(row)
+
+    def list_raas_groups(
+        self, org_id: str, active_only: bool = True
+    ) -> List[Dict[str, Any]]:
+        """List RaaS groups for an org, optionally filtering to active ones."""
+        with self._lock:
+            with self._conn() as conn:
+                if active_only:
+                    rows = conn.execute(
+                        "SELECT * FROM raas_groups WHERE org_id=? AND active=1 ORDER BY group_name",
+                        (org_id,),
+                    ).fetchall()
+                else:
+                    rows = conn.execute(
+                        "SELECT * FROM raas_groups WHERE org_id=? ORDER BY group_name",
+                        (org_id,),
+                    ).fetchall()
+        return [self._raas_row_to_dict(r) for r in rows]
+
+    def deactivate_raas_group(self, group_id: str, org_id: str) -> Dict[str, Any]:
+        """Mark a RaaS group as no longer active."""
+        now = _now_iso()
+        with self._lock:
+            with self._conn() as conn:
+                row = conn.execute(
+                    "SELECT id FROM raas_groups WHERE id=? AND org_id=?",
+                    (group_id, org_id),
+                ).fetchone()
+                if row is None:
+                    raise ValueError(f"RaaS group {group_id} not found")
+                conn.execute(
+                    "UPDATE raas_groups SET active=0, updated_at=? WHERE id=? AND org_id=?",
+                    (now, group_id, org_id),
+                )
+        return self.get_raas_group(group_id, org_id)
+
+    @staticmethod
+    def _raas_row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
+        d = dict(row)
+        for field in ("aliases", "known_sectors"):
+            if field in d and isinstance(d[field], str):
+                try:
+                    d[field] = json.loads(d[field])
+                except (json.JSONDecodeError, TypeError):
+                    d[field] = []
+        d["active"] = bool(d.get("active", 1))
+        return d
 
     # ------------------------------------------------------------------
     # Helpers
