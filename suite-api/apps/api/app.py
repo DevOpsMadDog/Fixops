@@ -6680,6 +6680,13 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("slsa_provenance_router unavailable: %s", _e)
 
+    try:
+        from apps.api.feature_flags_router import router as feature_flags_router
+        app.include_router(feature_flags_router)
+        _logger.info("Mounted Feature Flags router at /api/v1/feature-flags")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("feature_flags_router unavailable: %s", _e)
+
     if versioning_router is not None:
         app.include_router(versioning_router)
         _logger.info("Mounted API Versioning router at /api/versions")
