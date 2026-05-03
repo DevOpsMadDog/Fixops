@@ -1974,6 +1974,29 @@ def register_platform_routers(
     except ImportError as exc:
         _logger.warning("greynoise_router not available: %s", exc)
 
+    # ------------------------------------------------------------------
+    # MISP Threat-Sharing Integration — 2026-05-04
+    # GET  /api/v1/misp/                              capability summary
+    # GET  /api/v1/misp/events                        paginated event list
+    # GET  /api/v1/misp/events/{event_id}             single event view
+    # POST /api/v1/misp/attributes/restSearch         flexible attribute search
+    # GET  /api/v1/misp/feeds                         enabled feeds catalog
+    # GET  /api/v1/misp/tags                          tag lookup
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.misp_router import router as misp_router  # noqa: PLC0415
+        app.include_router(
+            misp_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted MISP threat-sharing router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("misp_router not available: %s", exc)
+
+
 
     # ------------------------------------------------------------------
     # Prometheus Alerts (in-memory rule catalog + PromQL-subset eval) — 2026-05-04
@@ -2061,3 +2084,25 @@ def register_platform_routers(
         _logger.info("Mounted Grafana Loki integration router (read:scans)")
     except ImportError as exc:
         _logger.warning("loki_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # OpenCTI Threat-Intel Platform — 2026-05-04
+    # GET  /api/v1/opencti/                       capability summary       (read:scans)
+    # GET  /api/v1/opencti/api/threat-actors      list threat actors       (read:scans)
+    # GET  /api/v1/opencti/api/indicators         lookup indicators        (read:scans)
+    # POST /api/v1/opencti/api/stix-import        import STIX 2.1 bundle   (read:scans)
+    # GET  /api/v1/opencti/api/intrusion-sets     list intrusion sets      (read:scans)
+    # GET  /api/v1/opencti/api/malware            lookup malware by family (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.opencti_router import router as opencti_router  # noqa: PLC0415
+        app.include_router(
+            opencti_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted OpenCTI threat-intel router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("opencti_router not available: %s", exc)
