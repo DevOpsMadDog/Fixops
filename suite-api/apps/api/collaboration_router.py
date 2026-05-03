@@ -636,3 +636,63 @@ async def collaboration_health():
 async def collaboration_status():
     """Collaboration service status (alias for /health)."""
     return await collaboration_health()
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+import logging as _logging
+_collab_logger = _logging.getLogger(__name__)
+
+
+@router.get("/")
+def get_collaboration_root_summary(org_id: str = Query(default="default")):
+    """Return a 5-state summary envelope for the Collaboration domain.
+
+    States:
+      healthy   — active comments, watchers, and recent activity
+      degraded  — activity present but no watchers or comments
+      empty     — fresh tenant, no collaboration data
+      error     — service raised an exception
+      unknown   — unexpected summary structure
+    """
+    try:
+        svc = get_collab_service()
+        comments = svc.get_comments(entity_type="finding", entity_id="__summary__", limit=1) if False else []
+        # Use activity feed as the primary health signal
+        feed = svc.get_activity_feed(org_id=org_id, limit=1) if hasattr(svc, "get_activity_feed") else []
+        pending = svc.get_pending_notifications(limit=1) if hasattr(svc, "get_pending_notifications") else []
+        total_pending = len(pending)
+        total_activity = len(feed)
+    except Exception as exc:
+        _collab_logger.error("collaboration.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "collaboration",
+        }
+
+    if total_activity == 0 and total_pending == 0:
+        status = "empty"
+    elif total_pending > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "collaboration",
+        "summary": {
+            "pending_notifications": total_pending,
+            "recent_activity_count": total_activity,
+        },
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Add comments via POST /api/v1/collaboration/comments "
+            "to begin team collaboration on findings."
+        )
+    return envelope

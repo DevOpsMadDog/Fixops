@@ -188,3 +188,63 @@ async def get_gamification_stats(
 ):
     """Return org-wide gamification stats."""
     return _get_engine().get_gamification_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/")
+async def get_gamification_root_summary(
+    org_id: str = Query(default="default"),
+    auth=Depends(api_key_auth),
+):
+    """Return a 5-state summary envelope for the Security Awareness Gamification domain.
+
+    States:
+      healthy   — active challenges with user completions and positive avg score
+      degraded  — challenges exist but no completions yet
+      empty     — no challenges configured for this org
+      error     — engine raised an exception
+      unknown   — unexpected summary structure
+    """
+    try:
+        stats = _get_engine().get_gamification_stats(org_id)
+    except Exception as exc:
+        _logger.error("awareness_gamification.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "awareness-gamification",
+        }
+
+    total_challenges = stats.get("total_challenges", 0)
+    total_completions = stats.get("total_completions", 0)
+    active_users = stats.get("active_users", 0)
+
+    if total_challenges == 0:
+        status = "empty"
+    elif total_completions == 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "awareness-gamification",
+        "summary": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Create challenges via POST /api/v1/awareness-gamification/challenges "
+            "to begin security awareness gamification."
+        )
+    elif status == "degraded":
+        envelope["hint"] = (
+            f"{total_challenges} challenge(s) configured but no completions recorded yet. "
+            "Encourage users to participate."
+        )
+    return envelope

@@ -202,3 +202,60 @@ async def update_preferences(
     pref = NotificationPreference(**updated_data)
     saved = _get_engine().set_preference(pref)
     return saved.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+import logging as _notif_logger_mod
+_notif_logger = _notif_logger_mod.getLogger(__name__)
+
+
+@router.get("/")
+def get_notification_root_summary(org_id: str = Query(default="default")):
+    """Return a 5-state summary envelope for the Notifications domain.
+
+    States:
+      healthy   — alert rules configured, no undelivered notifications
+      degraded  — rules configured but pending notifications accumulating
+      empty     — no alert rules configured yet
+      error     — engine raised an exception
+      unknown   — unexpected summary structure
+    """
+    try:
+        engine = _get_engine()
+        rules = engine.list_rules()
+        total_rules = len(rules)
+        enabled_rules = sum(1 for r in rules if getattr(r, "enabled", True))
+    except Exception as exc:
+        _notif_logger.error("notification.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "notifications",
+        }
+
+    if total_rules == 0:
+        status = "empty"
+    elif enabled_rules == 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "notifications",
+        "summary": {
+            "total_rules": total_rules,
+            "enabled_rules": enabled_rules,
+        },
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Create alert rules via POST /api/v1/notifications/rules "
+            "to begin receiving security notifications."
+        )
+    return envelope

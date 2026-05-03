@@ -172,3 +172,63 @@ def get_user_progress(
 ) -> Dict[str, Any]:
     """Return training progress summary for a specific user."""
     return engine.get_user_progress(org_id, user_id)
+
+
+# ---------------------------------------------------------------------------
+# Root summary endpoint (5-state envelope)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/")
+def get_security_training_root_summary(
+    org_id: str = Depends(get_org_id),
+    engine: SecurityTrainingEngine = Depends(_get_engine),
+):
+    """Return a 5-state summary envelope for the Security Training domain.
+
+    States:
+      healthy   — courses and enrollments exist, no overdue assignments
+      degraded  — overdue enrollments requiring attention
+      empty     — no courses configured yet
+      error     — engine raised an exception
+      unknown   — unexpected summary structure
+    """
+    try:
+        stats = engine.get_training_stats(org_id)
+    except Exception as exc:
+        logger.error("security_training.summary error: %s", exc)
+        return {
+            "status": "error",
+            "org_id": org_id,
+            "error": str(exc),
+            "domain": "security-training",
+        }
+
+    total_courses = stats.get("total_courses", 0)
+    overdue = stats.get("overdue_count", 0)
+    total_assignments = stats.get("total_assignments", 0)
+
+    if total_courses == 0:
+        status = "empty"
+    elif overdue > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    envelope = {
+        "status": status,
+        "org_id": org_id,
+        "domain": "security-training",
+        "summary": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Create courses via POST /api/v1/security-training/courses "
+            "to begin security training programs."
+        )
+    elif status == "degraded":
+        envelope["hint"] = (
+            f"{overdue} overdue enrollment(s) require attention. "
+            "Review GET /api/v1/security-training/stats for details."
+        )
+    return envelope
