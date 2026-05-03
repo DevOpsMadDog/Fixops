@@ -2515,6 +2515,31 @@ def register_platform_routers(
         _logger.warning("vanta_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Drata Compliance (REST surface) — 2026-05-04
+    # GET  /api/v1/drata/                                            capability summary  (read:scans)
+    # GET  /api/v1/drata/api/controls                                list controls       (read:scans)
+    # GET  /api/v1/drata/api/controls/{control_id}                   single control      (read:scans)
+    # GET  /api/v1/drata/api/controls/{control_id}/tests             control tests       (read:scans)
+    # GET  /api/v1/drata/api/integrations                            integrations        (read:scans)
+    # GET  /api/v1/drata/api/audits                                  audits              (read:scans)
+    # GET  /api/v1/drata/api/people                                  people              (read:scans)
+    # GET  /api/v1/drata/api/findings                                findings            (read:scans)
+    # GET  /api/v1/drata/api/policies                                policies            (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.drata_router import router as drata_router  # noqa: PLC0415
+        app.include_router(
+            drata_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Drata compliance router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("drata_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Tenable.io Vulnerability Scanner — 2026-05-04
     # GET  /api/v1/tenable-io/                                              capability summary  (read:scans)
     # GET  /api/v1/tenable-io/scans                                          list scans         (read:scans)
@@ -2856,3 +2881,27 @@ def register_platform_routers(
         _logger.info("Mounted AWS EKS inventory router at /api/v1/aws-eks (read:scans)")
     except ImportError as exc:
         _logger.warning("aws_eks_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Sigstore Rekor transparency log proxy router (read:scans)
+    # ------------------------------------------------------------------
+    # GET    /api/v1/rekor/                          capability summary
+    # GET    /api/v1/rekor/api/v1/log                tree state
+    # GET    /api/v1/rekor/api/v1/log/proof          consistency proof
+    # GET    /api/v1/rekor/api/v1/log/entries/{u}    entry by uuid
+    # GET    /api/v1/rekor/api/v1/log/entries        entry by logIndex
+    # POST   /api/v1/rekor/api/v1/log/entries        submit entry
+    # POST   /api/v1/rekor/api/v1/index/retrieve     search index
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.rekor_router import router as rekor_router  # noqa: PLC0415
+        app.include_router(
+            rekor_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Sigstore Rekor router at /api/v1/rekor (read:scans)")
+    except ImportError as exc:
+        _logger.warning("rekor_router not available: %s", exc)
