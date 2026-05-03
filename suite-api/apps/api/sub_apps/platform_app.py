@@ -840,6 +840,18 @@ def register_platform_routers(
         _logger.warning("datadog_security_router not available: %s", exc)
 
     try:
+        from apps.api.defender_xdr_router import (
+            router as defender_xdr_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            defender_xdr_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Microsoft Defender XDR router at /api/v1/defender-xdr (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("defender_xdr_router not available: %s", exc)
+
+    try:
         from apps.api.snowflake_router import (
             router as snowflake_router,  # noqa: PLC0415
         )
@@ -3088,3 +3100,31 @@ def register_platform_routers(
         _logger.info("Mounted Akamai EdgeGrid router at /api/v1/akamai (read:scans)")
     except ImportError as exc:
         _logger.warning("akamai_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
+    # Auth0 — Management API v2 (read:scans)
+    # ------------------------------------------------------------------
+    # GET /api/v1/auth0/                                          capability summary
+    # GET /api/v1/auth0/api/v2/users                              list users (lucene q)
+    # GET /api/v1/auth0/api/v2/users/{user_id}                    single user
+    # GET /api/v1/auth0/api/v2/users/{user_id}/roles              user roles
+    # GET /api/v1/auth0/api/v2/users/{user_id}/permissions        user permissions
+    # GET /api/v1/auth0/api/v2/clients                            applications/clients
+    # GET /api/v1/auth0/api/v2/connections                        identity providers
+    # GET /api/v1/auth0/api/v2/logs                               tenant log events
+    # GET /api/v1/auth0/api/v2/roles                              roles
+    # GET /api/v1/auth0/api/v2/roles/{role_id}/permissions        role permissions
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.auth0_router import router as auth0_router  # noqa: PLC0415
+        app.include_router(
+            auth0_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Auth0 Management API router at /api/v1/auth0 (read:scans)")
+    except ImportError as exc:
+        _logger.warning("auth0_router not available: %s", exc)
