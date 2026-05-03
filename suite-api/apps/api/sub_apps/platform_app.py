@@ -672,6 +672,18 @@ def register_platform_routers(
         _logger.warning("jenkins_router not available: %s", exc)
 
     try:
+        from apps.api.circleci_router import (
+            router as circleci_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            circleci_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted CircleCI v2 router at /api/v1/circleci (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("circleci_router not available: %s", exc)
+
+    try:
         from apps.api.pagerduty_router import (
             router as pagerduty_router,  # noqa: PLC0415
         )
