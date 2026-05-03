@@ -1,4 +1,4 @@
-"""Tests for MFAManagementEngine — 35 tests covering enrollments, events, policies, stats."""
+"""Tests for MFAManagementEngine — 41 tests covering enrollments, events, policies, stats."""
 
 from __future__ import annotations
 
@@ -262,3 +262,61 @@ def test_get_mfa_stats_partial_compliance(engine):
     assert stats["total_enrolled"] == 1
     # 1 active out of 2 attempted users
     assert stats["compliance_rate"] == 0.5
+
+
+# ---------------------------------------------------------------------------
+# MFA Policy — extended coverage
+# ---------------------------------------------------------------------------
+
+def test_create_policy_disabled_enforcement(engine):
+    """Enforcement value 'disabled' must be accepted and stored correctly."""
+    pol = engine.create_policy(ORG, {"policy_name": "No MFA", "enforcement": "disabled"})
+    assert pol["enforcement"] == "disabled"
+
+
+def test_create_policy_required_mfa_types_roundtrip(engine):
+    """required_mfa_types JSON array must survive a write/read cycle."""
+    types = ["totp", "hardware_key", "push"]
+    pol = engine.create_policy(ORG, {
+        "policy_name": "Strong MFA",
+        "enforcement": "mandatory",
+        "required_mfa_types": types,
+    })
+    fetched = engine.list_policies(ORG)
+    assert fetched[0]["required_mfa_types"] == types
+
+
+def test_create_policy_default_grace_period(engine):
+    """When grace_period_days is omitted, default of 7 must be stored."""
+    pol = engine.create_policy(ORG, {"policy_name": "Default Grace", "enforcement": "optional"})
+    assert pol["grace_period_days"] == 7
+
+
+def test_create_policy_zero_grace_period(engine):
+    """grace_period_days of 0 (strict immediate enforcement) must be stored."""
+    pol = engine.create_policy(ORG, {
+        "policy_name": "Immediate",
+        "enforcement": "mandatory",
+        "grace_period_days": 0,
+    })
+    assert pol["grace_period_days"] == 0
+
+
+def test_list_policies_ordered_newest_first(engine):
+    """list_policies must return records ordered by created_at DESC."""
+    engine.create_policy(ORG, {"policy_name": "First", "enforcement": "optional"})
+    engine.create_policy(ORG, {"policy_name": "Second", "enforcement": "mandatory"})
+    result = engine.list_policies(ORG)
+    # Most recently created record must appear first
+    assert result[0]["policy_name"] == "Second"
+    assert result[1]["policy_name"] == "First"
+
+
+def test_create_policy_all_enforcement_values_accepted(engine):
+    """All three valid enforcement values must be accepted without error."""
+    for enforcement in ("mandatory", "optional", "disabled"):
+        pol = engine.create_policy(ORG, {
+            "policy_name": f"Policy-{enforcement}",
+            "enforcement": enforcement,
+        })
+        assert pol["enforcement"] == enforcement
