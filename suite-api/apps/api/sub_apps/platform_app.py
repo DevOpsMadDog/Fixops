@@ -1890,3 +1890,44 @@ def register_platform_routers(
         _logger.info("Mounted Gitleaks secret-detection router (read:scans)")
     except ImportError as exc:
         _logger.warning("gitleaks_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Prometheus Alerts (in-memory rule catalog + PromQL-subset eval) — 2026-05-04
+    # GET  /api/v1/prometheus/                 capability summary       (read:scans)
+    # GET  /api/v1/prometheus/groups           rule groups + counts     (read:scans)
+    # GET  /api/v1/prometheus/rules            full rule catalog        (read:scans)
+    # GET  /api/v1/prometheus/rules/{rule_id}  single rule detail       (read:scans)
+    # POST /api/v1/prometheus/alerts/test      evaluate against metrics (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.prometheus_alerts_router import router as prometheus_alerts_router  # noqa: PLC0415
+        app.include_router(
+            prometheus_alerts_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Prometheus alerts router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("prometheus_alerts_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # kube-bench CIS Kubernetes Benchmark Scanner (Aqua Security) — 2026-05-04
+    # GET  /api/v1/kube-bench/                  capability summary  (read:scans)
+    # GET  /api/v1/kube-bench/benchmarks        benchmark catalog   (read:scans)
+    # POST /api/v1/kube-bench/scan              queue a new scan    (read:scans)
+    # GET  /api/v1/kube-bench/scan/{scan_id}    fetch scan record   (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.kube_bench_router import router as kube_bench_router  # noqa: PLC0415
+        app.include_router(
+            kube_bench_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted kube-bench CIS K8s benchmark router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("kube_bench_router not available: %s", exc)
