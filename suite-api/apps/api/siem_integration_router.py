@@ -264,6 +264,76 @@ def ingest_raw(body: RawIngestIn) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Correlation rules endpoints
+# ---------------------------------------------------------------------------
+
+
+class CorrelationRuleCreate(BaseModel):
+    org_id: str = "default"
+    name: str
+    description: str = ""
+    event_type: Optional[str] = None
+    severity: Optional[str] = None
+    field: str = "user"
+    threshold: int = 5
+    window_hours: int = 1
+    action: str = "repeated_event"
+    enabled: bool = True
+
+
+@router.post("/correlation-rules")
+def create_correlation_rule(body: CorrelationRuleCreate) -> Dict[str, Any]:
+    """Create a named correlation rule."""
+    try:
+        result = _get_engine().create_correlation_rule(body.org_id, body.model_dump())
+        return {"status": "created", "rule": result}
+    except Exception as exc:
+        logger.exception("Failed to create correlation rule")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/correlation-rules")
+def list_correlation_rules(
+    org_id: str = Query("default"),
+    enabled_only: bool = Query(False),
+) -> Dict[str, Any]:
+    """List correlation rules for an org."""
+    rules = _get_engine().list_correlation_rules(org_id, enabled_only=enabled_only)
+    return {"org_id": org_id, "rules": rules, "total": len(rules)}
+
+
+@router.get("/correlation-rules/{rule_id}")
+def get_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get a single correlation rule by ID."""
+    rule = _get_engine().get_correlation_rule(org_id, rule_id)
+    if not rule:
+        raise HTTPException(status_code=404, detail="Correlation rule not found")
+    return rule
+
+
+@router.delete("/correlation-rules/{rule_id}")
+def delete_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+    """Delete a correlation rule."""
+    deleted = _get_engine().delete_correlation_rule(org_id, rule_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Correlation rule not found")
+    return {"status": "deleted", "rule_id": rule_id}
+
+
+@router.post("/correlation-rules/{rule_id}/run")
+def run_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+    """Execute a stored correlation rule against recent events."""
+    try:
+        result = _get_engine().run_correlation_rule(org_id, rule_id)
+        return {"status": "ok", **result}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to run correlation rule")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Legacy endpoints (backward compat)
 # ---------------------------------------------------------------------------
 

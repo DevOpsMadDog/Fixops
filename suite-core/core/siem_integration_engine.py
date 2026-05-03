@@ -165,6 +165,25 @@ class SIEMIntegrationEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_siem_corr_alerts_org
                     ON siem_correlation_alerts (org_id, status);
+
+                CREATE TABLE IF NOT EXISTS siem_correlation_rules (
+                    rule_id      TEXT PRIMARY KEY,
+                    org_id       TEXT NOT NULL,
+                    name         TEXT NOT NULL,
+                    description  TEXT NOT NULL DEFAULT '',
+                    event_type   TEXT,
+                    severity     TEXT,
+                    field        TEXT NOT NULL DEFAULT 'user',
+                    threshold    INTEGER NOT NULL DEFAULT 5,
+                    window_hours INTEGER NOT NULL DEFAULT 1,
+                    action       TEXT NOT NULL DEFAULT 'repeated_event',
+                    enabled      INTEGER NOT NULL DEFAULT 1,
+                    created_at   TEXT NOT NULL,
+                    updated_at   TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_siem_corr_rules_org
+                    ON siem_correlation_rules (org_id, enabled);
                 """
             )
 
@@ -551,6 +570,122 @@ class SIEMIntegrationEngine:
             "alert_count": alert_count,
             "open_alerts": open_alerts,
         }
+
+    # ------------------------------------------------------------------
+    # Correlation rules CRUD
+    # ------------------------------------------------------------------
+
+    def create_correlation_rule(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Persist a named correlation rule."""
+        rule_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        severity = data.get("severity") or None
+        if severity and severity not in _VALID_SEVERITIES:
+            severity = None
+        event_type = data.get("event_type") or None
+        if event_type and event_type not in _VALID_EVENT_TYPES:
+            event_type = None
+
+        row = {
+            "rule_id": rule_id,
+            "org_id": org_id,
+            "name": data.get("name", ""),
+            "description": data.get("description", ""),
+            "event_type": event_type,
+            "severity": severity,
+            "field": data.get("field", "user"),
+            "threshold": int(data.get("threshold", 5)),
+            "window_hours": int(data.get("window_hours", 1)),
+            "action": data.get("action", "repeated_event"),
+            "enabled": 1 if data.get("enabled", True) else 0,
+            "created_at": now,
+            "updated_at": now,
+        }
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                """INSERT INTO siem_correlation_rules
+                   (rule_id, org_id, name, description, event_type, severity,
+                    field, threshold, window_hours, action, enabled, created_at, updated_at)
+                   VALUES (:rule_id, :org_id, :name, :description, :event_type, :severity,
+                    :field, :threshold, :window_hours, :action, :enabled, :created_at, :updated_at)""",
+                row,
+            )
+        result = dict(row)
+        result["enabled"] = bool(result["enabled"])
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {
+                        "entity_type": "siem_correlation_rule",
+                        "org_id": org_id,
+                        "source_engine": "siem_integration",
+                    })
+            except Exception:
+                pass
+        return result
+
+    def list_correlation_rules(
+        self,
+        org_id: str,
+        enabled_only: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """List correlation rules for an org."""
+        query = "SELECT * FROM siem_correlation_rules WHERE org_id = ?"
+        params: List[Any] = [org_id]
+        if enabled_only:
+            query += " AND enabled = 1"
+        query += " ORDER BY created_at DESC"
+        with self._lock, self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._rule_row(r) for r in rows]
+
+    def get_correlation_rule(self, org_id: str, rule_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single correlation rule."""
+        with self._lock, self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM siem_correlation_rules WHERE org_id = ? AND rule_id = ?",
+                (org_id, rule_id),
+            ).fetchone()
+        return self._rule_row(row) if row else None
+
+    def delete_correlation_rule(self, org_id: str, rule_id: str) -> bool:
+        """Delete a correlation rule. Returns True if a row was deleted."""
+        with self._lock, self._conn() as conn:
+            result = conn.execute(
+                "DELETE FROM siem_correlation_rules WHERE org_id = ? AND rule_id = ?",
+                (org_id, rule_id),
+            )
+        return result.rowcount > 0
+
+    def run_correlation_rule(self, org_id: str, rule_id: str) -> Dict[str, Any]:
+        """Execute a stored correlation rule and return matched groups."""
+        rule = self.get_correlation_rule(org_id, rule_id)
+        if not rule:
+            raise ValueError(f"Correlation rule not found: {rule_id}")
+        if not rule.get("enabled"):
+            raise ValueError(f"Correlation rule is disabled: {rule_id}")
+
+        matched = self.correlate_events(org_id, {
+            "event_type": rule.get("event_type"),
+            "severity": rule.get("severity"),
+            "field": rule.get("field", "user"),
+            "threshold": rule.get("threshold", 5),
+            "window_hours": rule.get("window_hours", 1),
+            "action": rule.get("action", "repeated_event"),
+        })
+        return {
+            "rule_id": rule_id,
+            "rule_name": rule["name"],
+            "matched_groups": len(matched),
+            "matches": matched,
+        }
+
+    def _rule_row(self, row: sqlite3.Row) -> Dict[str, Any]:
+        r = dict(row)
+        r["enabled"] = bool(r.get("enabled", 1))
+        return r
 
     # ------------------------------------------------------------------
     # Internal helpers
