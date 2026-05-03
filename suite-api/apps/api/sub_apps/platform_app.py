@@ -3150,3 +3150,31 @@ def register_platform_routers(
         _logger.info("Mounted Auth0 Management API router at /api/v1/auth0 (read:scans)")
     except ImportError as exc:
         _logger.warning("auth0_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
+    # CyberArk PAM (PVWA REST API surface) — 2026-05-04
+    # GET  /api/v1/cyberark-pam/                                                              capability summary  (read:scans)
+    # POST /api/v1/cyberark-pam/PasswordVault/API/auth/Cyberark/Logon                          session token       (read:scans)
+    # POST /api/v1/cyberark-pam/PasswordVault/API/auth/Logoff                                  invalidate token    (read:scans)
+    # GET  /api/v1/cyberark-pam/PasswordVault/API/Accounts                                     account list        (read:scans)
+    # GET  /api/v1/cyberark-pam/PasswordVault/API/Accounts/{id}                                single account      (read:scans)
+    # POST /api/v1/cyberark-pam/PasswordVault/API/Accounts/{id}/Password/Retrieve              password retrieval  (read:scans)
+    # GET  /api/v1/cyberark-pam/PasswordVault/API/Safes                                        safe list           (read:scans)
+    # GET  /api/v1/cyberark-pam/PasswordVault/API/Safes/{safe_url_id}/Members                  safe members        (read:scans)
+    # GET  /api/v1/cyberark-pam/PasswordVault/API/PSM/Sessions                                 PSM sessions list   (read:scans)
+    # GET  /api/v1/cyberark-pam/PasswordVault/API/PSM/Recordings                               PSM recordings list (read:scans)
+    # NOTE: distinct prefix from cyberark_live_connector_router (higher-level wrapper)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.cyberark_pam_router import router as cyberark_pam_router  # noqa: PLC0415
+        app.include_router(
+            cyberark_pam_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted CyberArk PAM (PVWA) router at /api/v1/cyberark-pam (read:scans)")
+    except ImportError as exc:
+        _logger.warning("cyberark_pam_router not available: %s", exc)
