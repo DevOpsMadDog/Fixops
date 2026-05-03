@@ -111,6 +111,31 @@ class RecordAccessEventRequest(BaseModel):
 
 
 # ============================================================================
+# Root summary
+# ============================================================================
+
+
+@router.get("/", response_model=Dict[str, Any])
+async def get_summary(
+    org_id: str = Query("default"),
+    _auth: Any = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Return a top-level summary of Zero Trust policy state for an org."""
+    eng = _engine()
+    stats = eng.get_policy_stats(org_id=org_id)
+    posture = eng.get_compliance_posture(org_id=org_id)
+    return {
+        "service": "zero-trust-policy",
+        "org_id": org_id,
+        "total_policies": stats["total_policies"],
+        "enabled_policies": stats["enabled_policies"],
+        "access_events_24h": stats["access_events_24h"],
+        "zt_maturity_score": posture["zt_maturity_score"],
+        "top_recommendation": posture["recommendations"][0] if posture["recommendations"] else None,
+    }
+
+
+# ============================================================================
 # Policy CRUD
 # ============================================================================
 
