@@ -2541,6 +2541,33 @@ def register_platform_routers(
         _logger.warning("abuseipdb_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # JupiterOne Asset Graph (GraphQL/J1QL + Sync + Alerts + Integrations) - 2026-05-04
+    # GET  /api/v1/jupiterone/                                           capability summary  (read:scans)
+    # POST /api/v1/jupiterone/graphql                                    J1QL graphql query  (read:scans)
+    # GET  /api/v1/jupiterone/persister/synchronization/jobs             list sync jobs      (read:scans)
+    # POST /api/v1/jupiterone/persister/synchronization/jobs             create sync job     (read:scans)
+    # POST /api/v1/jupiterone/persister/synchronization/jobs/{id}/upload upload entities     (read:scans)
+    # POST /api/v1/jupiterone/persister/synchronization/jobs/{id}/finalize finalize sync     (read:scans)
+    # GET  /api/v1/jupiterone/alerts                                     list alerts         (read:scans)
+    # GET  /api/v1/jupiterone/alerts/{instance_id}                       single alert detail (read:scans)
+    # POST /api/v1/jupiterone/alerts/{instance_id}/dismiss               dismiss alert       (read:scans)
+    # POST /api/v1/jupiterone/alerts/{instance_id}/snooze                snooze alert        (read:scans)
+    # GET  /api/v1/jupiterone/accounts/{account_id}/integrations         list integrations   (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.jupiterone_router import router as jupiterone_router  # noqa: PLC0415
+        app.include_router(
+            jupiterone_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted JupiterOne asset graph router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("jupiterone_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Imperva Cloud WAF (Provisioning v1 + Modern v3 + Incidents v1) - 2026-05-04
     # GET  /api/v1/imperva/                                     capability summary  (read:scans)
     # POST /api/v1/imperva/api/prov/v1/sites/list               list managed sites  (read:scans)
@@ -3267,6 +3294,37 @@ def register_platform_routers(
         _logger.info("Mounted Akamai EdgeGrid router at /api/v1/akamai (read:scans)")
     except ImportError as exc:
         _logger.warning("akamai_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Kong Admin API — services / routes / plugins / consumers / upstreams
+    #                  / certs / SNIs / status (read:scans)
+    # ------------------------------------------------------------------
+    # GET    /api/v1/kong/                                       capability summary
+    # GET    /api/v1/kong/services                               list services
+    # GET    /api/v1/kong/services/{service_id_or_name}          single service
+    # GET    /api/v1/kong/routes                                 list routes (filter: service.id)
+    # GET    /api/v1/kong/plugins                                list plugins (filter: service/route/consumer)
+    # GET    /api/v1/kong/consumers                              list consumers
+    # GET    /api/v1/kong/consumers/{id}/key-auth                consumer key-auth credentials
+    # GET    /api/v1/kong/upstreams                              list upstreams
+    # GET    /api/v1/kong/upstreams/{id}/targets                 upstream targets
+    # GET    /api/v1/kong/certificates                           TLS certificates
+    # GET    /api/v1/kong/snis                                   SNIs
+    # GET    /api/v1/kong/status                                 Kong node status
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.kong_router import router as kong_router  # noqa: PLC0415
+        app.include_router(
+            kong_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Kong Admin API router at /api/v1/kong (read:scans)")
+    except ImportError as exc:
+        _logger.warning("kong_router not available: %s", exc)
+
 
 
     # ------------------------------------------------------------------
