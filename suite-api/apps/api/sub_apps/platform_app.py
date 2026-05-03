@@ -708,6 +708,30 @@ def register_platform_routers(
         _logger.warning("datadog_security_router not available: %s", exc)
 
     try:
+        from apps.api.harness_router import (
+            router as harness_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            harness_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Harness CD router at /api/v1/harness (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("harness_router not available: %s", exc)
+
+    try:
+        from apps.api.terraform_cloud_router import (
+            router as terraform_cloud_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            terraform_cloud_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Terraform Cloud router at /api/v1/terraform-cloud (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("terraform_cloud_router not available: %s", exc)
+
+    try:
         from apps.api.slack_bot_router import (
             router as slack_bot_router,  # noqa: PLC0415
         )
