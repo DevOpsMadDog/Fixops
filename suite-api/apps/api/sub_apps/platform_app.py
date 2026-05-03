@@ -1793,3 +1793,21 @@ def register_platform_routers(
         _logger.info("Mounted ZAP DAST scan router (read:scan / write:scan)")
     except ImportError as exc:
         _logger.warning("zap_scan_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Syft SBOM generation router (read:scan + write:scan)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.syft_router import router as syft_router  # noqa: PLC0415
+
+        app.include_router(
+            syft_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scan")),
+                Depends(_require_scope("write:scan")),
+            ],
+        )
+        _logger.info("Mounted Syft SBOM router (read:scan/write:scan)")
+    except ImportError:
+        pass
