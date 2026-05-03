@@ -2905,3 +2905,27 @@ def register_platform_routers(
         _logger.info("Mounted Sigstore Rekor router at /api/v1/rekor (read:scans)")
     except ImportError as exc:
         _logger.warning("rekor_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # SonarQube — code quality + security platform (Web API wrapper)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/sonarqube/                                  capability       (read:scans)
+    # GET  /api/v1/sonarqube/api/projects/search               projects.search  (read:scans)
+    # GET  /api/v1/sonarqube/api/issues/search                 issues.search    (read:scans)
+    # GET  /api/v1/sonarqube/api/qualitygates/project_status   QG status        (read:scans)
+    # GET  /api/v1/sonarqube/api/measures/component            measures         (read:scans)
+    # GET  /api/v1/sonarqube/api/components/show               components.show  (read:scans)
+    # GET  /api/v1/sonarqube/api/hotspots/search               hotspots.search  (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.sonarqube_router import router as sonarqube_router  # noqa: PLC0415
+        app.include_router(
+            sonarqube_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted SonarQube router at /api/v1/sonarqube (read:scans)")
+    except ImportError as exc:
+        _logger.warning("sonarqube_router not available: %s", exc)
