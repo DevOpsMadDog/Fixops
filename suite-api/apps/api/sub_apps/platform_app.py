@@ -792,6 +792,18 @@ def register_platform_routers(
         _logger.warning("aws_securityhub_router not available: %s", exc)
 
     try:
+        from apps.api.aws_iam_router import (
+            router as aws_iam_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            aws_iam_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted AWS IAM router at /api/v1/aws-iam (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("aws_iam_router not available: %s", exc)
+
+    try:
         from apps.api.datadog_security_router import (
             router as datadog_security_router,  # noqa: PLC0415
         )
@@ -2685,3 +2697,53 @@ def register_platform_routers(
         _logger.info("Mounted Azure Sentinel router (read:scans)")
     except ImportError as exc:
         _logger.warning("azure_sentinel_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Azure Key Vault (secrets / keys / certificates) — 2026-05-04
+    # GET  /api/v1/azure-keyvault/                                     capability summary  (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults                               list vaults (ARM)   (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults/{name}/secrets                list secrets        (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults/{name}/secrets/{secret_name}  get secret          (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults/{name}/secrets/{name}/versions list versions      (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults/{name}/keys                   list keys           (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults/{name}/keys/{key_name}        get key             (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults/{name}/certificates           list certificates   (read:scans)
+    # GET  /api/v1/azure-keyvault/vaults/{name}/certificates/{cert}    get certificate     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.azure_keyvault_router import router as azure_keyvault_router  # noqa: PLC0415
+        app.include_router(
+            azure_keyvault_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Azure Key Vault router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("azure_keyvault_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # AWS S3 inventory + posture (suite-core/core/aws_s3_engine.py) — 2026-05-04
+    # GET  /api/v1/aws-s3/                                       capability summary           (read:scans)
+    # GET  /api/v1/aws-s3/buckets                                ListBuckets                  (read:scans)
+    # GET  /api/v1/aws-s3/buckets/{name}/policy                  GetBucketPolicy              (read:scans)
+    # GET  /api/v1/aws-s3/buckets/{name}/encryption              GetBucketEncryption          (read:scans)
+    # GET  /api/v1/aws-s3/buckets/{name}/acl                     GetBucketAcl                 (read:scans)
+    # GET  /api/v1/aws-s3/buckets/{name}/public-access-block     GetPublicAccessBlock         (read:scans)
+    # GET  /api/v1/aws-s3/buckets/{name}/versioning              GetBucketVersioning          (read:scans)
+    # GET  /api/v1/aws-s3/buckets/{name}/logging                 GetBucketLogging             (read:scans)
+    # GET  /api/v1/aws-s3/buckets/{name}/lifecycle               GetBucketLifecycleConfig     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.aws_s3_router import router as aws_s3_router  # noqa: PLC0415
+        app.include_router(
+            aws_s3_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted AWS S3 inventory+posture router at /api/v1/aws-s3 (read:scans)")
+    except ImportError as exc:
+        _logger.warning("aws_s3_router not available: %s", exc)
