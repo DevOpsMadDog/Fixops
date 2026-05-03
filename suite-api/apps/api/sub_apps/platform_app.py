@@ -967,6 +967,18 @@ def register_platform_routers(
         _logger.warning("slack_chatops_router not available: %s", exc)
 
     try:
+        from apps.api.fastly_router import (
+            router as fastly_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            fastly_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Fastly Edge router at /api/v1/fastly (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("fastly_router not available: %s", exc)
+
+    try:
         from servicenow.servicenow_router import (
             router as servicenow_router,  # noqa: PLC0415
         )
