@@ -1317,3 +1317,42 @@ class TestScanRequestAuthConfig:
                 },
             })
         assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# 22. GET /api/v1/dast/ root capabilities endpoint
+# ---------------------------------------------------------------------------
+
+class TestDastRouterRoot:
+    def test_root_returns_200(self, dast_client):
+        resp = dast_client.get("/api/v1/dast/")
+        assert resp.status_code == 200
+
+    def test_root_contains_service_key(self, dast_client):
+        resp = dast_client.get("/api/v1/dast/")
+        data = resp.json()
+        assert data["service"] == "DAST Scanner"
+
+    def test_root_lists_expected_endpoints(self, dast_client):
+        resp = dast_client.get("/api/v1/dast/")
+        data = resp.json()
+        endpoints = data["endpoints"]
+        assert "POST /scan" in endpoints
+        assert "GET /scans/{scan_id}" in endpoints
+        assert "GET /findings" in endpoints
+        assert "GET /health" in endpoints
+
+    def test_root_lists_auth_modes_and_profiles(self, dast_client):
+        resp = dast_client.get("/api/v1/dast/")
+        data = resp.json()
+        assert "jwt_bearer" in data["auth_modes"]
+        assert "quick" in data["scan_profiles"]
+        assert "api_only" in data["scan_profiles"]
+
+    def test_root_capabilities_include_core_checks(self, dast_client):
+        resp = dast_client.get("/api/v1/dast/")
+        data = resp.json()
+        caps = data["capabilities"]
+        assert "sql_injection" in caps
+        assert "security_headers" in caps
+        assert "api_scan_openapi" in caps
