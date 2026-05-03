@@ -417,7 +417,7 @@ def _query_findings_db():
         exploitable = c.execute("SELECT COUNT(*) FROM findings WHERE exploitable=1").fetchone()[0]
         conn.close()
         return {"total": total, "by_severity": by_sev, "by_status": by_status, "by_source": by_source, "critical": critical_list, "exploitable_count": exploitable}
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+    except Exception:
         return None
 
 def _query_remediation_db():
@@ -432,7 +432,7 @@ def _query_remediation_db():
         by_sev = {r[0]: r[1] for r in c.execute("SELECT severity, COUNT(*) FROM remediation_tasks GROUP BY severity").fetchall()}
         conn.close()
         return {"total": total, "by_status": by_status, "by_severity": by_sev}
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+    except Exception:
         return None
 
 
