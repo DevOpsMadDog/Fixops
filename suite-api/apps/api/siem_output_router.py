@@ -20,11 +20,15 @@ Auth: api_key_auth injected via Depends.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
-from typing import Any, Dict, Optional
+import time
+from typing import Any, AsyncGenerator, Dict, Optional
 
 from core.siem_output_engine import SIEMOutputEngine
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -276,6 +280,62 @@ def get_delivery_history(
     engine = _get_engine()
     history = engine.get_delivery_history(org_id, target_id, limit)
     return {"history": history, "count": len(history)}
+
+
+@router.get(
+    "/stream",
+    summary="SSE stream of SIEM delivery audit log",
+    response_class=StreamingResponse,
+)
+async def stream_audit_log(
+    org_id: str = Query("default"),
+    target_id: Optional[str] = Query(None, description="Filter to one target"),
+    poll_interval: float = Query(5.0, ge=1.0, le=60.0, description="Polling interval in seconds"),
+    last_seen_id: Optional[str] = Query(None, description="Resume: only emit deliveries newer than this delivery_id"),
+) -> StreamingResponse:
+    """Stream SIEM delivery audit events as Server-Sent Events.
+
+    Emits one SSE ``delivery`` event per new row in siem_deliveries.
+    Heartbeat comment (`: ping`) every poll_interval seconds when idle.
+    Connect with ``Accept: text/event-stream``.
+
+    SSE format::
+
+        id: <delivery_id>
+        event: delivery
+        data: {"delivery_id": "...", "target_id": "...", "success": true, ...}
+
+    """
+    engine = _get_engine()
+
+    async def _generator() -> AsyncGenerator[str, None]:
+        seen_id = last_seen_id
+        while True:
+            rows = engine.get_delivery_history(
+                org_id=org_id,
+                target_id=target_id or "",
+                limit=50,
+                after_id=seen_id,
+            )
+            if rows:
+                for row in reversed(rows):  # chronological order
+                    delivery_id = row.get("delivery_id", "")
+                    payload = json.dumps(row, default=str)
+                    yield f"id: {delivery_id}\nevent: delivery\ndata: {payload}\n\n"
+                    seen_id = delivery_id
+            else:
+                yield ": ping\n\n"
+            await asyncio.sleep(poll_interval)
+
+    return StreamingResponse(
+        _generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -392,16 +392,43 @@ class SIEMOutputEngine:
         }
 
     def get_delivery_history(
-        self, org_id: str, target_id: str, limit: int = 50
+        self,
+        org_id: str,
+        target_id: str = "",
+        limit: int = 50,
+        after_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """Get delivery history for a specific target."""
+        """Get delivery history for an org, optionally filtered by target.
+
+        If *after_id* is given, only rows whose ``created_at`` is strictly
+        after the row with that delivery_id are returned (SSE cursor support).
+        Rows are returned in ascending ``created_at`` order when after_id is
+        used so the caller can emit them chronologically.
+        """
         with self._lock:
             with self._conn() as conn:
+                params: list = [org_id]
+                where = "org_id = ?"
+
+                if target_id:
+                    where += " AND target_id = ?"
+                    params.append(target_id)
+
+                if after_id:
+                    # Resolve the created_at timestamp of the cursor row
+                    cursor_row = conn.execute(
+                        "SELECT created_at FROM siem_deliveries WHERE delivery_id = ?",
+                        (after_id,),
+                    ).fetchone()
+                    if cursor_row:
+                        where += " AND created_at > ?"
+                        params.append(cursor_row["created_at"])
+
+                order = "ASC" if after_id else "DESC"
+                params.append(limit)
                 rows = conn.execute(
-                    """SELECT * FROM siem_deliveries
-                       WHERE org_id = ? AND target_id = ?
-                       ORDER BY created_at DESC LIMIT ?""",
-                    (org_id, target_id, limit),
+                    f"SELECT * FROM siem_deliveries WHERE {where} ORDER BY created_at {order} LIMIT ?",
+                    params,
                 ).fetchall()
         return [dict(r) for r in rows]
 
