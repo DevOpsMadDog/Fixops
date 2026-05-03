@@ -648,6 +648,18 @@ def register_platform_routers(
         _logger.warning("jira_cloud_router not available: %s", exc)
 
     try:
+        from apps.api.jenkins_router import (
+            router as jenkins_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            jenkins_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Jenkins CI router at /api/v1/jenkins (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("jenkins_router not available: %s", exc)
+
+    try:
         from apps.api.pagerduty_router import (
             router as pagerduty_router,  # noqa: PLC0415
         )
@@ -658,6 +670,18 @@ def register_platform_routers(
         _logger.info("Mounted PagerDuty router at /api/v1/pagerduty (scope=read:scans)")
     except ImportError as exc:
         _logger.warning("pagerduty_router not available: %s", exc)
+
+    try:
+        from apps.api.argocd_router import (
+            router as argocd_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            argocd_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted ArgoCD GitOps router at /api/v1/argocd (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("argocd_router not available: %s", exc)
 
     try:
         from apps.api.aws_securityhub_router import (
