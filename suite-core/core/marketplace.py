@@ -971,6 +971,58 @@ class Marketplace:
         finally:
             conn.close()
 
+    def get_catalog_stats(self, org_id: Optional[str] = None) -> Dict[str, Any]:
+        """Return aggregate statistics for the integration catalog.
+
+        Includes total app count, per-category breakdown, total installs,
+        average rating across all public apps, and most-installed app.
+        org_id is used to include private apps belonging to that org.
+        """
+        conn = self._get_conn()
+        try:
+            params: List[Any] = [org_id or ""]
+            rows = conn.execute(
+                "SELECT category, install_count, rating FROM catalog WHERE (org_id IS NULL OR org_id = ?)",
+                params,
+            ).fetchall()
+
+            total_apps = len(rows)
+            category_counts: Dict[str, int] = {}
+            total_installs = 0
+            rating_sum = 0.0
+            rating_count = 0
+            top_app_row = None
+            top_app_count = -1
+
+            for row in rows:
+                cat = row["category"]
+                category_counts[cat] = category_counts.get(cat, 0) + 1
+                total_installs += row["install_count"]
+                if row["rating"] and row["rating"] > 0:
+                    rating_sum += row["rating"]
+                    rating_count += 1
+                if row["install_count"] > top_app_count:
+                    top_app_count = row["install_count"]
+
+            # Fetch top app id separately
+            top_row = conn.execute(
+                "SELECT id, install_count FROM catalog WHERE (org_id IS NULL OR org_id = ?) ORDER BY install_count DESC LIMIT 1",
+                params,
+            ).fetchone()
+
+            avg_rating = round(rating_sum / rating_count, 2) if rating_count else 0.0
+
+            return {
+                "total_apps": total_apps,
+                "category_breakdown": category_counts,
+                "total_installs_across_catalog": total_installs,
+                "average_rating": avg_rating,
+                "most_installed_app": top_row["id"] if top_row else None,
+                "most_installed_count": top_row["install_count"] if top_row else 0,
+            }
+        finally:
+            conn.close()
+
     def register_custom_app(self, app: MarketplaceApp) -> MarketplaceApp:
         """Register a custom/private integration visible only to one org.
 

@@ -276,3 +276,19 @@ async def register_custom_app(
 async def list_categories() -> List[str]:
     """Return all available integration category names."""
     return [c.value for c in IntegrationCategory]
+
+
+@router.get(
+    "/catalog/stats",
+    summary="Integration catalog statistics",
+)
+async def catalog_stats(
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Return aggregate statistics for the integration catalog.
+
+    Includes total app count, per-category breakdown, total install count
+    across all catalog apps, the average rating, and the most-installed app.
+    Private apps registered by this org are included in the counts.
+    """
+    return _marketplace.get_catalog_stats(org_id=org_id)
