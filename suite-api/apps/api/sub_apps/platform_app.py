@@ -2011,6 +2011,30 @@ def register_platform_routers(
     except ImportError as exc:
         _logger.warning("falcon_router not available: %s", exc)
 
+    # ------------------------------------------------------------------
+    # Tanium Endpoint Platform Live REST — 2026-05-04
+    # GET  /api/v1/tanium/                                  capability summary  (read:scans)
+    # POST /api/v1/tanium/api/v2/sessions                   open session        (read:scans)
+    # GET  /api/v1/tanium/api/v2/system_status              cluster health      (read:scans)
+    # POST /api/v1/tanium/api/v2/parse_question             NLP parser          (read:scans)
+    # POST /api/v1/tanium/api/v2/questions                  issue question      (read:scans)
+    # GET  /api/v1/tanium/api/v2/result_data                fetch results       (read:scans)
+    # GET  /api/v1/tanium/api/v2/sensors                    list sensors        (read:scans)
+    # GET  /api/v1/tanium/api/v2/saved_questions            saved-questions     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.tanium_router import router as tanium_router  # noqa: PLC0415
+        app.include_router(
+            tanium_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Tanium endpoint platform live REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("tanium_router not available: %s", exc)
+
     try:
         from apps.api.defender_xdr_live_connector_router import (
             router as defender_xdr_live_router,  # noqa: PLC0415
