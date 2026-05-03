@@ -84,6 +84,13 @@ class ResolveRequest(BaseModel):
     org_id: str
 
 
+class ScmAnomalyCreate(BaseModel):
+    org_id: str
+    author_email: str
+    anomaly_type: str
+    evidence_json: Optional[Any] = None
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -191,3 +198,35 @@ def get_high_risk_users(
 @router.get("/summary")
 def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     return _get_engine().get_summary(org_id=org_id)
+
+
+# ---------------------------------------------------------------------------
+# SCM anomaly signals (developer identity / commit-derived)
+# ---------------------------------------------------------------------------
+
+@router.post("/scm-anomalies")
+def record_scm_anomaly(body: ScmAnomalyCreate) -> Dict[str, Any]:
+    """Record an SCM commit-derived anomaly for a developer identity."""
+    try:
+        return _get_engine().record_scm_anomaly(
+            org_id=body.org_id,
+            author_email=body.author_email,
+            anomaly_type=body.anomaly_type,
+            evidence_json=body.evidence_json,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get("/scm-anomalies")
+def list_scm_anomalies(
+    org_id: str = Query(default="default"),
+    author_email: Optional[str] = Query(None),
+    anomaly_type: Optional[str] = Query(None),
+) -> List[Dict[str, Any]]:
+    """List SCM anomaly signals with optional filters."""
+    return _get_engine().list_scm_anomalies(
+        org_id=org_id,
+        author_email=author_email,
+        anomaly_type=anomaly_type,
+    )
