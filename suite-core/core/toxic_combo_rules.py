@@ -25,7 +25,12 @@ See ``ToxicComboPredicate`` for the predicate shape.
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+import json
+import sqlite3
+import threading
+import uuid
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -434,3 +439,158 @@ def evaluate_all(
                 }
             )
     return results
+
+
+# ---------------------------------------------------------------------------
+# ToxicComboStore — persistent custom rule storage (SQLite-backed)
+# ---------------------------------------------------------------------------
+
+_DEFAULT_STORE_DB = "/tmp/aldeci_toxic_combo_store.db"
+
+
+class ToxicComboStore:
+    """SQLite-backed store for organisation-scoped custom toxic-combo rules.
+
+    Each rule is stored as JSON so the predicate shape is flexible.
+    Built-in rules are never modified; this store manages user-defined rules only.
+    """
+
+    def __init__(self, db_path: str = _DEFAULT_STORE_DB) -> None:
+        self._db_path = db_path
+        self._lock = threading.Lock()
+        self._init_db()
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS custom_toxic_combo_rules (
+                    id TEXT PRIMARY KEY,
+                    org_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    severity TEXT NOT NULL DEFAULT 'high',
+                    description TEXT NOT NULL DEFAULT '',
+                    predicates TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )"""
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_tcr_org ON custom_toxic_combo_rules(org_id)"
+            )
+
+    @contextmanager
+    def _conn(self) -> Generator[sqlite3.Connection, None, None]:
+        conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        try:
+            yield conn
+            conn.commit()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _row(row: sqlite3.Row) -> Dict[str, Any]:
+        d = dict(row)
+        d["predicates"] = json.loads(d.get("predicates") or "[]")
+        return d
+
+    def put(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create or update a custom toxic-combo rule.
+
+        Required fields: name, predicates (list of dicts with attribute+operator).
+        Returns the stored rule dict.
+        """
+        import datetime
+
+        name = (data.get("name") or "").strip()
+        if not name:
+            raise ValueError("name is required")
+        predicates = data.get("predicates") or []
+        if not isinstance(predicates, list):
+            raise ValueError("predicates must be a list")
+        for i, p in enumerate(predicates):
+            if not isinstance(p, dict) or "attribute" not in p or "operator" not in p:
+                raise ValueError(
+                    f"predicates[{i}] must contain 'attribute' and 'operator' keys"
+                )
+
+        now = datetime.datetime.utcnow().isoformat() + "Z"
+        rule_id = data.get("id") or str(uuid.uuid4())
+        severity = data.get("severity", "high")
+        description = data.get("description", "")
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO custom_toxic_combo_rules
+                       (id, org_id, name, severity, description, predicates, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(id) DO UPDATE SET
+                           name=excluded.name,
+                           severity=excluded.severity,
+                           description=excluded.description,
+                           predicates=excluded.predicates,
+                           updated_at=excluded.updated_at""",
+                    (
+                        rule_id,
+                        org_id,
+                        name,
+                        severity,
+                        description,
+                        json.dumps(predicates),
+                        now,
+                        now,
+                    ),
+                )
+        return {
+            "id": rule_id,
+            "org_id": org_id,
+            "name": name,
+            "severity": severity,
+            "description": description,
+            "predicates": predicates,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+    def list_rules(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return all custom rules for an org."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM custom_toxic_combo_rules WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
+    def get_rule(self, org_id: str, rule_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a single custom rule by id, scoped to org."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM custom_toxic_combo_rules WHERE id = ? AND org_id = ?",
+                (rule_id, org_id),
+            ).fetchone()
+        return self._row(row) if row else None
+
+    def delete_rule(self, org_id: str, rule_id: str) -> bool:
+        """Delete a custom rule. Returns True if deleted, False if not found."""
+        with self._lock:
+            with self._conn() as conn:
+                cur = conn.execute(
+                    "DELETE FROM custom_toxic_combo_rules WHERE id = ? AND org_id = ?",
+                    (rule_id, org_id),
+                )
+        return cur.rowcount > 0
+
+
+_store: Optional[ToxicComboStore] = None
+_store_lock = threading.Lock()
+
+
+def get_store(db_path: str = _DEFAULT_STORE_DB) -> ToxicComboStore:
+    """Return a process-level singleton ToxicComboStore."""
+    global _store
+    if _store is None:
+        with _store_lock:
+            if _store is None:
+                _store = ToxicComboStore(db_path)
+    return _store

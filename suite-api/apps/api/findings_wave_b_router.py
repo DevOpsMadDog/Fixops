@@ -623,6 +623,7 @@ def toxic_issues(
 
 @router.post(
     "/api/v1/toxic-combo-rules",
+    status_code=201,
     dependencies=[Depends(api_key_auth)],
     summary="Wave-B-11 — Define a custom toxic-combo predicate rule",
 )
@@ -630,27 +631,54 @@ def create_toxic_combo_rule(
     body: ToxicComboRule,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Register a custom toxic-combo rule.
+    """Register a custom toxic-combo rule (persisted via ToxicComboStore)."""
+    from core.toxic_combo_rules import get_store
 
-    The toxic_combo_rules module exposes built-in rules and predicate
-    primitives but no persistent custom-rule store. This endpoint
-    validates the rule shape and returns 501 with the missing
-    capability so the frontend can surface a clean error.
-    """
-    # Validate predicates structurally first
-    for i, p in enumerate(body.predicates):
-        if not isinstance(p, dict) or "attribute" not in p or "operator" not in p:
-            raise HTTPException(
-                status_code=422,
-                detail=f"predicates[{i}] must include 'attribute' and 'operator'",
-            )
-    raise _not_implemented(
-        "Custom toxic-combo persistence is not yet implemented. The "
-        "toxic_combo_rules module exposes built-in rules + predicate "
-        "primitives only — storage of user-defined combos requires a new "
-        "engine method (e.g. ToxicComboStore.put).",
-        "core.toxic_combo_rules.ToxicComboStore.put",
-    )
+    try:
+        return get_store().put(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/api/v1/toxic-combo-rules",
+    dependencies=[Depends(api_key_auth)],
+    summary="Wave-B-11b — List custom toxic-combo rules",
+)
+def list_toxic_combo_rules(
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Return all custom toxic-combo rules for the org."""
+    from core.toxic_combo_rules import get_store
+
+    try:
+        rules = get_store().list_rules(org_id)
+        return {"rules": rules, "count": len(rules)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.delete(
+    "/api/v1/toxic-combo-rules/{rule_id}",
+    dependencies=[Depends(api_key_auth)],
+    summary="Wave-B-11c — Delete a custom toxic-combo rule",
+)
+def delete_toxic_combo_rule(
+    rule_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Delete a custom toxic-combo rule by id."""
+    from core.toxic_combo_rules import get_store
+
+    try:
+        deleted = get_store().delete_rule(org_id, rule_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Rule {rule_id!r} not found")
+    return {"deleted": True, "rule_id": rule_id}
 
 
 # ===========================================================================
