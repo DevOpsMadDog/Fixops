@@ -1125,9 +1125,17 @@ class RaspEngine:
             return []
 
     def report_false_positive(self, event_id: str, reporter: str = "system") -> bool:
-        """Mark an event as a false positive and update the FP rate."""
+        """Mark an event as a false positive and update the FP rate.
+
+        Returns False if the event_id does not exist in threat_events.
+        """
         try:
             with self._get_conn() as conn:
+                exists = conn.execute(
+                    "SELECT 1 FROM threat_events WHERE event_id = ?", (event_id,)
+                ).fetchone()
+                if not exists:
+                    return False
                 conn.execute(
                     "INSERT OR IGNORE INTO false_positive_feedback (event_id, reporter) VALUES (?,?)",
                     (event_id, reporter),

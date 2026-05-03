@@ -1,14 +1,16 @@
 """
 RASP (Runtime Application Self-Protection) Router — ALDECI.
 
-7 endpoints:
-  GET  /api/v1/rasp/status        — engine status + live metrics
-  GET  /api/v1/rasp/threats       — recent blocked/detected threats
-  GET  /api/v1/rasp/rules         — active detection rules
-  PUT  /api/v1/rasp/rules/{id}    — enable / disable a rule
-  GET  /api/v1/rasp/attackers     — top attacker IPs with stats
-  PUT  /api/v1/rasp/mode          — switch operating mode
-  GET  /api/v1/rasp/config        — current RASP configuration
+9 endpoints:
+  GET  /api/v1/rasp/status                          — engine status + live metrics
+  GET  /api/v1/rasp/threats                         — recent blocked/detected threats
+  POST /api/v1/rasp/inspect                         — inspect an arbitrary request payload
+  POST /api/v1/rasp/threats/{event_id}/false-positive — mark an event as a false positive
+  GET  /api/v1/rasp/rules                           — active detection rules
+  PUT  /api/v1/rasp/rules/{id}                      — enable / disable a rule
+  GET  /api/v1/rasp/attackers                       — top attacker IPs with stats
+  PUT  /api/v1/rasp/mode                            — switch operating mode
+  GET  /api/v1/rasp/config                          — current RASP configuration
 """
 
 from __future__ import annotations
@@ -99,6 +101,38 @@ class SetModeRequest(BaseModel):
 class SetModeResponse(BaseModel):
     mode: RaspMode
     message: str
+
+
+class InspectRequest(BaseModel):
+    """Payload for ad-hoc request inspection."""
+
+    client_ip: str = Field("127.0.0.1", description="Client IP address")
+    method: str = Field("GET", description="HTTP method")
+    path: str = Field("/", description="Request path")
+    query_params: Optional[Dict[str, str]] = Field(None, description="Query parameters")
+    headers: Optional[Dict[str, str]] = Field(None, description="HTTP headers to inspect")
+    body_text: Optional[str] = Field(None, description="Raw request body text")
+    api_key: Optional[str] = Field(None, description="API key from the inspected request")
+    org_id: str = Field("default", description="Tenant org_id")
+
+
+class InspectResponse(BaseModel):
+    """Result of an ad-hoc inspection."""
+
+    blocked: bool
+    threat_count: int
+    threats: List[ThreatEvent]
+
+
+class FalsePositiveRequest(BaseModel):
+    """Body for reporting a false positive."""
+
+    reporter: str = Field("system", description="Who is reporting the false positive")
+
+
+class FalsePositiveResponse(BaseModel):
+    event_id: str
+    accepted: bool
 
 
 # ============================================================================
@@ -193,6 +227,76 @@ def get_threats(
         return engine.get_recent_threats(limit=limit, category=cat_filter)
     except Exception as exc:
         logger.exception("rasp_router: failed to get threats")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post(
+    "/inspect",
+    response_model=InspectResponse,
+    summary="Inspect an arbitrary request payload for attack patterns",
+)
+def inspect_request(body: InspectRequest) -> InspectResponse:
+    """
+    Run the RASP engine against an arbitrary request payload and return
+    detected threats plus whether the request would have been blocked.
+
+    Useful for:
+    - Testing payloads against the current rule set before deploying middleware
+    - Security tooling that wants to pre-screen requests
+    - Audit / forensics replay of historical traffic
+
+    The engine honours the current operating mode (monitor / block / redirect)
+    when computing the ``blocked`` flag, but this endpoint **never** actually
+    blocks the caller — it only reports what *would* happen.
+    """
+    engine = _get_engine()
+    try:
+        blocked, threats = engine.inspect_request_sync(
+            client_ip=body.client_ip,
+            method=body.method,
+            path=body.path,
+            query_params=body.query_params,
+            headers=body.headers,
+            body_text=body.body_text,
+            api_key=body.api_key,
+            org_id=body.org_id,
+        )
+        return InspectResponse(
+            blocked=blocked,
+            threat_count=len(threats),
+            threats=threats,
+        )
+    except Exception as exc:
+        logger.exception("rasp_router: inspect failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post(
+    "/threats/{event_id}/false-positive",
+    response_model=FalsePositiveResponse,
+    summary="Mark a threat event as a false positive",
+)
+def report_false_positive(event_id: str, body: FalsePositiveRequest) -> FalsePositiveResponse:
+    """
+    Mark a previously recorded threat event as a false positive.
+
+    This updates the engine's false-positive rate metric, which is used to
+    calibrate confidence thresholds over time.  The ``reporter`` field can
+    be set to the analyst's username or system name for audit purposes.
+    """
+    engine = _get_engine()
+    try:
+        accepted = engine.report_false_positive(event_id, reporter=body.reporter)
+        if not accepted:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Event '{event_id}' not found or already marked.",
+            )
+        return FalsePositiveResponse(event_id=event_id, accepted=True)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("rasp_router: report_false_positive failed for %s", event_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
