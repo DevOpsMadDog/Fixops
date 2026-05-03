@@ -2996,6 +2996,30 @@ def register_platform_routers(
         _logger.warning("wiz_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Noname Security API posture router (suite-core/core/noname_engine.py) — 2026-05-04
+    # GET   /api/v1/noname/                                    capability summary           (read:scans)
+    # GET   /api/v1/noname/api/v3/apis                         list APIs (paginate/filter)  (read:scans)
+    # GET   /api/v1/noname/api/v3/apis/{api_id}                single API + classifications (read:scans)
+    # GET   /api/v1/noname/api/v3/apis/{api_id}/endpoints      per-API endpoint list        (read:scans)
+    # GET   /api/v1/noname/api/v3/issues                       posture issues w/ filters    (read:scans)
+    # GET   /api/v1/noname/api/v3/inventory/endpoints          endpoint inventory           (read:scans)
+    # GET   /api/v1/noname/api/v3/sources                      traffic sources              (read:scans)
+    # GET   /api/v1/noname/api/v3/posture-policies             posture-mgmt policies        (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.noname_router import router as noname_router  # noqa: PLC0415
+        app.include_router(
+            noname_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Noname Security router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("noname_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Microsoft Sentinel (Azure SIEM/SOAR) — 2026-05-04
     # GET  /api/v1/azure-sentinel/                  capability summary    (read:scans)
     # GET  /api/v1/azure-sentinel/incidents         list incidents        (read:scans)
