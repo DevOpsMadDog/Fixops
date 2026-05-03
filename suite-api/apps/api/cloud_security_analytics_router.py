@@ -224,6 +224,35 @@ def trigger_rule(rule_id: str, body: TriggerRuleRequest) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# CloudTrail Replay
+# ---------------------------------------------------------------------------
+
+
+class CloudTrailReplayRequest(BaseModel):
+    org_id: str = Field("default", description="Organisation ID")
+    events: List[Dict[str, Any]] = Field(..., min_length=1, description="List of CloudTrail event dicts to replay")
+    dry_run: bool = Field(False, description="Validate without persisting if True")
+
+
+@router.post("/cloud-trail-replay", summary="Replay CloudTrail events into analytics store")
+def replay_cloudtrail(body: CloudTrailReplayRequest) -> Dict[str, Any]:
+    """Batch-ingest CloudTrail (or compatible) audit events.
+
+    Normalises camelCase CloudTrail keys to ALDECI schema, validates each
+    event, and records them via the analytics engine.  Set ``dry_run=true``
+    to validate the batch without persisting anything.
+    """
+    engine = _get_engine()
+    try:
+        return engine.replay_cloudtrail(body.org_id, body.events, dry_run=body.dry_run)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to replay cloudtrail events")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Stats
 # ---------------------------------------------------------------------------
 

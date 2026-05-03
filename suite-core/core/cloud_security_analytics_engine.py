@@ -404,6 +404,76 @@ class CloudSecurityAnalyticsEngine:
         return [self._deserialize_rule(self._row(r)) for r in rows]
 
     # ------------------------------------------------------------------
+    # CloudTrail Replay
+    # ------------------------------------------------------------------
+
+    def replay_cloudtrail(
+        self,
+        org_id: str,
+        events: List[Dict[str, Any]],
+        dry_run: bool = False,
+    ) -> Dict[str, Any]:
+        """Replay a batch of CloudTrail-format events into the analytics store.
+
+        Each item in *events* must be a dict that maps to the csa_events schema.
+        If ``dry_run`` is True, events are validated but not persisted.
+
+        Returns a summary: total, ingested, skipped, errors.
+        """
+        ingested: List[str] = []
+        skipped: int = 0
+        errors: List[Dict[str, Any]] = []
+
+        for idx, raw in enumerate(events):
+            # Normalise: cloudtrail JSON uses camelCase — map common keys
+            normalised: Dict[str, Any] = {
+                "event_source": raw.get("event_source") or raw.get("eventSource", "cloudtrail"),
+                "event_type": raw.get("event_type") or raw.get("eventType", "api_call"),
+                "severity": raw.get("severity", "low"),
+                "account_id": raw.get("account_id") or raw.get("userIdentity", {}).get("accountId", ""),
+                "region": raw.get("region") or raw.get("awsRegion", ""),
+                "resource_type": raw.get("resource_type") or raw.get("resourceType", ""),
+                "resource_id": raw.get("resource_id") or raw.get("resourceId", ""),
+                "actor": raw.get("actor") or raw.get("userIdentity", {}).get("arn", ""),
+                "risk_score": float(raw.get("risk_score", 0.0)),
+                "details": raw.get("details") or raw.get("requestParameters", ""),
+                "event_at": raw.get("event_at") or raw.get("eventTime"),
+            }
+
+            # Validate event_source
+            if normalised["event_source"] not in _VALID_EVENT_SOURCES:
+                errors.append({"index": idx, "reason": f"invalid event_source: {normalised['event_source']}"})
+                continue
+            # Validate event_type
+            if normalised["event_type"] not in _VALID_EVENT_TYPES:
+                errors.append({"index": idx, "reason": f"invalid event_type: {normalised['event_type']}"})
+                continue
+            # Validate severity
+            if normalised["severity"] not in _VALID_SEVERITIES:
+                errors.append({"index": idx, "reason": f"invalid severity: {normalised['severity']}"})
+                continue
+
+            if dry_run:
+                ingested.append(f"<dry-run-{idx}>")
+                continue
+
+            try:
+                result = self.record_event(org_id, normalised)
+                ingested.append(result["id"])
+            except Exception as exc:  # pragma: no cover
+                errors.append({"index": idx, "reason": str(exc)})
+
+        return {
+            "org_id": org_id,
+            "dry_run": dry_run,
+            "total": len(events),
+            "ingested": len(ingested),
+            "skipped": skipped,
+            "errors": errors,
+            "event_ids": ingested,
+        }
+
+    # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
 
