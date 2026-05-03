@@ -257,3 +257,146 @@ async def get_session_results(session_id: str) -> List[Dict[str, Any]]:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
     results = engine.get_results(session_id)
     return [r.model_dump() for r in results]
+
+
+# ---------------------------------------------------------------------------
+# Saved-hunt engine factory (ThreatHuntingEngine from threat_hunting_engine.py)
+# ---------------------------------------------------------------------------
+
+
+def _get_hunt_engine():
+    from core.threat_hunting_engine import ThreatHuntingEngine
+    return ThreatHuntingEngine()
+
+
+# ---------------------------------------------------------------------------
+# Root overview
+# ---------------------------------------------------------------------------
+
+
+@router.get("")
+async def hunting_overview(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return capabilities overview and saved-hunt summary for the org."""
+    engine = _get_hunt_engine()
+    hunts = engine.list_hunts(org_id=org_id)
+    stats = engine.get_hunt_stats(org_id=org_id)
+    return {
+        "capabilities": {
+            "hunt_types": [
+                "ioc_match",
+                "behavior_pattern",
+                "anomaly_correlation",
+                "lateral_movement",
+                "persistence",
+                "exfiltration",
+                "custom",
+            ],
+            "session_lifecycle": True,
+            "ioc_correlation": True,
+            "scheduling": True,
+        },
+        "saved_hunts": {
+            "total": len(hunts),
+            "stats": stats,
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Saved-hunt CRUD
+# ---------------------------------------------------------------------------
+
+
+class CreateHuntRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    hunt_type: str = Field(..., description="ioc_match|behavior_pattern|anomaly_correlation|lateral_movement|persistence|exfiltration|custom")
+    query: Dict[str, Any] = Field(default_factory=dict)
+    description: str = Field("", max_length=2000)
+    org_id: str = Field("default", max_length=200)
+
+
+class ScheduleHuntRequest(BaseModel):
+    interval_hours: int = Field(24, ge=1, le=8760)
+
+
+@router.post("/hunts", status_code=201)
+async def create_hunt(
+    body: CreateHuntRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Create a saved hunt definition."""
+    engine = _get_hunt_engine()
+    try:
+        hunt = engine.create_hunt(
+            name=body.name,
+            hunt_type=body.hunt_type,
+            query=body.query,
+            description=body.description,
+            org_id=org_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return hunt
+
+
+@router.get("/hunts")
+async def list_hunts(
+    hunt_type: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
+) -> List[Dict[str, Any]]:
+    """List saved hunts for the org, optionally filtered by type."""
+    engine = _get_hunt_engine()
+    return engine.list_hunts(org_id=org_id, hunt_type=hunt_type)
+
+
+@router.get("/hunts/{hunt_id}")
+async def get_hunt(hunt_id: str) -> Dict[str, Any]:
+    """Get a saved hunt by ID."""
+    engine = _get_hunt_engine()
+    hunt = engine.get_hunt(hunt_id)
+    if hunt is None:
+        raise HTTPException(status_code=404, detail=f"Hunt {hunt_id} not found")
+    return hunt
+
+
+@router.post("/hunts/{hunt_id}/run")
+async def run_saved_hunt(hunt_id: str) -> Dict[str, Any]:
+    """Execute a saved hunt immediately."""
+    engine = _get_hunt_engine()
+    try:
+        result = engine.run_hunt(hunt_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return result
+
+
+@router.get("/hunts/{hunt_id}/results")
+async def get_hunt_results(hunt_id: str) -> List[Dict[str, Any]]:
+    """Retrieve execution history for a saved hunt."""
+    engine = _get_hunt_engine()
+    if engine.get_hunt(hunt_id) is None:
+        raise HTTPException(status_code=404, detail=f"Hunt {hunt_id} not found")
+    return engine.get_results(hunt_id)
+
+
+@router.post("/hunts/{hunt_id}/schedule", status_code=201)
+async def schedule_hunt(
+    hunt_id: str,
+    body: ScheduleHuntRequest,
+) -> Dict[str, Any]:
+    """Schedule a saved hunt to run on a recurring interval."""
+    engine = _get_hunt_engine()
+    try:
+        record = engine.schedule_hunt(hunt_id, interval_hours=body.interval_hours)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return record
+
+
+@router.delete("/hunts/{hunt_id}", status_code=204)
+async def delete_hunt(hunt_id: str) -> None:
+    """Delete a saved hunt by ID."""
+    engine = _get_hunt_engine()
+    deleted = engine.delete_hunt(hunt_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Hunt {hunt_id} not found")
