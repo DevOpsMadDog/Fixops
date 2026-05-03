@@ -2076,6 +2076,30 @@ def register_platform_routers(
     except ImportError as exc:
         _logger.warning("okta_router not available: %s", exc)
 
+    # ------------------------------------------------------------------
+    # Cloudflare API v4 Live REST — 2026-05-04
+    # GET /api/v1/cloudflare/                                                              capability summary  (read:scans)
+    # GET /api/v1/cloudflare/client/v4/zones                                               list zones          (read:scans)
+    # GET /api/v1/cloudflare/client/v4/zones/{zone_id}                                     single zone         (read:scans)
+    # GET /api/v1/cloudflare/client/v4/zones/{zone_id}/dns_records                         DNS records         (read:scans)
+    # GET /api/v1/cloudflare/client/v4/zones/{zone_id}/firewall/rules                      firewall rules      (read:scans)
+    # GET /api/v1/cloudflare/client/v4/zones/{zone_id}/waf/packages                        WAF packages        (read:scans)
+    # GET /api/v1/cloudflare/client/v4/zones/{zone_id}/security_events                     security events     (read:scans)
+    # GET /api/v1/cloudflare/client/v4/accounts/{account_id}/access/groups                 access groups       (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.cloudflare_router import router as cloudflare_router  # noqa: PLC0415
+        app.include_router(
+            cloudflare_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Cloudflare API v4 live REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("cloudflare_router not available: %s", exc)
+
     try:
         from apps.api.jamf_live_connector_router import (
             router as jamf_live_router,  # noqa: PLC0415
