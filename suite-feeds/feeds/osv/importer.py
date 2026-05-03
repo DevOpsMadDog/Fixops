@@ -409,6 +409,94 @@ def _download_ecosystem_zip(ecosystem: str, timeout: float = DOWNLOAD_TIMEOUT) -
         return response.content
 
 
+def poll_feed_status(
+    ecosystems: Optional[List[str]] = None,
+    timeout: float = 15.0,
+) -> Dict[str, Any]:
+    """HEAD-check each ecosystem zip and compare against locally stored metadata.
+
+    Returns per-ecosystem status without downloading the full zip:
+      - ``remote_size``: Content-Length from the OSV bucket (bytes, -1 if absent)
+      - ``remote_last_modified``: Last-Modified header (ISO-8601 or raw header value)
+      - ``local_count``: number of vulns already stored for this ecosystem
+      - ``needs_update``: True when remote_size differs from the cached size
+
+    Raises ``RuntimeError`` if httpx is unavailable.
+    """
+    if not _HAS_HTTPX:
+        raise RuntimeError("httpx is not available — cannot poll OSV feed status")
+
+    targets: List[str] = []
+    if ecosystems:
+        for e in ecosystems:
+            canonical = _normalise_ecosystem(e)
+            if canonical not in SUPPORTED_ECOSYSTEMS:
+                raise ValueError(
+                    f"Unsupported ecosystem: {e!r}. "
+                    f"Supported: {', '.join(SUPPORTED_ECOSYSTEMS)}"
+                )
+            targets.append(canonical)
+    else:
+        targets = list(SUPPORTED_ECOSYSTEMS)
+
+    # Lazy-load the store once so we can count per-ecosystem vulns.
+    store = _get_store()
+    eco_counts: Dict[str, int] = {}
+    for vuln in store.values():
+        if not isinstance(vuln, dict):
+            continue
+        for eco in vuln.get("ecosystems") or ["unknown"]:
+            eco_counts[eco] = eco_counts.get(eco, 0) + 1
+
+    # Per-ecosystem size cache stored as a lightweight key in the same DB.
+    CACHE_KEY_PREFIX = "__poll_size__"
+
+    results: List[Dict[str, Any]] = []
+    polled_at = datetime.now(timezone.utc).isoformat()
+
+    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+        for eco in targets:
+            url = _ecosystem_zip_url(eco)
+            entry: Dict[str, Any] = {
+                "ecosystem": eco,
+                "url": url,
+                "polled_at": polled_at,
+                "remote_size": -1,
+                "remote_last_modified": "",
+                "local_count": eco_counts.get(eco, 0),
+                "needs_update": False,
+                "error": None,
+            }
+            try:
+                resp = client.head(url)
+                resp.raise_for_status()
+                raw_size = resp.headers.get("content-length", "")
+                remote_size = int(raw_size) if raw_size.isdigit() else -1
+                entry["remote_size"] = remote_size
+                entry["remote_last_modified"] = resp.headers.get("last-modified", "")
+
+                cache_key = f"{CACHE_KEY_PREFIX}{eco}"
+                cached_size = store.get(cache_key)
+                if remote_size != -1:
+                    entry["needs_update"] = (
+                        cached_size is None or cached_size != remote_size
+                    )
+                    # Persist current size so next poll can diff.
+                    store[cache_key] = remote_size
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("OSV poll failed for %s: %s", eco, exc)
+                entry["error"] = str(exc)
+            results.append(entry)
+
+    any_needs_update = any(r["needs_update"] for r in results)
+    return {
+        "polled_at": polled_at,
+        "ecosystems_checked": len(results),
+        "any_needs_update": any_needs_update,
+        "results": results,
+    }
+
+
 def run_import(
     ecosystem: str = DEFAULT_ECOSYSTEM,
     ecosystems: Optional[Iterable[str]] = None,

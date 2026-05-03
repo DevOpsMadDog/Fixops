@@ -33,9 +33,10 @@ def _get_importer():
         SUPPORTED_ECOSYSTEMS,
         get_store_stats,
         list_vulns,
+        poll_feed_status,
         run_import,
     )
-    return run_import, list_vulns, get_store_stats, SUPPORTED_ECOSYSTEMS, DEFAULT_ECOSYSTEM
+    return run_import, list_vulns, get_store_stats, SUPPORTED_ECOSYSTEMS, DEFAULT_ECOSYSTEM, poll_feed_status
 
 
 @router.post("/import", dependencies=[Depends(api_key_auth)])
@@ -59,7 +60,7 @@ def trigger_import(
     uses, and upserts into data/osv.db keyed by vuln id (idempotent).
     """
     try:
-        run_import, _l, _s, supported, default_eco = _get_importer()
+        run_import, _l, _s, supported, default_eco, _p = _get_importer()
         if ecosystems:
             return run_import(ecosystems=ecosystems)
         return run_import(ecosystem=ecosystem or default_eco)
@@ -93,7 +94,7 @@ def list_osv_vulns(
 ) -> Dict[str, Any]:
     """List OSV vulns from the local DB with optional filters."""
     try:
-        _r, list_vulns, _s, _e, _d = _get_importer()
+        _r, list_vulns, _s, _e, _d, _p = _get_importer()
         vulns = list_vulns(
             id=id,
             ecosystem=ecosystem,
@@ -117,8 +118,46 @@ def list_osv_vulns(
 def get_stats() -> Dict[str, Any]:
     """Return total OSV vuln count + per-ecosystem and per-severity breakdowns."""
     try:
-        _r, _l, get_store_stats, _e, _d = _get_importer()
+        _r, _l, get_store_stats, _e, _d, _p = _get_importer()
         return get_store_stats()
     except Exception as exc:
         logger.exception("Failed to get OSV stats")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/poll", dependencies=[Depends(api_key_auth)])
+def poll_feed(
+    ecosystem: Optional[List[str]] = Query(
+        default=None,
+        description=(
+            "Ecosystem(s) to HEAD-check (repeatable). "
+            "Omit to check all supported ecosystems. "
+            "Supported: PyPI, npm, Maven, Go, RubyGems, NuGet, crates.io, Packagist, Hex."
+        ),
+    ),
+    timeout: float = Query(
+        default=15.0,
+        ge=1.0,
+        le=60.0,
+        description="Per-request HTTP timeout in seconds (1–60).",
+    ),
+) -> Dict[str, Any]:
+    """HEAD-check OSV feed zips and report whether any ecosystem needs a re-import.
+
+    Sends a lightweight HTTP HEAD request to the Google OSV bucket for each
+    requested ecosystem, reads Content-Length and Last-Modified headers, and
+    compares against the cached size from the previous poll.  No data is
+    downloaded.  ``needs_update: true`` in a result row means the remote zip
+    has changed size since the last poll and a fresh ``POST /import`` is
+    advisable for that ecosystem.
+    """
+    try:
+        _r, _l, _s, _e, _d, poll_feed_status = _get_importer()
+        return poll_feed_status(ecosystems=ecosystem, timeout=timeout)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("OSV feed poll failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
