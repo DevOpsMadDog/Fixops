@@ -1088,6 +1088,79 @@ class SIEMIntegrationEngine:
             results.append(row)
         return results
 
+    def search_events(
+        self,
+        org_id: str,
+        q: str,
+        source_id: Optional[str] = None,
+        severity: Optional[str] = None,
+        event_type: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Full-text keyword search across raw_data and parsed_fields columns.
+
+        SQLite LIKE search is case-insensitive for ASCII characters.
+        ``q`` is matched as a substring against ``raw_data`` and
+        ``parsed_fields``; events matching either column are returned.
+        An empty ``q`` falls back to ``list_siem_events``.
+
+        Args:
+            org_id:     Tenant scope.
+            q:          Search keyword / phrase.
+            source_id:  Optional filter to a specific SIEM source.
+            severity:   Optional severity filter (info/low/medium/high/critical).
+            event_type: Optional event-type filter.
+            limit:      Maximum rows to return (default 100, max 500).
+
+        Returns:
+            List of matching event dicts, ordered newest-first.
+        """
+        q = (q or "").strip()
+        if not q:
+            return self.list_siem_events(
+                org_id,
+                source_id=source_id,
+                severity=severity,
+                event_type=event_type,
+            )
+
+        limit = max(1, min(int(limit), 500))
+        pattern = f"%{q}%"
+
+        query = (
+            "SELECT * FROM siem_source_events "
+            "WHERE org_id=? AND (raw_data LIKE ? OR parsed_fields LIKE ?)"
+        )
+        params: List[Any] = [org_id, pattern, pattern]
+
+        if source_id:
+            query += " AND source_id=?"
+            params.append(source_id)
+        if severity:
+            query += " AND severity=?"
+            params.append(severity)
+        if event_type:
+            query += " AND event_type=?"
+            params.append(event_type)
+
+        query += " ORDER BY timestamp DESC LIMIT ?"
+        params.append(limit)
+
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+
+        results = []
+        for r in rows:
+            row = dict(r)
+            for field in ("raw_data", "parsed_fields"):
+                if isinstance(row.get(field), str):
+                    try:
+                        row[field] = json.loads(row[field])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            results.append(row)
+        return results
+
     # ------------------------------------------------------------------
     # Correlation Alerts
     # ------------------------------------------------------------------

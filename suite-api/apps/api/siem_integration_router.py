@@ -187,6 +187,40 @@ def list_events(
     return {"org_id": org_id, "events": events, "total": len(events)}
 
 
+@router.get("/events/search")
+def search_events(
+    q: str = Query(..., description="Keyword or phrase to search across event raw_data and parsed_fields"),
+    org_id: str = Query("default"),
+    source_id: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+) -> Dict[str, Any]:
+    """Full-text keyword search across SIEM event raw_data and parsed_fields.
+
+    Performs a case-insensitive substring match of ``q`` against the
+    ``raw_data`` and ``parsed_fields`` columns of ``siem_source_events``.
+    Results are ordered newest-first.
+
+    Optional column-level filters (source_id, severity, event_type) are
+    ANDed with the keyword filter.
+    """
+    events = _get_engine().search_events(
+        org_id,
+        q=q,
+        source_id=source_id,
+        severity=severity,
+        event_type=event_type,
+        limit=limit,
+    )
+    return {
+        "org_id": org_id,
+        "q": q,
+        "events": events,
+        "total": len(events),
+    }
+
+
 @router.post("/alerts")
 def create_alert(body: CorrelationAlertCreate) -> Dict[str, Any]:
     """Create a correlation alert."""
