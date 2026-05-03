@@ -1955,6 +1955,26 @@ def register_platform_routers(
         _logger.warning("censys_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # AbuseIPDB Threat-Intel Lookup (v2 surface) — 2026-05-04
+    # GET  /api/v1/abuseipdb/                              capability summary  (read:scans)
+    # GET  /api/v1/abuseipdb/v2/check                      IP reputation       (read:scans)
+    # GET  /api/v1/abuseipdb/v2/blacklist                  top-N abusive IPs   (read:scans)
+    # POST /api/v1/abuseipdb/v2/report                     submit abuse report (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.abuseipdb_router import router as abuseipdb_router  # noqa: PLC0415
+        app.include_router(
+            abuseipdb_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted AbuseIPDB threat-intel router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("abuseipdb_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # GreyNoise Threat-Intel Lookup — 2026-05-04
     # GET /api/v1/greynoise/                              capability summary  (read:scans)
     # GET /api/v1/greynoise/v3/community/{ip}              free-tier classification
@@ -2061,6 +2081,28 @@ def register_platform_routers(
         _logger.info("Mounted OpenSearch Anomaly Detection router (read:scans)")
     except ImportError as exc:
         _logger.warning("opensearch_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Elastic Security Detection Engine — 2026-05-04
+    # GET  /api/v1/elastic-security/                                    capability summary  (read:scans)
+    # GET  /api/v1/elastic-security/api/detection_engine/rules          list rules          (read:scans)
+    # POST /api/v1/elastic-security/api/detection_engine/signals/search alert search        (read:scans)
+    # GET  /api/v1/elastic-security/api/cases                           list cases          (read:scans)
+    # GET  /api/v1/elastic-security/api/exception_lists                 exception lists     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.elastic_security_router import router as elastic_security_router  # noqa: PLC0415
+        app.include_router(
+            elastic_security_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Elastic Security detection-engine router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("elastic_security_router not available: %s", exc)
+
 
     # ------------------------------------------------------------------
     # Grafana Loki Integration (proxy + capability) — 2026-05-04
