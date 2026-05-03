@@ -6,10 +6,11 @@ Prefix: /api/v1/otx
 Auth:   api_key_auth dependency
 
 Routes:
-  POST /api/v1/otx/import      trigger_import
-  GET  /api/v1/otx/pulses      list_otx_pulses
-  GET  /api/v1/otx/indicators  list_otx_indicators
-  GET  /api/v1/otx/stats       get_stats
+  POST /api/v1/otx/import       trigger_import
+  GET  /api/v1/otx/pulses       list_otx_pulses
+  GET  /api/v1/otx/indicators   list_otx_indicators
+  GET  /api/v1/otx/stats        get_stats
+  GET  /api/v1/otx/feed-status  get_feed_status
 """
 
 from __future__ import annotations
@@ -136,4 +137,48 @@ def get_stats() -> Dict[str, Any]:
         return get_store_stats()
     except Exception as exc:
         logger.exception("Failed to get OTX stats")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/feed-status", dependencies=[Depends(api_key_auth)])
+def get_feed_status() -> Dict[str, Any]:
+    """Return AlienVault OTX feed health row.
+
+    Response schema::
+
+        {
+            "feed": "alienvault-otx",
+            "source_url": "https://otx.alienvault.com/api/v1/pulses/activity",
+            "authenticated": <bool>,   # True when OTX_API_KEY env var is set
+            "total_pulses": <int>,
+            "total_indicators": <int>,
+            "by_indicator_type": {"IPv4": N, "domain": N, ...},
+            "with_attack_id": <int>,
+            "status": "ok" | "empty"
+        }
+    """
+    import os
+
+    try:
+        _r, _lp, _li, get_store_stats = _get_importer()
+        stats = get_store_stats()
+        api_key_set = bool(os.environ.get("OTX_API_KEY"))
+        source_url = (
+            "https://otx.alienvault.com/api/v1/pulses/subscribed"
+            if api_key_set
+            else "https://otx.alienvault.com/api/v1/pulses/activity"
+        )
+        status = "ok" if stats.get("total_pulses", 0) > 0 else "empty"
+        return {
+            "feed": "alienvault-otx",
+            "source_url": source_url,
+            "authenticated": api_key_set,
+            "total_pulses": stats.get("total_pulses", 0),
+            "total_indicators": stats.get("total_indicators", 0),
+            "by_indicator_type": stats.get("by_indicator_type", {}),
+            "with_attack_id": stats.get("with_attack_id", 0),
+            "status": status,
+        }
+    except Exception as exc:
+        logger.exception("Failed to get OTX feed status")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
