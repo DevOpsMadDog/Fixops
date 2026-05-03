@@ -379,3 +379,49 @@ class TestAPIStats:
         engine.register_endpoint("org2", {"service_name": "svc", "endpoint_path": "/b", "http_method": "GET"})
         stats1 = engine.get_api_stats("org1")
         assert stats1["total_endpoints"] == 1
+
+
+# ---------------------------------------------------------------------------
+# link_to_layer
+# ---------------------------------------------------------------------------
+
+class TestLinkToLayer:
+    def test_link_happy_path(self, engine):
+        """link_to_layer returns node_ref, layer, confidence, and linked=True."""
+        result = engine.link_to_layer("org1", "/api/v1/users", layer="api")
+        assert result["node_ref"] == "/api/v1/users"
+        assert result["layer"] == "api"
+        assert result["confidence"] == 0.95
+        assert result["linked"] is True
+
+    def test_link_empty_endpoint_path_raises(self, engine):
+        """Empty endpoint_path must raise ValueError."""
+        with pytest.raises(ValueError, match="endpoint_path"):
+            engine.link_to_layer("org1", "", layer="api")
+
+    def test_link_org_isolation(self, engine):
+        """link_to_layer result is scoped — org2 returns same node_ref but
+        the classification is stored under org2, not org1."""
+        r1 = engine.link_to_layer("org1", "/svc/resource", layer="service")
+        r2 = engine.link_to_layer("org2", "/svc/resource", layer="data")
+        assert r1["layer"] == "service"
+        assert r2["layer"] == "data"
+        # node_ref is the same path but classifications are independent
+        assert r1["node_ref"] == r2["node_ref"]
+
+    def test_link_dep_map_unavailable_returns_linked_false(self, engine, monkeypatch):
+        """When SecurityDependencyMappingEngine is not importable the method
+        must degrade gracefully and return linked=False."""
+        import builtins
+        real_import = builtins.__import__
+
+        def _block_dep_map(name, *args, **kwargs):
+            if name == "core.security_dependency_mapping_engine":
+                raise ImportError("simulated missing dep-map engine")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _block_dep_map)
+        result = engine.link_to_layer("org1", "/api/v1/orders", layer="api")
+        assert result["linked"] is False
+        assert result["node_ref"] == "/api/v1/orders"
+        assert "dep_map_unavailable" in result["signals"]
