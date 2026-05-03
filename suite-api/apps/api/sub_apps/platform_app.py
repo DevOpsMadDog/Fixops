@@ -706,6 +706,18 @@ def register_platform_routers(
         _logger.info("Mounted Harbor container registry router at /api/v1/harbor (scope=read:scans)")
     except ImportError as exc:
         _logger.warning("harbor_router not available: %s", exc)
+    try:
+        from apps.api.gar_router import (
+            router as gar_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            gar_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Google Artifact Registry router at /api/v1/gar (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("gar_router not available: %s", exc)
+
 
     try:
         from apps.api.bitbucket_router import (
