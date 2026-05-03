@@ -648,6 +648,18 @@ def register_platform_routers(
         _logger.warning("jira_cloud_router not available: %s", exc)
 
     try:
+        from apps.api.servicenow_router import (
+            router as servicenow_itsm_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            servicenow_itsm_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted ServiceNow ITSM router at /api/v1/servicenow (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("servicenow_itsm_router not available: %s", exc)
+
+    try:
         from apps.api.mattermost_router import (
             router as mattermost_router,  # noqa: PLC0415
         )
@@ -684,6 +696,18 @@ def register_platform_routers(
         _logger.warning("gitlab_pipeline_router not available: %s", exc)
 
     try:
+        from apps.api.harbor_router import (
+            router as harbor_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            harbor_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Harbor container registry router at /api/v1/harbor (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("harbor_router not available: %s", exc)
+
+    try:
         from apps.api.bitbucket_router import (
             router as bitbucket_router,  # noqa: PLC0415
         )
@@ -706,6 +730,18 @@ def register_platform_routers(
         _logger.info("Mounted CircleCI v2 router at /api/v1/circleci (scope=read:scans)")
     except ImportError as exc:
         _logger.warning("circleci_router not available: %s", exc)
+
+    try:
+        from apps.api.github_api_router import (
+            router as github_api_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            github_api_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted GitHub REST v3 router at /api/v1/github-api (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("github_api_router not available: %s", exc)
 
     try:
         from apps.api.pagerduty_router import (
