@@ -2156,6 +2156,32 @@ def register_platform_routers(
         _logger.warning("gcp_scc_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # HashiCorp Vault (real HTTP API + read-only/KV-v2 write) — 2026-05-04
+    # GET  /api/v1/hashicorp-vault/                              capability summary  (read:scans)
+    # GET  /api/v1/hashicorp-vault/v1/sys/health                 vault health        (read:scans)
+    # GET  /api/v1/hashicorp-vault/v1/sys/seal-status            seal status         (read:scans)
+    # GET  /api/v1/hashicorp-vault/v1/secret/data/{path}         KV v2 read          (read:scans)
+    # POST /api/v1/hashicorp-vault/v1/secret/data/{path}         KV v2 write         (read:scans)
+    # GET  /api/v1/hashicorp-vault/v1/sys/policies/acl           ACL policy list     (read:scans)
+    # GET  /api/v1/hashicorp-vault/v1/sys/policies/acl/{name}    ACL policy read     (read:scans)
+    # GET  /api/v1/hashicorp-vault/v1/sys/auth                   enabled auth        (read:scans)
+    # GET  /api/v1/hashicorp-vault/v1/sys/mounts                 enabled mounts      (read:scans)
+    # NOTE: distinct prefix from evidence_vault_router (ALDECI's own evidence vault)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.hashicorp_vault_router import router as hashicorp_vault_router  # noqa: PLC0415
+        app.include_router(
+            hashicorp_vault_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted HashiCorp Vault router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("hashicorp_vault_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Snyk Vulnerability Scanner (REST v1 surface) — 2026-05-04
     # GET  /api/v1/snyk/                                            capability summary  (read:scans)
     # GET  /api/v1/snyk/v1/orgs                                     organisations list  (read:scans)
