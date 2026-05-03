@@ -561,10 +561,17 @@ def register_cspm_routers(
     except ImportError:
         pass
 
+    # GCP Security Command Center — wired 2026-05-04
+    # GET  /api/v1/gcp-scc/                         capability summary    (read:scans)
+    # GET  /api/v1/gcp-scc/findings                 list findings         (read:scans)
+    # GET  /api/v1/gcp-scc/sources                  list SCC sources      (read:scans)
+    # GET  /api/v1/gcp-scc/assets                   list assets           (read:scans)
+    # GET  /api/v1/gcp-scc/findings/group           groupBy aggregate     (read:scans)
+    # POST /api/v1/gcp-scc/findings/{name}:setMute  mute toggle           (read:scans)
     try:
         from apps.api.gcp_scc_router import router as gcp_scc_router
         app.include_router(gcp_scc_router)
-        _logger.info("Mounted GCP SCC router at /api/v1/scan/gcp-scc")
+        _logger.info("Mounted GCP SCC router at /api/v1/gcp-scc")
     except ImportError:
         pass
 

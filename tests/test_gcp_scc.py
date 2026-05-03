@@ -15,6 +15,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# ------------------------------------------------------------------
+# Legacy router tests skipped 2026-05-04 — gcp_scc_router was rewritten
+# (mock-fallback removed, prefix /api/v1/scan/gcp-scc -> /api/v1/gcp-scc,
+# new endpoints findings/sources/assets/group/setMute). The new router
+# is fully covered by tests/test_gcp_scc_router.py.
+# ------------------------------------------------------------------
+pytest.skip(
+    "legacy /api/v1/scan/gcp-scc surface retired; see tests/test_gcp_scc_router.py",
+    allow_module_level=True,
+)
+
+
 # ── Environment setup ──────────────────────────────────────────────────────
 os.environ.setdefault("FIXOPS_MODE", "enterprise")
 os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
