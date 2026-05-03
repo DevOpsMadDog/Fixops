@@ -1775,6 +1775,30 @@ def register_platform_routers(
     except ImportError:
         pass
 
+    # ------------------------------------------------------------------
+    # Splunk SIEM router (suite-core/core/splunk_siem_engine.py)
+    # GET    /api/v1/splunk/                                        capability summary
+    # POST   /api/v1/splunk/services/search/jobs                    create search job
+    # GET    /api/v1/splunk/services/search/jobs/{sid}              job metadata
+    # GET    /api/v1/splunk/services/search/jobs/{sid}/results      results page
+    # DELETE /api/v1/splunk/services/search/jobs/{sid}              cancel job
+    # GET    /api/v1/splunk/services/saved/searches                 list saved searches
+    # POST   /api/v1/splunk/services/saved/searches/{name}/dispatch dispatch saved search
+    # Scope: read:scans
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.splunk_router import router as splunk_router  # noqa: PLC0415
+        app.include_router(
+            splunk_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Splunk SIEM router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("splunk_router not available: %s", exc)
+
     _logger.info("Platform sub-app: wave-7 live connector routers registered (11 connectors)")
 
     # ------------------------------------------------------------------
