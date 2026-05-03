@@ -1042,6 +1042,93 @@ class SBOMEngine:
             rows = conn.execute(sql, params).fetchall()
         return [self._row(r) for r in rows]
 
+    # ------------------------------------------------------------------
+    # SBOM diff / changelog
+    # ------------------------------------------------------------------
+
+    def diff_sboms(
+        self,
+        org_id: str,
+        base_asset_id: str,
+        head_asset_id: str,
+    ) -> Dict[str, Any]:
+        """Compare components of two assets keyed by component_name (package identity).
+
+        Matching is intentionally version-agnostic: two rows with the same
+        component_name are considered the *same package* at different versions.
+        A purl that includes the version would create false add/remove pairs for
+        simple upgrades, so we key by name and surface version changes in the
+        ``changed`` bucket.
+
+        Returns a changelog with:
+          - added:   components present in head but not base
+          - removed: components present in base but not head
+          - changed: components present in both but with differing version or risk_score
+          - summary: counts + risk delta
+        """
+        def _key(c: Dict[str, Any]) -> str:
+            # Stable identity key: strip version from purl if present, else use name.
+            purl = (c.get("purl") or "").split("@")[0]
+            return purl or c.get("component_name", "")
+
+        base_comps = {
+            _key(c): c
+            for c in self.list_components(org_id, asset_id=base_asset_id)
+        }
+        head_comps = {
+            _key(c): c
+            for c in self.list_components(org_id, asset_id=head_asset_id)
+        }
+
+        base_keys = set(base_comps)
+        head_keys = set(head_comps)
+
+        added: List[Dict[str, Any]] = [head_comps[k] for k in (head_keys - base_keys)]
+        removed: List[Dict[str, Any]] = [base_comps[k] for k in (base_keys - head_keys)]
+
+        changed: List[Dict[str, Any]] = []
+        for k in base_keys & head_keys:
+            b = base_comps[k]
+            h = head_comps[k]
+            if b.get("component_version") != h.get("component_version") or \
+               float(b.get("risk_score") or 0.0) != float(h.get("risk_score") or 0.0):
+                changed.append({
+                    "identity_key": k,
+                    "component_name": h.get("component_name"),
+                    "base_version": b.get("component_version"),
+                    "head_version": h.get("component_version"),
+                    "base_purl": b.get("purl"),
+                    "head_purl": h.get("purl"),
+                    "base_risk_score": float(b.get("risk_score") or 0.0),
+                    "head_risk_score": float(h.get("risk_score") or 0.0),
+                    "risk_delta": round(
+                        float(h.get("risk_score") or 0.0) - float(b.get("risk_score") or 0.0), 4
+                    ),
+                })
+
+        base_risk_total = sum(float(c.get("risk_score") or 0.0) for c in base_comps.values())
+        head_risk_total = sum(float(c.get("risk_score") or 0.0) for c in head_comps.values())
+
+        return {
+            "org_id": org_id,
+            "base_asset_id": base_asset_id,
+            "head_asset_id": head_asset_id,
+            "generated_at": _now_iso(),
+            "summary": {
+                "added_count": len(added),
+                "removed_count": len(removed),
+                "changed_count": len(changed),
+                "base_component_count": len(base_comps),
+                "head_component_count": len(head_comps),
+                "base_risk_total": round(base_risk_total, 4),
+                "head_risk_total": round(head_risk_total, 4),
+                "risk_delta": round(head_risk_total - base_risk_total, 4),
+            },
+            "added": added,
+            "removed": removed,
+            "changed": changed,
+        }
+
     def mark_reeval_done(
         self, schedule_id: str, findings_delta: int = 0
     ) -> Optional[Dict[str, Any]]:

@@ -179,6 +179,27 @@ def sbom_stats(org_id: str = Query(default="default")):
     return _get_engine().get_sbom_stats(org_id)
 
 
+@router.get("/assets/{asset_id}/diff/{other_asset_id}", dependencies=[Depends(api_key_auth)])
+def diff_sboms(
+    asset_id: str,
+    other_asset_id: str,
+    org_id: str = Query(default="default"),
+):
+    """Return a component-level diff (added/removed/changed) between two assets.
+
+    Keyed by purl. Useful for tracking what changed between two SBOM snapshots
+    or two versions of an application.
+    """
+    engine = _get_engine()
+    base = engine.get_asset(org_id, asset_id)
+    if not base:
+        raise HTTPException(status_code=404, detail=f"Base asset not found: {asset_id}")
+    head = engine.get_asset(org_id, other_asset_id)
+    if not head:
+        raise HTTPException(status_code=404, detail=f"Head asset not found: {other_asset_id}")
+    return engine.diff_sboms(org_id, asset_id, other_asset_id)
+
+
 @router.get("/", dependencies=[Depends(api_key_auth)])
 def sbom_overview(org_id: str = Query(default="default")):
     """Top-level SBOM overview: asset/component counts, vuln exposure, license summary."""
