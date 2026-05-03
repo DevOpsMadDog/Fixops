@@ -70,6 +70,13 @@ class TestEventRequest(BaseModel):
     payload: Dict[str, Any] = Field(default_factory=dict)
 
 
+class DispatchEventRequest(BaseModel):
+    event_type: str = Field(..., description="One of the canonical EventType values")
+    source: str = Field(default="aldeci-api", max_length=128)
+    severity: str = Field(default="info")
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -190,6 +197,54 @@ async def test_webhook(
         "event_type": test_event.event_type,
         "correlation_id": test_event.correlation_id,
         "delivery_result": result,
+    }
+
+
+@router.post("/dispatch", status_code=202)
+async def dispatch_event(
+    req: DispatchEventRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Fan-out a security event to all matching registered webhooks.
+
+    Returns per-webhook delivery results (status, response_code, attempts).
+    202 Accepted — delivery is best-effort; callers should not assume success
+    even when this endpoint returns 202.
+    """
+    try:
+        event_type = EventType(req.event_type)
+    except ValueError:
+        valid = sorted(e.value for e in EventType)
+        raise HTTPException(422, f"Invalid event_type '{req.event_type}'. Valid: {valid}")
+
+    try:
+        severity = Severity(req.severity)
+    except ValueError:
+        severity = Severity.INFO
+
+    event = SecurityEvent(
+        event_type=event_type,
+        source=req.source,
+        severity=severity,
+        payload=req.payload,
+    )
+
+    try:
+        results = _emitter.emit(event)
+    except Exception as exc:
+        logger.error("Dispatch failed for event_type=%s: %s", req.event_type, exc)
+        raise HTTPException(500, "Event dispatch failed") from exc
+
+    delivered = sum(1 for r in results if r.get("status") == "success")
+    failed = len(results) - delivered
+
+    return {
+        "correlation_id": event.correlation_id,
+        "event_type": event.event_type,
+        "webhooks_matched": len(results),
+        "delivered": delivered,
+        "failed": failed,
+        "results": results,
     }
 
 
