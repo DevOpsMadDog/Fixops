@@ -14,6 +14,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 # Project root for running the script
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "api_surface_report.py"
@@ -24,6 +26,7 @@ _SUITE_PYTHONPATH = os.pathsep.join([
 ])
 
 
+@pytest.mark.timeout(60)
 class TestApiSurfaceReportScript:
     """Tests for the api_surface_report.py CLI script."""
 
@@ -92,6 +95,7 @@ class TestApiSurfaceReportScript:
         assert "/api/v1" in result.stdout
 
 
+@pytest.mark.timeout(60)
 class TestApiSurfaceReportJson:
     """Tests for JSON output mode."""
 
@@ -214,6 +218,7 @@ class TestApiSurfaceReportJson:
             os.unlink(json_path)
 
 
+@pytest.mark.timeout(60)
 class TestApiSurfaceReportMinEndpoints:
     """Tests for --min-endpoints flag."""
 
@@ -242,6 +247,7 @@ class TestApiSurfaceReportMinEndpoints:
         assert "FAIL" in result.stderr
 
 
+@pytest.mark.timeout(60)
 class TestApiSurfaceReportOnlyPrefix:
     """Tests for --only-prefix flag."""
 
@@ -284,6 +290,7 @@ class TestApiSurfaceReportOnlyPrefix:
             os.unlink(json_path)
 
 
+@pytest.mark.timeout(60)
 class TestApiSurfaceReportQuietMode:
     """Tests for --quiet flag."""
 

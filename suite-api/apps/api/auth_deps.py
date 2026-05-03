@@ -199,15 +199,16 @@ async def api_key_auth(
     """
     global _EXPECTED_TOKENS, _HAS_TOKEN_AUTH, _DEV_MODE
 
-    # Lazy reload: if no tokens were cached at import time, re-check the
-    # environment once — this handles the common test-suite scenario where
-    # FIXOPS_API_TOKEN is set *after* the module was first imported.
-    if not _HAS_TOKEN_AUTH:
-        fresh = _load_api_tokens()
-        if fresh:
-            _EXPECTED_TOKENS = fresh
-            _HAS_TOKEN_AUTH = True
-            _DEV_MODE = _is_dev_mode()
+    # Lazy reload: always re-read tokens from environment on each request.
+    # This handles the common test-suite scenario where FIXOPS_API_TOKEN
+    # changes between test files (e.g. monkeypatch or conftest overrides).
+    fresh = _load_api_tokens()
+    if fresh:
+        _EXPECTED_TOKENS = fresh
+        _HAS_TOKEN_AUTH = True
+        _DEV_MODE = _is_dev_mode()
+    elif not _HAS_TOKEN_AUTH:
+        _DEV_MODE = _is_dev_mode()
 
     # Dev/demo mode pass-through when no auth is configured
     if _DEV_MODE and not _HAS_TOKEN_AUTH and not _HAS_JWT_AUTH:
