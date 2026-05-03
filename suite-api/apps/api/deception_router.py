@@ -201,6 +201,20 @@ def get_stats(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/honeypots", response_model=List[Dict[str, Any]])
+def list_honeypots(
+    org_id: str = Query("default", description="Organisation ID"),
+    active_only: bool = Query(True, description="Return only active honeypot endpoints"),
+    engine: DeceptionEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    """List registered honeypot endpoints for an organisation."""
+    try:
+        return engine.list_honeypot_endpoints(org_id=org_id, active_only=active_only)
+    except Exception as exc:
+        logger.exception("Failed to list honeypots: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/honeypots", response_model=Dict[str, Any], status_code=201)
 def deploy_honeypot(
     body: DeployHoneypotRequest,

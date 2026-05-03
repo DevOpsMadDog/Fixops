@@ -353,6 +353,35 @@ class DeceptionEngine:
     # Honeypot endpoints
     # ------------------------------------------------------------------
 
+    def list_honeypot_endpoints(self, org_id: str, active_only: bool = True) -> List[Dict[str, Any]]:
+        """Return honeypot endpoints for an org.
+
+        Args:
+            org_id: Organisation ID.
+            active_only: When True (default), return only active endpoints.
+
+        Returns:
+            List of dicts with keys: id, path, org_id, created_at, active.
+        """
+        query = "SELECT id, path, org_id, created_at, active FROM honeypot_endpoints WHERE org_id = ?"
+        params: list = [org_id]
+        if active_only:
+            query += " AND active = 1"
+        query += " ORDER BY created_at DESC"
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(query, params).fetchall()
+        return [
+            {
+                "id": r["id"],
+                "path": r["path"],
+                "org_id": r["org_id"],
+                "created_at": r["created_at"],
+                "active": bool(r["active"]),
+            }
+            for r in rows
+        ]
+
     def deploy_honeypot_endpoint(self, path: str, org_id: str) -> Dict[str, str]:
         """Register a honeypot path. Returns info dict."""
         ep_id = str(uuid.uuid4())
