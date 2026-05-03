@@ -189,3 +189,22 @@ def check_access(
 def get_access_stats(org_id: str = Query(default="default")):
     """Return access control overview stats."""
     return _get_engine().get_access_stats(org_id)
+
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_access_control_status(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Return access control engine health and summary stats."""
+    try:
+        stats = _get_engine().get_access_stats(org_id)
+        return {
+            "status": "healthy",
+            "engine": "access-control",
+            "org_id": org_id,
+            "total_policies": stats.get("total_policies", 0),
+            "active_grants": stats.get("active_grants", 0),
+            "revoked_grants": stats.get("revoked_grants", 0),
+            "expired_grants": stats.get("expired_grants", 0),
+        }
+    except Exception as exc:
+        _logger.exception("Error fetching access control status")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
