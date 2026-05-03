@@ -602,3 +602,133 @@ def test_get_version_manager_returns_instance(tmp_db):
 
     mgr = get_version_manager(db_path=tmp_db)
     assert isinstance(mgr, APIVersionManager)
+
+
+# ===========================================================================
+# 12. POST /api/versions/register
+# ===========================================================================
+
+
+def test_router_register_endpoint_created(router_client):
+    resp = router_client.post(
+        "/api/versions/register",
+        json={"path": "/api/v1/assets", "version": "v1"},
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["registered"] is True
+    assert data["endpoint"]["path"] == "/api/v1/assets"
+    assert data["endpoint"]["version"] == "v1"
+    assert data["endpoint"]["status"] == "active"
+
+
+def test_router_register_endpoint_invalid_version(router_client):
+    resp = router_client.post(
+        "/api/versions/register",
+        json={"path": "/api/v99/test", "version": "v99"},
+    )
+    assert resp.status_code == 422
+
+
+def test_router_register_endpoint_invalid_status(router_client):
+    resp = router_client.post(
+        "/api/versions/register",
+        json={"path": "/api/v1/test", "version": "v1", "status": "bogus"},
+    )
+    assert resp.status_code == 422
+
+
+def test_router_register_endpoint_persists_and_visible(router_client, tmp_db):
+    router_client.post(
+        "/api/versions/register",
+        json={"path": "/api/v1/sbom", "version": "v1"},
+    )
+    resp = router_client.get("/api/versions/endpoints?version=v1")
+    assert resp.status_code == 200
+    paths = [e["path"] for e in resp.json()["endpoints"]]
+    assert "/api/v1/sbom" in paths
+
+
+# ===========================================================================
+# 13. POST /api/versions/deprecate
+# ===========================================================================
+
+
+def test_router_deprecate_endpoint(router_client, tmp_db):
+    import core.api_versioning as _av
+    mgr = _av.get_version_manager(db_path=tmp_db)
+    mgr.register_endpoint("/api/v1/findings", APIVersion.V1)
+
+    resp = router_client.post(
+        "/api/versions/deprecate",
+        json={
+            "path": "/api/v1/findings",
+            "version": "v1",
+            "replacement_path": "/api/v2/findings",
+            "sunset_date": "2027-06-01",
+            "migration_guide": "Switch to /api/v2/findings.",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["deprecated"] is True
+    assert data["endpoint"]["status"] == "deprecated"
+    assert data["sunset_date"] == "2027-06-01"
+    assert data["replacement_path"] == "/api/v2/findings"
+
+
+def test_router_deprecate_nonexistent_inserts(router_client):
+    resp = router_client.post(
+        "/api/versions/deprecate",
+        json={"path": "/api/v1/legacy-search", "version": "v1"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["deprecated"] is True
+    assert data["endpoint"]["status"] == "deprecated"
+
+
+def test_router_deprecate_shows_in_deprecated_list(router_client, tmp_db):
+    import core.api_versioning as _av
+    mgr = _av.get_version_manager(db_path=tmp_db)
+    mgr.register_endpoint("/api/v1/old-reports", APIVersion.V1)
+
+    router_client.post(
+        "/api/versions/deprecate",
+        json={
+            "path": "/api/v1/old-reports",
+            "version": "v1",
+            "sunset_date": "2027-09-01",
+        },
+    )
+    resp = router_client.get("/api/versions/deprecated")
+    assert resp.status_code == 200
+    paths = [e["path"] for e in resp.json()["deprecated_endpoints"]]
+    assert "/api/v1/old-reports" in paths
+
+
+def test_router_deprecate_invalid_version(router_client):
+    resp = router_client.post(
+        "/api/versions/deprecate",
+        json={"path": "/api/v1/test", "version": "v99"},
+    )
+    assert resp.status_code == 422
+
+
+def test_router_deprecate_appears_in_sunset_schedule(router_client, tmp_db):
+    import core.api_versioning as _av
+    mgr = _av.get_version_manager(db_path=tmp_db)
+    mgr.register_endpoint("/api/v1/scans", APIVersion.V1)
+
+    router_client.post(
+        "/api/versions/deprecate",
+        json={
+            "path": "/api/v1/scans",
+            "version": "v1",
+            "sunset_date": "2027-12-31",
+        },
+    )
+    resp = router_client.get("/api/versions/sunset-schedule")
+    assert resp.status_code == 200
+    dates = [e["sunset_date"] for e in resp.json()["sunset_schedule"]]
+    assert "2027-12-31" in dates

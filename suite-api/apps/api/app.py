@@ -6680,6 +6680,10 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("slsa_provenance_router unavailable: %s", _e)
 
+    if versioning_router is not None:
+        app.include_router(versioning_router)
+        _logger.info("Mounted API Versioning router at /api/versions")
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they

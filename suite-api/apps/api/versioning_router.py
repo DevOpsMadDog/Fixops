@@ -2,12 +2,14 @@
 API Versioning router — version discovery, deprecation registry, migration guides.
 
 Endpoints:
-  GET /api/versions               — list available API versions
-  GET /api/versions/endpoints     — list all versioned endpoints
-  GET /api/versions/deprecated    — deprecated endpoints only
-  GET /api/versions/sunset-schedule — endpoints with upcoming sunset dates
-  GET /api/versions/migration/{path:path} — migration guide for an endpoint
-  GET /api/versions/stats         — versioning statistics
+  GET  /api/versions                       — list available API versions
+  GET  /api/versions/endpoints             — list all versioned endpoints
+  GET  /api/versions/deprecated            — deprecated endpoints only
+  GET  /api/versions/sunset-schedule       — endpoints with upcoming sunset dates
+  GET  /api/versions/migration/{path:path} — migration guide for an endpoint
+  GET  /api/versions/stats                 — versioning statistics
+  POST /api/versions/deprecate             — mark an endpoint as deprecated
+  POST /api/versions/register              — register a new endpoint version
 """
 from __future__ import annotations
 
@@ -23,6 +25,7 @@ from core.api_versioning import (
     get_version_manager,
 )
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -203,3 +206,89 @@ async def versioning_stats() -> Dict[str, Any]:
     """Return aggregate statistics about the versioning registry."""
     mgr = _manager()
     return mgr.get_versioning_stats()
+
+
+# ---------------------------------------------------------------------------
+# Write endpoints
+# ---------------------------------------------------------------------------
+
+
+class RegisterEndpointRequest(BaseModel):
+    path: str = Field(..., description="API endpoint path, e.g. /api/v1/findings")
+    version: str = Field(..., description="API version: v1 or v2")
+    status: str = Field(
+        default="active", description="Initial status: active, deprecated, sunset"
+    )
+
+
+class DeprecateEndpointRequest(BaseModel):
+    path: str = Field(..., description="API endpoint path to deprecate")
+    version: str = Field(..., description="API version: v1 or v2")
+    replacement_path: Optional[str] = Field(
+        None, description="Path of the successor endpoint"
+    )
+    sunset_date: Optional[str] = Field(
+        None, description="ISO-8601 date when this endpoint will be removed, e.g. 2027-01-01"
+    )
+    migration_guide: Optional[str] = Field(
+        None, description="Human-readable migration instructions"
+    )
+
+
+@router.post("/register", summary="Register a new endpoint version", status_code=201)
+async def register_endpoint(body: RegisterEndpointRequest) -> Dict[str, Any]:
+    """Register (or upsert) an endpoint version entry in the deprecation registry.
+
+    Returns the created/updated endpoint record.
+    """
+    try:
+        version_enum = APIVersion(body.version.lower())
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid version '{body.version}'. Must be one of: {[v.value for v in APIVersion]}",
+        )
+
+    try:
+        status_enum = DeprecationStatus(body.status.lower())
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid status '{body.status}'. Must be one of: {[s.value for s in DeprecationStatus]}",
+        )
+
+    mgr = _manager()
+    ev = mgr.register_endpoint(body.path, version_enum, status_enum)
+    return {"registered": True, "endpoint": _endpoint_to_dict(ev)}
+
+
+@router.post("/deprecate", summary="Mark an endpoint as deprecated")
+async def deprecate_endpoint(body: DeprecateEndpointRequest) -> Dict[str, Any]:
+    """Deprecate an API endpoint and record its sunset date and replacement.
+
+    If the endpoint is not yet registered it will be inserted as deprecated.
+    Sets standard ``Deprecation`` / ``Sunset`` / ``Link`` response-header values
+    that the VersioningMiddleware will inject on subsequent requests to that path.
+    """
+    try:
+        version_enum = APIVersion(body.version.lower())
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid version '{body.version}'. Must be one of: {[v.value for v in APIVersion]}",
+        )
+
+    mgr = _manager()
+    ev = mgr.deprecate_endpoint(
+        path=body.path,
+        version=version_enum,
+        replacement_path=body.replacement_path,
+        sunset_date=body.sunset_date,
+        migration_guide=body.migration_guide,
+    )
+    return {
+        "deprecated": True,
+        "endpoint": _endpoint_to_dict(ev),
+        "sunset_date": ev.sunset_date,
+        "replacement_path": ev.replacement_path,
+    }
