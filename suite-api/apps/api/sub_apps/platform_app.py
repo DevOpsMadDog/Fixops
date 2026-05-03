@@ -1914,6 +1914,68 @@ def register_platform_routers(
         _logger.warning("shodan_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # VirusTotal v3 Threat-Intel Lookup — 2026-05-04
+    # GET /api/v1/virustotal/                            capability summary  (read:scans)
+    # GET /api/v1/virustotal/v3/files/{hash}             file enrichment    (read:scans)
+    # GET /api/v1/virustotal/v3/urls/{url_id}            URL analysis       (read:scans)
+    # GET /api/v1/virustotal/v3/domains/{domain}         domain enrichment  (read:scans)
+    # GET /api/v1/virustotal/v3/ip_addresses/{ip}        IP enrichment      (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.virustotal_router import router as virustotal_router  # noqa: PLC0415
+        app.include_router(
+            virustotal_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted VirusTotal threat-intel router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("virustotal_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Censys Threat-Intel Lookup — 2026-05-04
+    # GET /api/v1/censys/                                  capability summary  (read:scans)
+    # GET /api/v1/censys/v2/hosts/{ip}                     host enrichment    (read:scans)
+    # GET /api/v1/censys/v2/certificates/{fingerprint}     certificate detail (read:scans)
+    # GET /api/v1/censys/v2/hosts/search                   host search        (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.censys_router import router as censys_router  # noqa: PLC0415
+        app.include_router(
+            censys_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Censys threat-intel router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("censys_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # GreyNoise Threat-Intel Lookup — 2026-05-04
+    # GET /api/v1/greynoise/                              capability summary  (read:scans)
+    # GET /api/v1/greynoise/v3/community/{ip}              free-tier classification
+    # GET /api/v1/greynoise/v2/noise/context/{ip}          paid context
+    # GET /api/v1/greynoise/v2/riot/{ip}                   paid RIOT
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.greynoise_router import router as greynoise_router  # noqa: PLC0415
+        app.include_router(
+            greynoise_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted GreyNoise threat-intel router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("greynoise_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
     # Prometheus Alerts (in-memory rule catalog + PromQL-subset eval) — 2026-05-04
     # GET  /api/v1/prometheus/                 capability summary       (read:scans)
     # GET  /api/v1/prometheus/groups           rule groups + counts     (read:scans)
@@ -1953,3 +2015,26 @@ def register_platform_routers(
         _logger.info("Mounted kube-bench CIS K8s benchmark router (read:scans)")
     except ImportError as exc:
         _logger.warning("kube_bench_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Grafana Loki Integration (proxy + capability) — 2026-05-04
+    # GET  /api/v1/loki/                       capability summary       (read:scans)
+    # GET  /api/v1/loki/labels                 list label names         (read:scans)
+    # GET  /api/v1/loki/label/{name}/values    list label values        (read:scans)
+    # POST /api/v1/loki/push                   forward log streams      (read:scans)
+    # POST /api/v1/loki/query                  instant LogQL query      (read:scans)
+    # POST /api/v1/loki/query_range            range LogQL query        (read:scans)
+    # GET  /api/v1/loki/series                 series matching selector (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.loki_router import router as loki_router  # noqa: PLC0415
+        app.include_router(
+            loki_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Grafana Loki integration router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("loki_router not available: %s", exc)

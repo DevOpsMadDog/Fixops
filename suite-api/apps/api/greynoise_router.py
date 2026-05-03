@@ -1,148 +1,185 @@
-"""GreyNoise Community IP intelligence router.
+"""GreyNoise Threat-Intel Lookup Router — ALDECI.
 
-Endpoints:
-    GET  /api/v1/greynoise/lookup/{ip}
-        Proxy lookup via GreyNoise community API with a 5-min in-memory cache.
-        Falls back to the stored DB record when the network is unavailable.
+Wraps ``core.greynoise_lookup_engine.GreyNoiseLookupEngine`` with REST endpoints
+for community-tier, context, and RIOT lookups.
 
-    POST /api/v1/greynoise/import-known-ips
-        Bulk lookup against a caller-supplied IP list. Persists results to
-        data/greynoise.db. Uses a 1-day per-IP cache; rate-limited to ~1 req/s
-        on the free tier (suppressed when GREYNOISE_API_KEY is set).
+Prefix: /api/v1/greynoise
+Auth:   api_key_auth dependency (mount layer adds scope checks — read:scans)
 
-Auth: none (public-tier data). Set GREYNOISE_API_KEY in the environment to
-      unlock the paid tier.
+Routes:
+  GET  /api/v1/greynoise/                          capability summary
+  GET  /api/v1/greynoise/v3/community/{ip}          free-tier classification
+  GET  /api/v1/greynoise/v2/noise/context/{ip}      paid context (tags, CVE, ASN…)
+  GET  /api/v1/greynoise/v2/riot/{ip}               paid RIOT (known-good services)
+
+NO MOCKS rule:
+  * Community endpoint works without GREYNOISE_API_KEY (free public tier).
+  * Context + RIOT endpoints require GREYNOISE_API_KEY — when missing, the
+    capability summary surfaces ``status="unavailable"`` and the live endpoints
+    return HTTP 503. We do not fabricate payloads.
 """
 
 from __future__ import annotations
 
 import logging
-import sys
-import time
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, HTTPException
-from fastapi import Path as FPath
+from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, HTTPException, Path
+from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/greynoise", tags=["GreyNoise Community Intel"])
-
-# ---------------------------------------------------------------------------
-# Path bootstrap — make suite-feeds importable inside the API process
-# ---------------------------------------------------------------------------
-
-_HERE = Path(__file__).resolve()
-_PROJECT_ROOT = _HERE.parents[3]  # apps/api -> suite-api -> Fixops
-_SUITE_FEEDS = str(_PROJECT_ROOT / "suite-feeds")
-if _SUITE_FEEDS not in sys.path:
-    sys.path.insert(0, _SUITE_FEEDS)
-
-# ---------------------------------------------------------------------------
-# 5-minute in-memory request cache (keyed by IP)
-# ---------------------------------------------------------------------------
-
-_LOOKUP_CACHE: Dict[str, Any] = {}          # {ip: record}
-_LOOKUP_CACHE_TS: Dict[str, float] = {}     # {ip: unix_time_of_cache}
-_LOOKUP_CACHE_TTL = 300                     # 5 minutes
-
-
-def _cache_get(ip: str) -> Optional[Dict[str, Any]]:
-    if ip not in _LOOKUP_CACHE_TS:
-        return None
-    if time.time() - _LOOKUP_CACHE_TS[ip] > _LOOKUP_CACHE_TTL:
-        _LOOKUP_CACHE.pop(ip, None)
-        _LOOKUP_CACHE_TS.pop(ip, None)
-        return None
-    return _LOOKUP_CACHE.get(ip)
-
-
-def _cache_set(ip: str, record: Dict[str, Any]) -> None:
-    _LOOKUP_CACHE[ip] = record
-    _LOOKUP_CACHE_TS[ip] = time.time()
-
-
-# ---------------------------------------------------------------------------
-# GET /api/v1/greynoise/lookup/{ip}
-# ---------------------------------------------------------------------------
-
-@router.get(
-    "/lookup/{ip}",
-    summary="GreyNoise Community IP Lookup",
-    description=(
-        "Look up a single IP address against the GreyNoise Community API. "
-        "Results are cached in memory for 5 minutes and persisted to the local "
-        "greynoise.db store for 24 hours. "
-        "Set GREYNOISE_API_KEY in the environment to use the paid tier."
-    ),
-    response_description="GreyNoise IP classification record",
+router = APIRouter(
+    prefix="/api/v1/greynoise",
+    tags=["GreyNoise Threat Intel"],
+    dependencies=[Depends(api_key_auth)],
 )
-async def lookup_ip(
-    ip: str = FPath(
-        ...,
-        description="IPv4 or IPv6 address to look up",
-        examples=["8.8.8.8"],
-    ),
-) -> Dict[str, Any]:
-    """Proxy a GreyNoise community lookup for a single IP with 5-min cache."""
-    # 1. Try in-memory 5-min cache first
-    cached = _cache_get(ip)
-    if cached:
-        return {**cached, "cache": "hit"}
+
+
+def _engine():
+    # Indirection so tests can patch the module-level engine via
+    # reset_greynoise_lookup_engine() then re-create with tmp_path DB.
+    from core.greynoise_lookup_engine import get_greynoise_lookup_engine
+
+    return get_greynoise_lookup_engine()
+
+
+# ---------------------------------------------------------------------------
+# Schemas
+# ---------------------------------------------------------------------------
+
+
+class CapabilityResponse(BaseModel):
+    service: str
+    endpoints: List[str]
+    api_key_present: bool
+    status: str  # ok | empty | unavailable
+    cache_size: int = 0
+
+
+class CommunityResponse(BaseModel):
+    ip: str
+    noise: bool = False
+    riot: bool = False
+    classification: str = "unknown"
+    name: str = ""
+    link: str = ""
+    last_seen: str = ""
+    message: str = ""
+
+
+class ContextRawData(BaseModel):
+    scan: List[Dict[str, Any]] = Field(default_factory=list)
+    web: Dict[str, Any] = Field(default_factory=dict)
+    ja3: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ContextResponse(BaseModel):
+    ip: str
+    seen: bool = False
+    classification: str = "unknown"
+    first_seen: str = ""
+    last_seen: str = ""
+    actor: str = ""
+    tags: List[str] = Field(default_factory=list)
+    cve: List[str] = Field(default_factory=list)
+    asn: str = ""
+    organization: str = ""
+    raw_data: ContextRawData = Field(default_factory=ContextRawData)
+
+
+class RiotResponse(BaseModel):
+    ip: str
+    riot: bool = False
+    name: str = ""
+    category: str = ""
+    description: str = ""
+    explanation: str = ""
+    last_updated: str = ""
+    reference: str = ""
+    trust_level: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _serve(callable_):
+    """Run a GreyNoise call, translating engine errors to HTTP responses.
+
+    GreyNoiseUnavailableError -> 503 (key missing, network, upstream error)
+    ValueError                -> 422 (input validation)
+    """
+    from core.greynoise_lookup_engine import GreyNoiseUnavailableError
 
     try:
-        from feeds.greynoise.importer import lookup_ip as _lookup_ip
-        record = _lookup_ip(ip)
-        _cache_set(ip, record)
-        return {**record, "cache": "miss"}
-    except Exception as exc:  # noqa: BLE001
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        if status == 404:
-            raise HTTPException(
-                status_code=404,
-                detail=f"IP {ip} not found in the GreyNoise dataset.",
-            )
-        logger.error("GreyNoise lookup error for %s: %s", ip, exc)
-        raise HTTPException(
-            status_code=502,
-            detail=f"GreyNoise API error: {type(exc).__name__}: {exc}",
-        )
+        return callable_()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except GreyNoiseUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
-# POST /api/v1/greynoise/import-known-ips
+# Endpoints
 # ---------------------------------------------------------------------------
 
-@router.post(
-    "/import-known-ips",
-    summary="Bulk GreyNoise IP Import",
-    description=(
-        "Submit a list of IP addresses for bulk GreyNoise community lookups. "
-        "Each IP is checked against the local 24-hour cache before hitting the "
-        "API. Results are persisted to data/greynoise.db. "
-        "Returns lookup counts and classification breakdown."
-    ),
-    response_description="Bulk import summary with classification breakdown",
-)
-async def import_known_ips(
-    ips: List[str] = Body(
-        ...,
-        description="List of IPv4/IPv6 addresses to look up",
-        examples=[["8.8.8.8", "1.1.1.1", "198.51.100.1"]],
-    ),
-) -> Dict[str, Any]:
-    """Bulk-import IP intelligence from GreyNoise community API."""
-    if not ips:
-        raise HTTPException(status_code=400, detail="ips list must not be empty.")
 
-    try:
-        from feeds.greynoise.importer import bulk_import
-        result = bulk_import(ips)
-        return result
-    except Exception as exc:  # noqa: BLE001
-        logger.error("GreyNoise bulk import error: %s", exc)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Bulk import failed: {type(exc).__name__}: {exc}",
-        )
+@router.get("/", response_model=CapabilityResponse)
+async def capability_summary() -> CapabilityResponse:
+    """Return the service summary — safe to call without an API key."""
+    eng = _engine()
+    api_key_present = eng.api_key_present()
+    cache_size = eng.cache_size()
+    if not api_key_present:
+        status = "unavailable"
+    elif cache_size == 0:
+        status = "empty"
+    else:
+        status = "ok"
+    return CapabilityResponse(
+        service="GreyNoise",
+        endpoints=[
+            "/v3/community/{ip} (free)",
+            "/v2/noise/context/{ip} (paid)",
+            "/v2/riot/{ip}",
+        ],
+        api_key_present=api_key_present,
+        status=status,
+        cache_size=cache_size,
+    )
+
+
+@router.get("/v3/community/{ip}", response_model=CommunityResponse)
+async def community_lookup(
+    ip: str = Path(..., description="IPv4 / IPv6 address to look up (free tier)"),
+) -> CommunityResponse:
+    """Community v3 classification (works without API key, rate-limited)."""
+    eng = _engine()
+    data = _serve(lambda: eng.community(ip))
+    return CommunityResponse(**data)
+
+
+@router.get("/v2/noise/context/{ip}", response_model=ContextResponse)
+async def noise_context_lookup(
+    ip: str = Path(..., description="IPv4 / IPv6 address (paid context endpoint)"),
+) -> ContextResponse:
+    """Context v2 — paid tier (tags, CVEs, ASN, raw scan/web/ja3)."""
+    eng = _engine()
+    data = _serve(lambda: eng.context(ip))
+    return ContextResponse(**data)
+
+
+@router.get("/v2/riot/{ip}", response_model=RiotResponse)
+async def riot_lookup(
+    ip: str = Path(..., description="IPv4 / IPv6 address (RIOT known-good check)"),
+) -> RiotResponse:
+    """RIOT v2 — paid tier (known-good services lookup)."""
+    eng = _engine()
+    data = _serve(lambda: eng.riot(ip))
+    return RiotResponse(**data)
+
+
+__all__ = ["router"]
