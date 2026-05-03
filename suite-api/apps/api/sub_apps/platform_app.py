@@ -2036,6 +2036,28 @@ def register_platform_routers(
         _logger.warning("falcon_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # SentinelOne Singularity EDR Live REST — 2026-05-04
+    # GET  /api/v1/sentinelone/                                       capability summary  (read:scans)
+    # GET  /api/v1/sentinelone/web/api/v2.1/agents                    list agents          (read:scans)
+    # GET  /api/v1/sentinelone/web/api/v2.1/threats                   list threats         (read:scans)
+    # GET  /api/v1/sentinelone/web/api/v2.1/sites                     list sites           (read:scans)
+    # GET  /api/v1/sentinelone/web/api/v2.1/groups                    list groups          (read:scans)
+    # POST /api/v1/sentinelone/web/api/v2.1/threats/mitigate/{action} mitigate threats     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.sentinelone_router import router as sentinelone_router  # noqa: PLC0415
+        app.include_router(
+            sentinelone_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted SentinelOne EDR live REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("sentinelone_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Tanium Endpoint Platform Live REST — 2026-05-04
     # GET  /api/v1/tanium/                                  capability summary  (read:scans)
     # POST /api/v1/tanium/api/v2/sessions                   open session        (read:scans)
