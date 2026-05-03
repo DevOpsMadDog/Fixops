@@ -268,3 +268,116 @@ def get_prowler_status() -> Dict[str, Any]:
             "gcp": "CIS Google Cloud Platform Foundation Benchmark v1.3.0",
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Wave-Prowler-CSPM-2026-05-04 — async-queue scan engine endpoints
+# Backed by core.prowler_scan_engine.ProwlerScanEngine (data/security/prowler_scans.db)
+# ---------------------------------------------------------------------------
+
+
+class ProwlerCapabilitySummary(BaseModel):
+    service: str
+    providers: List[str]
+    compliance_frameworks: List[str]
+    severity_levels: List[str]
+    binary_present: bool
+    scan_count: int
+    status: str  # ok | empty | unavailable
+
+
+class ProwlerProviderEntry(BaseModel):
+    provider: str
+    check_count: int
+    compliance_frameworks: List[str]
+
+
+class ProwlerComplianceEntry(BaseModel):
+    framework: str
+    description: str
+
+
+class ProwlerScanQueueRequest(BaseModel):
+    provider: str = Field(..., description="One of aws, azure, gcp, kubernetes")
+    region: Optional[str] = Field(default="", description="Cloud region")
+    compliance_frameworks: Optional[List[str]] = Field(
+        default=None,
+        description="Subset of cis,pci-dss,hipaa,gdpr,iso27001,soc2,nist-800-53,fedramp,aws-well-architected",
+    )
+    services: Optional[List[str]] = Field(
+        default=None, description="Optional service filter (e.g. s3, iam, ec2)"
+    )
+
+
+class ProwlerScanQueueResponse(BaseModel):
+    scan_id: str
+    provider: str
+    region: str
+    queued_at: str
+    status: str
+
+
+@router.get(
+    "/",
+    response_model=ProwlerCapabilitySummary,
+    summary="Prowler CSPM capability summary",
+)
+def prowler_root() -> Dict[str, Any]:
+    from core.prowler_scan_engine import get_prowler_scan_engine
+
+    return get_prowler_scan_engine().capability_summary()
+
+
+@router.get(
+    "/providers",
+    response_model=List[ProwlerProviderEntry],
+    summary="List supported providers with check counts",
+)
+def prowler_providers() -> List[Dict[str, Any]]:
+    from core.prowler_scan_engine import get_prowler_scan_engine
+
+    return get_prowler_scan_engine().providers_catalog()
+
+
+@router.get(
+    "/compliance/frameworks",
+    response_model=List[ProwlerComplianceEntry],
+    summary="List supported compliance frameworks",
+)
+def prowler_compliance_frameworks() -> List[Dict[str, Any]]:
+    from core.prowler_scan_engine import get_prowler_scan_engine
+
+    return get_prowler_scan_engine().compliance_catalog()
+
+
+@router.post(
+    "/scan/queue",
+    response_model=ProwlerScanQueueResponse,
+    status_code=201,
+    summary="Queue a multi-framework Prowler scan",
+)
+def queue_prowler_scan(body: ProwlerScanQueueRequest) -> Dict[str, Any]:
+    from core.prowler_scan_engine import get_prowler_scan_engine
+
+    try:
+        return get_prowler_scan_engine().queue_scan(
+            provider=body.provider,
+            region=body.region or "",
+            compliance_frameworks=body.compliance_frameworks,
+            services=body.services,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get(
+    "/scan/{scan_id}",
+    summary="Fetch a queued Prowler scan record",
+)
+def get_prowler_scan(scan_id: str) -> Dict[str, Any]:
+    from core.prowler_scan_engine import get_prowler_scan_engine
+
+    record = get_prowler_scan_engine().get_scan(scan_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"scan_id {scan_id!r} not found")
+    return record

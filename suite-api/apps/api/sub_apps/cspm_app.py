@@ -578,7 +578,7 @@ def register_cspm_routers(
     # Prowler CSPM — agentless cloud scanning (AWS/Azure/GCP)
     try:
         from apps.api.prowler_router import router as prowler_router
-        app.include_router(prowler_router)
+        app.include_router(prowler_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))])
         _logger.info("Mounted Prowler CSPM router at /api/v1/prowler")
     except ImportError:
         pass
