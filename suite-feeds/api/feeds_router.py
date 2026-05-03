@@ -451,6 +451,56 @@ def get_kev_entries(
     }
 
 
+@router.get("/kev/status")
+def get_kev_status() -> Dict[str, Any]:
+    """Return CISA KEV feed status: last-poll timestamp, total count, and exploit markers.
+
+    Fields:
+    - feed: "cisa_kev"
+    - status: "active" (count > 0) | "empty" (never polled)
+    - total_entries: int — rows in kev_entries table
+    - last_poll: ISO-8601 UTC timestamp of most-recent refresh, or null
+    - ransomware_entries: int — entries where knownRansomwareCampaignUse != 'Unknown'
+    - ransomware_pct: float — percentage of entries with ransomware marker
+    - source_url: canonical CISA feed URL
+    """
+    service = get_feeds_service()
+    stats = service.get_feed_stats()
+    kev_data = stats.get("kev", {})
+    total = kev_data.get("total_cves", 0)
+    last_poll = kev_data.get("last_refresh")
+
+    # Count ransomware-marked entries directly from the kev_entries table
+    import sqlite3 as _sql
+    ransomware_count = 0
+    try:
+        conn = _sql.connect(service.db_path)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(*) FROM kev_entries "
+            "WHERE known_ransomware_campaign_use IS NOT NULL "
+            "AND known_ransomware_campaign_use != '' "
+            "AND known_ransomware_campaign_use != 'Unknown'"
+        )
+        row = cur.fetchone()
+        ransomware_count = row[0] if row else 0
+        conn.close()
+    except (_sql.OperationalError, OSError):
+        ransomware_count = 0
+
+    ransomware_pct = round((ransomware_count / total * 100), 2) if total > 0 else 0.0
+
+    return {
+        "feed": "cisa_kev",
+        "status": "active" if total > 0 else "empty",
+        "total_entries": total,
+        "last_poll": last_poll,
+        "ransomware_entries": ransomware_count,
+        "ransomware_pct": ransomware_pct,
+        "source_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    }
+
+
 @router.post("/kev/refresh")
 async def refresh_kev_feed(request: RefreshFeedRequest) -> Dict[str, Any]:
     """Refresh KEV feed from CISA.

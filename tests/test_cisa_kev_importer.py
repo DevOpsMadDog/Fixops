@@ -6,6 +6,11 @@ Tests:
 3. List endpoint returns paginated entries
 4. 501 stub is gone — import-kev endpoint now returns real data
 5. Filter by knownRansomwareCampaignUse works
+6. GET /api/v1/feeds/kev/status — empty DB returns status=empty
+7. GET /api/v1/feeds/kev/status — populated DB returns status=active + correct counts
+8. GET /api/v1/feeds/kev/status — ransomware_pct is 0 when all entries are Unknown
+9. GET /api/v1/feeds/kev/status — all required response fields present
+10. GET /api/v1/feeds/kev/status — source_url is the canonical CISA URL
 """
 
 from __future__ import annotations
@@ -220,3 +225,179 @@ def test_filter_ransomware_only(importer_with_fixture):
     assert "CVE-2021-44228" in cve_ids
     assert "CVE-2023-23397" in cve_ids
     assert "CVE-2022-30190" not in cve_ids
+
+
+# ---------------------------------------------------------------------------
+# Helpers for kev/status endpoint tests
+# ---------------------------------------------------------------------------
+
+def _make_kev_status_client(tmp_db: str, preload: bool = False):
+    """Return a TestClient wired to GET /api/v1/feeds/kev/status.
+
+    When preload=True, seeds 3 entries (2 ransomware-marked, 1 Unknown)
+    directly into the DB so the endpoint sees real rows.
+    """
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from unittest.mock import MagicMock, patch
+    import sqlite3
+
+    # Ensure kev_entries table exists with the right schema
+    Path(tmp_db).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(tmp_db)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS kev_entries (
+            cve_id TEXT PRIMARY KEY,
+            vendor_project TEXT,
+            product TEXT,
+            vulnerability_name TEXT,
+            date_added TEXT,
+            short_description TEXT,
+            required_action TEXT,
+            due_date TEXT,
+            known_ransomware_campaign_use TEXT,
+            updated_at TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS feed_metadata (
+            feed_name TEXT PRIMARY KEY,
+            last_refresh TEXT,
+            records_count INTEGER,
+            status TEXT
+        )
+    """)
+    conn.commit()
+
+    if preload:
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        rows = [
+            ("CVE-2021-44228", "Apache", "Log4j2", "RCE", "2021-12-10", "desc", "patch", "2021-12-24", "Known", now),
+            ("CVE-2022-30190", "Microsoft", "Windows", "MSDT RCE", "2022-06-14", "desc", "patch", "2022-06-24", "Unknown", now),
+            ("CVE-2023-23397", "Microsoft", "Outlook", "EoP", "2023-03-14", "desc", "patch", "2023-04-04", "Known", now),
+        ]
+        conn.executemany(
+            "INSERT OR REPLACE INTO kev_entries VALUES (?,?,?,?,?,?,?,?,?,?)", rows
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO feed_metadata VALUES (?,?,?,?)",
+            ("kev", now, 3, "success"),
+        )
+        conn.commit()
+
+    conn.close()
+
+    # Build a FeedsService-compatible mock that reads the real tmp_db
+    mock_service = MagicMock()
+    mock_service.db_path = tmp_db
+
+    def _fake_get_feed_stats():
+        c = sqlite3.connect(tmp_db)
+        total = c.execute("SELECT COUNT(*) FROM kev_entries").fetchone()[0]
+        row = c.execute(
+            "SELECT last_refresh FROM feed_metadata WHERE feed_name='kev'"
+        ).fetchone()
+        last_refresh = row[0] if row else None
+        c.close()
+        return {"kev": {"total_cves": total, "last_refresh": last_refresh}}
+
+    mock_service.get_feed_stats.side_effect = _fake_get_feed_stats
+
+    # Import the feeds router from suite-feeds directly (suite-feeds is first in sys.path
+    # because this test file prepends it above).  We use importlib so we can target the
+    # exact file regardless of any shadowing in suite-core/api/.
+    import importlib.util as _ilu
+    _spec = _ilu.spec_from_file_location(
+        "feeds_router_suite_feeds",
+        str(Path(suite_feeds_path) / "api" / "feeds_router.py"),
+    )
+    fr_mod = _ilu.module_from_spec(_spec)
+    # Pre-populate sys.modules dependencies the router needs
+    import sys as _sys
+    _sys.modules.setdefault("feeds_router_suite_feeds", fr_mod)
+    _spec.loader.exec_module(fr_mod)
+
+    app = FastAPI()
+    # Directly replace get_feeds_service on the freshly-loaded module object
+    fr_mod.get_feeds_service = lambda: mock_service  # type: ignore[attr-defined]
+
+    app.include_router(fr_mod.router)
+    client = TestClient(app)
+    return client
+
+
+# ---------------------------------------------------------------------------
+# Test 6: empty DB → status = "empty"
+# ---------------------------------------------------------------------------
+
+def test_kev_status_empty_db(tmp_path):
+    tmp_db = str(tmp_path / "kev_empty.db")
+    client = _make_kev_status_client(tmp_db, preload=False)
+    resp = client.get("/api/v1/feeds/kev/status")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["status"] == "empty"
+    assert body["total_entries"] == 0
+    assert body["last_poll"] is None
+
+
+# ---------------------------------------------------------------------------
+# Test 7: populated DB → status = "active", correct entry count
+# ---------------------------------------------------------------------------
+
+def test_kev_status_active(tmp_path):
+    tmp_db = str(tmp_path / "kev_active.db")
+    client = _make_kev_status_client(tmp_db, preload=True)
+    resp = client.get("/api/v1/feeds/kev/status")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["status"] == "active"
+    assert body["total_entries"] == 3
+    assert body["last_poll"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Test 8: ransomware counts — 2 "Known", 1 "Unknown" → pct = 66.67
+# ---------------------------------------------------------------------------
+
+def test_kev_status_ransomware_counts(tmp_path):
+    tmp_db = str(tmp_path / "kev_ransomware.db")
+    client = _make_kev_status_client(tmp_db, preload=True)
+    resp = client.get("/api/v1/feeds/kev/status")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ransomware_entries"] == 2
+    assert body["ransomware_pct"] == pytest.approx(66.67, abs=0.01)
+
+
+# ---------------------------------------------------------------------------
+# Test 9: all required fields present in response
+# ---------------------------------------------------------------------------
+
+def test_kev_status_required_fields(tmp_path):
+    tmp_db = str(tmp_path / "kev_fields.db")
+    client = _make_kev_status_client(tmp_db, preload=False)
+    resp = client.get("/api/v1/feeds/kev/status")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    required = {"feed", "status", "total_entries", "last_poll",
+                "ransomware_entries", "ransomware_pct", "source_url"}
+    missing = required - set(body.keys())
+    assert not missing, f"Missing fields: {missing}"
+
+
+# ---------------------------------------------------------------------------
+# Test 10: source_url is the canonical CISA feed URL
+# ---------------------------------------------------------------------------
+
+def test_kev_status_source_url(tmp_path):
+    tmp_db = str(tmp_path / "kev_url.db")
+    client = _make_kev_status_client(tmp_db, preload=False)
+    resp = client.get("/api/v1/feeds/kev/status")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["source_url"] == (
+        "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+    )
+    assert body["feed"] == "cisa_kev"
