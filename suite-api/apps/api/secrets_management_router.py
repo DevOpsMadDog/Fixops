@@ -169,3 +169,21 @@ def get_access_log(
 ) -> List[Dict[str, Any]]:
     """Return recent access audit log for a secret."""
     return _get_engine().get_access_log(org_id, secret_id, limit=limit)
+
+
+@router.get("/audit", summary="Org-wide vault audit log")
+def get_vault_audit_log(
+    org_id: str = Query("default", description="Organisation ID"),
+    accessor: Optional[str] = Query(None, description="Filter by accessor identity"),
+    action: Optional[str] = Query(None, description="Filter by action (read|write|delete|rotate)"),
+    limit: int = Query(100, ge=1, le=1000, description="Max records to return"),
+) -> List[Dict[str, Any]]:
+    """Return org-wide access audit log across all secrets.
+
+    Supports filtering by accessor identity and/or action type.
+    Ordered by accessed_at DESC. Max 1000 records.
+    Compliance: NIST SP 800-57, CIS Control 3.11 — non-repudiation trail.
+    """
+    return _get_engine().get_vault_audit_log(
+        org_id, accessor=accessor, action=action, limit=limit
+    )

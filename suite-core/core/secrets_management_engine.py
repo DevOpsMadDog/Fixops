@@ -302,6 +302,32 @@ class SecretsManagementEngine:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def get_vault_audit_log(
+        self,
+        org_id: str,
+        accessor: Optional[str] = None,
+        action: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Return org-wide access audit log across all secrets.
+
+        Optionally filter by accessor identity or action type.
+        Results are ordered by accessed_at DESC.
+        """
+        sql = "SELECT * FROM access_log WHERE org_id = ?"
+        params: list = [org_id]
+        if accessor:
+            sql += " AND accessor = ?"
+            params.append(accessor)
+        if action:
+            sql += " AND action = ?"
+            params.append(action)
+        sql += " ORDER BY accessed_at DESC LIMIT ?"
+        params.append(limit)
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
     # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
