@@ -366,6 +366,44 @@ async def remove_connector(
     return {"status": "removed", "name": name_lower}
 
 
+@router.get("/{name}/health", summary="Connector-level health check")
+async def connector_health(
+    name: str = Path(..., min_length=1, max_length=63),
+) -> Dict[str, Any]:
+    """Return the live health status of a single registered connector.
+
+    Calls the connector's ``health_check()`` method which performs a real
+    network probe against the upstream service (e.g. Jira /myself, GitHub
+    /zen, Slack ping).  Returns latency, healthy flag, and a message from
+    the connector — no mocks, no cached state.
+
+    Raises 404 if the connector name is not registered.
+    Raises 502 if the health probe itself raises an unexpected exception.
+    """
+    name_lower = name.strip().lower()
+    uc = _get_universal()
+    conn = uc.get_connector(name_lower)
+
+    if conn is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Connector '{name_lower}' not found",
+        )
+
+    try:
+        health = conn.health_check()
+    except Exception as exc:  # pragma: no cover — network errors in prod
+        logger.error("health_check failed for connector '%s': %s", name_lower, type(exc).__name__)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Health probe failed for connector '{name_lower}': {type(exc).__name__}",
+        ) from exc
+
+    result = health.to_dict()
+    result["name"] = name_lower
+    return result
+
+
 @router.get("/health", summary="Connectors health")
 async def connectors_health() -> Dict[str, Any]:
     """Return health status of the connectors subsystem."""
