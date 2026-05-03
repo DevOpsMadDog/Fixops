@@ -660,6 +660,18 @@ def register_platform_routers(
         _logger.warning("pagerduty_router not available: %s", exc)
 
     try:
+        from apps.api.aws_securityhub_router import (
+            router as aws_securityhub_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            aws_securityhub_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted AWS Security Hub router at /api/v1/aws-securityhub (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("aws_securityhub_router not available: %s", exc)
+
+    try:
         from apps.api.slack_bot_router import (
             router as slack_bot_router,  # noqa: PLC0415
         )
@@ -2231,3 +2243,25 @@ def register_platform_routers(
         _logger.info("Mounted OpenCTI threat-intel router (read:scans)")
     except ImportError as exc:
         _logger.warning("opencti_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Microsoft Sentinel (Azure SIEM/SOAR) — 2026-05-04
+    # GET  /api/v1/azure-sentinel/                  capability summary    (read:scans)
+    # GET  /api/v1/azure-sentinel/incidents         list incidents        (read:scans)
+    # GET  /api/v1/azure-sentinel/alertRules        list alert rules      (read:scans)
+    # GET  /api/v1/azure-sentinel/bookmarks         list bookmarks        (read:scans)
+    # GET  /api/v1/azure-sentinel/watchlists        list watchlists       (read:scans)
+    # POST /api/v1/azure-sentinel/entities/expand   expand entity         (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.azure_sentinel_router import router as azure_sentinel_router  # noqa: PLC0415
+        app.include_router(
+            azure_sentinel_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Azure Sentinel router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("azure_sentinel_router not available: %s", exc)
