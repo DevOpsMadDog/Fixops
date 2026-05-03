@@ -788,6 +788,69 @@ class KnowledgeBrain:
                     results.append(node)
             return results
 
+    def pagerank(
+        self,
+        limit: int = 20,
+        alpha: float = 0.85,
+        max_iter: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Return top-N nodes ranked by PageRank influence score.
+
+        Uses NetworkX ``pagerank`` on the in-memory MultiDiGraph when available;
+        falls back to a degree-count approximation via SQLite when NetworkX is
+        absent or the graph is empty.
+
+        Args:
+            limit: Number of top nodes to return (default 20, max 100).
+            alpha: Damping factor (default 0.85, standard PageRank value).
+            max_iter: Maximum power-iteration steps (default 100).
+
+        Returns:
+            List of node dicts with an extra ``pagerank_score`` key, sorted
+            descending by score.
+        """
+        limit = min(max(1, limit), 100)
+
+        if self._graph is not None and nx is not None and self._graph.number_of_nodes() > 0:
+            try:
+                scores: Dict[str, float] = nx.pagerank(
+                    self._graph, alpha=alpha, max_iter=max_iter
+                )
+                top = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:limit]
+                results = []
+                for node_id, score in top:
+                    node = self.get_node(node_id)
+                    if node:
+                        node["pagerank_score"] = round(score, 8)
+                        results.append(node)
+                return results
+            except Exception:  # noqa: BLE001 — fall through to SQL approximation
+                pass
+
+        # SQL-based degree approximation when NetworkX unavailable / graph empty
+        with self._conn_lock:
+            cursor = self._conn.execute(
+                """
+                SELECT node_id, SUM(cnt) AS degree FROM (
+                    SELECT source_id AS node_id, COUNT(*) AS cnt
+                      FROM brain_edges GROUP BY source_id
+                    UNION ALL
+                    SELECT target_id AS node_id, COUNT(*) AS cnt
+                      FROM brain_edges GROUP BY target_id
+                ) GROUP BY node_id ORDER BY degree DESC LIMIT ?
+                """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+        total_degree = sum(r[1] for r in rows) or 1
+        results = []
+        for row in rows:
+            node = self.get_node(row[0])
+            if node:
+                node["pagerank_score"] = round(row[1] / total_degree, 8)
+                results.append(node)
+        return results
+
     def risk_score_for_node(self, node_id: str) -> float:
         """Calculate composite risk score based on graph context."""
         node = self.get_node(node_id)

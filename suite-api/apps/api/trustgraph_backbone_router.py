@@ -431,6 +431,61 @@ async def get_emit_rate() -> Dict[str, Any]:
 
 
 # ============================================================================
+# GET /api/v1/graph/pagerank
+# ============================================================================
+
+
+@router.get("/pagerank")
+async def get_pagerank(
+    limit: int = Query(default=20, ge=1, le=100, description="Top-N nodes to return"),
+    alpha: float = Query(default=0.85, ge=0.01, le=0.99, description="Damping factor"),
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """Return top-N entities ranked by PageRank influence score.
+
+    PageRank measures a node's structural importance inside the TrustGraph
+    knowledge graph: nodes with many high-authority inbound edges score higher.
+    High-scoring entities are the most-referenced assets, findings, or threat
+    actors — the choke-points that dominate lateral movement and blast radius.
+
+    Uses NetworkX ``pagerank`` on the in-memory MultiDiGraph (alpha=0.85 by
+    default). Falls back to a degree-normalised approximation when the graph
+    is empty or NetworkX is unavailable.
+
+    Args:
+        limit: Number of top nodes (1-100, default 20).
+        alpha: Damping factor (0.01-0.99, default 0.85).
+        org_id: Tenant org ID.
+
+    Returns:
+        ranked: list of node dicts with pagerank_score, sorted descending.
+        total_nodes: total node count in graph.
+        algorithm: "networkx_pagerank" or "degree_approximation".
+        alpha: damping factor used.
+    """
+    try:
+        from core.knowledge_brain import get_brain
+
+        brain = get_brain()
+        ranked = brain.pagerank(limit=limit, alpha=alpha)
+        algorithm = (
+            "networkx_pagerank"
+            if brain._graph is not None and brain._graph.number_of_nodes() > 0
+            else "degree_approximation"
+        )
+        return {
+            "ranked": ranked,
+            "total_nodes": brain.node_count(),
+            "algorithm": algorithm,
+            "alpha": alpha,
+            "limit": limit,
+        }
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/pagerank failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
 # GET /api/v1/graph/visualize/{entity_id}
 # ============================================================================
 
