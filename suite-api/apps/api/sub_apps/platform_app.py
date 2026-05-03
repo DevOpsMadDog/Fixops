@@ -2741,6 +2741,32 @@ def register_platform_routers(
         _logger.info("Mounted Snyk vulnerability router (read:scans)")
     except ImportError as exc:
         _logger.warning("snyk_router not available: %s", exc)
+    # ------------------------------------------------------------------
+    # Pulumi Cloud (REST surface) — 2026-05-04
+    # GET  /api/v1/pulumi/                                                  capability summary  (read:scans)
+    # GET  /api/v1/pulumi/api/user                                          viewer + orgs       (read:scans)
+    # GET  /api/v1/pulumi/api/orgs/{org}/stacks                             stacks list         (read:scans)
+    # GET  /api/v1/pulumi/api/stacks/{org}/{project}/{stack}                stack detail        (read:scans)
+    # GET  /api/v1/pulumi/api/stacks/{org}/{project}/{stack}/updates        updates list        (read:scans)
+    # GET  /api/v1/pulumi/api/stacks/{org}/{project}/{stack}/updates/...    update detail       (read:scans)
+    # GET  /api/v1/pulumi/api/stacks/{org}/{project}/{stack}/exports        state export        (read:scans)
+    # GET  /api/v1/pulumi/api/orgs/{org}/policygroups                       policy groups       (read:scans)
+    # GET  /api/v1/pulumi/api/orgs/{org}/policypacks                        policy packs        (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.pulumi_router import router as pulumi_router  # noqa: PLC0415
+        app.include_router(
+            pulumi_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Pulumi Cloud router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("pulumi_router not available: %s", exc)
+
+
 
     # ------------------------------------------------------------------
     # 42Crunch API Security (Platform v2 surface) — 2026-05-04
