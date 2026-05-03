@@ -2564,6 +2564,31 @@ def register_platform_routers(
         _logger.warning("imperva_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Mimecast Email Security (TTP URL decode + Gateway hold + Threat-Intel
+    #   feed + SIEM logs + Managed senders + Anti-spoofing policy) - 2026-05-04
+    # GET  /api/v1/mimecast/                                          capability summary  (read:scans)
+    # POST /api/v1/mimecast/api/ttp/url/decode-url                    decode rewritten URLs (read:scans)
+    # POST /api/v1/mimecast/api/gateway/get-hold-message-list         list held messages   (read:scans)
+    # POST /api/v1/mimecast/api/gateway/release-hold-message          release held messages (read:scans)
+    # POST /api/v1/mimecast/api/ttp/threat-intel/get-feed             pull threat-intel feed (read:scans)
+    # POST /api/v1/mimecast/api/audit/get-siem-logs                   pull SIEM audit logs (read:scans)
+    # POST /api/v1/mimecast/api/managedsender/get-managed-senders     list managed senders (read:scans)
+    # POST /api/v1/mimecast/api/policy/anti-spoofing/get-policy       list anti-spoofing policies (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.mimecast_router import router as mimecast_router  # noqa: PLC0415
+        app.include_router(
+            mimecast_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Mimecast Email Security router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("mimecast_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Duo Security MFA (Auth v2 + Admin v1) - 2026-05-04
     # GET  /api/v1/duo/                              capability summary    (read:scans)
     # POST /api/v1/duo/auth/v2/preauth               enrollment + factors  (read:scans)
