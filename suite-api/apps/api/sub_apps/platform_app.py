@@ -648,6 +648,18 @@ def register_platform_routers(
         _logger.warning("jira_cloud_router not available: %s", exc)
 
     try:
+        from apps.api.mattermost_router import (
+            router as mattermost_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            mattermost_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Mattermost router at /api/v1/mattermost (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("mattermost_router not available: %s", exc)
+
+    try:
         from apps.api.jenkins_router import (
             router as jenkins_router,  # noqa: PLC0415
         )
