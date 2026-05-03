@@ -3,6 +3,7 @@ Enterprise SSO Router — SAML 2.0 and OIDC authentication endpoints.
 
 Routes:
     GET  /api/v1/auth/sso/providers           — list configured SSO providers
+    GET  /api/v1/auth/sso/saml/config         — active SAML SP runtime config
     GET  /api/v1/auth/sso/{provider}/login    — initiate SSO flow
     POST /api/v1/auth/sso/{provider}/callback — IdP callback, issue JWT
     GET  /api/v1/auth/sso/{provider}/metadata — SAML SP metadata
@@ -113,6 +114,23 @@ class LogoutResponse(BaseModel):
     message: str
 
 
+class SAMLSPConfigResponse(BaseModel):
+    """Active SAML Service Provider runtime configuration.
+
+    Derived from the live SAMLProvider engine — entity_id, ACS URL, SLO URL,
+    and the full SP metadata XML that should be registered with the IdP.
+    """
+
+    provider: str
+    enabled: bool
+    sp_entity_id: str
+    acs_url: str
+    slo_url: str
+    idp_metadata_url: Optional[str]
+    allowed_domains: List[str]
+    metadata_xml: str
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -190,6 +208,49 @@ async def list_sso_providers(request: Request) -> ProviderListResponse:
             )
         ],
         count=1,
+    )
+
+
+@router.get("/saml/config", response_model=SAMLSPConfigResponse)
+async def saml_sp_config() -> SAMLSPConfigResponse:
+    """Return the active SAML SP runtime configuration.
+
+    Reads the live SAMLProvider engine configuration derived from env vars
+    (FIXOPS_SSO_PROVIDER=generic_saml, FIXOPS_SP_ENTITY_ID, etc.) and returns
+    the SP descriptor that must be registered with the IdP — including entity ID,
+    ACS URL, SLO URL, and the full metadata XML.
+
+    Returns 503 when SSO is disabled, 400 when the configured provider is not SAML.
+    """
+    enabled = os.getenv("FIXOPS_SSO_ENABLED", "").strip() in ("1", "true", "yes")
+    if not enabled:
+        raise HTTPException(status_code=503, detail="SSO is not enabled")
+
+    provider_name = os.getenv("FIXOPS_SSO_PROVIDER", "generic_saml")
+    if provider_name != "generic_saml":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Active SSO provider is '{provider_name}', not 'generic_saml'. "
+                   "Switch FIXOPS_SSO_PROVIDER=generic_saml to use this endpoint.",
+        )
+
+    cfg = _load_config("generic_saml")
+    saml = SAMLProvider(cfg)
+
+    sp_entity = cfg.sp_entity_id or "https://aldeci.example.com/sso/sp"
+    acs_url = f"{sp_entity}/acs"
+    slo_url = f"{sp_entity}/slo"
+    metadata_xml = saml.get_metadata()
+
+    return SAMLSPConfigResponse(
+        provider="generic_saml",
+        enabled=cfg.enabled,
+        sp_entity_id=sp_entity,
+        acs_url=acs_url,
+        slo_url=slo_url,
+        idp_metadata_url=cfg.idp_metadata_url,
+        allowed_domains=cfg.allowed_domains,
+        metadata_xml=metadata_xml,
     )
 
 
