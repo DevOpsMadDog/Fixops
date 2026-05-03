@@ -482,6 +482,37 @@ class WebhookDLQ:
 
         return [_row_to_delivery(r) for r in rows]
 
+    def replay_by_event_id(self, event_id: str, org_id: str) -> int:
+        """Reset all deliveries for a given event_id (org-scoped) for manual replay.
+
+        Resets status to PENDING, clears attempts and last_error,
+        sets next_retry_at to now for every delivery tied to event_id
+        that belongs to org_id.
+
+        Returns the count of deliveries reset.
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        try:
+            with self._lock:
+                conn = _get_db(self._db_path)
+                try:
+                    cur = conn.execute(
+                        """UPDATE webhook_deliveries
+                               SET status=?, attempts=0, last_error=NULL,
+                                   next_retry_at=?, completed_at=NULL
+                             WHERE event_id=? AND org_id=?""",
+                        (DeliveryStatus.PENDING.value, now, event_id, org_id),
+                    )
+                    conn.commit()
+                    count = cur.rowcount
+                finally:
+                    conn.close()
+        except sqlite3.Error as exc:
+            raise RuntimeError(f"Failed to replay event {event_id} for org {org_id}: {exc}") from exc
+
+        logger.info("Replayed %d deliveries for event_id=%s org=%s", count, event_id, org_id)
+        return count
+
     # ------------------------------------------------------------------
     # Backoff calculation
     # ------------------------------------------------------------------

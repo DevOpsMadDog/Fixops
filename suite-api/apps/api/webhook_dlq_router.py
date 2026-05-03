@@ -1,14 +1,16 @@
 """Webhook DLQ Router — dead letter queue management for failed webhook deliveries.
 
-10 endpoints at /api/v1/webhooks/dlq/*:
+12 endpoints at /api/v1/webhooks/dlq/*:
     GET    /api/v1/webhooks/dlq/                          -- list deliveries (org-scoped)
     POST   /api/v1/webhooks/dlq/enqueue                   -- manually enqueue a delivery
     GET    /api/v1/webhooks/dlq/pending                   -- list ready-for-retry deliveries
     GET    /api/v1/webhooks/dlq/dead-letters              -- list dead-lettered deliveries
     GET    /api/v1/webhooks/dlq/stats                     -- DLQ status counts
     GET    /api/v1/webhooks/dlq/analytics                 -- failure analytics
+    GET    /api/v1/webhooks/dlq/{delivery_id}             -- fetch single delivery
     POST   /api/v1/webhooks/dlq/{delivery_id}/replay      -- manual replay single delivery
     POST   /api/v1/webhooks/dlq/replay-batch              -- bulk replay
+    POST   /api/v1/webhooks/dlq/replay-by-event           -- replay all deliveries for an event_id
     DELETE /api/v1/webhooks/dlq/purge/delivered           -- purge old delivered records
     DELETE /api/v1/webhooks/dlq/purge/dead-letters        -- purge dead letters for org
 """
@@ -44,6 +46,10 @@ class EnqueueRequest(BaseModel):
 
 class ReplayBatchRequest(BaseModel):
     delivery_ids: List[str] = Field(..., min_length=1, max_length=100)
+
+
+class ReplayByEventRequest(BaseModel):
+    event_id: str = Field(..., max_length=256, description="Replay all deliveries for this event_id")
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +156,50 @@ async def failure_analytics(org_id: str = Depends(get_org_id)) -> Dict[str, Any]
     except RuntimeError as exc:
         logger.error("get_failure_analytics failed: %s", exc)
         raise HTTPException(500, "Internal DLQ error") from exc
+
+
+@router.get("/{delivery_id}")
+async def get_delivery(
+    delivery_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Fetch a single webhook delivery by ID (org-scoped)."""
+    try:
+        delivery = _dlq.get_delivery(delivery_id)
+    except ValueError:
+        raise HTTPException(404, f"Delivery {delivery_id} not found")
+    except RuntimeError as exc:
+        logger.error("get_delivery failed for %s: %s", delivery_id, exc)
+        raise HTTPException(500, "Internal DLQ error") from exc
+
+    if delivery.org_id != org_id:
+        raise HTTPException(403, "Delivery does not belong to this organization")
+
+    return _delivery_to_dict(delivery)
+
+
+@router.post("/replay-by-event")
+async def replay_by_event(
+    req: ReplayByEventRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Reset all deliveries for a given event_id for manual replay (org-scoped).
+
+    Useful for replaying an entire event fan-out when the upstream event
+    must be re-delivered to all matching webhooks.
+    Returns the count of deliveries reset to PENDING.
+    """
+    try:
+        count = _dlq.replay_by_event_id(event_id=req.event_id, org_id=org_id)
+    except RuntimeError as exc:
+        logger.error("replay_by_event failed for event_id=%s: %s", req.event_id, exc)
+        raise HTTPException(500, "Failed to replay event deliveries") from exc
+
+    return {
+        "event_id": req.event_id,
+        "replayed": count,
+        "message": f"{count} delivery/deliveries queued for replay",
+    }
 
 
 @router.post("/{delivery_id}/replay")
