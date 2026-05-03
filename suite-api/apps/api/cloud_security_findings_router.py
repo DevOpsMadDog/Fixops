@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -195,3 +196,27 @@ def get_top_affected_resources(
     limit: int = Query(default=10, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_top_affected_resources(org_id=org_id, limit=limit)
+
+
+@router.get(
+    "/export/csv",
+    summary="Export cloud findings as CSV",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {}}, "description": "CSV export of cloud findings"}},
+)
+def export_findings_csv(
+    org_id: str = Query(default="default"),
+    provider: Optional[str] = Query(default=None),
+    severity: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+) -> Response:
+    """Export filtered cloud findings as a downloadable CSV file."""
+    csv_data = _get_engine().export_findings_csv(
+        org_id=org_id, provider=provider, severity=severity, status=status
+    )
+    filename = f"cloud-findings-{org_id}.csv"
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

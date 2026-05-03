@@ -419,6 +419,42 @@ class CloudSecurityFindingsEngine:
                 ).fetchall()
         return [self._row(r) for r in rows]
 
+    def export_findings_csv(
+        self,
+        org_id: str,
+        provider: Optional[str] = None,
+        severity: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> str:
+        """Return findings as a CSV string with headers.
+
+        Columns: id, org_id, provider, account_id, region, resource_type,
+                 resource_id, finding_title, finding_type, severity, status,
+                 cvss_score, remediation, detected_at, resolved_at
+        """
+        import csv
+        import io
+
+        findings = self.get_findings(
+            org_id=org_id, provider=provider, severity=severity, status=status
+        )
+
+        fieldnames = [
+            "id", "org_id", "provider", "account_id", "region", "resource_type",
+            "resource_id", "finding_title", "finding_type", "severity", "status",
+            "cvss_score", "remediation", "detected_at", "resolved_at",
+        ]
+
+        buf = io.StringIO()
+        writer = csv.DictWriter(
+            buf, fieldnames=fieldnames, extrasaction="ignore", lineterminator="\n"
+        )
+        writer.writeheader()
+        for finding in findings:
+            writer.writerow(finding)
+
+        return buf.getvalue()
+
     def bulk_ingest(
         self, org_id: str, findings_list: List[Dict[str, Any]]
     ) -> Dict[str, int]:
