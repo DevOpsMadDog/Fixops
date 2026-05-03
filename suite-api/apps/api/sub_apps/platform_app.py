@@ -2491,6 +2491,29 @@ def register_platform_routers(
         _logger.warning("snyk_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Veracode SAST Scanner (REST AppSec v1/v2 surface) — 2026-05-04
+    # GET  /api/v1/veracode/                                             capability summary  (read:scans)
+    # GET  /api/v1/veracode/appsec/v1/applications                       application list    (read:scans)
+    # GET  /api/v1/veracode/appsec/v1/applications/{guid}                single application  (read:scans)
+    # GET  /api/v1/veracode/appsec/v2/applications/{guid}/findings       findings list       (read:scans)
+    # GET  /api/v1/veracode/appsec/v1/findings/{id}/annotations          annotations         (read:scans)
+    # GET  /api/v1/veracode/appsec/v1/policies                           policies list       (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.veracode_router import router as veracode_router  # noqa: PLC0415
+        app.include_router(
+            veracode_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Veracode SAST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("veracode_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
     # Vanta Compliance (REST v1 surface) — 2026-05-04
     # GET  /api/v1/vanta/                                            capability summary  (read:scans)
     # GET  /api/v1/vanta/v1/controls                                 list controls       (read:scans)
