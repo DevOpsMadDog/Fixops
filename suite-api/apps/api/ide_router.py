@@ -93,6 +93,32 @@ class FindingsForFileRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/")
+def get_ide_status() -> Dict[str, Any]:
+    """IDE integration health and capability summary."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    patterns = integration.get_patterns()
+    return {
+        "status": "ok",
+        "supported_languages": ["python", "typescript", "javascript"],
+        "pattern_count": len(patterns),
+        "endpoints": [
+            "POST /scan/file",
+            "POST /scan/diff",
+            "POST /fix",
+            "POST /sessions/register",
+            "POST /sessions/{session_id}/heartbeat",
+            "GET  /sessions",
+            "GET  /stats",
+            "GET  /patterns",
+            "POST /findings/file",
+            "POST /project/summary",
+        ],
+    }
+
+
 @router.post("/scan/file")
 def scan_file(request: ScanFileRequest) -> Dict[str, Any]:
     """Scan a file's content for SAST findings."""
