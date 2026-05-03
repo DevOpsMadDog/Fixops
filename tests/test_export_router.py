@@ -359,3 +359,52 @@ def test_empty_org_csv_returns_header_only(client):
     reader = csv.DictReader(io.StringIO(r.text))
     rows = list(reader)
     assert rows == []
+
+
+# ---------------------------------------------------------------------------
+# 8. Dashboard export — new endpoint GET /api/v1/export/dashboard
+# ---------------------------------------------------------------------------
+
+def test_export_dashboard_json_status_200(client):
+    r = client.get("/api/v1/export/dashboard?format=json&org_id=testorg")
+    assert r.status_code == 200
+
+
+def test_export_dashboard_json_has_five_severity_tiers(client):
+    r = client.get("/api/v1/export/dashboard?format=json&org_id=testorg")
+    data = json.loads(r.text)
+    assert isinstance(data, list)
+    assert len(data) == 5
+    severities = [row["severity"] for row in data]
+    assert set(severities) == {"critical", "high", "medium", "low", "info"}
+
+
+def test_export_dashboard_json_critical_alert_count(client):
+    r = client.get("/api/v1/export/dashboard?format=json&org_id=testorg")
+    data = json.loads(r.text)
+    critical = next(row for row in data if row["severity"] == "critical")
+    # Seeded data: 1 critical alert, 1 critical asset
+    assert critical["alert_count"] == 1
+    assert critical["asset_count"] == 1
+
+
+def test_export_dashboard_json_zero_counts_for_unseen_tiers(client):
+    r = client.get("/api/v1/export/dashboard?format=json&org_id=testorg")
+    data = json.loads(r.text)
+    info_row = next(row for row in data if row["severity"] == "info")
+    # No seeded data for info tier
+    assert info_row["alert_count"] == 0
+    assert info_row["open_vuln_count"] == 0
+    assert info_row["asset_count"] == 0
+
+
+def test_export_dashboard_csv_status_200(client):
+    r = client.get("/api/v1/export/dashboard?format=csv&org_id=testorg")
+    assert r.status_code == 200
+    assert "text/csv" in r.headers["content-type"]
+
+
+def test_export_dashboard_csv_columns(client):
+    r = client.get("/api/v1/export/dashboard?format=csv&org_id=testorg")
+    reader = csv.DictReader(io.StringIO(r.text))
+    assert set(reader.fieldnames) == {"org_id", "severity", "alert_count", "open_vuln_count", "asset_count"}

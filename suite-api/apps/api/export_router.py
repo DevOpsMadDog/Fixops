@@ -263,6 +263,57 @@ def export_compliance(
     return _make_response(rows, _COMPLIANCE_COLUMNS, format, f"compliance_{org_id}")
 
 
+@router.get("/dashboard")
+def export_dashboard(
+    org_id: str = Query("default", description="Organization ID"),
+    format: str = Query("json", description="Export format: csv or json"),
+) -> StreamingResponse:
+    """Export a dashboard summary for an org — alert/vuln/asset counts by severity.
+
+    Returns one row per severity tier (critical, high, medium, low, info) with
+    the counts of alerts, open vulnerabilities, and assets at that tier.
+    Useful for executive reporting and automated compliance evidence.
+    """
+    # Fetch raw rows from each domain DB
+    alert_rows = _fetch_rows(
+        _alert_db_path(),
+        "SELECT severity, COUNT(*) AS cnt FROM at_alerts WHERE org_id = ? GROUP BY severity",
+        (org_id,),
+    )
+    vuln_rows = _fetch_rows(
+        _vuln_db_path(),
+        "SELECT severity, COUNT(*) AS cnt FROM vuln_findings WHERE org_id = ? AND finding_status = 'open' GROUP BY severity",
+        (org_id,),
+    )
+    asset_rows = _fetch_rows(
+        _asset_db_path(),
+        "SELECT criticality AS severity, COUNT(*) AS cnt FROM managed_assets WHERE org_id = ? GROUP BY criticality",
+        (org_id,),
+    )
+
+    # Aggregate by severity tier
+    TIERS = ["critical", "high", "medium", "low", "info"]
+    alert_by_sev = {r["severity"]: r["cnt"] for r in alert_rows}
+    vuln_by_sev = {r["severity"]: r["cnt"] for r in vuln_rows}
+    asset_by_sev = {r["severity"]: r["cnt"] for r in asset_rows}
+
+    summary_rows = [
+        {
+            "org_id": org_id,
+            "severity": tier,
+            "alert_count": alert_by_sev.get(tier, 0),
+            "open_vuln_count": vuln_by_sev.get(tier, 0),
+            "asset_count": asset_by_sev.get(tier, 0),
+        }
+        for tier in TIERS
+    ]
+
+    _DASHBOARD_COLUMNS = [
+        "org_id", "severity", "alert_count", "open_vuln_count", "asset_count",
+    ]
+    return _make_response(summary_rows, _DASHBOARD_COLUMNS, format, f"dashboard_{org_id}")
+
+
 @router.get("/assets")
 def export_assets(
     org_id: str = Query("default", description="Organization ID"),
