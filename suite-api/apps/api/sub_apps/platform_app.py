@@ -2704,6 +2704,31 @@ def register_platform_routers(
         _logger.warning("snyk_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # 42Crunch API Security (Platform v2 surface) — 2026-05-04
+    # GET  /api/v1/apicrunch/                                                       capability summary  (read:scans)
+    # GET  /api/v1/apicrunch/api/v2/collections                                     list collections    (read:scans)
+    # GET  /api/v1/apicrunch/api/v2/collections/{coll_id}                           single collection   (read:scans)
+    # GET  /api/v1/apicrunch/api/v2/collections/{coll_id}/apis                      apis in collection  (read:scans)
+    # GET  /api/v1/apicrunch/api/v2/apis/{api_id}                                   api descriptor      (read:scans)
+    # GET  /api/v1/apicrunch/api/v2/apis/{api_id}/auditReport                       audit report        (read:scans)
+    # POST /api/v1/apicrunch/api/v2/apis/{api_id}/scan                              trigger scan        (read:scans)
+    # GET  /api/v1/apicrunch/api/v2/apis/{api_id}/scanReport                        latest scan report  (read:scans)
+    # GET  /api/v1/apicrunch/api/v2/apis/{api_id}/scanReport/{scan_id}              scan report by id   (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.apicrunch_router import router as apicrunch_router  # noqa: PLC0415
+        app.include_router(
+            apicrunch_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted 42Crunch API security router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("apicrunch_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Veracode SAST Scanner (REST AppSec v1/v2 surface) — 2026-05-04
     # GET  /api/v1/veracode/                                             capability summary  (read:scans)
     # GET  /api/v1/veracode/appsec/v1/applications                       application list    (read:scans)
@@ -3245,6 +3270,58 @@ def register_platform_routers(
 
 
     # ------------------------------------------------------------------
+    # Akto — API Security platform (read:scans)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/akto/                              capability summary
+    # GET  /api/v1/akto/api/discovered-apis           inventory of discovered APIs
+    # GET  /api/v1/akto/api/sensitive-data            sensitive-data findings
+    # GET  /api/v1/akto/api/test-results              security test results
+    # GET  /api/v1/akto/api/runtime-issues            runtime-detected issues
+    # POST /api/v1/akto/api/start-test                kick off a test run
+    # GET  /api/v1/akto/api/test-runs                 historical test-run summaries
+    # GET  /api/v1/akto/api/collections               API collection list
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.akto_router import router as akto_router  # noqa: PLC0415
+        app.include_router(
+            akto_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Akto API security router at /api/v1/akto (read:scans)")
+    except ImportError as exc:
+        _logger.warning("akto_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
+    # Salt Security — API protection telemetry (read:scans)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/salt-security/                                    capability summary
+    # POST /api/v1/salt-security/api/oauth/token                     OAuth2 client_credentials
+    # GET  /api/v1/salt-security/api/v1/incidents                    incidents (paged, filterable)
+    # GET  /api/v1/salt-security/api/v1/api-catalog                  API catalog (paged, filterable)
+    # GET  /api/v1/salt-security/api/v1/api-catalog/{id}             single API entry
+    # GET  /api/v1/salt-security/api/v1/api-catalog/{id}/endpoints   endpoints w/ sensitive overlay
+    # GET  /api/v1/salt-security/api/v1/attackers                    attackers (page-token paged)
+    # GET  /api/v1/salt-security/api/v1/policies                     detection/protection policies
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.salt_security_router import router as salt_security_router  # noqa: PLC0415
+        app.include_router(
+            salt_security_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Salt Security router at /api/v1/salt-security (read:scans)")
+    except ImportError as exc:
+        _logger.warning("salt_security_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
     # Zscaler ZIA — Internet Access REST surfaces (read:scans)
     # ------------------------------------------------------------------
     # GET    /api/v1/zscaler-zia/                                    capability summary
@@ -3324,3 +3401,28 @@ def register_platform_routers(
         _logger.info("Mounted CyberArk PAM (PVWA) router at /api/v1/cyberark-pam (read:scans)")
     except ImportError as exc:
         _logger.warning("cyberark_pam_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Traceable AI (Runtime API security: services + APIs + anomalies +
+    #   threats + users-and-attribution + policy-test) - 2026-05-04
+    # GET  /api/v1/traceable/                                  capability summary           (read:scans)
+    # GET  /api/v1/traceable/api/v1/services                   service inventory            (read:scans)
+    # GET  /api/v1/traceable/api/v1/apis                       API inventory                (read:scans)
+    # GET  /api/v1/traceable/api/v1/apis/{api_id}              API detail                   (read:scans)
+    # GET  /api/v1/traceable/api/v1/anomalies                  runtime anomalies            (read:scans)
+    # GET  /api/v1/traceable/api/v1/threats                    active threats               (read:scans)
+    # GET  /api/v1/traceable/api/v1/users-and-attribution      attributed users             (read:scans)
+    # POST /api/v1/traceable/api/v1/policies/test              policy evaluation            (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.traceable_router import router as traceable_router  # noqa: PLC0415
+        app.include_router(
+            traceable_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Traceable AI router at /api/v1/traceable (read:scans)")
+    except ImportError as exc:
+        _logger.warning("traceable_router not available: %s", exc)
