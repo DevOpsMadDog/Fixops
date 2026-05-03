@@ -6656,6 +6656,13 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("fips_compliance_router unavailable: %s", _e)
 
+    try:
+        from apps.api.upgrade_path_router import router as upgrade_path_router
+        app.include_router(upgrade_path_router)
+        _logger.info("Mounted Upgrade Path Resolver router at /api/v1/upgrade-path")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("upgrade_path_router unavailable: %s", _e)
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they
