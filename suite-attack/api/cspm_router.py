@@ -22,6 +22,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.cspm_engine import (
+    AllowlistEntry,
     CloudProvider,
     CloudResource,
     CSPMFinding,
@@ -66,6 +67,18 @@ class TriggerScanRequest(BaseModel):
 
 class SuppressFindingRequest(BaseModel):
     reason: str = Field(..., description="Reason for suppressing this finding")
+
+
+class AddAllowlistRequest(BaseModel):
+    rule_id: str = Field(..., description="CSPM rule ID to suppress (e.g. CSPM-AWS-001)")
+    resource_id: Optional[str] = Field(
+        None, description="Specific resource ID — omit to suppress rule org-wide"
+    )
+    reason: str = Field(..., description="Business justification for this exception")
+    created_by: str = Field("system", description="User or service creating the entry")
+    expires_at: Optional[str] = Field(
+        None, description="ISO-8601 expiry timestamp — omit for permanent exception"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -282,3 +295,60 @@ def cspm_health() -> Dict[str, Any]:
 def cspm_status() -> Dict[str, Any]:
     """Status alias for /health — returns CSPM engine operational status."""
     return cspm_health()
+
+
+# ---------------------------------------------------------------------------
+# Allowlist / finding-suppression endpoints
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/allowlist",
+    summary="Add a CSPM finding-suppression allowlist entry",
+    response_model=AllowlistEntry,
+    status_code=201,
+)
+def add_allowlist_entry(req: AddAllowlistRequest) -> AllowlistEntry:
+    """Create a persistent allowlist entry that suppresses future findings for a
+    given rule (optionally scoped to a specific resource).
+
+    Use this when a finding represents an accepted risk or a known false-positive
+    that should not surface in posture dashboards.  Supply an *expires_at*
+    timestamp for time-boxed exceptions; omit for permanent suppression.
+    """
+    entry = AllowlistEntry(
+        rule_id=req.rule_id,
+        resource_id=req.resource_id,
+        reason=req.reason,
+        created_by=req.created_by,
+        expires_at=req.expires_at,
+    )
+    try:
+        return _engine().add_allowlist_entry(entry)
+    except Exception as exc:
+        logger.exception("Failed to add allowlist entry: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to add allowlist entry: {exc}") from exc
+
+
+@router.get(
+    "/allowlist",
+    summary="List CSPM finding-suppression allowlist entries",
+    response_model=List[AllowlistEntry],
+)
+def list_allowlist_entries(
+    org_id: str = Query("default", description="Organisation ID"),
+    rule_id: Optional[str] = Query(None, description="Filter by CSPM rule ID"),
+) -> List[AllowlistEntry]:
+    """Return all allowlist entries for an org, optionally filtered by rule ID."""
+    return _engine().list_allowlist(org_id=org_id, rule_id=rule_id)
+
+
+@router.delete(
+    "/allowlist/{entry_id}",
+    summary="Delete a CSPM allowlist entry",
+)
+def delete_allowlist_entry(entry_id: str) -> Dict[str, Any]:
+    """Remove an allowlist entry — future scans will re-raise the finding if still applicable."""
+    deleted = _engine().delete_allowlist_entry(entry_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Allowlist entry '{entry_id}' not found")
+    return {"deleted": True, "entry_id": entry_id}

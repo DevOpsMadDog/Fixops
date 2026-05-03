@@ -210,6 +210,38 @@ def _build_scan_config(req: ScanRequest):
 # Routes
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+async def dast_root() -> Dict[str, Any]:
+    """DAST scanner capabilities and available endpoints."""
+    return {
+        "service": "DAST Scanner",
+        "version": "1.0.0",
+        "description": "Dynamic Application Security Testing — real HTTP-based security scans",
+        "capabilities": [
+            "web_crawl",
+            "sql_injection",
+            "xss",
+            "path_traversal",
+            "ssrf",
+            "security_headers",
+            "info_disclosure",
+            "api_scan_openapi",
+            "authenticated_scanning",
+        ],
+        "endpoints": {
+            "POST /scan": "Start a DAST scan (returns scan_id immediately)",
+            "GET /scans/{scan_id}": "Poll scan status and retrieve results",
+            "GET /findings": "List all findings with optional severity/scan_id filter",
+            "GET /headers/{url}": "Quick security-headers check for a URL",
+            "GET /profiles": "List available scan profiles",
+            "GET /stats": "Aggregate scan statistics",
+            "GET /health": "Engine health check",
+        },
+        "auth_modes": ["none", "cookie", "jwt_bearer", "oauth2", "api_key_header", "basic_auth"],
+        "scan_profiles": ["quick", "standard", "full", "api_only"],
+    }
+
+
 @router.post("/scan")
 async def start_scan(req: ScanRequest) -> Dict[str, Any]:
     """Start a DAST scan against a target URL.

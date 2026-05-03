@@ -1892,6 +1892,28 @@ def register_platform_routers(
         _logger.warning("gitleaks_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Shodan Threat-Intel Lookup — 2026-05-04
+    # GET /api/v1/shodan/                       capability summary  (read:scans)
+    # GET /api/v1/shodan/host/{ip}              host enrichment    (read:scans)
+    # GET /api/v1/shodan/search                 search query       (read:scans)
+    # GET /api/v1/shodan/honeyscore/{ip}        honeypot score     (read:scans)
+    # GET /api/v1/shodan/count                  count + facets     (read:scans)
+    # GET /api/v1/shodan/dns/resolve            hostname → IP map  (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.shodan_router import router as shodan_router  # noqa: PLC0415
+        app.include_router(
+            shodan_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Shodan threat-intel router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("shodan_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Prometheus Alerts (in-memory rule catalog + PromQL-subset eval) — 2026-05-04
     # GET  /api/v1/prometheus/                 capability summary       (read:scans)
     # GET  /api/v1/prometheus/groups           rule groups + counts     (read:scans)

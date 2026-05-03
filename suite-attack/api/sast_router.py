@@ -10,6 +10,8 @@ Endpoints:
   GET  /api/v1/sast/languages       — supported languages with rule counts
   GET  /api/v1/sast/summary         — scan summary (findings by language, severity, CWE)
   GET  /api/v1/sast/status          — engine status / health check
+  GET  /api/v1/sast/policy          — active finding-baseline policy (thresholds + gate)
+  PUT  /api/v1/sast/policy          — update finding-baseline policy
 """
 
 from __future__ import annotations
@@ -17,9 +19,10 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from threading import Lock
+from typing import Any, Dict, List, Optional, Set
 
-from core.sast_engine import SAST_RULES, _EXTRA_RULES, get_sast_engine, SASTEngine
+from core.sast_engine import SAST_RULES, _EXTRA_RULES, get_sast_engine, SASTEngine, OWASP_CATEGORIES
 from fastapi import APIRouter, HTTPException, Depends
 from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
@@ -107,6 +110,62 @@ def _sanitize_filename(filename: str) -> str:
 
 
 _SEVERITY_TO_CVSS = {"critical": 9.0, "high": 7.5, "medium": 5.0, "low": 3.0, "info": 1.0}
+
+# ── Finding-Baseline Policy ────────────────────────────────────────────────────
+# Severity order: lower index = more severe
+_SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"]
+
+
+def _severity_ge(a: str, b: str) -> bool:
+    """Return True if severity `a` is >= severity `b` (critical > high > ...)."""
+    try:
+        return _SEVERITY_ORDER.index(a) <= _SEVERITY_ORDER.index(b)
+    except ValueError:
+        return False
+
+
+class _PolicyState:
+    """In-process singleton holding the active SAST finding-baseline policy."""
+
+    _DEFAULT = {
+        "fail_on_severity": "high",       # gate trips if any finding >= this
+        "max_critical": 0,                 # 0 = any critical finding fails gate
+        "max_high": 0,
+        "blocked_cwes": ["CWE-89", "CWE-78", "CWE-502"],  # always-fail CWEs
+        "enabled": True,
+    }
+
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self._policy: Dict[str, Any] = dict(self._DEFAULT)
+        self._updated_at: str = datetime.now(timezone.utc).isoformat()
+
+    def get(self) -> Dict[str, Any]:
+        with self._lock:
+            return dict(self._policy) | {"updated_at": self._updated_at}
+
+    def update(self, patch: Dict[str, Any]) -> Dict[str, Any]:
+        allowed_keys = {"fail_on_severity", "max_critical", "max_high", "blocked_cwes", "enabled"}
+        with self._lock:
+            for k, v in patch.items():
+                if k in allowed_keys:
+                    self._policy[k] = v
+            self._updated_at = datetime.now(timezone.utc).isoformat()
+            return dict(self._policy) | {"updated_at": self._updated_at}
+
+
+_POLICY_STATE = _PolicyState()
+
+
+class PolicyUpdateRequest(BaseModel):
+    fail_on_severity: Optional[str] = Field(
+        None,
+        description="Gate trips when any finding severity >= this (critical/high/medium/low/info)",
+    )
+    max_critical: Optional[int] = Field(None, ge=0, description="Max allowed critical findings (0 = none)")
+    max_high: Optional[int] = Field(None, ge=0, description="Max allowed high findings (0 = none)")
+    blocked_cwes: Optional[List[str]] = Field(None, description="CWE IDs that always trip the gate")
+    enabled: Optional[bool] = Field(None, description="Enable or disable the policy gate")
 
 
 def _persist_sast_findings(
@@ -480,3 +539,152 @@ async def sast_status() -> Dict[str, Any]:
 async def sast_health() -> Dict[str, Any]:
     """SAST engine health check (alias for /status)."""
     return await sast_status()
+
+
+@router.get("/policy")
+async def get_policy(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return the active SAST finding-baseline policy and evaluate it against the
+    most recent scan summary.
+
+    Response fields:
+    - ``policy``: current threshold configuration
+    - ``gate``: ``pass`` | ``fail`` | ``no_scan`` — CI/CD gate decision
+    - ``violations``: list of reasons that tripped the gate
+    - ``summary``: severity breakdown from the latest scan (or null)
+    """
+    policy = _POLICY_STATE.get()
+    engine = get_sast_engine()
+    summary = engine.get_summary()
+
+    if summary.get("status") == "no_scan" or not policy.get("enabled", True):
+        return {
+            "policy": policy,
+            "gate": "no_scan" if summary.get("status") == "no_scan" else "pass",
+            "violations": [],
+            "summary": summary if summary.get("status") != "no_scan" else None,
+        }
+
+    by_severity: Dict[str, int] = summary.get("by_severity", {})
+    by_cwe: Dict[str, int] = summary.get("by_cwe", {})
+    violations: List[str] = []
+
+    # 1. Severity threshold gate
+    fail_on = policy.get("fail_on_severity", "high")
+    for sev in _SEVERITY_ORDER:
+        count = by_severity.get(sev, 0)
+        if count > 0 and _severity_ge(sev, fail_on):
+            violations.append(
+                f"{count} {sev} finding(s) exceed fail_on_severity={fail_on!r}"
+            )
+
+    # 2. Hard caps on critical / high
+    critical_count = by_severity.get("critical", 0)
+    high_count = by_severity.get("high", 0)
+    max_critical = policy.get("max_critical", 0)
+    max_high = policy.get("max_high", 0)
+    if critical_count > max_critical:
+        violations.append(
+            f"{critical_count} critical finding(s) exceed max_critical={max_critical}"
+        )
+    if high_count > max_high:
+        violations.append(
+            f"{high_count} high finding(s) exceed max_high={max_high}"
+        )
+
+    # 3. Blocked CWEs
+    blocked: List[str] = policy.get("blocked_cwes", [])
+    for cwe in blocked:
+        cnt = by_cwe.get(cwe, 0)
+        if cnt > 0:
+            violations.append(f"{cnt} finding(s) match blocked CWE {cwe}")
+
+    # Deduplicate while preserving order
+    seen: Set[str] = set()
+    unique_violations: List[str] = []
+    for v in violations:
+        if v not in seen:
+            seen.add(v)
+            unique_violations.append(v)
+
+    gate = "fail" if unique_violations else "pass"
+    return {
+        "policy": policy,
+        "gate": gate,
+        "violations": unique_violations,
+        "summary": summary,
+    }
+
+
+@router.put("/policy")
+async def update_policy(
+    req: PolicyUpdateRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Update the active SAST finding-baseline policy thresholds.
+
+    Only supplied fields are changed; omitted fields keep their current value.
+    """
+    patch: Dict[str, Any] = {}
+    if req.fail_on_severity is not None:
+        sev = req.fail_on_severity.lower()
+        if sev not in _SEVERITY_ORDER:
+            raise HTTPException(
+                400,
+                f"Invalid fail_on_severity {sev!r}. Must be one of {_SEVERITY_ORDER}",
+            )
+        patch["fail_on_severity"] = sev
+    if req.max_critical is not None:
+        patch["max_critical"] = req.max_critical
+    if req.max_high is not None:
+        patch["max_high"] = req.max_high
+    if req.blocked_cwes is not None:
+        # Normalise: strip whitespace, upper-case
+        patch["blocked_cwes"] = [c.strip().upper() for c in req.blocked_cwes]
+    if req.enabled is not None:
+        patch["enabled"] = req.enabled
+
+    updated = _POLICY_STATE.update(patch)
+    return {"policy": updated, "message": "Policy updated"}
+
+
+@router.get("/rules/coverage")
+async def rule_coverage() -> Dict[str, Any]:
+    """Return ruleset coverage statistics grouped by CWE, severity, and language.
+
+    Aggregates all built-in and extra rules (excludes runtime custom rules which
+    have no stable CWE corpus).  Useful for compliance dashboards and gap analysis.
+
+    Response fields:
+    - ``total_rules``: total built-in rule count
+    - ``by_severity``: rule count keyed by severity level
+    - ``by_cwe``: rule count keyed by CWE ID
+    - ``by_language``: rule count keyed by language
+    - ``owasp_coverage``: rule count per OWASP Top 10 category
+    - ``cwe_list``: sorted list of distinct CWE IDs covered
+    """
+    all_rules = list(SAST_RULES) + list(_EXTRA_RULES)
+
+    by_severity: Dict[str, int] = {}
+    by_cwe: Dict[str, int] = {}
+    by_language: Dict[str, int] = {}
+
+    for rule in all_rules:
+        # rule tuple: (rule_id, title, severity, cwe, pattern, message, fix, languages)
+        _rid, _title, sev, cwe, _pat, _msg, _fix, langs = rule
+        by_severity[sev] = by_severity.get(sev, 0) + 1
+        by_cwe[cwe] = by_cwe.get(cwe, 0) + 1
+        for lang in langs:
+            by_language[lang] = by_language.get(lang, 0) + 1
+
+    owasp_coverage: Dict[str, int] = {
+        cat: len(rule_ids) for cat, rule_ids in OWASP_CATEGORIES.items()
+    }
+
+    return {
+        "total_rules": len(all_rules),
+        "by_severity": by_severity,
+        "by_cwe": by_cwe,
+        "by_language": by_language,
+        "owasp_coverage": owasp_coverage,
+        "cwe_list": sorted(by_cwe.keys()),
+    }
