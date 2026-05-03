@@ -3213,13 +3213,9 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Semgrep Scanner router")
 
-    # Snyk Scanner — Snyk REST API vulnerability data ingestion
-    if snyk_router:
-        app.include_router(
-            snyk_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
-        _logger.info("Mounted Snyk Scanner router")
+    # Snyk Scanner — mounted in sub_apps/platform_app.py with read:scans scope
+    # (legacy /api/v1/scan/snyk surface retired 2026-05-04; new /api/v1/snyk surface
+    # exposes /v1/orgs, /v1/orgs/{org}/projects, /v1/test, /v1/orgs/.../issues, /v1/reporting)
 
     # Snyk-OSS connector — REAL Snyk family via Trivy + OSV-Scanner + Semgrep CE
     if snyk_oss_router:

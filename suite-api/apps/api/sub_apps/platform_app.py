@@ -2036,6 +2036,28 @@ def register_platform_routers(
         _logger.warning("abuseipdb_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Snyk Vulnerability Scanner (REST v1 surface) — 2026-05-04
+    # GET  /api/v1/snyk/                                            capability summary  (read:scans)
+    # GET  /api/v1/snyk/v1/orgs                                     organisations list  (read:scans)
+    # GET  /api/v1/snyk/v1/orgs/{org}/projects                      project list        (read:scans)
+    # POST /api/v1/snyk/v1/test/{ecosystem}/{file_path}             manifest test       (read:scans)
+    # GET  /api/v1/snyk/v1/orgs/{org}/projects/{project}/issues     project issues      (read:scans)
+    # GET  /api/v1/snyk/v1/reporting                                reporting status    (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.snyk_router import router as snyk_router  # noqa: PLC0415
+        app.include_router(
+            snyk_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Snyk vulnerability router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("snyk_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # GreyNoise Threat-Intel Lookup — 2026-05-04
     # GET /api/v1/greynoise/                              capability summary  (read:scans)
     # GET /api/v1/greynoise/v3/community/{ip}              free-tier classification
