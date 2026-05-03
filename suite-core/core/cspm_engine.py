@@ -1796,6 +1796,54 @@ try:
     def _stub_delete_resource(self, resource_id: str):
         return False
 
+    # ---------------------------------------------------------------------------
+    # AllowlistEntry — finding-suppression allowlist model
+    # ---------------------------------------------------------------------------
+
+    class AllowlistEntry(_BaseModel):
+        id: str = _Field(default_factory=lambda: f"allow-{_uuid.uuid4().hex[:12]}")
+        org_id: str = "default"
+        rule_id: str = _Field(..., description="CSPM rule ID to suppress (e.g. CSPM-AWS-001)")
+        resource_id: _Optional[str] = _Field(
+            None,
+            description="Specific resource ID — None means suppress rule org-wide",
+        )
+        reason: str = _Field(..., description="Business justification for exception")
+        created_by: str = "system"
+        expires_at: _Optional[str] = _Field(
+            None,
+            description="ISO-8601 expiry — None means permanent",
+        )
+        created_at: str = _Field(
+            default_factory=lambda: _datetime.now(_timezone.utc).isoformat()
+        )
+
+    # Storage: in-memory list (survives the process lifetime, adequate for the stub)
+    _ALLOWLIST_STORE: _List = []
+
+    def _stub_add_allowlist_entry(self, entry: AllowlistEntry) -> AllowlistEntry:
+        _ALLOWLIST_STORE.append(entry)
+        _emit_event("cspm.allowlist.added", {"id": entry.id, "rule_id": entry.rule_id})
+        return entry
+
+    def _stub_list_allowlist(
+        self,
+        org_id: str = "default",
+        rule_id: _Optional[str] = None,
+    ) -> _List[AllowlistEntry]:
+        entries = [e for e in _ALLOWLIST_STORE if e.org_id == org_id]
+        if rule_id:
+            entries = [e for e in entries if e.rule_id == rule_id]
+        return entries
+
+    def _stub_delete_allowlist_entry(self, entry_id: str) -> bool:
+        for i, e in enumerate(_ALLOWLIST_STORE):
+            if e.id == entry_id:
+                _ALLOWLIST_STORE.pop(i)
+                _emit_event("cspm.allowlist.deleted", {"id": entry_id})
+                return True
+        return False
+
     # Attach stubs to CSPMEngine
     CSPMEngine.get_posture = _stub_get_posture  # type: ignore[attr-defined]
     CSPMEngine.list_findings = _stub_list_findings  # type: ignore[attr-defined]
@@ -1813,6 +1861,9 @@ try:
     CSPMEngine.list_scans = _stub_list_scans  # type: ignore[attr-defined]
     CSPMEngine.get_resource = _stub_get_resource  # type: ignore[attr-defined]
     CSPMEngine.delete_resource = _stub_delete_resource  # type: ignore[attr-defined]
+    CSPMEngine.add_allowlist_entry = _stub_add_allowlist_entry  # type: ignore[attr-defined]
+    CSPMEngine.list_allowlist = _stub_list_allowlist  # type: ignore[attr-defined]
+    CSPMEngine.delete_allowlist_entry = _stub_delete_allowlist_entry  # type: ignore[attr-defined]
 
 except Exception:
     # Pydantic not available — skip legacy compat shims
