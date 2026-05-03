@@ -5025,6 +5025,22 @@ def create_app() -> FastAPI:
     # auto_evidence_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
     # ------------------------------------------------------------------
+    # Security Query Language (RQL DSL) router — GAP-024
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.security_query_language_router import (
+            router as _sql_router,
+        )
+
+        app.include_router(
+            _sql_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Security Query Language router at /api/v1/sql")
+    except ImportError as exc:
+        _logger.warning("Security Query Language router not loaded: %s", exc)
+
+    # ------------------------------------------------------------------
     # Deployment Manager router — moved to platform_app.py (Wave 5)
 
     # ------------------------------------------------------------------
