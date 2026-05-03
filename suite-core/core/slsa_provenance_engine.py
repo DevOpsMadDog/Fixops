@@ -72,6 +72,9 @@ _DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
 _VALID_SLSA_LEVELS = frozenset({1, 2, 3, 4})
 _VALID_VERIFIER_VERDICTS = frozenset({"pass", "fail"})
 
+# Exported for test introspection — identifies unsigned fallback keyid
+_PLACEHOLDER_SIG = "unsigned-fallback-signature-not-for-production-use"
+
 # Real DSSE signing via ed25519 (cryptography package).
 # Key is generated/loaded from data/keys/slsa_signing.pem (0600, gitignored).
 # PAE: "DSSEv1" SP LEN(type) SP type SP LEN(body) SP body

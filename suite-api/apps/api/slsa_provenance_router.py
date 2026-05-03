@@ -88,6 +88,17 @@ class AttestRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def slsa_health() -> Dict[str, Any]:
+    """Health/status endpoint for the SLSA Provenance service."""
+    return {
+        "service": "slsa-provenance",
+        "status": "ok",
+        "version": "v0.2",
+        "spec": "https://slsa.dev/provenance/v0.2",
+    }
+
+
 @router.post("/attest", dependencies=[Depends(api_key_auth)], status_code=201)
 def generate_attestation(req: AttestRequest) -> Dict[str, Any]:
     """Generate an in-toto SLSA v0.2 provenance attestation wrapped in DSSE."""

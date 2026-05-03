@@ -5896,6 +5896,16 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Supply Chain Intel router not loaded: {e}")
 
+    # MLOps Supply Chain Security — model supply chain, typosquat, malicious package analysis
+    try:
+        from apps.api.mlops_supply_chain_router import (
+            router as mlops_supply_chain_router,
+        )
+        app.include_router(mlops_supply_chain_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted MLOps Supply Chain router at /api/v1/mlops/supply-chain")
+    except Exception as e:
+        _logger.warning(f"MLOps Supply Chain router not loaded: {e}")
+
     # Pentest Management — engagements, findings, targets, retests
     # pentest_mgmt_router — moved to ctem_app.py (Wave-C-batch-3 2026-05-03)
 
@@ -6662,6 +6672,13 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Upgrade Path Resolver router at /api/v1/upgrade-path")
     except Exception as _e:  # noqa: BLE001
         _logger.warning("upgrade_path_router unavailable: %s", _e)
+
+    try:
+        from apps.api.slsa_provenance_router import router as slsa_provenance_router
+        app.include_router(slsa_provenance_router)
+        _logger.info("Mounted SLSA Provenance router at /api/v1/slsa")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("slsa_provenance_router unavailable: %s", _e)
 
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------

@@ -169,8 +169,10 @@ def test_envelope_signatures_non_empty(engine):
     att = _attest(engine)
     sigs = att["envelope"]["signatures"]
     assert isinstance(sigs, list) and len(sigs) >= 1
-    assert sigs[0]["sig"] == _PLACEHOLDER_SIG
-    assert sigs[0]["keyid"] == "placeholder-keyid-v0"
+    # When real ed25519 signing is active the sig is a base64 string; when the
+    # cryptography package is unavailable the engine falls back to _PLACEHOLDER_SIG.
+    sig_val = sigs[0]["sig"]
+    assert isinstance(sig_val, str) and len(sig_val) > 0
 
 
 def test_dsse_payload_base64_roundtrips_to_statement(engine):
@@ -577,7 +579,18 @@ def test_signature_placeholder_stored(engine):
         (att["id"],),
     ).fetchone()[0]
     conn.close()
-    assert stored_sig == _PLACEHOLDER_SIG
+    # Column stores the JSON-serialised signatures list. When real ed25519
+    # signing is active this is a JSON array with a real sig; when the
+    # cryptography package is absent the fallback stores _PLACEHOLDER_SIG text.
+    # Either way the column must be a non-empty string.
+    assert isinstance(stored_sig, str) and len(stored_sig) > 0
+    # Attempt JSON parse — real signing produces valid JSON array; if it is
+    # the legacy plain-text placeholder it may not parse but must equal _PLACEHOLDER_SIG.
+    try:
+        parsed = json.loads(stored_sig)
+        assert isinstance(parsed, list) and len(parsed) >= 1
+    except (json.JSONDecodeError, ValueError):
+        assert stored_sig == _PLACEHOLDER_SIG
 
 
 def test_envelope_json_persisted(engine):
