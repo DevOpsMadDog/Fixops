@@ -2123,6 +2123,30 @@ def register_platform_routers(
         _logger.warning("okta_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # SailPoint IdentityNow IGA Live REST — 2026-05-04
+    # GET /api/v1/sailpoint-iga/                                                       capability summary       (read:scans)
+    # GET /api/v1/sailpoint-iga/v3/identities                                          list identities          (read:scans)
+    # GET /api/v1/sailpoint-iga/v3/identities/{identity_id}                            single identity          (read:scans)
+    # GET /api/v1/sailpoint-iga/v3/identities/{identity_id}/account-summary            identity accounts        (read:scans)
+    # GET /api/v1/sailpoint-iga/v3/access-profiles                                     list access profiles     (read:scans)
+    # GET /api/v1/sailpoint-iga/v3/roles                                               list roles               (read:scans)
+    # GET /api/v1/sailpoint-iga/v3/certification-campaigns                             list campaigns           (read:scans)
+    # GET /api/v1/sailpoint-iga/v3/access-requests                                     list access requests     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.sailpoint_iga_router import router as sailpoint_iga_router  # noqa: PLC0415
+        app.include_router(
+            sailpoint_iga_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted SailPoint IdentityNow IGA live REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("sailpoint_iga_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Cloudflare API v4 Live REST — 2026-05-04
     # GET /api/v1/cloudflare/                                                              capability summary  (read:scans)
     # GET /api/v1/cloudflare/client/v4/zones                                               list zones          (read:scans)
