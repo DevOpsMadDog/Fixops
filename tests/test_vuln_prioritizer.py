@@ -1075,3 +1075,118 @@ def test_vuln_with_no_recommendations_for_medium_no_cve(engine):
     # Should be empty list
     assert all(r.action != RemediationAction.UPGRADE for r in recs)
     assert all(r.action != RemediationAction.MITIGATE for r in recs)
+
+
+# ============================================================================
+# Scoring Config tests (weights + thresholds, added 2026-05-03)
+# ============================================================================
+
+from core.vuln_prioritizer import BucketThresholds, ScoringConfig, ScoringWeights
+
+
+def test_scoring_config_defaults(engine):
+    """get_scoring_config returns factory defaults when nothing has been persisted."""
+    cfg = engine.get_scoring_config("default")
+    assert cfg.org_id == "default"
+    assert cfg.weights.revenue_impact == 0.35
+    assert cfg.weights.data_sensitivity == 0.30
+    assert cfg.thresholds.critical == 75.0
+    assert cfg.thresholds.high == 50.0
+
+
+def test_scoring_config_roundtrip(engine):
+    """upsert_scoring_config persists and get_scoring_config retrieves correctly."""
+    new_cfg = ScoringConfig(
+        org_id="test-org",
+        weights=ScoringWeights(
+            revenue_impact=0.50,
+            data_sensitivity=0.20,
+            customer_impact=0.20,
+            regulatory=0.10,
+        ),
+        thresholds=BucketThresholds(critical=80.0, high=60.0, medium=25.0, low=8.0),
+    )
+    saved = engine.upsert_scoring_config(new_cfg)
+    assert saved.weights.revenue_impact == 0.50
+
+    retrieved = engine.get_scoring_config("test-org")
+    assert retrieved.weights.revenue_impact == 0.50
+    assert retrieved.thresholds.critical == 80.0
+    assert retrieved.thresholds.high == 60.0
+    assert retrieved.thresholds.medium == 25.0
+    assert retrieved.thresholds.low == 8.0
+
+
+def test_custom_thresholds_change_bucket(engine):
+    """compute_composite_score respects custom bucket thresholds."""
+    # score = 0.9 * 1.0 * 0.8 * 1.0 * 100 = 72.0
+    # with default thresholds (critical=75) → HIGH; with custom (critical=70) → CRITICAL
+    score, bucket_default = engine.compute_composite_score(
+        epss=0.9,
+        reachability=ReachabilityLevel.CONFIRMED_REACHABLE,
+        business_impact=0.8,
+        compensating_controls=0.0,
+        thresholds=BucketThresholds(),  # critical=75
+    )
+    assert bucket_default == RiskBucket.HIGH
+
+    score2, bucket_custom = engine.compute_composite_score(
+        epss=0.9,
+        reachability=ReachabilityLevel.CONFIRMED_REACHABLE,
+        business_impact=0.8,
+        compensating_controls=0.0,
+        thresholds=BucketThresholds(critical=70.0),
+    )
+    assert score == score2  # same raw score
+    assert bucket_custom == RiskBucket.CRITICAL
+
+
+def test_custom_weights_change_business_impact(engine):
+    """_compute_business_impact respects custom ScoringWeights."""
+    ctx = BusinessContext(
+        asset_id="w-asset", asset_name="WeightTest",
+        revenue_impact=1.0,
+        data_sensitivity=0.0,
+        customer_impact_score=0.0,
+        compensating_controls=0.0,
+    )
+    # Default: revenue contributes 0.35 weight → impact = 1.0 * 0.35 = 0.35
+    default_impact = engine._compute_business_impact(ctx, weights=ScoringWeights())
+    assert abs(default_impact - 0.35) < 1e-6
+
+    # Custom: revenue weight = 0.80 → impact = 1.0 * 0.80 = 0.80
+    custom_w = ScoringWeights(
+        revenue_impact=0.80,
+        data_sensitivity=0.10,
+        customer_impact=0.05,
+        regulatory=0.05,
+    )
+    custom_impact = engine._compute_business_impact(ctx, weights=custom_w)
+    assert abs(custom_impact - 0.80) < 1e-6
+
+
+def test_scoring_config_upsert_overwrites(engine):
+    """Second upsert of the same org_id overwrites; no duplicates in DB."""
+    cfg_v1 = ScoringConfig(
+        org_id="overwrite-org",
+        thresholds=BucketThresholds(critical=90.0),
+    )
+    engine.upsert_scoring_config(cfg_v1)
+
+    cfg_v2 = ScoringConfig(
+        org_id="overwrite-org",
+        thresholds=BucketThresholds(critical=60.0),
+    )
+    engine.upsert_scoring_config(cfg_v2)
+
+    retrieved = engine.get_scoring_config("overwrite-org")
+    assert retrieved.thresholds.critical == 60.0
+
+    # Confirm only one row exists in the DB
+    import sqlite3 as _sq
+    conn = _sq.connect(engine.db_path)
+    count = conn.execute(
+        "SELECT COUNT(*) FROM scoring_config WHERE org_id='overwrite-org'"
+    ).fetchone()[0]
+    conn.close()
+    assert count == 1

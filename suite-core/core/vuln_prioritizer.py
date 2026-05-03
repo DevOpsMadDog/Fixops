@@ -58,6 +58,23 @@ _REACHABILITY_FACTOR: Dict[str, float] = {
     "not_reachable": 0.1,
 }
 
+# Default scoring weights and thresholds (operator-tunable via scoring_config table)
+_DEFAULT_SCORING_WEIGHTS: Dict[str, float] = {
+    "revenue_impact": 0.35,
+    "data_sensitivity": 0.30,
+    "customer_impact": 0.20,
+    "regulatory": 0.15,
+    "regulatory_per_framework": 0.15,
+    "regulatory_cap": 0.60,
+    "unknown_asset_default": 0.40,
+}
+_DEFAULT_BUCKET_THRESHOLDS: Dict[str, float] = {
+    "critical": 75.0,
+    "high": 50.0,
+    "medium": 20.0,
+    "low": 5.0,
+}
+
 
 # ============================================================================
 # ENUMS
@@ -278,6 +295,69 @@ class PrioritizationSummary(BaseModel):
     triggered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class ScoringWeights(BaseModel):
+    """Operator-tunable business-impact weights (must sum to ~1.0)."""
+
+    revenue_impact: float = Field(
+        default=0.35, ge=0.0, le=1.0,
+        description="Weight for revenue_impact dimension",
+    )
+    data_sensitivity: float = Field(
+        default=0.30, ge=0.0, le=1.0,
+        description="Weight for data_sensitivity dimension",
+    )
+    customer_impact: float = Field(
+        default=0.20, ge=0.0, le=1.0,
+        description="Weight for customer_impact_score dimension",
+    )
+    regulatory: float = Field(
+        default=0.15, ge=0.0, le=1.0,
+        description="Weight for regulatory contribution dimension",
+    )
+    regulatory_per_framework: float = Field(
+        default=0.15, ge=0.0, le=1.0,
+        description="Score added per compliance framework present",
+    )
+    regulatory_cap: float = Field(
+        default=0.60, ge=0.0, le=1.0,
+        description="Maximum regulatory sub-score before capping",
+    )
+    unknown_asset_default: float = Field(
+        default=0.40, ge=0.0, le=1.0,
+        description="Business impact score when no asset context is known",
+    )
+
+
+class BucketThresholds(BaseModel):
+    """Operator-tunable composite-score thresholds for risk bucketing (scale 0-100)."""
+
+    critical: float = Field(
+        default=75.0, ge=0.0, le=100.0,
+        description="Minimum score to be classified as CRITICAL",
+    )
+    high: float = Field(
+        default=50.0, ge=0.0, le=100.0,
+        description="Minimum score to be classified as HIGH",
+    )
+    medium: float = Field(
+        default=20.0, ge=0.0, le=100.0,
+        description="Minimum score to be classified as MEDIUM",
+    )
+    low: float = Field(
+        default=5.0, ge=0.0, le=100.0,
+        description="Minimum score to be classified as LOW (else INFO)",
+    )
+
+
+class ScoringConfig(BaseModel):
+    """Full scoring configuration stored per org."""
+
+    org_id: str = "default"
+    weights: ScoringWeights = Field(default_factory=ScoringWeights)
+    thresholds: BucketThresholds = Field(default_factory=BucketThresholds)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 # ============================================================================
 # ENGINE
 # ============================================================================
@@ -379,6 +459,13 @@ class VulnPrioritizer:
                     ON prioritized_vulns (org_id, cve_id);
                 CREATE INDEX IF NOT EXISTS idx_pv_asset
                     ON prioritized_vulns (asset_id);
+
+                CREATE TABLE IF NOT EXISTS scoring_config (
+                    org_id      TEXT PRIMARY KEY,
+                    weights     TEXT NOT NULL DEFAULT '{}',
+                    thresholds  TEXT NOT NULL DEFAULT '{}',
+                    updated_at  TEXT NOT NULL
+                );
 
                 CREATE TABLE IF NOT EXISTS vuln_groups (
                     id                  TEXT PRIMARY KEY,
@@ -552,17 +639,65 @@ class VulnPrioritizer:
             org_id=row["org_id"],
         )
 
-    def _compute_business_impact(self, ctx: Optional[BusinessContext]) -> float:
-        """Aggregate business impact 0.0–1.0."""
-        if ctx is None:
-            return 0.4  # unknown asset — moderate default
+    # ------------------------------------------------------------------
+    # Scoring Configuration
+    # ------------------------------------------------------------------
 
-        regulatory_weight = min(len(ctx.regulatory_frameworks) * 0.15, 0.6)
+    def get_scoring_config(self, org_id: Optional[str] = None) -> "ScoringConfig":
+        """Return operator-tuned scoring config for the org (falls back to defaults)."""
+        _org = org_id or self.org_id
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT weights, thresholds FROM scoring_config WHERE org_id = ?",
+                (_org,),
+            ).fetchone()
+        if not row:
+            return ScoringConfig(org_id=_org)
+        return ScoringConfig(
+            org_id=_org,
+            weights=ScoringWeights(**json.loads(row["weights"])),
+            thresholds=BucketThresholds(**json.loads(row["thresholds"])),
+        )
+
+    def upsert_scoring_config(self, config: "ScoringConfig") -> "ScoringConfig":
+        """Persist operator-tuned scoring config for the org."""
+        with self._lock:
+            with self._get_conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO scoring_config (org_id, weights, thresholds, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(org_id) DO UPDATE SET
+                        weights=excluded.weights,
+                        thresholds=excluded.thresholds,
+                        updated_at=excluded.updated_at
+                    """,
+                    (
+                        config.org_id,
+                        config.weights.model_dump_json(),
+                        config.thresholds.model_dump_json(),
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+        config.updated_at = datetime.now(timezone.utc)
+        return config
+
+    def _compute_business_impact(
+        self,
+        ctx: Optional[BusinessContext],
+        weights: Optional["ScoringWeights"] = None,
+    ) -> float:
+        """Aggregate business impact 0.0–1.0 using operator-tunable weights."""
+        w = weights or ScoringWeights()
+        if ctx is None:
+            return w.unknown_asset_default
+
+        regulatory_weight = min(len(ctx.regulatory_frameworks) * w.regulatory_per_framework, w.regulatory_cap)
         impact = (
-            ctx.revenue_impact * 0.35
-            + ctx.data_sensitivity * 0.30
-            + ctx.customer_impact_score * 0.20
-            + regulatory_weight * 0.15
+            ctx.revenue_impact * w.revenue_impact
+            + ctx.data_sensitivity * w.data_sensitivity
+            + ctx.customer_impact_score * w.customer_impact
+            + regulatory_weight * w.regulatory
         )
         tier_mult = {"tier1": 1.2, "tier2": 1.1, "tier3": 1.0, "tier4": 0.8}.get(ctx.tier, 1.0)
         return min(impact * tier_mult, 1.0)
@@ -623,22 +758,24 @@ class VulnPrioritizer:
         reachability: ReachabilityLevel,
         business_impact: float,
         compensating_controls: float,
+        thresholds: Optional["BucketThresholds"] = None,
     ) -> Tuple[float, RiskBucket]:
         """
         risk = EPSS × reachability_factor × business_impact × (1 - compensating_controls)
-        Scaled to 0-100 and bucketed.
+        Scaled to 0-100 and bucketed using operator-tunable thresholds.
         """
+        t = thresholds or BucketThresholds()
         r_factor = _REACHABILITY_FACTOR.get(reachability.value, 0.5)
         raw = epss * r_factor * business_impact * (1.0 - compensating_controls)
         score = min(raw * 100.0, 100.0)
 
-        if score >= 75.0:
+        if score >= t.critical:
             bucket = RiskBucket.CRITICAL
-        elif score >= 50.0:
+        elif score >= t.high:
             bucket = RiskBucket.HIGH
-        elif score >= 20.0:
+        elif score >= t.medium:
             bucket = RiskBucket.MEDIUM
-        elif score >= 5.0:
+        elif score >= t.low:
             bucket = RiskBucket.LOW
         else:
             bucket = RiskBucket.INFO
@@ -754,6 +891,9 @@ class VulnPrioritizer:
             _org = org_id or self.org_id
             _discovered = discovered_at or datetime.now(timezone.utc)
 
+            # 0. Load operator-tunable scoring config
+            scoring_cfg = self.get_scoring_config(_org)
+
             # 1. EPSS
             epss_val = 0.0
             if cve_id:
@@ -771,12 +911,13 @@ class VulnPrioritizer:
 
             # 3. Business context
             ctx = self.get_business_context(asset_id)
-            biz_impact = self._compute_business_impact(ctx)
+            biz_impact = self._compute_business_impact(ctx, weights=scoring_cfg.weights)
             controls = ctx.compensating_controls if ctx else 0.0
 
             # 4. Composite score
             score, bucket = self.compute_composite_score(
-                epss_val, reach_level, biz_impact, controls
+                epss_val, reach_level, biz_impact, controls,
+                thresholds=scoring_cfg.thresholds,
             )
 
             # 5. SLA deadline
@@ -1241,6 +1382,9 @@ class VulnPrioritizer:
                 params,
             ).fetchall()
 
+        # Load operator-tunable scoring config once for the whole run
+        scoring_cfg = self.get_scoring_config(_org)
+
         epss_refreshed = 0
         for row in rows:
             fid = row["finding_id"]
@@ -1256,10 +1400,11 @@ class VulnPrioritizer:
 
                 reach_level = ReachabilityLevel(row["reachability"])
                 ctx = self.get_business_context(row["asset_id"])
-                biz_impact = self._compute_business_impact(ctx)
+                biz_impact = self._compute_business_impact(ctx, weights=scoring_cfg.weights)
                 controls = ctx.compensating_controls if ctx else 0.0
                 score, bucket = self.compute_composite_score(
-                    epss_val, reach_level, biz_impact, controls
+                    epss_val, reach_level, biz_impact, controls,
+                    thresholds=scoring_cfg.thresholds,
                 )
                 discovered = datetime.fromisoformat(row["discovered_at"])
                 sla_deadline = self._compute_sla_deadline(discovered, bucket)

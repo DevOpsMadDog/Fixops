@@ -37,6 +37,7 @@ from core.vuln_prioritizer import (
     ReachabilityResult,
     RiskBucket,
     SLAStatus,
+    ScoringConfig,
     VulnGroup,
     VulnPrioritizer,
     VulnTrend,
@@ -285,4 +286,55 @@ def trigger_prioritization(body: PrioritizeRequest) -> PrioritizationSummary:
         return result
     except Exception as exc:
         logger.error("trigger_prioritization error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ============================================================================
+# GET /api/v1/vulns/scoring-config
+# ============================================================================
+
+
+@router.get(
+    "/scoring-config",
+    response_model=ScoringConfig,
+    summary="Get scoring weights and bucket thresholds",
+    description=(
+        "Return the operator-tunable scoring configuration for an org: "
+        "business-impact weights (revenue, data_sensitivity, customer, regulatory) "
+        "and composite-score bucket thresholds (critical/high/medium/low). "
+        "Falls back to hardcoded defaults when no config has been saved."
+    ),
+)
+def get_scoring_config(
+    org_id: str = Query(default="default", description="Tenant org_id"),
+) -> ScoringConfig:
+    engine = _get_engine()
+    try:
+        return engine.get_scoring_config(org_id=org_id)
+    except Exception as exc:
+        logger.error("get_scoring_config error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ============================================================================
+# PUT /api/v1/vulns/scoring-config
+# ============================================================================
+
+
+@router.put(
+    "/scoring-config",
+    response_model=ScoringConfig,
+    summary="Update scoring weights and bucket thresholds",
+    description=(
+        "Persist operator-tuned scoring weights and bucket thresholds for an org. "
+        "All subsequent calls to /prioritize and vulnerability upserts will use "
+        "the updated values. Changes take effect immediately — no restart required."
+    ),
+)
+def put_scoring_config(body: ScoringConfig) -> ScoringConfig:
+    engine = _get_engine()
+    try:
+        return engine.upsert_scoring_config(body)
+    except Exception as exc:
+        logger.error("put_scoring_config error: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
