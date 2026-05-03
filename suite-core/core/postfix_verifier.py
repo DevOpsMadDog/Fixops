@@ -937,7 +937,6 @@ class PostFixVerifier:
     # ------------------------------------------------------------------
 
     def verify(
-        _emit_event("finding.updated", {"module": __name__, "action": "verify"})
         self,
         finding_id: str,
         finding_type: str,
@@ -963,6 +962,7 @@ class PostFixVerifier:
             context_code:   Optional surrounding code.
             dep_changes:    Optional dict of {package: new_version}.
         """
+        _emit_event("finding.updated", {"module": __name__, "action": "verify"})
         t0 = time.monotonic()
         lang = language.lower().strip()
         ftype = finding_type.lower().strip()
@@ -1548,9 +1548,9 @@ class PostFixVerifier:
     # ------------------------------------------------------------------
 
     def _run_mpte_retest(
-        _emit_event("finding.updated", {"module": __name__, "action": "mpte_retest"})
         self, original: str, fixed: str, language: str, finding_type: str
     ) -> Tuple[CheckResult, MPTERetestResult]:
+        _emit_event("finding.updated", {"module": __name__, "action": "mpte_retest"})
         t0 = time.monotonic()
         sig = _MPTE_EXPLOIT_SIGNATURES.get(finding_type)
         if not sig:
