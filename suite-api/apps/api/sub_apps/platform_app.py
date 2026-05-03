@@ -852,6 +852,18 @@ def register_platform_routers(
         _logger.warning("defender_xdr_router not available: %s", exc)
 
     try:
+        from apps.api.purview_dlp_router import (
+            router as purview_dlp_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            purview_dlp_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Microsoft Purview DLP router at /api/v1/microsoft-purview (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("purview_dlp_router not available: %s", exc)
+
+    try:
         from apps.api.snowflake_router import (
             router as snowflake_router,  # noqa: PLC0415
         )
@@ -2169,6 +2181,29 @@ def register_platform_routers(
         _logger.info("Mounted Cloudflare API v4 live REST router (read:scans)")
     except ImportError as exc:
         _logger.warning("cloudflare_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Netskope CASB Live REST — 2026-05-04
+    # GET  /api/v1/netskope/                                                              capability summary       (read:scans)
+    # GET  /api/v1/netskope/api/v2/events/data/page                                       alerts/events page       (read:scans)
+    # GET  /api/v1/netskope/api/v2/events/data/incidents                                  DLP incidents            (read:scans)
+    # GET  /api/v1/netskope/api/v2/scim/Users                                             SCIM v2 user directory   (read:scans)
+    # GET  /api/v1/netskope/api/v2/policy/url/list                                        URL policy lists         (read:scans)
+    # GET  /api/v1/netskope/api/v2/services/operational/uci                               UCI series               (read:scans)
+    # POST /api/v1/netskope/api/v2/incidents/uba/getuci                                   per-user UCI detail      (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.netskope_router import router as netskope_router  # noqa: PLC0415
+        app.include_router(
+            netskope_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Netskope CASB live REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("netskope_router not available: %s", exc)
 
     try:
         from apps.api.jamf_live_connector_router import (
