@@ -672,6 +672,18 @@ def register_platform_routers(
         _logger.warning("jenkins_router not available: %s", exc)
 
     try:
+        from apps.api.gitlab_pipeline_router import (
+            router as gitlab_pipeline_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            gitlab_pipeline_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted GitLab CI/CD router at /api/v1/gitlab-pipeline (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("gitlab_pipeline_router not available: %s", exc)
+
+    try:
         from apps.api.circleci_router import (
             router as circleci_router,  # noqa: PLC0415
         )
