@@ -684,6 +684,18 @@ def register_platform_routers(
         _logger.warning("gitlab_pipeline_router not available: %s", exc)
 
     try:
+        from apps.api.bitbucket_router import (
+            router as bitbucket_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            bitbucket_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Bitbucket Cloud router at /api/v1/bitbucket (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("bitbucket_router not available: %s", exc)
+
+    try:
         from apps.api.circleci_router import (
             router as circleci_router,  # noqa: PLC0415
         )
@@ -2371,6 +2383,30 @@ def register_platform_routers(
         _logger.info("Mounted Snyk vulnerability router (read:scans)")
     except ImportError as exc:
         _logger.warning("snyk_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Vanta Compliance (REST v1 surface) — 2026-05-04
+    # GET  /api/v1/vanta/                                            capability summary  (read:scans)
+    # GET  /api/v1/vanta/v1/controls                                 list controls       (read:scans)
+    # GET  /api/v1/vanta/v1/controls/{control_id}                    single control      (read:scans)
+    # GET  /api/v1/vanta/v1/controls/{control_id}/tests              control tests       (read:scans)
+    # GET  /api/v1/vanta/v1/integrations                             integrations        (read:scans)
+    # GET  /api/v1/vanta/v1/audits                                   audits              (read:scans)
+    # GET  /api/v1/vanta/v1/people                                   people              (read:scans)
+    # GET  /api/v1/vanta/v1/findings                                 findings            (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.vanta_router import router as vanta_router  # noqa: PLC0415
+        app.include_router(
+            vanta_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Vanta compliance router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("vanta_router not available: %s", exc)
 
     # ------------------------------------------------------------------
     # Tenable.io Vulnerability Scanner — 2026-05-04
