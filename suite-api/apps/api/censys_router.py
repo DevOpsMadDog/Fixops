@@ -1,18 +1,21 @@
-"""Censys CVE-to-host search router — ALDECI.
+"""Censys Threat-Intel Lookup Router — ALDECI.
 
-Endpoints:
-  POST /api/v1/censys/search-cve   search_cve_endpoint
-  GET  /api/v1/censys/hosts        list_hosts_endpoint
-  GET  /api/v1/censys/check/{ip}   check_host_endpoint
-
-Auth: api_key_auth dependency.
+Wraps ``core.censys_lookup_engine.CensysLookupEngine`` with REST endpoints
+for host lookups, certificate lookups, and host search against the
+Censys v2 API.
 
 Prefix: /api/v1/censys
+Auth:   api_key_auth dependency (mount layer adds scope checks — read:scans)
 
-Notes:
-    Requires CENSYS_API_ID + CENSYS_API_SECRET env vars for live imports.
-    Without credentials the importer returns a structured warning and zero
-    results (status=needs_credentials). Use the fixture_data arg in tests.
+Routes:
+  GET  /api/v1/censys/                              capability summary
+  GET  /api/v1/censys/v2/hosts/{ip}                 host enrichment
+  GET  /api/v1/censys/v2/certificates/{fingerprint} certificate detail
+  GET  /api/v1/censys/v2/hosts/search?q=&per_page=  host search
+
+NO MOCKS rule: when CENSYS_API_ID or CENSYS_API_SECRET is missing the
+capability summary returns ``status="unavailable"`` and every
+live-lookup endpoint returns HTTP 503. We do not fabricate data.
 """
 
 from __future__ import annotations
@@ -24,135 +27,193 @@ from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/censys",
-    tags=["Censys"],
+    tags=["Censys Threat Intel"],
+    dependencies=[Depends(api_key_auth)],
 )
 
 
-# ---------------------------------------------------------------------------
-# Request / response models
-# ---------------------------------------------------------------------------
+def _engine():
+    # Indirection so tests can patch via reset_censys_lookup_engine().
+    from core.censys_lookup_engine import get_censys_lookup_engine
 
-class SearchCveRequest(BaseModel):
-    cve_id: str = Field(
-        ...,
-        description='CVE identifier to search (e.g. "CVE-2021-44228")',
-        examples=["CVE-2021-44228"],
-    )
-    max_results: int = Field(
-        default=100,
-        ge=1,
-        le=100,
-        description="Maximum number of hosts to return (Censys page cap: 100)",
-    )
-    force: bool = Field(
-        default=False,
-        description="Skip 1-day TTL cache and force a live fetch",
-    )
+    return get_censys_lookup_engine()
 
 
 # ---------------------------------------------------------------------------
-# Lazy importer loader
+# Schemas
 # ---------------------------------------------------------------------------
 
-def _get_importer():
-    from feeds.censys.importer import (
-        check_host,
-        get_store_stats,
-        list_hosts,
-        run_import,
-    )
-    return run_import, list_hosts, check_host, get_store_stats
+
+class CapabilityResponse(BaseModel):
+    service: str
+    endpoints: List[str]
+    api_id_present: bool
+    api_secret_present: bool
+    status: str  # ok | empty | unavailable
+    cache_size: int = 0
+
+
+class HostService(BaseModel):
+    port: Optional[int] = None
+    protocol: Optional[str] = None
+    software: List[Any] = Field(default_factory=list)
+
+
+class HostLocation(BaseModel):
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    city: Optional[str] = None
+    continent: Optional[str] = None
+
+
+class AutonomousSystem(BaseModel):
+    asn: Optional[int] = None
+    name: Optional[str] = None
+    country_code: Optional[str] = None
+
+
+class HostResponse(BaseModel):
+    ip: Optional[str] = None
+    services: List[HostService] = Field(default_factory=list)
+    location: HostLocation = Field(default_factory=HostLocation)
+    autonomous_system: AutonomousSystem = Field(default_factory=AutonomousSystem)
+    last_updated_at: Optional[str] = None
+
+
+class ValidityPeriod(BaseModel):
+    start: Optional[str] = None
+    end: Optional[str] = None
+    length_seconds: Optional[int] = None
+
+
+class CertParsed(BaseModel):
+    subject: Optional[Any] = None
+    issuer: Optional[Any] = None
+    validity_period: ValidityPeriod = Field(default_factory=ValidityPeriod)
+    names: List[str] = Field(default_factory=list)
+
+
+class CertificateResponse(BaseModel):
+    fingerprint: Optional[str] = None
+    parsed: CertParsed = Field(default_factory=CertParsed)
+    ct_logs: List[Any] = Field(default_factory=list)
+
+
+class SearchServiceSummary(BaseModel):
+    port: Optional[int] = None
+    service_name: Optional[str] = None
+
+
+class SearchHit(BaseModel):
+    ip: Optional[str] = None
+    name: Optional[str] = None
+    services_summary: List[SearchServiceSummary] = Field(default_factory=list)
+
+
+class SearchResultBlock(BaseModel):
+    total: int = 0
+    hits: List[SearchHit] = Field(default_factory=list)
+
+
+class SearchResponse(BaseModel):
+    result: SearchResultBlock = Field(default_factory=SearchResultBlock)
 
 
 # ---------------------------------------------------------------------------
-# Routes
+# Helpers
 # ---------------------------------------------------------------------------
 
-@router.post("/search-cve", dependencies=[Depends(api_key_auth)])
-def search_cve_endpoint(body: SearchCveRequest) -> Dict[str, Any]:
-    """Search Censys for hosts observed with a given CVE.
 
-    Requires CENSYS_API_ID and CENSYS_API_SECRET environment variables.
-    Results are cached with a 1-day TTL per CVE. Use force=true to bypass.
+def _serve(callable_):
+    """Run a Censys call, translating engine errors to HTTP responses.
 
-    Returns a summary of imported hosts grouped by country and CVE.
+    CensysUnavailableError -> 503 (auth missing, network, upstream error)
+    ValueError             -> 422 (input validation)
     """
+    from core.censys_lookup_engine import CensysUnavailableError
+
     try:
-        run_import, _lh, _ch, _gs = _get_importer()
-        result = run_import(
-            cve_id=body.cve_id,
-            max_results=body.max_results,
-            force=body.force,
-        )
-        return result
-    except Exception as exc:
-        logger.exception("Censys search-cve failed for %s", body.cve_id)
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        return callable_()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except CensysUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@router.get("/hosts", dependencies=[Depends(api_key_auth)])
-def list_hosts_endpoint(
-    ip: Optional[str] = Query(default=None, description="Exact IP address match"),
-    country: Optional[str] = Query(
-        default=None,
-        description="Filter by ISO country code (e.g. US, DE)",
-    ),
-    cve_id: Optional[str] = Query(
-        default=None,
-        description="Filter hosts that have this CVE in their cve_ids list",
-    ),
-    last_seen: Optional[str] = Query(
-        default=None,
-        description="ISO 8601 timestamp; only hosts with last_observation >= this",
-    ),
-    limit: int = Query(default=1000, ge=1, le=10_000),
-    offset: int = Query(default=0, ge=0),
-) -> Dict[str, Any]:
-    """List cached Censys host records with optional filters."""
-    try:
-        _ri, list_hosts, _ch, _gs = _get_importer()
-        rows: List[Dict[str, Any]] = list_hosts(
-            ip=ip,
-            country=country,
-            cve_id=cve_id,
-            last_seen=last_seen,
-            limit=limit,
-            offset=offset,
-        )
-        return {
-            "hosts": rows,
-            "total": len(rows),
-            "offset": offset,
-            "limit": limit,
-        }
-    except Exception as exc:
-        logger.exception("Censys list_hosts failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
 
-@router.get("/check/{ip}", dependencies=[Depends(api_key_auth)])
-def check_host_endpoint(
-    ip: str = Path(..., description="IPv4 address to look up"),
-) -> Dict[str, Any]:
-    """Proxy lookup: return cached Censys data for a single IP.
+@router.get("/", response_model=CapabilityResponse)
+async def capability_summary() -> CapabilityResponse:
+    """Return the service summary — safe to call without credentials."""
+    eng = _engine()
+    api_id_present = eng.api_id_present()
+    api_secret_present = eng.api_secret_present()
+    creds_ok = api_id_present and api_secret_present
+    cache_size = eng.cache_size()
+    if not creds_ok:
+        status = "unavailable"
+    elif cache_size == 0:
+        status = "empty"
+    else:
+        status = "ok"
+    return CapabilityResponse(
+        service="Censys",
+        endpoints=[
+            "/v2/hosts/{ip}",
+            "/v2/certificates/{fingerprint}",
+            "/v2/hosts/search",
+        ],
+        api_id_present=api_id_present,
+        api_secret_present=api_secret_present,
+        status=status,
+        cache_size=cache_size,
+    )
 
-    Returns 404 if the IP has not been imported yet.
+
+@router.get("/v2/hosts/search", response_model=SearchResponse)
+async def hosts_search(
+    q: str = Query(..., min_length=1, description="Censys search query"),
+    per_page: int = Query(25, ge=1, le=100),
+) -> SearchResponse:
+    """Host search.
+
+    NOTE: This route MUST be registered BEFORE ``/v2/hosts/{ip}``. FastAPI
+    matches routes in registration order, so a path-parameter route declared
+    first would swallow ``/v2/hosts/search`` (capturing ``ip="search"``) and
+    cause this endpoint to 404. Do not reorder.
     """
-    try:
-        _ri, _lh, check_host, _gs = _get_importer()
-        entry = check_host(ip)
-        if entry is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No Censys data for IP: {ip}",
-            )
-        return {"ip": ip, "found": True, "entry": entry}
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("Censys check_host failed for %s", ip)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    eng = _engine()
+    data = _serve(lambda: eng.search_hosts(q, per_page=per_page))
+    return SearchResponse(**data)
+
+
+@router.get("/v2/hosts/{ip}", response_model=HostResponse)
+async def host_lookup(
+    ip: str = Path(..., description="IPv4 / IPv6 address to look up"),
+) -> HostResponse:
+    eng = _engine()
+    data = _serve(lambda: eng.lookup_host(ip))
+    return HostResponse(**data)
+
+
+@router.get(
+    "/v2/certificates/{fingerprint}", response_model=CertificateResponse
+)
+async def certificate_lookup(
+    fingerprint: str = Path(
+        ..., description="SHA-256 certificate fingerprint (hex)"
+    ),
+) -> CertificateResponse:
+    eng = _engine()
+    data = _serve(lambda: eng.lookup_certificate(fingerprint))
+    return CertificateResponse(**data)
+
+
+__all__ = ["router"]
