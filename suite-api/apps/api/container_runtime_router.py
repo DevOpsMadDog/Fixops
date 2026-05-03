@@ -112,6 +112,36 @@ class RegistryScanRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/")
+async def container_runtime_index() -> Dict[str, Any]:
+    """Return container runtime security service capabilities summary."""
+    return {
+        "service": "container-runtime-security",
+        "version": "1.0.0",
+        "endpoints": [
+            "POST /images/analyse",
+            "POST /policies",
+            "GET  /policies",
+            "POST /policies/evaluate",
+            "POST /drift/detect",
+            "POST /vulnerabilities/map",
+            "POST /compliance/cis",
+            "POST /images/verify-signature",
+            "POST /registries/scan",
+        ],
+        "capabilities": [
+            "image-analysis",
+            "runtime-policy",
+            "drift-detection",
+            "vuln-mapping",
+            "cis-benchmark",
+            "image-signing",
+            "registry-scan",
+        ],
+        "status": "operational",
+    }
+
+
 @router.post("/images/analyse")
 async def analyse_image(req: ImageAnalysisRequest) -> Dict[str, Any]:
     """Analyse a container image without pulling it.
