@@ -16,6 +16,10 @@ Routes:
   GET    /api/v1/container-registry-security/policies                list_policies
   POST   /api/v1/container-registry-security/scans/{id}/evaluate     evaluate_image
   GET    /api/v1/container-registry-security/stats                   get_registry_stats
+  POST   /api/v1/container-registry-security/allowlist               add_allowlist_entry
+  GET    /api/v1/container-registry-security/allowlist               list_allowlist
+  DELETE /api/v1/container-registry-security/allowlist/{id}          remove_allowlist_entry
+  GET    /api/v1/container-registry-security/allowlist/check         check_image_allowed
 """
 
 from __future__ import annotations
@@ -76,6 +80,12 @@ class CreatePolicyRequest(BaseModel):
     block_critical: bool = Field(True, description="Block images with any critical CVEs")
     max_high_vulns: int = Field(5, ge=0, description="Maximum allowed high-severity CVEs")
     require_signed: bool = Field(False, description="Require image signature verification")
+
+
+class AllowlistEntryRequest(BaseModel):
+    image: str = Field(..., description="Base image name (e.g. python, ubuntu, gcr.io/distroless/base)")
+    tag_pattern: str = Field("*", description="Exact tag or '*' to match any tag")
+    reason: str = Field("", description="Why this image is trusted")
 
 
 # ---------------------------------------------------------------------------
@@ -183,3 +193,57 @@ def evaluate_image(scan_id: str, org_id: str = Query(default="default")):
 def get_registry_stats(org_id: str = Query(default="default")):
     """Return aggregated registry security statistics for the org."""
     return _get_engine().get_registry_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Base Image Allowlist
+# ---------------------------------------------------------------------------
+
+@router.post("/allowlist", dependencies=[Depends(api_key_auth)], status_code=201)
+def add_allowlist_entry(
+    body: AllowlistEntryRequest,
+    org_id: str = Query(default="default"),
+):
+    """Add a trusted base image to the org allowlist.
+
+    Use tag_pattern='*' to trust all tags for an image, or specify an exact tag
+    (e.g. '3.12-slim') to restrict trust to that tag only.
+    """
+    try:
+        return _get_engine().add_allowlist_entry(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        _logger.exception("Error adding allowlist entry")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/allowlist", dependencies=[Depends(api_key_auth)])
+def list_allowlist(org_id: str = Query(default="default")):
+    """List all trusted base images in the org allowlist."""
+    return _get_engine().list_allowlist(org_id)
+
+
+@router.get("/allowlist/check", dependencies=[Depends(api_key_auth)])
+def check_image_allowed(
+    image: str = Query(..., description="Image name to check"),
+    tag: str = Query(default="latest", description="Image tag to check"),
+    org_id: str = Query(default="default"),
+):
+    """Check whether image:tag is on the org allowlist.
+
+    Returns {allowed: bool, matched_entry: object|null}.
+    """
+    return _get_engine().check_image_allowed(org_id, image, tag)
+
+
+@router.delete("/allowlist/{entry_id}", dependencies=[Depends(api_key_auth)])
+def remove_allowlist_entry(
+    entry_id: str,
+    org_id: str = Query(default="default"),
+):
+    """Remove a trusted base image from the org allowlist by entry ID."""
+    deleted = _get_engine().remove_allowlist_entry(org_id, entry_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Allowlist entry not found")
+    return {"deleted": True, "id": entry_id}

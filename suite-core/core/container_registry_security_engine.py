@@ -113,6 +113,21 @@ class ContainerRegistrySecurityEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_policies_org
                     ON policies (org_id);
+
+                CREATE TABLE IF NOT EXISTS base_image_allowlist (
+                    id          TEXT PRIMARY KEY,
+                    org_id      TEXT NOT NULL,
+                    image       TEXT NOT NULL,
+                    tag_pattern TEXT NOT NULL DEFAULT '*',
+                    reason      TEXT NOT NULL DEFAULT '',
+                    created_at  TEXT NOT NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_allowlist_org_image
+                    ON base_image_allowlist (org_id, image, tag_pattern);
+
+                CREATE INDEX IF NOT EXISTS idx_allowlist_org
+                    ON base_image_allowlist (org_id);
                 """
             )
 
@@ -398,6 +413,125 @@ class ContainerRegistrySecurityEngine:
             "violations": violations,
             "policies_evaluated": len(policies),
         }
+
+    # ------------------------------------------------------------------
+    # Base Image Allowlist
+    # ------------------------------------------------------------------
+
+    def add_allowlist_entry(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Add a base image to the org allowlist.
+
+        Args:
+            org_id: Tenant identifier.
+            data: {image, tag_pattern, reason}
+
+        Returns:
+            The created allowlist record.
+
+        Raises:
+            ValueError: if image is missing or entry already exists.
+        """
+        image = (data.get("image") or "").strip()
+        if not image:
+            raise ValueError("image is required.")
+        tag_pattern = (data.get("tag_pattern") or "*").strip() or "*"
+        reason = (data.get("reason") or "").strip()
+
+        record = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "image": image,
+            "tag_pattern": tag_pattern,
+            "reason": reason,
+            "created_at": _now_iso(),
+        }
+        try:
+            with self._lock:
+                with self._conn() as conn:
+                    conn.execute(
+                        """INSERT INTO base_image_allowlist
+                           (id, org_id, image, tag_pattern, reason, created_at)
+                           VALUES (:id, :org_id, :image, :tag_pattern, :reason, :created_at)""",
+                        record,
+                    )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError(
+                f"Allowlist entry for image='{image}' tag_pattern='{tag_pattern}' already exists."
+            ) from exc
+
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit(
+                        "POLICY_UPDATED",
+                        {
+                            "entity_type": "base_image_allowlist",
+                            "org_id": org_id,
+                            "source_engine": "container_registry_security",
+                        },
+                    )
+            except Exception:
+                pass
+
+        return record
+
+    def list_allowlist(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return all allowlist entries for org, ordered by image name."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM base_image_allowlist WHERE org_id = ? ORDER BY image ASC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def remove_allowlist_entry(self, org_id: str, entry_id: str) -> bool:
+        """Delete an allowlist entry. Returns True if deleted, False if not found."""
+        with self._lock:
+            with self._conn() as conn:
+                cur = conn.execute(
+                    "DELETE FROM base_image_allowlist WHERE org_id = ? AND id = ?",
+                    (org_id, entry_id),
+                )
+        return cur.rowcount > 0
+
+    def check_image_allowed(
+        self, org_id: str, image: str, tag: str = "latest"
+    ) -> Dict[str, Any]:
+        """Check whether image:tag is on the allowlist.
+
+        Matching rules (in order):
+          1. Exact match on both image and tag_pattern.
+          2. Wildcard tag_pattern='*' matches any tag for the image.
+
+        Returns:
+            {allowed: bool, matched_entry: dict|None}
+        """
+        image = (image or "").strip()
+        tag = (tag or "latest").strip()
+
+        with self._conn() as conn:
+            # Exact match first
+            row = conn.execute(
+                """SELECT * FROM base_image_allowlist
+                   WHERE org_id = ? AND image = ? AND tag_pattern = ?
+                   LIMIT 1""",
+                (org_id, image, tag),
+            ).fetchone()
+            if row:
+                return {"allowed": True, "matched_entry": dict(row)}
+
+            # Wildcard match
+            row = conn.execute(
+                """SELECT * FROM base_image_allowlist
+                   WHERE org_id = ? AND image = ? AND tag_pattern = '*'
+                   LIMIT 1""",
+                (org_id, image),
+            ).fetchone()
+            if row:
+                return {"allowed": True, "matched_entry": dict(row)}
+
+        return {"allowed": False, "matched_entry": None}
 
     # ------------------------------------------------------------------
     # Stats
