@@ -17,6 +17,21 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+
+def _router_emit(event_type: str, payload: Dict[str, Any]) -> None:
+    """Best-effort TrustGraph emit from within this router. Never raises."""
+    try:
+        from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+        bus = _get_tg_bus()
+        if bus is None:
+            return
+        emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
+        if emit:
+            emit(event_type, payload)
+    except Exception:
+        pass
+
+
 # Lazy engine probe — deferred so sitecustomize.py sys.path is in effect
 _HAS_ENGINE: Optional[bool] = None
 _cspm_module = None
@@ -404,6 +419,131 @@ def list_rules(
             "azure": len(_azure_rules),
             "gcp": len(_gcp_rules),
         },
+    }
+
+
+@router.get("/baseline-diff", summary="CSPM posture baseline diff")
+def get_baseline_diff(
+    org_id: str = Query(default="default", description="Organisation ID"),
+    include_new: bool = Query(default=True, description="Include new findings vs baseline"),
+    include_resolved: bool = Query(default=True, description="Include resolved findings vs baseline"),
+) -> Dict[str, Any]:
+    """Compare current cloud posture against the saved baseline.
+
+    Returns a delta object describing:
+    - score_delta: change in overall score since baseline was captured
+    - new_findings: finding categories that appeared since baseline
+    - resolved_findings: finding categories that cleared since baseline
+    - severity_delta: per-severity count change (critical/high/medium/low)
+    - drift_events: raw drift events recorded by the engine
+    - baseline_captured_at: ISO-8601 timestamp of when baseline was taken
+
+    A positive score_delta means security posture improved; negative means
+    it degraded. score_delta is None when no baseline has been captured yet.
+    """
+    engine = _engine()  # raises 501 if unavailable
+
+    # Current posture
+    current = engine.get_posture(org_id=org_id)
+    if hasattr(current, "__dict__"):
+        cur = {k: v for k, v in current.__dict__.items() if not k.startswith("_")}
+    elif hasattr(current, "model_dump"):
+        cur = current.model_dump()
+    else:
+        cur = current if isinstance(current, dict) else {}
+
+    # Baseline — stored as a simple dict on the engine keyed by org_id.
+    # save_baseline() currently returns 0 (stub); the baseline store is a
+    # lightweight in-memory dict we attach here on first access.
+    baseline_store: Dict[str, Any] = getattr(engine, "_baseline_store", {})
+    baseline = baseline_store.get(org_id)
+
+    if baseline is None:
+        # No baseline captured yet — return current posture with a hint
+        return {
+            "org_id": org_id,
+            "status": "no_baseline",
+            "message": "No baseline captured. POST /api/v1/cspm/baseline to set one.",
+            "current_score": float(cur.get("overall_score", 100.0)),
+            "score_delta": None,
+            "severity_delta": {},
+            "new_findings": [],
+            "resolved_findings": [],
+            "drift_events": engine.list_drift(org_id=org_id),
+            "baseline_captured_at": None,
+        }
+
+    score_delta = float(cur.get("overall_score", 100.0)) - float(baseline.get("overall_score", 100.0))
+
+    severity_fields = ("critical_findings", "high_findings", "medium_findings", "low_findings")
+    severity_delta = {
+        f.replace("_findings", ""): int(cur.get(f, 0)) - int(baseline.get(f, 0))
+        for f in severity_fields
+    }
+
+    new_findings: List[str] = []
+    resolved_findings: List[str] = []
+    if include_new and int(cur.get("total_findings", 0)) > int(baseline.get("total_findings", 0)):
+        new_findings = ["finding_count_increased"]
+    if include_resolved and int(cur.get("total_findings", 0)) < int(baseline.get("total_findings", 0)):
+        resolved_findings = ["finding_count_decreased"]
+
+    _router_emit("cspm.baseline_diff", {
+        "org_id": org_id,
+        "score_delta": score_delta,
+        "severity_delta": severity_delta,
+    })
+
+    return {
+        "org_id": org_id,
+        "status": "ok",
+        "current_score": float(cur.get("overall_score", 100.0)),
+        "baseline_score": float(baseline.get("overall_score", 100.0)),
+        "score_delta": round(score_delta, 2),
+        "severity_delta": severity_delta,
+        "new_findings": new_findings if include_new else [],
+        "resolved_findings": resolved_findings if include_resolved else [],
+        "drift_events": engine.list_drift(org_id=org_id),
+        "baseline_captured_at": baseline.get("scanned_at"),
+    }
+
+
+@router.post("/baseline", summary="Capture CSPM posture baseline", status_code=201)
+def capture_baseline(
+    org_id: str = Query(default="default", description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Capture the current cloud posture as the baseline for future diffs.
+
+    Call this after a clean scan to lock in the reference state. Subsequent
+    calls to GET /baseline-diff will compare against this snapshot.
+    """
+    engine = _engine()
+
+    posture = engine.get_posture(org_id=org_id)
+    if hasattr(posture, "__dict__"):
+        snapshot = {k: v for k, v in posture.__dict__.items() if not k.startswith("_")}
+    elif hasattr(posture, "model_dump"):
+        snapshot = posture.model_dump()
+    else:
+        snapshot = posture if isinstance(posture, dict) else {}
+
+    from datetime import datetime, timezone as _tz
+    snapshot.setdefault("scanned_at", datetime.now(_tz.utc).isoformat())
+
+    # Persist to lightweight in-memory store on the engine singleton
+    if not hasattr(engine, "_baseline_store"):
+        engine._baseline_store = {}  # type: ignore[attr-defined]
+    engine._baseline_store[org_id] = snapshot  # type: ignore[attr-defined]
+
+    engine.save_baseline(org_id=org_id)
+
+    _router_emit("cspm.baseline_captured", {"org_id": org_id, "score": snapshot.get("overall_score")})
+
+    return {
+        "org_id": org_id,
+        "status": "captured",
+        "baseline_score": float(snapshot.get("overall_score", 100.0)),
+        "captured_at": snapshot["scanned_at"],
     }
 
 
