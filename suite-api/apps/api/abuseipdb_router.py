@@ -118,3 +118,34 @@ def get_stats() -> Dict[str, Any]:
     except Exception as exc:
         logger.exception("Failed to get AbuseIPDB stats")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/", dependencies=[Depends(api_key_auth)], summary="AbuseIPDB domain summary")
+def get_summary() -> Dict[str, Any]:
+    """5-state summary envelope for the AbuseIPDB/blocklist domain.
+
+    States:
+      healthy  — blocklist loaded, IPs present
+      empty    — no IPs imported yet
+      error    — importer raised an exception
+    """
+    try:
+        _r, _l, _c, get_store_stats = _get_importer()
+        stats = get_store_stats()
+    except Exception as exc:
+        logger.error("abuseipdb.summary error: %s", exc)
+        return {"status": "error", "domain": "abuseipdb", "error": str(exc)}
+
+    total = stats.get("total_ips", 0)
+    status = "healthy" if total > 0 else "empty"
+    envelope: Dict[str, Any] = {
+        "status": status,
+        "domain": "abuseipdb",
+        "stats": stats,
+    }
+    if status == "empty":
+        envelope["hint"] = (
+            "Run POST /api/v1/abuseipdb/import to pull the ET compromised-ips "
+            "and AbuseIPDB blocklists."
+        )
+    return envelope
