@@ -204,24 +204,64 @@ async def fuzzy_identity_health():
 
 @router.get("/findings")
 async def list_identity_findings(
-    limit: int = 100,
+    org_id: Optional[str] = Query(None),
+    min_aliases: int = Query(default=2, ge=1, description="Min alias count to flag as ambiguous"),
+    limit: int = Query(default=100, ge=1, le=1000),
 ):
-    """List identity resolution findings — assets with conflicting or ambiguous identities."""
+    """List identity resolution findings — assets with conflicting or ambiguous identities.
+
+    Returns canonical assets that have >= min_aliases aliases, which indicates
+    multiple scanner outputs disagree on the asset name (identity conflict).
+    Each finding includes the canonical ID, alias list, alias count, and severity.
+    """
     try:
         resolver = get_fuzzy_resolver()
-        stats = resolver.get_stats()
+        assets = resolver.list_canonical(org_id=org_id, limit=limit)
+        stats = resolver.get_resolution_stats(org_id=org_id)
+
+        findings = []
+        for asset in assets:
+            aliases = asset.get("aliases", [])
+            alias_count = len(aliases)
+            if alias_count >= min_aliases:
+                # More aliases → higher identity conflict severity
+                if alias_count >= 5:
+                    severity = "high"
+                elif alias_count >= 3:
+                    severity = "medium"
+                else:
+                    severity = "low"
+                findings.append({
+                    "canonical_id": asset["canonical_id"],
+                    "org_id": asset.get("org_id"),
+                    "alias_count": alias_count,
+                    "aliases": aliases,
+                    "severity": severity,
+                    "created_at": asset.get("created_at"),
+                    "description": (
+                        f"Asset '{asset['canonical_id']}' has {alias_count} aliases "
+                        "indicating identity ambiguity across scanner outputs."
+                    ),
+                })
+
+        # Sort by alias_count descending (most ambiguous first)
+        findings.sort(key=lambda f: f["alias_count"], reverse=True)
+
         return {
-            "findings": [],
-            "total": 0,
+            "findings": findings,
+            "total": len(findings),
             "stats": stats,
             "engine": "fuzzy-identity",
+            "filter": {"org_id": org_id, "min_aliases": min_aliases},
         }
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        logger.warning("list_identity_findings error: %s", exc)
         return {
             "findings": [],
             "total": 0,
             "stats": {},
             "engine": "fuzzy-identity",
+            "error": type(exc).__name__,
         }
 
 
