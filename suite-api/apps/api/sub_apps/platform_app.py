@@ -745,6 +745,18 @@ def register_platform_routers(
         _logger.warning("terraform_cloud_router not available: %s", exc)
 
     try:
+        from apps.api.microsoft_teams_router import (
+            router as microsoft_teams_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            microsoft_teams_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Microsoft Teams router at /api/v1/microsoft-teams (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("microsoft_teams_router not available: %s", exc)
+
+    try:
         from apps.api.slack_bot_router import (
             router as slack_bot_router,  # noqa: PLC0415
         )
@@ -761,6 +773,18 @@ def register_platform_routers(
         _logger.info("Mounted Slack Notifier router at /api/v1/integrations/slack")
     except ImportError as exc:
         _logger.warning("slack_notifier_router not available: %s", exc)
+
+    try:
+        from apps.api.slack_chatops_router import (
+            router as slack_chatops_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            slack_chatops_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Slack ChatOps router at /api/v1/slack-chatops (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("slack_chatops_router not available: %s", exc)
 
     try:
         from servicenow.servicenow_router import (
