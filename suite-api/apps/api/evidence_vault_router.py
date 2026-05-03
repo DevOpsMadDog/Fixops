@@ -88,6 +88,13 @@ class VerifyIn(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/")
+async def get_vault_root(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Root health + summary for the evidence vault."""
+    summary = _get_engine().get_vault_summary(org_id)
+    return {"status": "ok", "prefix": "/api/v1/evidence-vault", **summary}
+
+
 @router.post("/evidence", status_code=201)
 async def store_evidence(body: StoreEvidenceIn) -> Dict[str, Any]:
     """Store a new compliance evidence artifact."""
