@@ -816,6 +816,18 @@ def register_platform_routers(
         _logger.warning("datadog_security_router not available: %s", exc)
 
     try:
+        from apps.api.snowflake_router import (
+            router as snowflake_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            snowflake_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Snowflake SQL API router at /api/v1/snowflake (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("snowflake_router not available: %s", exc)
+
+    try:
         from apps.api.newrelic_router import (
             router as newrelic_router,  # noqa: PLC0415
         )
