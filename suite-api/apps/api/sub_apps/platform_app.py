@@ -2424,6 +2424,29 @@ def register_platform_routers(
         _logger.warning("abuseipdb_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Imperva Cloud WAF (Provisioning v1 + Modern v3 + Incidents v1) - 2026-05-04
+    # GET  /api/v1/imperva/                                     capability summary  (read:scans)
+    # POST /api/v1/imperva/api/prov/v1/sites/list               list managed sites  (read:scans)
+    # POST /api/v1/imperva/api/prov/v1/sites/status             one site status     (read:scans)
+    # POST /api/v1/imperva/api/prov/v1/sites/configure/security set WAF rule action (read:scans)
+    # GET  /api/v1/imperva/api/v3/policies                      list policies (v3)  (read:scans)
+    # GET  /api/v1/imperva/api/v3/sites/{site_id}               site detail (v3)    (read:scans)
+    # GET  /api/v1/imperva/api/incidents/v1/incidents           list incidents      (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.imperva_router import router as imperva_router  # noqa: PLC0415
+        app.include_router(
+            imperva_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Imperva Cloud WAF router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("imperva_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Duo Security MFA (Auth v2 + Admin v1) - 2026-05-04
     # GET  /api/v1/duo/                              capability summary    (read:scans)
     # POST /api/v1/duo/auth/v2/preauth               enrollment + factors  (read:scans)
