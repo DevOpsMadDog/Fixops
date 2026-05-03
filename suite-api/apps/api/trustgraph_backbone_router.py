@@ -14,6 +14,7 @@ Routes:
 - GET  /api/v1/graph/related/{id}  — neighborhood
 - GET  /api/v1/graph/search        — semantic search
 - GET  /api/v1/graph/stats         — graph statistics
+- GET  /api/v1/graph/emit-rate     — live EventBus emit/index rates per event type
 - GET  /api/v1/graph/visualize/{id} — graph data for visualization
 """
 
@@ -372,6 +373,60 @@ async def get_stats(
         return backbone.get_stats()
     except Exception as exc:  # noqa: BLE001 — router error boundary
         logger.error("graph/stats failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/emit-rate
+# ============================================================================
+
+
+@router.get("/emit-rate")
+async def get_emit_rate() -> Dict[str, Any]:
+    """Return live TrustGraph EventBus emit and index rates.
+
+    Reads counters directly from the in-process EventBus singleton —
+    no DB round-trip, sub-millisecond latency.
+
+    Returns:
+        bus_enabled: whether the EventBus is active.
+        totals: aggregate emitted / indexed / queued / failed / dropped counts.
+        by_type: per-event-type breakdown with emitted, indexed, failed,
+                 avg_latency_ms, and index_rate (indexed/emitted ratio, 0-1).
+        queue: offline SQLite queue stats (queued / indexed / failed / total).
+    """
+    try:
+        from core.trustgraph_event_bus import get_event_bus
+
+        bus = get_event_bus()
+        raw = bus.metrics.to_dict()
+
+        # Compute per-type index rate (ratio of indexed to emitted)
+        by_type_annotated: Dict[str, Any] = {}
+        for event_type, counters in raw.get("by_type", {}).items():
+            emitted = counters.get("emitted", 0)
+            indexed = counters.get("indexed", 0)
+            by_type_annotated[event_type] = {
+                **counters,
+                "index_rate": round(indexed / emitted, 4) if emitted > 0 else None,
+            }
+
+        return {
+            "bus_enabled": bus.enabled,
+            "totals": {
+                "events_emitted": raw.get("events_emitted", 0),
+                "events_indexed": raw.get("events_indexed", 0),
+                "events_queued": raw.get("events_queued", 0),
+                "events_failed": raw.get("events_failed", 0),
+                "events_dropped": raw.get("events_dropped", 0),
+                "flush_runs": raw.get("flush_runs", 0),
+                "flush_indexed": raw.get("flush_indexed", 0),
+            },
+            "by_type": by_type_annotated,
+            "queue": bus.queue_stats(),
+        }
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/emit-rate failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
 
