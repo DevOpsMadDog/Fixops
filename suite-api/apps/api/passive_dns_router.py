@@ -72,6 +72,28 @@ class AddDomainThreatRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def get_passive_dns_root(
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Return aggregate Passive DNS stats and capability summary for the org."""
+    engine = _get_engine()
+    stats = engine.get_dns_stats(org_id)
+    return {
+        "service": "passive-dns",
+        "version": "1.0",
+        "org_id": org_id,
+        "capabilities": [
+            "resolution-tracking",
+            "fast-flux-detection",
+            "domain-reputation",
+            "threat-classification",
+            "subsidiary-discovery",
+        ],
+        "stats": stats,
+    }
+
+
 @router.post("/resolutions", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_resolution(req: RecordResolutionRequest) -> Dict[str, Any]:
     """Record a DNS resolution event."""
