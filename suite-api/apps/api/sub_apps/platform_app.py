@@ -574,6 +574,18 @@ def register_platform_routers(
         _logger.warning("webhook_verifier_router not available: %s", exc)
 
     try:
+        from apps.api.webhook_filter_rules_router import (  # noqa: PLC0415
+            router as webhook_filter_rules_router,
+        )
+        app.include_router(
+            webhook_filter_rules_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
+        )
+        _logger.info("Mounted Webhook Filter Rules router")
+    except ImportError as exc:
+        _logger.warning("webhook_filter_rules_router not available: %s", exc)
+
+    try:
         from apps.api.webhook_router import router as webhook_router  # noqa: PLC0415
         app.include_router(webhook_router)
         _logger.info("Mounted Webhook router")
