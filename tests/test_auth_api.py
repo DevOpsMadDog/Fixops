@@ -7,16 +7,26 @@ from apps.api.app import create_app
 from core.auth_db import AuthDB
 from fastapi.testclient import TestClient
 
+# Use the API token from environment or default (matches Docker image default)
+API_TOKEN = os.getenv(
+    "FIXOPS_API_TOKEN",
+    "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh",
+)
+
 
 @pytest.fixture
 def client(monkeypatch):
     """Create test client with proper environment variables."""
-    monkeypatch.setenv(
-        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
-    )
+    monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
     monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "enterprise"))
     app = create_app()
     return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers():
+    """Return headers with API key for authenticated requests."""
+    return {"X-API-Key": API_TOKEN}
 
 
 @pytest.fixture
@@ -31,11 +41,11 @@ def db():
     os.unlink(path)
 
 
-def test_list_sso_configs(client, db, monkeypatch):
+def test_list_sso_configs(client, db, auth_headers, monkeypatch):
     """Test listing SSO configurations."""
     monkeypatch.setattr("apps.api.auth_router.db", db)
 
-    response = client.get("/api/v1/auth/sso")
+    response = client.get("/api/v1/auth/sso", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -43,12 +53,13 @@ def test_list_sso_configs(client, db, monkeypatch):
     assert isinstance(data["items"], list)
 
 
-def test_create_sso_config(client, db, monkeypatch):
+def test_create_sso_config(client, db, auth_headers, monkeypatch):
     """Test creating SSO configuration."""
     monkeypatch.setattr("apps.api.auth_router.db", db)
 
     response = client.post(
         "/api/v1/auth/sso",
+        headers=auth_headers,
         json={
             "name": "Test SAML",
             "provider": "saml",
@@ -63,42 +74,45 @@ def test_create_sso_config(client, db, monkeypatch):
     assert data["entity_id"] == "https://test.example.com"
 
 
-def test_get_sso_config(client, db, monkeypatch):
+def test_get_sso_config(client, db, auth_headers, monkeypatch):
     """Test getting SSO configuration."""
     monkeypatch.setattr("apps.api.auth_router.db", db)
 
     create_response = client.post(
         "/api/v1/auth/sso",
+        headers=auth_headers,
         json={"name": "Test SSO", "provider": "oauth2"},
     )
     config_id = create_response.json()["id"]
 
-    response = client.get(f"/api/v1/auth/sso/{config_id}")
+    response = client.get(f"/api/v1/auth/sso/{config_id}", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["id"] == config_id
 
 
-def test_update_sso_config(client, db, monkeypatch):
+def test_update_sso_config(client, db, auth_headers, monkeypatch):
     """Test updating SSO configuration."""
     monkeypatch.setattr("apps.api.auth_router.db", db)
 
     create_response = client.post(
         "/api/v1/auth/sso",
+        headers=auth_headers,
         json={"name": "Test SSO", "provider": "ldap"},
     )
     config_id = create_response.json()["id"]
 
     response = client.put(
         f"/api/v1/auth/sso/{config_id}",
+        headers=auth_headers,
         json={"status": "active"},
     )
     assert response.status_code == 200
     assert response.json()["status"] == "active"
 
 
-def test_get_nonexistent_sso_config(client, db, monkeypatch):
+def test_get_nonexistent_sso_config(client, db, auth_headers, monkeypatch):
     """Test getting non-existent SSO configuration."""
     monkeypatch.setattr("apps.api.auth_router.db", db)
 
-    response = client.get("/api/v1/auth/sso/nonexistent")
+    response = client.get("/api/v1/auth/sso/nonexistent", headers=auth_headers)
     assert response.status_code == 404

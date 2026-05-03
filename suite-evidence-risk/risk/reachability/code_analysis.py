@@ -207,7 +207,7 @@ class CodeAnalyzer:
                     continue
 
                 results[tool] = result
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            except Exception as e:  # catch all tool errors for graceful degradation
                 logger.error(f"Analysis failed with {tool.value}: {e}")
                 results[tool] = AnalysisResult(
                     tool=tool,

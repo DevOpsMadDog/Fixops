@@ -37,13 +37,16 @@ def auth_headers():
 
 
 @pytest.fixture
-def db():
-    """Create test database."""
-    return AuditDB(db_path="data/test_audit.db")
+def db(monkeypatch):
+    """Create test database and patch the audit router to use it."""
+    import apps.api.audit_router as audit_mod
+    test_db = AuditDB(db_path="data/test_audit.db")
+    monkeypatch.setattr(audit_mod, "db", test_db)
+    return test_db
 
 
 @pytest.fixture(autouse=True)
-def cleanup_db(db):
+def cleanup_db():
     """Clean up test database after each test."""
     yield
     import os

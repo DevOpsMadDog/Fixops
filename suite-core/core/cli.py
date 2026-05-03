@@ -2796,7 +2796,10 @@ def _handle_analytics(args: argparse.Namespace) -> int:
         by_severity: dict[str, list[float]] = {}
         for f in findings:
             if f.resolved_at and f.created_at:
-                hours = (f.resolved_at - f.created_at).total_seconds() / 3600
+                # Normalise both to offset-aware UTC to avoid naive/aware mismatch
+                resolved = f.resolved_at if f.resolved_at.tzinfo else f.resolved_at.replace(tzinfo=timezone.utc)
+                created = f.created_at if f.created_at.tzinfo else f.created_at.replace(tzinfo=timezone.utc)
+                hours = (resolved - created).total_seconds() / 3600
                 if hours >= 0:
                     sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
                     by_severity.setdefault(sev, []).append(hours)
