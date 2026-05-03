@@ -338,6 +338,69 @@ class MFAManagementEngine:
             ).fetchall()
         return [self._row(r) for r in rows]
 
+    def enforce_policy(self, org_id: str, policy_id: str, user_id: str) -> Dict[str, Any]:
+        """Evaluate whether a user satisfies an MFA enforcement policy.
+
+        Returns a compliance result dict:
+          - compliant (bool): True if the user meets every required MFA type in the policy
+          - policy: the policy record
+          - active_types: list of mfa_type values the user has active enrollments for
+          - missing_types: required types the user is not yet enrolled in
+          - grace_period_days: days remaining in the grace window (from policy)
+        """
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM mfa_policies WHERE id = ? AND org_id = ?",
+                (policy_id, org_id),
+            ).fetchone()
+        if row is None:
+            raise ValueError(f"Policy {policy_id!r} not found for org {org_id!r}")
+
+        policy = self._row(row)
+        required_types: List[str] = policy.get("required_mfa_types") or []
+
+        # Fetch the user's active enrollments
+        active_rows = self.list_enrollments(org_id, user_id=user_id, status="active")
+        active_types: List[str] = [r["mfa_type"] for r in active_rows]
+
+        if policy["enforcement"] == "disabled":
+            # Policy is switched off — everyone is compliant trivially
+            missing_types: List[str] = []
+            compliant = True
+        else:
+            missing_types = [t for t in required_types if t not in active_types]
+            if policy["enforcement"] == "mandatory":
+                compliant = len(missing_types) == 0
+            else:
+                # optional: compliant if at least one required type is active, or no types required
+                compliant = (not required_types) or bool(set(required_types) & set(active_types))
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "IDENTITY_UPDATED",
+                        {
+                            "entity_type": "mfa_enforce_policy",
+                            "org_id": org_id,
+                            "policy_id": policy_id,
+                            "user_id": user_id,
+                            "compliant": compliant,
+                            "source_engine": "mfa_management",
+                        },
+                    )
+            except Exception:
+                pass
+
+        return {
+            "compliant": compliant,
+            "policy": policy,
+            "active_types": active_types,
+            "missing_types": missing_types,
+            "grace_period_days": policy.get("grace_period_days", 7),
+        }
+
     # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------

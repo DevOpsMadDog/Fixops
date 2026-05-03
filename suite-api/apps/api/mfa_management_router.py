@@ -70,6 +70,10 @@ class PolicyCreate(BaseModel):
     grace_period_days: int = 7
 
 
+class PolicyEnforceRequest(BaseModel):
+    user_id: str
+
+
 # ---------------------------------------------------------------------------
 # Enrollments
 # ---------------------------------------------------------------------------
@@ -162,6 +166,23 @@ def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
 def list_policies(org_id: str = Query(default="default")):
     """List all MFA policies for an org."""
     return _get_engine().list_policies(org_id)
+
+
+@router.post("/policies/{policy_id}/enforce", dependencies=[Depends(api_key_auth)])
+def enforce_policy(
+    policy_id: str,
+    body: PolicyEnforceRequest,
+    org_id: str = Query(default="default"),
+):
+    """Evaluate whether a user satisfies an MFA enforcement policy.
+
+    Returns compliance status, active MFA types, missing required types,
+    and the grace period window from the policy.
+    """
+    try:
+        return _get_engine().enforce_policy(org_id, policy_id, body.user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------

@@ -320,3 +320,69 @@ def test_create_policy_all_enforcement_values_accepted(engine):
             "enforcement": enforcement,
         })
         assert pol["enforcement"] == enforcement
+
+
+# ---------------------------------------------------------------------------
+# enforce_policy
+# ---------------------------------------------------------------------------
+
+def test_enforce_policy_mandatory_compliant(engine):
+    """User with all required types active must be compliant under mandatory policy."""
+    pol = engine.create_policy(ORG, {
+        "policy_name": "Strict", "enforcement": "mandatory",
+        "required_mfa_types": ["totp", "push"],
+    })
+    for mfa_type in ("totp", "push"):
+        rec = engine.enroll_user(ORG, {"user_id": "alice", "mfa_type": mfa_type})
+        engine.activate_enrollment(ORG, rec["id"])
+
+    result = engine.enforce_policy(ORG, pol["id"], "alice")
+    assert result["compliant"] is True
+    assert result["missing_types"] == []
+    assert set(result["active_types"]) == {"totp", "push"}
+
+
+def test_enforce_policy_mandatory_non_compliant(engine):
+    """User missing a required type must be non-compliant with missing_types populated."""
+    pol = engine.create_policy(ORG, {
+        "policy_name": "Strict", "enforcement": "mandatory",
+        "required_mfa_types": ["totp", "hardware_key"],
+    })
+    rec = engine.enroll_user(ORG, {"user_id": "bob", "mfa_type": "totp"})
+    engine.activate_enrollment(ORG, rec["id"])
+
+    result = engine.enforce_policy(ORG, pol["id"], "bob")
+    assert result["compliant"] is False
+    assert "hardware_key" in result["missing_types"]
+
+
+def test_enforce_policy_disabled_always_compliant(engine):
+    """A policy with enforcement='disabled' must report compliant regardless of enrollments."""
+    pol = engine.create_policy(ORG, {
+        "policy_name": "Off", "enforcement": "disabled",
+        "required_mfa_types": ["totp"],
+    })
+    # user has NO enrollments at all
+    result = engine.enforce_policy(ORG, pol["id"], "carol")
+    assert result["compliant"] is True
+    assert result["missing_types"] == []
+
+
+def test_enforce_policy_optional_partial_match(engine):
+    """Optional policy is satisfied when the user has at least one required type active."""
+    pol = engine.create_policy(ORG, {
+        "policy_name": "Soft", "enforcement": "optional",
+        "required_mfa_types": ["totp", "sms"],
+    })
+    rec = engine.enroll_user(ORG, {"user_id": "dave", "mfa_type": "sms"})
+    engine.activate_enrollment(ORG, rec["id"])
+
+    result = engine.enforce_policy(ORG, pol["id"], "dave")
+    assert result["compliant"] is True
+    assert result["grace_period_days"] == 7
+
+
+def test_enforce_policy_invalid_policy_id_raises(engine):
+    """Non-existent policy_id must raise ValueError."""
+    with pytest.raises(ValueError, match="not found"):
+        engine.enforce_policy(ORG, "no-such-id", "eve")
