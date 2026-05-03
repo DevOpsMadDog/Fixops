@@ -1776,3 +1776,20 @@ def register_platform_routers(
         pass
 
     _logger.info("Platform sub-app: wave-7 live connector routers registered (11 connectors)")
+
+    # ------------------------------------------------------------------
+    # ZAP DAST scan router (suite-core/core/zap_scan_engine.py)
+    # Scopes: read:scan / write:scan
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.zap_scan_router import router as zap_scan_router  # noqa: PLC0415
+        app.include_router(
+            zap_scan_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scan")),
+            ],
+        )
+        _logger.info("Mounted ZAP DAST scan router (read:scan / write:scan)")
+    except ImportError as exc:
+        _logger.warning("zap_scan_router not available: %s", exc)
