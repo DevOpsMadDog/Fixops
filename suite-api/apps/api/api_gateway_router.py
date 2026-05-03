@@ -100,6 +100,55 @@ class ThrottlePolicyRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/")
+async def gateway_root() -> Dict[str, Any]:
+    """
+    API Gateway Policy summary — capabilities, tier limits, and active subsystem status.
+
+    Returns a structured overview of all gateway policy dimensions:
+    plan tier rate limits, IP filtering, throttle policy overrides,
+    request validation constraints, and supported API versions.
+    This is the canonical GET / for the gateway prefix.
+    """
+    engine = _engine()
+    try:
+        tier_configs = engine.rate_limiter.get_tier_configs()
+        active_policies = engine.policy_store.list_policies()
+        ip_rules = engine.ip_filter.list_rules()
+        version_stats = engine.version_tracker.get_version_stats()
+    except Exception as exc:
+        _logger.exception("gateway_root_error")
+        raise HTTPException(status_code=500, detail=f"Gateway policy summary failed: {exc}") from exc
+
+    return {
+        "service": "api-gateway-policy",
+        "version": "1.0.0",
+        "subsystems": {
+            "rate_limiter": "ok",
+            "ip_filter": "ok",
+            "validator": "ok",
+            "version_tracker": "ok",
+            "analytics": "ok",
+            "policy_store": "ok",
+        },
+        "tier_configs": tier_configs,
+        "active_throttle_policies": len(active_policies),
+        "active_ip_rules": len(ip_rules),
+        "supported_api_versions": list(engine.version_tracker.SUPPORTED_VERSIONS),
+        "deprecated_api_versions": list(engine.version_tracker.DEPRECATED_VERSIONS),
+        "clients_on_deprecated": version_stats.get("clients_on_deprecated", 0),
+        "request_validation": {
+            "max_payload_bytes": engine.validator._max_payload_bytes,
+            "allowed_content_types": sorted(engine.validator._allowed_content_types),
+        },
+        "windows": {
+            "burst_seconds": 10,
+            "minute_seconds": 60,
+            "hour_seconds": 3600,
+        },
+    }
+
+
 @router.post("/check")
 async def gateway_check(req: GatewayCheckRequest) -> Dict[str, Any]:
     """
@@ -259,6 +308,26 @@ async def set_throttle_policy(req: ThrottlePolicyRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Failed to save policy: {exc}") from exc
 
     return {"created": True, "policy": saved.model_dump()}
+
+
+@router.delete("/throttle-policies/{target_id}")
+async def delete_throttle_policy(target_id: str) -> Dict[str, Any]:
+    """
+    Remove a custom throttle policy for a specific API key or IP.
+
+    After removal the target reverts to its plan tier defaults.
+    Returns 404 if no active policy exists for the given target_id.
+    """
+    engine = _engine()
+    removed = engine.policy_store.delete_policy(target_id)
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No active throttle policy found for target: {target_id!r}",
+        )
+    engine.rate_limiter.remove_policy(target_id)
+    _logger.info("throttle_policy_deleted target_id=%s", target_id)
+    return {"deleted": True, "target_id": target_id}
 
 
 @router.get("/analytics")
