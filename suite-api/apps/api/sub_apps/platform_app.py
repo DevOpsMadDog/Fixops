@@ -672,6 +672,18 @@ def register_platform_routers(
         _logger.warning("aws_securityhub_router not available: %s", exc)
 
     try:
+        from apps.api.datadog_security_router import (
+            router as datadog_security_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            datadog_security_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Datadog Cloud SIEM router at /api/v1/datadog-security (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("datadog_security_router not available: %s", exc)
+
+    try:
         from apps.api.slack_bot_router import (
             router as slack_bot_router,  # noqa: PLC0415
         )
@@ -1752,6 +1764,29 @@ def register_platform_routers(
     except ImportError:
         pass
 
+    # ------------------------------------------------------------------
+    # Okta IAM Live REST — 2026-05-04
+    # GET  /api/v1/okta/                                  capability summary  (read:scans)
+    # GET  /api/v1/okta/api/v1/users                      list users          (read:scans)
+    # GET  /api/v1/okta/api/v1/groups                     list groups         (read:scans)
+    # GET  /api/v1/okta/api/v1/apps                       list applications   (read:scans)
+    # GET  /api/v1/okta/api/v1/logs                       System Log events   (read:scans)
+    # GET  /api/v1/okta/api/v1/sessions/{session_id}      fetch session       (read:scans)
+    # POST /api/v1/okta/api/v1/sessions/me/lifecycle/refresh  refresh session (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.okta_router import router as okta_router  # noqa: PLC0415
+        app.include_router(
+            okta_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Okta IAM live REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("okta_router not available: %s", exc)
+
     try:
         from apps.api.jamf_live_connector_router import (
             router as jamf_live_router,  # noqa: PLC0415
@@ -1847,6 +1882,34 @@ def register_platform_routers(
         _logger.info("Mounted Splunk SIEM router (read:scans)")
     except ImportError as exc:
         _logger.warning("splunk_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Sumo Logic Cloud SIEM router (suite-core/core/sumologic_siem_engine.py)
+    # GET    /api/v1/sumologic/                                                capability summary
+    # POST   /api/v1/sumologic/api/v1/search/jobs                              create search job
+    # GET    /api/v1/sumologic/api/v1/search/jobs/{job_id}                     job state
+    # GET    /api/v1/sumologic/api/v1/search/jobs/{job_id}/messages            messages page
+    # GET    /api/v1/sumologic/api/v1/search/jobs/{job_id}/records             records page
+    # DELETE /api/v1/sumologic/api/v1/search/jobs/{job_id}                     cancel job
+    # GET    /api/v1/sumologic/api/v1/dashboards                               list dashboards
+    # GET    /api/v1/sumologic/api/v1/collectors                               list collectors
+    # GET    /api/v1/sumologic/api/v1/collectors/{cid}/sources                 nested sources
+    # GET    /api/v1/sumologic/api/sec/v1/insights                             Cloud SIEM insights
+    # GET    /api/v1/sumologic/api/v1/health-events                            health events
+    # Scope: read:scans
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.sumologic_router import router as sumologic_router  # noqa: PLC0415
+        app.include_router(
+            sumologic_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Sumo Logic Cloud SIEM router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("sumologic_router not available: %s", exc)
 
     _logger.info("Platform sub-app: wave-7 live connector routers registered (11 connectors)")
 
@@ -2046,6 +2109,29 @@ def register_platform_routers(
         _logger.info("Mounted AbuseIPDB threat-intel router (read:scans)")
     except ImportError as exc:
         _logger.warning("abuseipdb_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Duo Security MFA (Auth v2 + Admin v1) - 2026-05-04
+    # GET  /api/v1/duo/                              capability summary    (read:scans)
+    # POST /api/v1/duo/auth/v2/preauth               enrollment + factors  (read:scans)
+    # POST /api/v1/duo/auth/v2/auth                  issue auth challenge  (read:scans)
+    # GET  /api/v1/duo/auth/v2/auth_status           poll async tx         (read:scans)
+    # GET  /api/v1/duo/auth/v2/check                 signature/time check  (read:scans)
+    # GET  /api/v1/duo/admin/v1/users                list users            (read:scans)
+    # GET  /api/v1/duo/admin/v1/integrations         list integrations     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.duo_router import router as duo_router  # noqa: PLC0415
+        app.include_router(
+            duo_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Duo Security MFA router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("duo_router not available: %s", exc)
 
     # ------------------------------------------------------------------
     # GCP Security Command Center (real OAuth2 + read-only) — 2026-05-04
