@@ -792,6 +792,18 @@ def register_platform_routers(
         _logger.warning("argocd_router not available: %s", exc)
 
     try:
+        from apps.api.crossplane_router import (
+            router as crossplane_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            crossplane_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Crossplane (k8s API proxy) router at /api/v1/crossplane (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("crossplane_router not available: %s", exc)
+
+    try:
         from apps.api.aws_securityhub_router import (
             router as aws_securityhub_router,  # noqa: PLC0415
         )
@@ -3351,6 +3363,36 @@ def register_platform_routers(
         _logger.info("Mounted Akto API security router at /api/v1/akto (read:scans)")
     except ImportError as exc:
         _logger.warning("akto_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
+    # Apigee Edge X — Google API management platform (read:scans)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/apigee/                                                                   capability summary
+    # GET  /api/v1/apigee/v1/organizations/{org}/apis                                         API proxy list
+    # GET  /api/v1/apigee/v1/organizations/{org}/apis/{api_name}                              proxy detail
+    # GET  /api/v1/apigee/v1/organizations/{org}/apis/{api_name}/revisions                    revision list
+    # GET  /api/v1/apigee/v1/organizations/{org}/apis/{api_name}/revisions/{rev}              revision detail
+    # GET  /api/v1/apigee/v1/organizations/{org}/apis/{api_name}/revisions/{rev}/policies     policy list
+    # GET  /api/v1/apigee/v1/organizations/{org}/environments                                 environment list
+    # GET  /api/v1/apigee/v1/organizations/{org}/environments/{env}/apis/{api}/revisions/{rev}/deployments
+    # GET  /api/v1/apigee/v1/organizations/{org}/apiproducts                                  API product list
+    # GET  /api/v1/apigee/v1/organizations/{org}/developers                                   developer list
+    # GET  /api/v1/apigee/v1/organizations/{org}/developers/{email}/apps                      developer apps
+    # GET  /api/v1/apigee/v1/organizations/{org}/apps                                         all apps
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.apigee_router import router as apigee_router  # noqa: PLC0415
+        app.include_router(
+            apigee_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Apigee Edge X router at /api/v1/apigee (read:scans)")
+    except ImportError as exc:
+        _logger.warning("apigee_router not available: %s", exc)
 
 
     # ------------------------------------------------------------------
