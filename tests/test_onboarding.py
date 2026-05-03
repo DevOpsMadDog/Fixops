@@ -252,6 +252,16 @@ class TestValidation:
                 "org-037", OnboardingStep.REVIEW_RESULTS, {}
             )
 
+    def test_connect_ticketing_requires_connectors(
+        self, manager: OnboardingManager
+    ) -> None:
+        """CONNECT_TICKETING rejects empty connectors list (use skip_step instead)."""
+        manager.start_onboarding("org-038")
+        with pytest.raises(ValueError, match="CONNECT_TICKETING"):
+            manager.complete_step(
+                "org-038", OnboardingStep.CONNECT_TICKETING, {"connectors": []}
+            )
+
 
 class TestSkipStep:
     def test_skip_marks_as_skipped(self, manager: OnboardingManager) -> None:
@@ -352,6 +362,55 @@ class TestListOnboardings:
         completed = manager.list_onboardings(status_filter="completed")
         org_ids = [p.org_id for p in completed]
         assert org in org_ids
+
+    def test_list_not_started_filter(self, manager: OnboardingManager) -> None:
+        """Orgs that were started but have 0% progress appear in not_started."""
+        org = "org-073"
+        manager.start_onboarding(org)
+        not_started = manager.list_onboardings(status_filter="not_started")
+        org_ids = [p.org_id for p in not_started]
+        assert org in org_ids
+
+    def test_list_in_progress_filter(self, manager: OnboardingManager) -> None:
+        """Org with at least one step done but not fully complete is in_progress."""
+        org = "org-074"
+        manager.start_onboarding(org)
+        manager.complete_step(org, OnboardingStep.WELCOME, {})
+        in_progress = manager.list_onboardings(status_filter="in_progress")
+        org_ids = [p.org_id for p in in_progress]
+        assert org in org_ids
+
+    def test_completion_percentage_100_on_full_completion(
+        self, manager: OnboardingManager
+    ) -> None:
+        """Completing every step (plus skipping optional ones) yields 100%."""
+        org = "org-075"
+        manager.start_onboarding(org)
+        for step in STEP_ORDER[:-1]:
+            try:
+                if step == OnboardingStep.CONFIGURE_AUTH:
+                    manager.complete_step(org, step, {"api_key": "k"})
+                elif step == OnboardingStep.CONNECT_SCANNERS:
+                    manager.complete_step(org, step, {"scanners": ["trivy"]})
+                elif step == OnboardingStep.SELECT_FRAMEWORKS:
+                    manager.complete_step(org, step, {"frameworks": ["NIST-CSF"]})
+                elif step == OnboardingStep.DEFINE_ROLES:
+                    manager.complete_step(
+                        org, step, {"users": [{"name": "CTO", "role": "admin"}]}
+                    )
+                elif step == OnboardingStep.RUN_FIRST_SCAN:
+                    manager.complete_step(org, step, {"scan_triggered": True})
+                elif step == OnboardingStep.REVIEW_RESULTS:
+                    manager.complete_step(
+                        org, step, {"first_scan_completed": True}
+                    )
+                else:
+                    manager.complete_step(org, step, {})
+            except ValueError:
+                manager.skip_step(org, step)
+        prog = manager.get_progress(org)
+        assert prog.completion_percentage == 100.0
+        assert prog.completed_at is not None
 
 
 class TestChecklist:
@@ -482,3 +541,14 @@ class TestOnboardingAPI:
         data = resp.json()
         assert data["total"] >= 1
         assert isinstance(data["onboardings"], list)
+
+    def test_list_onboardings_not_started_filter_via_api(
+        self, client: TestClient
+    ) -> None:
+        """GET /list?status=not_started returns newly created orgs at 0%."""
+        client.post("/api/v1/onboarding/start", json={"org_id": "api-org-011"})
+        resp = client.get("/api/v1/onboarding/list?status=not_started")
+        assert resp.status_code == 200
+        data = resp.json()
+        org_ids = [o["org_id"] for o in data["onboardings"]]
+        assert "api-org-011" in org_ids
