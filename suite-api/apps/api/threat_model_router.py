@@ -120,6 +120,21 @@ class AutoIdentifyResponse(BaseModel):
     message: str = "Auto-identification complete"
 
 
+class ThreatModelExportResponse(BaseModel):
+    """Full STRIDE/DREAD export for a threat model — summary + matrix + all threats."""
+
+    export_version: str = "1.0"
+    model_id: str
+    name: str
+    org_id: str
+    created_at: str
+    summary: Dict[str, Any]
+    threat_matrix: Dict[str, Any]
+    threats: List[Dict[str, Any]]
+    total_threats: int
+    average_dread_score: float
+
+
 # ============================================================================
 # ENDPOINTS
 # ============================================================================
@@ -261,6 +276,57 @@ async def add_threat(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     return AddThreatResponse(threat_id=threat_id)
+
+
+@router.get("/{model_id}/export", response_model=ThreatModelExportResponse)
+async def export_threat_model(
+    model_id: str,
+    engine: ThreatModelEngine = Depends(_get_engine),
+) -> ThreatModelExportResponse:
+    """Export a full STRIDE/DREAD threat model report (summary + matrix + all threats)."""
+    model = engine.get_model(model_id)
+    if model is None:
+        raise HTTPException(status_code=404, detail=f"Threat model not found: {model_id}")
+
+    try:
+        summary = engine.get_model_summary(model_id)
+        matrix = engine.get_threat_matrix(model_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    # ThreatModel.threats holds all threat IDs belonging to this model
+    threats_out: List[Dict[str, Any]] = []
+    for tid in model.threats:
+        entry = engine.get_threat(tid)
+        if entry is None:
+            continue
+        d: Dict[str, Any] = {
+            "id": entry.id,
+            "title": entry.title,
+            "description": entry.description,
+            "stride_category": entry.stride_category.value,
+            "affected_component": entry.affected_component,
+            "mitigations": entry.mitigations,
+            "status": entry.status.value,
+            "org_id": entry.org_id,
+            "created_at": entry.created_at.isoformat(),
+        }
+        if entry.dread_score:
+            d["dread_score"] = entry.dread_score.model_dump()
+            d["dread_total"] = entry.dread_score.total
+        threats_out.append(d)
+
+    return ThreatModelExportResponse(
+        model_id=model_id,
+        name=model.name,
+        org_id=model.org_id,
+        created_at=model.created_at.isoformat(),
+        summary=summary,
+        threat_matrix=matrix,
+        threats=threats_out,
+        total_threats=summary.get("total_threats", len(threats_out)),
+        average_dread_score=summary.get("average_dread_score", 0.0),
+    )
 
 
 @router.post("/{model_id}/auto-identify", response_model=AutoIdentifyResponse)
