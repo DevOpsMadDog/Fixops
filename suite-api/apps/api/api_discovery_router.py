@@ -11,6 +11,7 @@ Routes:
   GET  /api/v1/api-discovery/endpoints/{id}                  get_endpoint
   PUT  /api/v1/api-discovery/endpoints/{id}/mark-shadow      mark_as_shadow
   PUT  /api/v1/api-discovery/endpoints/{id}/mark-documented  mark_as_documented
+  POST /api/v1/api-discovery/endpoints/{id}/link-layer       link_endpoint_to_layer
   POST /api/v1/api-discovery/scans                           create_scan
   PUT  /api/v1/api-discovery/scans/{id}/complete             complete_scan
   POST /api/v1/api-discovery/changes                         record_change
@@ -81,6 +82,11 @@ class ChangeCreate(BaseModel):
     change_description: str = ""
 
 
+class LinkLayerRequest(BaseModel):
+    org_id: str = "default"
+    layer: str = "api"
+
+
 # ---------------------------------------------------------------------------
 # Endpoint Routes
 # ---------------------------------------------------------------------------
@@ -146,6 +152,36 @@ async def mark_as_documented(
         return _get_engine().mark_as_documented(org_id, endpoint_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/endpoints/{endpoint_id}/link-layer", status_code=200)
+async def link_endpoint_to_layer(
+    endpoint_id: str,
+    body: LinkLayerRequest,
+) -> Dict[str, Any]:
+    """Link a discovered endpoint to its architecture layer (api/service/data/ui/standalone).
+
+    Resolves the endpoint_path from the registry and delegates the layer
+    classification write to SecurityDependencyMappingEngine.  Fails with 404
+    when the endpoint does not exist in the requested org.  Fails with 422 when
+    the layer value is invalid.  Succeeds with linked=False when the dep-map
+    engine is unavailable (graceful degradation).
+    """
+    engine = _get_engine()
+    ep = engine.get_endpoint(body.org_id, endpoint_id)
+    if ep is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Endpoint '{endpoint_id}' not found in org '{body.org_id}'.",
+        )
+    try:
+        return engine.link_to_layer(
+            org_id=body.org_id,
+            endpoint_path=ep["endpoint_path"],
+            layer=body.layer,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 # ---------------------------------------------------------------------------
