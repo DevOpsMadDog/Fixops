@@ -731,3 +731,82 @@ class InsiderThreatDetector:
             risk_distribution=risk_dist,
             top_indicators=indicator_counts,
         )
+
+    def get_trustgraph_context(
+        self,
+        org_id: str,
+        entity_id: str,
+    ) -> Dict[str, Any]:
+        """Query TrustGraph for cross-domain context about an insider threat entity.
+
+        Returns related assets, findings, and incidents for enriched investigation.
+        Degrades gracefully when TrustGraph is unavailable.
+
+        Args:
+            org_id: Organisation identifier for tenant isolation.
+            entity_id: User email or identifier to look up in TrustGraph.
+
+        Returns:
+            Dict with keys: related_assets, related_findings, related_incidents,
+            trustgraph_available (bool).
+
+        Compliance: SOC2 CC7.2, NIST SP 800-53 IR-4 (Incident Handling).
+        """
+        context: Dict[str, Any] = {
+            "entity_id": entity_id,
+            "org_id": org_id,
+            "related_assets": [],
+            "related_findings": [],
+            "related_incidents": [],
+            "trustgraph_available": False,
+        }
+        try:
+            from trustgraph.knowledge_store import KnowledgeStore
+            store = KnowledgeStore()
+            context["trustgraph_available"] = True
+
+            for core_id in (1, 2, 3):
+                try:
+                    results = store.search(core_id=core_id, query_text=entity_id, limit=10)
+                    for entity in results:
+                        if entity.org_id not in ("default", org_id):
+                            continue
+                        entry = {
+                            "id": entity.entity_id,
+                            "name": entity.name,
+                            "type": entity.entity_type,
+                        }
+                        etype = entity.entity_type.lower()
+                        if etype in ("asset", "service", "host"):
+                            context["related_assets"].append(entry)
+                        elif etype in ("finding", "vulnerability"):
+                            context["related_findings"].append(entry)
+                        elif etype in ("incident", "breach", "alert"):
+                            context["related_incidents"].append(entry)
+                except Exception:
+                    pass
+
+            try:
+                neighbors = store.get_neighbors(entity_id=entity_id, depth=1)
+                for n in neighbors:
+                    if n.org_id not in ("default", org_id):
+                        continue
+                    entry = {"id": n.entity_id, "name": n.name, "type": n.entity_type}
+                    etype = n.entity_type.lower()
+                    if etype in ("asset", "service", "host"):
+                        if entry not in context["related_assets"]:
+                            context["related_assets"].append(entry)
+                    elif etype in ("finding", "vulnerability"):
+                        if entry not in context["related_findings"]:
+                            context["related_findings"].append(entry)
+                    elif etype in ("incident", "breach", "alert"):
+                        if entry not in context["related_incidents"]:
+                            context["related_incidents"].append(entry)
+            except Exception:
+                pass
+
+        except Exception:
+            # TrustGraph unavailable — degrade gracefully
+            pass
+
+        return context
