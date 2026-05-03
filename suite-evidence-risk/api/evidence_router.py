@@ -1640,10 +1640,32 @@ def _build_export_bundle(
                 framework, real_findings, include_evidence=include_evidence
             )
             if controls_list:
+                # Merge with fallback controls so every framework control is
+                # present.  Dynamic controls take precedence; remaining
+                # fallback controls are added as 'not_assessed'.
+                mapping = _FALLBACK_CONTROLS.get(framework, {})
+                dynamic_ids = {c["control_id"] for c in controls_list}
+                for ctrl_id, ctrl_def in mapping.items():
+                    if ctrl_id not in dynamic_ids:
+                        controls_list.append({
+                            "control_id": ctrl_id,
+                            "title": ctrl_def["title"],
+                            "category": ctrl_def.get("category", ctrl_id.split(".")[0]),
+                            "status": "not_assessed",
+                            "score": 0.0,
+                            "finding_count": 0,
+                            "severity_distribution": {},
+                            "relevance_score": 0.0,
+                            "notes": "No matching findings ingested — awaiting scan data",
+                        })
+                controls_list.sort(key=lambda c: c["control_id"])
+                # Update posture with merged totals
+                posture_dict["total_controls"] = len(controls_list)
                 logger.info(
                     "Export bundle built via dynamic ComplianceAutoMapper: "
-                    "framework=%s controls=%d findings=%d",
-                    framework, len(controls_list), len(real_findings),
+                    "framework=%s controls=%d (dynamic=%d, fallback=%d) findings=%d",
+                    framework, len(controls_list), len(dynamic_ids),
+                    len(controls_list) - len(dynamic_ids), len(real_findings),
                 )
 
     # Fallback 1: ComplianceEngine (generic audit bundle, no finding data)

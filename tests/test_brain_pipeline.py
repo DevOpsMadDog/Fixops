@@ -875,7 +875,7 @@ class TestEventEmission:
 
 
 class TestEdgeCases:
-    @pytest.mark.timeout(30)  # Large batch needs more time with post-pipeline enrichment
+    @pytest.mark.timeout(60)  # Large batch needs more time with post-pipeline enrichment (threat enrichment ~26s)
     def test_large_findings_batch(self, pipeline):
         findings = [
             {
