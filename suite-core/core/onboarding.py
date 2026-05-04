@@ -175,6 +175,9 @@ class OnboardingManager:
     def __init__(self, db_path: Optional[Path] = None) -> None:
         self._db_path = Path(db_path) if db_path else _DEFAULT_DB_PATH
         self._lock = threading.Lock()
+        # Thread-local connection cache — reuse within the same OS thread to
+        # avoid repeated open/close overhead (hotfix #1).
+        self._tls = threading.local()
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -184,6 +187,11 @@ class OnboardingManager:
     def _init_db(self) -> None:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
+            # Enable WAL mode for concurrent reads and reduced fsync latency
+            # (hotfix #2).
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA cache_size=-4096")  # 4 MB page cache
+            conn.execute("PRAGMA synchronous=NORMAL")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS onboardings (
@@ -207,8 +215,12 @@ class OnboardingManager:
             )
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
-        conn.row_factory = sqlite3.Row
+        """Return a per-thread cached connection (hotfix #1)."""
+        conn = getattr(self._tls, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            self._tls.conn = conn
         return conn
 
     # ------------------------------------------------------------------
@@ -252,11 +264,15 @@ class OnboardingManager:
             completion_percentage=self._calc_percentage(steps),
         )
 
-    def _get_row(self, org_id: str) -> Optional[sqlite3.Row]:
-        with self._connect() as conn:
-            return conn.execute(
-                "SELECT * FROM onboardings WHERE org_id = ?", (org_id,)
-            ).fetchone()
+    def _get_row(
+        self, org_id: str, conn: Optional[sqlite3.Connection] = None
+    ) -> Optional[sqlite3.Row]:
+        """Fetch the onboarding row.  Accepts an existing *conn* to avoid an
+        extra connection open when the caller already holds one (hotfix #3)."""
+        c = conn if conn is not None else self._connect()
+        return c.execute(
+            "SELECT * FROM onboardings WHERE org_id = ?", (org_id,)
+        ).fetchone()
 
     # ------------------------------------------------------------------
     # Public API
@@ -265,13 +281,14 @@ class OnboardingManager:
     def start_onboarding(self, org_id: str) -> OnboardingProgress:
         """Create a new onboarding session for org_id (idempotent — returns existing)."""
         with self._lock:
-            existing = self._get_row(org_id)
+            conn = self._connect()
+            existing = self._get_row(org_id, conn)
             if existing:
                 return self._row_to_progress(existing)
 
             steps = self._default_steps()
             now = datetime.now(timezone.utc).isoformat()
-            with self._connect() as conn:
+            with conn:
                 conn.execute(
                     """
                     INSERT INTO onboardings (org_id, current_step, steps, started_at)
@@ -306,7 +323,9 @@ class OnboardingManager:
         _validate_step(step, config_data)
 
         with self._lock:
-            row = self._get_row(org_id)
+            # Reuse the same cached connection for read + write (hotfix #3).
+            conn = self._connect()
+            row = self._get_row(org_id, conn)
             if not row:
                 raise KeyError(f"No onboarding found for org_id={org_id!r}")
 
@@ -321,7 +340,7 @@ class OnboardingManager:
             else:
                 next_step = self._next_pending_step(steps)
 
-            with self._connect() as conn:
+            with conn:
                 conn.execute(
                     """
                     UPDATE onboardings
@@ -353,7 +372,9 @@ class OnboardingManager:
     def skip_step(self, org_id: str, step: OnboardingStep) -> OnboardingProgress:
         """Mark *step* as SKIPPED (no config stored)."""
         with self._lock:
-            row = self._get_row(org_id)
+            # Reuse the same cached connection for read + write (hotfix #3).
+            conn = self._connect()
+            row = self._get_row(org_id, conn)
             if not row:
                 raise KeyError(f"No onboarding found for org_id={org_id!r}")
 
@@ -368,7 +389,7 @@ class OnboardingManager:
             else:
                 next_step = self._next_pending_step(steps)
 
-            with self._connect() as conn:
+            with conn:
                 conn.execute(
                     """
                     UPDATE onboardings
@@ -436,11 +457,24 @@ class OnboardingManager:
         return results
 
     def get_checklist(self, org_id: str) -> Dict[str, Any]:
-        """Pre-flight checklist: which steps are ready vs missing."""
+        """Pre-flight checklist: which steps are ready vs missing.
+
+        Batches the step_configs fetch into a single query (hotfix #4 — was
+        N+1 connections, one per step).
+        """
         try:
             progress = self.get_progress(org_id)
         except KeyError:
             return {"org_id": org_id, "onboarding_started": False, "items": []}
+
+        # Single query for all step configs instead of one per step.
+        conn = self._connect()
+        rows = conn.execute(
+            "SELECT step, config FROM step_configs WHERE org_id = ?", (org_id,)
+        ).fetchall()
+        configs: Dict[str, Dict[str, Any]] = {
+            r["step"]: json.loads(r["config"]) for r in rows
+        }
 
         items = []
         for step in STEP_ORDER:
@@ -450,7 +484,7 @@ class OnboardingManager:
                 if isinstance(raw_status, StepStatus)
                 else raw_status
             )
-            config = self.get_step_config(org_id, step)
+            config = configs.get(step.value, {})
             items.append(
                 {
                     "step": step.value,
