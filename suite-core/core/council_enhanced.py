@@ -31,6 +31,7 @@ import sqlite3
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -237,6 +238,9 @@ class EnhancedLLMCouncil:
 
         # Lazy-init real council (may not be available in test/air-gap environments)
         self._real_council: Optional[Any] = None
+        # PERF: cache DecisionMemoryStore so we don't open a new sqlite3
+        # connection on every deliberate() call (was one new connection per verdict).
+        self._decision_memory_store: Optional[Any] = None
 
         logger.info(
             "EnhancedLLMCouncil initialized: db=%s, threshold=%.2f",
@@ -545,7 +549,12 @@ class EnhancedLLMCouncil:
                 f"  reasoning: brief explanation"
             )
 
-            for provider in providers[:3]:  # cap at 3 to limit cost
+            # PERF: dispatch all providers in parallel instead of sequentially.
+            # 3 × ~300ms serial = ~900ms → all 3 in ~300ms (bounded by slowest).
+            capped_providers = providers[:3]  # cap at 3 to limit cost
+
+            def _query_one(provider: Any) -> tuple[str, str, str]:
+                """Returns (provider_name, vote, reasoning_text). Never raises."""
                 try:
                     resp = provider.analyse(
                         prompt=prompt,
@@ -554,11 +563,18 @@ class EnhancedLLMCouncil:
                         default_confidence=0.5,
                         default_reasoning="No analysis available",
                     )
-                    vote = self._normalize_vote(resp.recommended_action)
-                    votes[provider.name] = vote
-                    reasoning[provider.name] = resp.reasoning or ""
+                    return provider.name, self._normalize_vote(resp.recommended_action), resp.reasoning or ""
                 except Exception as exc:
                     logger.debug("Provider %s failed: %s", provider.name, exc)
+                    return provider.name, "", ""
+
+            with ThreadPoolExecutor(max_workers=len(capped_providers) or 1) as pool:
+                futures = {pool.submit(_query_one, p): p for p in capped_providers}
+                for future in as_completed(futures):
+                    name, vote, reason = future.result()
+                    if vote:
+                        votes[name] = vote
+                        reasoning[name] = reason
 
             return votes, reasoning
 
@@ -781,10 +797,15 @@ class EnhancedLLMCouncil:
         try:
             from core.decision_memory import DecisionMemoryStore, DecisionRecord
 
-            db_path = os.environ.get(
-                "FIXOPS_DECISION_MEMORY_DB", "data/decision_memory.db"
-            )
-            store = DecisionMemoryStore(db_path=db_path)
+            # PERF: reuse the cached store (one DB connection for the lifetime
+            # of this EnhancedLLMCouncil instance) instead of opening a new
+            # sqlite3 connection on every call.
+            if self._decision_memory_store is None:
+                db_path = os.environ.get(
+                    "FIXOPS_DECISION_MEMORY_DB", "data/decision_memory.db"
+                )
+                self._decision_memory_store = DecisionMemoryStore(db_path=db_path)
+            store = self._decision_memory_store
             record = DecisionRecord(
                 finding_id=finding.get("id", verdict.verdict_id),
                 finding_hash=verdict.verdict_id,
@@ -812,8 +833,25 @@ class EnhancedLLMCouncil:
     # ------------------------------------------------------------------
 
     def _get_conn(self) -> sqlite3.Connection:
-        """Return a new SQLite connection (thread-safe: each call gets own conn)."""
-        return sqlite3.connect(self._db_path, timeout=10)
+        """Return a cached per-thread SQLite connection.
+
+        PERF: Previously opened a new sqlite3.connect() for every operation
+        (_store_verdict, _update_tg_entity, _load_votes_for_verdict, etc.) —
+        each call paid the file-open + schema-check overhead (~0.5-2ms on cold
+        disk). Now we cache one connection per thread (thread-local storage) so
+        the connection stays warm for the lifetime of the thread that deliberates.
+
+        Thread-safety: sqlite3 connections are NOT safe to share across threads,
+        so we store one per thread in self._local. This is safe because
+        ThreadPoolExecutor reuses threads for multiple tasks.
+        """
+        if not hasattr(self, "_local"):
+            self._local = threading.local()
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self._db_path, timeout=10, check_same_thread=False)
+            self._local.conn = conn
+        return conn
 
     def _init_db(self) -> None:
         """Create tables if they don't exist."""
