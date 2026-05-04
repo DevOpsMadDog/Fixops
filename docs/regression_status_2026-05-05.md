@@ -31,3 +31,17 @@ Delta vs sweep #2: 0 regressions. +1 perf test file (test_risk_normalization_per
 e09bff34 (soar/incident), 548af393 (asset-inventory), 327b0fae (ctem/exposure),
 fd288848 (evidence-chain), b8af5aed (webhook-delivery), 2e3dbcf6 (test runtime opt),
 08bf093f (risk normalization).
+
+Sweep #4 — HEAD 82dc367672314a182f68aca40bacec45d505882f
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.45s
+Suite 2 — Perf benchmarks (26 files): 194 passed, 0 failed, 0 errors in 26.35s
+Suite 3 — QA/lockdown (10 files): 1430 passed, 0 failed, 0 errors in 30.28s
+
+Total sweep #4: 2377 passed, 0 failed, 0 errors, 0 skipped
+Timestamp: 2026-05-05T08:59:00Z
+
+Delta vs sweep #3: 0 regressions. +2 perf test files (test_onboarding_perf.py, test_misc_perf.py, +8 tests).
+All suites green after commits since 5bf851ac:
+1938f82d (HANDOFF final wrap v2),
+84bff5c2 (onboarding/wizard perf — 4 hotspots, ~9x fewer DB opens),
+82dc3676 (misc perf — secret_scanner_engine, decision_engine, intelligent_security_engine hotspots).
