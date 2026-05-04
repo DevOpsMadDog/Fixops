@@ -11,6 +11,7 @@ import hmac
 import json
 import os
 import sqlite3
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -75,11 +76,30 @@ class EvidenceChain:
     """SQLite-backed cryptographic evidence chain.
 
     Each org has an independent chain rooted at the genesis hash.
+
+    Performance notes:
+    - A single persistent connection (WAL mode, check_same_thread=False) is
+      reused across all calls instead of opening/closing a new connection per
+      operation.  This eliminates per-call connection-open overhead (~0.5 ms
+      each on macOS).
+    - detect_tampering() no longer calls get_chain() a second time; it reuses
+      the entries already loaded inside verify_chain().
+    - get_chain_stats() no longer calls get_chain() separately; it reads the
+      chain once inside verify_chain().
     """
 
     def __init__(self, db_path: str = "data/evidence_chain.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Persistent, reusable connection — WAL mode for concurrent readers.
+        # check_same_thread=False is safe because we hold _lock around every
+        # write and sqlite3 serialises reads by itself in WAL mode.
+        self._lock = threading.Lock()
+        self._conn: sqlite3.Connection = sqlite3.connect(
+            str(self.db_path), check_same_thread=False
+        )
+        self._conn.row_factory = sqlite3.Row
+        self._conn.execute("PRAGMA journal_mode=WAL")
         self._init_tables()
 
     # ------------------------------------------------------------------
@@ -87,36 +107,33 @@ class EvidenceChain:
     # ------------------------------------------------------------------
 
     def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path))
-        conn.row_factory = sqlite3.Row
-        return conn
+        """Return the shared persistent connection."""
+        return self._conn
 
     def _init_tables(self) -> None:
+        # Use the shared persistent connection — do NOT close it here.
         conn = self._get_conn()
-        try:
-            conn.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS chain_entries (
-                    id              TEXT PRIMARY KEY,
-                    sequence_number INTEGER NOT NULL,
-                    event_type      TEXT NOT NULL,
-                    data_hash       TEXT NOT NULL,
-                    previous_hash   TEXT NOT NULL,
-                    timestamp       TEXT NOT NULL,
-                    signature       TEXT NOT NULL,
-                    org_id          TEXT NOT NULL
-                );
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS chain_entries (
+                id              TEXT PRIMARY KEY,
+                sequence_number INTEGER NOT NULL,
+                event_type      TEXT NOT NULL,
+                data_hash       TEXT NOT NULL,
+                previous_hash   TEXT NOT NULL,
+                timestamp       TEXT NOT NULL,
+                signature       TEXT NOT NULL,
+                org_id          TEXT NOT NULL
+            );
 
-                CREATE INDEX IF NOT EXISTS idx_chain_org_seq
-                    ON chain_entries (org_id, sequence_number);
+            CREATE INDEX IF NOT EXISTS idx_chain_org_seq
+                ON chain_entries (org_id, sequence_number);
 
-                CREATE INDEX IF NOT EXISTS idx_chain_org_ts
-                    ON chain_entries (org_id, timestamp);
-                """
-            )
-            conn.commit()
-        finally:
-            conn.close()
+            CREATE INDEX IF NOT EXISTS idx_chain_org_ts
+                ON chain_entries (org_id, timestamp);
+            """
+        )
+        conn.commit()
 
     def _row_to_entry(self, row: sqlite3.Row) -> ChainEntry:
         return ChainEntry(
@@ -167,7 +184,7 @@ class EvidenceChain:
         )
 
         conn = self._get_conn()
-        try:
+        with self._lock:
             conn.execute(
                 """
                 INSERT INTO chain_entries
@@ -187,27 +204,22 @@ class EvidenceChain:
                 ),
             )
             conn.commit()
-        finally:
-            conn.close()
 
         return entry
 
     def get_latest(self, org_id: str) -> Optional[ChainEntry]:
         """Return the most recent entry for *org_id*, or None if the chain is empty."""
         conn = self._get_conn()
-        try:
-            row = conn.execute(
-                """
-                SELECT * FROM chain_entries
-                WHERE org_id = ?
-                ORDER BY sequence_number DESC
-                LIMIT 1
-                """,
-                (org_id,),
-            ).fetchone()
-            return self._row_to_entry(row) if row else None
-        finally:
-            conn.close()
+        row = conn.execute(
+            """
+            SELECT * FROM chain_entries
+            WHERE org_id = ?
+            ORDER BY sequence_number DESC
+            LIMIT 1
+            """,
+            (org_id,),
+        ).fetchone()
+        return self._row_to_entry(row) if row else None
 
     def get_chain(
         self,
@@ -217,40 +229,34 @@ class EvidenceChain:
     ) -> List[ChainEntry]:
         """Return entries with sequence_number in [start, end] for *org_id*."""
         conn = self._get_conn()
-        try:
-            if end is None:
-                rows = conn.execute(
-                    """
-                    SELECT * FROM chain_entries
-                    WHERE org_id = ? AND sequence_number >= ?
-                    ORDER BY sequence_number ASC
-                    """,
-                    (org_id, start),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT * FROM chain_entries
-                    WHERE org_id = ? AND sequence_number >= ? AND sequence_number <= ?
-                    ORDER BY sequence_number ASC
-                    """,
-                    (org_id, start, end),
-                ).fetchall()
-            return [self._row_to_entry(r) for r in rows]
-        finally:
-            conn.close()
+        if end is None:
+            rows = conn.execute(
+                """
+                SELECT * FROM chain_entries
+                WHERE org_id = ? AND sequence_number >= ?
+                ORDER BY sequence_number ASC
+                """,
+                (org_id, start),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT * FROM chain_entries
+                WHERE org_id = ? AND sequence_number >= ? AND sequence_number <= ?
+                ORDER BY sequence_number ASC
+                """,
+                (org_id, start, end),
+            ).fetchall()
+        return [self._row_to_entry(r) for r in rows]
 
     def get_chain_length(self, org_id: str) -> int:
         """Return total number of entries for *org_id*."""
         conn = self._get_conn()
-        try:
-            row = conn.execute(
-                "SELECT COUNT(*) AS cnt FROM chain_entries WHERE org_id = ?",
-                (org_id,),
-            ).fetchone()
-            return row["cnt"] if row else 0
-        finally:
-            conn.close()
+        row = conn.execute(
+            "SELECT COUNT(*) AS cnt FROM chain_entries WHERE org_id = ?",
+            (org_id,),
+        ).fetchone()
+        return row["cnt"] if row else 0
 
     # ------------------------------------------------------------------
     # Integrity verification
@@ -261,6 +267,10 @@ class EvidenceChain:
 
         Re-derives each entry's expected previous_hash and checks HMAC
         signatures.  Returns a report dict.
+
+        The loaded entries are embedded in the return value under the private
+        key ``_entries`` so that callers like detect_tampering / get_chain_stats
+        can reuse them without a second DB round-trip.
         """
         entries = self.get_chain(org_id)
         broken_links: List[int] = []
@@ -290,13 +300,21 @@ class EvidenceChain:
             "broken_links": broken_links,
             "invalid_signatures": invalid_signatures,
             "verified_at": datetime.now(timezone.utc).isoformat(),
+            # Private key: reuse by detect_tampering / get_chain_stats to avoid
+            # a redundant get_chain() DB call.
+            "_entries": entries,
         }
 
     def detect_tampering(self, org_id: str) -> List[Dict[str, Any]]:
-        """Return a list of tampered entries (broken hash link or bad HMAC)."""
+        """Return a list of tampered entries (broken hash link or bad HMAC).
+
+        Perf fix: reuses the entries embedded in verify_chain() result instead
+        of issuing a second get_chain() DB query.
+        """
         result = self.verify_chain(org_id)
         broken = set(result["broken_links"]) | set(result["invalid_signatures"])
-        entries = self.get_chain(org_id)
+        # Reuse the entries already loaded by verify_chain — no second DB read.
+        entries: List[ChainEntry] = result.pop("_entries", [])
         tampered = []
         for entry in entries:
             if entry.sequence_number in broken:
@@ -319,8 +337,13 @@ class EvidenceChain:
     # ------------------------------------------------------------------
 
     def get_chain_stats(self, org_id: str) -> Dict[str, Any]:
-        """Return summary statistics for *org_id*'s chain."""
-        entries = self.get_chain(org_id)
+        """Return summary statistics for *org_id*'s chain.
+
+        Perf fix: verify_chain() already loads the full entry list; we extract
+        that list from its result instead of calling get_chain() again.
+        """
+        verification = self.verify_chain(org_id)
+        entries: List[ChainEntry] = verification.pop("_entries", [])
         if not entries:
             return {
                 "org_id": org_id,
@@ -329,7 +352,6 @@ class EvidenceChain:
                 "last_timestamp": None,
                 "integrity_status": "empty",
             }
-        verification = self.verify_chain(org_id)
         return {
             "org_id": org_id,
             "length": len(entries),
