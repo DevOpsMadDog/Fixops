@@ -12,11 +12,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 
 router = APIRouter(prefix="/api/v1", tags=["health"])
 
 VERSION = os.getenv("FIXOPS_VERSION", "0.1.0")
+
+
+async def _scrape_auth(
+    x_prometheus_token: str = Header(default="", alias="X-Prometheus-Token"),
+) -> None:
+    """Require a scrape token on /metrics unless the test env disables auth."""
+    if os.getenv("FIXOPS_DISABLE_RATE_LIMIT", "") == "1":
+        return
+    expected = os.getenv("FIXOPS_METRICS_TOKEN", "")
+    if not expected or x_prometheus_token != expected:
+        raise HTTPException(status_code=401, detail="Invalid scrape token")
 BUILD_DATE = os.getenv("FIXOPS_BUILD_DATE", "unknown")
 GIT_COMMIT = os.getenv("FIXOPS_GIT_COMMIT", "unknown")
 
@@ -99,7 +110,6 @@ def readiness_check(request: Request, response: Response) -> Dict[str, Any]:
         else:
             checks["storage"] = {
                 "status": "healthy",
-                "base_directory": str(archive.base_directory),
             }
     except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         checks["storage"] = {"status": "unhealthy", "error": type(exc).__name__}
@@ -134,7 +144,7 @@ def version_info() -> Dict[str, Any]:
     }
 
 
-@router.get("/metrics", response_class=None, summary="Prometheus metrics")
+@router.get("/metrics", response_class=None, summary="Prometheus metrics", dependencies=[Depends(_scrape_auth)])
 async def prometheus_metrics() -> Any:
     """
     Prometheus text exposition format (version 0.0.4).
@@ -229,7 +239,6 @@ def deep_health_check(response: Response) -> Dict[str, Any]:
         checks["database"] = {
             "status": "healthy",
             "backend": "sqlite",
-            "path": _db_path,
         }
     except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         # If the file doesn't exist yet that's OK — write a temp DB to verify
@@ -275,7 +284,6 @@ def deep_health_check(response: Response) -> Dict[str, Any]:
         "status": "healthy" if available_count == 8 else "degraded",
         "available": available_count,
         "total": 8,
-        "engines": scanner_results,
         "note": "degraded scanners reduce coverage but do not block API startup",
     }
 
@@ -319,7 +327,6 @@ def deep_health_check(response: Response) -> Dict[str, Any]:
             "status": disk_status,
             "free_gb": round(free_gb, 2),
             "total_gb": round(total_gb, 2),
-            "path": _check_dir,
         }
         if disk_note:
             checks["disk_space"]["note"] = disk_note
@@ -450,7 +457,7 @@ async def comprehensive_health() -> Dict[str, Any]:
             cur = con.execute("SELECT name FROM sqlite_master WHERE type='table' LIMIT 5")
             tables = [r[0] for r in cur.fetchall()]
             con.close()
-            checks["feeds_db"] = {"status": "ok", "tables": tables}
+            checks["feeds_db"] = {"status": "ok", "table_count": len(tables)}
         else:
             checks["feeds_db"] = {"status": "missing"}
     except Exception as exc:  # noqa: BLE001

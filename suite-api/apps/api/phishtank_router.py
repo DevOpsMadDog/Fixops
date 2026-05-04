@@ -13,7 +13,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def _get_importer():
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.post("/import", summary="Trigger PhishTank feed import")
+@router.post("/import", summary="Trigger PhishTank feed import", dependencies=[Depends(api_key_auth)])
 async def import_phishtank():
     """Pull the latest PhishTank online-valid JSON feed, upsert into local DB,
     expire stale records (online=no for 30+ days), and return a summary."""
@@ -53,7 +54,7 @@ async def import_phishtank():
         raise HTTPException(status_code=502, detail=f"Import failed: {exc}") from exc
 
 
-@router.get("/phishes", summary="List phishing URLs")
+@router.get("/phishes", summary="List phishing URLs", dependencies=[Depends(api_key_auth)])
 async def list_phishes(
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(50, ge=1, le=500, description="Entries per page"),
@@ -75,7 +76,7 @@ async def list_phishes(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.get("/check", summary="Check if a URL is a known phish")
+@router.get("/check", summary="Check if a URL is a known phish", dependencies=[Depends(api_key_auth)])
 async def check_url(
     url: str = Query(..., description="URL to check for phishing membership"),
 ):

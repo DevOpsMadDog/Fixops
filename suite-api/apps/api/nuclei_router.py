@@ -140,6 +140,7 @@ def _get_importer():
     "/",
     response_model=NucleiCapabilityResponse,
     summary="Nuclei capability summary",
+    dependencies=[Depends(api_key_auth)],
 )
 def capability_summary() -> Dict[str, Any]:
     """Return Nuclei capability descriptor — template categories, severity
@@ -152,6 +153,7 @@ def capability_summary() -> Dict[str, Any]:
     "/templates",
     response_model=NucleiTemplatesCatalogResponse,
     summary="List Nuclei template categories with counts",
+    dependencies=[Depends(api_key_auth)],
 )
 def list_template_catalog() -> Dict[str, Any]:
     """Return the canonical Nuclei template-category catalog with per-category
