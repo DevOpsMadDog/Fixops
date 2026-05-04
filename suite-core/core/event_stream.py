@@ -72,14 +72,24 @@ class StreamEvent(BaseModel):
     )
     org_id: str = Field(default="default", description="Organisation ID")
 
+    # Cached SSE wire-format string — computed once, reused for every subscriber
+    # that receives this event (avoids redundant model_dump_json() per fan-out).
+    _sse_cache: Optional[str] = None
+
     def to_sse(self) -> str:
-        """Serialise to SSE wire format: id/event/data/blank-line."""
-        return (
-            f"id: {self.id}\n"
-            f"event: {self.event_type}\n"
-            f"data: {self.model_dump_json()}\n"
-            "\n"
-        )
+        """Serialise to SSE wire format: id/event/data/blank-line.
+
+        Result is cached so fan-out to N subscribers pays the serialisation
+        cost exactly once instead of N times.
+        """
+        if self._sse_cache is None:
+            self._sse_cache = (
+                f"id: {self.id}\n"
+                f"event: {self.event_type}\n"
+                f"data: {self.model_dump_json()}\n"
+                "\n"
+            )
+        return self._sse_cache
 
     def to_dict(self) -> Dict[str, Any]:
         """Return plain dict for JSON serialisation."""
@@ -126,9 +136,9 @@ class EventStream:
         """
         self._history_size = history_size
 
-        # channel → list of (subscriber_id, asyncio.Queue)
-        self._subscribers: Dict[EventChannel, List[tuple[str, asyncio.Queue]]] = (
-            defaultdict(list)
+        # channel → {subscriber_id: asyncio.Queue}  (dict for O(1) add/remove)
+        self._subscribers: Dict[EventChannel, Dict[str, asyncio.Queue]] = (
+            defaultdict(dict)
         )
 
         # channel → callback list (fire-and-forget, no queue)
@@ -182,20 +192,18 @@ class EventStream:
         delivered = 0
 
         # Deliver to queue-based subscribers
-        dead: List[tuple[str, asyncio.Queue]] = []
-        for sub_id, queue in list(self._subscribers.get(channel, [])):
+        dead: List[str] = []
+        for sub_id, queue in list(self._subscribers.get(channel, {}).items()):
             try:
                 queue.put_nowait(event)
                 delivered += 1
             except asyncio.QueueFull:
                 _logger.warning("Queue full for subscriber %s on %s — dropping event", sub_id, channel)
-                dead.append((sub_id, queue))
+                dead.append(sub_id)
 
-        # Remove dead queues
-        for item in dead:
-            subs = self._subscribers[channel]
-            if item in subs:
-                subs.remove(item)
+        # Remove dead queues — O(1) per removal via dict pop
+        for sub_id in dead:
+            self._subscribers[channel].pop(sub_id, None)
 
         # Fire callbacks
         for cb_id, cb in list(self._callbacks.get(channel, [])):
@@ -268,16 +276,14 @@ class EventStream:
         """Create and register a new queue subscriber. Returns (sub_id, queue)."""
         sid = str(uuid.uuid4())
         queue: asyncio.Queue = asyncio.Queue(maxsize=maxsize)
-        self._subscribers[channel].append((sid, queue))
+        self._subscribers[channel][sid] = queue  # O(1) insert
         return sid, queue
 
     def _remove_queue_subscriber(
         self, channel: EventChannel, sub_id: str
     ) -> None:
-        """Remove a queue subscriber by ID."""
-        self._subscribers[channel] = [
-            (sid, q) for sid, q in self._subscribers[channel] if sid != sub_id
-        ]
+        """Remove a queue subscriber by ID — O(1) dict pop."""
+        self._subscribers[channel].pop(sub_id, None)
 
     # ------------------------------------------------------------------
     # History / stats
@@ -328,7 +334,7 @@ class EventStream:
         for ch in EventChannel:
             events_per_channel[ch.value] = self._published[ch]
             # count queue subs + callback subs
-            q_count = len(self._subscribers.get(ch, []))
+            q_count = len(self._subscribers.get(ch, {}))
             cb_count = len(self._callbacks.get(ch, []))
             subscribers_per_channel[ch.value] = q_count + cb_count
             history_size_per_channel[ch.value] = len(self._history[ch])

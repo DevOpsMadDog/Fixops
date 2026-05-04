@@ -26,6 +26,9 @@ from typing import AsyncGenerator, Dict, List, Optional, Set
 
 _logger = logging.getLogger(__name__)
 
+# Module-level constant: avoids rebuilding this dict on every matches_filters() call.
+_SEVERITY_ORDER: Dict[str, int] = {"info": 0, "warning": 1, "critical": 2}
+
 
 # ============================================================================
 # ENUMS
@@ -135,9 +138,8 @@ class StreamEvent:
             return False
 
         if min_severity:
-            severity_order = {"info": 0, "warning": 1, "critical": 2}
-            event_severity = severity_order.get(str(self.severity).lower(), 0)
-            filter_severity = severity_order.get(min_severity.lower(), 0)
+            event_severity = _SEVERITY_ORDER.get(str(self.severity).lower(), 0)
+            filter_severity = _SEVERITY_ORDER.get(min_severity.lower(), 0)
             if event_severity < filter_severity:
                 return False
 
