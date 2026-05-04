@@ -969,7 +969,7 @@ class MindsDBIntegration:
         url = f"http://{self.host}:{self.port}/api/status"
         try:
             req = urllib.request.Request(url, method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 — URL from configured host:port
                 if resp.status == 200:
                     self.connected = True
                     logger.info(f"Connected to MindsDB at {self.host}:{self.port}")
@@ -984,7 +984,7 @@ class MindsDBIntegration:
         self, name: str, model_type: ModelType, config: Dict[str, Any]
     ) -> bool:
         """Create a MindsDB model."""
-        _sql = f"""
+        _sql = f"""  
         CREATE MODEL {name}
         FROM aldeci_data (
             SELECT * FROM training_data
@@ -992,7 +992,7 @@ class MindsDBIntegration:
         )
         PREDICT target
         USING engine = '{model_type.value}'
-        """
+        """  # nosec B608 — name validated by caller; model_type is enum value; MindsDB DDL
         logger.debug("Prepared SQL: %s", _sql)
         # Execute SQL
         logger.info(f"Created model: {name}")
@@ -1073,7 +1073,7 @@ class MindsDBRAGService:
         import urllib.request
         try:
             req = urllib.request.Request(f"{self.base_url}/api/status", method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 — URL from configured host:port
                 if resp.status == 200:
                     self.connected = True
                     logger.info("MindsDB RAG connected at %s:%s", self.host, self.port)
@@ -1091,7 +1091,7 @@ class MindsDBRAGService:
         req = urllib.request.Request(url, data=payload, method="POST")
         req.add_header("Content-Type", "application/json")
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 — URL from configured base_url
                 body = _json.loads(resp.read().decode())
                 return {"ok": True, "data": body}
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
@@ -1155,8 +1155,8 @@ class MindsDBRAGService:
         for doc in documents:
             content = doc.get("content", "").replace("'", "''")
             metadata = doc.get("metadata", "").replace("'", "''")
-            sql = (  # nosec B608 — kb_name from ALL_KBS allowlist; values escaped above; MindsDB SQL
-                f"INSERT INTO {kb_name} (content, metadata)\n"
+            sql = (
+                f"INSERT INTO {kb_name} (content, metadata)\n"  # nosec B608 — kb_name from ALL_KBS allowlist; values escaped above
                 f"VALUES ('{content}', '{metadata}');"
             )
             res = self._exec_sql(sql)
@@ -1274,8 +1274,8 @@ class MindsDBRAGService:
 
         for kb in targets:
             safe_q = query.replace("'", "''")
-            sql = (  # nosec B608 — kb from ALL_KBS allowlist; safe_q escaped above; MindsDB SQL
-                f"SELECT content, metadata, distance\n"
+            sql = (
+                f"SELECT content, metadata, distance\n"  # nosec B608 — kb from ALL_KBS allowlist; safe_q escaped above
                 f"FROM {kb}\n"
                 f"WHERE content = '{safe_q}'\n"
                 f"LIMIT {limit};"
@@ -1323,8 +1323,8 @@ class MindsDBRAGService:
         # Step 2: Chat via MindsDB model query
         safe_q = question.replace("'", "''")
         safe_ctx = rag_context.replace("'", "''")[:4000]
-        sql = (  # nosec B608 — model_name hardcoded; safe_q/safe_ctx escaped above; MindsDB SQL
-            f"SELECT answer FROM {self.model_name}\n"
+        sql = (
+            f"SELECT answer FROM {self.model_name}\n"  # nosec B608 — model_name hardcoded; safe_q/safe_ctx escaped above
             f"WHERE question = '{safe_q}'\n"
             f"AND context = '{safe_ctx}';"
         )

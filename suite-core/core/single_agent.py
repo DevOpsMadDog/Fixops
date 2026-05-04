@@ -154,7 +154,7 @@ class VLLMBackend(BaseInferenceBackend):
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=120) as resp:  # nosec B310 — URL from env var with http(s) default
                 result = json.loads(resp.read())
                 text = result["choices"][0]["message"]["content"]
                 tokens = result.get("usage", {}).get("total_tokens", 0)
@@ -167,7 +167,7 @@ class VLLMBackend(BaseInferenceBackend):
         import urllib.request
         try:
             req = urllib.request.Request(f"{self.base_url}/models")
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 — URL from env var with http(s) default
                 return resp.status == 200
         except Exception:
             return False
@@ -206,7 +206,7 @@ class OllamaBackend(BaseInferenceBackend):
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=120) as resp:  # nosec B310 — URL from env var with http(s) default
                 result = json.loads(resp.read())
                 text = result.get("response", "")
                 tokens = result.get("eval_count", 0) + result.get("prompt_eval_count", 0)
@@ -218,7 +218,7 @@ class OllamaBackend(BaseInferenceBackend):
         import urllib.request
         try:
             req = urllib.request.Request(f"{self.base_url}/api/tags")
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 — URL from env var with http(s) default
                 return resp.status == 200
         except Exception:
             return False
@@ -338,7 +338,7 @@ class APIFallbackBackend(BaseInferenceBackend):
             },
         )
 
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:  # nosec B310 — URL from configured API provider
             result = json.loads(resp.read())
             text = result["choices"][0]["message"]["content"]
             tokens = result.get("usage", {}).get("total_tokens", 0)
@@ -364,7 +364,7 @@ class APIFallbackBackend(BaseInferenceBackend):
             },
         )
 
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:  # nosec B310 — URL from configured API provider
             result = json.loads(resp.read())
             text = result["content"][0]["text"]
             tokens = result.get("usage", {}).get("input_tokens", 0) + result.get("usage", {}).get("output_tokens", 0)

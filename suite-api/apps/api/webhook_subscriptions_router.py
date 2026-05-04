@@ -381,7 +381,7 @@ async def update_subscription(sub_id: str, req: UpdateSubscriptionRequest, org_i
     if not updates:
         raise HTTPException(422, "No fields to update")
     params.extend([sub_id, org_id])
-    sql = f"UPDATE subscriptions SET {', '.join(updates)} WHERE id=? AND org_id=?"
+    sql = f"UPDATE subscriptions SET {', '.join(updates)} WHERE id=? AND org_id=?"  # nosec B608 — column names are hardcoded constants, values parameterized
     try:
         with _db_lock:
             conn = _get_db()

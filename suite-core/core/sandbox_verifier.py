@@ -940,7 +940,7 @@ echo "PROBE_END"
             script_path = os.path.join(tmpdir, "probe.sh")
             with open(script_path, "w") as f:
                 f.write(self.PROBE_SCRIPT)
-            os.chmod(script_path, 0o755)
+            os.chmod(script_path, 0o755)  # nosec B103 — probe script in ephemeral tmpdir needs execute permission
 
             docker_cmd = [
                 "docker", "run", "--rm",

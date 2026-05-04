@@ -122,7 +122,7 @@ def _parse_xml_safe(data: bytes) -> Optional[ET.Element]:
         )
         # Also strip any remaining entity declarations
         text = _re.sub(r'<!ENTITY[^>]*>', '', text, flags=_re.IGNORECASE)
-        return ET.fromstring(text)  # noqa: B314 — defusedxml.defuse_stdlib() called at module load
+        return ET.fromstring(text)  # noqa: B314  # nosec B314 — defusedxml.defuse_stdlib() called at module load; entities stripped above
     except (ET.ParseError, ValueError, OverflowError):
         return None
 

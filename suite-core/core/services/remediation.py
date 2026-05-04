@@ -644,7 +644,7 @@ class RemediationService:
             cursor.execute(
                 "SELECT status, COUNT(*) as count "
                 "FROM remediation_tasks WHERE org_id = ?"
-                + app_filter
+                + app_filter  # nosec B608 — app_filter is hardcoded " AND app_id = ?", values parameterized
                 + " GROUP BY status",
                 base_params,
             )
@@ -653,7 +653,7 @@ class RemediationService:
             cursor.execute(
                 "SELECT severity, COUNT(*) as count "
                 "FROM remediation_tasks WHERE org_id = ?"
-                + app_filter
+                + app_filter  # nosec B608 — app_filter is hardcoded " AND app_id = ?", values parameterized
                 + " GROUP BY severity",
                 base_params,
             )
@@ -665,7 +665,7 @@ class RemediationService:
                 "SELECT severity, "
                 "AVG(julianday(resolved_at) - julianday(created_at)) * 24 as avg_hours "
                 "FROM remediation_tasks WHERE org_id = ?"
-                + app_filter
+                + app_filter  # nosec B608 — app_filter is hardcoded " AND app_id = ?", values parameterized
                 + " AND resolved_at IS NOT NULL GROUP BY severity",
                 base_params,
             )
@@ -679,7 +679,7 @@ class RemediationService:
             cursor.execute(
                 "SELECT COUNT(*) as total "
                 "FROM remediation_tasks WHERE org_id = ?"
-                + app_filter
+                + app_filter  # nosec B608 — app_filter is hardcoded " AND app_id = ?", values parameterized
                 + " AND resolved_at IS NOT NULL",
                 base_params,
             )
@@ -688,7 +688,7 @@ class RemediationService:
             cursor.execute(
                 "SELECT COUNT(*) as breached "
                 "FROM remediation_tasks WHERE org_id = ?"
-                + app_filter
+                + app_filter  # nosec B608 — app_filter is hardcoded " AND app_id = ?", values parameterized
                 + " AND sla_breached = 1 AND resolved_at IS NOT NULL",
                 base_params,
             )
@@ -704,7 +704,7 @@ class RemediationService:
             cursor.execute(
                 "SELECT COUNT(*) as overdue "
                 "FROM remediation_tasks WHERE org_id = ?"
-                + app_filter
+                + app_filter  # nosec B608 — app_filter is hardcoded " AND app_id = ?", values parameterized
                 + " AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')",
                 base_params + [now],
             )

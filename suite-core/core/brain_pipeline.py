@@ -229,7 +229,7 @@ class _HttpOPAEngine:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
+            with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310  # nosec B310
                 body = _json.loads(resp.read())
                 return body.get("result", {})
         except (urllib.error.URLError, OSError) as exc:
@@ -3452,7 +3452,7 @@ class BrainPipeline:
                         url, data=data, headers=gh_headers, method=method
                     )
                     try:
-                        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
+                        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310  # nosec B310
                             return _json.loads(resp.read()) if resp.length != 0 else {}
                     except urllib.error.HTTPError as exc:
                         error_body = exc.read().decode(errors="replace")
@@ -4048,7 +4048,7 @@ class FPFeedbackStore:
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
         row = self._conn.execute(
-            f"SELECT COUNT(*), SUM(is_false_positive) FROM fp_feedback {where}",
+            f"SELECT COUNT(*), SUM(is_false_positive) FROM fp_feedback {where}",  # nosec B608 — WHERE built from hardcoded column names, values parameterized
             params,
         ).fetchone()
         total = row[0] if row else 0
@@ -4060,7 +4060,7 @@ class FPFeedbackStore:
             f"""SELECT scanner, COUNT(*) as total,
                        SUM(is_false_positive) as fps
                 FROM fp_feedback {where}
-                GROUP BY scanner ORDER BY total DESC""",
+                GROUP BY scanner ORDER BY total DESC""",  # nosec B608 — WHERE built from hardcoded column names, values parameterized
             params,
         ).fetchall()
         by_scanner = [
@@ -4078,7 +4078,7 @@ class FPFeedbackStore:
             f"""SELECT cwe_id, COUNT(*) as total,
                        SUM(is_false_positive) as fps
                 FROM fp_feedback {where}
-                GROUP BY cwe_id ORDER BY total DESC LIMIT 20""",
+                GROUP BY cwe_id ORDER BY total DESC LIMIT 20""",  # nosec B608 — WHERE built from hardcoded column names, values parameterized
             params,
         ).fetchall()
         by_cwe = [

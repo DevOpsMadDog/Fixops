@@ -339,10 +339,10 @@ class MindsDBClient:
         safe_kb = _validate_mindsdb_identifier(kb_name, "knowledge base name")
         safe_content = _escape_mindsdb_string(content)
         safe_metadata = _escape_mindsdb_string(json.dumps(metadata))
-        sql = f"""
+        sql = f"""  
         INSERT INTO {safe_kb} (content, metadata)
         VALUES ('{safe_content}', '{safe_metadata}')
-        """
+        """  # nosec B608 — inputs validated/escaped by _validate_mindsdb_identifier and _escape_mindsdb_string
         return await self._execute_sql(sql)
 
     async def query_knowledge(
@@ -357,11 +357,11 @@ class MindsDBClient:
         safe_question = _escape_mindsdb_string(question)
         # Cast limit to int explicitly — prevents any string injection
         safe_limit = int(limit)
-        sql = f"""
+        sql = f"""  
         SELECT * FROM {safe_kb}
         WHERE question = '{safe_question}'
         LIMIT {safe_limit}
-        """
+        """  # nosec B608 — inputs validated/escaped by _validate_mindsdb_identifier and _escape_mindsdb_string
         return await self._execute_sql(sql)
 
     async def create_agent(

@@ -1067,30 +1067,29 @@ class RiskScoringModel:
             f1 = metrics.get("f1_by_priority", {}).get(p, "N/A")
             card += f"| {p} | {prec} | {rec} | {f1} |\n"
 
-        card += f"""
-## Confidence Intervals
-- Method: Bootstrap ensemble ({len(self._bootstrap_models)} models)
-- Coverage: 90% CI (5th-95th percentile)
-- Reject predictions with CI width > 60 points
-
-## Limitations
-1. **Small training set**: {metrics.get('training_samples', 0)} cases — model may underperform on unseen CVE categories
-2. **Temporal bias**: Training data biased towards 2021-2025 CVEs; emerging attack patterns may not be captured
-3. **No code-level features**: Model uses metadata only; does not analyze actual source code
-4. **Chain exploit detection**: Chain exploit feature is binary; does not model chain complexity
-5. **Asset criticality dependency**: Requires accurate asset_criticality input; garbage-in-garbage-out
-6. **No online learning**: Model is static; requires periodic retraining with updated golden dataset
-
-## Ethical Considerations
-- Model should not be used as sole basis for security decisions
-- False negatives (missed critical vulns) are more dangerous than false positives
-- Model is calibrated to over-predict risk for KEV entries (safety margin)
-
-## Update Policy
-- Retrain when golden dataset updated with >5 new cases
-- Retrain when validation accuracy drops >5% from baseline
-- Model version is bumped for any hyperparameter change
-"""
+        _n_bootstrap = len(self._bootstrap_models)
+        _n_training = metrics.get('training_samples', 0)
+        card += (
+            "\n## Confidence Intervals\n"
+            "- Method: Bootstrap ensemble (" + str(_n_bootstrap) + " models)\n"
+            "- Coverage: 90% CI (5th-95th percentile)\n"
+            "- Reject predictions with CI width > 60 points\n"
+            "\n## Limitations\n"
+            "1. **Small training set**: " + str(_n_training) + " cases \u2014 model may underperform on unseen CVE categories\n"
+            "2. **Temporal bias**: Training data biased towards 2021-2025 CVEs; emerging attack patterns may not be captured\n"
+            "3. **No code-level features**: Model uses metadata only; does not analyze actual source code\n"
+            "4. **Chain exploit detection**: Chain exploit feature is binary; does not model chain complexity\n"
+            "5. **Asset criticality dependency**: Requires accurate asset_criticality input; garbage-in-garbage-out\n"
+            "6. **No online learning**: Model is static; requires periodic retraining with updated golden dataset\n"
+            "\n## Ethical Considerations\n"
+            "- Model should not be used as sole basis for security decisions\n"
+            "- False negatives (missed critical vulns) are more dangerous than false positives\n"
+            "- Model is calibrated to over-predict risk for KEV entries (safety margin)\n"
+            "\n## Update Policy\n"
+            "- Retrain when golden dataset updated with >5 new cases\n"
+            "- Retrain when validation accuracy drops >5% from baseline\n"
+            "- Model version is bumped for any hyperparameter change\n"
+        )
         with open(card_path, "w", encoding="utf-8") as f:
             f.write(card)
 

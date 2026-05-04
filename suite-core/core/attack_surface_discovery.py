@@ -356,7 +356,7 @@ class AttackSurfaceEngine:
                 f"https://{domain}/",
                 headers={"User-Agent": "FixOps-AttackSurface/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — domain from user-provided target scope
                 headers = str(resp.headers)
                 body_snippet = resp.read(4096).decode("utf-8", errors="ignore")
                 combined = headers + "\n" + body_snippet

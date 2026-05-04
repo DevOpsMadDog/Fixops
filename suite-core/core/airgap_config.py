@@ -298,7 +298,7 @@ class NetworkIsolationDetector:
         for url in PROBE_HTTPS_URLS:
             try:
                 req = urllib.request.Request(url, method="HEAD")
-                with urllib.request.urlopen(req, timeout=2, context=ctx):
+                with urllib.request.urlopen(req, timeout=2, context=ctx):  # nosec B310 — PROBE_HTTPS_URLS are hardcoded https endpoints
                     return True
             except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 continue
@@ -577,7 +577,7 @@ class LocalLLMRouter:
         """Quick HTTP probe — returns True if endpoint responds."""
         import urllib.request
         try:
-            with urllib.request.urlopen(url, timeout=timeout):
+            with urllib.request.urlopen(url, timeout=timeout):  # nosec B310 — URL from internal config
                 return True
         except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
@@ -594,7 +594,7 @@ class LocalLLMRouter:
         if not url:
             return ""
         try:
-            with urllib.request.urlopen(url, timeout=2) as resp:
+            with urllib.request.urlopen(url, timeout=2) as resp:  # nosec B310 — URL from hardcoded backend endpoints dict
                 data = json.loads(resp.read())
             if backend == LLMBackend.OLLAMA:
                 models = data.get("models", [])

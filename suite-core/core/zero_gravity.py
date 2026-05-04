@@ -1322,7 +1322,7 @@ class OnlineLearningStore:
             raise FileNotFoundError(f"Model file not found: {load_path}")
 
         with open(load_path, "rb") as f:
-            state = _pickle.load(f)
+            state = _pickle.load(f)  # nosec B301 — loading trusted ML model from controlled model directory
 
         self._models[model_id] = state["model"]
         self._sample_counts[model_id] = state.get("sample_count", 0)

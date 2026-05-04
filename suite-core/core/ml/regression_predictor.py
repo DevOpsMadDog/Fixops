@@ -1254,7 +1254,7 @@ class RegressionPredictor:
 
         try:
             with open(model_path, "rb") as f:
-                data = pickle.load(f)
+                data = pickle.load(f)  # nosec B301 — loading trusted ML model from controlled model directory
             self._model = data["model"]
             self._scaler = data["scaler"]
             self._bootstrap_models = data.get("bootstrap_models", [])

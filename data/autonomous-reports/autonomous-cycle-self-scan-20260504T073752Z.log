@@ -1,0 +1,76 @@
+Working... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:25
+Run started:2026-05-04 07:38:50.485685+00:00
+
+Test results:
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html
+   Location: suite-core/core/ml/risk_scorer.py:1073:12
+1072	        card += (
+1073	            "\n## Confidence Intervals\n"
+1074	            "- Method: Bootstrap ensemble (" + str(_n_bootstrap) + " models)\n"
+1075	            "- Coverage: 90% CI (5th-95th percentile)\n"
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html
+   Location: suite-core/core/ml/risk_scorer.py:1074:67
+1073	            "\n## Confidence Intervals\n"
+1074	            "- Method: Bootstrap ensemble (" + str(_n_bootstrap) + " models)\n"
+1075	            "- Coverage: 90% CI (5th-95th percentile)\n"
+1076	            "- Reject predictions with CI width > 60 points\n"
+1077	            "\n## Limitations\n"
+1078	            "1. **Small training set**: " + str(_n_training) + " cases \u2014 model may underperform on unseen CVE categories\n"
+1079	            "2. **Temporal bias**: Training data biased towards 2021-2025 CVEs; emerging attack patterns may not be captured\n"
+1080	            "3. **No code-level features**: Model uses metadata only; does not analyze actual source code\n"
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html
+   Location: suite-core/core/ml/risk_scorer.py:1078:63
+1077	            "\n## Limitations\n"
+1078	            "1. **Small training set**: " + str(_n_training) + " cases \u2014 model may underperform on unseen CVE categories\n"
+1079	            "2. **Temporal bias**: Training data biased towards 2021-2025 CVEs; emerging attack patterns may not be captured\n"
+1080	            "3. **No code-level features**: Model uses metadata only; does not analyze actual source code\n"
+1081	            "4. **Chain exploit detection**: Chain exploit feature is binary; does not model chain complexity\n"
+1082	            "5. **Asset criticality dependency**: Requires accurate asset_criticality input; garbage-in-garbage-out\n"
+1083	            "6. **No online learning**: Model is static; requires periodic retraining with updated golden dataset\n"
+1084	            "\n## Ethical Considerations\n"
+1085	            "- Model should not be used as sole basis for security decisions\n"
+1086	            "- False negatives (missed critical vulns) are more dangerous than false positives\n"
+1087	            "- Model is calibrated to over-predict risk for KEV entries (safety margin)\n"
+1088	            "\n## Update Policy\n"
+1089	            "- Retrain when golden dataset updated with >5 new cases\n"
+1090	            "- Retrain when validation accuracy drops >5% from baseline\n"
+1091	            "- Model version is bumped for any hyperparameter change\n"
+1092	        )
+1093	        with open(card_path, "w", encoding="utf-8") as f:
+1094	            f.write(card)
+1095	
+1096	        logger.info("Model card written to %s", card_path)
+1097	        return card_path
+
+--------------------------------------------------
+
+Code scanned:
+	Total lines of code: 208075
+	Total lines skipped (#nosec): 1
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 99
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 120
+		Medium: 3
+		High: 0
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 3
+		Medium: 40
+		High: 80
+Files skipped (0):

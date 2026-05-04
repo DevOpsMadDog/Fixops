@@ -410,7 +410,7 @@ class DeduplicationService:
                 FROM events
                 WHERE cluster_id IN ({placeholders})
                 ORDER BY cluster_id, timestamp DESC
-                """,
+                """,  # nosec B608 — placeholders generated from len(), values parameterized
                 cluster_ids,
             )
             rows = cursor.fetchall()
@@ -904,7 +904,7 @@ class DeduplicationService:
                     SELECT * FROM correlation_links
                     WHERE source_cluster_id IN ({placeholders})
                     AND target_cluster_id IN ({placeholders})
-                """,
+                """,  # nosec B608 — placeholders generated from len(), values parameterized
                     cluster_ids + cluster_ids,
                 )
             else:
@@ -924,7 +924,7 @@ class DeduplicationService:
                         SELECT * FROM correlation_links
                         WHERE source_cluster_id IN ({placeholders})
                         OR target_cluster_id IN ({placeholders})
-                    """,
+                    """,  # nosec B608 — placeholders generated from len(), values parameterized
                         cluster_ids + cluster_ids,
                     )
                 else:

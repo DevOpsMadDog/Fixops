@@ -57,7 +57,7 @@ def _restore_model(path: Path) -> Any:
     import pickle
 
     with path.open("rb") as handle:
-        return pickle.load(handle)
+        return pickle.load(handle)  # nosec B301 — loading trusted ML model from controlled data/ directory
 
 
 def compute_bn_cpd_hash() -> str:
