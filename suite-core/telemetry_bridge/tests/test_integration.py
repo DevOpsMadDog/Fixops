@@ -46,7 +46,7 @@ def docker_compose_up():
 
 def test_health_check(docker_compose_up):
     """Test that the collector API health check works."""
-    response = requests.get("http://localhost:8080/health")
+    response = requests.get("http://localhost:8080/health", timeout=30)
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
