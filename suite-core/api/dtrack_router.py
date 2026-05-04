@@ -97,9 +97,9 @@ async def lookup_project(
 class SBOMUploadRequest(BaseModel):
     """Upload SBOM via JSON body (alternative to file upload)."""
 
-    project_name: str = Field(..., description="Target project name in Dependency-Track")
-    project_version: str = Field("latest", description="Project version tag")
-    sbom: str = Field(..., description="Raw CycloneDX/SPDX JSON or XML as string")
+    project_name: str = Field(..., description="Target project name in Dependency-Track", max_length=512)
+    project_version: str = Field("latest", description="Project version tag", max_length=128)
+    sbom: str = Field(..., description="Raw CycloneDX/SPDX JSON or XML as string", max_length=10_000_000)
     auto_create: bool = Field(True, description="Auto-create project if it doesn't exist")
 
 

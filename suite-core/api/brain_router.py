@@ -383,7 +383,7 @@ async def reload_graph() -> Dict[str, Any]:
         return {"status": "ok", "nodes": result["nodes"], "edges": result["edges"]}
     except Exception as exc:  # noqa: BLE001
         logger.warning("brain reload failed: %s: %s", type(exc).__name__, exc)
-        raise HTTPException(status_code=500, detail=f"reload failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Brain reload failed") from exc
 
 
 @router.get("/most-connected")
@@ -757,3 +757,14 @@ async def get_auto_suppress_rules(
     store = get_fp_feedback_store()
     rules = store.get_auto_suppress_rules(threshold=threshold)
     return {"rules": rules, "threshold": threshold, "total": len(rules)}
+
+
+@router.get("/", summary="Brain index", tags=["knowledge-brain"])
+async def brain_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return a summary of the knowledge brain graph."""
+    try:
+        brain = get_brain()
+        stats = brain.get_stats() if hasattr(brain, "get_stats") else {}
+    except Exception:
+        stats = {}
+    return {"router": "brain", "org_id": org_id, "stats": stats, "items": [], "count": 0}

@@ -1133,7 +1133,8 @@ async def enable_airgap(
             result["banner"] = policy.banner
         return _with_banner(result)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        logger.warning("air-gap enable validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid air-gap configuration")
     except (OSError, RuntimeError, KeyError) as exc:
         logger.exception("Error enabling air-gap mode")
         raise HTTPException(status_code=500, detail=type(exc).__name__)
@@ -1248,7 +1249,8 @@ async def export_update_package(
         if len(key) != 32:
             raise ValueError("encryption_key_hex must be 64 hex chars (32 bytes / AES-256)")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        logger.warning("sneakernet export key validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid encryption_key_hex: must be 64 hex chars")
     try:
         from core.airgap_deployment import SneakernetManager
         mgr = SneakernetManager()
@@ -1269,9 +1271,11 @@ async def export_update_package(
             "classification": req.classification,
         })
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        logger.warning("sneakernet export file not found: %s", exc)
+        raise HTTPException(status_code=404, detail="Payload file not found")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        logger.warning("sneakernet export validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid sneakernet export parameters")
     except (OSError, RuntimeError, KeyError) as exc:
         logger.exception("Error exporting sneakernet package")
         raise HTTPException(status_code=500, detail=type(exc).__name__)
@@ -1306,7 +1310,8 @@ async def import_update_package(
         if len(key) != 32:
             raise ValueError("encryption_key_hex must be 64 hex chars (32 bytes / AES-256)")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        logger.warning("sneakernet import key validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid encryption_key_hex: must be 64 hex chars")
     try:
         from core.airgap_deployment import SneakernetManager
         mgr = SneakernetManager()
@@ -1323,9 +1328,11 @@ async def import_update_package(
             "file_count": len(extracted),
         })
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        logger.warning("sneakernet import file not found: %s", exc)
+        raise HTTPException(status_code=404, detail="Package file not found")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        logger.warning("sneakernet import validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid sneakernet package or parameters")
     except (OSError, RuntimeError, KeyError) as exc:
         logger.exception("Error importing sneakernet package")
         raise HTTPException(status_code=500, detail=type(exc).__name__)
@@ -1421,7 +1428,8 @@ async def validate_deployment(
             "checks": [c.model_dump() for c in report.checks],
         })
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        logger.warning("deployment validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid deployment validation parameters")
     except (OSError, RuntimeError, KeyError) as exc:
         logger.exception("Error running deployment validation")
         raise HTTPException(status_code=500, detail=type(exc).__name__)

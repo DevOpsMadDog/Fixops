@@ -19,11 +19,11 @@ _verifier = AutoFixVerifier(config={"strict_mode": True})
 
 class FixVerifyRequest(BaseModel):
     """Request to verify a proposed auto-fix."""
-    original_code: str = Field(..., description="Original vulnerable code")
-    fixed_code: str = Field(..., description="Proposed fixed code")
-    language: str = Field(..., description="Programming language (python, javascript, java, go)")
-    finding_id: Optional[str] = Field(None, description="ID of the finding being fixed")
-    finding_title: Optional[str] = Field(None, description="Title of the finding")
+    original_code: str = Field(..., description="Original vulnerable code", max_length=500_000)
+    fixed_code: str = Field(..., description="Proposed fixed code", max_length=500_000)
+    language: str = Field(..., description="Programming language (python, javascript, java, go)", max_length=50)
+    finding_id: Optional[str] = Field(None, description="ID of the finding being fixed", max_length=256)
+    finding_title: Optional[str] = Field(None, description="Title of the finding", max_length=1024)
 
 
 class BatchFixVerifyRequest(BaseModel):

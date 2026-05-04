@@ -35,15 +35,15 @@ _trace_store: Dict[str, Dict[str, Any]] = {}
 
 
 class TraceRequest(BaseModel):
-    vulnerability_id: str
-    source_file: str = ""
+    vulnerability_id: str = Field(..., max_length=256)
+    source_file: str = Field("", max_length=4096)
     source_line: int = 0
-    git_commit: str = ""
-    container_image: str = ""
-    k8s_namespace: str = ""
-    k8s_deployment: str = ""
-    cloud_service: str = ""
-    cloud_region: str = ""
+    git_commit: str = Field("", max_length=128)
+    container_image: str = Field("", max_length=512)
+    k8s_namespace: str = Field("", max_length=253)
+    k8s_deployment: str = Field("", max_length=253)
+    cloud_service: str = Field("", max_length=256)
+    cloud_region: str = Field("", max_length=64)
     internet_facing: bool = False
 
 

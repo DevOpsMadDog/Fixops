@@ -214,28 +214,28 @@ class SuggestionResponse(BaseModel):
 class QuickAnalyzeRequest(BaseModel):
     """Quick vulnerability analysis request."""
 
-    cve_id: Optional[str] = None
-    finding_id: Optional[str] = None
-    asset_id: Optional[str] = None
-    description: Optional[str] = None
+    cve_id: Optional[str] = Field(None, max_length=32)
+    finding_id: Optional[str] = Field(None, max_length=256)
+    asset_id: Optional[str] = Field(None, max_length=256)
+    description: Optional[str] = Field(None, max_length=8192)
 
 
 class QuickPentestRequest(BaseModel):
     """Quick pentest request."""
 
-    target: str = Field(..., description="Target URL or IP")
-    cve_ids: List[str] = Field(default_factory=list)
-    test_type: str = Field(default="reachability", description="Test type")
-    depth: str = Field(default="light", description="light, medium, deep")
+    target: str = Field(..., description="Target URL or IP", max_length=2048)
+    cve_ids: List[str] = Field(default_factory=list, max_length=50)
+    test_type: str = Field(default="reachability", description="Test type", max_length=64)
+    depth: str = Field(default="light", description="light, medium, deep", max_length=16)
 
 
 class QuickReportRequest(BaseModel):
     """Quick report generation request."""
 
-    report_type: str = Field(default="executive", description="Report type")
-    finding_ids: List[str] = Field(default_factory=list)
+    report_type: str = Field(default="executive", description="Report type", max_length=64)
+    finding_ids: List[str] = Field(default_factory=list, max_length=500)
     include_remediation: bool = True
-    format: str = Field(default="pdf", description="Output format")
+    format: str = Field(default="pdf", description="Output format", max_length=16)
 
 
 # =============================================================================
