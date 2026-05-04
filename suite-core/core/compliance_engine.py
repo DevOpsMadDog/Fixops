@@ -1212,12 +1212,14 @@ class ComplianceAutomationEngine:
         framework: str,
         status: ControlStatus,
         evidence_id: Optional[str] = None,
+        _commit: bool = True,
     ) -> None:
         self._conn.execute(
             "UPDATE controls SET status = ?, last_checked = ? WHERE id = ? AND framework = ?",
             (status.value, datetime.now(timezone.utc).isoformat(), control_id, framework),
         )
-        self._conn.commit()
+        if _commit:
+            self._conn.commit()
 
     def _is_stale(self, evidence_row: sqlite3.Row) -> bool:
         try:
@@ -1253,6 +1255,10 @@ class ComplianceAutomationEngine:
 
         collected: List[EvidenceItem] = []
         seen_checks: Dict[str, Tuple[bool, str, Dict[str, Any]]] = {}
+        # Accumulate evidence rows and status updates for batch write
+        evidence_rows: List[tuple] = []
+        status_updates: List[tuple] = []
+        now_ts = datetime.now(timezone.utc).isoformat()
 
         for control in controls:
             fn_name = control.check_function
@@ -1284,32 +1290,40 @@ class ComplianceAutomationEngine:
                 is_passing=is_passing,
             )
 
-            self._conn.execute(
+            evidence_rows.append((
+                item.id,
+                json.dumps(item.control_ids),
+                item.framework,
+                item.evidence_type.value,
+                item.title,
+                item.description,
+                item.source_module,
+                json.dumps(item.data),
+                item.collected_at,
+                int(item.is_passing),
+                item.ttl_days,
+            ))
+
+            new_status = ControlStatus.PASSING if is_passing else ControlStatus.FAILING
+            status_updates.append((new_status.value, now_ts, control.id, framework))
+            collected.append(item)
+
+        # Batch-insert evidence and batch-update control statuses in a single commit
+        if evidence_rows:
+            self._conn.executemany(
                 """
                 INSERT OR REPLACE INTO evidence
                   (id, control_ids, framework, evidence_type, title, description,
                    source_module, data, collected_at, is_passing, ttl_days)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 """,
-                (
-                    item.id,
-                    json.dumps(item.control_ids),
-                    item.framework,
-                    item.evidence_type.value,
-                    item.title,
-                    item.description,
-                    item.source_module,
-                    json.dumps(item.data),
-                    item.collected_at,
-                    int(item.is_passing),
-                    item.ttl_days,
-                ),
+                evidence_rows,
             )
-
-            new_status = ControlStatus.PASSING if is_passing else ControlStatus.FAILING
-            self._update_control_status(control.id, framework, new_status, item.id)
-            collected.append(item)
-
+        if status_updates:
+            self._conn.executemany(
+                "UPDATE controls SET status = ?, last_checked = ? WHERE id = ? AND framework = ?",
+                status_updates,
+            )
         self._conn.commit()
         logger.info("evidence_collected", framework=framework, count=len(collected))
         return collected
@@ -1362,23 +1376,33 @@ class ComplianceAutomationEngine:
         controls = self._get_controls(framework)
         meta = _FRAMEWORK_META.get(framework, {})
 
+        # Batch-fetch all evidence for this framework in a single query,
+        # then group by control_id in Python — eliminates N per-control DB round-trips.
+        all_ev_rows = self._conn.execute(
+            "SELECT * FROM evidence WHERE framework = ?",
+            (framework,),
+        ).fetchall()
+        from collections import defaultdict as _defaultdict
+        ev_by_ctrl: Dict[str, list] = _defaultdict(list)
+        for _ev in all_ev_rows:
+            for _cid in json.loads(_ev["control_ids"]):
+                ev_by_ctrl[_cid].append(_ev)
+
         status_counts: Dict[str, int] = {s.value: 0 for s in ControlStatus}
         control_list = []
         total_weight = 0.0
         passing_weight = 0.0
+        stale_updates: List[tuple] = []
+        now_ts = datetime.now(timezone.utc).isoformat()
 
         for ctrl in controls:
-            # Check for stale evidence
-            ev_rows = self._conn.execute(
-                "SELECT * FROM evidence WHERE framework = ? AND control_ids LIKE ?",
-                (framework, f'%"{ctrl.id}"%'),
-            ).fetchall()
+            ev_rows = ev_by_ctrl.get(ctrl.id, [])
 
             status = ctrl.status
             if status == ControlStatus.PASSING and ev_rows:
                 if all(self._is_stale(r) for r in ev_rows):
                     status = ControlStatus.STALE
-                    self._update_control_status(ctrl.id, framework, status)
+                    stale_updates.append((status.value, now_ts, ctrl.id, framework))
 
             status_counts[status.value] = status_counts.get(status.value, 0) + 1
             total_weight += ctrl.weight
@@ -1396,6 +1420,14 @@ class ComplianceAutomationEngine:
                     "evidence_count": len(ev_rows),
                 }
             )
+
+        # Batch-apply any stale status updates in a single commit
+        if stale_updates:
+            self._conn.executemany(
+                "UPDATE controls SET status = ?, last_checked = ? WHERE id = ? AND framework = ?",
+                stale_updates,
+            )
+            self._conn.commit()
 
         score = round((passing_weight / total_weight * 100) if total_weight > 0 else 0.0, 2)
 
