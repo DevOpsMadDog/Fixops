@@ -10,7 +10,7 @@ Usage example::
 
     client = ALDECIClient(
         base_url="http://localhost:8000",
-        api_key="fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_",
+        api_key=os.getenv("ALDECI_API_KEY", ""),  # never hardcode keys — use env var
     )
 
     # Health check

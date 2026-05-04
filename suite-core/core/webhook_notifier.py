@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import sqlite3
 import threading
 import time
@@ -591,7 +592,7 @@ class WebhookNotifier:
         ep = notifier.register_endpoint(
             url="https://your-server.example.com/hook",
             org_id="acme",
-            secret="super-secret",
+            secret=os.getenv("ALDECI_WEBHOOK_SECRET", ""),  # set via env, never hardcode
         )
         finding = FindingPayload(
             finding_id="F-001",

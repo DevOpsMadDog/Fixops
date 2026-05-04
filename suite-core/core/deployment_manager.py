@@ -517,7 +517,7 @@ class DeploymentManager:
                 admin_token = os.getenv("FIXOPS_API_TOKEN", "")
                 db.create_user(
                     email="admin@aldeci.local",
-                    password="change-me-on-first-login",
+                    password=os.getenv("ALDECI_ADMIN_PASSWORD", ""),  # must be set via env before first deploy
                     role="admin",
                     api_token=admin_token or None,
                 )
