@@ -238,7 +238,11 @@ class GitHubSCMConnector(PullConnector):
                             "raw": alert,
                         })
         except httpx.RequestError as exc:
-            logger.warning(f"Failed to fetch secrets for {org}/{repo}: {exc}")
+            # Do not log exc directly — RequestError message may contain auth headers.
+            logger.warning(
+                "Failed to fetch secrets for %s/%s: %s",
+                org, repo, type(exc).__name__,
+            )
 
         # Dependabot alerts
         dependabot_url = f"{base_url}/repos/{org}/{repo}/dependabot/alerts"

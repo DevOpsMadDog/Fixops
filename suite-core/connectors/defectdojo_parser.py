@@ -163,7 +163,8 @@ class DefectDojoParserClient:
         self.api_key = api_key
         self.session: Optional[aiohttp.ClientSession] = None
 
-        logger.info(f"DefectDojoParserClient initialized: {self.base_url}")
+        # Do not log the full URL — it may contain embedded credentials.
+        logger.info("DefectDojoParserClient initialized")
 
     async def __aenter__(self) -> DefectDojoParserClient:
         """Async context manager entry."""
@@ -171,7 +172,8 @@ class DefectDojoParserClient:
             headers={
                 "Authorization": f"Token {self.api_key}",
                 "Content-Type": "application/json",
-            }
+            },
+            timeout=aiohttp.ClientTimeout(total=30),
         )
         return self
 
@@ -187,7 +189,8 @@ class DefectDojoParserClient:
                 headers={
                     "Authorization": f"Token {self.api_key}",
                     "Content-Type": "application/json",
-                }
+                },
+                timeout=aiohttp.ClientTimeout(total=30),
             )
         return self.session
 
