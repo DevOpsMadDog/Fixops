@@ -513,3 +513,15 @@ def get_scan_status(
         },
         "posture_verdict": posture,
     }
+
+
+@router.get("/", summary="OpenClaw index", tags=["openclaw"])
+async def openclaw_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return OpenClaw red-team campaign summary for the org."""
+    try:
+        engine = _get_engine()
+        campaigns = engine.list_campaigns(org_id=org_id) if hasattr(engine, "list_campaigns") else []
+        count = len(campaigns)
+    except Exception:
+        count = 0
+    return {"router": "openclaw", "org_id": org_id, "items": [], "count": count}

@@ -181,3 +181,14 @@ def get_bundle(bundle_id: str) -> Dict[str, Any]:
     if result is None:
         raise HTTPException(status_code=404, detail="bundle not found")
     return result
+
+
+@router.get("/", summary="Air-gap bundles index", tags=["air-gap"])
+def air_gap_index(org_id: str = Query(default="default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
+    """Return a list of air-gap bundles for the org."""
+    try:
+        engine = _get_engine()
+        bundles = engine.list_bundles(org_id=org_id) if hasattr(engine, "list_bundles") else []
+    except Exception:
+        bundles = []
+    return {"router": "air-gap", "org_id": org_id, "items": bundles, "count": len(bundles)}

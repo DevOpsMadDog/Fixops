@@ -219,3 +219,13 @@ def list_scans(
 def get_api_stats(org_id: str = Query(default="default")):
     """Return aggregated API security statistics for the org."""
     return _get_engine().get_api_stats(org_id)
+
+
+@router.get("/", summary="API security engine index", tags=["api-security-engine"])
+def api_security_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
+    """Return API security engine summary for the org."""
+    try:
+        stats = _get_engine().get_api_stats(org_id=org_id)
+    except Exception:
+        stats = {}
+    return {"router": "api-security-engine", "org_id": org_id, "stats": stats, "items": [], "count": 0}

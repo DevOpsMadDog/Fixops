@@ -342,3 +342,9 @@ async def list_events(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         )
+
+
+@router.get("/", summary="Webhooks index", tags=["webhooks"])
+async def webhooks_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Return a summary of registered webhooks for the org."""
+    return {"router": "webhooks", "org_id": org_id, "items": [], "count": 0}

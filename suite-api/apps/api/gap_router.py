@@ -724,6 +724,13 @@ async def copilot_suggest(req: SuggestRequest):
 # ── FAIL (missing: GET /history, GET /readiness) ──
 fail_gap = APIRouter(prefix="/api/v1/fail", tags=["fail-gap"], dependencies=_AUTH_DEP)
 
+
+@fail_gap.get("/", summary="Fail engine index", tags=["fail-gap"])
+async def fail_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return FAIL chaos engine summary for the org."""
+    return {"router": "fail", "org_id": org_id, "items": [], "count": 0}
+
+
 @fail_gap.get("/history")
 async def get_fail_history(
     page: int = Query(1, ge=1),
@@ -808,6 +815,13 @@ async def get_fail_readiness():
 
 # ── GRAPH (missing: GET /attack-paths, POST /query, GET /visualize) ──
 graph_gap = APIRouter(prefix="/api/v1/graph", tags=["graph-gap"], dependencies=_AUTH_DEP)
+
+
+@graph_gap.get("/", summary="Graph index", tags=["graph-gap"])
+async def graph_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return knowledge graph summary for the org."""
+    return {"router": "graph", "org_id": org_id, "items": [], "count": 0}
+
 
 @graph_gap.get("/attack-paths")
 async def get_attack_paths():
@@ -3643,6 +3657,12 @@ async def rag_search(req: RAGSearchRequest):
 
 # ── P18: SUPPLY CHAIN GRAPH ──────────────────────────────────────────────────
 supply_chain_gap = APIRouter(prefix="/api/v1/supply-chain", tags=["supply-chain-gap"], dependencies=_AUTH_DEP)
+
+
+@supply_chain_gap.get("/", summary="Supply chain index", tags=["supply-chain-gap"])
+async def supply_chain_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return supply chain summary for the org."""
+    return {"router": "supply-chain", "org_id": org_id, "items": [], "count": 0}
 
 
 @supply_chain_gap.get("/graph")

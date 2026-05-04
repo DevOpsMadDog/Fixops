@@ -309,3 +309,14 @@ def get_post_mortem(incident_id: str) -> Dict[str, Any]:
     if pm is None:
         raise HTTPException(status_code=404, detail="Post-mortem not found")
     return pm.model_dump(mode="json")
+
+
+@router.get("/", summary="Incidents index", tags=["incident-response"])
+async def incidents_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return incident response summary for the org."""
+    try:
+        manager = _get_manager()
+        stats = manager.get_stats(org_id=org_id) if hasattr(manager, "get_stats") else {}
+    except Exception:
+        stats = {}
+    return {"router": "incidents", "org_id": org_id, "stats": stats, "items": [], "count": 0}

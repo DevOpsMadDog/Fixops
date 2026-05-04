@@ -420,3 +420,9 @@ async def connectors_health() -> Dict[str, Any]:
             for c in connectors
         ],
     }
+
+
+@router.get("/", summary="List connectors (alias)", tags=["connectors"])
+async def list_connectors_root() -> Dict[str, Any]:
+    """Alias for GET /api/v1/connectors — returns registered connectors."""
+    return await list_connectors()

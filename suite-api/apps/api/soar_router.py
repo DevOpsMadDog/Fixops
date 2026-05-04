@@ -291,3 +291,15 @@ def get_mean_time_to_respond(
     except Exception as exc:
         logger.exception("get_mean_time_to_respond failed for org %s", org_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/", summary="SOAR index", tags=["soar"])
+async def soar_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return SOAR playbook summary for the org."""
+    try:
+        engine = _get_engine()
+        playbooks = engine.list_playbooks(org_id=org_id) if hasattr(engine, "list_playbooks") else []
+        count = len(playbooks)
+    except Exception:
+        count = 0
+    return {"router": "soar", "org_id": org_id, "items": [], "count": count}

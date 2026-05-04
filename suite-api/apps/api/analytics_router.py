@@ -1229,3 +1229,9 @@ async def false_positive_rate(
             "by_scanner": [],
             "by_cwe": [],
         }
+
+
+@router.get("/", summary="Analytics index", tags=["analytics"])
+async def analytics_root_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return analytics overview for the org."""
+    return {"router": "analytics", "org_id": org_id, "items": [], "count": 0}

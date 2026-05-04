@@ -517,6 +517,18 @@ class CreateOrgRequest(BaseModel):
     parent_org_id: Optional[str] = Field(None, description="Optional parent org PK")
 
 
+@orgs_router.get("/", summary="List organisations")
+def list_organizations(x_org_id: str = Header(default="default", alias="X-Org-ID")) -> Dict[str, Any]:
+    """Return organisations visible to the calling tenant."""
+    try:
+        from core.org_db import OrgDB
+        db = OrgDB()
+        orgs = db.list_orgs(tenant_id=x_org_id) if hasattr(db, "list_orgs") else []
+    except Exception:
+        orgs = []
+    return {"items": orgs, "count": len(orgs), "router": "organizations"}
+
+
 @orgs_router.post("", status_code=201, summary="Create organisation")
 def create_organization(
     body: CreateOrgRequest,
@@ -1202,6 +1214,19 @@ def skills_uninstall(
 
 # ===========================================================================
 # 18) GET /api/v1/rules/dsl     (4091307b) — alias of dynamic_rule_dsl_router
+@rules_router.get("/", summary="Rules index")
+def list_rules(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return a summary of available detection rules for the org."""
+    rules: List[Dict[str, Any]] = []
+    try:
+        from core.dynamic_rule_dsl import RuleDSLEngine
+        engine = RuleDSLEngine()
+        rules = engine.list_rules(org_id=org_id) if hasattr(engine, "list_rules") else []
+    except Exception:
+        pass
+    return {"items": rules, "count": len(rules), "router": "rules"}
+
+
 # ===========================================================================
 # The canonical implementation lives in dynamic_rule_dsl_router; we add a
 # thin alias here so the Wave C ID resolves even if that router fails to mount.

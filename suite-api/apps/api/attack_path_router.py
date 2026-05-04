@@ -9,7 +9,7 @@ Prefix: /api/v1/attack-paths
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from core.attack_path_engine import AttackPathEngine
 from fastapi import APIRouter, HTTPException, Query
@@ -211,3 +211,14 @@ def toxic_combinations(
     except Exception as exc:
         logger.exception("Failed to detect toxic combinations")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/", summary="Attack paths index", tags=["attack-paths"])
+async def attack_paths_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Return a summary of attack paths for the org."""
+    try:
+        nodes = _get_engine().list_nodes(org_id=org_id) if hasattr(_get_engine(), "list_nodes") else []
+        count = len(nodes)
+    except Exception:
+        count = 0
+    return {"router": "attack-paths", "org_id": org_id, "items": [], "count": count}

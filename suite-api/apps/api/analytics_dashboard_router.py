@@ -181,3 +181,13 @@ async def get_executive_summary(
         return _analytics.generate_executive_summary(org_id=org_id)
     except Exception:
         return {"org_id": org_id, "total_findings": 0, "critical": 0, "high": 0, "medium": 0, "low": 0, "mttr_days": 0, "risk_score": 0}
+
+
+@router.get("/", summary="Analytics dashboard index", tags=["analytics-dashboard"])
+async def analytics_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Return analytics dashboard summary for the org."""
+    try:
+        summary = _analytics.generate_executive_summary(org_id=org_id)
+    except Exception:
+        summary = {}
+    return {"router": "analytics", "org_id": org_id, "summary": summary, "items": [], "count": 0}

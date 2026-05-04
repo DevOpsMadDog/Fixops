@@ -345,3 +345,13 @@ def sync_cves_from_brain(
         "source_org": "aldeci",
         "target_org": org_id,
     }
+
+
+@router.get("/", summary="Vulnerability intelligence index", tags=["vuln-intel"])
+def vuln_intel_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
+    """Return vulnerability intelligence summary for the org."""
+    try:
+        count = _get_engine().count_cves(org_id=org_id) if hasattr(_get_engine(), "count_cves") else 0
+    except Exception:
+        count = 0
+    return {"router": "vuln-intel", "org_id": org_id, "items": [], "count": count}

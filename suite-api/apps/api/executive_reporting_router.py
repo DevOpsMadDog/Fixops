@@ -466,3 +466,15 @@ def export_report_pdf(
     except Exception as exc:
         logger.exception("export_report_pdf failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/", summary="Executive reporting index", tags=["exec-reporting"])
+async def exec_reporting_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return executive reporting summary for the org."""
+    try:
+        engine = _get_engine()
+        reports = engine.list_reports(org_id=org_id) if hasattr(engine, "list_reports") else []
+        count = len(reports)
+    except Exception:
+        count = 0
+    return {"router": "exec-reporting", "org_id": org_id, "items": [], "count": count}

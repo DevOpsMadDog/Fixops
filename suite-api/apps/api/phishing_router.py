@@ -259,3 +259,15 @@ def add_template(req: AddTemplateRequest):
         "difficulty": template.difficulty.value,
         "indicators": template.indicators,
     }
+
+
+@router.get("/", summary="Phishing index", tags=["phishing-simulation"])
+async def phishing_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return phishing campaign summary for the org."""
+    try:
+        sim = _get_simulator()
+        campaigns = sim.list_campaigns(org_id=org_id) if hasattr(sim, "list_campaigns") else []
+        count = len(campaigns)
+    except Exception:
+        count = 0
+    return {"router": "phishing", "org_id": org_id, "items": [], "count": count}

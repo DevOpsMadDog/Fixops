@@ -798,3 +798,14 @@ async def get_ip_geo(ip: str) -> Dict[str, Any]:
 
     result["is_c2"] = result.get("is_c2", False)
     return result
+
+
+@router.get("/", summary="Threat intel index", tags=["threat-intel"])
+async def threat_intel_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return threat intel summary for the org."""
+    try:
+        actors = _get_engine().list_actors(org_id=org_id) if hasattr(_get_engine(), "list_actors") else []
+        count = len(actors)
+    except Exception:
+        count = 0
+    return {"router": "threat-intel", "org_id": org_id, "items": [], "count": count}

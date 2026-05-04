@@ -518,3 +518,14 @@ def get_sync_history(asset_id: str) -> List[CMDBSyncRecord]:
     """Return all CMDB sync records for an asset (newest first)."""
     _require_asset(asset_id)
     return _inv().get_sync_history(asset_id)
+
+
+@router.get("/", summary="Asset inventory index", tags=["asset-inventory"])
+def asset_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Return asset inventory summary stats for the org."""
+    try:
+        inv = _inv()
+        stats = inv.get_stats(org_id=org_id) if hasattr(inv, "get_stats") else {}
+    except Exception:
+        stats = {}
+    return {"router": "assets", "org_id": org_id, "stats": stats, "items": [], "count": 0}

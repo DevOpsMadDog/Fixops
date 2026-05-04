@@ -685,3 +685,14 @@ except ImportError as _wam_err:
     _logging.getLogger(__name__).warning(
         "WriteAuditMiddleware not available — /audit/trail endpoints disabled: %s", _wam_err
     )
+
+
+@router.get("/", summary="Audit index", tags=["audit"])
+async def audit_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return audit log summary counts for the org."""
+    try:
+        logs = db.get_logs(org_id=org_id, limit=1)
+        total = db.count_logs(org_id=org_id) if hasattr(db, "count_logs") else 0
+    except Exception:
+        total = 0
+    return {"router": "audit", "org_id": org_id, "total_logs": total, "items": [], "count": 0}

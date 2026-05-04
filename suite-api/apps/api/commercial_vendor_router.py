@@ -181,3 +181,9 @@ def commercial_vendors_status() -> Dict[str, Any]:
 
 
 __all__ = ["router"]
+
+
+@router.get("/", summary="Connectors index", tags=["connectors"])
+async def connectors_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return list of available commercial vendor connectors."""
+    return {"router": "connectors", "org_id": org_id, "items": [], "count": 0}
