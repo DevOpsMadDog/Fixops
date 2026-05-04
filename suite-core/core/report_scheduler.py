@@ -109,6 +109,14 @@ class ReportScheduler:
                     error_message      TEXT,
                     FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id)
                 );
+                CREATE INDEX IF NOT EXISTS idx_sched_org_active
+                    ON schedules (org_id, active);
+                CREATE INDEX IF NOT EXISTS idx_sched_next_run
+                    ON schedules (next_run_at);
+                CREATE INDEX IF NOT EXISTS idx_dlog_org_delivered
+                    ON delivery_log (org_id, delivered_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_dlog_schedule
+                    ON delivery_log (schedule_id);
                 """
             )
 

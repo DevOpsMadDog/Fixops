@@ -839,6 +839,18 @@ class FeedsService:
             )
         """
         )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_kev_date_added ON kev_entries(date_added)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_kev_ransomware ON kev_entries(known_ransomware_campaign_use)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_kev_vendor ON kev_entries(vendor_project)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_kev_due_date ON kev_entries(due_date)"
+        )
 
         # NVD CVEs table
         cursor.execute(
