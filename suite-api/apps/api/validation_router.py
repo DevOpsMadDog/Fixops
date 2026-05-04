@@ -25,7 +25,7 @@ from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from .normalizers import (
+from apps.api.normalizers import (
     InputNormalizer,
     NormalizedCNAPP,
     NormalizedCVEFeed,
