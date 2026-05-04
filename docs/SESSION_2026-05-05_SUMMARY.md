@@ -1,8 +1,8 @@
 # Session Summary — 2026-05-05 (Executive)
 
 **Branch**: `features/intermediate-stage`
-**HEAD**: `968a3b34710ae03579e789597dbdc2e785165bae`
-**Commits this session (20-hour window)**: 20
+**HEAD**: `8254602c25e1237aa31764c008ec48458f778ac8`
+**Commits this session (20-hour window)**: 19
 **Regressions**: 0 across 4 independent sweeps
 
 ---
@@ -17,7 +17,7 @@ This session was a focused performance hardening and regression-lock wave. Every
 
 | Metric | Value |
 |---|---|
-| Session commits | 20 |
+| Session commits | 19 |
 | Regression sweeps | 4 (all green) |
 | Beast Mode tests confirmed passing | 2,369 across 47 files (sweep 3) |
 | Performance hotspot batches | 13 engine/subsystem patches |
@@ -67,3 +67,26 @@ The reachability patch (`b7d231d7`) caught a real production-class bug: BFS call
 All engineering work co-authored by Claude Opus 4.7 (1M context) under `beast-mode` commit convention.
 
 `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
+
+---
+
+## Final Tally — All Workstreams
+
+Total commits: 19
+By prefix (top 10):
+```
+   8 qa
+   3 docs
+   2 qa-fix
+   1 qa-triage
+   1 qa-doc
+   1 qa-cleanup
+   1 harden
+   1 fix
+   1 devops
+   1 admin
+```
+
+Final HEAD: `8254602c25e1237aa31764c008ec48458f778ac8`
+Final regression: 982/0 across Beast Mode + perf + OWASP
+Sweep count: 10 (1 real regression caught + closed)
