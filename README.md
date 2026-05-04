@@ -3,9 +3,9 @@
 # ALDECI — AI-Native Security Intelligence Platform
 
 > Replace $500K/yr security tool stacks with one self-hosted platform at $35/month.
-> ASPM + CTEM + CSPM. 771 API endpoints. 1,400+ tests. One Docker command.
+> ASPM + CTEM + CSPM. 6,700+ API routes. 1,200+ test files. One Docker command.
 
-[![Tests: 1,400+ passing](https://img.shields.io/badge/tests-1400%2B_passing-brightgreen)]()
+[![Tests: 1,078+ passing](https://img.shields.io/badge/tests-1078%2B_passing-brightgreen)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)]()
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
@@ -21,7 +21,7 @@ Enterprise security is broken. The average Fortune 500 company runs 45+ separate
 
 ALDECI solves this by replacing the entire fragmented stack with a single, self-hosted, AI-native platform. At its core is a Karpathy-style LLM Council — four models voting on every risk decision with an 85% consensus threshold — wired to 28+ live threat intelligence feeds, a TrustGraph knowledge graph with 162 entities across 5 semantic cores, and 30+ security engines covering every domain from vulnerability management to insider threat detection. The result is an actionable priority list instead of 10,000 findings, audit-ready compliance evidence instead of weeks of manual collection, and cryptographically signed proof instead of screenshots.
 
-ALDECI is not a demo. It is a production platform: 771 API endpoints across 34 FastAPI router modules, 40+ React dashboard pages, SCIM 2.0 (RFC 7644), SAML/OIDC SSO, Redis queue for horizontal scaling, multi-tenant isolation with org_id enforcement, and 1,400+ tests with zero regressions. The entire stack runs on a $35/month VPS or air-gapped on-premises with a single Docker command.
+ALDECI is not a demo. It is a production platform: 6,700+ API routes across 796 FastAPI router modules, 529 React dashboard pages, SCIM 2.0 (RFC 7644), SAML/OIDC SSO, Redis queue for horizontal scaling, multi-tenant isolation with org_id enforcement, and 1,200+ test files (1,078+ Beast Mode tests) with zero regressions. The entire stack runs on a $35/month VPS or air-gapped on-premises with a single Docker command.
 
 ---
 
@@ -51,7 +51,7 @@ ALDECI is not a demo. It is a production platform: 771 API endpoints across 34 F
 └───────────────────────┬─────────────────────────────────────┘
                         │ HTTP / WebSocket
 ┌───────────────────────▼─────────────────────────────────────┐
-│  API Gateway  (FastAPI — 771 endpoints, 34 router modules)   │
+│  API Gateway  (FastAPI — 6,700+ routes, 796 router modules)  │
 │  Auth: API key + JWT RS256 + SAML/OIDC SSO + SCIM 2.0       │
 │  Rate limiting: token-bucket per key, admin tier exempt      │
 └──────┬──────────────────────────────┬────────────────────────┘
@@ -89,7 +89,7 @@ cd Fixops
 cp .env.example .env          # add your API keys (optional — works without them)
 docker compose up -d          # starts API + UI + Redis + all services
 open http://localhost:3000    # React dashboard
-open http://localhost:8000/docs  # FastAPI interactive docs (771 endpoints)
+open http://localhost:8000/docs  # FastAPI interactive docs (6,700+ routes)
 ```
 
 **No cloud account required. No vendor signup. Fully air-gapped capable.**
@@ -104,8 +104,8 @@ python seed-demo-data-v2.py   # loads realistic security findings, assets, compl
 
 ## What's Included
 
-- **771 API endpoints** across 34 FastAPI router modules
-- **40+ React dashboard pages** — CISO executive view, SOC T1, compliance, threat intel, asset inventory, attack paths, insider threats, vendor risk, posture advisor, and more
+- **6,700+ API routes** across 796 FastAPI router modules
+- **529 React dashboard pages** — CISO executive view, SOC T1, compliance, threat intel, asset inventory, attack paths, insider threats, vendor risk, posture advisor, and more
 - **30+ security engines** — all multi-tenant with org_id isolation, SQLite WAL persistence
 - **28+ threat intelligence feeds** — NVD, CISA KEV, abuse.ch, OTX AlienVault, URLhaus, Feodo C2, Shodan InternetDB, OSV, EPSS, ExploitDB, GreyNoise, and more
 - **LLM Council** — Qwen 3.6 Max via MuleRouter + free model fallbacks, 85% consensus threshold, wired to TrustGraph GraphRAG
@@ -116,7 +116,7 @@ python seed-demo-data-v2.py   # loads realistic security findings, assets, compl
 - **n8n workflow automation** — scheduled report delivery, Slack/email notifications, custom playbooks
 - **SBOM generation** — CycloneDX 1.4 and SPDX 2.3 JSON, OSV vulnerability cross-reference
 - **DuckDB analytics** — cross-domain queries across all security engines
-- **1,400+ tests** — zero regressions, 10s timeout, pytest-asyncio
+- **1,200+ test files** (1,078+ Beast Mode tests) — zero regressions, 10s timeout, pytest-asyncio
 
 ---
 
@@ -178,18 +178,18 @@ python seed-demo-data-v2.py   # loads realistic security findings, assets, compl
 
 ```
 .
-├── suite-api/          # FastAPI gateway — 34 router modules (771 endpoints)
+├── suite-api/          # FastAPI gateway — 796 router modules (6,700+ routes)
 ├── suite-core/         # Core engines — brain pipeline, connectors, CLI
-│   ├── core/           # 30+ security engine classes
+│   ├── core/           # 463 security engine classes
 │   ├── connectors/     # 13 PULL + 7 bidirectional connectors
-│   └── trustgraph/     # TrustGraph MCP server + KnowledgeStore
+│   └── trustgraph/     # TrustGraph MCP server + KnowledgeStore (547 emit-sites)
 ├── suite-attack/       # Offensive security — MPTE, attack simulation
 ├── suite-feeds/        # Threat intel feeds — 28+ sources
 ├── suite-evidence-risk/# Evidence bundles, risk scoring, compliance
 ├── suite-integrations/ # External integrations — MCP, webhooks, n8n
 ├── suite-ui/
-│   └── aldeci-ui-new/  # React 19 + Vite 6 + Tailwind v4 (active UI)
-├── tests/              # 1,400+ tests (pytest, 10s timeout)
+│   └── aldeci-ui-new/  # React 19 + Vite 6 + Tailwind v4 (529 pages, active UI)
+├── tests/              # 1,200+ test files (pytest, 10s timeout)
 ├── docker-compose.yml  # Full stack in one command
 └── requirements.txt
 ```
