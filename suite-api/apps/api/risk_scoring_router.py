@@ -179,6 +179,7 @@ def rank_findings(body: RankFindingsRequest) -> Dict[str, Any]:
 def risk_scoring_summary(
     org_id: str = Query(default="default", description="Tenant org_id"),
 ) -> Dict[str, Any]:
+    import datetime as _dt
     scorer = _get_scorer()
     try:
         org = scorer.calculate_org_exposure(org_id=org_id, snapshot=False)
@@ -189,18 +190,59 @@ def risk_scoring_summary(
             + int(org_dict.get("medium_count", 0))
             + int(org_dict.get("low_count", 0))
         ) or int(org_dict.get("open_findings_count", 0))
+
+        # Pull by_source breakdown from SecurityFindingsEngine (best-effort).
+        by_source: dict = {}
+        last_updated: str = (
+            org_dict.get("calculated_at")
+            if isinstance(org_dict.get("calculated_at"), str)
+            else (
+                org_dict["calculated_at"].isoformat()
+                if org_dict.get("calculated_at")
+                else _dt.datetime.now(_dt.timezone.utc).isoformat()
+            )
+        )
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+            sfe = SecurityFindingsEngine()
+            rows = sfe.list_findings(
+                org_id=org_id, limit=10_000, offset=0,
+                status="open",
+            )
+            for row in rows:
+                row_d = row.model_dump() if hasattr(row, "model_dump") else (
+                    row.dict() if hasattr(row, "dict") else row if isinstance(row, dict) else {}
+                )
+                tool = str(row_d.get("source_tool") or "unknown")
+                by_source[tool] = by_source.get(tool, 0) + 1
+                # Track most-recent updated_at as last_updated
+                updated = row_d.get("updated_at") or row_d.get("created_at")
+                if updated:
+                    upd_str = updated.isoformat() if hasattr(updated, "isoformat") else str(updated)
+                    if upd_str > last_updated:
+                        last_updated = upd_str
+        except Exception:
+            pass  # by_source stays {}
+
+        # by_severity from tier counts
+        by_severity = {
+            "critical": org_dict.get("critical_count", 0),
+            "high": org_dict.get("high_count", 0),
+            "medium": org_dict.get("medium_count", 0),
+            "low": org_dict.get("low_count", 0),
+        }
+
         return {
             "org_id": org_id,
+            "total": total,
             "exposure_score": org_dict.get("exposure_score", 0.0),
             "rating": org_dict.get("rating"),
             "weighted_risk_avg": org_dict.get("weighted_risk_avg", 0.0),
             "open_findings_count": org_dict.get("open_findings_count", 0),
-            "by_tier": {
-                "critical": org_dict.get("critical_count", 0),
-                "high": org_dict.get("high_count", 0),
-                "medium": org_dict.get("medium_count", 0),
-                "low": org_dict.get("low_count", 0),
-            },
+            "by_severity": by_severity,
+            "by_tier": by_severity,  # alias kept for backwards compat
+            "by_source": by_source,
+            "last_updated": last_updated,
             "assets_at_risk": org_dict.get("assets_at_risk", 0),
             "patch_velocity_score": org_dict.get("patch_velocity_score", 0.0),
             "total_scored": total,

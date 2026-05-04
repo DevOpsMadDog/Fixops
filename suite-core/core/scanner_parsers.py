@@ -2528,3 +2528,330 @@ def get_supported_scanners() -> Dict[str, List[str]]:
         "total_new": list(SCANNER_NORMALIZERS.keys()),
         "note": "SARIF, CycloneDX, SPDX, Trivy, Grype, Semgrep, Dependabot already in base ingestion module",
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# pip-audit → SARIF v2.1.0 Converter
+# ═══════════════════════════════════════════════════════════════════════════
+
+def pip_audit_to_sarif(pip_audit_json: bytes) -> Dict[str, Any]:
+    """Convert pip-audit JSON output to SARIF v2.1.0 format.
+
+    pip-audit (``pip-audit --format json``) produces::
+
+        {"dependencies": [{"name": "pkg", "version": "x.y.z",
+                           "vulns": [{"id": "GHSA-...", "description": "...",
+                                      "fix_versions": [...], "aliases": ["CVE-..."]}]}]}
+
+    The output conforms to SARIF v2.1.0 (OASIS Standard):
+    - ``runs[0].tool.driver.rules[]``  — one rule per unique vuln id
+    - ``runs[0].results[]``            — one result per (package, vuln) pair
+    - ``level`` mapping: pip-audit reports all known-exploitable CVEs/GHSAs →
+      "error" (HIGH).  No CVSS data in raw output so we do not guess lower.
+
+    Args:
+        pip_audit_json: Raw bytes of ``pip-audit --format json`` output.
+
+    Returns:
+        SARIF v2.1.0 dict (JSON-serialisable).  On malformed / empty input
+        returns a valid empty SARIF run (zero rules, zero results).
+    """
+    _SARIF_SCHEMA = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+    _SARIF_VERSION = "2.1.0"
+
+    def _empty_sarif() -> Dict[str, Any]:
+        return {
+            "$schema": _SARIF_SCHEMA,
+            "version": _SARIF_VERSION,
+            "runs": [{
+                "tool": {
+                    "driver": {
+                        "name": "pip-audit",
+                        "informationUri": "https://github.com/pypa/pip-audit",
+                        "version": "unknown",
+                        "rules": [],
+                    }
+                },
+                "results": [],
+            }],
+        }
+
+    parsed = _parse_json_safe(pip_audit_json)
+    if not parsed or not isinstance(parsed, dict):
+        logger.warning("pip_audit_to_sarif: invalid JSON input")
+        return _empty_sarif()
+
+    deps = parsed.get("dependencies", [])
+    if not isinstance(deps, list):
+        return _empty_sarif()
+
+    rules: List[Dict[str, Any]] = []
+    results: List[Dict[str, Any]] = []
+    seen_rule_ids: Dict[str, int] = {}  # rule_id → index in rules[]
+
+    for dep in deps:
+        if not isinstance(dep, dict):
+            continue
+        pkg = (dep.get("name") or "").strip()
+        ver = (dep.get("version") or "").strip()
+        for vuln in dep.get("vulns", []) or []:
+            if not isinstance(vuln, dict):
+                continue
+            vid = (vuln.get("id") or "").strip()
+            if not vid:
+                continue
+            aliases: List[str] = [
+                a for a in (vuln.get("aliases") or []) if isinstance(a, str)
+            ]
+            all_ids = [vid] + aliases
+            cves = [i for i in all_ids if i.upper().startswith("CVE-")]
+            description = (vuln.get("description") or "").strip()
+            fix_versions: List[str] = vuln.get("fix_versions") or []
+            if isinstance(fix_versions, str):
+                fix_versions = [fix_versions]
+
+            # Build rule entry (deduplicate by vuln id)
+            if vid not in seen_rule_ids:
+                rule_idx = len(rules)
+                seen_rule_ids[vid] = rule_idx
+                rule: Dict[str, Any] = {
+                    "id": vid,
+                    "name": vid.replace("-", "_"),
+                    "shortDescription": {
+                        "text": description[:200] if description else f"Vulnerable dependency ({vid})"
+                    },
+                    "fullDescription": {
+                        "text": description[:1000] if description else f"Vulnerable dependency ({vid})"
+                    },
+                    "helpUri": (
+                        f"https://github.com/advisories/{vid}"
+                        if vid.upper().startswith("GHSA-")
+                        else f"https://nvd.nist.gov/vuln/detail/{cves[0]}"
+                        if cves
+                        else f"https://github.com/pypa/pip-audit"
+                    ),
+                    "properties": {
+                        "aliases": aliases,
+                        "cves": cves,
+                        "fix_versions": fix_versions,
+                        "tags": ["supply-chain", "dependency"],
+                    },
+                    # SARIF default configuration — pip-audit only surfaces
+                    # known-exploitable issues so we map them all to "error".
+                    "defaultConfiguration": {"level": "error"},
+                }
+                rules.append(rule)
+
+            rule_id_ref = vid
+            fix_text = (
+                f"Upgrade {pkg} to >= {fix_versions[0]}"
+                if fix_versions
+                else f"No upstream fix available for {pkg} {ver}. Mitigate via configuration."
+            )
+
+            result: Dict[str, Any] = {
+                "ruleId": rule_id_ref,
+                "ruleIndex": seen_rule_ids[vid],
+                "level": "error",
+                "message": {
+                    "text": (
+                        f"{vid} in {pkg}=={ver}. "
+                        + (description[:300] if description else "")
+                    ).strip()
+                },
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {
+                                "uri": "requirements.txt",
+                                "uriBaseId": "%SRCROOT%",
+                            }
+                        },
+                        "logicalLocations": [
+                            {
+                                "name": f"{pkg}=={ver}",
+                                "kind": "module",
+                            }
+                        ],
+                    }
+                ],
+                "fixes": [
+                    {
+                        "description": {"text": fix_text},
+                        "artifactChanges": [],
+                    }
+                ],
+                "properties": {
+                    "package": pkg,
+                    "version": ver,
+                    "vuln_id": vid,
+                    "aliases": aliases,
+                    "cves": cves,
+                    "fix_versions": fix_versions,
+                },
+            }
+            results.append(result)
+
+    sarif: Dict[str, Any] = {
+        "$schema": _SARIF_SCHEMA,
+        "version": _SARIF_VERSION,
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "pip-audit",
+                        "informationUri": "https://github.com/pypa/pip-audit",
+                        "version": parsed.get("pip_audit_version", "unknown"),
+                        "rules": rules,
+                    }
+                },
+                "results": results,
+                "properties": {
+                    "total_packages_scanned": len(deps),
+                    "total_vulnerabilities": len(results),
+                    "unique_vuln_ids": len(rules),
+                },
+            }
+        ],
+    }
+    logger.info(
+        "pip_audit_to_sarif: %d deps → %d results, %d unique rules",
+        len(deps), len(results), len(rules),
+    )
+    return sarif
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Cross-Scanner Deduplication
+# ═══════════════════════════════════════════════════════════════════════════
+
+def dedup_cross_scanner(
+    findings: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Merge findings with the same (cve_id, file_path, line_number) key
+    across different scanners into a single finding with a ``sources`` list.
+
+    Deduplication key: ``(cve_id or rule_id, normalised_file_path, line_number)``.
+    When the key matches across multiple scanner findings:
+    - ``sources`` is set to a deduplicated list of all contributing scanner names.
+    - The highest severity is kept.
+    - The first non-empty description/recommendation wins.
+    - All unique tags are merged.
+    - ``deduped_from_count`` records how many raw findings collapsed.
+
+    Findings with no cve_id AND no rule_id (i.e. no stable identifier) are
+    passed through unchanged with ``sources`` set to their ``source_tool``.
+
+    Args:
+        findings: List of finding dicts (from any scanner normalizer or dict).
+
+    Returns:
+        Deduplicated list.  Order is deterministic (insertion order of first
+        seen key).
+    """
+    if not findings:
+        return []
+
+    _SEVERITY_RANK = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+
+    def _norm_path(path: Optional[str]) -> str:
+        if not path:
+            return ""
+        # Normalise separators and strip leading ./
+        p = str(path).replace("\\", "/").lstrip("./")
+        return p
+
+    def _dedup_key(f: Dict[str, Any]) -> Optional[tuple]:
+        """Return (vuln_id, norm_path, line) or None for ungroupable findings."""
+        vuln_id = (
+            (f.get("cve_id") or "")
+            or (f.get("rule_id") or "")
+            or (f.get("vuln_id") or "")
+        )
+        if not vuln_id:
+            return None  # no stable identifier — pass through
+        path = _norm_path(f.get("file_path") or f.get("artifact") or "")
+        line = f.get("line_number") or f.get("line") or 0
+        try:
+            line = int(line)
+        except (TypeError, ValueError):
+            line = 0
+        return (vuln_id.upper(), path, line)
+
+    # Group findings by dedup key.
+    # Ungroupable findings get a unique synthetic key so they pass through.
+    grouped: Dict[Any, List[Dict[str, Any]]] = {}
+    _passthrough_counter = 0
+    for f in findings:
+        key = _dedup_key(f)
+        if key is None:
+            _passthrough_counter += 1
+            key = ("__passthrough__", _passthrough_counter)
+        grouped.setdefault(key, []).append(f)
+
+    merged: List[Dict[str, Any]] = []
+    for key, group in grouped.items():
+        if len(group) == 1:
+            # Single finding — just ensure sources list is present.
+            out = dict(group[0])
+            tool = out.get("source_tool") or out.get("scanner") or "unknown"
+            out.setdefault("sources", [tool] if tool else [])
+            out["deduped_from_count"] = 1
+            merged.append(out)
+            continue
+
+        # Multiple findings share the same key — merge them.
+        base = dict(group[0])
+
+        # Collect sources from all findings.
+        sources: List[str] = []
+        seen_sources: set = set()
+        for f in group:
+            tool = f.get("source_tool") or f.get("scanner") or "unknown"
+            if tool and tool not in seen_sources:
+                seen_sources.add(tool)
+                sources.append(tool)
+            for s in (f.get("sources") or []):
+                if s and s not in seen_sources:
+                    seen_sources.add(s)
+                    sources.append(s)
+
+        # Keep highest severity.
+        best_sev = base.get("severity", "medium")
+        for f in group[1:]:
+            sev = f.get("severity", "medium")
+            if _SEVERITY_RANK.get(sev, 0) > _SEVERITY_RANK.get(best_sev, 0):
+                best_sev = sev
+
+        # First non-empty description / recommendation wins.
+        description = base.get("description") or ""
+        recommendation = base.get("recommendation") or base.get("remediation") or ""
+        for f in group[1:]:
+            if not description:
+                description = f.get("description") or ""
+            if not recommendation:
+                recommendation = (
+                    f.get("recommendation") or f.get("remediation") or ""
+                )
+
+        # Merge tags (unique, sorted for determinism).
+        all_tags: set = set(base.get("tags") or [])
+        for f in group[1:]:
+            all_tags.update(f.get("tags") or [])
+
+        base["sources"] = sources
+        base["source_tool"] = sources[0] if sources else "unknown"
+        base["severity"] = best_sev
+        base["description"] = description
+        base["recommendation"] = recommendation
+        base["tags"] = sorted(all_tags)
+        base["deduped_from_count"] = len(group)
+        merged.append(base)
+
+    logger.info(
+        "dedup_cross_scanner: %d raw findings → %d merged (%.1f%% reduction)",
+        len(findings),
+        len(merged),
+        100.0 * (1 - len(merged) / len(findings)) if findings else 0.0,
+    )
+    return merged
