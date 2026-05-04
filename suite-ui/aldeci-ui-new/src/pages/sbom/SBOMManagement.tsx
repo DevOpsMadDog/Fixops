@@ -122,173 +122,6 @@ interface DiffComponent {
 // Mock Data
 // ═══════════════════════════════════════════════════════════
 
-const MOCK_COMPONENTS_ALPHA: Component[] = [
-  {
-    id: "c1", name: "express", version: "4.18.2", ecosystem: "npm",
-    license: "MIT", licenseRisk: "none", isTransitive: false,
-    supplier: "TJ Holowaychuk", hash: "sha256:a1b2c3d4",
-    vulns: [],
-    children: [
-      { id: "c1a", name: "body-parser", version: "1.20.1", ecosystem: "npm", license: "MIT", licenseRisk: "none", isTransitive: true, vulns: [] },
-      { id: "c1b", name: "qs", version: "6.11.0", ecosystem: "npm", license: "BSD-3-Clause", licenseRisk: "low", isTransitive: true, vulns: [{ id: "CVE-2022-24999", severity: "high", cvss: 7.5, description: "Prototype pollution via parsing" }] },
-    ],
-  },
-  {
-    id: "c2", name: "lodash", version: "4.17.15", ecosystem: "npm",
-    license: "MIT", licenseRisk: "none", isTransitive: false,
-    hash: "sha256:e5f6a7b8",
-    vulns: [
-      { id: "CVE-2021-23337", severity: "high", cvss: 7.2, description: "Command injection via template" },
-      { id: "CVE-2020-28500", severity: "medium", cvss: 5.3, description: "Regular expression DoS" },
-    ],
-    children: [],
-  },
-  {
-    id: "c3", name: "openssl", version: "1.1.1q", ecosystem: "system",
-    license: "OpenSSL", licenseRisk: "medium", isTransitive: false,
-    hash: "sha256:c9d0e1f2",
-    vulns: [{ id: "CVE-2023-0215", severity: "critical", cvss: 9.8, description: "Use-after-free in BIO_new_NDEF" }],
-    children: [
-      { id: "c3a", name: "libcrypto", version: "1.1.1q", ecosystem: "system", license: "OpenSSL", licenseRisk: "medium", isTransitive: true, vulns: [] },
-    ],
-  },
-  {
-    id: "c4", name: "log4j-core", version: "2.14.1", ecosystem: "maven",
-    license: "Apache-2.0", licenseRisk: "low", isTransitive: false,
-    hash: "sha256:g3h4i5j6",
-    vulns: [{ id: "CVE-2021-44228", severity: "critical", cvss: 10.0, description: "Log4Shell RCE via JNDI injection" }],
-    children: [],
-  },
-  {
-    id: "c5", name: "django", version: "4.2.3", ecosystem: "pypi",
-    license: "BSD-3-Clause", licenseRisk: "none", isTransitive: false,
-    hash: "sha256:k7l8m9n0",
-    vulns: [],
-    children: [
-      { id: "c5a", name: "sqlparse", version: "0.4.4", ecosystem: "pypi", license: "BSD-2-Clause", licenseRisk: "none", isTransitive: true, vulns: [] },
-      { id: "c5b", name: "asgiref", version: "3.7.2", ecosystem: "pypi", license: "BSD-3-Clause", licenseRisk: "none", isTransitive: true, vulns: [] },
-    ],
-  },
-  {
-    id: "c6", name: "gpl-component", version: "3.1.0", ecosystem: "npm",
-    license: "GPL-3.0", licenseRisk: "critical", isTransitive: false,
-    hash: "sha256:o1p2q3r4",
-    vulns: [],
-    children: [],
-  },
-  {
-    id: "c7", name: "nginx", version: "1.24.0", ecosystem: "system",
-    license: "BSD-2-Clause", licenseRisk: "none", isTransitive: false,
-    hash: "sha256:s5t6u7v8",
-    vulns: [{ id: "CVE-2023-44487", severity: "high", cvss: 7.5, description: "HTTP/2 Rapid Reset DoS" }],
-    children: [],
-  },
-];
-
-const MOCK_SBOMS: SBOMEntry[] = [
-  {
-    id: "sbom-001",
-    project: "api-gateway",
-    version: "v2.4.1",
-    format: "CycloneDX",
-    componentCount: 247,
-    vulnCount: 18,
-    criticalVulns: 3,
-    licenseRisks: 4,
-    importedAt: new Date("2026-04-12T09:15:00"),
-    generatedAt: new Date("2026-04-12T08:00:00"),
-    environment: "production",
-    components: MOCK_COMPONENTS_ALPHA,
-  },
-  {
-    id: "sbom-002",
-    project: "auth-service",
-    version: "v1.9.0",
-    format: "CycloneDX",
-    componentCount: 183,
-    vulnCount: 7,
-    criticalVulns: 1,
-    licenseRisks: 2,
-    importedAt: new Date("2026-04-12T08:30:00"),
-    generatedAt: new Date("2026-04-12T07:45:00"),
-    environment: "production",
-    components: MOCK_COMPONENTS_ALPHA.slice(2, 6),
-  },
-  {
-    id: "sbom-003",
-    project: "data-pipeline",
-    version: "v3.1.0-rc2",
-    format: "SPDX",
-    componentCount: 412,
-    vulnCount: 31,
-    criticalVulns: 5,
-    licenseRisks: 9,
-    importedAt: new Date("2026-04-11T22:00:00"),
-    generatedAt: new Date("2026-04-11T21:30:00"),
-    environment: "staging",
-    components: MOCK_COMPONENTS_ALPHA,
-  },
-  {
-    id: "sbom-004",
-    project: "frontend-shell",
-    version: "v5.0.2",
-    format: "CycloneDX",
-    componentCount: 891,
-    vulnCount: 44,
-    criticalVulns: 2,
-    licenseRisks: 6,
-    importedAt: new Date("2026-04-11T14:00:00"),
-    generatedAt: new Date("2026-04-11T13:30:00"),
-    environment: "production",
-    components: MOCK_COMPONENTS_ALPHA.slice(0, 4),
-  },
-  {
-    id: "sbom-005",
-    project: "ml-inference",
-    version: "v0.8.3",
-    format: "SPDX",
-    componentCount: 329,
-    vulnCount: 12,
-    criticalVulns: 0,
-    licenseRisks: 11,
-    importedAt: new Date("2026-04-10T18:45:00"),
-    generatedAt: new Date("2026-04-10T18:00:00"),
-    environment: "development",
-    components: MOCK_COMPONENTS_ALPHA.slice(1, 5),
-  },
-  {
-    id: "sbom-006",
-    project: "api-gateway",
-    version: "v2.3.8",
-    format: "CycloneDX",
-    componentCount: 241,
-    vulnCount: 22,
-    criticalVulns: 4,
-    licenseRisks: 5,
-    importedAt: new Date("2026-04-08T10:00:00"),
-    generatedAt: new Date("2026-04-08T09:30:00"),
-    environment: "production",
-    components: MOCK_COMPONENTS_ALPHA,
-  },
-];
-
-const MOCK_DIFF: DiffComponent[] = [
-  { name: "express", oldVersion: "4.17.21", newVersion: "4.18.2", status: "changed", vulnChange: { added: 0, removed: 1 } },
-  { name: "lodash", oldVersion: "4.17.15", newVersion: "4.17.15", status: "unchanged" },
-  { name: "openssl", oldVersion: "1.1.1n", newVersion: "1.1.1q", status: "changed", vulnChange: { added: 1, removed: 2 } },
-  { name: "log4j-core", oldVersion: "2.14.1", newVersion: "2.17.2", status: "changed", vulnChange: { added: 0, removed: 1 } },
-  { name: "axios", oldVersion: "0.27.2", newVersion: undefined, status: "removed", vulnChange: { added: 0, removed: 0 } },
-  { name: "got", oldVersion: undefined, newVersion: "13.0.0", status: "added" },
-  { name: "helmet", oldVersion: "6.1.5", newVersion: "7.1.0", status: "changed", licenseChange: { from: "MIT", to: "MIT" } },
-  { name: "gpl-component", oldVersion: "2.9.0", newVersion: "3.1.0", status: "changed", licenseChange: { from: "GPL-2.0", to: "GPL-3.0" } },
-  { name: "redis", oldVersion: "4.6.5", newVersion: "4.6.10", status: "changed", vulnChange: { added: 0, removed: 1 } },
-  { name: "webpack-dev-server", oldVersion: undefined, newVersion: "4.15.2", status: "added" },
-  { name: "deprecated-pkg", oldVersion: "1.0.0", newVersion: undefined, status: "removed" },
-  { name: "mongoose", oldVersion: "7.3.1", newVersion: "7.3.1", status: "unchanged" },
-  { name: "jsonwebtoken", oldVersion: "8.5.1", newVersion: "9.0.2", status: "changed", vulnChange: { added: 0, removed: 3 } },
-  { name: "crypto-js", oldVersion: "4.1.1", newVersion: undefined, status: "removed" },
-  { name: "node-forge", oldVersion: undefined, newVersion: "1.3.1", status: "added" },
-];
 
 // ═══════════════════════════════════════════════════════════
 // Utility helpers
@@ -786,7 +619,8 @@ function apiProjectToSBOM(p: Record<string, any>, idx: number): SBOMEntry {
 }
 
 export default function SBOMManagement() {
-  const [sboms, setSboms] = useState<SBOMEntry[]>(MOCK_SBOMS);
+  const [sboms, setSboms] = useState<SBOMEntry[]>([]);
+  const [diffComponents, setDiffComponents] = useState<DiffComponent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -821,9 +655,8 @@ export default function SBOMManagement() {
           setDiffRight(mapped[0].id);
         }
       }
-      // If empty, keep MOCK_SBOMS as fallback
     } catch (err: any) {
-      console.warn("SBOMManagement: API fetch failed, using mock data:", err.message);
+      console.warn("SBOMManagement: API fetch failed:", err.message);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -832,6 +665,13 @@ export default function SBOMManagement() {
 
   useEffect(() => {
     fetchSBOMs();
+    fetch("/api/v1/sbom-export/diff?org_id=default", { headers: SBOM_API_HEADERS() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        const items = Array.isArray(d) ? d : (d?.components ?? d?.diff ?? []);
+        if (items.length > 0) setDiffComponents(items);
+      })
+      .catch(() => { /* leave empty */ });
   }, [fetchSBOMs]);
 
   // Load real components when an SBOM is selected and has no components yet
@@ -912,17 +752,16 @@ export default function SBOMManagement() {
   }, [sboms]);
 
   const filteredDiff = useMemo(() => {
-    const diffData = MOCK_DIFF;
-    if (diffFilter === "all") return diffData;
-    return diffData.filter((d) => d.status === diffFilter);
-  }, [diffFilter]);
+    if (diffFilter === "all") return diffComponents;
+    return diffComponents.filter((d) => d.status === diffFilter);
+  }, [diffFilter, diffComponents]);
 
   const diffStats = useMemo(() => ({
-    added: MOCK_DIFF.filter((d) => d.status === "added").length,
-    removed: MOCK_DIFF.filter((d) => d.status === "removed").length,
-    changed: MOCK_DIFF.filter((d) => d.status === "changed").length,
-    unchanged: MOCK_DIFF.filter((d) => d.status === "unchanged").length,
-  }), []);
+    added:     diffComponents.filter((d) => d.status === "added").length,
+    removed:   diffComponents.filter((d) => d.status === "removed").length,
+    changed:   diffComponents.filter((d) => d.status === "changed").length,
+    unchanged: diffComponents.filter((d) => d.status === "unchanged").length,
+  }), [diffComponents]);
 
   const leftSBOM = sboms.find((s) => s.id === diffLeft);
   const rightSBOM = sboms.find((s) => s.id === diffRight);
@@ -1546,7 +1385,7 @@ export default function SBOMManagement() {
 
               <div className="px-4 py-3 border-t border-border/30 flex items-center justify-between text-xs text-muted-foreground bg-muted/10">
                 <span>
-                  {filteredDiff.length} of {MOCK_DIFF.length} components shown
+                  {filteredDiff.length} of {diffComponents.length} components shown
                 </span>
                 <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
                   <Download className="h-3 w-3" />
