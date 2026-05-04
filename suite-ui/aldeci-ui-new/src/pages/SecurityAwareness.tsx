@@ -97,123 +97,8 @@ interface UpcomingTraining {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Mock data
+// No mock data — all state initialised empty
 // ═══════════════════════════════════════════════════════════
-
-const MOCK_CAMPAIGNS: PhishingCampaign[] = [
-  {
-    id: "c1",
-    campaign_name: "Q1 CEO Fraud Simulation",
-    sent_count: 500,
-    clicked_count: 87,
-    reported_count: 34,
-    open_rate: 68.2,
-    click_rate: 17.4,
-    credential_submitted_rate: 8.2,
-    date: "2026-03-15",
-  },
-  {
-    id: "c2",
-    campaign_name: "IT Support Phishing",
-    sent_count: 300,
-    clicked_count: 21,
-    reported_count: 89,
-    open_rate: 71.0,
-    click_rate: 7.0,
-    credential_submitted_rate: 2.3,
-    date: "2026-03-01",
-  },
-  {
-    id: "c3",
-    campaign_name: "Package Delivery Lure",
-    sent_count: 450,
-    clicked_count: 109,
-    reported_count: 12,
-    open_rate: 82.4,
-    click_rate: 24.2,
-    credential_submitted_rate: 14.7,
-    date: "2026-02-14",
-  },
-  {
-    id: "c4",
-    campaign_name: "LinkedIn Connection",
-    sent_count: 200,
-    clicked_count: 18,
-    reported_count: 45,
-    open_rate: 55.0,
-    click_rate: 9.0,
-    credential_submitted_rate: 3.0,
-    date: "2026-02-01",
-  },
-  {
-    id: "c5",
-    campaign_name: "Fake Invoice Alert",
-    sent_count: 380,
-    clicked_count: 54,
-    reported_count: 28,
-    open_rate: 74.5,
-    click_rate: 14.2,
-    credential_submitted_rate: 6.6,
-    date: "2026-01-20",
-  },
-];
-
-const MOCK_DEPARTMENTS: DepartmentCompletion[] = [
-  { department: "Engineering",  completion_rate: 94 },
-  { department: "Finance",      completion_rate: 85 },
-  { department: "HR",           completion_rate: 91 },
-  { department: "Sales",        completion_rate: 62 },
-  { department: "Marketing",    completion_rate: 71 },
-  { department: "Legal",        completion_rate: 96 },
-  { department: "Operations",   completion_rate: 78 },
-  { department: "Executive",    completion_rate: 100 },
-];
-
-const MOCK_HIGH_RISK_USERS: HighRiskUser[] = [
-  { id: "u1",  user_masked: "J.W.",  department: "Sales",      phishing_clicks: 7,  training_skips: 4, risk_score: 91 },
-  { id: "u2",  user_masked: "M.R.",  department: "Marketing",  phishing_clicks: 5,  training_skips: 3, risk_score: 84 },
-  { id: "u3",  user_masked: "T.K.",  department: "Sales",      phishing_clicks: 6,  training_skips: 2, risk_score: 81 },
-  { id: "u4",  user_masked: "S.P.",  department: "Operations", phishing_clicks: 4,  training_skips: 4, risk_score: 77 },
-  { id: "u5",  user_masked: "A.L.",  department: "Finance",    phishing_clicks: 3,  training_skips: 3, risk_score: 73 },
-  { id: "u6",  user_masked: "D.M.",  department: "Marketing",  phishing_clicks: 5,  training_skips: 1, risk_score: 69 },
-  { id: "u7",  user_masked: "R.C.",  department: "Sales",      phishing_clicks: 4,  training_skips: 2, risk_score: 66 },
-  { id: "u8",  user_masked: "P.H.",  department: "Operations", phishing_clicks: 3,  training_skips: 2, risk_score: 62 },
-  { id: "u9",  user_masked: "K.N.",  department: "HR",         phishing_clicks: 2,  training_skips: 3, risk_score: 58 },
-  { id: "u10", user_masked: "B.F.",  department: "Engineering",phishing_clicks: 2,  training_skips: 2, risk_score: 54 },
-];
-
-const MOCK_UPCOMING_TRAININGS: UpcomingTraining[] = [
-  {
-    id: "t1",
-    title: "Social Engineering Defense",
-    mandatory: true,
-    due_date: "2026-04-30",
-    completion_rate: 43,
-  },
-  {
-    id: "t2",
-    title: "Data Handling & Privacy",
-    mandatory: true,
-    due_date: "2026-05-15",
-    completion_rate: 12,
-  },
-  {
-    id: "t3",
-    title: "Password Hygiene Best Practices",
-    mandatory: false,
-    due_date: "2026-05-31",
-    completion_rate: 28,
-  },
-];
-
-const MOCK_RISK_TREND = [
-  { month: "Nov", score: 58 },
-  { month: "Dec", score: 54 },
-  { month: "Jan", score: 51 },
-  { month: "Feb", score: 47 },
-  { month: "Mar", score: 44 },
-  { month: "Apr", score: 42 },
-];
 
 // ═══════════════════════════════════════════════════════════
 // Helpers
@@ -551,8 +436,24 @@ function UpcomingTrainings({ trainings }: { trainings: UpcomingTraining[] }) {
 // Risk Trend Chart (div-based bar chart)
 // ═══════════════════════════════════════════════════════════
 
-function RiskTrendChart() {
-  const maxScore = Math.max(...MOCK_RISK_TREND.map((d) => d.score));
+interface RiskTrendPoint { month: string; score: number; }
+
+function RiskTrendChart({ data }: { data: RiskTrendPoint[] }) {
+  if (!data.length) return (
+    <Card className="border border-border">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-cyan-400" />
+          6-Month Human Risk Score Trend
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-xs text-muted-foreground">No trend data available.</p>
+      </CardContent>
+    </Card>
+  );
+
+  const maxScore = Math.max(...data.map((d) => d.score), 1);
 
   return (
     <Card className="border border-border">
@@ -564,27 +465,18 @@ function RiskTrendChart() {
       </CardHeader>
       <CardContent>
         <div className="flex items-end gap-3 h-32">
-          {MOCK_RISK_TREND.map((d, i) => {
+          {data.map((d, i) => {
             const heightPct = (d.score / maxScore) * 100;
             return (
-              <div
-                key={d.month}
-                className="flex flex-col items-center gap-1.5 flex-1"
-              >
-                <span className="text-[10px] font-semibold text-cyan-400">
-                  {d.score}
-                </span>
+              <div key={d.month} className="flex flex-col items-center gap-1.5 flex-1">
+                <span className="text-[10px] font-semibold text-cyan-400">{d.score}</span>
                 <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${heightPct}%` }}
                   transition={{ delay: i * 0.08, duration: 0.45, ease: "easeOut" }}
                   className={cn(
                     "w-full rounded-t",
-                    d.score >= 55
-                      ? "bg-red-500/60"
-                      : d.score >= 45
-                      ? "bg-orange-500/60"
-                      : "bg-cyan-500/60"
+                    d.score >= 55 ? "bg-red-500/60" : d.score >= 45 ? "bg-orange-500/60" : "bg-cyan-500/60"
                   )}
                   style={{ minHeight: "4px" }}
                 />
@@ -595,7 +487,7 @@ function RiskTrendChart() {
         </div>
         <p className="text-[11px] text-muted-foreground mt-3 flex items-center gap-1.5">
           <TrendingDown className="w-3.5 h-3.5 text-green-400" />
-          Org-wide risk dropped 16 points over 6 months — awareness program working
+          Org-wide risk trend over the last 6 months
         </p>
       </CardContent>
     </Card>
@@ -606,62 +498,87 @@ function RiskTrendChart() {
 // Main Page
 // ═══════════════════════════════════════════════════════════
 
+interface AwarenessStats {
+  avg_completion_pct: number | null;
+  avg_phishing_click_rate: number | null;
+  high_risk_count: number | null;
+  avg_risk_score: number | null;
+}
+
 export default function SecurityAwareness() {
-  const [liveData, setLiveData] = useState<any>(null);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading]                   = useState(true);
+  const [stats, setStats]                       = useState<AwarenessStats>({ avg_completion_pct: null, avg_phishing_click_rate: null, high_risk_count: null, avg_risk_score: null });
+  const [campaigns, setCampaigns]               = useState<PhishingCampaign[]>([]);
+  const [departments, setDepartments]           = useState<DepartmentCompletion[]>([]);
+  const [highRiskUsers, setHighRiskUsers]       = useState<HighRiskUser[]>([]);
+  const [upcomingTrainings, setUpcomingTrainings] = useState<UpcomingTraining[]>([]);
+  const [riskTrend, setRiskTrend]               = useState<RiskTrendPoint[]>([]);
 
   useEffect(() => {
-    setDataLoading(true);
+    setLoading(true);
     Promise.allSettled([
       apiFetch(`/awareness-score/orgs/${ORG_ID}/stats`),
       apiFetch(`/awareness-score/orgs/${ORG_ID}/employees`),
       apiFetch(`/awareness-score/orgs/${ORG_ID}/department-summary`),
-      apiFetch(`/awareness-score/orgs/${ORG_ID}/scores`),
-    ]).then(([statsRes, employeesRes, deptRes, scoresRes]) => {
-      const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
-      const employees   = employeesRes.status   === "fulfilled" ? employeesRes.value   : null;
-      const deptSummary = deptRes.status        === "fulfilled" ? deptRes.value        : null;
-      const scores      = scoresRes.status      === "fulfilled" ? scoresRes.value      : null;
-      if (stats || employees || deptSummary || scores) {
-        setLiveData({ stats, employees, deptSummary, scores });
+      apiFetch(`/security-awareness/campaigns?org_id=${ORG_ID}`),
+      apiFetch(`/security-awareness/trainings?org_id=${ORG_ID}`),
+      apiFetch(`/awareness-score/orgs/${ORG_ID}/risk-trend`),
+    ]).then(([statsRes, employeesRes, deptRes, campaignsRes, trainingsRes, trendRes]) => {
+      if (statsRes.status === "fulfilled") {
+        const s = statsRes.value;
+        setStats({
+          avg_completion_pct: s.avg_completion_pct ?? null,
+          avg_phishing_click_rate: s.avg_phishing_click_rate ?? null,
+          high_risk_count: s.high_risk_count ?? s.high_risk_users ?? null,
+          avg_risk_score: s.avg_risk_score ?? null,
+        });
       }
-    }).finally(() => setDataLoading(false));
+      if (employeesRes.status === "fulfilled") {
+        const arr = Array.isArray(employeesRes.value) ? employeesRes.value : employeesRes.value?.items ?? [];
+        setHighRiskUsers(
+          arr
+            .filter((e: any) => (e.risk_score ?? 0) >= 50)
+            .slice(0, 10)
+            .map((e: any, i: number) => ({
+              id: e.employee_id ?? `u${i}`,
+              user_masked: e.name ? `${e.name[0]}.${e.name.split(" ")[1]?.[0] ?? ""}.` : `U${i}`,
+              department: e.department ?? "",
+              phishing_clicks: e.phishing_click_count ?? e.phishing_clicks ?? 0,
+              training_skips: e.training_skips ?? 0,
+              risk_score: e.risk_score ?? 0,
+            }))
+        );
+      }
+      if (deptRes.status === "fulfilled") {
+        const arr = Array.isArray(deptRes.value) ? deptRes.value : deptRes.value?.departments ?? [];
+        setDepartments(arr.map((d: any) => ({
+          department: d.department ?? d.name ?? "",
+          completion_rate: d.avg_completion_pct ?? d.completion_rate ?? d.avg_score ?? 0,
+        })));
+      }
+      if (campaignsRes.status === "fulfilled") {
+        const arr = Array.isArray(campaignsRes.value) ? campaignsRes.value : campaignsRes.value?.campaigns ?? [];
+        setCampaigns(arr);
+      }
+      if (trainingsRes.status === "fulfilled") {
+        const arr = Array.isArray(trainingsRes.value) ? trainingsRes.value : trainingsRes.value?.trainings ?? [];
+        setUpcomingTrainings(arr);
+      }
+      if (trendRes.status === "fulfilled") {
+        const arr = Array.isArray(trendRes.value) ? trendRes.value : trendRes.value?.trend ?? [];
+        setRiskTrend(arr);
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
-  // Derive display data from live API response with mock fallbacks
-  const campaigns: PhishingCampaign[] = MOCK_CAMPAIGNS;
-  const departments: DepartmentCompletion[] = (() => {
-    const raw = liveData?.deptSummary;
-    if (!raw) return MOCK_DEPARTMENTS;
-    // API returns { departments: [{department, avg_score, employee_count, ...}] }
-    const arr = Array.isArray(raw) ? raw : raw.departments ?? null;
-    if (!arr || arr.length === 0) return MOCK_DEPARTMENTS;
-    return arr.map((d: any) => ({
-      department: d.department ?? d.name ?? "",
-      completion_rate: d.avg_completion_pct ?? d.completion_rate ?? d.avg_score ?? 0,
-    }));
-  })();
-  const highRiskUsers: HighRiskUser[] = (() => {
-    const raw = liveData?.employees;
-    if (!raw) return MOCK_HIGH_RISK_USERS;
-    const arr = Array.isArray(raw) ? raw : raw.items ?? null;
-    if (!arr || arr.length === 0) return MOCK_HIGH_RISK_USERS;
-    return arr
-      .filter((e: any) => (e.risk_score ?? 0) >= 50)
-      .slice(0, 10)
-      .map((e: any, i: number) => ({
-        id: e.employee_id ?? `u${i}`,
-        user_masked: e.name ? `${e.name[0]}.${e.name.split(" ")[1]?.[0] ?? ""}.` : e.employee_id ?? `U${i}`,
-        department: e.department ?? "",
-        phishing_clicks: e.phishing_click_count ?? e.phishing_clicks ?? 0,
-        training_skips: e.training_skips ?? 0,
-        risk_score: e.risk_score ?? 0,
-      }));
-  })();
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
       <PageHeader
         title="Security Awareness Training"
         description="Track phishing simulations, training completion, and human risk scores"
@@ -672,44 +589,48 @@ export default function SecurityAwareness() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
           title="Training Completion Rate"
-          value={liveData?.stats?.avg_completion_pct != null ? `${Math.round(liveData.stats.avg_completion_pct)}%` : "78%"}
-          icon={CheckCircle2}         trend="up"
-          trendLabel="+4% this quarter"
+          value={stats.avg_completion_pct != null ? `${Math.round(stats.avg_completion_pct)}%` : "—"}
+          icon={CheckCircle2} trend="up"
+          trendLabel="Completion rate"
         />
         <KpiCard
           title="Phishing Click Rate"
-          value={liveData?.stats?.avg_phishing_click_rate != null ? `${liveData.stats.avg_phishing_click_rate.toFixed(1)}%` : "12%"}
-          icon={Mail}         trend="down"
-          trendLabel="-3% vs last quarter"
+          value={stats.avg_phishing_click_rate != null ? `${stats.avg_phishing_click_rate.toFixed(1)}%` : "—"}
+          icon={Mail} trend="down"
+          trendLabel="Click rate"
         />
         <KpiCard
           title="High Risk Users"
-          value={liveData?.stats?.high_risk_count ?? liveData?.stats?.high_risk_users ?? 34}
-          icon={ShieldAlert}         trend="down"
-          trendLabel="Down from 41"
+          value={stats.high_risk_count ?? "—"}
+          icon={ShieldAlert} trend="down"
+          trendLabel="Users above risk threshold"
         />
         <KpiCard
           title="Avg Human Risk Score"
-          value={liveData?.stats?.avg_risk_score != null ? `${Math.round(liveData.stats.avg_risk_score)}/100` : "42/100"}
-          icon={Users}         trend="down"
-          trendLabel="Improving trend"
+          value={stats.avg_risk_score != null ? `${Math.round(stats.avg_risk_score)}/100` : "—"}
+          icon={Users} trend="down"
+          trendLabel="Lower is better"
         />
       </div>
 
-      {/* Phishing campaigns table */}
-      <CampaignsTable campaigns={campaigns} />
+      {campaigns.length > 0 && <CampaignsTable campaigns={campaigns} />}
+      {campaigns.length === 0 && (
+        <Card className="border border-border">
+          <CardContent className="py-8 text-center text-xs text-muted-foreground">No phishing campaigns found.</CardContent>
+        </Card>
+      )}
 
-      {/* Department completion + Upcoming training */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DepartmentCompletion departments={departments} />
-        <UpcomingTrainings trainings={MOCK_UPCOMING_TRAININGS} />
+        {upcomingTrainings.length > 0
+          ? <UpcomingTrainings trainings={upcomingTrainings} />
+          : <Card className="border border-border"><CardContent className="py-8 text-center text-xs text-muted-foreground">No upcoming trainings scheduled.</CardContent></Card>
+        }
       </div>
 
-      {/* High risk users */}
-      <HighRiskUsersPanel users={highRiskUsers} />
+      {highRiskUsers.length > 0 && <HighRiskUsersPanel users={highRiskUsers} />}
 
-      {/* Risk trend chart */}
-      <RiskTrendChart />
+      <RiskTrendChart data={riskTrend} />
     </div>
   );
 }
