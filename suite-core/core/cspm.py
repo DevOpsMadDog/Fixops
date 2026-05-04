@@ -535,7 +535,12 @@ class CSPMEngine:
         org_id: str,
         provider: Optional[CloudProvider] = None,
     ) -> List[CheckResult]:
-        """Run all applicable security checks for an org, optionally filtered by provider."""
+        """Run all applicable security checks for an org, optionally filtered by provider.
+
+        Perf fix: accumulate all results in memory, then persist in a single
+        batched executemany call (one connection, one transaction) instead of
+        opening+closing a SQLite connection per result.
+        """
         resources = self.list_resources(org_id=org_id, provider=provider)
         results: List[CheckResult] = []
         checks = [c for c in _BUILTIN_CHECKS if provider is None or c.provider == provider]
@@ -544,8 +549,9 @@ class CSPMEngine:
                 if check.provider != resource.provider:
                     continue
                 result = self.run_check(resource, check)
-                self._persist_result(result, org_id)
                 results.append(result)
+        # Batch persist — single connection, single transaction
+        self._persist_results_bulk(results, org_id)
         _tg_emit("cspm.run_security_checks", {"org_id": org_id, "provider": provider.value if provider else "all", "results_count": len(results)})
         return results
 
@@ -562,29 +568,40 @@ class CSPMEngine:
             )
         return fn(resource, check)
 
-    def _persist_result(self, result: CheckResult, org_id: str) -> None:
+    def _persist_results_bulk(self, results: List[CheckResult], org_id: str) -> None:
+        """Batch-insert check results — one connection, one executemany, one commit."""
+        if not results:
+            return
+        rows = [
+            (
+                str(uuid.uuid4()),
+                r.resource_id,
+                r.check_id,
+                r.status.value,
+                r.details,
+                r.remediation,
+                r.checked_at.isoformat(),
+                org_id,
+            )
+            for r in results
+        ]
         conn = self._get_conn()
         try:
-            conn.execute(
+            conn.executemany(
                 """
                 INSERT OR REPLACE INTO check_results
                     (id, resource_id, check_id, status, details, remediation, checked_at, org_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (
-                    str(uuid.uuid4()),
-                    result.resource_id,
-                    result.check_id,
-                    result.status.value,
-                    result.details,
-                    result.remediation,
-                    result.checked_at.isoformat(),
-                    org_id,
-                ),
+                rows,
             )
             conn.commit()
         finally:
             conn.close()
+
+    def _persist_result(self, result: CheckResult, org_id: str) -> None:
+        """Single-result persist — kept for external callers; delegates to bulk helper."""
+        self._persist_results_bulk([result], org_id)
 
     def get_check_results(
         self,
@@ -768,7 +785,12 @@ class CSPMEngine:
         return findings
 
     def get_cspm_score(self, org_id: str) -> float:
-        """Return a 0-100 cloud security posture score."""
+        """Return a 0-100 cloud security posture score.
+
+        Perf fix: replaced 3 separate list_resources() calls (3 full table
+        scans) with a single SQL aggregate query that returns public_count,
+        unencrypted_count, and total_count in one round-trip.
+        """
         summary = self.get_compliance_summary(org_id=org_id)
         total = summary["total"]
         if total == 0:
@@ -780,12 +802,29 @@ class CSPMEngine:
         if assessed == 0:
             return 50.0  # nothing assessed yet
 
+        # Single-query aggregate: public_count, unencrypted_count, total in one pass
+        conn = self._get_conn()
+        try:
+            row = conn.execute(
+                """
+                SELECT
+                    COUNT(*)                                      AS total_count,
+                    SUM(CASE WHEN public_exposure = 1 THEN 1 ELSE 0 END) AS public_count,
+                    SUM(CASE WHEN encryption_enabled = 0 THEN 1 ELSE 0 END) AS unenc_count
+                FROM cloud_resources
+                WHERE org_id = ?
+                """,
+                (org_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+
+        resource_count = row["total_count"] or 0
+        public_count = row["public_count"] or 0
+        unencrypted_count = row["unenc_count"] or 0
+
         # Base score from pass rate, then penalise for public/unencrypted resources
         base_score = (compliant / assessed) * 100
-
-        public_count = len(self.get_public_resources(org_id))
-        unencrypted_count = len(self.get_unencrypted_resources(org_id))
-        resource_count = len(self.list_resources(org_id=org_id))
 
         if resource_count > 0:
             public_penalty = (public_count / resource_count) * 10
