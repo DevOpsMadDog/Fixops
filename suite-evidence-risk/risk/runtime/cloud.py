@@ -533,7 +533,7 @@ class CloudRuntimeAnalyzer:
                 # Check firewall rules for 0.0.0.0 (allow all Azure services)
                 for rule in client.firewall_rules.list_by_server(rg, srv_name):
                     if (
-                        rule.start_ip_address == "0.0.0.0"
+                        rule.start_ip_address == "0.0.0.0"  # nosec B104 — Azure firewall rule comparison, not a bind
                         and rule.end_ip_address == "255.255.255.255"
                     ):
                         findings.append(

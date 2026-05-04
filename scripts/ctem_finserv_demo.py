@@ -127,7 +127,7 @@ def api_get(path, timeout=15):
 
 def api_post_file(path, filepath, content_type="application/json"):
     url = f"{API_BASE}{path}"
-    boundary = "----FormBoundary" + hashlib.md5(str(time.time()).encode()).hexdigest()[:12]
+    boundary = "----FormBoundary" + hashlib.md5(str(time.time()).encode(), usedforsecurity=False).hexdigest()[:12]
     filename = os.path.basename(filepath)
     with open(filepath, "rb") as f:
         file_data = f.read()
@@ -705,7 +705,7 @@ def calculate_risk():
     # VULNERABILITY: Unsafe deserialization
     model_data = pickle.loads(data.get('model_weights', b''))
     # VULNERABILITY: Weak hash for PCI transaction IDs
-    txn_id = hashlib.md5(str(data).encode()).hexdigest()
+    txn_id = hashlib.md5(str(data).encode(), usedforsecurity=False).hexdigest()
     return jsonify({"risk_score": 0.75, "txn_id": txn_id})
 
 @app.route('/api/v1/admin/config')

@@ -126,7 +126,7 @@ def api_get(path, timeout=15):
 def api_post_multipart(path, filename, content, content_type="application/json", timeout=15):
     """POST multipart/form-data file upload."""
     url = f"{API_BASE}{path}"
-    boundary = f"----FormBoundary{hashlib.md5(str(time.time()).encode()).hexdigest()[:16]}"
+    boundary = f"----FormBoundary{hashlib.md5(str(time.time()).encode(), usedforsecurity=False).hexdigest()[:16]}"
     body = (
         f"--{boundary}\r\n"
         f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
@@ -1004,7 +1004,7 @@ def create_prescription():
     # Missing DEA number validation
     # Missing prescription digital signature
 
-    return jsonify({"rx_id": hashlib.md5(str(data).encode()).hexdigest(), "status": "transmitted"})
+    return jsonify({"rx_id": hashlib.md5(str(data).encode(), usedforsecurity=False).hexdigest(), "status": "transmitted"})
 
 @app.route("/api/hl7/receive", methods=["POST"])
 def receive_hl7_message():

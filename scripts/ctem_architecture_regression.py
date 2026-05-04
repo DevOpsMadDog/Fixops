@@ -85,7 +85,7 @@ def api_json(
 
 def api_multipart(path: str, filepath: str, content_type: str = "application/json") -> Tuple[int, Any, float]:
     """Upload file via multipart/form-data. Returns (status_code, data, elapsed_ms)."""
-    boundary = "----ALdeciRegression" + hashlib.md5(filepath.encode()).hexdigest()[:12]
+    boundary = "----ALdeciRegression" + hashlib.md5(filepath.encode(), usedforsecurity=False).hexdigest()[:12]
     filename = os.path.basename(filepath)
 
     with open(filepath, "rb") as f:

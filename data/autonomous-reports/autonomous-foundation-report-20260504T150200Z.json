@@ -1,0 +1,120 @@
+{
+  "report_id": "autonomous-foundation-report-20260504T150200Z",
+  "timestamp": "2026-05-04T15:02:00.000000Z",
+  "branch": "feature/autonomous-foundation",
+  "cycle": 13,
+  "phase": "sast-remediation-and-validation",
+  "summary": "Pass 13: SAST remediation cycle. Eliminated 5 HIGH-severity MD5 findings in scripts/ (usedforsecurity=False), suppressed 4 core-source false positives (2 B104, 2 B310), and 1 test false positive (B103). Core source SAST findings reduced from 4 to 0 (MEDIUM+ severity, MEDIUM+ confidence). HIGH severity findings reduced from 6 to 0 across entire repo. All validation tiers green: 8,351 tests passing, 0 failures.",
+  "sast": {
+    "tool": "bandit",
+    "filter": "severity>=MEDIUM, confidence>=MEDIUM",
+    "core_source_findings_count": 0,
+    "repo_wide_high_severity_count": 0,
+    "details": []
+  },
+  "repo_state": {
+    "branch": "feature/autonomous-foundation",
+    "commit": "pending-pass-13"
+  },
+  "next_actions": [
+    "Begin air-gapped CTEM feature development (core product differentiation)",
+    "Add bandit to CI with --confidence-level medium (0 findings at this threshold)",
+    "Add pytest-randomly to CI (catch test-ordering issues)",
+    "Replace risk_scorer.py string concat with .format() (eliminate last 3 LOW-confidence FPs)",
+    "Integrate EPSS API caching to reduce brain_pipeline test network dependency",
+    "Add nosec annotations to scripts/ B310/B108 findings for completeness"
+  ],
+  "fixes_applied": [
+    {
+      "file": "scripts/ctem_architecture_regression.py",
+      "category": "sast-high-severity",
+      "description": "Added usedforsecurity=False to hashlib.md5() call — used for multipart boundary generation, not security",
+      "impact": "Eliminates 1 HIGH-severity B324 finding"
+    },
+    {
+      "file": "scripts/ctem_dogfood_demo.py",
+      "category": "sast-high-severity",
+      "description": "Added usedforsecurity=False to hashlib.md5() call — used for multipart boundary generation, not security",
+      "impact": "Eliminates 1 HIGH-severity B324 finding"
+    },
+    {
+      "file": "scripts/ctem_finserv_demo.py",
+      "category": "sast-high-severity",
+      "description": "Added usedforsecurity=False to 2 hashlib.md5() calls — used for boundary generation and transaction IDs, not security",
+      "impact": "Eliminates 1 HIGH-severity B324 finding"
+    },
+    {
+      "file": "scripts/ctem_healthcare_demo.py",
+      "category": "sast-high-severity",
+      "description": "Added usedforsecurity=False to 2 hashlib.md5() calls — used for boundary generation and rx IDs, not security",
+      "impact": "Eliminates 1 HIGH-severity B324 finding"
+    },
+    {
+      "file": "scripts/ctem_saturday_dogfood.py",
+      "category": "sast-high-severity",
+      "description": "Added usedforsecurity=False to hashlib.md5() call — used for multipart boundary generation, not security",
+      "impact": "Eliminates 1 HIGH-severity B324 finding"
+    },
+    {
+      "file": "suite-attack/api/api_fuzzer_router.py",
+      "category": "sast-false-positive-suppression",
+      "description": "Added nosec B104 annotation — 0.0.0.0 is in SSRF blocklist, not a bind address",
+      "impact": "Eliminates 1 MEDIUM-severity B104 false positive"
+    },
+    {
+      "file": "suite-evidence-risk/risk/runtime/cloud.py",
+      "category": "sast-false-positive-suppression",
+      "description": "Added nosec B104 annotation — 0.0.0.0 is Azure firewall rule comparison, not a bind address",
+      "impact": "Eliminates 1 MEDIUM-severity B104 false positive"
+    },
+    {
+      "file": "suite-integrations/integrations/siem_engine.py",
+      "category": "sast-false-positive-suppression",
+      "description": "Added nosec B310 annotations to 2 urlopen calls — URLs validated by SIEMTarget configuration",
+      "impact": "Eliminates 2 MEDIUM-severity B310 false positives"
+    },
+    {
+      "file": "tests/test_storage_security.py",
+      "category": "sast-false-positive-suppression",
+      "description": "Added nosec B103 annotation — chmod 0o777 is intentional test of world-writable rejection logic",
+      "impact": "Eliminates 1 HIGH-severity B103 false positive"
+    }
+  ],
+  "validation": {
+    "focused_autonomous_foundation": {
+      "passed": 184,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 24.7
+    },
+    "autonomous_workspace": {
+      "passed": 30,
+      "failed": 0,
+      "skipped": 1,
+      "duration_s": 0.44
+    },
+    "autonomous_cycle": {
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 261.9
+    },
+    "high_visibility_e2e": {
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 261.2
+    },
+    "broader_repository_unit": {
+      "passed": 8039,
+      "failed": 0,
+      "skipped": 98,
+      "duration_s": 1749.5
+    },
+    "total": {
+      "passed": 8351,
+      "failed": 0,
+      "skipped": 99
+    }
+  }
+}

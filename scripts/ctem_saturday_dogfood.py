@@ -138,7 +138,7 @@ def multipart_upload(
 ) -> Tuple[int, Any, float]:
     """POST multipart/form-data file upload."""
     url = f"{BASE_URL}/{path.lstrip('/')}"
-    boundary = f"----ALdeciSatDogfood{hashlib.md5(file_bytes[:64]).hexdigest()[:16]}"
+    boundary = f"----ALdeciSatDogfood{hashlib.md5(file_bytes[:64], usedforsecurity=False).hexdigest()[:16]}"
     body_parts = (
         f"--{boundary}\r\n"
         f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'

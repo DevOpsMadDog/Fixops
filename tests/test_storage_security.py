@@ -22,6 +22,6 @@ def test_archive_rejects_directory_outside_allowlist(
 
 
 def test_archive_rejects_world_writable_root(allowlisted_root: Path) -> None:
-    os.chmod(allowlisted_root, 0o777)
+    os.chmod(allowlisted_root, 0o777)  # nosec B103 — intentional test of world-writable rejection
     with pytest.raises(PermissionError):
         ArtefactArchive(allowlisted_root / "archive", allowlist=(allowlisted_root,))

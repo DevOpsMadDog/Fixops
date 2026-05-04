@@ -396,7 +396,7 @@ class SIEMEngine:
                 },
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 — URL validated by SIEMTarget config
                 result.success = resp.status == 200
                 result.bytes_sent = len(hec_payload)
         except (OSError, urllib.error.URLError, ValueError) as e:
@@ -421,7 +421,7 @@ class SIEMEngine:
                 headers=headers,
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 — URL validated by SIEMTarget config
                 result.success = resp.status in (200, 201, 202, 204)
                 result.bytes_sent = len(payload)
         except (OSError, urllib.error.URLError, ValueError) as e:
