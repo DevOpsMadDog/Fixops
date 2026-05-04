@@ -308,11 +308,12 @@ class SBOMManager:
                     sbom.org_id,
                 ),
             )
-            for comp in components:
-                conn.execute(
-                    """INSERT INTO sbom_components
-                       (id, sbom_id, name, version, purl, type, licenses, supplier, hashes)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            # FIX #1: executemany — single round-trip instead of N individual INSERTs
+            conn.executemany(
+                """INSERT INTO sbom_components
+                   (id, sbom_id, name, version, purl, type, licenses, supplier, hashes)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [
                     (
                         str(uuid.uuid4()),
                         sbom_id,
@@ -323,8 +324,10 @@ class SBOMManager:
                         json.dumps(comp.licenses),
                         comp.supplier,
                         json.dumps(comp.hashes),
-                    ),
-                )
+                    )
+                    for comp in components
+                ],
+            )
 
         logger.info("Imported SBOM %s (%s) with %d components", sbom_id, format.value, len(components))
         _emit_event("sbom_manager.sbom_imported", {
@@ -563,12 +566,34 @@ class SBOMManager:
 
         with self._get_conn() as conn:
             rows = conn.execute(query, params).fetchall()
+            if not rows:
+                return []
 
-        result: List[SBOM] = []
-        for row in rows:
-            components = self._load_components(row["id"])
-            result.append(self._row_to_sbom(row, components))
-        return result
+            # FIX #2: single JOIN query for all components instead of N+1 per-SBOM SELECTs
+            sbom_ids = [r["id"] for r in rows]
+            placeholders = ",".join("?" * len(sbom_ids))
+            comp_rows = conn.execute(
+                f"SELECT * FROM sbom_components WHERE sbom_id IN ({placeholders})",
+                sbom_ids,
+            ).fetchall()
+
+        # Group components by sbom_id in Python (O(M) pass, M = total components)
+        from collections import defaultdict
+        comp_map: Dict[str, List[Component]] = defaultdict(list)
+        for cr in comp_rows:
+            comp_map[cr["sbom_id"]].append(
+                Component(
+                    name=cr["name"],
+                    version=cr["version"],
+                    purl=cr["purl"],
+                    type=cr["type"],
+                    licenses=json.loads(cr["licenses"]),
+                    supplier=cr["supplier"],
+                    hashes=json.loads(cr["hashes"]),
+                )
+            )
+
+        return [self._row_to_sbom(row, comp_map[row["id"]]) for row in rows]
 
     def get_components(self, sbom_id: str) -> List[Component]:
         # Validate sbom exists

@@ -345,27 +345,24 @@ class SBOMEngine:
                 return None
             asset = self._row(row)
 
-            comp_count = conn.execute(
-                "SELECT COUNT(*) FROM sbom_components WHERE org_id = ? AND asset_id = ?",
+            # FIX #3: single aggregate query instead of fetching+parsing every known_vulns blob.
+            # json_array_length() is available in SQLite >= 3.38 (Python 3.12 ships 3.45+).
+            # The COALESCE+IIF guards against NULL / non-array stored values.
+            agg = conn.execute(
+                """SELECT
+                       COUNT(*) AS comp_count,
+                       COALESCE(SUM(
+                           IIF(json_valid(known_vulns) AND json_array_length(known_vulns) > 0,
+                               json_array_length(known_vulns), 0)
+                       ), 0) AS vuln_count,
+                       COALESCE(SUM(IIF(risk_score >= 7.0, 1, 0)), 0) AS high_risk
+                   FROM sbom_components
+                   WHERE org_id = ? AND asset_id = ?""",
                 (org_id, asset_id),
-            ).fetchone()[0]
-
-            vuln_rows = conn.execute(
-                "SELECT known_vulns FROM sbom_components WHERE org_id = ? AND asset_id = ?",
-                (org_id, asset_id),
-            ).fetchall()
-            vuln_count = 0
-            for vr in vuln_rows:
-                try:
-                    vuln_count += len(json.loads(vr[0] or "[]"))
-                except (json.JSONDecodeError, TypeError):
-                    pass
-
-            high_risk = conn.execute(
-                """SELECT COUNT(*) FROM sbom_components
-                   WHERE org_id = ? AND asset_id = ? AND risk_score >= 7.0""",
-                (org_id, asset_id),
-            ).fetchone()[0]
+            ).fetchone()
+            comp_count = agg["comp_count"]
+            vuln_count = agg["vuln_count"]
+            high_risk = agg["high_risk"]
 
         asset["component_count"] = comp_count
         asset["vuln_count"] = vuln_count
