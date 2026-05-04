@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -1809,6 +1810,18 @@ class SASTEngine:
         self._scan_store: Dict[str, "SastScanResult"] = {}
         self._latest_scan_id: Optional[str] = None
 
+        # PERF: Pre-compiled taint patterns (avoid re.compile on every scan_code call)
+        # Structure: {lang: [compiled_pattern, ...]}
+        self._compiled_taint_sources: Dict[str, List[re.Pattern]] = {
+            lang: [re.compile(p, re.IGNORECASE) for p in pats]
+            for lang, pats in TAINT_SOURCES.items()
+        }
+        # Structure: {category: [compiled_pattern, ...]}
+        self._compiled_taint_sinks: Dict[str, List[re.Pattern]] = {
+            cat: [re.compile(p, re.IGNORECASE) for p in pats]
+            for cat, pats in TAINT_SINKS.items()
+        }
+
     # ── Semgrep / Custom Rule Management ─────────────────────────────
 
     def add_semgrep_rules(self, yaml_text: str) -> List[SemgrepRule]:
@@ -1991,6 +2004,14 @@ class SASTEngine:
         findings: List[SastFinding] = []
         taint_flows: List[Dict[str, Any]] = []
 
+        # PERF: Filter applicable rules once per file (not per line × rule)
+        if lang == Language.UNKNOWN:
+            applicable_rules = self._compiled_rules
+        else:
+            applicable_rules = [
+                r for r in self._compiled_rules if lang.value in r[7]
+            ]
+
         # Rule-based scanning
         for line_num, line in enumerate(lines, 1):
             if line_num in skip_lines:
@@ -2004,9 +2025,7 @@ class SASTEngine:
             # Cap total findings to prevent memory exhaustion
             if len(findings) >= self.MAX_FINDINGS_PER_SCAN:
                 break
-            for rid, title, sev, cwe, pattern, msg, fix, langs in self._compiled_rules:
-                if lang.value not in langs and lang != Language.UNKNOWN:
-                    continue
+            for rid, title, sev, cwe, pattern, msg, fix, langs in applicable_rules:
                 if pattern.search(line):
                     # Redact secret values in snippets for CWE-798 (hardcoded
                     # secrets) to prevent accidental leakage in API responses,
@@ -2177,12 +2196,36 @@ class SASTEngine:
         t0 = time.time()
         all_findings: List[SastFinding] = []
         all_taint: List[Dict[str, Any]] = []
-        for fname, code in file_contents.items():
-            if len(all_findings) >= self.MAX_FINDINGS_PER_SCAN:
-                break
-            result = self.scan_code(code, fname, incremental=incremental)
-            all_findings.extend(result.findings)
-            all_taint.extend(result.taint_flows)
+
+        # PERF: Scan files in parallel — each scan_code call is CPU-bound regex
+        # work with no shared mutable state (findings are per-file). Worker count
+        # capped at 4 to avoid overwhelming the GIL on very large batches; regex
+        # re.search releases the GIL so threads yield real concurrency here.
+        _workers = min(4, len(file_contents))
+        if _workers <= 1:
+            # Fast path: avoid thread overhead for tiny batches
+            for fname, code in file_contents.items():
+                if len(all_findings) >= self.MAX_FINDINGS_PER_SCAN:
+                    break
+                r = self.scan_code(code, fname, incremental=incremental)
+                all_findings.extend(r.findings)
+                all_taint.extend(r.taint_flows)
+        else:
+            with ThreadPoolExecutor(max_workers=_workers) as pool:
+                futures = {
+                    pool.submit(self.scan_code, code, fname, incremental): fname
+                    for fname, code in file_contents.items()
+                }
+                for fut in as_completed(futures):
+                    if len(all_findings) >= self.MAX_FINDINGS_PER_SCAN:
+                        fut.cancel()
+                        continue
+                    try:
+                        r = fut.result()
+                        all_findings.extend(r.findings)
+                        all_taint.extend(r.taint_flows)
+                    except Exception as _exc:  # noqa: BLE001
+                        logger.warning("scan_files worker error for %r: %s", futures[fut], _exc)
 
         by_sev: Dict[str, int] = {}
         by_cwe: Dict[str, int] = {}
@@ -2211,18 +2254,24 @@ class SASTEngine:
         self, lines: List[str], lang: Language
     ) -> List[Dict[str, Any]]:
         flows: List[Dict[str, Any]] = []
-        sources = TAINT_SOURCES.get(lang.value, [])
+        # PERF: Use pre-compiled taint patterns (compiled once at __init__)
+        compiled_sources = self._compiled_taint_sources.get(lang.value, [])
+        raw_sources = TAINT_SOURCES.get(lang.value, [])
         source_hits: List[Tuple[int, str]] = []
         for i, line in enumerate(lines, 1):
-            for src_pat in sources:
-                if re.search(src_pat, line, re.IGNORECASE):
-                    source_hits.append((i, src_pat))
+            for compiled_pat, raw_pat in zip(compiled_sources, raw_sources):
+                if compiled_pat.search(line):
+                    source_hits.append((i, raw_pat))
         if not source_hits:
             return flows
+        sink_items = [
+            (cat, list(zip(self._compiled_taint_sinks[cat], TAINT_SINKS[cat])))
+            for cat in TAINT_SINKS
+        ]
         for i, line in enumerate(lines, 1):
-            for cat, sink_pats in TAINT_SINKS.items():
-                for sink_pat in sink_pats:
-                    if re.search(sink_pat, line, re.IGNORECASE):
+            for cat, sink_pairs in sink_items:
+                for compiled_sink, raw_sink in sink_pairs:
+                    if compiled_sink.search(line):
                         for src_line, src_pat in source_hits:
                             if src_line < i:
                                 flows.append(
@@ -2230,7 +2279,7 @@ class SASTEngine:
                                         "source_line": src_line,
                                         "source_pattern": src_pat,
                                         "sink_line": i,
-                                        "sink_pattern": sink_pat,
+                                        "sink_pattern": raw_sink,
                                         "sink_category": cat,
                                     }
                                 )
