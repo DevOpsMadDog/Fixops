@@ -24,6 +24,12 @@ NIST 800-53 Controls addressed by this module:
 
 Usage:
     from core.security_hardening import (
+        RequestSizeLimiter, InputSanitizer, SQLInjectionGuard,
+        PathTraversalGuard, SSRFGuard, RateLimitConfig,
+        IPFilterManager, SessionManager, SecurityAuditLogger,
+    )
+"""
+from __future__ import annotations
 
 # ---------------------------------------------------------------------------
 # TrustGraph event-bus wiring (auto-added by hub-wiring wave)
@@ -66,21 +72,6 @@ try:  # pragma: no cover
     _emit_event("engine.loaded", {"module": __name__})
 except Exception:  # noqa: BLE001
     pass
-
-        RequestSizeLimiter,
-        InputSanitizer,
-        SQLInjectionPreventer,
-        PathTraversalPreventer,
-        SSRFProtection,
-        RateLimiter,
-        EndpointRateLimitConfig,
-        IPAccessManager,
-        SessionManager,
-        SecurityAuditLogger,
-    )
-"""
-
-from __future__ import annotations
 
 import hashlib
 import html
