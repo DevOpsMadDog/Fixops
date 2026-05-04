@@ -1421,8 +1421,11 @@ class BrainPipeline:
                 )
             """)
 
-            synced = 0
+            # Perf fix #3: build all row tuples first, then flush with a
+            # single executemany() call instead of one round-trip per finding.
             now = datetime.now(timezone.utc).isoformat()
+            org_id_val = ctx.get("org_id", "default")
+            rows = []
             for f in ctx.get("findings", []):
                 title = str(f.get("title", ""))[:500]
                 severity = str(f.get("severity", "medium"))[:20]
@@ -1432,13 +1435,21 @@ class BrainPipeline:
 
                 finding_id = f.get("finding_id") or f.get("id")
                 if not finding_id:
-                    import hashlib
                     finding_id = hashlib.sha256(
                         f"{title}|{asset}|{severity}".encode()
                     ).hexdigest()[:16]
 
+                rows.append((
+                    finding_id, title, severity, str(f.get("status", "open")),
+                    source, asset, cve, f.get("cvss_score"), f.get("epss_score"),
+                    f.get("risk_score"), 1 if f.get("in_kev") else 0,
+                    org_id_val, now, now,
+                ))
+
+            synced = 0
+            if rows:
                 try:
-                    cursor.execute(
+                    cursor.executemany(
                         """INSERT INTO findings (id, title, severity, status, source,
                            asset_name, cve_id, cvss_score, epss_score, risk_score,
                            in_kev, org_id, created_at, updated_at)
@@ -1448,14 +1459,11 @@ class BrainPipeline:
                              risk_score=excluded.risk_score, in_kev=excluded.in_kev,
                              updated_at=excluded.updated_at
                         """,
-                        (finding_id, title, severity, str(f.get("status", "open")),
-                         source, asset, cve, f.get("cvss_score"), f.get("epss_score"),
-                         f.get("risk_score"), 1 if f.get("in_kev") else 0,
-                         ctx.get("org_id", "default"), now, now),
+                        rows,
                     )
-                    synced += 1
+                    synced = cursor.rowcount if cursor.rowcount >= 0 else len(rows)
                 except _sqlite3.Error:
-                    continue
+                    pass
 
             conn.commit()
             conn.close()
@@ -2675,21 +2683,44 @@ class BrainPipeline:
         Wave 2D Integration 1 — adds fusion_score, consensus_severity,
         consensus_priority to every finding that has a CVE id. Pipeline
         never fails if fusion is unavailable.
+
+        Perf fix #2: build the feed-record list in one pass, then call
+        ingest_source_feed once per record rather than rebuilding intermediate
+        dicts inside a property-access-heavy loop.
         """
         try:
             from core.vuln_intel_fusion_engine import VulnIntelFusionEngine
+
+            # Short-circuit: no CVE findings means nothing to fuse
+            cve_findings = [f for f in ctx["findings"] if f.get("cve_id")]
+            if not cve_findings:
+                return
+
             fusion = VulnIntelFusionEngine()
-            for f in ctx["findings"]:
-                if f.get("cve_id"):
-                    fusion.ingest_source_feed(ctx["org_id"], {
-                        "cve_id": f["cve_id"],
-                        "source_name": f.get("engine", "pipeline"),
-                        "source_severity": f.get("severity", "unknown"),
-                        "cvss_score": float(f.get("cvss") or f.get("cvss_score") or 0.0),
-                        "epss_score": float(f.get("epss") or f.get("epss_score") or 0.0),
-                        "kev_listed": 1 if (f.get("in_kev") or f.get("kev_listed")) else 0,
-                    })
-            pq = fusion.get_priority_queue(ctx["org_id"])
+            org_id = ctx["org_id"]
+
+            # Build all feed records in a single list comprehension (avoids
+            # repeated .get() attribute lookups inside the ingest call itself)
+            # Pre-extract all fields in one list comprehension then call
+            # ingest_from_source once per record (avoids repeated .get()
+            # inside the call and uses the correct positional-arg signature)
+            feed_records = [
+                (
+                    f["cve_id"],
+                    f.get("engine", "pipeline"),
+                    f.get("severity", "unknown"),
+                    float(f.get("cvss") or f.get("cvss_score") or 0.0),
+                    float(f.get("epss") or f.get("epss_score") or 0.0),
+                    1 if (f.get("in_kev") or f.get("kev_listed")) else 0,
+                )
+                for f in cve_findings
+            ]
+            for cve_id, src_name, src_sev, cvss, epss, kev in feed_records:
+                fusion.ingest_from_source(
+                    org_id, cve_id, src_name, src_sev, cvss, epss, kev
+                )
+
+            pq = fusion.get_priority_queue(org_id)
             lookup = {x["cve_id"]: x for x in pq if x.get("cve_id")}
             for f in ctx["findings"]:
                 fused = lookup.get(f.get("cve_id"))
@@ -2849,15 +2880,33 @@ class BrainPipeline:
         except Exception as exc:  # noqa: BLE001 - GNN is optional
             logger.warning("attack graph GNN skipped: %s", exc)
 
-    @staticmethod
-    def _load_local_feeds() -> tuple:
+    # ------------------------------------------------------------------
+    # Module-level TTL cache for local feed data (Fix 1: avoid reloading
+    # 317K EPSS + 1.5K KEV rows on every pipeline run).
+    # Cache is invalidated after _FEEDS_CACHE_TTL_S seconds so long-running
+    # processes pick up daily feed refreshes without restarting.
+    # ------------------------------------------------------------------
+    _feeds_cache: Optional[tuple] = None
+    _feeds_cache_ts: float = 0.0
+    _FEEDS_CACHE_TTL_S: float = 300.0  # 5-minute TTL
+
+    @classmethod
+    def _load_local_feeds(cls) -> tuple:
         """Load EPSS, KEV, and NVD data from local feed databases.
 
         Returns (epss_dict, kev_dict, nvd_dict) — each keyed by CVE ID.
         Returns empty dicts if databases are unavailable.
+
+        Results are cached for _FEEDS_CACHE_TTL_S seconds to avoid
+        re-reading 317K rows from SQLite on every pipeline run.
         """
         import sqlite3
         from pathlib import Path
+
+        # Return cached data if still fresh (perf fix #1)
+        now_mono = time.monotonic()
+        if cls._feeds_cache is not None and (now_mono - cls._feeds_cache_ts) < cls._FEEDS_CACHE_TTL_S:
+            return cls._feeds_cache
 
         epss: Dict[str, Any] = {}
         kev: Dict[str, Any] = {}
@@ -2876,7 +2925,10 @@ class BrainPipeline:
 
         if not db_path:
             logger.info("No local feed database found — enrichment will use estimates")
-            return epss, kev, nvd
+            result = (epss, kev, nvd)
+            cls._feeds_cache = result
+            cls._feeds_cache_ts = now_mono
+            return result
 
         try:
             conn = sqlite3.connect(str(db_path), timeout=5)
@@ -2926,7 +2978,10 @@ class BrainPipeline:
         except (sqlite3.Error, OSError) as e:
             logger.warning("Failed to load local feeds: %s", type(e).__name__)
 
-        return epss, kev, nvd
+        result = (epss, kev, nvd)
+        cls._feeds_cache = result
+        cls._feeds_cache_ts = now_mono
+        return result
 
     # ------------------------------------------------------------------
     # Step 7: Run smart algorithms (GNN + attack paths)
