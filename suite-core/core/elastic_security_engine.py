@@ -33,6 +33,11 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 8.0
@@ -174,6 +179,21 @@ class ElasticSecurityEngine:
             "/api/detection_engine/signals/search",
             json_body=body,
         )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "threat.detected",
+                        {
+                            "entity_id": "elastic_security",
+                            "type": "elastic_signals",
+                            "source_engine": "elastic_security",
+                            "hit_count": len((raw.get("hits") or {}).get("hits") or []),
+                        },
+                    )
+            except Exception:
+                pass
         return self._normalize_signals(raw)
 
     # ----------------------------------------------------------- cases
