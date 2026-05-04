@@ -97,257 +97,15 @@ interface AlertEntry {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Mock data
+// API config
 // ═══════════════════════════════════════════════════════════
 
-const now = new Date();
-const minsAgo = (m: number) => new Date(now.getTime() - m * 60_000);
-const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000);
-const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
-
-function makeHistory(status: IntegrationStatus, base: number): HealthCheckEntry[] {
-  const statuses: IntegrationStatus[] =
-    status === "DOWN"
-      ? ["DOWN", "DOWN", "DOWN", "DEGRADED", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY"]
-      : status === "DEGRADED"
-        ? ["DEGRADED", "DEGRADED", "HEALTHY", "DEGRADED", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY"]
-        : ["HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY", "HEALTHY"];
-
-  return statuses.map((s, i) => ({
-    timestamp: minsAgo((statuses.length - 1 - i) * 5),
-    status: s,
-    responseMs: s === "HEALTHY" ? base + Math.floor(Math.random() * 40) - 20
-      : s === "DEGRADED" ? base * 3 + Math.floor(Math.random() * 200)
-        : 0,
-    message: s === "DOWN" ? "Connection refused" : s === "DEGRADED" ? "High latency detected" : undefined,
-  }));
-}
-
-const MOCK_INTEGRATIONS: Integration[] = [
-  {
-    id: "trivy",
-    name: "Trivy",
-    type: "scanner",
-    status: "HEALTHY",
-    responseMs: 142,
-    uptimePct: 99.97,
-    lastChecked: minsAgo(1),
-    endpoint: "trivy-server:4954",
-    version: "0.49.1",
-    history: makeHistory("HEALTHY", 142),
-  },
-  {
-    id: "semgrep",
-    name: "Semgrep",
-    type: "scanner",
-    status: "HEALTHY",
-    responseMs: 88,
-    uptimePct: 99.91,
-    lastChecked: minsAgo(1),
-    endpoint: "semgrep.dev/api/v1",
-    version: "1.62.0",
-    history: makeHistory("HEALTHY", 88),
-  },
-  {
-    id: "snyk",
-    name: "Snyk",
-    type: "scanner",
-    status: "DEGRADED",
-    responseMs: 1840,
-    uptimePct: 97.3,
-    lastChecked: minsAgo(2),
-    endpoint: "api.snyk.io/v1",
-    version: "cloud",
-    history: makeHistory("DEGRADED", 340),
-    alerts: ["Response time 5x baseline for 18 min"],
-  },
-  {
-    id: "jira",
-    name: "Jira",
-    type: "ticketing",
-    status: "HEALTHY",
-    responseMs: 210,
-    uptimePct: 99.5,
-    lastChecked: minsAgo(1),
-    endpoint: "fixops.atlassian.net",
-    version: "cloud",
-    history: makeHistory("HEALTHY", 210),
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    type: "git",
-    status: "HEALTHY",
-    responseMs: 95,
-    uptimePct: 99.99,
-    lastChecked: minsAgo(1),
-    endpoint: "api.github.com",
-    version: "v3",
-    history: makeHistory("HEALTHY", 95),
-  },
-  {
-    id: "aws-securityhub",
-    name: "AWS Security Hub",
-    type: "cloud",
-    status: "DOWN",
-    responseMs: 0,
-    uptimePct: 91.2,
-    lastChecked: minsAgo(3),
-    endpoint: "securityhub.us-east-1.amazonaws.com",
-    history: makeHistory("DOWN", 180),
-    alerts: ["Auth token expired 47 min ago", "Last successful sync: 2h ago"],
-  },
-  {
-    id: "defectdojo",
-    name: "DefectDojo",
-    type: "siem",
-    status: "HEALTHY",
-    responseMs: 310,
-    uptimePct: 99.2,
-    lastChecked: minsAgo(1),
-    endpoint: "defectdojo:8080",
-    version: "2.33.4",
-    history: makeHistory("HEALTHY", 310),
-  },
-  {
-    id: "vault",
-    name: "HashiCorp Vault",
-    type: "secrets",
-    status: "HEALTHY",
-    responseMs: 54,
-    uptimePct: 100,
-    lastChecked: minsAgo(1),
-    endpoint: "vault:8200",
-    version: "1.15.6",
-    history: makeHistory("HEALTHY", 54),
-  },
-  {
-    id: "harbor",
-    name: "Harbor Registry",
-    type: "registry",
-    status: "HEALTHY",
-    responseMs: 127,
-    uptimePct: 99.8,
-    lastChecked: minsAgo(2),
-    endpoint: "harbor.internal:443",
-    version: "2.10.1",
-    history: makeHistory("HEALTHY", 127),
-  },
-  {
-    id: "nvd",
-    name: "NVD Feed",
-    type: "feed",
-    status: "DEGRADED",
-    responseMs: 4200,
-    uptimePct: 95.1,
-    lastChecked: minsAgo(4),
-    endpoint: "services.nvd.nist.gov/rest/json",
-    history: makeHistory("DEGRADED", 800),
-    alerts: ["Rate limited — 429 responses since 14:20 UTC"],
-  },
-  {
-    id: "slack",
-    name: "Slack Alerts",
-    type: "notification",
-    status: "HEALTHY",
-    responseMs: 73,
-    uptimePct: 99.95,
-    lastChecked: minsAgo(1),
-    endpoint: "hooks.slack.com",
-    version: "webhook",
-    history: makeHistory("HEALTHY", 73),
-  },
-  {
-    id: "trustgraph",
-    name: "TrustGraph MCP",
-    type: "siem",
-    status: "HEALTHY",
-    responseMs: 38,
-    uptimePct: 99.99,
-    lastChecked: minsAgo(1),
-    endpoint: "localhost:8888",
-    version: "1.0.0",
-    history: makeHistory("HEALTHY", 38),
-  },
-  {
-    id: "sonarqube",
-    name: "SonarQube",
-    type: "scanner",
-    status: "HEALTHY",
-    responseMs: 460,
-    uptimePct: 98.7,
-    lastChecked: minsAgo(2),
-    endpoint: "sonarqube:9000",
-    version: "10.4.1",
-    history: makeHistory("HEALTHY", 460),
-  },
-  {
-    id: "gcp-scc",
-    name: "GCP Security Command Center",
-    type: "cloud",
-    status: "HEALTHY",
-    responseMs: 290,
-    uptimePct: 99.6,
-    lastChecked: minsAgo(1),
-    endpoint: "securitycenter.googleapis.com",
-    version: "v2",
-    history: makeHistory("HEALTHY", 290),
-  },
-  {
-    id: "mitre-feed",
-    name: "MITRE ATT&CK Feed",
-    type: "feed",
-    status: "HEALTHY",
-    responseMs: 610,
-    uptimePct: 99.1,
-    lastChecked: minsAgo(5),
-    endpoint: "attack.mitre.org",
-    version: "v14.1",
-    history: makeHistory("HEALTHY", 610),
-  },
-  {
-    id: "linear",
-    name: "Linear",
-    type: "ticketing",
-    status: "HEALTHY",
-    responseMs: 118,
-    uptimePct: 99.9,
-    lastChecked: minsAgo(1),
-    endpoint: "api.linear.app/graphql",
-    version: "graphql",
-    history: makeHistory("HEALTHY", 118),
-  },
-];
-
-const MOCK_ALERTS: AlertEntry[] = [
-  {
-    id: "a1",
-    integrationId: "aws-securityhub",
-    integrationName: "AWS Security Hub",
-    status: "DOWN",
-    message: "Auth token expired. Integration offline since 14:07 UTC. Last sync contained 847 findings.",
-    since: minsAgo(47),
-    acknowledged: false,
-  },
-  {
-    id: "a2",
-    integrationId: "snyk",
-    integrationName: "Snyk",
-    status: "DEGRADED",
-    message: "Response latency 5.4x baseline (1840ms vs 340ms expected). Scans completing but SLA at risk.",
-    since: minsAgo(18),
-    acknowledged: false,
-  },
-  {
-    id: "a3",
-    integrationId: "nvd",
-    integrationName: "NVD Feed",
-    status: "DEGRADED",
-    message: "Rate limited by upstream (HTTP 429). CVE enrichment delayed. Throttling requests to 2/min.",
-    since: minsAgo(34),
-    acknowledged: true,
-  },
-];
+const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
 
 // ═══════════════════════════════════════════════════════════
 // Helpers
@@ -750,13 +508,33 @@ type FilterType = "ALL" | IntegrationType;
 // ═══════════════════════════════════════════════════════════
 
 export default function IntegrationHealth() {
-  const [integrations, setIntegrations] = useState<Integration[]>(MOCK_INTEGRATIONS);
-  const [alerts, setAlerts] = useState<AlertEntry[]>(MOCK_ALERTS);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [alerts, setAlerts] = useState<AlertEntry[]>([]);
   const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
   const [checkingAll, setCheckingAll] = useState(false);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("ALL");
   const [filterType, setFilterType] = useState<FilterType>("ALL");
-  const [lastRefresh, setLastRefresh] = useState(now);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  useEffect(() => {
+    const headers = { "X-API-Key": API_KEY };
+    Promise.allSettled([
+      fetch(`${API_BASE}/api/v1/integration-health/integrations?org_id=${ORG_ID}`, { headers })
+        .then(r => r.ok ? r.json() : Promise.reject()),
+      fetch(`${API_BASE}/api/v1/integration-health/alerts?org_id=${ORG_ID}`, { headers })
+        .then(r => r.ok ? r.json() : Promise.reject()),
+    ]).then(([intRes, alertRes]) => {
+      if (intRes.status === "fulfilled") {
+        const d = intRes.value;
+        setIntegrations(Array.isArray(d) ? d : (d?.integrations ?? d?.items ?? []));
+      }
+      if (alertRes.status === "fulfilled") {
+        const d = alertRes.value;
+        setAlerts(Array.isArray(d) ? d : (d?.alerts ?? d?.items ?? []));
+      }
+      setLastRefresh(new Date());
+    });
+  }, []);
 
   // KPI derivations
   const total = integrations.length;
