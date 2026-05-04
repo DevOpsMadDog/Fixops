@@ -40,8 +40,8 @@ x-aldeci-env: &aldeci-env
   FIXOPS_LOG_LEVEL: "${FIXOPS_LOG_LEVEL:-warning}"
   FIXOPS_DISABLE_TELEMETRY: "1"
   FIXOPS_SQLITE_DIR: "/app/data"
-  REDIS_URL: "redis://redis:6379/0"
-  FIXOPS_REDIS_URL: "redis://redis:6379/0"
+  REDIS_URL: "redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0"
+  FIXOPS_REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
   PYTHONUNBUFFERED: "1"
   # LLM providers (optional)
   OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
@@ -65,12 +65,13 @@ services:
       --maxmemory-policy allkeys-lru
       --save 900 1
       --save 300 10
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - prod-redis-data:/data
     ports:
       - "${REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

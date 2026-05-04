@@ -53,7 +53,7 @@ spec:
       containers:
         - name: aldeci-api
           image: aldeci/suite-api:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8000

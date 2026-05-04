@@ -45,8 +45,8 @@ x-aldeci-env: &aldeci-env
   DATABASE_URL: "postgresql://${POSTGRES_USER:-aldeci}:${POSTGRES_PASSWORD:-aldeci_pw_change_me}@postgres:5432/${POSTGRES_DB:-aldeci}"
   FIXOPS_SQLITE_DIR: "/app/data"
   # Redis event bus
-  REDIS_URL: "redis://redis:6379/0"
-  FIXOPS_REDIS_URL: "redis://redis:6379/0"
+  REDIS_URL: "redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0"
+  FIXOPS_REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
   # TrustGraph knowledge graph
   TRUSTGRAPH_URL: "http://trustgraph:8888"
   FIXOPS_TRUSTGRAPH_URL: "http://trustgraph:8888"
@@ -58,7 +58,7 @@ x-aldeci-env: &aldeci-env
   # Wazuh SIEM
   WAZUH_API_URL: "${WAZUH_API_URL:-https://wazuh:55000}"
   WAZUH_API_USER: "${WAZUH_API_USER:-wazuh-wui}"
-  WAZUH_API_PASSWORD: "${WAZUH_API_PASSWORD:-MyS3cr37P450r.*-}"
+  WAZUH_API_PASSWORD: "${WAZUH_API_PASSWORD:?WAZUH_API_PASSWORD is required}"
   # Shuffle SOAR
   SHUFFLE_URL: "${SHUFFLE_URL:-http://shuffle:3001}"
   SHUFFLE_AUTHORIZATION: "${SHUFFLE_AUTHORIZATION:-}"
@@ -128,12 +128,13 @@ services:
       --maxmemory-policy allkeys-lru
       --save 900 1
       --save 300 10
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - enterprise-redis-data:/data
     ports:
       - "${REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -157,7 +158,7 @@ services:
   # ──────────────────────────────────────────────────────────────────────────
   # Config UI: http://localhost:8888
   trustgraph:
-    image: trustgraph/trustgraph-flow:latest
+    image: trustgraph/trustgraph-flow:0.18.0
     container_name: aldeci-enterprise-trustgraph
     <<: *default-restart
     ports:
@@ -252,13 +253,13 @@ services:
     environment:
       INDEXER_URL: "https://localhost:9200"
       INDEXER_USERNAME: "admin"
-      INDEXER_PASSWORD: "SecretPassword"
+      INDEXER_PASSWORD: "${WAZUH_INDEXER_PASSWORD:?WAZUH_INDEXER_PASSWORD is required}"
       FILEBEAT_SSL_VERIFICATION_MODE: "full"
       SSL_CERTIFICATE_AUTHORITIES: "/etc/ssl/root-ca.pem"
       SSL_CERTIFICATE: "/etc/ssl/filebeat.pem"
       SSL_KEY: "/etc/ssl/filebeat.key"
       API_USERNAME: "wazuh-wui"
-      API_PASSWORD: "${WAZUH_API_PASSWORD:-MyS3cr37P450r.*-}"
+      API_PASSWORD: "${WAZUH_API_PASSWORD:?WAZUH_API_PASSWORD is required}"
     volumes:
       - enterprise-wazuh-api-config:/var/ossec/api/configuration
       - enterprise-wazuh-etc:/var/ossec/etc
@@ -302,7 +303,7 @@ services:
   # Triggers ALDECI playbooks via webhooks on Wazuh alerts.
   # Access: http://localhost:3001
   shuffle:
-    image: ghcr.io/shuffle/shuffle:latest
+    image: ghcr.io/shuffle/shuffle:1.4.0
     container_name: aldeci-enterprise-shuffle
     <<: *default-restart
     ports:
@@ -414,7 +415,7 @@ services:
   # Access: http://localhost:8080
   # Default: admin / admin (change via NETBOX_SUPERUSER_PASSWORD)
   netbox:
-    image: netboxcommunity/netbox:latest
+    image: netboxcommunity/netbox:v4.1.11
     container_name: aldeci-enterprise-netbox
     <<: *default-restart
     ports:
@@ -429,11 +430,11 @@ services:
       REDIS_PORT: "6379"
       REDIS_DATABASE: "0"
       REDIS_CACHE_DATABASE: "1"
-      SECRET_KEY: "${NETBOX_SECRET_KEY:-change-me-in-production-min-50-chars-long-secret}"
+      SECRET_KEY: "${NETBOX_SECRET_KEY:?NETBOX_SECRET_KEY is required (min 50 chars, generate: openssl rand -base64 50)}"
       SUPERUSER_NAME: "${NETBOX_SUPERUSER_NAME:-admin}"
       SUPERUSER_EMAIL: "${NETBOX_SUPERUSER_EMAIL:-admin@aldeci.local}"
       SUPERUSER_PASSWORD: "${NETBOX_SUPERUSER_PASSWORD:-admin}"
-      SUPERUSER_API_TOKEN: "${NETBOX_TOKEN:-0123456789abcdef0123456789abcdef01234567}"
+      SUPERUSER_API_TOKEN: "${NETBOX_TOKEN:?NETBOX_TOKEN is required (generate: openssl rand -hex 20)}"
       ALLOWED_HOSTS: "netbox localhost 127.0.0.1"
       CORS_ORIGIN_ALLOW_ALL: "true"
       EXEMPT_VIEW_PERMISSIONS: "*"
