@@ -164,10 +164,21 @@ class SentinelConnector:
             "scope": "https://monitor.azure.com/.default",
         }
 
-        with httpx.Client(timeout=self.config.timeout_s) as client:
-            resp = client.post(token_url, data=data)
-            resp.raise_for_status()
-            body = resp.json()
+        try:
+            with httpx.Client(timeout=self.config.timeout_s) as client:
+                resp = client.post(token_url, data=data)
+                resp.raise_for_status()
+                body = resp.json()
+        except httpx.HTTPStatusError as exc:
+            # Re-raise without the request object to avoid leaking client_secret
+            # that may appear in the httpx exception repr/request body.
+            raise RuntimeError(
+                f"Azure AD token request failed: HTTP {exc.response.status_code}"
+            ) from None
+        except httpx.RequestError as exc:
+            raise RuntimeError(
+                f"Azure AD token request network error: {type(exc).__name__}"
+            ) from None
 
         self._access_token = body["access_token"]
         self._token_expires_at = time.time() + body.get("expires_in", 3600)

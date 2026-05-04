@@ -1,5 +1,23 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 07:20] backend-hardener — BUG2_ROUTER_INDEX_ROUTES
+- **What**: Added missing GET "/" index handlers to 29 of ~749 router prefixes most-used by UI hubs (audit, brain, autofix, assets, analytics, attack-paths, webhooks, air-gap, risk, threat-intel, soar, connectors, incidents, phishing, api-security-engine, openclaw, dca, vuln-intel, ml, posture-advisor, exec-reporting, cspm, tip, fail, graph, supply-chain, rules, organizations, compliance). Each handler wires to the router's existing engine accessor or returns empty-but-shaped JSON. Also fixed gap_router sub-routers (fail_gap, graph_gap, supply_chain_gap) and wave_c_router sub-routers (rules_router, orgs_router). Added connectors_router GET "/" alias. Added tests/test_router_index_routes.py: 29 parametrized smoke tests.
+- **Files touched**: 26 router files in suite-api/apps/api/ + gap_router.py + wave_c_router.py, tests/test_router_index_routes.py (new)
+- **Outcome**: SUCCESS — 29/29 smoke tests pass; 753/753 Beast Mode green; SHA e5a1acc9 pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (CTEM completeness), V6 (demo-ready — zero 404s on UI hub probes)
+
+### [2026-05-05 07:08] backend-hardener — PLATFORM_GAPS_CLEANUP_4
+- **What**: Fixed 4 platform gaps from SAST dogfood (commit 6246aee9). (1) pip_audit_to_sarif(): full SARIF v2.1.0 converter added to scanner_parsers.py — rules[], results[], level=error mapping, CVE alias capture, fix descriptions, empty-input safety. (2) ingest-to-issues: verified _promote_findings_to_issues already wired in scanner_ingest_router.py — no code change needed, 3 tests added proving the path. (3) /risk-scoring/summary: added by_source{} (SecurityFindingsEngine source breakdown), by_severity{} (alias for by_tier), last_updated (ISO timestamp) to response — endpoint existed but was missing task-spec fields. (4) dedup_cross_scanner(): new function in scanner_parsers.py — merges findings with same (cve_id, file_path, line_number) across scanners into one with sources:[], takes highest severity, merges tags, records deduped_from_count.
+- **Files touched**: suite-core/core/scanner_parsers.py (+~260 LOC: pip_audit_to_sarif + dedup_cross_scanner), suite-api/apps/api/risk_scoring_router.py (+50 LOC: by_source/by_severity/last_updated fields), tests/test_platform_gaps_cleanup.py (new — 23 tests)
+- **Outcome**: SUCCESS — 23/23 new tests passing, 753/753 Beast Mode green, SHA 05f13789 pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (CTEM findings quality), V3 (decision intelligence — dedup reduces noise), V8 (audit evidence — SARIF is the OASIS standard format), V9 (air-gapped — all functions work offline)
+
+### [2026-05-05 07:05] backend-hardener — PERF_FIX_RSA_KEY_CACHE
+- **What**: Fixed 2111ms RSA-4096 keygen bottleneck (commit 0bb21886). Added `CryptoManager` singleton (`get_crypto_manager` / `reset_crypto_manager`) with double-checked locking to `suite-core/core/crypto.py`. Added `CryptoManager.rotate()` which deletes PEMs, clears `RSAKeyManager._KEY_CACHE`, regenerates + persists, and atomically replaces the module singleton. Added `fixops crypto rotate-keys [--key-size]` CLI subcommand in `cli.py`. Added 6-test regression suite asserting <50ms second instantiation.
+- **Files touched**: `suite-core/core/crypto.py`, `suite-core/core/cli.py`, `tests/test_crypto_manager_singleton.py`
+- **Outcome**: SUCCESS — 6/6 new tests pass, 276/276 Beast Mode green, SHA 1276b4df pushed to features/intermediate-stage
+- **Pillar(s) served**: V4 (quantum-safe evidence), V7 (performance)
+
 ### [2026-05-03 00:00] frontend-craftsman — PHASE1_SKELETON_FIXUP
 - **What**: Recovered stash `phase1-import-fix-pending` on `consolidation/phase-1-skeleton`. Fixed two App.tsx import-name mismatches (S01LoginAuth→S01LoginAndAuth, S08SecretsCrypto→S08SecretsAndCrypto). Fixed JSX syntax error in all 31 v2 stub files — doubled-quote `apiHint=""content""` pattern normalized to `apiHint="content"` via Python regex across all files. Discarded unrelated backend partials from stash (access_anomaly, container_scanner, incident_timeline, threat_hunting, sast_router). Staged only UI files and committed.
 - **Files touched**: `suite-ui/aldeci-ui-new/src/App.tsx` (2 import fixes), `suite-ui/aldeci-ui-new/src/LegacyRoutes.tsx` (new), `suite-ui/aldeci-ui-new/src/pages/v2/` (31 files — apiHint syntax fixed in all)
@@ -5781,3 +5799,17 @@
 - **Files touched**: requirements.txt, requirements-test.txt, docs/dependency_audit_2026-05-02.md
 - **Outcome**: SUCCESS (11→8 Python vulns, 0/0 Node vulns, beast-mode 753/753, build green, SHA 398b9ef4, Multica #3615)
 - **Pillar(s) served**: V3 (Trust + Security)
+
+### [2026-05-05 07:22] backend-hardener — SECURITY_HARDENING
+- **What**: Audited suite-evidence-risk (20.3K LOC) for OWASP issues; fixed 5 real bugs across 3 files
+- **Files touched**: suite-evidence-risk/evidence/packager.py, suite-evidence-risk/risk/runtime/container.py, suite-evidence-risk/risk/reachability/git_integration.py, tests/test_evidence_risk_hardening.py
+- **Fixes**: (1) packager.py cosign subprocess missing timeout→timeout=120; (2) container.py _get_container_info/_get_pod_spec catching wrong ImportError→correct SubprocessError/JSONDecodeError tuple + module-level json import; (3) git_integration.py auth token leaked in clone error message→redacted with <url-redacted>; (4) git_integration.py get_repository_metadata 6 subprocess calls unbounded→timeout=30; (5) 9 AST-based smoke tests
+- **Outcome**: SUCCESS — 9/9 smoke PASS, 191/191 Beast Mode PASS, SHA ced163d6
+- **Pillar(s) served**: V3 (security hardening), V5 (evidence integrity)
+
+### [2026-05-04 SESSION] frontend-craftsman — BUG3_MOCK_REMOVAL_WAVE4
+- **What**: Removed MOCK_* fallbacks from 5 dashboard pages in suite-ui/aldeci-ui-new
+- **Files touched**: src/pages/SecurityGamificationDashboard.tsx, src/pages/SecurityOperationsMetricsDashboard.tsx, src/pages/SecurityKPIDashboard.tsx, src/pages/SecurityAwareness.tsx, src/pages/ScheduledReportsDashboard.tsx
+- **Commits**: 0333bbe7, 155bbfa9, cd77bcbf, 1819a617, be6b731a
+- **Outcome**: SUCCESS — 5 pages cleaned, 0 new TS errors, pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (real data), V3 (no mocks)

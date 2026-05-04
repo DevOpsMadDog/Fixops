@@ -413,13 +413,14 @@ def receive_jira_webhook(
         conn.commit()
 
         return result
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, sqlite3.Error) as e:
+        logger.error("Jira webhook processing failed for event %s: %s", event_id, e, exc_info=True)
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),
         )
         conn.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Webhook processing error")
     finally:
         conn.close()
 
@@ -516,13 +517,14 @@ def receive_servicenow_webhook(
         conn.commit()
 
         return result
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, sqlite3.Error) as e:
+        logger.error("ServiceNow webhook processing failed for event %s: %s", event_id, e, exc_info=True)
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),
         )
         conn.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Webhook processing error")
     finally:
         conn.close()
 
@@ -1354,7 +1356,7 @@ def process_pending_outbox_items(limit: int = 10) -> Dict[str, Any]:
             result = execute_outbox_item(outbox_id)
             results.append(result)
         except Exception as e:  # catch ALL errors — outbox must not crash on one bad item
-            logger.error(f"Failed to execute outbox item {outbox_id}: {e}")
+            logger.error("Failed to execute outbox item %s", outbox_id, exc_info=True)
             results.append(
                 {
                     "outbox_id": outbox_id,
@@ -1528,13 +1530,14 @@ def receive_gitlab_webhook(
         conn.commit()
 
         return result
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, sqlite3.Error) as e:
+        logger.error("GitLab webhook processing failed for event %s: %s", event_id, e, exc_info=True)
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),
         )
         conn.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Webhook processing error")
     finally:
         conn.close()
 
@@ -1677,13 +1680,14 @@ def receive_azure_devops_webhook(
         conn.commit()
 
         return result
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, sqlite3.Error) as e:
+        logger.error("Azure DevOps webhook processing failed for event %s: %s", event_id, e, exc_info=True)
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),
         )
         conn.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Webhook processing error")
     finally:
         conn.close()
 
@@ -2039,10 +2043,10 @@ def receive_github_webhook(
         )
         conn.commit()
         return result
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
-        logger.exception("GitHub webhook processing failed: %s", e)
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, sqlite3.Error) as e:
+        logger.error("GitHub webhook processing failed for event %s: %s", event_id, e, exc_info=True)
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Webhook processing error")
     finally:
         conn.close()
 
