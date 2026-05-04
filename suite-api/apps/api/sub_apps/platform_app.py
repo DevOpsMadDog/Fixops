@@ -743,6 +743,32 @@ def register_platform_routers(
     except ImportError as exc:
         _logger.warning("circleci_router not available: %s", exc)
 
+    # ------------------------------------------------------------------
+    # Checkmarx One — SAST/SCA/IaC platform (read:scans)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/checkmarx/                                                                  capability summary
+    # POST /api/v1/checkmarx/api/iam/auth/realms/{tenant}/protocol/openid-connect/token        OAuth2 client_credentials
+    # GET  /api/v1/checkmarx/api/projects                                                      list projects
+    # GET  /api/v1/checkmarx/api/projects/{project_id}                                         project detail
+    # GET  /api/v1/checkmarx/api/scans                                                         list scans
+    # POST /api/v1/checkmarx/api/scans                                                         create scan
+    # GET  /api/v1/checkmarx/api/scan-results                                                  list scan results
+    # GET  /api/v1/checkmarx/api/scan-results/{result_id}                                      result detail
+    # POST /api/v1/checkmarx/api/scan-results                                                  triage update
+    # GET  /api/v1/checkmarx/api/cx-policy-management/policies                                 list policies
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.checkmarx_router import (
+            router as checkmarx_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            checkmarx_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Checkmarx One router at /api/v1/checkmarx (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("checkmarx_router not available: %s", exc)
+
     try:
         from apps.api.github_api_router import (
             router as github_api_router,  # noqa: PLC0415
@@ -2899,6 +2925,29 @@ def register_platform_routers(
         _logger.info("Mounted Tenable.io vulnerability router (read:scans)")
     except ImportError as exc:
         _logger.warning("tenable_io_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Qualys VMDR Vulnerability + Compliance Scanner - 2026-05-04
+    # GET  /api/v1/qualys/                                                       capability summary  (read:scans)
+    # GET  /api/v1/qualys/api/2.0/fo/asset/host/?action=list                     host inventory      (read:scans)
+    # GET  /api/v1/qualys/api/2.0/fo/asset/host/vm/detection/?action=list        host vuln detect    (read:scans)
+    # GET  /api/v1/qualys/api/2.0/fo/scan/?action=list                           scan list           (read:scans)
+    # POST /api/v1/qualys/api/2.0/fo/scan/?action=launch                         launch scan         (read:scans)
+    # GET  /api/v1/qualys/api/2.0/fo/compliance/policy/?action=list              PC policy list      (read:scans)
+    # GET  /api/v1/qualys/api/2.0/fo/report/?action=list                         report list         (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.qualys_router import router as qualys_router  # noqa: PLC0415
+        app.include_router(
+            qualys_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Qualys VMDR router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("qualys_router not available: %s", exc)
 
     # ------------------------------------------------------------------
     # GreyNoise Threat-Intel Lookup — 2026-05-04
