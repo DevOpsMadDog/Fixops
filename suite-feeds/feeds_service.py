@@ -3935,8 +3935,8 @@ class FeedsService:
                             ),
                         )
                         inserted += cursor.rowcount
-                    except Exception:  # noqa: BLE001 — per-row isolation
-                        pass
+                    except (ValueError, TypeError, KeyError, sqlite3.DatabaseError) as _row_exc:
+                        logger.debug("OTX: skipped malformed row: %s", _row_exc)
             conn.commit()
             conn.close()
 
@@ -4023,8 +4023,8 @@ class FeedsService:
                     ),
                 )
                 inserted += cursor.rowcount
-            except Exception:  # noqa: BLE001 — per-row isolation
-                pass
+            except (ValueError, TypeError, KeyError, sqlite3.DatabaseError) as _row_exc:
+                logger.debug("URLhaus: skipped malformed row: %s", _row_exc)
 
         cursor.execute(
             """INSERT OR REPLACE INTO feed_metadata

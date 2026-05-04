@@ -360,17 +360,20 @@ def get_epss_scores(
         default=None, description="Comma-separated CVE IDs to lookup"
     ),
     min_score: float = Query(default=0.0, ge=0.0, le=1.0),
-    limit: int = Query(default=100, le=1000),
+    limit: int = Query(default=100, ge=1, le=1000),
 ) -> Dict[str, Any]:
     """Get EPSS scores for CVEs.
 
     EPSS (Exploit Prediction Scoring System) provides probability scores
     for CVE exploitation in the next 30 days.
     """
+    import re
+    _CVE_RE = re.compile(r'^CVE-\d{4}-\d{4,}$', re.IGNORECASE)
     service = get_feeds_service()
 
     if cve_ids:
-        cve_list = [cve.strip() for cve in cve_ids.split(",")]
+        raw_list = [cve.strip() for cve in cve_ids.split(",")]
+        cve_list = [c for c in raw_list if _CVE_RE.match(c)]
         scores = []
         for cve_id in cve_list[:limit]:
             score = service.get_epss_score(cve_id)
@@ -434,8 +437,11 @@ def get_kev_entries(
     """
     service = get_feeds_service()
 
+    import re
+    _CVE_RE = re.compile(r'^CVE-\d{4}-\d{4,}$', re.IGNORECASE)
     if cve_ids:
-        cve_list = [cve.strip() for cve in cve_ids.split(",")]
+        raw_list = [cve.strip() for cve in cve_ids.split(",")]
+        cve_list = [c for c in raw_list if _CVE_RE.match(c)]
         entries = []
         for cve_id in cve_list[:limit]:
             entry = service.get_kev_entry(cve_id)
@@ -573,6 +579,10 @@ async def refresh_nvd_feed(
     }
 
 
+_VALID_SEVERITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
+_CVE_PATH_RE = __import__("re").compile(r'^CVE-\d{4}-\d{4,}$', __import__("re").IGNORECASE)
+
+
 @router.get("/nvd/recent")
 def get_recent_nvd_cves(
     severity: Optional[str] = Query(default=None),
@@ -583,6 +593,12 @@ def get_recent_nvd_cves(
 
     Optionally filter by severity (CRITICAL, HIGH, MEDIUM, LOW).
     """
+    if severity is not None and severity.upper() not in _VALID_SEVERITIES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid severity '{severity}'. Must be one of: {sorted(_VALID_SEVERITIES)}",
+        )
+    severity = severity.upper() if severity else None
     service = get_feeds_service()
     cves = service.get_recent_nvd_cves(severity=severity, limit=limit, offset=offset)
     return {
@@ -595,6 +611,8 @@ def get_recent_nvd_cves(
 @router.get("/nvd/{cve_id}")
 def get_nvd_cve(cve_id: str) -> Dict[str, Any]:
     """Get detailed NVD CVE data by CVE ID."""
+    if not _CVE_PATH_RE.match(cve_id):
+        raise HTTPException(status_code=422, detail="Invalid CVE ID format. Expected CVE-YYYY-NNNNN.")
     service = get_feeds_service()
     cve = service.get_nvd_cve(cve_id)
     if not cve:
