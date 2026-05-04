@@ -600,14 +600,14 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/sub_apps/platform_app.py",
-      "accessCount": 126,
-      "lastAccessed": 1777860454517,
+      "accessCount": 134,
+      "lastAccessed": 1777861425745,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/abuseipdb_router.py",
-      "accessCount": 11,
-      "lastAccessed": 1777835873115,
+      "accessCount": 13,
+      "lastAccessed": 1777861340848,
       "type": "file"
     },
     {
