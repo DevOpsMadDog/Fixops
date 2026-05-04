@@ -393,30 +393,18 @@ class IncidentOrchestrationEngine:
                 "SELECT COUNT(*) FROM incidents WHERE org_id = ?", (org_id,)
             ).fetchone()[0]
 
-            # MTTR: mean time to resolve (open → resolved/closed) in hours
-            res_rows = conn.execute(
-                """SELECT created_at, resolved_at FROM incidents
+            # MTTR: mean time to resolve via SQL (no Python datetime loop)
+            mttr_row = conn.execute(
+                """SELECT AVG((JULIANDAY(resolved_at) - JULIANDAY(created_at)) * 24) AS avg_hours
+                   FROM incidents
                    WHERE org_id = ? AND resolved_at IS NOT NULL""",
                 (org_id,),
-            ).fetchall()
-            if res_rows:
-                total_hours = 0.0
-                count = 0
-                for r in res_rows:
-                    try:
-                        created = datetime.fromisoformat(
-                            r["created_at"].replace("Z", "+00:00")
-                        )
-                        resolved = datetime.fromisoformat(
-                            r["resolved_at"].replace("Z", "+00:00")
-                        )
-                        total_hours += (resolved - created).total_seconds() / 3600.0
-                        count += 1
-                    except Exception:
-                        pass
-                avg_mttr_hours = round(total_hours / count, 2) if count else 0.0
-            else:
-                avg_mttr_hours = 0.0
+            ).fetchone()
+            avg_mttr_hours = (
+                round(mttr_row["avg_hours"], 2)
+                if mttr_row and mttr_row["avg_hours"] is not None
+                else 0.0
+            )
 
             # By severity
             sev_rows = conn.execute(

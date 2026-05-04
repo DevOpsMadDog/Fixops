@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+import threading
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
@@ -239,6 +240,7 @@ class IncidentResponseManager:
         if db_path is None:
             db_path = "data/incident_response.db"
         self._db_path = str(db_path)
+        self._lock = threading.RLock()
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
@@ -247,29 +249,31 @@ class IncidentResponseManager:
     # ------------------------------------------------------------------
 
     def _conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self._db_path)
+        conn = sqlite3.connect(self._db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         return conn
 
     def _init_db(self) -> None:
         with self._conn() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(_DDL)
 
     def _save_incident(self, incident: Incident) -> None:
-        with self._conn() as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO incidents (id, org_id, type, severity, status, data, detected_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    incident.id,
-                    incident.org_id,
-                    incident.type.value,
-                    incident.severity.value,
-                    incident.status.value,
-                    incident.model_dump_json(),
-                    incident.detected_at.isoformat(),
-                ),
-            )
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO incidents (id, org_id, type, severity, status, data, detected_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        incident.id,
+                        incident.org_id,
+                        incident.type.value,
+                        incident.severity.value,
+                        incident.status.value,
+                        incident.model_dump_json(),
+                        incident.detected_at.isoformat(),
+                    ),
+                )
 
     def _load_incident(self, row: sqlite3.Row) -> Incident:
         return Incident.model_validate_json(row["data"])
@@ -569,22 +573,56 @@ class IncidentResponseManager:
     # ------------------------------------------------------------------
 
     def get_incident_stats(self, org_id: str = "default") -> Dict[str, Any]:
-        """Return incident statistics: counts by type, severity, avg resolution time."""
-        incidents = self.list_incidents(org_id=org_id)
+        """Return incident statistics via SQL aggregates (no Python-side iteration)."""
+        terminal = {IncidentStatus.CLOSED.value, IncidentStatus.POST_MORTEM.value}
+        with self._conn() as conn:
+            total = conn.execute(
+                "SELECT COUNT(*) FROM incidents WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+
+            active_count = conn.execute(
+                "SELECT COUNT(*) FROM incidents WHERE org_id = ? AND status NOT IN (?,?)",
+                (org_id, IncidentStatus.CLOSED.value, IncidentStatus.POST_MORTEM.value),
+            ).fetchone()[0]
+
+            type_rows = conn.execute(
+                "SELECT type, COUNT(*) as cnt FROM incidents WHERE org_id = ? GROUP BY type",
+                (org_id,),
+            ).fetchall()
+            sev_rows = conn.execute(
+                "SELECT severity, COUNT(*) as cnt FROM incidents WHERE org_id = ? GROUP BY severity",
+                (org_id,),
+            ).fetchall()
+            status_rows = conn.execute(
+                "SELECT status, COUNT(*) as cnt FROM incidents WHERE org_id = ? GROUP BY status",
+                (org_id,),
+            ).fetchall()
+
+            # avg resolution: detected_at and closed_at are ISO strings stored in data blob,
+            # but detected_at is also a top-level column. We compute via Python only on the
+            # closed subset (typically small). Filter in SQL to avoid full table scan.
+            closed_rows = conn.execute(
+                "SELECT data FROM incidents WHERE org_id = ? AND status IN (?,?)",
+                (org_id, IncidentStatus.CLOSED.value, IncidentStatus.POST_MORTEM.value),
+            ).fetchall()
 
         by_type: Dict[str, int] = {t.value: 0 for t in IncidentType}
+        by_type.update({r["type"]: r["cnt"] for r in type_rows})
         by_severity: Dict[str, int] = {s.value: 0 for s in IncidentSeverity}
+        by_severity.update({r["severity"]: r["cnt"] for r in sev_rows})
         by_status: Dict[str, int] = {s.value: 0 for s in IncidentStatus}
+        by_status.update({r["status"]: r["cnt"] for r in status_rows})
+
         resolution_times: List[float] = []
-
-        for inc in incidents:
-            by_type[inc.type.value] = by_type.get(inc.type.value, 0) + 1
-            by_severity[inc.severity.value] = by_severity.get(inc.severity.value, 0) + 1
-            by_status[inc.status.value] = by_status.get(inc.status.value, 0) + 1
-
-            if inc.closed_at:
-                hours = (inc.closed_at - inc.detected_at).total_seconds() / 3600
-                resolution_times.append(hours)
+        for row in closed_rows:
+            try:
+                inc = Incident.model_validate_json(row["data"])
+                if inc.closed_at:
+                    resolution_times.append(
+                        (inc.closed_at - inc.detected_at).total_seconds() / 3600
+                    )
+            except Exception:
+                pass
 
         avg_resolution_hours = (
             round(sum(resolution_times) / len(resolution_times), 2)
@@ -593,10 +631,10 @@ class IncidentResponseManager:
         )
 
         return {
-            "total": len(incidents),
+            "total": total,
             "by_type": by_type,
             "by_severity": by_severity,
             "by_status": by_status,
             "avg_resolution_hours": avg_resolution_hours,
-            "active_count": len(self.get_active_incidents(org_id)),
+            "active_count": active_count,
         }
