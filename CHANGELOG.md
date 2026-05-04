@@ -6,6 +6,74 @@ Versioning: [SemVer](https://semver.org/).
 
 ---
 
+## [Unreleased] — 2026-05-05
+
+> **Branch**: `features/intermediate-stage`
+> **Session**: ~50 commits across hardening, performance, QA, and feature backfill.
+> **Tip SHA at entry cut**: `43d43d95`
+
+---
+
+### Added
+
+- **Prometheus `/metrics` endpoint** — 5 gauges (active scans, findings, connectors, pipeline runs, trust events) [`e583d24d`]
+- **`/api/v1/health/comprehensive` aggregator** — single endpoint polling all subsystem health checks [`bfa88303`]
+- **Rate limiting** on auth, webhook, and ingest — 7 endpoints hardened against burst abuse [`c03ffd27`]
+- **17 SQLite indexes** across 6 domain databases — covering high-frequency query paths (findings, scans, connectors, risk, evidence, trust) [`43d43d95`]
+- **6 deferred empty-endpoints backfilled** with real engine wiring (no more 501 stubs on critical paths) [`3d8fd7c9`]
+- **CI regression-gate workflow** — OWASP audit, perf benchmarks, and import sweep run on every PR via GitHub Actions [`7c86c8d2`]
+
+---
+
+### Changed
+
+- **Brain Pipeline** — 3 hotspots fixed, ~2 s saved per 12-step run [`ee340f83`]
+- **LLM Council** — 3 hotspots fixed, 600–1 500 ms saved on real-provider path [`d61dde59`]
+- **Connector framework** — O(N²) endpoint lookup → O(1); sequential `bulk_push` → `asyncio.gather`; sequential `scan_fleet` → `ThreadPoolExecutor` [`eb46d106`]
+- **Risk scorer** — latency reduced from ~527 ms → < 50 ms [`91187379`]
+- **RSA cache** — latency reduced from ~2 111 ms → < 50 ms [`91187379`]
+
+---
+
+### Fixed
+
+- `commercial_vendor_router` — missing `Query` import causing 500 on vendor list endpoints [`ee340f83`]
+- `validation_router` — relative import error breaking module load [`eb46d106`]
+- `scanner_parsers` — cross-scanner dedup logic producing duplicate findings across parser boundaries [`51895d85`]
+- 4 platform gaps closed: pip-audit SARIF normalisation, ingest-to-issues pipeline linkage, `/risk-scoring/summary` missing fields, cross-scanner dedup [`51895d85`]
+- 5 frontend dashboards (`FindingsExplorer`, `ThreatHunting`, `VendorManagement`, `DeveloperPortal`, `SBOMManagement`) — mock fallback data replaced with live API calls [`736a1188`, `d71dd091`, `30c8464b`, `d14ba174`, `01e08e81`]
+- `AgeBadge` stale `now` reference in `FindingsExplorer` causing incorrect age rendering [`736a1188`]
+
+---
+
+### Security
+
+OWASP audit across 7 packages — ~38 individual fixes including:
+
+- Information disclosure via verbose error responses → generic error messages
+- Hardcoded secrets moved to environment variables (JWT secret, OAuth tokens)
+- Missing HTTP timeouts on external calls → explicit timeout enforcement
+- CVE injection via unsanitised scanner input → input validation layer
+- Severity bypass via crafted payload → server-side severity enum enforcement
+- Overly broad exception handlers narrowed to specific exception types
+- OAuth token redaction in structured logs
+- SBOM bomb cap (unbounded dependency tree recursion → depth limit)
+- Suite-core connector OWASP fixes (4 issues) [`2652b066`]
+
+---
+
+### Tests
+
+- **OWASP regression lockdown** — 46 tests covering all 7 hardened packages; wired into CI [`51895d85`, `7c86c8d2`]
+- **TrustGraph emit-site assertions** — 14/14 engines validated emitting events on expected paths [`11b5f10c`]
+- **Engine + router import sweep** — 1 315 modules verified clean (0 skipped, 0 import errors) [`752951f5`]
+- **Perf benchmark suite** — RSA cache, risk scorer, and brain pipeline thresholds enforced; CI blocks regression [`91187379`, `7c86c8d2`]
+- **Rate-limit tests** — burst and sustained load tests for all 7 rate-limited endpoints [`c03ffd27`]
+- **Health endpoint tests** — comprehensive aggregator response structure validated [`bfa88303`]
+- **Prometheus metrics tests** — gauge presence and label correctness verified [`e583d24d`]
+
+---
+
 ## [0.1.0-alpha] - 2026-04-26
 
 > **Branch**: `features/intermediate-stage`
