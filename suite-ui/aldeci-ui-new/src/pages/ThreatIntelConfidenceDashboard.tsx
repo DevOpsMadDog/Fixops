@@ -21,29 +21,27 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// ── IOC type ──────────────────────────────────────────────────────────────────
 
-const MOCK_IOCS = [
-  { id: "ioc-001", ioc_value: "185.220.101.47",               ioc_type: "ip",     confidence_score: 0.94, threat_level: "critical", source_count: 5, corroboration_count: 8, expires_at: "2026-05-01", status: "active"  },
-  { id: "ioc-002", ioc_value: "malware-cdn.attacker.ru",       ioc_type: "domain", confidence_score: 0.87, threat_level: "high",     source_count: 4, corroboration_count: 6, expires_at: "2026-04-28", status: "active"  },
-  { id: "ioc-003", ioc_value: "https://evil.xyz/payload.exe",  ioc_type: "url",    confidence_score: 0.82, threat_level: "high",     source_count: 3, corroboration_count: 5, expires_at: "2026-04-25", status: "active"  },
-  { id: "ioc-004", ioc_value: "a3f1c2d9e0b4567890abcdef123456", ioc_type: "hash",   confidence_score: 0.76, threat_level: "high",     source_count: 3, corroboration_count: 4, expires_at: "2026-05-10", status: "active"  },
-  { id: "ioc-005", ioc_value: "phish@secure-bank-verify.com",  ioc_type: "email",  confidence_score: 0.63, threat_level: "medium",   source_count: 2, corroboration_count: 2, expires_at: "2026-04-20", status: "active"  },
-  { id: "ioc-006", ioc_value: "192.168.44.200",                ioc_type: "ip",     confidence_score: 0.41, threat_level: "medium",   source_count: 1, corroboration_count: 1, expires_at: "2026-04-18", status: "active"  },
-  { id: "ioc-007", ioc_value: "suspicious-update.net",         ioc_type: "domain", confidence_score: 0.28, threat_level: "low",      source_count: 1, corroboration_count: 0, expires_at: "2026-04-17", status: "active"  },
-  { id: "ioc-008", ioc_value: "bad-actor-2023@proton.me",      ioc_type: "email",  confidence_score: 0.91, threat_level: "critical", source_count: 4, corroboration_count: 7, expires_at: "2026-05-05", status: "active"  },
-  { id: "ioc-009", ioc_value: "c0ffeebabe1234567890deadbeef00", ioc_type: "hash",   confidence_score: 0.55, threat_level: "medium",   source_count: 2, corroboration_count: 2, expires_at: "2026-04-15", status: "expired" },
-  { id: "ioc-010", ioc_value: "203.0.113.42",                  ioc_type: "ip",     confidence_score: 0.18, threat_level: "low",      source_count: 1, corroboration_count: 0, expires_at: "2026-04-10", status: "false_positive" },
-];
+interface Ioc {
+  id: string;
+  ioc_value: string;
+  ioc_type: string;
+  confidence_score: number;
+  threat_level: string;
+  source_count: number;
+  corroboration_count: number;
+  expires_at: string;
+  status: string;
+}
 
-const MOCK_SOURCES = [
-  { source_name: "AlienVault OTX",    reliability_score: 0.91, total_iocs: 1842, confirmed: 1621, false_positives: 38 },
-  { source_name: "VirusTotal",        reliability_score: 0.88, total_iocs: 3204, confirmed: 2814, false_positives: 71 },
-  { source_name: "Shodan",            reliability_score: 0.79, total_iocs: 924,  confirmed: 758,  false_positives: 44 },
-  { source_name: "AbuseIPDB",         reliability_score: 0.85, total_iocs: 2157, confirmed: 1894, false_positives: 55 },
-  { source_name: "MISP Community",    reliability_score: 0.72, total_iocs: 601,  confirmed: 463,  false_positives: 89 },
-  { source_name: "Internal Sensors",  reliability_score: 0.96, total_iocs: 441,  confirmed: 428,  false_positives: 7  },
-];
+interface IocSource {
+  source_name: string;
+  reliability_score: number;
+  total_iocs: number;
+  confirmed: number;
+  false_positives: number;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -102,7 +100,7 @@ function truncate(s: string, n = 32) {
 
 // ── Donut chart (SVG) ─────────────────────────────────────────────────────────
 
-function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
+function TypeDonut({ iocs }: { iocs: Ioc[] }) {
   const types = ["ip", "domain", "url", "hash", "email"];
   const colors = ["#3b82f6","#a855f7","#14b8a6","#eab308","#ec4899"];
   const counts = types.map(t => iocs.filter(i => i.ioc_type === t && i.status === "active").length);
@@ -151,16 +149,30 @@ function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ThreatIntelConfidenceDashboard() {
-  const [iocs, setIocs] = useState(MOCK_IOCS);
+  const [iocs, setIocs] = useState<Ioc[]>([]);
+  const [sources, setSources] = useState<IocSource[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`).then((d) => {
-      if (Array.isArray(d?.iocs)) setIocs(d.iocs);
-      else if (Array.isArray(d)) setIocs(d);
-    }).catch(() => { setError('Failed to load data'); });
+    Promise.allSettled([
+      apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ti-confidence/sources?org_id=${ORG_ID}`),
+    ]).then(([iocsRes, sourcesRes]) => {
+      if (iocsRes.status === "fulfilled") {
+        const d = iocsRes.value;
+        if (Array.isArray(d?.iocs)) setIocs(d.iocs);
+        else if (Array.isArray(d)) setIocs(d);
+      } else {
+        setError("Failed to load IOC data");
+      }
+      if (sourcesRes.status === "fulfilled") {
+        const d = sourcesRes.value;
+        if (Array.isArray(d?.sources)) setSources(d.sources);
+        else if (Array.isArray(d)) setSources(d);
+      }
+    });
   }, []);
 
   const filtered = search
@@ -314,7 +326,7 @@ export default function ThreatIntelConfidenceDashboard() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_SOURCES.sort((a, b) => b.reliability_score - a.reliability_score).map(s => (
+              {[...sources].sort((a, b) => b.reliability_score - a.reliability_score).map(s => (
                 <tr key={s.source_name} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4 font-medium text-white">{s.source_name}</td>
                   <td className="py-2.5 pr-4">
