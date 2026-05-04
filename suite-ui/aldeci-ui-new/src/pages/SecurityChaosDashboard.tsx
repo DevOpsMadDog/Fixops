@@ -40,36 +40,6 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_experiments: 48,
-  active_experiments: 3,
-  avg_resilience_score: 72.4,
-  open_findings: 11,
-};
-
-const MOCK_EXPERIMENTS = [
-  { id: "ex-001", experiment_type: "network_partition",    target_system: "payment-cluster",  status: "completed", resilience_score: 68, started_at: "2026-04-15T10:00:00Z" },
-  { id: "ex-002", experiment_type: "cpu_stress",           target_system: "api-gateway",      status: "active",    resilience_score: 81, started_at: "2026-04-16T08:00:00Z" },
-  { id: "ex-003", experiment_type: "credential_revoke",    target_system: "auth-service",     status: "completed", resilience_score: 91, started_at: "2026-04-14T14:00:00Z" },
-  { id: "ex-004", experiment_type: "dns_hijack_sim",       target_system: "internal-dns",     status: "completed", resilience_score: 54, started_at: "2026-04-13T09:00:00Z" },
-  { id: "ex-005", experiment_type: "iam_policy_chaos",     target_system: "cloud-console",    status: "active",    resilience_score: 62, started_at: "2026-04-16T07:30:00Z" },
-  { id: "ex-006", experiment_type: "lateral_movement_sim", target_system: "prod-network",     status: "planned",   resilience_score: 0,  started_at: "2026-04-17T10:00:00Z" },
-  { id: "ex-007", experiment_type: "data_exfil_detect",    target_system: "data-lake",        status: "completed", resilience_score: 77, started_at: "2026-04-12T11:00:00Z" },
-  { id: "ex-008", experiment_type: "mfa_bypass_test",      target_system: "employee-portal",  status: "active",    resilience_score: 88, started_at: "2026-04-16T09:00:00Z" },
-];
-
-const MOCK_OBSERVATIONS = [
-  { id: "ob-001", observation_type: "delayed_detection",    severity: "high",     experiment_id: "ex-001", detail: "Detection lag of 8m 22s observed" },
-  { id: "ob-002", observation_type: "alert_fatigue",        severity: "medium",   experiment_id: "ex-002", detail: "Alert suppression masked 3 events" },
-  { id: "ob-003", observation_type: "recovery_gap",         severity: "critical", experiment_id: "ex-004", detail: "No automated rollback triggered" },
-  { id: "ob-004", observation_type: "log_blind_spot",       severity: "high",     experiment_id: "ex-005", detail: "IAM events not forwarded to SIEM" },
-  { id: "ob-005", observation_type: "policy_drift",         severity: "medium",   experiment_id: "ex-003", detail: "Residual permissions persisted post-revoke" },
-  { id: "ob-006", observation_type: "exfil_not_detected",   severity: "critical", experiment_id: "ex-007", detail: "3 GB transfer bypassed DLP rules" },
-  { id: "ob-007", observation_type: "response_latency",     severity: "low",      experiment_id: "ex-008", detail: "SOAR playbook triggered after 4 min" },
-];
-
 // ── Badge helpers ──────────────────────────────────────────────
 
 function ExperimentStatusBadge({ status }: { status: string }) {
@@ -151,9 +121,9 @@ export default function SecurityChaosDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats        = liveData.stats        ?? MOCK_STATS;
-  const experiments  = liveData.experiments  ?? MOCK_EXPERIMENTS;
-  const observations = liveData.observations ?? MOCK_OBSERVATIONS;
+  const stats        = liveData.stats        ?? { total_experiments: 0, active_experiments: 0, avg_resilience_score: 0, open_findings: 0 };
+  const experiments  = liveData.experiments  ?? [];
+  const observations = liveData.observations ?? [];
 
   if (loading) return (
     <div className="space-y-4 p-6">

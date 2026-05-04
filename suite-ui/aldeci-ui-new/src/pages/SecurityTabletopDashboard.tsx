@@ -38,34 +38,6 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_exercises: 24,
-  completed_exercises: 18,
-  total_findings: 87,
-  open_findings: 32,
-};
-
-const MOCK_EXERCISES = [
-  { title: "Ransomware Response Drill",    scenario_type: "ransomware",      status: "completed", overall_score: 84, scheduled_at: "2026-03-15" },
-  { title: "Insider Threat Simulation",   scenario_type: "insider_threat",  status: "completed", overall_score: 76, scheduled_at: "2026-03-22" },
-  { title: "Supply Chain Compromise",     scenario_type: "supply_chain",    status: "in_progress", overall_score: 0, scheduled_at: "2026-04-10" },
-  { title: "DDoS Mitigation Exercise",    scenario_type: "ddos",            status: "completed", overall_score: 91, scheduled_at: "2026-02-28" },
-  { title: "Data Breach Notification",    scenario_type: "data_breach",     status: "scheduled", overall_score: 0, scheduled_at: "2026-04-25" },
-  { title: "Cloud Misconfiguration",      scenario_type: "cloud_attack",    status: "completed", overall_score: 69, scheduled_at: "2026-02-14" },
-];
-
-const MOCK_FINDINGS = [
-  { title: "No playbook for ransomware",         finding_type: "gap",              severity: "critical", status: "open",     exercise_id: "ex-001" },
-  { title: "IRP not reviewed in 12 months",      finding_type: "process",          severity: "high",     status: "open",     exercise_id: "ex-001" },
-  { title: "Comms chain broke at L2",            finding_type: "communication",    severity: "high",     status: "resolved", exercise_id: "ex-002" },
-  { title: "Detection took 4h vs 1h target",     finding_type: "performance",      severity: "medium",   status: "open",     exercise_id: "ex-003" },
-  { title: "Legal not looped in breach notif",   finding_type: "process",          severity: "high",     status: "open",     exercise_id: "ex-005" },
-  { title: "Backup restoration untested",        finding_type: "gap",              severity: "critical", status: "open",     exercise_id: "ex-001" },
-  { title: "Cloud creds not rotated post-sim",   finding_type: "remediation",      severity: "medium",   status: "resolved", exercise_id: "ex-006" },
-];
-
 // ── Badge helpers ──────────────────────────────────────────────
 
 function ExerciseStatusBadge({ status }: { status: string }) {
@@ -168,9 +140,9 @@ export default function SecurityTabletopDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats     = liveData.stats     ?? MOCK_STATS;
-  const exercises = liveData.exercises ?? MOCK_EXERCISES;
-  const findings  = liveData.findings  ?? MOCK_FINDINGS;
+  const stats     = liveData.stats     ?? { total_exercises: 0, completed_exercises: 0, total_findings: 0, open_findings: 0 };
+  const exercises = liveData.exercises ?? [];
+  const findings  = liveData.findings  ?? [];
 
   if (loading) return (
     <div className="space-y-4 p-6">

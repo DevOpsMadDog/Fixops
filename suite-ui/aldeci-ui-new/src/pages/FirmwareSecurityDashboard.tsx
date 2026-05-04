@@ -36,33 +36,6 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_devices: 214,
-  active_devices: 198,
-  total_vulns: 87,
-  unpatched_vulns: 34,
-};
-
-const MOCK_DEVICES = [
-  { device_name: "router-core-01",  device_type: "Router",       manufacturer: "Cisco",    firmware_version: "15.9.3M2", risk_level: "high",   last_scanned: "2026-04-16" },
-  { device_name: "fw-edge-02",      device_type: "Firewall",     manufacturer: "Palo Alto", firmware_version: "10.2.4",  risk_level: "medium", last_scanned: "2026-04-15" },
-  { device_name: "switch-access-03",device_type: "Switch",       manufacturer: "Juniper",  firmware_version: "21.4R3",  risk_level: "low",    last_scanned: "2026-04-14" },
-  { device_name: "cam-lobby-04",    device_type: "IP Camera",    manufacturer: "Hikvision", firmware_version: "v5.7.1", risk_level: "critical",last_scanned: "2026-04-13" },
-  { device_name: "ap-floor3-05",    device_type: "Access Point", manufacturer: "Aruba",    firmware_version: "8.10.0.3",risk_level: "low",    last_scanned: "2026-04-16" },
-  { device_name: "plc-prod-06",     device_type: "PLC",          manufacturer: "Siemens",  firmware_version: "v2.9.1",  risk_level: "high",   last_scanned: "2026-04-12" },
-];
-
-const MOCK_VULNS = [
-  { cve_id: "CVE-2025-1234", severity: "critical", affected_component: "HTTP daemon",      patch_available: true,  status: "open"       },
-  { cve_id: "CVE-2025-5678", severity: "high",     affected_component: "SSH handler",      patch_available: true,  status: "in_progress"},
-  { cve_id: "CVE-2024-9012", severity: "medium",   affected_component: "SNMP module",      patch_available: false, status: "open"       },
-  { cve_id: "CVE-2024-3456", severity: "high",     affected_component: "Web UI",           patch_available: true,  status: "patched"    },
-  { cve_id: "CVE-2025-7890", severity: "critical", affected_component: "Boot loader",      patch_available: false, status: "open"       },
-  { cve_id: "CVE-2024-1111", severity: "low",      affected_component: "Telnet service",   patch_available: true,  status: "patched"    },
-];
-
 // ── Badge helpers ──────────────────────────────────────────────
 
 function RiskBadge({ level }: { level: string }) {
@@ -142,9 +115,9 @@ export default function FirmwareSecurityDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats   = liveData.stats   ?? MOCK_STATS;
-  const devices = liveData.devices ?? MOCK_DEVICES;
-  const vulns   = liveData.vulns   ?? MOCK_VULNS;
+  const stats   = liveData.stats   ?? { total_devices: 0, active_devices: 0, total_vulns: 0, unpatched_vulns: 0 };
+  const devices = liveData.devices ?? [];
+  const vulns   = liveData.vulns   ?? [];
 
   if (loading) return (
     <div className="space-y-4 p-6">

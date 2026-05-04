@@ -46,37 +46,6 @@ interface AssetRisk {
   critical_count: number;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const MOCK_VULNS: VulnEntry[] = [
-  { id: "v001", cve: "CVE-2025-3109", title: "Cisco IOS XE Auth Bypass",            priority: "P1", composite_score: 97, cvss: 9.8, epss: 0.94, kev: true,  exposure: 92, assets_affected: 14, status: "open" },
-  { id: "v002", cve: "CVE-2025-1842", title: "OpenSSL Buffer Overflow",             priority: "P1", composite_score: 93, cvss: 9.1, epss: 0.88, kev: true,  exposure: 85, assets_affected: 32, status: "in-progress" },
-  { id: "v003", cve: "CVE-2025-2201", title: "Apache Log4j2 RCE (Variant)",         priority: "P1", composite_score: 91, cvss: 9.0, epss: 0.81, kev: true,  exposure: 79, assets_affected: 8,  status: "open" },
-  { id: "v004", cve: "CVE-2024-9971", title: "GitLab Improper Access Control",      priority: "P2", composite_score: 78, cvss: 8.2, epss: 0.67, kev: false, exposure: 65, assets_affected: 5,  status: "open" },
-  { id: "v005", cve: "CVE-2024-8812", title: "Kubernetes RBAC Privilege Escalation", priority: "P2", composite_score: 74, cvss: 7.9, epss: 0.61, kev: false, exposure: 72, assets_affected: 21, status: "in-progress" },
-  { id: "v006", cve: "CVE-2024-7654", title: "nginx HTTP/2 Denial of Service",      priority: "P2", composite_score: 68, cvss: 7.5, epss: 0.55, kev: false, exposure: 58, assets_affected: 9,  status: "open" },
-  { id: "v007", cve: "CVE-2024-5501", title: "MySQL Injection via Prepared Stmt",   priority: "P3", composite_score: 52, cvss: 6.3, epss: 0.38, kev: false, exposure: 44, assets_affected: 3,  status: "open" },
-  { id: "v008", cve: "CVE-2024-4499", title: "Redis Unauthorized Command Exec",     priority: "P3", composite_score: 48, cvss: 5.9, epss: 0.31, kev: false, exposure: 39, assets_affected: 7,  status: "in-progress" },
-  { id: "v009", cve: "CVE-2024-3311", title: "Python urllib Path Traversal",        priority: "P4", composite_score: 27, cvss: 4.1, epss: 0.12, kev: false, exposure: 22, assets_affected: 2,  status: "open" },
-  { id: "v010", cve: "CVE-2024-2102", title: "npm tar Symlink Attack",              priority: "P4", composite_score: 21, cvss: 3.7, epss: 0.08, kev: false, exposure: 18, assets_affected: 1,  status: "resolved" },
-];
-
-const MOCK_OVERRIDES: Override[] = [
-  { id: "ov-001", cve: "CVE-2025-3109", original_score: 87, override_score: 97, reason: "Asset is externally reachable — bumped to P1",             overridden_by: "Alice Chen",   date: "2026-04-14" },
-  { id: "ov-002", cve: "CVE-2024-9971", original_score: 83, override_score: 78, reason: "Internal-only GitLab instance — exposure reduced",          overridden_by: "Bob Smith",    date: "2026-04-10" },
-  { id: "ov-003", cve: "CVE-2024-7654", original_score: 55, override_score: 68, reason: "Load balancer affects 9 production services — re-scored",   overridden_by: "Carol Wu",     date: "2026-04-08" },
-  { id: "ov-004", cve: "CVE-2024-3311", original_score: 35, override_score: 27, reason: "Mitigating WAF rule deployed — score lowered",              overridden_by: "Dan Lee",      date: "2026-04-12" },
-];
-
-const MOCK_ASSET_RISKS: AssetRisk[] = [
-  { asset: "prod-api-gateway",   asset_type: "API Gateway",    risk_score: 94, open_vulns: 6,  critical_count: 3 },
-  { asset: "k8s-master-cluster", asset_type: "Kubernetes",     risk_score: 88, open_vulns: 9,  critical_count: 2 },
-  { asset: "db-postgres-prod",   asset_type: "Database",       risk_score: 76, open_vulns: 4,  critical_count: 1 },
-  { asset: "nginx-lb-01",        asset_type: "Load Balancer",  risk_score: 68, open_vulns: 3,  critical_count: 0 },
-  { asset: "redis-cache-prod",   asset_type: "Cache",          risk_score: 55, open_vulns: 5,  critical_count: 0 },
-  { asset: "gitlab-internal",    asset_type: "DevTools",       risk_score: 48, open_vulns: 2,  critical_count: 0 },
-];
-
 // Scoring model weights
 const MODEL_WEIGHTS = [
   { component: "CVSS Base Score", weight: 30 },
@@ -109,34 +78,70 @@ function statusBadge(s: string): string {
   return s === "open" ? "bg-red-500/20 text-red-300" : s === "in-progress" ? "bg-blue-500/20 text-blue-300" : "bg-green-500/20 text-green-300";
 }
 
-// Donut segments
-const distribution = [
-  { label: "P1 Critical", count: MOCK_VULNS.filter(v => v.priority === "P1").length, color: "#ef4444" },
-  { label: "P2 High",     count: MOCK_VULNS.filter(v => v.priority === "P2").length, color: "#f97316" },
-  { label: "P3 Medium",   count: MOCK_VULNS.filter(v => v.priority === "P3").length, color: "#eab308" },
-  { label: "P4 Low",      count: MOCK_VULNS.filter(v => v.priority === "P4").length, color: "#6b7280" },
-];
+
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function VulnScoringDashboard() {
-  const [selectedId, setSelectedId] = useState<string | null>("v001");
-  useEffect(() => {
-    fetch("/api/v1/vuln-scoring", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
-      .catch(() => {});
-  }, []);
+  const [vulns, setVulns] = useState<VulnEntry[]>([]);
+  const [overrides, setOverrides] = useState<Override[]>([]);
+  const [assetRisks, setAssetRisks] = useState<AssetRisk[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
-  const selected = MOCK_VULNS.find(v => v.id === selectedId) ?? null;
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/vuln-scoring/vulns?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vuln-scoring/overrides?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vuln-scoring/asset-risks?org_id=${ORG_ID}`),
+    ]).then(([vulnsRes, overridesRes, assetsRes]) => {
+      const v: VulnEntry[] = vulnsRes.status === "fulfilled" ? (vulnsRes.value as VulnEntry[]) : [];
+      const o: Override[]  = overridesRes.status === "fulfilled" ? (overridesRes.value as Override[]) : [];
+      const a: AssetRisk[] = assetsRes.status === "fulfilled" ? (assetsRes.value as AssetRisk[]) : [];
+      setVulns(v);
+      setOverrides(o);
+      setAssetRisks(a);
+      if (v.length > 0) setSelectedId(v[0].id);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const selected = vulns.find(v => v.id === selectedId) ?? null;
 
   const filtered = filterPriority === "all"
-    ? MOCK_VULNS
-    : MOCK_VULNS.filter(v => v.priority === filterPriority);
+    ? vulns
+    : vulns.filter(v => v.priority === filterPriority);
+
+  const distribution = [
+    { label: "P1 Critical", count: vulns.filter(v => v.priority === "P1").length, color: "#ef4444" },
+    { label: "P2 High",     count: vulns.filter(v => v.priority === "P2").length, color: "#f97316" },
+    { label: "P3 Medium",   count: vulns.filter(v => v.priority === "P3").length, color: "#eab308" },
+    { label: "P4 Low",      count: vulns.filter(v => v.priority === "P4").length, color: "#6b7280" },
+  ];
 
   // Donut CSS approach: stacked bars as proxy
   const total = distribution.reduce((s, d) => s + d.count, 0);
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#0f172a] p-6 space-y-4">
+      {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />)}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -157,10 +162,10 @@ export default function VulnScoringDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total",       value: MOCK_VULNS.length,                                           color: "text-white" },
-          { label: "P1 Critical", value: MOCK_VULNS.filter(v => v.priority === "P1").length,          color: "text-red-400" },
-          { label: "KEV Listed",  value: MOCK_VULNS.filter(v => v.kev).length,                        color: "text-orange-400" },
-          { label: "Avg Score",   value: Math.round(MOCK_VULNS.reduce((s, v) => s + v.composite_score, 0) / MOCK_VULNS.length), color: "text-amber-400" },
+          { label: "Total",       value: vulns.length,                                                                                                                      color: "text-white" },
+          { label: "P1 Critical", value: vulns.filter(v => v.priority === "P1").length,                                                                                    color: "text-red-400" },
+          { label: "KEV Listed",  value: vulns.filter(v => v.kev).length,                                                                                                  color: "text-orange-400" },
+          { label: "Avg Score",   value: vulns.length > 0 ? Math.round(vulns.reduce((s, v) => s + v.composite_score, 0) / vulns.length) : 0,                              color: "text-amber-400" },
         ].map(k => (
           <div key={k.label} className="bg-gray-800 rounded-lg p-4 text-center">
             <div className={`text-3xl font-bold ${k.color}`}>{k.value}</div>
@@ -320,7 +325,9 @@ export default function VulnScoringDashboard() {
             <h2 className="font-semibold text-white text-sm">Override History</h2>
           </div>
           <div className="divide-y divide-gray-700/50">
-            {MOCK_OVERRIDES.map(ov => (
+            {overrides.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 text-sm">No override history available</div>
+            ) : overrides.map(ov => (
               <div key={ov.id} className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-xs text-gray-300">{ov.cve}</span>
@@ -349,7 +356,9 @@ export default function VulnScoringDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_ASSET_RISKS.map(a => (
+                {assetRisks.length === 0 ? (
+                  <tr><td colSpan={4} className="p-8 text-center text-gray-500 text-sm">No asset risk data available</td></tr>
+                ) : assetRisks.map(a => (
                   <tr key={a.asset} className="border-b border-gray-700/50">
                     <td className="p-3 text-gray-200 font-mono text-xs">{a.asset}</td>
                     <td className="p-3 text-gray-400 text-xs">{a.asset_type}</td>
