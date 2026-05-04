@@ -6545,6 +6545,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.admin_db_router import router as admin_db_router
+        app.include_router(admin_db_router)
+        _logger.info("Mounted Admin DB Stats router at /api/v1/admin/db/stats")
+    except ImportError as _e:
+        _logger.warning("admin_db_router unavailable: %s", _e)
+
 
 
     # ctem_engine_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
