@@ -26,41 +26,17 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+  "";
+const ORG_ID = "default";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_LEADERBOARD = [
-  { rank: 1,  user_id: "user-alice-k",    total_points: 4820 },
-  { rank: 2,  user_id: "user-bob-m",      total_points: 4410 },
-  { rank: 3,  user_id: "user-carol-j",    total_points: 3990 },
-  { rank: 4,  user_id: "user-dan-t",      total_points: 3750 },
-  { rank: 5,  user_id: "user-eve-r",      total_points: 3340 },
-  { rank: 6,  user_id: "user-frank-s",    total_points: 2980 },
-  { rank: 7,  user_id: "user-grace-l",    total_points: 2710 },
-  { rank: 8,  user_id: "user-henry-p",    total_points: 2450 },
-];
-
-const MOCK_CHALLENGES = [
-  { title: "Phishing Identification Sprint",  type: "quiz",        points: 200, difficulty: "medium" },
-  { title: "Password Hygiene Challenge",      type: "interactive", points: 150, difficulty: "easy" },
-  { title: "Social Engineering Simulation",   type: "simulation",  points: 500, difficulty: "hard" },
-  { title: "Secure Coding Fundamentals",      type: "course",      points: 350, difficulty: "medium" },
-  { title: "MFA Setup Race",                  type: "task",        points: 100, difficulty: "easy" },
-  { title: "Incident Response Tabletop",      type: "simulation",  points: 750, difficulty: "hard" },
-];
-
-const MOCK_STATS = { total_challenges: 42, active_users: 318, total_completions: 2847, top_points: 4820 };
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -101,32 +77,33 @@ function RankBadge({ rank }: { rank: number }) {
 
 // ── Component ──────────────────────────────────────────────────
 
-export default function SecurityGamificationDashboard() {
-  const [refreshing, setRefreshing]       = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveLeaderboard, setLiveLB]      = useState<any[] | null>(null);
-  const [liveChallenges, setLiveChallenges] = useState<any[] | null>(null);
-  const [liveStats, setLiveStats]         = useState<any | null>(null);
+interface LeaderboardEntry { rank: number; user_id: string; total_points: number; }
+interface Challenge { title: string; type: string; points: number; difficulty: string; }
+interface GamificationStats { total_challenges: number; active_users: number; total_completions: number; top_points: number; }
 
-  useEffect(() => {
+export default function SecurityGamificationDashboard() {
+  const [refreshing, setRefreshing]         = useState(false);
+  const [loading, setLoading]               = useState(true);
+  const [leaderboard, setLeaderboard]       = useState<LeaderboardEntry[]>([]);
+  const [challenges, setChallenges]         = useState<Challenge[]>([]);
+  const [stats, setStats]                   = useState<GamificationStats>({ total_challenges: 0, active_users: 0, total_completions: 0, top_points: 0 });
+
+  const load = () => {
+    setLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/awareness-gamification/leaderboard?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/awareness-gamification/challenges?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/awareness-gamification/stats?org_id=${ORG_ID}`),
     ]).then(([lbRes, challengesRes, statsRes]) => {
-      if (lbRes.status === "fulfilled") setLiveLB(lbRes.value?.leaderboard ?? lbRes.value ?? null);
-      if (challengesRes.status === "fulfilled") setLiveChallenges(challengesRes.value?.challenges ?? challengesRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
-    setLoading(false);
-  }, []);
+      if (lbRes.status === "fulfilled") setLeaderboard(lbRes.value?.leaderboard ?? lbRes.value ?? []);
+      if (challengesRes.status === "fulfilled") setChallenges(challengesRes.value?.challenges ?? challengesRes.value ?? []);
+      if (statsRes.status === "fulfilled") setStats(statsRes.value ?? { total_challenges: 0, active_users: 0, total_completions: 0, top_points: 0 });
+    }).finally(() => setLoading(false));
+  };
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { load(); }, []);
 
-  const leaderboard = liveLeaderboard ?? MOCK_LEADERBOARD;
-  const challenges  = liveChallenges  ?? MOCK_CHALLENGES;
-  const stats       = liveStats       ?? MOCK_STATS;
-
+  const handleRefresh = () => { setRefreshing(true); load(); setTimeout(() => setRefreshing(false), 800); };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
 
