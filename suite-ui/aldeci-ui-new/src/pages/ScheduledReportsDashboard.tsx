@@ -37,12 +37,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
 (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
 import.meta.env.VITE_API_KEY ||
-"dev-key";
-const ORG_ID = "aldeci-demo";
+"";
+const ORG_ID = "default";
 async function apiFetch(path: string, options?: RequestInit) {
 const res = await fetch(`${API_BASE}${path}`, {
 ...options,
@@ -86,57 +86,8 @@ recipients_count: number;
 delivery_channel: string;
 error_message?: string;
 }
-// ── Mock data ──────────────────────────────────────────────────
-const MOCK_SCHEDULES: Schedule[] = [
-{
-id: "SCH-001", name: "Weekly Executive Summary", report_type: "executive_summary", frequency: "weekly",
-hour_utc: 8, recipients: ["ciso@acme.com", "cto@acme.com"], slack_webhook_url: "https://hooks.slack.com/services/T0001/B0001/xxx",
-format: "pdf", enabled: true, last_run_at: "2026-04-14T08:00:00Z", next_run_at: "2026-04-21T08:00:00Z", run_count: 12, created_at: "2026-01-01T00:00:00Z",
-},
-{
-id: "SCH-002", name: "Daily Vulnerability Digest", report_type: "vulnerability_digest", frequency: "daily",
-hour_utc: 7, recipients: ["secops@acme.com"], slack_webhook_url: "",
-format: "json", enabled: true, last_run_at: "2026-04-16T07:00:00Z", next_run_at: "2026-04-17T07:00:00Z", run_count: 105, created_at: "2026-01-15T00:00:00Z",
-},
-{
-id: "SCH-003", name: "Monthly Compliance Status", report_type: "compliance_status", frequency: "monthly",
-hour_utc: 9, recipients: ["compliance@acme.com", "ciso@acme.com", "legal@acme.com"], slack_webhook_url: "https://hooks.slack.com/services/T0001/B0002/yyy",
-format: "pdf", enabled: true, last_run_at: "2026-04-01T09:00:00Z", next_run_at: "2026-05-01T09:00:00Z", run_count: 3, created_at: "2026-02-01T00:00:00Z",
-},
-{
-id: "SCH-004", name: "Weekly Threat Intel Brief", report_type: "threat_intel", frequency: "weekly",
-hour_utc: 6, recipients: ["soc@acme.com"], slack_webhook_url: "https://hooks.slack.com/services/T0001/B0003/zzz",
-format: "html", enabled: true, last_run_at: "2026-04-15T06:00:00Z", next_run_at: "2026-04-22T06:00:00Z", run_count: 14, created_at: "2026-01-08T00:00:00Z",
-},
-{
-id: "SCH-005", name: "KPI Report — Board Pack", report_type: "kpi_report", frequency: "monthly",
-hour_utc: 10, recipients: ["board@acme.com", "ceo@acme.com", "ciso@acme.com"], slack_webhook_url: "",
-format: "pdf", enabled: false, last_run_at: "2026-04-01T10:00:00Z", next_run_at: null, run_count: 3, created_at: "2026-02-01T00:00:00Z",
-},
-{
-id: "SCH-006", name: "Incident Summary — On Demand", report_type: "incident_summary", frequency: "on_demand",
-hour_utc: 0, recipients: ["ir-team@acme.com"], slack_webhook_url: "https://hooks.slack.com/services/T0001/B0004/aaa",
-format: "json", enabled: true, last_run_at: "2026-04-10T14:22:00Z", next_run_at: null, run_count: 8, created_at: "2026-03-01T00:00:00Z",
-},
-];
-const MOCK_RUNS: ReportRun[] = [
-{ id: "RUN-001", schedule_id: "SCH-002", schedule_name: "Daily Vulnerability Digest",  report_type: "vulnerability_digest", status: "delivered",  started_at: "2026-04-16T07:00:00Z", completed_at: "2026-04-16T07:00:42Z", recipients_count: 1, delivery_channel: "email" },
-{ id: "RUN-002", schedule_id: "SCH-004", schedule_name: "Weekly Threat Intel Brief",    report_type: "threat_intel",         status: "delivered",  started_at: "2026-04-15T06:00:00Z", completed_at: "2026-04-15T06:01:15Z", recipients_count: 1, delivery_channel: "slack" },
-{ id: "RUN-003", schedule_id: "SCH-001", schedule_name: "Weekly Executive Summary",     report_type: "executive_summary",    status: "delivered",  started_at: "2026-04-14T08:00:00Z", completed_at: "2026-04-14T08:02:30Z", recipients_count: 2, delivery_channel: "email+slack" },
-{ id: "RUN-004", schedule_id: "SCH-002", schedule_name: "Daily Vulnerability Digest",  report_type: "vulnerability_digest", status: "delivered",  started_at: "2026-04-15T07:00:00Z", completed_at: "2026-04-15T07:00:38Z", recipients_count: 1, delivery_channel: "email" },
-{ id: "RUN-005", schedule_id: "SCH-006", schedule_name: "Incident Summary — On Demand", report_type: "incident_summary",    status: "delivered",  started_at: "2026-04-10T14:22:00Z", completed_at: "2026-04-10T14:22:55Z", recipients_count: 1, delivery_channel: "slack" },
-{ id: "RUN-006", schedule_id: "SCH-002", schedule_name: "Daily Vulnerability Digest",  report_type: "vulnerability_digest", status: "failed",     started_at: "2026-04-13T07:00:00Z", completed_at: "2026-04-13T07:00:05Z", recipients_count: 0, delivery_channel: "email", error_message: "SMTP connection timeout" },
-{ id: "RUN-007", schedule_id: "SCH-003", schedule_name: "Monthly Compliance Status",   report_type: "compliance_status",    status: "delivered",  started_at: "2026-04-01T09:00:00Z", completed_at: "2026-04-01T09:03:45Z", recipients_count: 3, delivery_channel: "email+slack" },
-{ id: "RUN-008", schedule_id: "SCH-002", schedule_name: "Daily Vulnerability Digest",  report_type: "vulnerability_digest", status: "completed",  started_at: "2026-04-12T07:00:00Z", completed_at: "2026-04-12T07:00:40Z", recipients_count: 1, delivery_channel: "email" },
-];
-const MOCK_STATS = {
-active_schedules: 5,
-reports_sent: 147,
-delivery_failures: 3,
-next_run_in_minutes: 14,
-success_rate: 97.9,
-total_schedules: 6,
-};
+// ── Empty defaults (no mock data) ──────────────────────────────
+const EMPTY_STATS = { active_schedules: 0, reports_sent: 0, delivery_failures: 0, next_run_in_minutes: 0, success_rate: 0, total_schedules: 0 };
 const REPORT_TYPE_LABELS: Record<ReportType, string> = {
 executive_summary: "Executive Summary",
 vulnerability_digest: "Vuln Digest",
@@ -352,10 +303,10 @@ className="w-full h-8 rounded-md border border-border bg-muted/30 px-3 text-xs t
 }
 // ── Main Component ─────────────────────────────────────────────
 export default function ScheduledReportsDashboard() {
-const [schedules, setSchedules] = useState<Schedule[]>(MOCK_SCHEDULES);
-const [runs, setRuns] = useState<ReportRun[]>(MOCK_RUNS);
-const [stats, setStats] = useState(MOCK_STATS);
-const [loading, setLoading] = useState(false);
+const [schedules, setSchedules] = useState<Schedule[]>([]);
+const [runs, setRuns] = useState<ReportRun[]>([]);
+const [stats, setStats] = useState(EMPTY_STATS);
+const [loading, setLoading] = useState(true);
 const [showCreateModal, setShowCreateModal] = useState(false);
 const [triggeringId, setTriggeringId] = useState<string | null>(null);
 useEffect(() => {
@@ -369,11 +320,13 @@ apiFetch(`/api/v1/scheduled-reports/schedules?org_id=${ORG_ID}`),
 apiFetch(`/api/v1/scheduled-reports/runs?org_id=${ORG_ID}&limit=20`),
 apiFetch(`/api/v1/scheduled-reports/stats?org_id=${ORG_ID}`),
 ]);
-if (Array.isArray(schedsData)) setSchedules(schedsData);
-if (Array.isArray(runsData)) setRuns(runsData);
-if (statsData && typeof statsData === "object") setStats({ ...MOCK_STATS, ...statsData });
+const schedsArr = Array.isArray(schedsData) ? schedsData : schedsData?.schedules ?? schedsData?.items ?? [];
+const runsArr = Array.isArray(runsData) ? runsData : runsData?.runs ?? runsData?.items ?? [];
+setSchedules(schedsArr);
+setRuns(runsArr);
+if (statsData && typeof statsData === "object") setStats({ ...EMPTY_STATS, ...statsData });
 } catch {
-// backend offline — mock data shown
+// backend offline — empty state shown
 } finally {
 setLoading(false);
 }
@@ -414,19 +367,8 @@ delivery_channel: sched.slack_webhook_url ? "email+slack" : "email",
 setRuns(prev => [newRun, ...prev]);
 }
 } catch {
-// mock trigger success
-const newRun: ReportRun = {
-id: `RUN-${Date.now()}`,
-schedule_id: sched.id,
-schedule_name: sched.name,
-report_type: sched.report_type,
-status: "delivered",
-started_at: new Date().toISOString(),
-completed_at: new Date().toISOString(),
-recipients_count: sched.recipients.length,
-delivery_channel: sched.slack_webhook_url ? "email+slack" : "email",
-};
-setRuns(prev => [newRun, ...prev]);
+// trigger failed — reload to reflect current state
+loadData();
 } finally {
 setTriggeringId(null);
 }
