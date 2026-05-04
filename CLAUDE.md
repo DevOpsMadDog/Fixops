@@ -242,14 +242,14 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 | Layer | Count | How to check |
 |-------|-------|--------------|
-| Backend engines | **351** (was ~360 before 2026-05-03 cleanup; small drop from Wave-RETIRE dead-engine module deletes) | `ls suite-core/core/*_engine.py \| wc -l` |
-| API routers | **684** (post 2026-05-02 night session; +94 since 2026-04-26 mega-wave) | `ls suite-api/apps/api/*_router.py \| wc -l` |
-| API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved** across **232/232 dup blocks closed (100%)** + 27/47 suite-core silenced-imports fixed; details in `docs/dead_router_sweep_2026-05-03.md` + `docs/suite_core_silenced_imports_2026-05-03.md` + HANDOFF §11-§19) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
-| Frontend pages | **431 top-level / 529 recursive** (50 hubs landed 2026-05-02 — Phase 3 EXHAUSTED; ~140 source pages folded — TARGET: 25-40 — actual is higher than the per-tsx-file count of "~330" because some pages live in subdirs like `incidents/`, `mission-control/`, `discover/`, `findings/`) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
+| Backend engines | **463** (measured 2026-05-05; +112 since 2026-05-03 — OWASP hardening waves added new engine files) | `ls suite-core/core/*_engine.py \| wc -l` |
+| API routers | **796** (measured 2026-05-05; +112 since 2026-05-02 — BUG-2 index routes + OWASP hardening waves) | `ls suite-api/apps/api/*_router.py \| wc -l` |
+| API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved**; check next session — boot ~10s) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
+| Frontend pages | **529 recursive** (measured 2026-05-05; Phase 3 EXHAUSTED — mock-fallback removal wave in progress) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
-| Beast Mode tests | **994+ passing (753 canonical 13-file + 152 session-added 26-file + 89 night-session new tests across BUG/FEATURE/empty-endpoints), zero regressions** (2026-05-03 night) + **42/42 hub smoke (`ba6bff1a`)** + **10/10 DoD E2E smoke (`scripts/dod_smoke.mjs`)** | `pytest tests/test_phase*.py ... -q` |
-| Graphify graph | **184,684 nodes / 577,447 edges / 9,029 communities** (refreshed 2026-05-03 04:10 — final post-cleanup rebuild; +64.9K nodes / +151.7K edges / +7.5K communities since 2026-04-26 baseline) | `graphify update . --no-llm` |
-| TrustGraph emit-sites | **501** across engines/routers (was 378+; +123 since 2026-05-02 mega-wave + dup-cleanup canonicalization) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
+| Beast Mode tests | **1078+ passing (13-file canonical + 84 new tests from 2026-05-05 qa wave), zero regressions** (2026-05-05) + **42/42 hub smoke** + **10/10 DoD E2E smoke** | `pytest tests/test_phase*.py ... -q` |
+| Graphify graph | **184,684 nodes / 577,447 edges / 9,029 communities** (last refreshed 2026-05-03 04:10 — run `graphify update . --no-llm` to refresh) | `graphify update . --no-llm` |
+| TrustGraph emit-sites | **547** across engines/routers (measured 2026-05-05; was 501 — +46 from TrustGraph batch-11/12/13 waves) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
 
 ### Storage tech
 DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Markdown for docs.
