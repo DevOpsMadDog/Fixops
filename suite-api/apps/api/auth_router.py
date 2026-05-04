@@ -45,8 +45,15 @@ def _get_dev_jwt_secret() -> str:
     """
     secret = os.getenv("FIXOPS_JWT_SECRET", "").strip()
     if not secret:
-        # Dev-mode default — matches auth_middleware.py's dev fallback.
-        secret = "fixops-dev-secret-change-in-production-min-32-chars"
+        # Dev-mode only: warn loudly so this is never silent in prod.
+        _logger.warning(
+            "FIXOPS_JWT_SECRET is not set — using insecure dev fallback. "
+            "Set FIXOPS_JWT_SECRET to a random 32+ char string in production."
+        )
+        secret = os.getenv(
+            "_FIXOPS_DEV_JWT_FALLBACK",
+            "fixops-dev-secret-change-in-production-min-32-chars",
+        )
     return secret
 
 

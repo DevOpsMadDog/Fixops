@@ -1054,7 +1054,7 @@ def _detect_boot_git_sha() -> tuple[str, str]:
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip(), "git:rev-parse"
-    except (OSError, ValueError, RuntimeError):
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
         pass
     return "unknown", "fallback"
 

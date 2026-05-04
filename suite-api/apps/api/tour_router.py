@@ -118,14 +118,14 @@ def _stage_repo_ingest(repo_url: str, branch: Optional[str], work_dir: str, emit
         )
         if result.returncode != 0:
             emit(_event(1, "repo_ingest", "error", {
-                "error": f"git clone failed: {result.stderr[:300]}",
+                "error": "git clone failed — verify repo URL and branch",
             }))
             return None
     except subprocess.TimeoutExpired:
         emit(_event(1, "repo_ingest", "error", {"error": "git clone timed out after 90s"}))
         return None
-    except Exception as exc:
-        emit(_event(1, "repo_ingest", "error", {"error": str(exc)}))
+    except (OSError, ValueError, RuntimeError):
+        emit(_event(1, "repo_ingest", "error", {"error": "git clone failed — check repo URL"}))
         return None
 
     # Count files by type
@@ -312,7 +312,7 @@ def _stage_brain_pipeline(findings: list, org_id: str, emit) -> list:
     except Exception as exc:
         logger.exception("Brain pipeline failed: %s", exc)
         emit(_event(2, "brain_pipeline", "error", {
-            "error": str(exc),
+            "error": "Brain pipeline execution failed",
             "message": "Brain Pipeline unavailable — using raw findings",
             "findings_in": len(findings),
             "steps": [],
@@ -371,7 +371,7 @@ def _stage_council(finding: dict, emit) -> Optional[dict]:
     except Exception as exc:
         logger.exception("Council failed: %s", exc)
         emit(_event(3, "council", "error", {
-            "error": str(exc),
+            "error": "Council execution failed",
             "message": "Multi-LLM Council unavailable",
         }))
         return None
@@ -443,7 +443,7 @@ def _stage_trustgraph(finding: dict, verdict: Optional[dict], emit) -> int:
     except Exception as exc:
         logger.warning("TrustGraph propagation failed: %s", exc)
         emit(_event(4, "trustgraph", "error", {
-            "error": str(exc),
+            "error": "TrustGraph propagation failed",
             "nodes_emitted": 0,
             "message": "TrustGraph bus unavailable",
         }))
@@ -571,7 +571,7 @@ def _stage_dpo_capture(finding: dict, verdict: Optional[dict], emit) -> int:
     except Exception as exc:
         logger.exception("DPO capture failed: %s", exc)
         emit(_event(5, "dpo_capture", "error", {
-            "error": str(exc),
+            "error": "DPO capture failed",
             "message": "DPO capture failed",
         }))
         return 0

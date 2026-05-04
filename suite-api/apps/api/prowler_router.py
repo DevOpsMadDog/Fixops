@@ -254,7 +254,7 @@ def get_prowler_status() -> Dict[str, Any]:
                 capture_output=True, text=True, timeout=10,
             )
             version = result.stdout.strip() or result.stderr.strip()
-        except Exception:
+        except (subprocess.TimeoutExpired, OSError, ValueError):
             version = "unknown"
 
     return {
