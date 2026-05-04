@@ -803,6 +803,9 @@ class CrowdStrikeFalconConnector:
         edr_count = 0
         corr_count = 0
         detection_ids: List[str] = []
+        # Hostname → endpoint_id cache for this ingestion run (avoids O(N²)
+        # list_endpoints calls when the same host appears in multiple detections).
+        _endpoint_cache: Dict[str, str] = {}
 
         with self._lock:
             for raw in events:
@@ -817,7 +820,10 @@ class CrowdStrikeFalconConnector:
                 # Mirror to EDR engine (best effort).
                 if self._edr is not None and parsed["hostname"]:
                     try:
-                        endpoint_id = self._ensure_endpoint(org_id, parsed["hostname"])
+                        _hn = parsed["hostname"]
+                        if _hn not in _endpoint_cache:
+                            _endpoint_cache[_hn] = self._ensure_endpoint(org_id, _hn)
+                        endpoint_id = _endpoint_cache[_hn]
                         self._edr.ingest_process_event(
                             org_id, endpoint_id, _to_edr_event(parsed)
                         )

@@ -34,6 +34,7 @@ import logging
 import shutil
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -501,10 +502,22 @@ class SnykOSSConnector:
         )
         return result
 
-    def scan_fleet(self, org_id: str = "default") -> Dict[str, Any]:
+    def scan_fleet(self, org_id: str = "default", max_workers: int = 4) -> Dict[str, Any]:
+        tenants = self.list_tenants()
         results: List[TenantScanResult] = []
-        for tenant_path in self.list_tenants():
-            results.append(self.scan_tenant(tenant_path, org_id=org_id))
+        if tenants:
+            with ThreadPoolExecutor(max_workers=min(max_workers, len(tenants))) as pool:
+                futures = {pool.submit(self.scan_tenant, tp, org_id): tp for tp in tenants}
+                for fut in as_completed(futures):
+                    try:
+                        results.append(fut.result())
+                    except Exception as exc:  # noqa: BLE001
+                        tp = futures[fut]
+                        logger.error("scan_fleet: tenant %s failed: %s", tp.name, exc)
+                        results.append(TenantScanResult(
+                            tenant=tp.name, repo_path=str(tp),
+                            errors=[str(exc)],
+                        ))
         total = sum(r.total() for r in results)
         emit_connector_event(
             connector="SnykOSSConnector",

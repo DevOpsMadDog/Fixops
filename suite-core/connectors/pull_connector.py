@@ -16,6 +16,7 @@ and Step 13 (enrichment feedback) for closed-loop threat management.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
@@ -482,15 +483,11 @@ class BidirectionalConnector(PullConnector):
         Returns:
             List of ConnectorOutcome (one per item).
         """
-        results = []
-        for item in items:
+        async def _push_one(item: Dict[str, Any]) -> ConnectorOutcome:
             entity_id = item.get("entity_id")
             enrichment = item.get("enrichment", {})
             if not entity_id:
-                results.append(
-                    ConnectorOutcome("failed", {"error": "missing entity_id"})
-                )
-                continue
-            outcome = await self.push_enrichment(entity_id, enrichment)
-            results.append(outcome)
-        return results
+                return ConnectorOutcome("failed", {"error": "missing entity_id"})
+            return await self.push_enrichment(entity_id, enrichment)
+
+        return list(await asyncio.gather(*[_push_one(item) for item in items]))
