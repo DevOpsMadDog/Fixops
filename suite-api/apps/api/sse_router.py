@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 import time
+from collections import OrderedDict
 from typing import AsyncGenerator, Optional
 
 from apps.api.auth_deps import api_key_auth
@@ -34,18 +35,32 @@ router = APIRouter(
 # ---------------------------------------------------------------------------
 _MAX_EVENTS = 1000
 
-# Shared across connections: org_id -> list of event dicts
-# Each event: {"id": int, "event_type": str, "org_id": str, "data": dict, "ts": float}
-_event_store: dict[str, list[dict]] = {}
-_event_counter: dict[str, int] = {}
+# Maximum distinct org_ids tracked simultaneously.  When exceeded the oldest
+# (LRU) org entry is evicted so long-running processes don't leak memory as
+# tenants connect and disconnect over time.
+_MAX_ORGS = 500
 
-# Asyncio condition per org — notified when new events arrive
-_org_conditions: dict[str, asyncio.Condition] = {}
+# Shared across connections: org_id -> list of event dicts (OrderedDict for LRU eviction)
+# Each event: {"id": int, "event_type": str, "org_id": str, "data": dict, "ts": float}
+_event_store: OrderedDict[str, list[dict]] = OrderedDict()
+_event_counter: OrderedDict[str, int] = OrderedDict()
+
+# Asyncio condition per org — notified when new events arrive (also LRU-capped)
+_org_conditions: OrderedDict[str, asyncio.Condition] = OrderedDict()
+
+
+def _evict_org_if_needed(d: OrderedDict, max_size: int) -> None:
+    """Evict the least-recently-used org entry when the dict exceeds max_size."""
+    while len(d) > max_size:
+        d.popitem(last=False)
 
 
 def _get_condition(org_id: str) -> asyncio.Condition:
     if org_id not in _org_conditions:
         _org_conditions[org_id] = asyncio.Condition()
+        _evict_org_if_needed(_org_conditions, _MAX_ORGS)
+    else:
+        _org_conditions.move_to_end(org_id)
     return _org_conditions[org_id]
 
 
@@ -66,6 +81,11 @@ def publish_event(org_id: str, event_type: str, data: dict) -> int:
     if org_id not in _event_store:
         _event_store[org_id] = []
         _event_counter[org_id] = 0
+        _evict_org_if_needed(_event_store, _MAX_ORGS)
+        _evict_org_if_needed(_event_counter, _MAX_ORGS)
+    else:
+        _event_store.move_to_end(org_id)
+        _event_counter.move_to_end(org_id)
 
     _event_counter[org_id] += 1
     event_id = _event_counter[org_id]
