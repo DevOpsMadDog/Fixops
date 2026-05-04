@@ -1,0 +1,461 @@
+============================= test session starts ==============================
+collected 98 items
+
+tests/test_autonomous_cycle.py::TestConsensusConfig::test_default_values PASSED [  1%]
+tests/test_autonomous_cycle.py::TestConsensusConfig::test_from_env PASSED [  2%]
+tests/test_autonomous_cycle.py::TestConsensusConfig::test_validate_valid_config PASSED [  3%]
+tests/test_autonomous_cycle.py::TestConsensusConfig::test_validate_invalid_threshold PASSED [  4%]
+tests/test_autonomous_cycle.py::TestConsensusConfig::test_validate_invalid_weights PASSED [  5%]
+tests/test_autonomous_cycle.py::TestConsensusConfig::test_validate_invalid_timeout PASSED [  6%]
+tests/test_autonomous_cycle.py::TestConsensusConfig::test_validate_invalid_retries PASSED [  7%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_initialization 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:48 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [  8%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_initialization_with_custom_config 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:48 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.8, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [  9%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_call_llm_success 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:48 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:48 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 10%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_call_llm_fallback_response 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:48 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:48 [ WARNING] core.mpte_advanced: LLM provider openai returned fallback response: provider_disabled
+PASSED                                                                   [ 11%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_call_llm_error_with_fallback 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:48 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:48 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-05-04 19:06:48 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-05-04 19:06:49 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-05-04 19:06:49 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-05-04 19:06:51 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-05-04 19:06:51 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 12%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_call_llm_error_without_fallback 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:51 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-05-04 19:06:51 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-05-04 19:06:51 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-05-04 19:06:52 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-05-04 19:06:52 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-05-04 19:06:54 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-05-04 19:06:54 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 13%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_call_llm_timeout_with_fallback 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:54 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-05-04 19:06:54 [ WARNING] core.mpte_advanced: LLM call to openai timed out (attempt 1/1)
+2026-05-04 19:06:54 [   ERROR] core.mpte_advanced: LLM call to openai failed after 1 attempts: LLM call to openai timed out after 0.01s
+PASSED                                                                   [ 14%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_get_architect_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:54 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: LLM provider gemini returned successful response (confidence=0.85)
+PASSED                                                                   [ 15%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_get_developer_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: LLM provider anthropic returned successful response (confidence=0.85)
+PASSED                                                                   [ 16%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_get_lead_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 17%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_compose_consensus 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 18%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_confidence_to_priority 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 19%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_suggest_tools 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 20%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_derive_strategy 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 21%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_derive_success_criteria 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 22%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_assess_business_impact 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 23%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_get_statistics 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 24%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_fallback_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:55 [ WARNING] core.mpte_advanced: FALLBACK_DECISION: Using deterministic fallback for role=architect, vulnerability=CVE-2024-1234. This is NOT an AI-generated decision.
+PASSED                                                                   [ 25%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_fallback_consensus 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:55 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 0/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 26%]
+tests/test_autonomous_cycle.py::TestMultiAIOrchestrator::test_fallback_consensus_with_contributing_fallbacks 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:06:55 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:06:55 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 2/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 27%]
+tests/test_autonomous_cycle.py::TestLLMCallError::test_exception_message PASSED [ 28%]
+tests/test_autonomous_cycle.py::TestLLMCallError::test_exception_inheritance PASSED [ 29%]
+tests/test_autonomous_cycle.py::TestAIDecision::test_creation PASSED     [ 30%]
+tests/test_autonomous_cycle.py::TestAIDecision::test_default_metadata PASSED [ 31%]
+tests/test_autonomous_cycle.py::TestConsensusDecision::test_creation PASSED [ 32%]
+tests/test_autonomous_cycle.py::TestAIRole::test_roles PASSED            [ 33%]
+tests/test_autonomous_cycle.py::TestBNLRHybrid::test_train_bn_lr_end_to_end ERROR [ 34%]
+tests/test_autonomous_cycle.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end ERROR [ 35%]
+tests/test_autonomous_cycle.py::TestBNLRHybrid::test_backtest_with_output_file ERROR [ 36%]
+tests/test_autonomous_cycle.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end ERROR [ 37%]
+tests/test_autonomous_cycle.py::TestBNLRHybrid::test_bn_cpd_hash_verification ERROR [ 38%]
+tests/test_autonomous_cycle.py::TestBNLRHybrid::test_custom_thresholds ERROR [ 39%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branded_product_name_in_api_header ERROR [ 40%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branded_product_name_in_cli_output ERROR [ 41%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branded_product_name_in_evidence_bundle ERROR [ 42%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_aldeci_keys ERROR [ 43%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_fallback_to_fixops_keys ERROR [ 44%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_branded_key_overrides_canonical ERROR [ 45%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_with_custom_namespace ERROR [ 46%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branding_config_from_flag ERROR [ 47%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branding_persists_across_api_requests ERROR [ 48%]
+tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_env_var_takes_precedence ERROR [ 50%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_api_header PASSED [ 51%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_cli_output PASSED [ 52%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_evidence_bundle 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:07:48 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+PASSED                                                                   [ 53%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_aldeci_keys PASSED [ 54%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_fallback_to_fixops_keys PASSED [ 55%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_branded_key_overrides_canonical PASSED [ 56%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_with_custom_namespace PASSED [ 57%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_config_from_flag 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:08:48 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+PASSED                                                                   [ 58%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_persists_across_api_requests PASSED [ 59%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_env_var_takes_precedence PASSED [ 60%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_train_bn_lr_end_to_end PASSED [ 61%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:09:49 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+PASSED                                                                   [ 62%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_with_output_file PASSED [ 63%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:10:49 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+PASSED                                                                   [ 64%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_bn_cpd_hash_verification PASSED [ 65%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_custom_thresholds 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:49 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+PASSED                                                                   [ 66%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_default_values PASSED [ 67%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_from_env PASSED    [ 68%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_valid_config PASSED [ 69%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_threshold PASSED [ 70%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_weights PASSED [ 71%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_timeout PASSED [ 72%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_retries PASSED [ 73%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_initialization 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:50 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 74%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_initialization_with_custom_config 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:50 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.8, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 75%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_success 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:50 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:50 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 76%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_fallback_response 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:50 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:50 [ WARNING] core.mpte_advanced: LLM provider openai returned fallback response: provider_disabled
+PASSED                                                                   [ 77%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_error_with_fallback 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:50 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:50 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-05-04 19:11:50 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-05-04 19:11:51 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-05-04 19:11:51 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-05-04 19:11:53 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-05-04 19:11:53 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 78%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_error_without_fallback 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:53 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-05-04 19:11:53 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-05-04 19:11:53 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-05-04 19:11:54 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-05-04 19:11:54 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-05-04 19:11:56 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-05-04 19:11:56 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 79%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_timeout_with_fallback 
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-05-04 19:11:56 [ WARNING] core.mpte_advanced: LLM call to openai timed out (attempt 1/1)
+2026-05-04 19:11:56 [   ERROR] core.mpte_advanced: LLM call to openai failed after 1 attempts: LLM call to openai timed out after 0.01s
+PASSED                                                                   [ 80%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_architect_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: LLM provider gemini returned successful response (confidence=0.85)
+PASSED                                                                   [ 81%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_developer_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: LLM provider anthropic returned successful response (confidence=0.85)
+PASSED                                                                   [ 82%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_lead_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 83%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_compose_consensus 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 84%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_confidence_to_priority 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 85%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_suggest_tools 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 86%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_derive_strategy 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 87%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_derive_success_criteria 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 88%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_assess_business_impact 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 89%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_statistics 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 90%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_decision 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [ WARNING] core.mpte_advanced: FALLBACK_DECISION: Using deterministic fallback for role=architect, vulnerability=CVE-2024-1234. This is NOT an AI-generated decision.
+PASSED                                                                   [ 91%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_consensus 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 0/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 92%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_consensus_with_contributing_fallbacks 
+-------------------------------- live log setup --------------------------------
+2026-05-04 19:11:56 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-05-04 19:11:56 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 2/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 93%]
+tests/test_ai_consensus.py::TestLLMCallError::test_exception_message PASSED [ 94%]
+tests/test_ai_consensus.py::TestLLMCallError::test_exception_inheritance PASSED [ 95%]
+tests/test_ai_consensus.py::TestAIDecision::test_creation PASSED         [ 96%]
+tests/test_ai_consensus.py::TestAIDecision::test_default_metadata PASSED [ 97%]
+tests/test_ai_consensus.py::TestConsensusDecision::test_creation PASSED  [ 98%]
+tests/test_ai_consensus.py::TestAIRole::test_roles PASSED                [100%]
+
+==================================== ERRORS ====================================
+_________ ERROR at setup of TestBNLRHybrid.test_train_bn_lr_end_to_end _________
+file /home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py, line 15
+      def test_train_bn_lr_end_to_end(self, cli_runner):
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBNLRHybrid::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py:15
+_______ ERROR at setup of TestBNLRHybrid.test_backtest_bn_lr_end_to_end ________
+file /home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py, line 47
+      def test_backtest_bn_lr_end_to_end(self, cli_runner):
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBNLRHybrid::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py:47
+_______ ERROR at setup of TestBNLRHybrid.test_backtest_with_output_file ________
+file /home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py, line 84
+      def test_backtest_with_output_file(self, cli_runner):
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBNLRHybrid::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py:84
+________ ERROR at setup of TestBNLRHybrid.test_predict_bn_lr_end_to_end ________
+file /home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py, line 138
+      def test_predict_bn_lr_end_to_end(self, cli_runner):
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBNLRHybrid::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py:138
+________ ERROR at setup of TestBNLRHybrid.test_bn_cpd_hash_verification ________
+file /home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py, line 213
+      def test_bn_cpd_hash_verification(self, cli_runner):
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBNLRHybrid::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py:213
+___________ ERROR at setup of TestBNLRHybrid.test_custom_thresholds ____________
+file /home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py, line 285
+      def test_custom_thresholds(self, cli_runner):
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBNLRHybrid::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_bn_lr_hybrid.py:285
+_ ERROR at setup of TestBrandingNamespace.test_branded_product_name_in_api_header _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 18
+      def test_branded_product_name_in_api_header(
+E       fixture 'fixture_manager' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:18
+_ ERROR at setup of TestBrandingNamespace.test_branded_product_name_in_cli_output _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 50
+      def test_branded_product_name_in_cli_output(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:50
+_ ERROR at setup of TestBrandingNamespace.test_branded_product_name_in_evidence_bundle _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 79
+      def test_branded_product_name_in_evidence_bundle(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:79
+_ ERROR at setup of TestBrandingNamespace.test_namespace_aliasing_aldeci_keys __
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 123
+      def test_namespace_aliasing_aldeci_keys(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:123
+_ ERROR at setup of TestBrandingNamespace.test_namespace_aliasing_fallback_to_fixops_keys _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 170
+      def test_namespace_aliasing_fallback_to_fixops_keys(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:170
+_ ERROR at setup of TestBrandingNamespace.test_namespace_aliasing_branded_key_overrides_canonical _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 217
+      def test_namespace_aliasing_branded_key_overrides_canonical(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:217
+_ ERROR at setup of TestBrandingNamespace.test_namespace_aliasing_with_custom_namespace _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 263
+      def test_namespace_aliasing_with_custom_namespace(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:263
+____ ERROR at setup of TestBrandingNamespace.test_branding_config_from_flag ____
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 310
+      def test_branding_config_from_flag(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:310
+_ ERROR at setup of TestBrandingNamespace.test_branding_persists_across_api_requests _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 360
+      def test_branding_persists_across_api_requests(
+E       fixture 'fixture_manager' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:360
+_ ERROR at setup of TestBrandingNamespace.test_namespace_env_var_takes_precedence _
+file /home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py, line 393
+      def test_namespace_env_var_takes_precedence(
+E       fixture 'cli_runner' not found
+>       available fixtures: _session_event_loop, _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, api_token, app_client, auth_headers, authenticated_client, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, cov, doctest_namespace, event_loop, event_loop_policy, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_all_connectors, mock_confluence_connector, mock_jira_connector, mock_slack_connector, mocker, module_mocker, monkeypatch, no_cover, package_mocker, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, session_mocker, signing_env, testrun_uid, tests/test_autonomous_cycle.py::<event_loop>, tests/test_autonomous_cycle.py::TestBrandingNamespace::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/ubuntu/Fixops_repo/tests/e2e/test_branding_namespace.py:393
+============================= slowest 10 durations =============================
+35.00s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_bn_cpd_hash_verification
+25.43s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_api_header
+24.50s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end
+23.98s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_persists_across_api_requests
+23.10s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end
+22.60s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_custom_thresholds
+21.90s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_with_output_file
+16.52s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_cli_output
+14.31s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_env_var_takes_precedence
+13.09s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_evidence_bundle
+=========================== short test summary info ============================
+ERROR tests/test_autonomous_cycle.py::TestBNLRHybrid::test_train_bn_lr_end_to_end
+ERROR tests/test_autonomous_cycle.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end
+ERROR tests/test_autonomous_cycle.py::TestBNLRHybrid::test_backtest_with_output_file
+ERROR tests/test_autonomous_cycle.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end
+ERROR tests/test_autonomous_cycle.py::TestBNLRHybrid::test_bn_cpd_hash_verification
+ERROR tests/test_autonomous_cycle.py::TestBNLRHybrid::test_custom_thresholds
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branded_product_name_in_api_header
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branded_product_name_in_cli_output
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branded_product_name_in_evidence_bundle
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_aldeci_keys
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_fallback_to_fixops_keys
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_branded_key_overrides_canonical
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_aliasing_with_custom_namespace
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branding_config_from_flag
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_branding_persists_across_api_requests
+ERROR tests/test_autonomous_cycle.py::TestBrandingNamespace::test_namespace_env_var_takes_precedence
+================== 82 passed, 16 errors in 308.54s (0:05:08) ===================
