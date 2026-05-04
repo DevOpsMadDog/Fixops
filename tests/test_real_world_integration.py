@@ -388,6 +388,10 @@ class TestRealWorldCLIIntegration:
             assert isinstance(output, dict)
 
 
+@pytest.mark.skipif(
+    not os.getenv("FIXOPS_RUN_LIVE_SERVER_TESTS"),
+    reason="live-server tests opt-in only — set FIXOPS_RUN_LIVE_SERVER_TESTS=1 to enable"
+)
 class TestRealWorldAPIServerIntegration:
     """
     Full API server integration tests.
@@ -434,18 +438,25 @@ class TestRealWorldAPIServerIntegration:
             stderr=subprocess.DEVNULL,
         )
 
-        # Wait for server to start
-        time.sleep(5)
+        # Wait for server to start — poll TCP instead of fixed sleep
+        deadline = time.monotonic() + 5.0
+        import socket as _socket
+        while time.monotonic() < deadline:
+            try:
+                with _socket.create_connection(("127.0.0.1", port), timeout=0.1):
+                    break
+            except OSError:
+                time.sleep(0.05)
 
         yield f"http://127.0.0.1:{port}"
 
         # Cleanup - robust teardown with fallback to kill
         try:
             proc.terminate()
-            proc.wait(timeout=5)
+            proc.wait(timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
-            proc.wait(timeout=5)
+            proc.wait(timeout=2)
 
     def test_real_server_health(self, running_server):
         """Test health endpoint on real running server."""

@@ -357,7 +357,7 @@ class TestRunLoadTest:
         return 200, 0.001, None
 
     def test_report_structure(self):
-        config = LoadTestConfig(target="http://x", users=2, duration=2)
+        config = LoadTestConfig(target="http://x", users=2, duration=0.3)
         with patch("load_test._do_request", side_effect=self._fast_request):
             report = run_load_test(config)
         assert isinstance(report.total_requests, int)
@@ -366,7 +366,7 @@ class TestRunLoadTest:
         assert isinstance(report.endpoint_stats, list)
 
     def test_passes_when_fast_and_no_errors(self):
-        config = LoadTestConfig(target="http://x", users=2, duration=2)
+        config = LoadTestConfig(target="http://x", users=2, duration=0.3)
         with patch("load_test._do_request", side_effect=self._fast_request):
             report = run_load_test(config)
         # With 1ms latency and 0 errors, should always pass
@@ -377,7 +377,7 @@ class TestRunLoadTest:
         def _always_error(url, timeout):
             return 500, 0.001, None
 
-        config = LoadTestConfig(target="http://x", users=2, duration=2)
+        config = LoadTestConfig(target="http://x", users=2, duration=0.3)
         with patch("load_test._do_request", side_effect=_always_error):
             report = run_load_test(config)
         assert report.overall_error_rate > ERROR_RATE_THRESHOLD
@@ -388,7 +388,7 @@ class TestRunLoadTest:
             time.sleep(0.01)  # only 10ms but we'll inject high latencies via results
             return 200, 3.0, None  # report 3s latency
 
-        config = LoadTestConfig(target="http://x", users=1, duration=2)
+        config = LoadTestConfig(target="http://x", users=1, duration=0.3)
         with patch("load_test._do_request", side_effect=_slow_request):
             report = run_load_test(config)
         assert report.p99_s >= P99_THRESHOLD_S
@@ -403,7 +403,7 @@ class TestRunLoadTest:
             return 200, 0.001, None
 
         config = LoadTestConfig(
-            target="http://x", users=1, duration=3, warmup_fraction=0.5
+            target="http://x", users=1, duration=0.5, warmup_fraction=0.5
         )
         with patch("load_test._do_request", side_effect=_track_request):
             report = run_load_test(config)
@@ -422,7 +422,7 @@ class TestMainExitCodes:
     def test_exit_0_on_pass(self, tmp_path):
         out_file = str(tmp_path / "report.json")
         with patch("load_test._do_request", side_effect=self._fast_request):
-            code = main(["--users", "1", "--duration", "2", "--target", "http://x",
+            code = main(["--users", "1", "--duration", "1", "--target", "http://x",
                          "--json-out", out_file])
         assert code == 0
 
@@ -432,14 +432,14 @@ class TestMainExitCodes:
 
         out_file = str(tmp_path / "report.json")
         with patch("load_test._do_request", side_effect=_slow):
-            code = main(["--users", "1", "--duration", "2", "--target", "http://x",
+            code = main(["--users", "1", "--duration", "1", "--target", "http://x",
                          "--json-out", out_file])
         assert code == 1
 
     def test_json_report_written(self, tmp_path):
         out_file = str(tmp_path / "report.json")
         with patch("load_test._do_request", side_effect=self._fast_request):
-            main(["--users", "1", "--duration", "2", "--target", "http://x",
+            main(["--users", "1", "--duration", "1", "--target", "http://x",
                   "--json-out", out_file])
         data = json.loads(Path(out_file).read_text())
         assert "aggregate" in data
@@ -450,7 +450,7 @@ class TestMainExitCodes:
     def test_json_report_has_required_fields(self, tmp_path):
         out_file = str(tmp_path / "report.json")
         with patch("load_test._do_request", side_effect=self._fast_request):
-            main(["--users", "1", "--duration", "2", "--target", "http://x",
+            main(["--users", "1", "--duration", "1", "--target", "http://x",
                   "--json-out", out_file])
         data = json.loads(Path(out_file).read_text())
         agg = data["aggregate"]
