@@ -2329,8 +2329,13 @@ class BrainPipeline:
                     # Inside running loop — schedule as task
                     _asyncio.ensure_future(_emit_all())
                 except RuntimeError:
-                    # No running loop — execute synchronously
-                    _asyncio.run(_emit_all())
+                    # No running loop — create a private loop to avoid
+                    # thread-pool teardown race from asyncio.run()
+                    _loop = _asyncio.new_event_loop()
+                    try:
+                        _loop.run_until_complete(_emit_all())
+                    finally:
+                        _loop.close()
             except Exception as bus_e:
                 logger.warning("correlator event emission skipped: %s", bus_e)
         except Exception as e:
