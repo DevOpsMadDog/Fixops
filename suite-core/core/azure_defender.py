@@ -472,14 +472,8 @@ class AzureDefenderClient:
 
         try:
             raw_alerts = self.get_alerts()
-            findings = self.normalize(raw_alerts)
-
-            sev_counts: Dict[str, int] = {
-                "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0
-            }
-            for f in findings:
-                sev = (f.get("severity") or "info").lower()
-                sev_counts[sev] = sev_counts.get(sev, 0) + 1
+            # FIX-1: fold severity counting into normalize — single pass, no second loop.
+            findings, sev_counts = self._normalize_with_counts(raw_alerts)
 
             entry: Dict[str, Any] = {
                 "import_id": import_id,
@@ -495,12 +489,13 @@ class AzureDefenderClient:
 
             self._try_ingest_to_pipeline(findings, org_id, import_id)
 
-            # Emit each normalized finding to the TrustGraph event bus
+            # FIX-2: batch-emit all findings in one try/except — avoids per-event
+            # exception-handler overhead (CPython try block setup cost) at high volume.
             try:
                 from core.trustgraph_event_bus import get_event_bus
                 bus = get_event_bus()
-                for f in findings:
-                    bus.emit("finding.created", {
+                events = [
+                    {
                         "org_id": org_id,
                         "engine": "azure_defender",
                         "id": f.get("id") or f.get("finding_id"),
@@ -512,7 +507,11 @@ class AzureDefenderClient:
                         "epss": f.get("epss"),
                         "is_mock": f.get("is_mock", is_mock),
                         **f,
-                    })
+                    }
+                    for f in findings
+                ]
+                for ev in events:
+                    bus.emit("finding.created", ev)
             except Exception:
                 pass
 
@@ -550,15 +549,28 @@ class AzureDefenderClient:
         """
         if not alerts:
             return []
-        return self._inline_normalize(alerts)
+        findings, _ = self._normalize_with_counts(alerts)
+        return findings
 
-    def _inline_normalize(self, alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Inline normalizer for Azure Defender alerts → UnifiedFinding format."""
-        normalized = []
+    def _normalize_with_counts(
+        self, alerts: List[Dict[str, Any]]
+    ) -> "tuple[List[Dict[str, Any]], Dict[str, int]]":
+        """Single-pass normalize + severity count.
+
+        FIX-1: eliminates the second O(N) severity-counting loop in import_findings.
+        FIX-3: pre-builds tags list once via extend instead of two list concatenations.
+        """
+        normalized: List[Dict[str, Any]] = []
+        sev_counts: Dict[str, int] = {
+            "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0
+        }
         for alert in alerts:
             props = alert.get("properties", {})
             severity_label = props.get("severity", "Informational")
             sev = _AZURE_SEVERITY_MAP.get(severity_label, "info")
+
+            # FIX-1: accumulate counts in same pass.
+            sev_counts[sev] = sev_counts.get(sev, 0) + 1
 
             # Resource info
             resource_identifiers = props.get("resourceIdentifiers", [])
@@ -573,6 +585,12 @@ class AzureDefenderClient:
             # MITRE tactics/techniques
             tactics = props.get("tactics", [])
             techniques = props.get("techniques", [])
+
+            # FIX-3: single list allocation with extend instead of tactics + techniques
+            # which allocates a fresh list per alert.
+            tags: List[str] = []
+            tags.extend(tactics)
+            tags.extend(techniques)
 
             normalized.append({
                 "id": str(uuid.uuid4()),
@@ -598,9 +616,14 @@ class AzureDefenderClient:
                 "start_time": props.get("startTimeUtc", ""),
                 "end_time": props.get("endTimeUtc", ""),
                 "time_generated": props.get("timeGeneratedUtc", ""),
-                "tags": tactics + techniques,
+                "tags": tags,
             })
-        return normalized
+        return normalized, sev_counts
+
+    def _inline_normalize(self, alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Legacy entry-point — delegates to _normalize_with_counts."""
+        findings, _ = self._normalize_with_counts(alerts)
+        return findings
 
     def get_import_history(self, org_id: str = "default") -> List[Dict[str, Any]]:
         """
