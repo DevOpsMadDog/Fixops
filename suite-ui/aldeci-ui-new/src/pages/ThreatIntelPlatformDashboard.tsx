@@ -43,34 +43,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_SOURCES = [
-  { id: "SRC-001", source_name: "MITRE ATT&CK",     source_type: "framework",   reliability_score: 0.98, last_updated: "10 min ago", total_indicators: 14820, status: "active" },
-  { id: "SRC-002", source_name: "AlienVault OTX",   source_type: "osint",       reliability_score: 0.87, last_updated: "1 hr ago",   total_indicators: 92341, status: "active" },
-  { id: "SRC-003", source_name: "URLhaus",           source_type: "osint",       reliability_score: 0.91, last_updated: "30 min ago", total_indicators: 48205, status: "active" },
-  { id: "SRC-004", source_name: "AbuseIPDB",         source_type: "crowd",       reliability_score: 0.83, last_updated: "2 hr ago",   total_indicators: 23410, status: "active" },
-];
-
-const MOCK_INDICATORS = [
-  { id: "IOC-001", indicator_type: "ip",     value: "185.220.101.34",        severity: "critical", threat_category: "c2_server",    confidence: 0.97, tlp_level: "RED",   first_seen: "2026-04-14" },
-  { id: "IOC-002", indicator_type: "domain", value: "evil-update.ru",         severity: "critical", threat_category: "malware_dist",  confidence: 0.94, tlp_level: "RED",   first_seen: "2026-04-13" },
-  { id: "IOC-003", indicator_type: "hash",   value: "d41d8cd98f00b204e9800998ecf8427e", severity: "high", threat_category: "ransomware", confidence: 0.88, tlp_level: "AMBER", first_seen: "2026-04-12" },
-  { id: "IOC-004", indicator_type: "url",    value: "http://phish.xyz/login", severity: "high",     threat_category: "phishing",     confidence: 0.92, tlp_level: "AMBER", first_seen: "2026-04-15" },
-  { id: "IOC-005", indicator_type: "ip",     value: "91.108.4.175",           severity: "high",     threat_category: "c2_server",    confidence: 0.79, tlp_level: "AMBER", first_seen: "2026-04-11" },
-  { id: "IOC-006", indicator_type: "email",  value: "ceo@acme-corp.com.ru",   severity: "medium",   threat_category: "spear_phish",  confidence: 0.71, tlp_level: "GREEN", first_seen: "2026-04-10" },
-  { id: "IOC-007", indicator_type: "domain", value: "update-security.net",    severity: "medium",   threat_category: "malware_dist", confidence: 0.68, tlp_level: "GREEN", first_seen: "2026-04-09" },
-  { id: "IOC-008", indicator_type: "hash",   value: "5f4dcc3b5aa765d61d8327de", severity: "high",   threat_category: "trojan",      confidence: 0.85, tlp_level: "AMBER", first_seen: "2026-04-08" },
-  { id: "IOC-009", indicator_type: "ip",     value: "203.0.113.99",           severity: "medium",   threat_category: "scanner",      confidence: 0.62, tlp_level: "WHITE", first_seen: "2026-04-07" },
-  { id: "IOC-010", indicator_type: "url",    value: "http://download.ru/malware.exe", severity: "critical", threat_category: "dropper", confidence: 0.96, tlp_level: "RED", first_seen: "2026-04-15" },
-];
-
-const MOCK_REPORTS = [
-  { id: "RPT-001", report_name: "APT29 Campaign Analysis Q1 2026", report_type: "strategic",  tlp_level: "RED",   published_date: "2026-04-14" },
-  { id: "RPT-002", report_name: "Ransomware Wave — Healthcare Sector", report_type: "tactical", tlp_level: "AMBER", published_date: "2026-04-12" },
-  { id: "RPT-003", report_name: "Phishing Kit Resurgence 2026",   report_type: "operational", tlp_level: "GREEN", published_date: "2026-04-10" },
-  { id: "RPT-004", report_name: "Zero-Day Advisory CVE-2026-1234", report_type: "technical",  tlp_level: "RED",   published_date: "2026-04-09" },
-];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -173,7 +145,7 @@ export default function ThreatIntelPlatformDashboard() {
       const data = await apiFetch(`/api/v1/tip/indicators?org_id=${ORG_ID}&query=${encodeURIComponent(searchQuery)}&limit=20`);
       setSearchResults(Array.isArray(data) ? data : []);
     } catch {
-      setSearchResults(MOCK_INDICATORS.filter(i => i.value.includes(searchQuery) || i.threat_category.includes(searchQuery)));
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -197,14 +169,14 @@ export default function ThreatIntelPlatformDashboard() {
   };
 
   const stats      = liveData?.stats;
-  const sources    = liveData?.sources    ?? MOCK_SOURCES;
-  const indicators = searchResults ?? (liveData?.indicators ?? MOCK_INDICATORS);
-  const reports    = liveData?.reports    ?? MOCK_REPORTS;
+  const sources    = liveData?.sources    ?? [];
+  const indicators = searchResults ?? (liveData?.indicators ?? []);
+  const reports    = liveData?.reports    ?? [];
 
-  const totalIndicators    = stats?.total_indicators    ?? 178776;
-  const activeSources      = stats?.active_sources      ?? sources.filter((s: any) => s.status === "active").length;
-  const reportsPublished   = stats?.total_reports       ?? reports.length;
-  const relationshipsMapped = stats?.total_relationships ?? 24182;
+  const totalIndicators     = stats?.total_indicators    ?? 0;
+  const activeSources       = stats?.active_sources      ?? sources.filter((s: any) => s.status === "active").length;
+  const reportsPublished    = stats?.total_reports       ?? reports.length;
+  const relationshipsMapped = stats?.total_relationships ?? 0;
 
   return (
     <motion.div
