@@ -660,6 +660,18 @@ def register_platform_routers(
         _logger.warning("servicenow_itsm_router not available: %s", exc)
 
     try:
+        from apps.api.workday_router import (
+            router as workday_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            workday_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Workday HCM router at /api/v1/workday (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("workday_router not available: %s", exc)
+
+    try:
         from apps.api.mattermost_router import (
             router as mattermost_router,  # noqa: PLC0415
         )
@@ -2571,6 +2583,31 @@ def register_platform_routers(
         _logger.warning("censys_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # ThousandEyes Network Intelligence (v6 REST API) — 2026-05-04
+    # GET  /api/v1/thousandeyes/                              capability summary       (read:scans)
+    # GET  /api/v1/thousandeyes/v6/tests.json                 list tests               (read:scans)
+    # GET  /api/v1/thousandeyes/v6/tests/{test_id}.json       single test detail       (read:scans)
+    # GET  /api/v1/thousandeyes/v6/agents.json                list agents              (read:scans)
+    # GET  /api/v1/thousandeyes/v6/alerts.json                list alerts in window    (read:scans)
+    # GET  /api/v1/thousandeyes/v6/web/page-load.json         page-load test results   (read:scans)
+    # GET  /api/v1/thousandeyes/v6/net/metrics.json           network-layer metrics    (read:scans)
+    # GET  /api/v1/thousandeyes/v6/dns/server-metrics.json    DNS server metrics       (read:scans)
+    # GET  /api/v1/thousandeyes/v6/bgp/metrics.json           BGP metrics              (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.thousandeyes_router import router as thousandeyes_router  # noqa: PLC0415
+        app.include_router(
+            thousandeyes_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted ThousandEyes network-intelligence router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("thousandeyes_router not available: %s", exc)
+
     # AbuseIPDB Threat-Intel Lookup (v2 surface) — 2026-05-04
     # GET  /api/v1/abuseipdb/                              capability summary  (read:scans)
     # GET  /api/v1/abuseipdb/v2/check                      IP reputation       (read:scans)
@@ -3147,6 +3184,32 @@ def register_platform_routers(
         _logger.warning("wiz_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Splunk SOAR (Phantom) REST router (suite-core/core/splunk_soar_engine.py) — 2026-05-04
+    # GET   /api/v1/splunk-soar-rest/                                    capability summary       (read:scans)
+    # GET   /api/v1/splunk-soar-rest/rest/playbook                       list playbooks            (read:scans)
+    # GET   /api/v1/splunk-soar-rest/rest/container                      list containers           (read:scans)
+    # GET   /api/v1/splunk-soar-rest/rest/container/{container_id}       container detail          (read:scans)
+    # POST  /api/v1/splunk-soar-rest/rest/playbook_run                   trigger playbook run      (read:scans)
+    # GET   /api/v1/splunk-soar-rest/rest/playbook_run/{run_id}          playbook run status       (read:scans)
+    # GET   /api/v1/splunk-soar-rest/rest/action_run                     list action runs          (read:scans)
+    # GET   /api/v1/splunk-soar-rest/rest/asset                          list configured assets    (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.splunk_soar_router import (
+            router as splunk_soar_rest_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            splunk_soar_rest_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Splunk SOAR (Phantom) REST router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("splunk_soar_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Noname Security API posture router (suite-core/core/noname_engine.py) — 2026-05-04
     # GET   /api/v1/noname/                                    capability summary           (read:scans)
     # GET   /api/v1/noname/api/v3/apis                         list APIs (paginate/filter)  (read:scans)
@@ -3450,6 +3513,30 @@ def register_platform_routers(
         _logger.info("Mounted Akto API security router at /api/v1/akto (read:scans)")
     except ImportError as exc:
         _logger.warning("akto_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
+    # Palo Alto Cortex XSOAR (Demisto) — incidents/playbooks/integrations
+    # GET  /api/v1/xsoar/                                  capability summary  (read:scans)
+    # POST /api/v1/xsoar/incidents/search                  filter incidents    (read:scans)
+    # GET  /api/v1/xsoar/incidents/{id}                    one incident        (read:scans)
+    # POST /api/v1/xsoar/incidents/{id}/run                trigger playbook    (read:scans)
+    # POST /api/v1/xsoar/entry                             add war-room entry  (read:scans)
+    # POST /api/v1/xsoar/playbooks/search                  filter playbooks    (read:scans)
+    # POST /api/v1/xsoar/settings/integration/search       integration list    (read:scans)
+    # POST /api/v1/xsoar/settings/integration/test         test integration    (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.xsoar_router import router as xsoar_router  # noqa: PLC0415
+        app.include_router(
+            xsoar_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+    except ImportError as exc:
+        _logger.warning("xsoar_router not available: %s", exc)
 
 
     # ------------------------------------------------------------------
