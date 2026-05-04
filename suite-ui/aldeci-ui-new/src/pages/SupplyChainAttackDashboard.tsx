@@ -36,33 +36,6 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
-
-const MOCK_STATS = {
-  total_packages: 4821,
-  suspicious_packages: 34,
-  malicious_packages: 7,
-  critical_detections: 3,
-};
-
-const MOCK_PACKAGES = [
-  { package_name: "lodash",          ecosystem: "npm",    version: "4.17.21", attack_type: "none",            status: "clean",      risk_score: 5  },
-  { package_name: "event-stream",    ecosystem: "npm",    version: "3.3.6",   attack_type: "malicious_code",  status: "malicious",  risk_score: 98 },
-  { package_name: "colors",         ecosystem: "npm",    version: "1.4.44",  attack_type: "protestware",     status: "suspicious", risk_score: 72 },
-  { package_name: "PyYAML",          ecosystem: "pypi",   version: "5.3.1",   attack_type: "deserialization", status: "suspicious", risk_score: 55 },
-  { package_name: "ua-parser-js",    ecosystem: "npm",    version: "0.7.29",  attack_type: "malicious_code",  status: "malicious",  risk_score: 95 },
-  { package_name: "requests",        ecosystem: "pypi",   version: "2.31.0",  attack_type: "none",            status: "clean",      risk_score: 8  },
-  { package_name: "log4j-core",      ecosystem: "maven",  version: "2.14.1",  attack_type: "rce",             status: "malicious",  risk_score: 99 },
-];
-
-const MOCK_DETECTIONS = [
-  { detection_type: "Malicious code injection",  severity: "critical", confidence_score: 97, status: "confirmed", package_id: "event-stream@3.3.6"  },
-  { detection_type: "Typosquatting",             severity: "high",     confidence_score: 82, status: "open",      package_id: "lod4sh@4.17.21"       },
-  { detection_type: "Dependency confusion",      severity: "critical", confidence_score: 91, status: "confirmed", package_id: "internal-utils@1.0.0" },
-  { detection_type: "Protestware payload",       severity: "high",     confidence_score: 75, status: "open",      package_id: "colors@1.4.44"        },
-  { detection_type: "Obfuscated post-install",   severity: "medium",   confidence_score: 65, status: "reviewing", package_id: "build-helper@2.1.0"   },
-  { detection_type: "Log4Shell RCE vector",      severity: "critical", confidence_score: 99, status: "confirmed", package_id: "log4j-core@2.14.1"    },
-];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -156,9 +129,9 @@ export default function SupplyChainAttackDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats      = liveData.stats      ?? MOCK_STATS;
-  const packages   = liveData.packages   ?? MOCK_PACKAGES;
-  const detections = liveData.detections ?? MOCK_DETECTIONS;
+  const stats      = liveData.stats      ?? { total_packages: 0, suspicious_packages: 0, malicious_packages: 0, critical_detections: 0 };
+  const packages   = liveData.packages   ?? [];
+  const detections = liveData.detections ?? [];
 
   return (
     <motion.div
