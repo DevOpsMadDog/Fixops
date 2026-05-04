@@ -104,7 +104,7 @@ def test_db_stats_empty_data_dir(tmp_path):
     original_cwd = os.getcwd()
     os.chdir(tmp_path)
     try:
-        result = asyncio.get_event_loop().run_until_complete(mod.db_stats())
+        result = asyncio.run(mod.db_stats())
     finally:
         os.chdir(original_cwd)
 
