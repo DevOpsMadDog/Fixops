@@ -39,9 +39,10 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Deque, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -178,8 +179,7 @@ class MCPToolRegistry:
         self._tools: Dict[str, MCPToolSpec] = {}
         self._handlers: Dict[str, Callable] = {}
         self._stats: Dict[str, ToolExecutionStats] = {}
-        self._execution_history: List[MCPToolResult] = []
-        self._max_history: int = 1000
+        self._execution_history: Deque[MCPToolResult] = deque(maxlen=1000)
         self._initialized = True
 
         logger.info("Initializing MCPToolRegistry with built-in ALDECI tools")
@@ -294,10 +294,8 @@ class MCPToolRegistry:
             }
         )
 
-        # Add to history (with size limit)
+        # Add to history (deque enforces maxlen=1000 automatically)
         self._execution_history.append(tool_result)
-        if len(self._execution_history) > self._max_history:
-            self._execution_history.pop(0)
 
         return tool_result
 
@@ -365,10 +363,20 @@ class MCPToolRegistry:
         """Export all tool schemas as MCP tool definitions.
 
         Returns:
-            List of OpenAI-compatible tool schemas
+            List of OpenAI-compatible tool schemas (single-pass, no redundant lookup).
         """
-        enabled_tools = [t for t in self._tools.values() if t.enabled]
-        return [self.get_tool_schema(t.tool_id) for t in enabled_tools]
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": t.tool_id,
+                    "description": t.description,
+                    "parameters": t.parameters,
+                },
+            }
+            for t in self._tools.values()
+            if t.enabled
+        ]
 
     def get_execution_stats(self, tool_id: Optional[str] = None) -> Dict[str, Any]:
         """Get execution statistics.
@@ -396,9 +404,11 @@ class MCPToolRegistry:
             limit: Maximum number of results to return
 
         Returns:
-            List of recent execution results
+            List of recent execution results (deque-safe, no negative-slice).
         """
-        return [r.to_dict() for r in self._execution_history[-limit:]]
+        import itertools
+        start = max(0, len(self._execution_history) - limit)
+        return [r.to_dict() for r in itertools.islice(self._execution_history, start, None)]
 
     def clear_stats(self) -> None:
         """Reset all execution statistics."""

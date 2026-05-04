@@ -30,11 +30,13 @@ Usage:
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import time
 import uuid
+from collections import deque
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Deque, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -161,8 +163,7 @@ class MCPGateway:
     def __init__(self) -> None:
         self._tools: Dict[str, MCPTool] = {}
         self._handlers: Dict[str, Callable[..., Any]] = {}
-        self._call_log: List[Dict[str, Any]] = []
-        self._max_log: int = 500
+        self._call_log: Deque[Dict[str, Any]] = deque(maxlen=500)
 
         logger.info("Initialising MCPGateway with built-in ALDECI tools")
         self._register_builtin_tools()
@@ -250,7 +251,6 @@ class MCPGateway:
                 return result
 
             if isinstance(result, dict):
-                import json as _json
                 return MCPResponse.ok(
                     text=_json.dumps(result, default=str),
                     data=result,
@@ -300,7 +300,9 @@ class MCPGateway:
         Returns:
             List of call log dicts (newest last).
         """
-        return self._call_log[-limit:]
+        import itertools as _it
+        start = max(0, len(self._call_log) - limit)
+        return list(_it.islice(self._call_log, start, None))
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -327,8 +329,6 @@ class MCPGateway:
         if error:
             entry["error"] = error
         self._call_log.append(entry)
-        if len(self._call_log) > self._max_log:
-            self._call_log.pop(0)
 
     # ------------------------------------------------------------------
     # Built-in tool registration
