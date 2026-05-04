@@ -56,7 +56,7 @@ def get(path, delay=0.2):
                         return len(v) if isinstance(v, list) else (v if isinstance(v, int) else 1)
                 return 1 if d and "detail" not in d else 0
         return 0
-    except:
+    except Exception:
         return 0
 
 

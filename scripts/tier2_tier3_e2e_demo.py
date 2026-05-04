@@ -487,7 +487,7 @@ def main():
         try:
             r = requests.get(f"{BASE}/autofix/stats", headers=HEADERS, timeout=10)
             ok(f"AutoFix stats: {r.status_code} — {json.dumps(r.json())[:200]}")
-        except:
+        except Exception:
             fail(f"AutoFix error: {e}")
 
     section("Trigger autofix for a critical finding")
