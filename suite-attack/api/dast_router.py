@@ -265,8 +265,8 @@ async def start_scan(req: ScanRequest) -> Dict[str, Any]:
         }
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        _logger.exception("Failed to start DAST scan: %s", exc)
+    except (OSError, RuntimeError, KeyError, TypeError, AttributeError) as exc:
+        _logger.error("Failed to start DAST scan: %s", type(exc).__name__)
         raise HTTPException(status_code=500, detail="Failed to start scan")
 
 
@@ -351,9 +351,9 @@ async def check_security_headers(url: str) -> Dict[str, Any]:
         analyser = SecurityHeadersAnalyser()
         result = analyser.analyse(url, client)
         return result.to_dict()
-    except Exception as exc:
-        _logger.exception("Security headers check failed for %s: %s", url, exc)
-        raise HTTPException(status_code=500, detail=f"Headers check failed: {exc}")
+    except (OSError, RuntimeError, KeyError, TypeError, AttributeError, ValueError) as exc:
+        _logger.error("Security headers check failed for %s: %s", url, type(exc).__name__)
+        raise HTTPException(status_code=500, detail="Headers check failed")
 
 
 @router.get("/profiles")
@@ -448,3 +448,9 @@ async def get_dast_stats(org_id: Optional[str] = Query(None)) -> Dict[str, Any]:
 async def dast_health() -> Dict[str, Any]:
     """Health check for the DAST scanner engine."""
     return {"status": "healthy", "engine": "dast_scanner", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def dast_status() -> Dict[str, Any]:
+    """Status alias for the DAST scanner engine."""
+    return await dast_health()

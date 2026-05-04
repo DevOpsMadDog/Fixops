@@ -148,7 +148,7 @@ class DiscoveredVulnRequest(BaseModel):
 
     title: str = Field("Untitled Vulnerability", min_length=1, max_length=200)
     description: str = Field(
-        "Vulnerability discovered via ALdeci platform.", min_length=1
+        "Vulnerability discovered via ALdeci platform.", min_length=1, max_length=32_000
     )
     severity: VulnSeverity = VulnSeverity.MEDIUM
     impact_type: ImpactType = ImpactType.OTHER
@@ -163,7 +163,7 @@ class DiscoveredVulnRequest(BaseModel):
         "unknown", description="e.g., '< 2.1.5' or '1.0.0 - 2.0.0'"
     )
 
-    proof_of_concept: Optional[str] = Field(None, description="PoC code or steps")
+    proof_of_concept: Optional[str] = Field(None, description="PoC code or steps", max_length=50_000)
     exploitation_difficulty: str = Field(
         default="medium", description="trivial, low, medium, high"
     )
@@ -208,19 +208,27 @@ class DiscoveredVulnResponse(BaseModel):
 class ContributeRequest(BaseModel):
     """Request to submit vulnerability to CVE program."""
 
-    vuln_id: str = Field(..., description="ALdeci internal vulnerability ID")
+    vuln_id: str = Field(..., description="ALdeci internal vulnerability ID", max_length=256)
     program: ContributionProgram
-    researcher_name: str
-    researcher_email: str
-    organization: Optional[str] = None
+    researcher_name: str = Field(..., min_length=1, max_length=256)
+    researcher_email: str = Field(..., min_length=5, max_length=254)
+    organization: Optional[str] = Field(None, max_length=256)
 
     disclosure_timeline: Optional[str] = Field(
-        None, description="Proposed disclosure timeline (e.g., '90 days')"
+        None, description="Proposed disclosure timeline (e.g., '90 days')", max_length=256
     )
     coordinate_with_vendor: bool = True
-    vendor_contact: Optional[str] = None
+    vendor_contact: Optional[str] = Field(None, max_length=512)
 
     additional_references: List[str] = Field(default_factory=list)
+
+    @validator("researcher_email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        import re as _re
+        if not _re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("researcher_email must be a valid email address")
+        return v
 
 
 class ContributeResponse(BaseModel):
@@ -504,7 +512,7 @@ async def report_discovered_vulnerability(
                 "source": "vuln_discovery_router",
                 "data": {"internal_id": internal_id, "title": request.title},
             }))
-    except Exception:
+    except (ImportError, OSError, RuntimeError, AttributeError):
         pass
 
     logger.info("Reported discovered vulnerability: %s", internal_id)

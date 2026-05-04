@@ -40,15 +40,15 @@ router = APIRouter(prefix="/api/v1/attack-sim", tags=["attack-simulation"])
 class CreateScenarioRequest(BaseModel):
     """Request to create an attack scenario."""
 
-    name: str = Field(..., description="Scenario name")
-    description: str = Field("", description="Scenario description")
-    threat_actor: str = Field("cybercriminal", description="Threat actor profile")
-    complexity: str = Field("medium", description="Attack complexity")
-    target_assets: List[str] = Field(default_factory=list, description="Target assets")
-    target_cves: List[str] = Field(default_factory=list, description="CVEs to exploit")
-    objectives: List[str] = Field(default_factory=list, description="Attack objectives")
+    name: str = Field(..., description="Scenario name", min_length=1, max_length=256)
+    description: str = Field("", description="Scenario description", max_length=4096)
+    threat_actor: str = Field("cybercriminal", description="Threat actor profile", max_length=128)
+    complexity: str = Field("medium", description="Attack complexity", max_length=64)
+    target_assets: List[str] = Field(default_factory=list, description="Target assets", max_length=100)
+    target_cves: List[str] = Field(default_factory=list, description="CVEs to exploit", max_length=100)
+    objectives: List[str] = Field(default_factory=list, description="Attack objectives", max_length=50)
     initial_access_vector: str = Field(
-        "", description="MITRE technique ID for initial access"
+        "", description="MITRE technique ID for initial access", max_length=64
     )
 
 
@@ -56,14 +56,14 @@ class GenerateScenarioRequest(BaseModel):
     """Request to AI-generate a scenario."""
 
     target_description: str = Field(
-        "Web application", description="Description of the target"
+        "Web application", description="Description of the target", max_length=1024
     )
-    target: Optional[str] = Field(None, description="Alias for target_description")
-    threat_actor: str = Field("cybercriminal", description="Threat actor profile")
+    target: Optional[str] = Field(None, description="Alias for target_description", max_length=1024)
+    threat_actor: str = Field("cybercriminal", description="Threat actor profile", max_length=128)
     attack_type: Optional[str] = Field(
-        None, description="Type of attack (e.g., rce, xss)"
+        None, description="Type of attack (e.g., rce, xss)", max_length=64
     )
-    cve_ids: List[str] = Field(default_factory=list, description="Known CVEs")
+    cve_ids: List[str] = Field(default_factory=list, description="Known CVEs", max_length=100)
 
     @validator("target_description", pre=True, always=True)
     def resolve_target(cls, v, values):
