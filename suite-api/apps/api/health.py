@@ -388,4 +388,80 @@ async def database_health_check(response: Response) -> Dict[str, Any]:
     }
 
 
+@router.get("/health/comprehensive", status_code=status.HTTP_200_OK, summary="Aggregate platform health snapshot")
+async def comprehensive_health() -> Dict[str, Any]:
+    """
+    Single JSON snapshot of platform health for monitoring dashboards and alerting.
+
+    Aggregates 5 subsystem checks: TrustGraph event bus, feeds DB, crypto manager,
+    risk scorer, and brain pipeline importability.  Always returns 200 — callers
+    inspect the top-level ``status`` field (``ok`` | ``degraded``).
+    """
+    import time
+
+    started = time.perf_counter()
+    checks: Dict[str, Any] = {}
+
+    # 1. TrustGraph event-bus reachability
+    try:
+        from trustgraph.event_bus import trustgraph_event_bus  # noqa: F401
+        checks["trustgraph"] = {"status": "ok"}
+    except Exception as exc:  # noqa: BLE001
+        checks["trustgraph"] = {"status": "degraded", "reason": type(exc).__name__}
+
+    # 2. Feeds DB — list tables via sqlite3
+    try:
+        import pathlib
+
+        p = pathlib.Path("data/feeds/feeds.db")
+        if p.exists():
+            con = sqlite3.connect(str(p), timeout=2)
+            cur = con.execute("SELECT name FROM sqlite_master WHERE type='table' LIMIT 5")
+            tables = [r[0] for r in cur.fetchall()]
+            con.close()
+            checks["feeds_db"] = {"status": "ok", "tables": tables}
+        else:
+            checks["feeds_db"] = {"status": "missing"}
+    except Exception as exc:  # noqa: BLE001
+        checks["feeds_db"] = {"status": "error", "reason": type(exc).__name__}
+
+    # 3. Crypto manager singleton
+    try:
+        from core.crypto import get_crypto_manager  # type: ignore[import]
+
+        cm = get_crypto_manager()
+        fingerprint = cm.public_fingerprint()[:16] if hasattr(cm, "public_fingerprint") else "n/a"
+        checks["crypto"] = {"status": "ok", "fingerprint": fingerprint}
+    except Exception as exc:  # noqa: BLE001
+        checks["crypto"] = {"status": "error", "reason": type(exc).__name__}
+
+    # 4. Risk scorer importability
+    try:
+        from core.ml.risk_scorer import RiskScorer  # type: ignore[import]  # noqa: F401
+
+        checks["risk_scorer"] = {"status": "ok"}
+    except Exception as exc:  # noqa: BLE001
+        checks["risk_scorer"] = {"status": "error", "reason": type(exc).__name__}
+
+    # 5. Brain pipeline importability
+    try:
+        from core.brain_pipeline import BrainPipeline  # type: ignore[import]  # noqa: F401
+
+        checks["brain_pipeline"] = {"status": "ok"}
+    except Exception as exc:  # noqa: BLE001
+        checks["brain_pipeline"] = {"status": "error", "reason": type(exc).__name__}
+
+    overall = "ok" if all(c.get("status") == "ok" for c in checks.values()) else "degraded"
+    elapsed_ms = (time.perf_counter() - started) * 1000
+
+    return {
+        "status": overall,
+        "checks": checks,
+        "elapsed_ms": round(elapsed_ms, 2),
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+        "service": "fixops-api",
+        "version": VERSION,
+    }
+
+
 __all__ = ["router"]
