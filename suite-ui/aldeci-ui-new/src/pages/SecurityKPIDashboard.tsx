@@ -25,26 +25,22 @@ import {
   BarChart3,
   Shield,
   RefreshCw,
-  ChevronRight,
-  Target,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+  "";
+const ORG_ID = "default";
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -95,154 +91,14 @@ interface Weakness {
 }
 
 // ══════════════════════════════════════════════════════════════
-// Mock Data
+// Empty defaults (no mock data)
 // ══════════════════════════════════════════════════════════════
 
-const MOCK_SCORECARD = {
-  overall_grade: "B" as GradeLevel,
-  overall_score: 78,
-  last_updated: "2026-04-14T09:30:00Z",
-  kpis: [
-    {
-      id: "mttd",
-      name: "MTTD (Mean Time To Detect)",
-      value: 4.2,
-      unit: "hours",
-      trend: "down" as TrendDirection,
-      benchmark: "good" as BenchmarkStatus,
-      industryAvg: 6.5,
-      target: 4,
-    },
-    {
-      id: "mttr",
-      name: "MTTR (Mean Time To Remediate)",
-      value: 18.7,
-      unit: "hours",
-      trend: "up" as TrendDirection,
-      benchmark: "average" as BenchmarkStatus,
-      industryAvg: 24,
-      target: 16,
-    },
-    {
-      id: "patch_compliance",
-      name: "Patch Compliance",
-      value: 92,
-      unit: "%",
-      trend: "stable" as TrendDirection,
-      benchmark: "good" as BenchmarkStatus,
-      industryAvg: 85,
-      target: 95,
-    },
-    {
-      id: "vuln_density",
-      name: "Vulnerability Density",
-      value: 2.3,
-      unit: "per 1K LOC",
-      trend: "down" as TrendDirection,
-      benchmark: "average" as BenchmarkStatus,
-      industryAvg: 3.1,
-      target: 1.5,
-    },
-    {
-      id: "sla_compliance",
-      name: "SLA Compliance",
-      value: 96.8,
-      unit: "%",
-      trend: "stable" as TrendDirection,
-      benchmark: "good" as BenchmarkStatus,
-      industryAvg: 93,
-      target: 98,
-    },
-    {
-      id: "fp_rate",
-      name: "False Positive Rate",
-      value: 8.2,
-      unit: "%",
-      trend: "down" as TrendDirection,
-      benchmark: "poor" as BenchmarkStatus,
-      industryAvg: 6.5,
-      target: 5,
-    },
-  ] as KPIMetric[],
-};
-
-const MOCK_CATEGORY_SCORES: CategoryScore[] = [
-  {
-    category: "Vulnerability Management",
-    score: 82,
-    controls_total: 24,
-    controls_passing: 20,
-    status: "good",
-  },
-  {
-    category: "Incident Response",
-    score: 76,
-    controls_total: 18,
-    controls_passing: 14,
-    status: "warning",
-  },
-  {
-    category: "Compliance",
-    score: 78,
-    controls_total: 32,
-    controls_passing: 25,
-    status: "warning",
-  },
-  {
-    category: "Threat Detection",
-    score: 75,
-    controls_total: 16,
-    controls_passing: 12,
-    status: "warning",
-  },
-];
-
-const MOCK_STRENGTHS: Strength[] = [
-  {
-    title: "Rapid Detection",
-    description: "MTTD of 4.2 hours is 35% faster than industry average (6.5h)",
-    icon: "trend_up",
-  },
-  {
-    title: "Patch Excellence",
-    description: "92% patch compliance exceeds target and industry benchmark",
-    icon: "check",
-  },
-  {
-    title: "SLA Adherence",
-    description: "96.8% SLA compliance maintains customer trust and audit readiness",
-    icon: "target",
-  },
-];
-
-const MOCK_WEAKNESSES: Weakness[] = [
-  {
-    title: "False Positive Rate",
-    description: "8.2% FP rate consumes SOC resources. Target: 5% by Q3 2026",
-    icon: "warning",
-    priority: "high",
-  },
-  {
-    title: "Remediation Speed",
-    description: "MTTR increasing (18.7h vs 16h target). Requires playbook optimization",
-    icon: "clock",
-    priority: "high",
-  },
-  {
-    title: "Vuln Density Trend",
-    description: "2.3/1K LOC remains above target. Require code security shift-left",
-    icon: "alert",
-    priority: "medium",
-  },
-];
-
-const TREND_DATA_7DAY = {
-  mttd: [6.1, 5.8, 5.2, 4.8, 4.5, 4.3, 4.2],
-  mttr: [16.2, 16.8, 17.4, 18.1, 18.4, 18.6, 18.7],
-  patch_compliance: [88, 89, 90, 91, 91, 92, 92],
-  sla_compliance: [94.2, 94.8, 95.1, 95.6, 96.1, 96.4, 96.8],
-  fp_rate: [10.1, 9.8, 9.4, 8.9, 8.6, 8.4, 8.2],
-  vuln_density: [2.8, 2.7, 2.6, 2.5, 2.4, 2.3, 2.3],
+const EMPTY_SCORECARD = {
+  overall_grade: "C" as GradeLevel,
+  overall_score: 0,
+  last_updated: new Date().toISOString(),
+  kpis: [] as KPIMetric[],
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -330,53 +186,55 @@ function Sparkline({ data, label, trend }: { data: number[]; label: string; tren
 // ══════════════════════════════════════════════════════════════
 
 export default function SecurityKPIDashboard() {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [liveData, setLiveData] = useState<any>(null);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing]       = useState(false);
+  const [dataLoading, setDataLoading]         = useState(true);
+  const [scorecard, setScorecard]             = useState(EMPTY_SCORECARD);
+  const [categoryScores, setCategoryScores]   = useState<CategoryScore[]>([]);
+  const [strengths, setStrengths]             = useState<Strength[]>([]);
+  const [weaknesses, setWeaknesses]           = useState<Weakness[]>([]);
+  const [trendData, setTrendData]             = useState<Record<string, number[]>>({});
 
-  useEffect(() => {
+  const load = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/kpis/executive?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/kpis/current?org_id=${ORG_ID}`),
-    ]).then(([execResult, currentResult]) => {
-      const executive = execResult.status  === "fulfilled" ? execResult.value  : null;
-      const current   = currentResult.status === "fulfilled" ? currentResult.value : null;
-      if (executive || current) {
-        setLiveData({ executive, current });
+      apiFetch(`/api/v1/kpis/scorecard?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpis/categories?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpis/strengths?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpis/weaknesses?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpis/trends?org_id=${ORG_ID}`),
+    ]).then(([scRes, catRes, strRes, weakRes, trendRes]) => {
+      if (scRes.status === "fulfilled") {
+        const s = scRes.value;
+        setScorecard({
+          overall_grade: s.overall_grade ?? s.overall_health ?? "C",
+          overall_score: s.overall_score ?? s.portfolio_score ?? 0,
+          last_updated: s.last_updated ?? s.generated_at ?? new Date().toISOString(),
+          kpis: Array.isArray(s.kpis) ? s.kpis.map((k: any) => ({
+            id: k.id ?? k.name,
+            name: k.name ?? k.display_name,
+            value: k.value,
+            unit: k.unit ?? "",
+            trend: k.trend ?? "stable",
+            benchmark: k.benchmark ?? (k.health === "green" ? "good" : k.health === "yellow" ? "average" : "poor"),
+            industryAvg: k.industryAvg ?? k.industry_avg ?? k.target ?? k.value,
+            target: k.target ?? k.value,
+          })) : [],
+        });
       }
+      if (catRes.status === "fulfilled") setCategoryScores(catRes.value?.categories ?? catRes.value ?? []);
+      if (strRes.status === "fulfilled") setStrengths(strRes.value?.strengths ?? strRes.value ?? []);
+      if (weakRes.status === "fulfilled") setWeaknesses(weakRes.value?.weaknesses ?? weakRes.value ?? []);
+      if (trendRes.status === "fulfilled") setTrendData(trendRes.value?.trends ?? trendRes.value ?? {});
     }).finally(() => setDataLoading(false));
-  }, []);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
   };
+
+  useEffect(() => { load(); }, []);
+
+  const handleRefresh = () => { setIsRefreshing(true); load(); setTimeout(() => setIsRefreshing(false), 1000); };
 
   if (dataLoading) return <PageSkeleton />;
 
-  // Build scorecard from live executive summary or fall back to mock
-  const execSummary = liveData?.executive;
-  const data = execSummary
-    ? {
-        overall_grade: execSummary.overall_health ?? MOCK_SCORECARD.overall_grade,
-        overall_score: execSummary.portfolio_score ?? MOCK_SCORECARD.overall_score,
-        last_updated: execSummary.generated_at ?? MOCK_SCORECARD.last_updated,
-        kpis: Array.isArray(execSummary.kpis) && execSummary.kpis.length > 0
-          ? execSummary.kpis.map((k: any) => ({
-              id: k.name,
-              name: k.display_name ?? k.name,
-              value: k.value,
-              unit: k.unit ?? "",
-              trend: k.trend ?? "stable",
-              benchmark: k.health === "green" ? "good" : k.health === "yellow" ? "average" : "poor",
-              industryAvg: k.target ?? k.value,
-              target: k.target ?? k.value,
-            }))
-          : MOCK_SCORECARD.kpis,
-      }
-    : MOCK_SCORECARD;
+  const data = scorecard;
 
   return (
     <div className="space-y-6 p-6">
@@ -537,24 +395,13 @@ export default function SecurityKPIDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 bg-slate-900/20 rounded-lg">
-              <Sparkline data={TREND_DATA_7DAY.mttd} label="MTTD (hours)" trend="down" />
-              <Sparkline data={TREND_DATA_7DAY.mttr} label="MTTR (hours)" trend="up" />
-              <Sparkline
-                data={TREND_DATA_7DAY.patch_compliance}
-                label="Patch Compliance (%)"
-                trend="stable"
-              />
-              <Sparkline
-                data={TREND_DATA_7DAY.sla_compliance}
-                label="SLA Compliance (%)"
-                trend="stable"
-              />
-              <Sparkline data={TREND_DATA_7DAY.fp_rate} label="FP Rate (%)" trend="down" />
-              <Sparkline
-                data={TREND_DATA_7DAY.vuln_density}
-                label="Vuln Density (/1K LOC)"
-                trend="down"
-              />
+              {Object.keys(trendData).length === 0 ? (
+                <p className="text-xs text-slate-500 col-span-3">No trend data available.</p>
+              ) : (
+                Object.entries(trendData).map(([key, values]) => (
+                  <Sparkline key={key} data={values} label={key.replace(/_/g, " ")} trend="stable" />
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -574,7 +421,10 @@ export default function SecurityKPIDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {MOCK_CATEGORY_SCORES.map((cat) => (
+            {categoryScores.length === 0 ? (
+              <p className="text-xs text-slate-500">No category data available.</p>
+            ) : null}
+            {categoryScores.map((cat) => (
               <motion.div
                 key={cat.category}
                 initial={{ opacity: 0, x: -10 }}
@@ -621,7 +471,8 @@ export default function SecurityKPIDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {MOCK_STRENGTHS.map((strength, idx) => (
+            {strengths.length === 0 && <p className="text-xs text-slate-500">No strengths data available.</p>}
+            {strengths.map((strength, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 10 }}
@@ -645,7 +496,8 @@ export default function SecurityKPIDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {MOCK_WEAKNESSES.map((weakness, idx) => (
+            {weaknesses.length === 0 && <p className="text-xs text-slate-500">No weaknesses data available.</p>}
+            {weaknesses.map((weakness, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 10 }}
