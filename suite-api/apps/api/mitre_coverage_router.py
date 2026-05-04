@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -51,11 +51,13 @@ class FindingItem(BaseModel):
     cwe_id: Optional[Any] = Field(None, description="CWE ID (e.g. 'CWE-89', '89', 89)")
     severity: Optional[str] = Field("medium", description="critical/high/medium/low/info")
 
-    @validator("cwe_id", pre=True, always=True)
+    @field_validator("cwe_id", mode="before")
+    @classmethod
     def coerce_cwe(cls, v):
         return str(v) if v is not None else None
 
-    @validator("severity", pre=True, always=True)
+    @field_validator("severity", mode="before")
+    @classmethod
     def normalize_severity(cls, v):
         if not v:
             return "medium"
@@ -64,9 +66,10 @@ class FindingItem(BaseModel):
 
 
 class MapRequest(BaseModel):
-    findings: List[FindingItem] = Field(..., min_items=1, description="Findings to map (max 500)")
+    findings: List[FindingItem] = Field(..., min_length=1, description="Findings to map (max 500)")
 
-    @validator("findings")
+    @field_validator("findings")
+    @classmethod
     def cap_findings(cls, v):
         if len(v) > 500:
             raise ValueError("Maximum 500 findings per request")
@@ -74,9 +77,10 @@ class MapRequest(BaseModel):
 
 
 class CoverageRequest(BaseModel):
-    findings: List[FindingItem] = Field(..., min_items=1)
+    findings: List[FindingItem] = Field(..., min_length=1)
 
-    @validator("findings")
+    @field_validator("findings")
+    @classmethod
     def cap_findings(cls, v):
         if len(v) > 500:
             raise ValueError("Maximum 500 findings per request")
@@ -90,9 +94,10 @@ class GapsRequest(BaseModel):
 
 
 class HeatmapRequest(BaseModel):
-    findings: List[FindingItem] = Field(..., min_items=1)
+    findings: List[FindingItem] = Field(..., min_length=1)
 
-    @validator("findings")
+    @field_validator("findings")
+    @classmethod
     def cap_findings(cls, v):
         if len(v) > 500:
             raise ValueError("Maximum 500 findings per request")

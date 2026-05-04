@@ -27,7 +27,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +87,12 @@ class ScanRequest(BaseModel):
     handler: Optional[Dict[str, Any]] = Field(default=None)
     config: Optional[Any] = Field(default=None)
 
-    class Config:
-        populate_by_name = True
-        extra = "allow"
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
 
 class ScanResultUpdate(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     scanId: str = Field(..., min_length=1)
     projectId: str = Field(..., min_length=1)
     similarityId: str = Field(..., min_length=1)
@@ -100,9 +100,6 @@ class ScanResultUpdate(BaseModel):
     state: Optional[str] = Field(default=None)
     status: Optional[str] = Field(default=None)
     comment: Optional[str] = Field(default=None)
-
-    class Config:
-        extra = "allow"
 
 
 # ---------------------------------------------------------------------------

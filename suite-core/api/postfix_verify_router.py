@@ -31,7 +31,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,8 @@ class VerifyFixRequest(BaseModel):
         description="Optional dependency changes {package: new_version} introduced by the fix",
     )
 
-    @validator("severity")
+    @field_validator("severity")
+    @classmethod
     def _validate_severity(cls, v: str) -> str:
         allowed = {"critical", "high", "medium", "low"}
         v = v.lower().strip()
@@ -107,11 +108,13 @@ class VerifyFixRequest(BaseModel):
             raise ValueError(f"severity must be one of {allowed}")
         return v
 
-    @validator("language")
+    @field_validator("language")
+    @classmethod
     def _normalise_language(cls, v: str) -> str:
         return v.lower().strip()
 
-    @validator("finding_type")
+    @field_validator("finding_type")
+    @classmethod
     def _normalise_finding_type(cls, v: str) -> str:
         return v.lower().strip().replace("-", "_").replace(" ", "_")
 
@@ -125,8 +128,8 @@ class BulkVerifyRequest(BaseModel):
     fixes: List[VerifyFixRequest] = Field(
         ...,
         description="List of fix verification requests (max 20)",
-        min_items=1,
-        max_items=20,
+        min_length=1,
+        max_length=20,
     )
     fail_fast: bool = Field(
         False,
@@ -146,7 +149,8 @@ class RegressionCheckRequest(BaseModel):
     language: str = Field(...)
     finding_id: str = Field(default="")
 
-    @validator("language")
+    @field_validator("language")
+    @classmethod
     def _normalise(cls, v: str) -> str:
         return v.lower().strip()
 
@@ -163,11 +167,13 @@ class MPTERetestRequest(BaseModel):
     finding_type: str = Field(...)
     finding_id: str = Field(default="")
 
-    @validator("language")
+    @field_validator("language")
+    @classmethod
     def _normalise_lang(cls, v: str) -> str:
         return v.lower().strip()
 
-    @validator("finding_type")
+    @field_validator("finding_type")
+    @classmethod
     def _normalise_type(cls, v: str) -> str:
         return v.lower().strip().replace("-", "_").replace(" ", "_")
 

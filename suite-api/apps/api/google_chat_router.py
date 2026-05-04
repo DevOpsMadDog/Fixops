@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.google_chat_engine import (
     GoogleChatUnavailableError,
@@ -39,83 +39,74 @@ router = APIRouter(
 
 
 class _CardHeader(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     title: Optional[str] = None
     subtitle: Optional[str] = None
     imageUrl: Optional[str] = None
 
-    class Config:
-        extra = "allow"
-
 
 class _TextParagraph(BaseModel):
-    text: str
+    model_config = ConfigDict(extra="allow")
 
-    class Config:
-        extra = "allow"
+    text: str
 
 
 class _Widget(BaseModel):
-    textParagraph: Optional[_TextParagraph] = None
+    model_config = ConfigDict(extra="allow")
 
-    class Config:
-        extra = "allow"
+    textParagraph: Optional[_TextParagraph] = None
 
 
 class _Section(BaseModel):
-    widgets: Optional[List[_Widget]] = None
+    model_config = ConfigDict(extra="allow")
 
-    class Config:
-        extra = "allow"
+    widgets: Optional[List[_Widget]] = None
 
 
 class _Card(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     header: Optional[_CardHeader] = None
     sections: Optional[List[_Section]] = None
 
-    class Config:
-        extra = "allow"
-
 
 class _CardV2Wrapper(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     cardId: Optional[str] = None
     card: Optional[_Card] = None
 
-    class Config:
-        extra = "allow"
-
 
 class _Thread(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     name: Optional[str] = None
     threadKey: Optional[str] = None
-
-    class Config:
-        extra = "allow"
 
 
 class WebhookPayload(BaseModel):
     """Google Chat incoming-webhook payload — must include text or cards."""
 
+    model_config = ConfigDict(extra="allow")
+
     text: Optional[str] = None
     cards: Optional[List[_Card]] = None
     cardsV2: Optional[List[_CardV2Wrapper]] = None
     thread: Optional[_Thread] = None
     fallbackText: Optional[str] = None
-
-    class Config:
-        extra = "allow"
 
 
 class PostMessageRequest(BaseModel):
     """Google Chat REST POST /spaces/{space}/messages payload."""
 
+    model_config = ConfigDict(extra="allow")
+
     text: Optional[str] = None
     cards: Optional[List[_Card]] = None
     cardsV2: Optional[List[_CardV2Wrapper]] = None
     thread: Optional[_Thread] = None
     fallbackText: Optional[str] = None
-
-    class Config:
-        extra = "allow"
 
 
 # ----------------------------------------------------------------- helpers

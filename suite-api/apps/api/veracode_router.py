@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +82,7 @@ class GenericResponse(BaseModel):
     structures with many optional fields. We forward the upstream JSON
     verbatim and let the UI consume the documented shape."""
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 # ---------------------------------------------------------------------------

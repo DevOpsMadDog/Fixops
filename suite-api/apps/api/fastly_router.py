@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Path, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -183,8 +183,7 @@ class StatsMeta(BaseModel):
     by: str = "hour"
     region: Optional[str] = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class StatsResponse(BaseModel):

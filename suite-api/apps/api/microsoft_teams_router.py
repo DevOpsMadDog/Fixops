@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.microsoft_teams_engine import (
     MicrosoftTeamsUnavailableError,
@@ -58,26 +58,23 @@ class _ActionTarget(BaseModel):
 
 
 class _PotentialAction(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
     type: str = Field(default="OpenUri", alias="@type")
     name: str
     targets: Optional[List[_ActionTarget]] = None
 
-    class Config:
-        populate_by_name = True
-        extra = "allow"
-
 
 class WebhookMessageCard(BaseModel):
     """Legacy MessageCard payload (most common Teams Incoming Webhook format)."""
+
+    model_config = ConfigDict(extra="allow")
 
     text: Optional[str] = None
     summary: Optional[str] = None
     themeColor: Optional[str] = None
     sections: Optional[List[_Section]] = None
     potentialAction: Optional[List[_PotentialAction]] = None
-
-    class Config:
-        extra = "allow"
 
 
 class _AdaptiveAttachment(BaseModel):
@@ -88,11 +85,10 @@ class _AdaptiveAttachment(BaseModel):
 class WebhookAdaptiveCard(BaseModel):
     """Power Automate / Adaptive Card payload variant."""
 
+    model_config = ConfigDict(extra="allow")
+
     type: str = "message"
     attachments: List[_AdaptiveAttachment]
-
-    class Config:
-        extra = "allow"
 
 
 class _MessageBody(BaseModel):
@@ -101,11 +97,10 @@ class _MessageBody(BaseModel):
 
 
 class PostChannelMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     body: _MessageBody
     mentions: Optional[List[Dict[str, Any]]] = None
-
-    class Config:
-        extra = "allow"
 
 
 # ----------------------------------------------------------------- helpers

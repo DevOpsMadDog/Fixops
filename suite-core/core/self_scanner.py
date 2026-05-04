@@ -75,7 +75,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 logger = structlog.get_logger(__name__)
 
@@ -242,8 +242,7 @@ class SelfScanReport(BaseModel):
     lines_scanned: int = 0
     ci_workflow_yaml: Optional[str] = None
 
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat()}
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
 
 # ---------------------------------------------------------------------------

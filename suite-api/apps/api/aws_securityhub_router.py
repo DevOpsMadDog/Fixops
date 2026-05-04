@@ -116,7 +116,7 @@ def batch_get_findings(
     body: BatchGetFindingsRequest = Body(...),
 ) -> Dict[str, Any]:
     eng = get_aws_securityhub_engine()
-    identifiers = [ident.dict() for ident in body.FindingIdentifiers]
+    identifiers = [ident.model_dump() for ident in body.FindingIdentifiers]
     try:
         return eng.batch_get_findings(identifiers)
     except AWSSecurityHubUnavailableError as exc:

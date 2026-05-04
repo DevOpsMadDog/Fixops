@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +86,7 @@ class SecurityEventsFilter(BaseModel):
     ruleList: Optional[List[str]] = None
     ruleSeverityList: Optional[List[str]] = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class SecurityEventsQuery(BaseModel):
