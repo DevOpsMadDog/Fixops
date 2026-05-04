@@ -104,6 +104,8 @@ _ALLOWED_CATEGORIES = {
 
 # Bundle ID pattern: EVB-YYYY-XXXXXX (alphanumeric suffix)
 _BUNDLE_ID_RE = re.compile(r"^EVB-\d{4}-[A-Za-z0-9]{3,8}$")
+# Safe bundle ID characters — precompiled to avoid per-request compilation
+_BUNDLE_ID_SAFE_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 # ---------------------------------------------------------------------------
 # Demo data — known signed bundle IDs and fallback bundle metadata
@@ -221,7 +223,7 @@ def _sanitize_bundle_id(bundle_id: str) -> str:
         raise HTTPException(status_code=400, detail="Invalid bundle ID")
     # Must match expected pattern for strict endpoints, but we allow
     # legacy IDs that are simple alphanumeric strings as well.
-    if not re.match(r"^[A-Za-z0-9_\-]+$", safe):
+    if not _BUNDLE_ID_SAFE_RE.match(safe):
         raise HTTPException(
             status_code=400, detail="Bundle ID contains invalid characters"
         )

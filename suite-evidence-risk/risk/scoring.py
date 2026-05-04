@@ -209,6 +209,30 @@ def _lag_factor(days: float) -> float:
     return min(days / VERSION_LAG_CAP_DAYS, 1.0)
 
 
+def _build_enhanced_weights(
+    weights: Mapping[str, float],
+    has_reachability: bool,
+) -> Dict[str, float]:
+    """Precompute enhanced weights dict once per pipeline run.
+
+    When reachability data is present and "reachability" is not already in
+    weights, adds a 15% reachability slot and rescales the original weights
+    proportionally to 85%.  Returns a plain dict ready for O(1) reuse.
+    """
+    if not has_reachability or "reachability" in weights:
+        return dict(weights)
+    enhanced: Dict[str, float] = {}
+    total_existing = sum(weights.values())
+    if total_existing > 0:
+        scale_factor = 0.85 / total_existing
+        for key, val in weights.items():
+            enhanced[key] = val * scale_factor
+    else:
+        enhanced.update(weights)
+    enhanced["reachability"] = 0.15
+    return enhanced
+
+
 def _score_vulnerability(
     component: Mapping[str, Any],
     vulnerability: Mapping[str, Any],
@@ -216,6 +240,9 @@ def _score_vulnerability(
     kev_entries: Mapping[str, Any],
     weights: Mapping[str, float],
     reachability_result: Optional[Mapping[str, Any]] = None,
+    *,
+    _precomputed_weights_with_reach: Optional[Dict[str, float]] = None,
+    _precomputed_weights_no_reach: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any] | None:
     cve = (
         vulnerability.get("cve")
@@ -272,16 +299,20 @@ def _score_vulnerability(
         "reachability": reachability_confidence,
     }
 
-    # Enhanced weights with reachability
-    enhanced_weights = dict(weights)
-    if "reachability" not in enhanced_weights and reachability_result:
-        enhanced_weights["reachability"] = 0.15  # 15% weight
-        # Adjust other weights proportionally
-        total_existing = sum(v for k, v in weights.items())
-        if total_existing > 0:
-            scale_factor = 0.85 / total_existing
-            for key in weights:
-                enhanced_weights[key] = weights[key] * scale_factor
+    # Enhanced weights with reachability — use precomputed dict when available
+    # to avoid per-finding dict copy + rescaling arithmetic.
+    if reachability_result:
+        enhanced_weights = (
+            _precomputed_weights_with_reach
+            if _precomputed_weights_with_reach is not None
+            else _build_enhanced_weights(weights, has_reachability=True)
+        )
+    else:
+        enhanced_weights = (
+            _precomputed_weights_no_reach
+            if _precomputed_weights_no_reach is not None
+            else _build_enhanced_weights(weights, has_reachability=False)
+        )
 
     total_weight = sum(enhanced_weights.values())
     weighted_score = sum(
@@ -331,6 +362,12 @@ def compute_risk_profile(
     """Compute a composite risk profile for the provided SBOM."""
 
     with _TRACER.start_as_current_span("risk.compute_profile") as span:
+        # Precompute both weight variants once for the entire pipeline run.
+        # _score_vulnerability is called once per finding (potentially thousands);
+        # avoiding per-finding dict copy + rescaling saves O(N*W) arithmetic.
+        _w_no_reach = _build_enhanced_weights(weights, has_reachability=False)
+        _w_with_reach = _build_enhanced_weights(weights, has_reachability=True)
+
         components = []
         cve_index: MutableMapping[str, Dict[str, Any]] = {}
 
@@ -376,6 +413,8 @@ def compute_risk_profile(
                     kev_entries,
                     weights,
                     reachability_result=reachability,
+                    _precomputed_weights_with_reach=_w_with_reach,
+                    _precomputed_weights_no_reach=_w_no_reach,
                 )
                 if not scored:
                     continue
