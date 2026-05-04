@@ -12,7 +12,7 @@ retry / circuit-breaker / rate-limit pattern as the core connectors.
 """
 from __future__ import annotations
 
-import logging
+import structlog
 import os
 import time
 from typing import Any, Dict, List, Mapping, Optional
@@ -21,7 +21,7 @@ import requests
 
 from core.connectors import ConnectorHealth, ConnectorOutcome, _BaseConnector
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # TrustGraph event bus — optional, never blocks on failure
 try:  # pragma: no cover - bus is optional
@@ -645,7 +645,7 @@ class WizConnector(_BaseConnector):
             self._token_expires = time.time() + data.get("expires_in", 3600) - 60
             return self._token
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-            logger.warning(f"Wiz auth failed: {exc}")
+            logger.warning("wiz_auth_failed", exc_type=type(exc).__name__)
             return None
 
     def _headers(self) -> Dict[str, str]:
@@ -879,7 +879,7 @@ class PrismaCloudConnector(_BaseConnector):
             self._token_expires = time.time() + 600 - 30  # Token valid ~10 mins
             return self._token
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-            logger.warning(f"Prisma Cloud auth failed: {exc}")
+            logger.warning("prisma_auth_failed", exc_type=type(exc).__name__)
             return None
 
     def _headers(self) -> Dict[str, str]:
@@ -1097,7 +1097,7 @@ class LaceworkConnector(_BaseConnector):
             self._token_expires = time.time() + 3600 - 60
             return self._token
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-            logger.warning(f"Lacework auth failed: {exc}")
+            logger.warning("lacework_auth_failed", exc_type=type(exc).__name__)
             return None
 
     def _headers(self) -> Dict[str, str]:
@@ -1228,7 +1228,7 @@ class ThreatMapperConnector(_BaseConnector):
             self._token_expires = time.time() + 82800
             return self._token
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-            logger.warning(f"ThreatMapper auth failed: {exc}")
+            logger.warning("threatmapper_auth_failed", exc_type=type(exc).__name__)
             return None
 
     def _headers(self) -> Dict[str, str]:

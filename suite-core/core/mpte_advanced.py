@@ -16,7 +16,7 @@ Environment Variables:
 
 import asyncio
 import json
-import logging
+import structlog
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -37,7 +37,7 @@ from core.mpte_models import (
     PenTestStatus,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # TrustGraph event bus — optional, never blocks on failure
 try:  # pragma: no cover - bus is optional
@@ -195,8 +195,9 @@ class MultiAIOrchestrator:
         self.decision_history: List[ConsensusDecision] = []
         self._call_count: Dict[str, int] = {"total": 0, "success": 0, "fallback": 0}
         logger.info(
-            f"MultiAIOrchestrator initialized with threshold={self.config.threshold}, "
-            f"weights={self.config.weights}"
+            "mpte_orchestrator_initialized",
+            threshold=self.config.threshold,
+            weights=self.config.weights,
         )
 
     async def get_architect_decision(
@@ -238,7 +239,7 @@ Respond in JSON format with keys: recommendation, confidence, reasoning, priorit
                 },
             )
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Architect decision failed: {e}")
+            logger.error("mpte_architect_decision_failed", exc_type=type(e).__name__)
             return self._fallback_decision(AIRole.ARCHITECT, vulnerability)
 
     async def get_developer_decision(
@@ -280,7 +281,7 @@ Respond in JSON format with keys: recommendation, confidence, reasoning, priorit
                 },
             )
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Developer decision failed: {e}")
+            logger.error("mpte_developer_decision_failed", exc_type=type(e).__name__)
             return self._fallback_decision(AIRole.DEVELOPER, vulnerability)
 
     async def get_lead_decision(self, context: Dict, vulnerability: Dict) -> AIDecision:
@@ -320,7 +321,7 @@ Respond in JSON format with keys: recommendation, confidence, reasoning, priorit
                 },
             )
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Lead decision failed: {e}")
+            logger.error("mpte_lead_decision_failed", exc_type=type(e).__name__)
             return self._fallback_decision(AIRole.LEAD, vulnerability)
 
     async def compose_consensus(
@@ -395,7 +396,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
             return consensus
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Consensus composition failed: {e}")
+            logger.error("mpte_consensus_composition_failed", exc_type=type(e).__name__)
             # Fallback: simple averaging
             return self._fallback_consensus(architect, developer, lead)
 
@@ -463,14 +464,16 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
                 if is_fallback:
                     self._call_count["fallback"] += 1
                     logger.warning(
-                        f"LLM provider {provider} returned fallback response: "
-                        f"{response.metadata.get('reason', 'unknown')}"
+                        "mpte_llm_fallback_response",
+                        provider=provider,
+                        reason=response.metadata.get("reason", "unknown"),
                     )
                 else:
                     self._call_count["success"] += 1
                     logger.info(
-                        f"LLM provider {provider} returned successful response "
-                        f"(confidence={response.confidence:.2f})"
+                        "mpte_llm_success",
+                        provider=provider,
+                        confidence=round(response.confidence, 2),
                     )
 
                 result = {
@@ -501,23 +504,33 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
                     f"LLM call to {provider} timed out after {self.config.timeout_seconds}s"
                 )
                 logger.warning(
-                    f"LLM call to {provider} timed out (attempt {attempt + 1}/{self.config.max_retries})"
+                    "mpte_llm_timeout",
+                    provider=provider,
+                    attempt=attempt + 1,
+                    max_retries=self.config.max_retries,
                 )
             except Exception as e:  # catch ALL LLM errors — must fallback gracefully
                 last_error = e
                 logger.warning(
-                    f"LLM call to {provider} failed (attempt {attempt + 1}/{self.config.max_retries}): {e}"
+                    "mpte_llm_attempt_failed",
+                    provider=provider,
+                    attempt=attempt + 1,
+                    max_retries=self.config.max_retries,
+                    exc_type=type(e).__name__,
                 )
 
             # Exponential backoff before retry (except on last attempt)
             if attempt < self.config.max_retries - 1:
                 backoff_seconds = min(2**attempt, 30)  # Cap at 30 seconds
-                logger.info(f"Retrying in {backoff_seconds}s...")
+                logger.info("mpte_llm_retry_backoff", backoff_seconds=backoff_seconds)
                 await asyncio.sleep(backoff_seconds)
 
         # All retries exhausted
         logger.error(
-            f"LLM call to {provider} failed after {self.config.max_retries} attempts: {last_error}"
+            "mpte_llm_all_retries_exhausted",
+            provider=provider,
+            max_retries=self.config.max_retries,
+            exc_type=type(last_error).__name__ if last_error else "unknown",
         )
 
         if self.config.fallback_enabled:
@@ -630,8 +643,9 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
         vuln_id = vulnerability.get("id", "unknown")
 
         logger.warning(
-            f"FALLBACK_DECISION: Using deterministic fallback for role={role.value}, "
-            f"vulnerability={vuln_id}. This is NOT an AI-generated decision."
+            "mpte_fallback_decision",
+            role=role.value,
+            vuln_id=vuln_id,
         )
 
         return AIDecision(
@@ -675,9 +689,8 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
         )
 
         logger.warning(
-            f"FALLBACK_CONSENSUS: Using deterministic consensus composition. "
-            f"Contributing fallback decisions: {contributing_fallbacks}/3. "
-            "This is NOT an AI-composed consensus."
+            "mpte_fallback_consensus",
+            contributing_fallbacks=contributing_fallbacks,
         )
 
         return ConsensusDecision(
@@ -724,10 +737,10 @@ class ExploitValidationFramework:
 
         # Check cache first
         if vuln_id in self.validation_cache:
-            logger.info(f"Using cached exploitability for {vuln_id}")
+            logger.info("mpte_exploitability_cache_hit", vuln_id=vuln_id)
             return self.validation_cache[vuln_id], {"cached": True}
 
-        logger.info(f"Validating exploitability for vulnerability: {vuln_id}")
+        logger.info("mpte_exploitability_validate", vuln_id=vuln_id)
 
         try:
             # Create MPTE test request
@@ -853,7 +866,8 @@ class AdvancedMPTEClient:
     ) -> Dict:
         """Execute pentest with multi-AI consensus."""
         logger.info(
-            f"Starting consensus-based pentest for vulnerability: {vulnerability.get('id')}"
+            "mpte_consensus_pentest_start",
+            vuln_id=vulnerability.get("id"),
         )
 
         # Get decisions from all AI models in parallel
@@ -875,7 +889,9 @@ class AdvancedMPTEClient:
         )
 
         logger.info(
-            f"Consensus reached: {consensus.action} (confidence: {consensus.confidence:.2f})"
+            "mpte_consensus_reached",
+            action=consensus.action,
+            confidence=round(consensus.confidence, 2),
         )
 
         # Execute based on consensus
@@ -927,7 +943,7 @@ class AdvancedMPTEClient:
         action = step.get("action", "unknown")
         tool = step.get("tool", "automated")
 
-        logger.info(f"Executing step: {action} with tool: {tool}")
+        logger.info("mpte_execute_step", action=action, tool=tool)
 
         # Step execution not yet wired to real engine — return honest failure
         logger.warning("mpte_step_not_implemented: action=%s tool=%s", action, tool)
@@ -941,7 +957,7 @@ class AdvancedMPTEClient:
 
     async def execute_pentest(self, request: PenTestRequest) -> Dict:
         """Execute a pentest request through MPTE."""
-        logger.info(f"Executing pentest request: {request.id}")
+        logger.info("mpte_pentest_execute", request_id=request.id)
 
         # Save request to database
         request = self.db.create_request(request)
@@ -968,7 +984,7 @@ class AdvancedMPTEClient:
             return result
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Pentest execution failed: {e}")
+            logger.error("mpte_pentest_execution_failed", exc_type=type(e).__name__)
             request.status = PenTestStatus.FAILED
             request.completed_at = datetime.now(timezone.utc)
             self.db.update_request(request)
@@ -1003,7 +1019,7 @@ class AdvancedMPTEClient:
                 result = await response.json()
                 return result
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"MPTE API call failed: {e}")
+            logger.error("mpte_api_call_failed", exc_type=type(e).__name__)
             return self._create_inconclusive_response(request, str(e))
 
     def _create_inconclusive_response(
@@ -1060,7 +1076,7 @@ class AdvancedMPTEClient:
         self, finding_id: str, context: Dict
     ) -> Tuple[bool, str]:
         """Validate that a remediation actually fixed the vulnerability."""
-        logger.info(f"Validating remediation for finding: {finding_id}")
+        logger.info("mpte_remediation_validate", finding_id=finding_id)
 
         # Get original test request
         requests = self.db.list_requests(finding_id=finding_id, limit=1)
@@ -1093,7 +1109,7 @@ class AdvancedMPTEClient:
                 return True, "Vulnerability successfully remediated"
 
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Remediation validation failed: {e}")
+            logger.error("mpte_remediation_validation_failed", exc_type=type(e).__name__)
             return False, f"Validation error: {str(e)}"
 
     def get_statistics(self) -> Dict:

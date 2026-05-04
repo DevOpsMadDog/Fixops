@@ -26,9 +26,10 @@ Environment variables:
 from __future__ import annotations
 
 import json
-import logging
+import structlog
 import os
 import sqlite3
+
 import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -36,7 +37,7 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # TrustGraph second-brain wiring
@@ -730,7 +731,7 @@ class SelfLearningEngine:
         self.remediation_loop = RemediationSuccessLoop(self.db, self.config)
         self.policy_loop = PolicyViolationLoop(self.db, self.config)
 
-        logger.info(f"SelfLearningEngine initialized: 5 loops, min_samples={self.config.min_samples}")
+        logger.info("self_learning_engine_initialized", loops=5, min_samples=self.config.min_samples)
 
     def analyze_all(self, days: int = 90) -> Dict[str, Any]:
         """Run analysis on all 5 feedback loops."""

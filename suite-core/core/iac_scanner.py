@@ -8,7 +8,7 @@ error recovery, and result normalization.
 
 import asyncio
 import json
-import logging
+import structlog
 import os
 import shutil
 from dataclasses import dataclass, field
@@ -30,7 +30,7 @@ from core.safe_path_ops import (
     safe_write_text,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
@@ -284,7 +284,7 @@ class IaCScanner:
         try:
             data = json.loads(output)
         except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse checkov output as JSON: {e}")
+            logger.warning("iac_checkov_parse_failed", exc_type=type(e).__name__)
             return findings
 
         results = data.get("results", {})
@@ -331,7 +331,7 @@ class IaCScanner:
         try:
             data = json.loads(output)
         except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse tfsec output as JSON: {e}")
+            logger.warning("iac_tfsec_parse_failed", exc_type=type(e).__name__)
             return findings
 
         results = data.get("results", [])
@@ -431,7 +431,7 @@ class IaCScanner:
         if provider in framework_map:
             cmd.extend(["--framework", framework_map[provider]])
 
-        logger.info(f"Running checkov: {' '.join(cmd)}")
+        logger.info("iac_checkov_run", cmd_len=len(cmd))
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -513,7 +513,7 @@ class IaCScanner:
             if check.strip():
                 cmd.extend(["--exclude", check.strip()])
 
-        logger.info(f"Running tfsec: {' '.join(cmd)}")
+        logger.info("iac_tfsec_run", cmd_len=len(cmd))
 
         try:
             process = await asyncio.create_subprocess_exec(
