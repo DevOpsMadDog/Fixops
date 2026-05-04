@@ -1290,7 +1290,7 @@ class SemanticClassifier:
         )
         has_critical_sev = any(
             "critical" in m.description.lower() or
-            any(kw in m.matched_text.lower() for kw in ("none", "false", "0.0.0.0", "*", "root"))
+            any(kw in m.matched_text.lower() for kw in ("none", "false", "0.0.0.0", "*", "root")) # nosec B104 - pattern detection, not a bind
             for m in pattern_matches
         )
 

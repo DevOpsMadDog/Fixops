@@ -33,7 +33,8 @@ router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 db = ReportDB()
 
 # Report generation directory
-REPORTS_DIR = Path(os.environ.get("FIXOPS_REPORTS_DIR", "/tmp/fixops_reports"))
+import tempfile as _tempfile
+REPORTS_DIR = Path(os.environ.get("FIXOPS_REPORTS_DIR", os.path.join(_tempfile.gettempdir(), "fixops_reports")))
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 _analytics_db = AnalyticsDB()

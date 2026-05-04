@@ -810,7 +810,7 @@ async def get_attack_paths():
         for etype, count in edge_types.items():
             if count > 0:
                 paths.append({
-                    "id": f"AP-{hashlib.md5(etype.encode()).hexdigest()[:6].upper()}",
+                    "id": f"AP-{hashlib.md5(etype.encode(), usedforsecurity=False).hexdigest()[:6].upper()}",
                     "name": etype.replace("_", " ").title(),
                     "severity": "high",
                     "steps": [],

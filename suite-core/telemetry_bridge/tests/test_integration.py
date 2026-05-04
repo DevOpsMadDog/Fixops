@@ -141,7 +141,7 @@ def test_cli_integration_with_telemetry():
             "--mode",
             "enterprise",
             "--output",
-            "/tmp/pipeline-test.json",
+            "/tmp/pipeline-test.json", # nosec B108 - test fixture temp path
         ],
         cwd=Path(__file__).parent.parent.parent,
         capture_output=True,
@@ -167,7 +167,7 @@ def test_aws_lambda_handler_simulation():
 
     with pytest.MonkeyPatch.context() as m:
         m.setenv("TELEMETRY_MODE", "file")
-        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")
+        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json") # nosec B108 - test fixture temp path
 
         result = lambda_handler(event, None)
 
@@ -194,7 +194,7 @@ def test_azure_function_handler_simulation():
 
     with pytest.MonkeyPatch.context() as m:
         m.setenv("TELEMETRY_MODE", "file")
-        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")
+        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json") # nosec B108 - test fixture temp path
 
         main(mock_event)
 
@@ -211,7 +211,7 @@ def test_gcp_function_handler_simulation():
 
     with pytest.MonkeyPatch.context() as m:
         m.setenv("TELEMETRY_MODE", "file")
-        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")
+        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json") # nosec B108 - test fixture temp path
 
         result = telemetry_handler(event, None)
 

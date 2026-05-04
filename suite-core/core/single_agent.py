@@ -1840,8 +1840,11 @@ class FineTuningPipeline:
     # Minimum agreement percentage to use a decision as training signal
     MIN_AGREEMENT_FOR_TRAINING = 80.0
 
-    def __init__(self, engine: "SingleAgentEngine", output_dir: str = "/tmp/fixops_finetune"):
+    def __init__(self, engine: "SingleAgentEngine", output_dir: str = None):
         self._engine = engine
+        if output_dir is None:
+            import tempfile
+            output_dir = os.path.join(tempfile.gettempdir(), "fixops_finetune")
         self._output_dir = output_dir
         self._training_jobs: Dict[str, Dict[str, Any]] = {}
         os.makedirs(output_dir, exist_ok=True)

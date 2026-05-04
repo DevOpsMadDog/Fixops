@@ -139,7 +139,7 @@ def send_to_fixops(telemetry: Dict[str, Any], config: Dict[str, Any]) -> Dict[st
         return {"ok": True, "status_code": response.status_code}
 
     elif mode == "file":
-        output_path = os.environ.get("TELEMETRY_OUTPUT_PATH", "/tmp/ops-telemetry.json")
+        output_path = os.environ.get("TELEMETRY_OUTPUT_PATH", "/tmp/ops-telemetry.json") # nosec B108 - Azure Functions temp storage
         with open(output_path, "w") as f:
             json.dump(telemetry, f, indent=2)
 

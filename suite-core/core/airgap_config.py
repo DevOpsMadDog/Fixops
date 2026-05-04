@@ -36,7 +36,8 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-AIRGAP_STATE_FILE = Path(os.getenv("FIXOPS_AIRGAP_STATE", "/tmp/fixops_airgap_state.json"))
+import tempfile as _tempfile
+AIRGAP_STATE_FILE = Path(os.getenv("FIXOPS_AIRGAP_STATE", os.path.join(_tempfile.gettempdir(), "fixops_airgap_state.json")))
 _DATA_ROOT = Path(os.getenv("FIXOPS_DATA_DIR", ".fixops_data"))
 VULN_DB_PATH = Path(os.getenv("FIXOPS_VULN_DB_PATH", str(_DATA_ROOT / "airgap" / "vuln_db")))
 THREAT_INTEL_PATH = Path(os.getenv("FIXOPS_THREAT_INTEL_PATH", str(_DATA_ROOT / "airgap" / "threat_intel")))

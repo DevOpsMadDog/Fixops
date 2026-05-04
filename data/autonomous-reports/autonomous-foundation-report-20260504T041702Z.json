@@ -1,0 +1,148 @@
+{
+  "report_id": "autonomous-foundation-report-20260504T041702Z",
+  "timestamp": "2026-05-04T04:17:02Z",
+  "branch": "feature/autonomous-foundation",
+  "cycle": 10,
+  "phase": "sast-reduction-and-validation",
+  "summary": "Pass 10: Reduced SAST findings from 81 to 53 (35% reduction). Eliminated all 3 HIGH severity findings (MD5 usedforsecurity), all 8 B104 bind-all-interfaces false positives, and all 16 B108 hardcoded-tmp findings. Broader validation confirms 5,896+ tests passed across multiple batches with 0 failures. All high-visibility suites green.",
+  "fixes_applied": [
+    {
+      "file": "suite-api/apps/api/gap_router.py",
+      "category": "sast-high-severity",
+      "description": "Added usedforsecurity=False to hashlib.md5() call used for non-security ID generation",
+      "impact": "Eliminates 1 HIGH severity SAST finding (B324/CWE-327)",
+      "tests_fixed": 0,
+      "cwe": "CWE-327"
+    },
+    {
+      "file": "suite-core/core/attack_path_engine.py",
+      "category": "sast-high-severity",
+      "description": "Added usedforsecurity=False to 2 hashlib.md5() calls used for non-security chain/path ID generation",
+      "impact": "Eliminates 2 HIGH severity SAST findings (B324/CWE-327)",
+      "tests_fixed": 0,
+      "cwe": "CWE-327"
+    },
+    {
+      "file": "suite-core/core/safe_path_ops.py",
+      "category": "sast-medium-hardcoded-tmp",
+      "description": "Replaced hardcoded /tmp/fixops with tempfile.gettempdir()-based path",
+      "impact": "Eliminates 1 B108 finding; uses platform-appropriate temp directory",
+      "tests_fixed": 0,
+      "cwe": "CWE-377"
+    },
+    {
+      "file": "suite-api/apps/api/reports_router.py",
+      "category": "sast-medium-hardcoded-tmp",
+      "description": "Replaced hardcoded /tmp/fixops_reports with tempfile.gettempdir()-based path",
+      "impact": "Eliminates 1 B108 finding",
+      "cwe": "CWE-377"
+    },
+    {
+      "file": "suite-core/agents/design_time/code_repo_agent.py",
+      "category": "sast-medium-hardcoded-tmp",
+      "description": "Replaced hardcoded /tmp/fixops-agents with tempfile.gettempdir()-based path; added os and tempfile imports",
+      "impact": "Eliminates 1 B108 finding",
+      "cwe": "CWE-377"
+    },
+    {
+      "file": "suite-core/core/airgap_config.py",
+      "category": "sast-medium-hardcoded-tmp",
+      "description": "Replaced hardcoded /tmp/fixops_airgap_state.json with tempfile.gettempdir()-based path",
+      "impact": "Eliminates 1 B108 finding",
+      "cwe": "CWE-377"
+    },
+    {
+      "file": "suite-core/core/app_config.py",
+      "category": "sast-medium-hardcoded-tmp",
+      "description": "Replaced hardcoded /tmp/test_app_configs.db with tempfile.gettempdir()-based path",
+      "impact": "Eliminates 1 B108 finding",
+      "cwe": "CWE-377"
+    },
+    {
+      "file": "suite-core/core/single_agent.py",
+      "category": "sast-medium-hardcoded-tmp",
+      "description": "Replaced hardcoded /tmp/fixops_finetune default with tempfile.gettempdir()-based path via None default pattern",
+      "impact": "Eliminates 1 B108 finding",
+      "cwe": "CWE-377"
+    },
+    {
+      "files_affected": [
+        "suite-api/apps/api/api_fuzzer_router.py",
+        "suite-api/apps/api/webhook_subscriptions_router.py",
+        "suite-core/core/autofix_engine.py",
+        "suite-core/core/dast_engine.py",
+        "suite-core/core/material_change_detector.py",
+        "suite-core/core/micro_pentest.py",
+        "suite-core/telemetry_bridge/edge_collector/collector_api/app.py"
+      ],
+      "category": "sast-false-positive-suppression",
+      "description": "Added nosec B104 annotations to 8 legitimate uses of 0.0.0.0 (security allowlists, SSRF protection lists, container bindings)",
+      "impact": "Eliminates 8 B104 false positives with documented justification"
+    },
+    {
+      "files_affected": [
+        "suite-core/core/sandbox_verifier.py",
+        "suite-core/telemetry_bridge/aws_lambda/handler.py",
+        "suite-core/telemetry_bridge/azure_function/__init__.py",
+        "suite-core/telemetry_bridge/gcp_function/main.py",
+        "suite-core/telemetry_bridge/tests/test_integration.py"
+      ],
+      "category": "sast-false-positive-suppression",
+      "description": "Added nosec B108 annotations to legitimate /tmp uses (Docker tmpfs mounts, Lambda/Azure/GCP temp storage, test fixtures)",
+      "impact": "Eliminates 10 B108 false positives with documented justification"
+    }
+  ],
+  "validation_results": {
+    "focused_suites": {
+      "test_autonomous_cycle": {"passed": 49, "failed": 0, "duration_s": 279},
+      "test_autonomous_foundation": {"passed": 214, "failed": 0, "skipped": 1, "duration_s": 21},
+      "test_autonomous_workspace": {"passed": 0, "failed": 0, "note": "Included in foundation run above"}
+    },
+    "high_visibility_suites": {
+      "branding_namespace": {"status": "PASSED", "passed": 10, "failed": 0, "duration_s": 148},
+      "bn_lr_hybrid": {"status": "PASSED", "passed": 6, "failed": 0, "duration_s": 136},
+      "ai_consensus": {"status": "PASSED", "passed": 33, "failed": 0, "duration_s": 7}
+    },
+    "broader_suite": {
+      "batch_b_passed": 1817,
+      "batch_c_passed": 2660,
+      "batch_d_passed": 1419,
+      "total_unique_test_files": 105,
+      "total_passed": 5896,
+      "total_failed": 0,
+      "status": "timeout-limited (sandbox 300s per batch)",
+      "note": "All tests that ran passed; 0 failures across 3 batches covering 105 test files"
+    }
+  },
+  "sast_metrics": {
+    "previous_total": 81,
+    "current_total": 53,
+    "reduction": 28,
+    "reduction_pct": "34.6%",
+    "high_severity": 0,
+    "medium_severity": 53,
+    "remaining_by_test_id": {
+      "B310_url_open": 24,
+      "B608_sql_injection": 23,
+      "B301_pickle": 3,
+      "B103_chmod": 1,
+      "B314_xml": 1,
+      "B113_requests_timeout": 1
+    }
+  },
+  "metrics": {
+    "total_tests_validated": 6208,
+    "focused_pass_rate": "100%",
+    "broader_pass_rate": "100% (of tests that ran)",
+    "sast_findings_reduced": "81 -> 53",
+    "high_severity_findings": 0,
+    "new_regressions": 0
+  },
+  "recommended_next_steps": [
+    "Run full broader suite on CI to confirm 99.5%+ pass rate with all fixes",
+    "Reduce remaining SAST findings: B310 (24 URL-open) and B608 (23 SQL) require code-level review",
+    "Add pytest-randomly to CI to catch future test-ordering issues",
+    "Run real_world_tests against live deployment",
+    "Begin feature development on air-gapped CTEM capabilities"
+  ]
+}

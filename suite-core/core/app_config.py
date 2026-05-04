@@ -922,7 +922,8 @@ _EXAMPLE_YAML = textwrap.dedent("""\
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    mgr = AppConfigManager(db_path=Path("/tmp/test_app_configs.db"))
+    import tempfile as _tempfile
+    mgr = AppConfigManager(db_path=Path(os.path.join(_tempfile.gettempdir(), "test_app_configs.db")))
     config = mgr.load_from_string(_EXAMPLE_YAML)
     print("Parsed:", config.app_id, config.name)
     mgr.register_app(config)

@@ -6,6 +6,8 @@ Monitors code repositories and pushes SARIF, SBOM, and design context data.
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -39,7 +41,7 @@ class CodeRepoAgent(BaseAgent):
 
             # Clone or update repository
             repo_name = self.repo_url.split("/")[-1].replace(".git", "")
-            self.repo_path = f"/tmp/fixops-agents/{repo_name}"
+            self.repo_path = os.path.join(tempfile.gettempdir(), "fixops-agents", repo_name)
 
             try:
                 repo = git.Repo(self.repo_path)

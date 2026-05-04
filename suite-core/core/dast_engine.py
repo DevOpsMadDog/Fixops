@@ -615,7 +615,7 @@ class DASTEngine:
             ("192.168.0.0", "192.168.255.255"),    # RFC 1918
             ("127.0.0.0", "127.255.255.255"),      # Loopback
             ("169.254.0.0", "169.254.255.255"),    # Link-local / AWS metadata
-            ("0.0.0.0", "0.255.255.255"),          # Current network
+            ("0.0.0.0", "0.255.255.255"),          # Current network # nosec B104 - CIDR range definition for SSRF protection
             ("100.64.0.0", "100.127.255.255"),     # Shared address space (RFC 6598)
         ]
         cls._BLOCKED_RANGES = [(cls._ip_to_int(s), cls._ip_to_int(e)) for s, e in ranges]
@@ -649,7 +649,7 @@ class DASTEngine:
             raise ValueError("Missing hostname in target URL")
 
         # Block obvious localhost patterns
-        _blocked_hosts = {"localhost", "0.0.0.0", "::1", "[::1]", "ip6-localhost"}
+        _blocked_hosts = {"localhost", "0.0.0.0", "::1", "[::1]", "ip6-localhost"} # nosec B104 - blocked host list for SSRF protection
         if hostname.lower() in _blocked_hosts:
             raise ValueError(f"Blocked target: {hostname} (loopback/localhost)")
 

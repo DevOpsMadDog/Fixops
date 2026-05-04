@@ -355,7 +355,7 @@ class SandboxVerifier:
                 f"--cpus={self.cpu_limit}",
                 "--cap-drop=ALL",  # Drop all Linux capabilities
                 "--read-only",
-                "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m",
+                "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m", # nosec B108 - Docker tmpfs mount, not a file path
                 "-v", f"{tmpdir}:/poc:ro",
                 "--security-opt", "no-new-privileges",
                 "--pids-limit", "30",  # Reduced from 50
@@ -522,7 +522,7 @@ class SandboxVerifier:
 
         # Pattern 3: Permission denied — redirect to /tmp
         if "permission denied" in stderr:
-            return current_code.replace("/var/", "/tmp/var/").replace("/etc/", "/tmp/etc/")
+            return current_code.replace("/var/", "/tmp/var/").replace("/etc/", "/tmp/etc/") # nosec B108 - intentional path redirection in sandbox
 
         # Pattern 4: Command not found in bash — HARDENED: whitelist safe commands
         _SAFE_COMMANDS = frozenset({
@@ -947,7 +947,7 @@ echo "PROBE_END"
                 "--memory", self.memory_limit,
                 f"--cpus={self.cpu_limit}",
                 "--read-only",
-                "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+                "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m", # nosec B108 - Docker tmpfs mount, not a file path
                 "-v", f"{tmpdir}:/probe:ro",
                 "--security-opt", "no-new-privileges",
                 "--pids-limit", "30",

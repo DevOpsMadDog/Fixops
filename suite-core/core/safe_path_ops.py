@@ -28,14 +28,16 @@ from typing import IO, Iterator, List, Optional, Union
 _DEFAULT_TRUSTED_ROOT = "/var/fixops"
 TRUSTED_ROOT = os.environ.get("FIXOPS_TRUSTED_ROOT", _DEFAULT_TRUSTED_ROOT)
 
-# Auto-create the trusted root directory; fall back to /tmp/fixops when the
-# default /var/fixops cannot be created (e.g. non-root on macOS/Linux dev).
+# Auto-create the trusted root directory; fall back to a system tempdir
+# subdirectory when the default /var/fixops cannot be created
+# (e.g. non-root on macOS/Linux dev).
+import tempfile as _tempfile
 if not os.path.isdir(TRUSTED_ROOT):
     try:
         os.makedirs(TRUSTED_ROOT, exist_ok=True)
     except (PermissionError, OSError):
         if TRUSTED_ROOT == _DEFAULT_TRUSTED_ROOT:
-            TRUSTED_ROOT = "/tmp/fixops"
+            TRUSTED_ROOT = os.path.join(_tempfile.gettempdir(), "fixops")
             os.makedirs(TRUSTED_ROOT, exist_ok=True)
 
 # Ensure standard subdirectories exist

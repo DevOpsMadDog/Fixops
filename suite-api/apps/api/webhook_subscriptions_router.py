@@ -118,7 +118,7 @@ def _validate_webhook_url(url: str) -> None:
     hostname = parsed.hostname
     if not hostname:
         raise HTTPException(422, "URL must include a hostname")
-    if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+    if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"): # nosec B104 - security check against loopback addresses
         raise HTTPException(422, "Localhost URLs are not allowed")
     try:
         addr = ipaddress.ip_address(hostname)

@@ -287,7 +287,7 @@ _AUTOFIX_DANGEROUS_PATTERNS: list[str] = [
     "pic" + "kle.loads(", "ya" + "ml.load(", "marshal.loads(",
     "shelve.open(",
     # Network backdoors
-    "0.0.0.0", "bind(", "socket.listen(",
+    "0.0.0.0", "bind(", "socket.listen(", # nosec B104 - pattern detection string, not a bind
     # File system attacks
     "shutil.rmtree(", "os.remove(", "os.unlink(",
     # Debug backdoors

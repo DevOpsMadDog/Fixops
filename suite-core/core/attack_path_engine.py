@@ -309,7 +309,7 @@ class AttackPathEngine:
                 "type": "ATTACK_STEP",
             })
 
-        chain_id = f"CHAIN-{hashlib.md5(json.dumps(nodes, default=str).encode()).hexdigest()[:8].upper()}"
+        chain_id = f"CHAIN-{hashlib.md5(json.dumps(nodes, default=str).encode(), usedforsecurity=False).hexdigest()[:8].upper()}"
 
         score = self._score_path(nodes, edges, risk_score)
 
@@ -363,7 +363,7 @@ class AttackPathEngine:
             severity = AttackPathSeverity.INFORMATIONAL
 
         return AttackPathScore(
-            path_id=hashlib.md5(json.dumps(nodes, default=str).encode()).hexdigest()[:12],
+            path_id=hashlib.md5(json.dumps(nodes, default=str).encode(), usedforsecurity=False).hexdigest()[:12],
             total_score=total,
             exploitability=exploitability,
             impact=impact,
