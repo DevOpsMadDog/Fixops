@@ -15,6 +15,7 @@ Compliance: SOC2 CC7.2 (System monitoring and response automation)
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import sqlite3
@@ -414,11 +415,14 @@ class PlaybookEngine:
         )
 
         try:
+            # Build O(1) lookup index once — avoids O(n) scan per iteration
+            step_index: Dict[str, PlaybookStep] = {s.step_id: s for s in playbook.steps}
+
             # Execute steps in sequence
             current_step_id = playbook.steps[0].step_id if playbook.steps else None
 
             while current_step_id:
-                step = next((s for s in playbook.steps if s.step_id == current_step_id), None)
+                step = step_index.get(current_step_id)
                 if not step:
                     break
 
@@ -649,6 +653,8 @@ class PlaybookEngine:
                 result.error = f"Loop items_key '{items_key}' is not a list"
                 return result
 
+            # O(1) lookup index for sub-steps
+            step_index: Dict[str, PlaybookStep] = {s.step_id: s for s in playbook.steps}
             loop_results = []
             for idx, item in enumerate(items):
                 item_context = context.copy()
@@ -656,9 +662,7 @@ class PlaybookEngine:
                 item_context["_loop_index"] = idx
 
                 for sub_step_id in sub_step_ids:
-                    sub_step = next(
-                        (s for s in playbook.steps if s.step_id == sub_step_id), None
-                    )
+                    sub_step = step_index.get(sub_step_id)
                     if sub_step:
                         sub_result = self._execute_step(sub_step, item_context, playbook)
                         loop_results.append(sub_result.to_dict())
@@ -684,15 +688,16 @@ class PlaybookEngine:
             step_ids = step.config.get("step_ids", [])
             parallel_results = []
 
-            # In a real async implementation, this would use asyncio
-            # For now, we'll execute sequentially but mark them as parallel
-            for step_id in step_ids:
-                sub_step = next(
-                    (s for s in playbook.steps if s.step_id == step_id), None
-                )
-                if sub_step:
-                    sub_result = self._execute_step(sub_step, context, playbook)
-                    parallel_results.append(sub_result.to_dict())
+            # O(1) lookup index; execute sub-steps concurrently via thread pool
+            step_index: Dict[str, PlaybookStep] = {s.step_id: s for s in playbook.steps}
+            sub_steps = [step_index[sid] for sid in step_ids if sid in step_index]
+
+            def _run(sub_step: PlaybookStep) -> Dict[str, Any]:
+                return self._execute_step(sub_step, context, playbook).to_dict()
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(sub_steps) or 1) as pool:
+                futures = [pool.submit(_run, s) for s in sub_steps]
+                parallel_results = [f.result() for f in concurrent.futures.as_completed(futures)]
 
             result.status = "success"
             result.output = {"parallel_steps": len(step_ids), "results": parallel_results}
