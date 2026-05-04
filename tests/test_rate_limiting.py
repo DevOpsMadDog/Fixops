@@ -519,3 +519,129 @@ class TestPerMethodRateLimiting:
         assert config["read_requests_per_minute"] == mod._READ_RPM
         assert config["write_requests_per_minute"] == mod._WRITE_RPM
         assert config["requests_per_minute"] == mod._DEFAULT_RPM
+
+
+# ---------------------------------------------------------------------------
+# Per-endpoint rate limiting tests (endpoint_rate_limit.py)
+# ---------------------------------------------------------------------------
+
+
+def _fresh_enforce():
+    """Return enforce() from a clean module state (empty bucket dict)."""
+    for key in list(sys.modules):
+        if "endpoint_rate_limit" in key:
+            del sys.modules[key]
+    from apps.api.endpoint_rate_limit import enforce
+    return enforce
+
+
+def _mock_request(ip: str = "1.2.3.4") -> MagicMock:
+    req = MagicMock()
+    req.client = MagicMock()
+    req.client.host = ip
+    return req
+
+
+class TestEndpointRateLimit:
+    """Tests for the per-endpoint enforce() helper."""
+
+    @pytest.fixture(autouse=True)
+    def _enable_rate_limit(self, monkeypatch):
+        """conftest.py sets FIXOPS_DISABLE_RATE_LIMIT=1 globally.
+        Per-endpoint tests need it cleared so enforce() actually enforces."""
+        monkeypatch.delenv("FIXOPS_DISABLE_RATE_LIMIT", raising=False)
+
+    def test_requests_within_limit_pass(self):
+        enforce = _fresh_enforce()
+        req = _mock_request("10.0.0.1")
+        for _ in range(5):
+            enforce(req, limit_key="test:basic", max_per_minute=5)
+
+    def test_exceeding_limit_raises_429(self):
+        from fastapi import HTTPException
+        enforce = _fresh_enforce()
+        req = _mock_request("10.0.0.2")
+        for _ in range(3):
+            enforce(req, limit_key="test:exceed", max_per_minute=3)
+        with pytest.raises(HTTPException) as exc_info:
+            enforce(req, limit_key="test:exceed", max_per_minute=3)
+        assert exc_info.value.status_code == 429
+
+    def test_429_has_retry_after_header(self):
+        from fastapi import HTTPException
+        enforce = _fresh_enforce()
+        req = _mock_request("10.0.0.3")
+        for _ in range(2):
+            enforce(req, limit_key="test:header", max_per_minute=2)
+        with pytest.raises(HTTPException) as exc_info:
+            enforce(req, limit_key="test:header", max_per_minute=2)
+        assert "Retry-After" in exc_info.value.headers
+        assert int(exc_info.value.headers["Retry-After"]) >= 1
+
+    def test_disable_env_var_bypasses_limit(self, monkeypatch):
+        # autouse fixture cleared the var; re-set it to test bypass behaviour
+        monkeypatch.setenv("FIXOPS_DISABLE_RATE_LIMIT", "1")
+        enforce = _fresh_enforce()
+        req = _mock_request("10.0.0.4")
+        # Way over limit — should not raise when env var is set
+        for _ in range(100):
+            enforce(req, limit_key="test:disabled", max_per_minute=1)
+
+    def test_different_ips_have_independent_buckets(self):
+        from fastapi import HTTPException
+        enforce = _fresh_enforce()
+        ip_a = _mock_request("192.168.1.1")
+        ip_b = _mock_request("192.168.1.2")
+        for _ in range(3):
+            enforce(ip_a, limit_key="test:ip-isolation", max_per_minute=3)
+        # ip_b must still pass
+        enforce(ip_b, limit_key="test:ip-isolation", max_per_minute=3)
+        # ip_a must be blocked
+        with pytest.raises(HTTPException) as exc_info:
+            enforce(ip_a, limit_key="test:ip-isolation", max_per_minute=3)
+        assert exc_info.value.status_code == 429
+
+    def test_different_keys_have_independent_buckets(self):
+        enforce = _fresh_enforce()
+        req = _mock_request("10.1.1.1")
+        for _ in range(3):
+            enforce(req, limit_key="auth:login", max_per_minute=3)
+        # Different key must still be open for same IP
+        enforce(req, limit_key="ingest:upload", max_per_minute=3)
+
+    def test_fire_12_requests_11th_12th_are_429(self):
+        """Canonical smoke: fire 12 at limit=10 → exactly 10 pass, 2 reject."""
+        from fastapi import HTTPException
+        enforce = _fresh_enforce()
+        req = _mock_request("10.2.2.2")
+        passed = 0
+        rejected = 0
+        for _ in range(12):
+            try:
+                enforce(req, limit_key="test:twelve", max_per_minute=10)
+                passed += 1
+            except HTTPException as exc:
+                assert exc.status_code == 429
+                rejected += 1
+        assert passed == 10
+        assert rejected == 2
+
+    def test_unknown_client_does_not_crash(self):
+        enforce = _fresh_enforce()
+        req = MagicMock()
+        req.client = None
+        enforce(req, limit_key="test:no-client", max_per_minute=5)
+
+    def test_endpoint_rate_limit_importable(self):
+        import importlib
+        mod = importlib.import_module("apps.api.endpoint_rate_limit")
+        assert callable(mod.enforce)
+
+    def test_enforce_has_correct_signature(self):
+        import inspect
+        import importlib
+        mod = importlib.import_module("apps.api.endpoint_rate_limit")
+        sig = inspect.signature(mod.enforce)
+        assert "request" in sig.parameters
+        assert "limit_key" in sig.parameters
+        assert "max_per_minute" in sig.parameters

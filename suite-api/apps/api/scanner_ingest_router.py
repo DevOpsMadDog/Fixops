@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
+from apps.api.endpoint_rate_limit import enforce as _rl_enforce
 from fastapi import (
     APIRouter,
     Depends,
@@ -280,6 +281,7 @@ async def list_scanner_ingest(org_id: str = Depends(get_org_id)):
 
 @router.post("/upload")
 async def upload_scanner_output(
+    request: Request,
     file: UploadFile = File(...),
     scanner_type: Optional[str] = Form(None),
     app_id: str = Form(""),
@@ -297,6 +299,7 @@ async def upload_scanner_output(
     If scanner_type is not provided, auto-detection is used.
     Set pipeline=true to push findings into the Brain Pipeline immediately.
     """
+    _rl_enforce(request, limit_key="ingest:upload", max_per_minute=30)
     parsers = _get_scanner_parsers()
     if not parsers:
         raise HTTPException(status_code=503, detail="Scanner parser module not available")
@@ -447,6 +450,7 @@ async def webhook_ingest(
         -H "Content-Type: application/json" \\
         --data-binary @zap-report.json
     """
+    _rl_enforce(request, limit_key="ingest:webhook", max_per_minute=30)
     parsers = _get_scanner_parsers()
     if not parsers:
         raise HTTPException(status_code=503, detail="Scanner parser module not available")

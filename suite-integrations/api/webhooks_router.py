@@ -24,8 +24,9 @@ from urllib.parse import urlparse
 logger = logging.getLogger(__name__)
 
 from apps.api.dependencies import get_org_id
+from apps.api.endpoint_rate_limit import enforce as _rl_enforce
 from core.connectors import AutomationConnectors
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, field_validator
 
 # ---------------------------------------------------------------------------
@@ -307,6 +308,7 @@ def _detect_drift(
 @receiver_router.post("/jira")
 def receive_jira_webhook(
     payload: JiraWebhookPayload,
+    request: Request,
     x_atlassian_webhook_identifier: Optional[str] = Header(None),
     x_hub_signature: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
@@ -316,6 +318,7 @@ def receive_jira_webhook(
     blocking SQLite operations. FastAPI automatically runs sync endpoints in a
     threadpool to avoid blocking the event loop.
     """
+    _rl_enforce(request, limit_key="webhook:jira", max_per_minute=60)
     # For signature verification, we need the raw body. Since we're using Pydantic
     # model parsing, we reconstruct the body from the validated payload.
     raw_body = json.dumps(payload.model_dump()).encode()
@@ -428,9 +431,11 @@ def receive_jira_webhook(
 @receiver_router.post("/servicenow")
 def receive_servicenow_webhook(
     payload: ServiceNowWebhookPayload,
+    request: Request,
     x_servicenow_signature: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
     """Receive webhook events from ServiceNow for bidirectional sync."""
+    _rl_enforce(request, limit_key="webhook:servicenow", max_per_minute=60)
     # Validate ServiceNow webhook signature if configured
     expected_secret = _get_servicenow_webhook_secret()
     if expected_secret:
@@ -1424,6 +1429,7 @@ def _get_gitlab_webhook_secret() -> Optional[str]:
 @receiver_router.post("/gitlab")
 def receive_gitlab_webhook(
     payload: GitLabWebhookPayload,
+    request: Request,
     x_gitlab_token: Optional[str] = Header(None),
     x_gitlab_event: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
@@ -1431,6 +1437,7 @@ def receive_gitlab_webhook(
 
     Supports GitLab issue events for ALM integration with vulnerability tracking.
     """
+    _rl_enforce(request, limit_key="webhook:gitlab", max_per_minute=60)
     # Validate GitLab webhook token if configured
     expected_secret = _get_gitlab_webhook_secret()
     if expected_secret:
@@ -1576,12 +1583,14 @@ def _map_azure_state_to_fixops(state: str) -> str:
 @receiver_router.post("/azure-devops")
 def receive_azure_devops_webhook(
     payload: AzureDevOpsWebhookPayload,
+    request: Request,
     authorization: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
     """Receive webhook events from Azure DevOps for bidirectional sync.
 
     Supports Azure DevOps work item events for ALM integration.
     """
+    _rl_enforce(request, limit_key="webhook:azure-devops", max_per_minute=60)
     # Validate Azure DevOps webhook token if configured
     expected_secret = _get_azure_devops_webhook_secret()
     if expected_secret:
@@ -1967,6 +1976,7 @@ def _extract_changed_files(payload: GitHubWebhookPayload) -> List[str]:
 @receiver_router.post("/github")
 def receive_github_webhook(
     payload: GitHubWebhookPayload,
+    request: Request,
     x_hub_signature_256: Optional[str] = Header(None),
     x_github_event: Optional[str] = Header(None),
     x_github_delivery: Optional[str] = Header(None),
@@ -1981,6 +1991,7 @@ def receive_github_webhook(
     ``FIXOPS_GITHUB_WEBHOOK_SECRET`` is set.  Without the env var, all
     payloads are accepted (development mode).
     """
+    _rl_enforce(request, limit_key="webhook:github", max_per_minute=60)
     # ── Signature verification ──
     expected_secret = _get_github_webhook_secret()
     if expected_secret:

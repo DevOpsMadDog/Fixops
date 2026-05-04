@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import jwt
 from apps.api.auth_deps import api_key_auth
+from apps.api.endpoint_rate_limit import enforce as _rl_enforce
 from core.auth_db import AuthDB
 from core.auth_models import AuthProvider, SSOConfig, SSOStatus
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -166,6 +167,7 @@ async def mint_dev_token(req: DevTokenRequest, request: Request) -> DevTokenResp
     Gated by FIXOPS_DEV_MODE=true. In production this returns 403.
     Every successful mint is audit-logged with org_id, role, email, IP.
     """
+    _rl_enforce(request, limit_key="auth:dev-token", max_per_minute=10)
     if not _is_dev_mode_enabled():
         raise HTTPException(status_code=403, detail="dev mode disabled")
 
