@@ -219,6 +219,7 @@ class GitRepositoryAnalyzer:
                     cwd=temp_path,
                     check=True,
                     capture_output=True,
+                    timeout=_GIT_TIMEOUT,
                 )
 
             # Move to cache if enabled
