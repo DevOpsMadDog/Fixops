@@ -37,6 +37,10 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-test.txt 2>/dev/null || true
           pip install pytest pytest-asyncio
+      # PARALLELIZATION NOTE (2026-05-05): Beast Mode 753 tests run in 8.87s serial.
+      # Install pytest-xdist and add `-n auto` to halve wall-clock to ~3s on 4-core.
+      # Risk: SQLite lock collisions on shared .db paths — audit tmp_path fixtures first.
+      # See docs/test_parallelization_2026-05-05.md for full analysis.
       - name: OWASP regression lockdown (46 tests)
         run: |
           python -m pytest tests/test_owasp_regression_lockdown.py \
