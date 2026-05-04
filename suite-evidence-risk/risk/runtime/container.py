@@ -5,6 +5,7 @@ Proprietary container runtime analysis for Docker, Kubernetes, and cloud contain
 
 from __future__ import annotations
 
+import json
 import logging
 import subprocess
 from dataclasses import dataclass, field
@@ -226,10 +227,8 @@ class ContainerRuntimeAnalyzer:
                 timeout=5,
             )
             if result.returncode == 0:
-                import json
-
                 return json.loads(result.stdout)[0]
-        except ImportError as e:
+        except (subprocess.SubprocessError, OSError, ValueError, json.JSONDecodeError) as e:
             logger.warning(f"Failed to get container info: {e}")
 
         return {}
@@ -245,10 +244,8 @@ class ContainerRuntimeAnalyzer:
                 timeout=5,
             )
             if result.returncode == 0:
-                import json
-
                 return json.loads(result.stdout)
-        except ImportError as e:
+        except (subprocess.SubprocessError, OSError, ValueError, json.JSONDecodeError) as e:
             logger.warning(f"Failed to get pod spec: {e}")
 
         return {}

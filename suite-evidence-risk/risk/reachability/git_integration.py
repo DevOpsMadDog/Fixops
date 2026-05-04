@@ -197,8 +197,10 @@ class GitRepositoryAnalyzer:
             )
 
             if result.returncode != 0:
+                # Redact the clone command to avoid leaking auth tokens embedded in URLs
+                safe_cmd = clone_cmd[:6] + ["<url-redacted>"]
                 raise RuntimeError(
-                    f"Git clone failed: {result.stderr}\nCommand: {' '.join(clone_cmd)}"
+                    f"Git clone failed (exit {result.returncode})\nCommand: {' '.join(safe_cmd)}"
                 )
 
             # Check repository size
@@ -261,13 +263,16 @@ class GitRepositoryAnalyzer:
         if not (repo_path / ".git").exists():
             raise ValueError(f"Not a Git repository: {repo_path}")
 
-        # Get commit info
+        # Get commit info — all git subprocesses capped at 30s to prevent hangs
+        _GIT_TIMEOUT = 30
+
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=repo_path,
             capture_output=True,
             text=True,
             check=True,
+            timeout=_GIT_TIMEOUT,
         ).stdout.strip()
 
         commit_message = subprocess.run(
@@ -276,6 +281,7 @@ class GitRepositoryAnalyzer:
             capture_output=True,
             text=True,
             check=True,
+            timeout=_GIT_TIMEOUT,
         ).stdout.strip()
 
         commit_author = subprocess.run(
@@ -284,6 +290,7 @@ class GitRepositoryAnalyzer:
             capture_output=True,
             text=True,
             check=True,
+            timeout=_GIT_TIMEOUT,
         ).stdout.strip()
 
         commit_date = subprocess.run(
@@ -292,6 +299,7 @@ class GitRepositoryAnalyzer:
             capture_output=True,
             text=True,
             check=True,
+            timeout=_GIT_TIMEOUT,
         ).stdout.strip()
 
         # Get branch
@@ -301,6 +309,7 @@ class GitRepositoryAnalyzer:
             capture_output=True,
             text=True,
             check=True,
+            timeout=_GIT_TIMEOUT,
         ).stdout.strip()
 
         # Get remote URL
@@ -311,6 +320,7 @@ class GitRepositoryAnalyzer:
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=_GIT_TIMEOUT,
             ).stdout.strip()
         except subprocess.CalledProcessError:
             remote_url = "unknown"

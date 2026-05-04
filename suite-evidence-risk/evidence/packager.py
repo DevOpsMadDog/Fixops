@@ -189,7 +189,7 @@ def _sign_manifest(manifest_path: Path, signature_path: Path, key_path: Path) ->
         str(signature_path),
         str(manifest_path),
     ]
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, timeout=120)
 
 
 def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
