@@ -172,307 +172,15 @@ const SEVERITY_CONFIG: Record<Severity, { label: string; color: string; bg: stri
 };
 
 // ═══════════════════════════════════════════════════════════
-// Mock Data
+// API config
 // ═══════════════════════════════════════════════════════════
 
-const now = new Date();
-const minsAgo = (m: number) => new Date(now.getTime() - m * 60_000);
-const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000);
-
-const MOCK_SESSIONS: HuntSession[] = [
-  {
-    id: "HS-0012",
-    name: "APT29 Persistence Hunt — Prod Infra",
-    status: "active",
-    tactic: "persistence",
-    startedAt: hoursAgo(2.5),
-    analyst: "A. Chen",
-    findingsCount: 3,
-    queriesRun: 14,
-    assetsScanned: 847,
-  },
-  {
-    id: "HS-0011",
-    name: "Credential Dumping Detection — AD",
-    status: "completed",
-    tactic: "credential-access",
-    startedAt: hoursAgo(28),
-    endedAt: hoursAgo(24),
-    analyst: "M. Patel",
-    findingsCount: 7,
-    queriesRun: 31,
-    assetsScanned: 2104,
-  },
-  {
-    id: "HS-0010",
-    name: "Lateral Movement via SMB — Corp Net",
-    status: "completed",
-    tactic: "lateral-movement",
-    startedAt: hoursAgo(72),
-    endedAt: hoursAgo(68),
-    analyst: "A. Chen",
-    findingsCount: 2,
-    queriesRun: 19,
-    assetsScanned: 1560,
-  },
-  {
-    id: "HS-0009",
-    name: "LSASS Memory Access Campaign",
-    status: "paused",
-    tactic: "credential-access",
-    startedAt: hoursAgo(6),
-    analyst: "S. Ramirez",
-    findingsCount: 1,
-    queriesRun: 8,
-    assetsScanned: 432,
-  },
-];
-
-const MOCK_PREDEFINED: PredefinedQuery[] = [
-  {
-    id: "PQ-001",
-    name: "LSASS Memory Dump via Procdump",
-    description: "Detects use of Sysinternals ProcDump to extract credentials from LSASS memory space.",
-    tactic: "credential-access",
-    technique: "LSASS Memory",
-    techniqueId: "T1003.001",
-    severity: "critical",
-    queriesCount: 4,
-    lastRun: hoursAgo(28),
-    tags: ["windows", "lsass", "credentials", "apt"],
-  },
-  {
-    id: "PQ-002",
-    name: "Scheduled Task Persistence (T1053)",
-    description: "Hunts for newly created or modified Windows Scheduled Tasks used for persistence.",
-    tactic: "persistence",
-    technique: "Scheduled Task/Job",
-    techniqueId: "T1053.005",
-    severity: "high",
-    queriesCount: 3,
-    lastRun: hoursAgo(48),
-    tags: ["windows", "persistence", "schtask"],
-  },
-  {
-    id: "PQ-003",
-    name: "PowerShell Base64 Obfuscation",
-    description: "Identifies PowerShell commands using Base64 encoding to evade detection.",
-    tactic: "execution",
-    technique: "PowerShell",
-    techniqueId: "T1059.001",
-    severity: "high",
-    queriesCount: 5,
-    tags: ["powershell", "obfuscation", "execution"],
-  },
-  {
-    id: "PQ-004",
-    name: "SMB Lateral Movement Indicators",
-    description: "Correlates SMB traffic patterns with known lateral movement signatures — pass-the-hash, wmiexec, psexec.",
-    tactic: "lateral-movement",
-    technique: "Remote Services: SMB",
-    techniqueId: "T1021.002",
-    severity: "high",
-    queriesCount: 6,
-    tags: ["smb", "lateral", "pass-the-hash"],
-  },
-  {
-    id: "PQ-005",
-    name: "Kerberoasting Attack Hunt",
-    description: "Detects service account enumeration and ticket requests characteristic of Kerberoasting.",
-    tactic: "credential-access",
-    technique: "Steal or Forge Kerberos Tickets",
-    techniqueId: "T1558.003",
-    severity: "critical",
-    queriesCount: 3,
-    tags: ["kerberos", "active-directory", "credentials"],
-  },
-  {
-    id: "PQ-006",
-    name: "Living Off the Land Binaries (LOLBins)",
-    description: "Detects abuse of legitimate Windows binaries (certutil, mshta, regsvr32) for malicious execution.",
-    tactic: "defense-evasion",
-    technique: "System Binary Proxy Execution",
-    techniqueId: "T1218",
-    severity: "medium",
-    queriesCount: 8,
-    tags: ["lolbins", "defense-evasion", "windows"],
-  },
-  {
-    id: "PQ-007",
-    name: "Cloud Metadata SSRF Detection",
-    description: "Hunts for SSRF attempts targeting cloud metadata endpoints (169.254.169.254) for credential theft.",
-    tactic: "credential-access",
-    technique: "Cloud Instance Metadata API",
-    techniqueId: "T1552.005",
-    severity: "critical",
-    queriesCount: 2,
-    tags: ["cloud", "ssrf", "aws", "gcp", "azure"],
-  },
-  {
-    id: "PQ-008",
-    name: "Privilege Escalation via Sudo Abuse",
-    description: "Detects misconfigurations and abuse of sudo rules on Linux systems.",
-    tactic: "privilege-escalation",
-    technique: "Sudo and Sudo Caching",
-    techniqueId: "T1548.003",
-    severity: "high",
-    queriesCount: 3,
-    tags: ["linux", "sudo", "privesc"],
-  },
-  {
-    id: "PQ-009",
-    name: "DNS Tunneling Exfiltration",
-    description: "Identifies DNS query patterns consistent with data exfiltration over DNS tunneling protocols.",
-    tactic: "initial-access",
-    technique: "DNS Tunneling",
-    techniqueId: "T1071.004",
-    severity: "high",
-    queriesCount: 4,
-    tags: ["dns", "exfiltration", "tunneling"],
-  },
-  {
-    id: "PQ-010",
-    name: "Container Escape Indicators",
-    description: "Detects privileged container escapes and namespace breakout patterns.",
-    tactic: "privilege-escalation",
-    technique: "Escape to Host",
-    techniqueId: "T1611",
-    severity: "critical",
-    queriesCount: 5,
-    tags: ["container", "docker", "kubernetes", "escape"],
-  },
-  {
-    id: "PQ-011",
-    name: "Network Recon via Port Scanning",
-    description: "Identifies internal network reconnaissance through rapid connection attempts.",
-    tactic: "discovery",
-    technique: "Network Service Discovery",
-    techniqueId: "T1046",
-    severity: "medium",
-    queriesCount: 3,
-    tags: ["recon", "network", "scanning"],
-  },
-  {
-    id: "PQ-012",
-    name: "Registry Run Key Persistence",
-    description: "Hunts for malware persistence via HKLM and HKCU Run registry keys.",
-    tactic: "persistence",
-    technique: "Boot or Logon Autostart Execution",
-    techniqueId: "T1547.001",
-    severity: "high",
-    queriesCount: 2,
-    tags: ["registry", "persistence", "windows"],
-  },
-  {
-    id: "PQ-013",
-    name: "Token Impersonation / Theft",
-    description: "Detects process token manipulation used for privilege escalation on Windows.",
-    tactic: "privilege-escalation",
-    technique: "Access Token Manipulation",
-    techniqueId: "T1134",
-    severity: "high",
-    queriesCount: 4,
-    tags: ["token", "impersonation", "windows"],
-  },
-  {
-    id: "PQ-014",
-    name: "Web Shell Deployment",
-    description: "Identifies web shell files dropped on web servers based on file signatures and access patterns.",
-    tactic: "persistence",
-    technique: "Server Software Component: Web Shell",
-    techniqueId: "T1505.003",
-    severity: "critical",
-    queriesCount: 6,
-    tags: ["webshell", "persistence", "web"],
-  },
-  {
-    id: "PQ-015",
-    name: "Phishing Link Callback Indicators",
-    description: "Correlates email metadata with outbound HTTP callback patterns from phishing payloads.",
-    tactic: "initial-access",
-    technique: "Phishing",
-    techniqueId: "T1566",
-    severity: "high",
-    queriesCount: 5,
-    tags: ["phishing", "initial-access", "email"],
-  },
-];
-
-const MOCK_FINDINGS: HuntFinding[] = [
-  {
-    id: "HF-0031",
-    severity: "critical",
-    title: "LSASS memory read via unsigned process (rundll32.exe)",
-    asset: "corp-dc-01.internal",
-    assetType: "host",
-    tactic: "credential-access",
-    technique: "LSASS Memory",
-    techniqueId: "T1003.001",
-    confidence: 94,
-    iocs: ["rundll32.exe", "0x0010", "PID:4821", "SYSTEM context"],
-    evidence: "Process rundll32.exe (PID 4821) opened LSASS with PROCESS_VM_READ access at 2026-04-12T09:14:22Z. Parent: cmd.exe (PID 3210). No known DLL argument supplied. Cross-referenced against 847 prior baseline samples — anomalous.",
-    detectedAt: minsAgo(18),
-    status: "investigating",
-  },
-  {
-    id: "HF-0030",
-    severity: "high",
-    title: "Scheduled Task created at non-standard path targeting %TEMP%",
-    asset: "wkstn-mkt-047.corp",
-    assetType: "endpoint",
-    tactic: "persistence",
-    technique: "Scheduled Task/Job",
-    techniqueId: "T1053.005",
-    confidence: 87,
-    iocs: ["svchost_update.exe", "%TEMP%\\svc\\", "TaskName: WindowsUpdateSvc"],
-    evidence: "New scheduled task 'WindowsUpdateSvc' registered by user CORP\\jsmith targeting binary at %TEMP%\\svc\\svchost_update.exe. Task executes every 15 minutes. Binary hash: d4f9a1c2... not in known-good catalog.",
-    detectedAt: minsAgo(34),
-    status: "new",
-  },
-  {
-    id: "HF-0029",
-    severity: "high",
-    title: "Outbound DNS queries with entropy score > 4.2 (tunneling signature)",
-    asset: "10.0.12.44",
-    assetType: "network",
-    tactic: "initial-access",
-    technique: "DNS Tunneling",
-    techniqueId: "T1071.004",
-    confidence: 78,
-    iocs: ["xn--e1afmkfd.xn--p1ai", "52-char subdomains", "TXT record queries"],
-    evidence: "Host 10.0.12.44 generated 1,240 DNS TXT queries over 90 minutes to domains with average subdomain entropy of 4.6 bits/char. Destination: registrar-services[.]ru. Exfil volume estimate: ~380KB.",
-    detectedAt: minsAgo(52),
-    status: "new",
-  },
-  {
-    id: "HF-0028",
-    severity: "medium",
-    title: "PowerShell -EncodedCommand with long Base64 payload",
-    asset: "wkstn-dev-023.corp",
-    assetType: "endpoint",
-    tactic: "execution",
-    technique: "PowerShell",
-    techniqueId: "T1059.001",
-    confidence: 71,
-    iocs: ["powershell.exe -enc", "JABjACAAPQAgAA...", "4096-byte payload"],
-    evidence: "PowerShell process spawned from winword.exe with -EncodedCommand flag. Decoded payload attempts to download from pastebin.com/raw/xK7mN2pQ. Download blocked by proxy but process executed.",
-    detectedAt: minsAgo(71),
-    status: "false_positive",
-  },
-];
-
-const MOCK_TIMELINE: TimelineEvent[] = [
-  { id: "TE-001", timestamp: hoursAgo(2.5), type: "session_start", title: "Hunt session started", detail: "APT29 Persistence Hunt — Prod Infra · Analyst: A. Chen" },
-  { id: "TE-002", timestamp: hoursAgo(2.4), type: "query_run", title: "Query executed: Registry Run Keys scan", detail: "Scanned 847 assets · 0 initial matches" },
-  { id: "TE-003", timestamp: hoursAgo(2.2), type: "query_run", title: "Query executed: Scheduled Task enumeration", detail: "Scanned 847 assets · 1 candidate found" },
-  { id: "TE-004", timestamp: minsAgo(120), type: "finding", title: "Finding HF-0030: Suspicious scheduled task", detail: "wkstn-mkt-047.corp · Confidence 87%", severity: "high" },
-  { id: "TE-005", timestamp: minsAgo(90), type: "query_run", title: "Query executed: LSASS access patterns", detail: "Scanned 847 assets · 2 candidates" },
-  { id: "TE-006", timestamp: minsAgo(75), type: "query_run", title: "Query executed: PowerShell obfuscation sweep", detail: "Scanned 847 assets · 3 candidates" },
-  { id: "TE-007", timestamp: minsAgo(71), type: "finding", title: "Finding HF-0028: Encoded PowerShell payload", detail: "wkstn-dev-023.corp · Confidence 71%", severity: "medium" },
-  { id: "TE-008", timestamp: minsAgo(52), type: "finding", title: "Finding HF-0029: DNS tunneling pattern", detail: "10.0.12.44 · Confidence 78%", severity: "high" },
-  { id: "TE-009", timestamp: minsAgo(18), type: "finding", title: "Finding HF-0031: LSASS memory access (critical)", detail: "corp-dc-01.internal · Confidence 94%", severity: "critical" },
-  { id: "TE-010", timestamp: minsAgo(12), type: "query_run", title: "Query executed: Credential access deep scan", detail: "Scanned 847 assets · ongoing" },
-];
+const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
 
 // ═══════════════════════════════════════════════════════════
 // Helper components
@@ -1010,11 +718,12 @@ function TimelineEventItem({ event }: { event: TimelineEvent }) {
 // ═══════════════════════════════════════════════════════════
 
 export default function ThreatHunting() {
-  const [sessions, setSessions] = useState<HuntSession[]>(MOCK_SESSIONS);
-  const [selectedSessionId, setSelectedSessionId] = useState<string>(MOCK_SESSIONS[0].id);
+  const [sessions, setSessions] = useState<HuntSession[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [showNewSession, setShowNewSession] = useState(false);
-  const [findings, setFindings] = useState<HuntFinding[]>(MOCK_FINDINGS);
-  const [timeline] = useState<TimelineEvent[]>(MOCK_TIMELINE);
+  const [findings, setFindings] = useState<HuntFinding[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [predefinedQueries, setPredefinedQueries] = useState<PredefinedQuery[]>([]);
   const [tacticFilter, setTacticFilter] = useState<MitreTactic | "all">("all");
   const [severityFilter, setSeverityFilter] = useState<Severity | "all">("all");
   const [querySearch, setQuerySearch] = useState("");
@@ -1024,13 +733,46 @@ export default function ThreatHunting() {
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
 
   const filteredQueries = useMemo(() => {
-    return MOCK_PREDEFINED.filter((q) => {
+    return predefinedQueries.filter((q) => {
       if (tacticFilter !== "all" && q.tactic !== tacticFilter) return false;
       if (severityFilter !== "all" && q.severity !== severityFilter) return false;
       if (querySearch && !q.name.toLowerCase().includes(querySearch.toLowerCase()) && !q.techniqueId.toLowerCase().includes(querySearch.toLowerCase())) return false;
       return true;
     });
-  }, [tacticFilter, severityFilter, querySearch]);
+  }, [tacticFilter, severityFilter, querySearch, predefinedQueries]);
+
+  useEffect(() => {
+    const headers = { "X-API-Key": API_KEY };
+    Promise.allSettled([
+      fetch(`${API_BASE}/api/v1/threat-hunting/sessions?org_id=${ORG_ID}`, { headers })
+        .then(r => r.ok ? r.json() : Promise.reject()),
+      fetch(`${API_BASE}/api/v1/threat-hunting/findings?org_id=${ORG_ID}`, { headers })
+        .then(r => r.ok ? r.json() : Promise.reject()),
+      fetch(`${API_BASE}/api/v1/threat-hunting/timeline?org_id=${ORG_ID}`, { headers })
+        .then(r => r.ok ? r.json() : Promise.reject()),
+      fetch(`${API_BASE}/api/v1/threat-hunting/queries?org_id=${ORG_ID}`, { headers })
+        .then(r => r.ok ? r.json() : Promise.reject()),
+    ]).then(([sessRes, findRes, timeRes, querRes]) => {
+      if (sessRes.status === "fulfilled") {
+        const d = sessRes.value;
+        const list = Array.isArray(d) ? d : (d?.sessions ?? []);
+        setSessions(list);
+        if (list.length > 0) setSelectedSessionId(list[0].id);
+      }
+      if (findRes.status === "fulfilled") {
+        const d = findRes.value;
+        setFindings(Array.isArray(d) ? d : (d?.findings ?? []));
+      }
+      if (timeRes.status === "fulfilled") {
+        const d = timeRes.value;
+        setTimeline(Array.isArray(d) ? d : (d?.timeline ?? []));
+      }
+      if (querRes.status === "fulfilled") {
+        const d = querRes.value;
+        setPredefinedQueries(Array.isArray(d) ? d : (d?.queries ?? []));
+      }
+    });
+  }, []);
 
   const handleStartSession = useCallback((name: string, tactic: MitreTactic) => {
     const newSession: HuntSession = {
