@@ -134,34 +134,65 @@ def version_info() -> Dict[str, Any]:
     }
 
 
-@router.get("/metrics", status_code=status.HTTP_200_OK)
-def metrics_endpoint(request: Request) -> Dict[str, Any]:
+@router.get("/metrics", response_class=None, summary="Prometheus metrics")
+async def prometheus_metrics() -> Any:
     """
-    Return basic metrics in JSON format.
+    Prometheus text exposition format (version 0.0.4).
 
-    For Prometheus metrics, use the /metrics endpoint exposed by OpenTelemetry.
-    This endpoint provides application-level metrics in JSON format.
+    Scrape with: ``prometheus.yml`` ``metrics_path: /api/v1/metrics``.
+    No auth required — same policy as liveness probe.
+
+    Gauges emitted:
+      - fixops_engines_total          Number of *_engine.py modules in suite-core/core
+      - fixops_routers_total          Number of *_router.py modules in suite-api/apps/api
+      - fixops_feeds_kev_rows         Row count in feeds.db kev_entries table
+      - fixops_feeds_epss_rows        Row count in feeds.db epss_scores table
+      - fixops_metrics_endpoint_latency_ms  Wall-time of this scrape in milliseconds
     """
-    metrics: Dict[str, Any] = {
-        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
-        "service": "fixops-api",
-        "version": VERSION,
-    }
+    import time
+    from fastapi.responses import PlainTextResponse
 
-    try:
-        artifacts = getattr(request.app.state, "artifacts", {})
-        metrics["artifacts_count"] = len(artifacts)
-        metrics["artifact_stages"] = list(artifacts.keys())
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-        pass
+    started = time.perf_counter()
+    lines: list[str] = []
 
-    try:
-        archive_records = getattr(request.app.state, "archive_records", {})
-        metrics["archive_records_count"] = len(archive_records)
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-        pass
+    # 1. Engine count
+    eng_count = sum(1 for _ in Path("suite-core/core").glob("*_engine.py"))
+    lines.append("# HELP fixops_engines_total Number of engine modules")
+    lines.append("# TYPE fixops_engines_total gauge")
+    lines.append(f"fixops_engines_total {eng_count}")
 
-    return metrics
+    # 2. Router count
+    router_count = sum(1 for _ in Path("suite-api/apps/api").glob("*_router.py"))
+    lines.append("# HELP fixops_routers_total Number of router modules")
+    lines.append("# TYPE fixops_routers_total gauge")
+    lines.append(f"fixops_routers_total {router_count}")
+
+    # 3. Feeds DB row counts (KEV, EPSS) — real disk read, no mocks
+    feeds_db = Path("data/feeds/feeds.db")
+    if feeds_db.exists():
+        con = sqlite3.connect(str(feeds_db), timeout=2)
+        try:
+            for table, metric in [
+                ("kev_entries", "fixops_feeds_kev_rows"),
+                ("epss_scores", "fixops_feeds_epss_rows"),
+            ]:
+                try:
+                    n = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608
+                    lines.append(f"# HELP {metric} Row count in feeds.db {table}")
+                    lines.append(f"# TYPE {metric} gauge")
+                    lines.append(f"{metric} {n}")
+                except Exception:  # noqa: BLE001
+                    pass
+        finally:
+            con.close()
+
+    # 4. Scrape latency (always last — measures full scrape cost)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    lines.append("# HELP fixops_metrics_endpoint_latency_ms Wall-time of this scrape in ms")
+    lines.append("# TYPE fixops_metrics_endpoint_latency_ms gauge")
+    lines.append(f"fixops_metrics_endpoint_latency_ms {elapsed_ms:.2f}")
+
+    return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
 
 @router.get("/health/deep", status_code=status.HTTP_200_OK)
