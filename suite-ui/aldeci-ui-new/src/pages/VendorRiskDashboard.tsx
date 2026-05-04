@@ -86,146 +86,6 @@ interface Assessment {
   assessor: string;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Mock data
-// ═══════════════════════════════════════════════════════════
-
-const MOCK_VENDORS: Vendor[] = [
-  {
-    id: "v1",
-    name: "AWS",
-    tier: "Tier 1",
-    overall_score: 94,
-    risk_level: "low",
-    last_assessed: "2026-04-10",
-    status: "active",
-    data_access: "Full Cloud Infrastructure",
-    incident_history: 0,
-  },
-  {
-    id: "v2",
-    name: "Salesforce",
-    tier: "Tier 1",
-    overall_score: 87,
-    risk_level: "low",
-    last_assessed: "2026-04-05",
-    status: "active",
-    data_access: "Customer Data CRM",
-    incident_history: 1,
-  },
-  {
-    id: "v3",
-    name: "Okta",
-    tier: "Tier 1",
-    overall_score: 92,
-    risk_level: "low",
-    last_assessed: "2026-04-08",
-    status: "active",
-    data_access: "Identity & Access",
-    incident_history: 0,
-  },
-  {
-    id: "v4",
-    name: "Slack",
-    tier: "Tier 2",
-    overall_score: 78,
-    risk_level: "medium",
-    last_assessed: "2026-03-28",
-    status: "active",
-    data_access: "Internal Communications",
-    incident_history: 0,
-  },
-  {
-    id: "v5",
-    name: "Jira",
-    tier: "Tier 2",
-    overall_score: 81,
-    risk_level: "medium",
-    last_assessed: "2026-04-02",
-    status: "active",
-    data_access: "Project & Issue Tracking",
-    incident_history: 0,
-  },
-  {
-    id: "v6",
-    name: "GitHub",
-    tier: "Tier 1",
-    overall_score: 65,
-    risk_level: "high",
-    last_assessed: "2026-03-15",
-    status: "active",
-    data_access: "Source Code Repository",
-    incident_history: 2,
-  },
-  {
-    id: "v7",
-    name: "Zoom",
-    tier: "Tier 2",
-    overall_score: 72,
-    risk_level: "high",
-    last_assessed: "2026-02-20",
-    status: "pending",
-    data_access: "Video Conference",
-    incident_history: 1,
-  },
-  {
-    id: "v8",
-    name: "HubSpot",
-    tier: "Tier 3",
-    overall_score: 55,
-    risk_level: "critical",
-    last_assessed: "2026-01-10",
-    status: "pending",
-    data_access: "Marketing Automation",
-    incident_history: 3,
-  },
-];
-
-const MOCK_RISK_DOMAINS: RiskDomain[] = [
-  { name: "Data Security", score: 82 },
-  { name: "Access Control", score: 76 },
-  { name: "Incident Response", score: 71 },
-  { name: "Compliance", score: 88 },
-  { name: "Business Continuity", score: 69 },
-];
-
-const MOCK_ASSESSMENTS: Assessment[] = [
-  {
-    id: "a1",
-    vendor_name: "AWS",
-    timestamp: "2026-04-10T14:32:00Z",
-    score: 94,
-    assessor: "Security Team",
-  },
-  {
-    id: "a2",
-    vendor_name: "Okta",
-    timestamp: "2026-04-08T10:15:00Z",
-    score: 92,
-    assessor: "IAM Analyst",
-  },
-  {
-    id: "a3",
-    vendor_name: "Salesforce",
-    timestamp: "2026-04-05T09:45:00Z",
-    score: 87,
-    assessor: "Third-Party Team",
-  },
-  {
-    id: "a4",
-    vendor_name: "Jira",
-    timestamp: "2026-04-02T16:20:00Z",
-    score: 81,
-    assessor: "Security Team",
-  },
-  {
-    id: "a5",
-    vendor_name: "Slack",
-    timestamp: "2026-03-28T11:05:00Z",
-    score: 78,
-    assessor: "Infrastructure Team",
-  },
-];
 
 // ═══════════════════════════════════════════════════════════
 // Helpers
@@ -318,13 +178,17 @@ async function apiFetch(path: string) {
 export default function VendorRiskDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [riskDomains, setRiskDomains] = useState<RiskDomain[]>([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
 
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/vendor-risk/vendors?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/vendor-risk/risk-register?org_id=${ORG_ID}`),
-    ]).then(([vendorsResult, registerResult]) => {
+      apiFetch(`/api/v1/vendor-risk/risk-domains?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vendor-risk/assessments?org_id=${ORG_ID}&limit=5`),
+    ]).then(([vendorsResult, registerResult, domainsResult, assessmentsResult]) => {
       const vendorsRaw  = vendorsResult.status  === "fulfilled" ? vendorsResult.value  : null;
       const registerRaw = registerResult.status === "fulfilled" ? registerResult.value : null;
       if (vendorsRaw || registerRaw) {
@@ -336,10 +200,18 @@ export default function VendorRiskDashboard() {
           : null;
         setLiveData({ vendors: vendors ?? register, register });
       }
+      if (domainsResult.status === "fulfilled") {
+        const d = domainsResult.value;
+        setRiskDomains(Array.isArray(d) ? d : (d?.domains ?? d?.risk_domains ?? []));
+      }
+      if (assessmentsResult.status === "fulfilled") {
+        const d = assessmentsResult.value;
+        setAssessments(Array.isArray(d) ? d : (d?.assessments ?? d?.items ?? []));
+      }
     }).finally(() => setDataLoading(false));
   }, []);
 
-  const vendors: Vendor[] = (liveData?.vendors as Vendor[] | undefined) ?? MOCK_VENDORS;
+  const vendors: Vendor[] = (liveData?.vendors as Vendor[] | undefined) ?? [];
 
   // Calculate stats
   const totalVendors = vendors.length;
@@ -524,7 +396,7 @@ export default function VendorRiskDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {MOCK_RISK_DOMAINS.map((domain, idx) => (
+                {riskDomains.map((domain, idx) => (
                   <div key={idx}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-slate-200">
@@ -572,7 +444,7 @@ export default function VendorRiskDashboard() {
           <CardContent>
             <ScrollArea className="h-[280px]">
               <div className="space-y-3">
-                {MOCK_ASSESSMENTS.map((assessment, idx) => (
+                {assessments.map((assessment, idx) => (
                   <motion.div
                     key={assessment.id}
                     initial={{ opacity: 0, x: -10 }}
