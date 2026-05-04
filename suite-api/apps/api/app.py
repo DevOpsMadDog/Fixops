@@ -6444,6 +6444,48 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Feed-importer routers — real engine wiring, backfilled 2026-05-04
+    try:
+        from apps.api.epss_router import router as epss_router
+        app.include_router(epss_router)
+        _logger.info("Mounted EPSS router at /api/v1/epss")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.nuclei_router import router as nuclei_router
+        app.include_router(nuclei_router)
+        _logger.info("Mounted Nuclei router at /api/v1/nuclei")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.spamhaus_router import router as spamhaus_router
+        app.include_router(spamhaus_router)
+        _logger.info("Mounted Spamhaus DROP router at /api/v1/spamhaus")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ghsa_router import router as ghsa_router
+        app.include_router(ghsa_router)
+        _logger.info("Mounted GHSA router at /api/v1/ghsa")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.urlhaus_router import router as urlhaus_router
+        app.include_router(urlhaus_router)
+        _logger.info("Mounted URLhaus router at /api/v1/urlhaus")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.phishtank_router import router as phishtank_router
+        app.include_router(phishtank_router)
+        _logger.info("Mounted PhishTank router at /api/v1/phishtank")
+    except ImportError:
+        pass
 
     # cloud_incident_response_router — moved to ctem_app.py (Wave-C-batch-2 2026-05-03)
 
