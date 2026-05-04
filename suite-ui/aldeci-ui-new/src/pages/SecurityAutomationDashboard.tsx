@@ -35,27 +35,6 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_STATS = {
-  total_rules: 24,
-  executions_today: 47,
-  success_rate: 0.94,
-  avg_duration_ms: 230,
-};
-
-const MOCK_EXECUTIONS = [
-  { id: "EXEC-001", rule_name: "Block brute force IPs",        trigger: "threshold",  status: "success", actions_taken: 3, duration_ms: 182 },
-  { id: "EXEC-002", rule_name: "Quarantine infected endpoint",  trigger: "alert",      status: "success", actions_taken: 5, duration_ms: 441 },
-  { id: "EXEC-003", rule_name: "Revoke leaked API key",         trigger: "secret_scan",status: "success", actions_taken: 2, duration_ms: 97  },
-  { id: "EXEC-004", rule_name: "Escalate P1 incident",         trigger: "schedule",   status: "failed",  actions_taken: 0, duration_ms: 23  },
-  { id: "EXEC-005", rule_name: "Patch critical CVE",           trigger: "cve_feed",   status: "success", actions_taken: 7, duration_ms: 612 },
-  { id: "EXEC-006", rule_name: "Isolate anomalous account",    trigger: "uba",        status: "success", actions_taken: 4, duration_ms: 315 },
-  { id: "EXEC-007", rule_name: "Generate compliance report",   trigger: "schedule",   status: "success", actions_taken: 1, duration_ms: 189 },
-  { id: "EXEC-008", rule_name: "Rotate expiring cert",         trigger: "threshold",  status: "skipped", actions_taken: 0, duration_ms: 8   },
-  { id: "EXEC-009", rule_name: "Enable WAF rule for SQLi",     trigger: "alert",      status: "success", actions_taken: 2, duration_ms: 74  },
-  { id: "EXEC-010", rule_name: "Notify on new admin account",  trigger: "event",      status: "success", actions_taken: 1, duration_ms: 55  },
-];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
@@ -95,8 +74,8 @@ function StatusBadge({ status }: { status: string }) {
 export default function SecurityAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
-  const [executions, setExecutions] = useState<typeof MOCK_EXECUTIONS>(MOCK_EXECUTIONS);
+  const [stats, setStats]           = useState<{ total_rules: number; executions_today: number; success_rate: number; avg_duration_ms: number }>({ total_rules: 0, executions_today: 0, success_rate: 0, avg_duration_ms: 0 });
+  const [executions, setExecutions] = useState<any[]>([]);
 
   useEffect(() => {
     Promise.allSettled([
