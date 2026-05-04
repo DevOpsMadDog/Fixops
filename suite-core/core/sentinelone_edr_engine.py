@@ -38,6 +38,11 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 30.0
@@ -212,8 +217,31 @@ class SentinelOneEDREngine:
         if cursor:
             params["cursor"] = cursor
         data = self._get("/web/api/v2.1/threats", params=params)
+        threats = [t for t in (data.get("data") or []) if isinstance(t, dict)]
+        if _get_tg_bus:
+            for t in threats:
+                tid = t.get("id") or (t.get("threatInfo") or {}).get("threatId")
+                if not tid:
+                    continue
+                ti = t.get("threatInfo") or {}
+                try:
+                    _bus = _get_tg_bus()
+                    if _bus:
+                        _bus.emit(
+                            "threat.detected",
+                            {
+                                "entity_id": str(tid),
+                                "type": "sentinelone_threat",
+                                "severity": ti.get("confidenceLevel") or ti.get("classification") or "unknown",
+                                "source_engine": "sentinelone_edr",
+                                "classification": ti.get("classification"),
+                                "mitigation_status": ti.get("mitigationStatus"),
+                            },
+                        )
+                except Exception:
+                    pass
         return {
-            "data": [t for t in (data.get("data") or []) if isinstance(t, dict)],
+            "data": threats,
             "pagination": data.get("pagination") or {},
         }
 

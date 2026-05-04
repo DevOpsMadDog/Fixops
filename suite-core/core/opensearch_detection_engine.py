@@ -34,6 +34,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 8.0
@@ -158,8 +163,26 @@ class OpenSearchDetectionEngine:
         if not body.get("indices"):
             raise ValueError("indices is required")
         raw = self._request("POST", _AD_PREFIX, json_body=body)
+        detector_id = raw.get("_id")
+        if _get_tg_bus and detector_id:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "asset.discovered",
+                        {
+                            "entity_id": detector_id,
+                            "type": "opensearch_anomaly_detector",
+                            "severity": "info",
+                            "source_engine": "opensearch_detection",
+                            "name": body.get("name"),
+                            "indices": body.get("indices"),
+                        },
+                    )
+            except Exception:
+                pass
         return {
-            "detector_id": raw.get("_id"),
+            "detector_id": detector_id,
             "version": raw.get("_version"),
             "result": raw.get("anomaly_detector") or {},
         }

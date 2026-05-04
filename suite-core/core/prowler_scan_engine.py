@@ -34,6 +34,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -239,6 +244,25 @@ class ProwlerScanEngine:
                 ),
             )
 
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "scan.completed",
+                        {
+                            "entity_id": scan_id,
+                            "type": "prowler_cspm_scan",
+                            "severity": "unknown",
+                            "source_engine": "prowler_scan",
+                            "provider": provider,
+                            "region": region,
+                            "frameworks": frameworks,
+                            "status": status,
+                        },
+                    )
+            except Exception:
+                pass
         return {
             "scan_id": scan_id,
             "provider": provider,

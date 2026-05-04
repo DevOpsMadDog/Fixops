@@ -27,6 +27,11 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 PD_API_BASE = "https://api.pagerduty.com"
@@ -181,9 +186,27 @@ class PagerDutyIncidentEngine:
             json=body,
         )
         data = self._check_resp(resp, "POST /incidents")
-        if isinstance(data, dict) and "incident" in data:
-            return {"incident": data["incident"]}
-        return {"incident": data}
+        incident = data["incident"] if isinstance(data, dict) and "incident" in data else data
+        if _get_tg_bus and isinstance(incident, dict):
+            iid = incident.get("id") or incident.get("incident_number")
+            if iid:
+                try:
+                    _bus = _get_tg_bus()
+                    if _bus:
+                        _bus.emit(
+                            "incident.created",
+                            {
+                                "entity_id": str(iid),
+                                "type": "pagerduty_incident",
+                                "severity": incident.get("urgency") or "unknown",
+                                "source_engine": "pagerduty_incident",
+                                "title": incident.get("title"),
+                                "status": incident.get("status"),
+                            },
+                        )
+                except Exception:
+                    pass
+        return {"incident": incident}
 
     def update_incident(self, incident_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
         self._require_token()

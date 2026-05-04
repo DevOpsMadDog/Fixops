@@ -38,6 +38,11 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://api.crowdstrike.com"
@@ -205,22 +210,38 @@ class FalconEDREngine:
             if not isinstance(raw, dict):
                 continue
             device = raw.get("device") or {}
-            resources_out.append(
-                {
-                    "detection_id":  raw.get("detection_id") or raw.get("DetectId") or "",
-                    "severity":      raw.get("max_severity") or raw.get("severity") or 0,
-                    "severity_name": raw.get("max_severity_displayname")
-                                       or raw.get("severity_name") or "",
-                    "status":        raw.get("status") or "",
-                    "behaviors":     raw.get("behaviors") or [],
-                    "device": {
-                        "hostname":     device.get("hostname") or "",
-                        "platform_name": device.get("platform_name") or "",
-                        "os_version":   device.get("os_version") or "",
-                    },
-                    "hostinfo":      raw.get("hostinfo") or {},
-                }
-            )
+            normalized = {
+                "detection_id":  raw.get("detection_id") or raw.get("DetectId") or "",
+                "severity":      raw.get("max_severity") or raw.get("severity") or 0,
+                "severity_name": raw.get("max_severity_displayname")
+                                   or raw.get("severity_name") or "",
+                "status":        raw.get("status") or "",
+                "behaviors":     raw.get("behaviors") or [],
+                "device": {
+                    "hostname":     device.get("hostname") or "",
+                    "platform_name": device.get("platform_name") or "",
+                    "os_version":   device.get("os_version") or "",
+                },
+                "hostinfo":      raw.get("hostinfo") or {},
+            }
+            resources_out.append(normalized)
+            if _get_tg_bus and normalized["detection_id"]:
+                try:
+                    _bus = _get_tg_bus()
+                    if _bus:
+                        _bus.emit(
+                            "threat.detected",
+                            {
+                                "entity_id": normalized["detection_id"],
+                                "type": "falcon_edr_detection",
+                                "severity": normalized["severity_name"] or str(normalized["severity"]),
+                                "source_engine": "falcon_edr",
+                                "status": normalized["status"],
+                                "hostname": normalized["device"]["hostname"],
+                            },
+                        )
+                except Exception:
+                    pass
         return {"meta": meta, "resources": resources_out}
 
     # ------------------------------------------------------------------
