@@ -1,0 +1,43 @@
+══════════════════════════════════════════════════════════════════
+  ALdeci Autonomous Validation — Pass 14
+  High-Visibility Suite Execution
+  Timestamp: 2026-05-04T19:59:10Z
+══════════════════════════════════════════════════════════════════
+
+┌─ Focused Autonomous Foundation (tests/test_autonomous_foundation.py)
+│  ✓ 184 passed, 0 failed, 0 skipped (19.54s)
+└─────────────────────────────────
+
+┌─ Autonomous Workspace (tests/test_autonomous_workspace.py)
+│  ✓ 30 passed, 0 failed, 1 skipped (0.46s)
+│  SKIP: test_git_repo_not_in_git — expected (not in a git repo)
+└─────────────────────────────────
+
+┌─ Autonomous Cycle (tests/test_autonomous_cycle.py)
+│  ✓ 49 passed, 0 failed, 0 skipped (271.71s)
+│  Slowest: test_bn_cpd_hash_verification (31.27s)
+└─────────────────────────────────
+
+┌─ E2E Branding Namespace (tests/e2e/test_branding_namespace.py)
+│  ✓ All branding tests passed
+│  Slowest: test_branding_persists_across_api_requests (21.93s)
+└─────────────────────────────────
+
+┌─ E2E BN-LR Hybrid (tests/e2e/test_bn_lr_hybrid.py)
+│  ✓ All hybrid model tests passed
+│  Slowest: test_bn_cpd_hash_verification (29.08s)
+└─────────────────────────────────
+
+┌─ AI Consensus (tests/test_ai_consensus.py)
+│  ✓ All consensus tests passed
+└─────────────────────────────────
+
+┌─ Broader Repository Validation
+│  ✓ 7990 passed, 0 failed, 98 skipped (1524.59s / 25m24s)
+│  Excluded: tests/e2e, tests/real_world_tests, tests/test_autonomous_cycle.py
+│  SKIP reasons: Live API server not running (MITRE airgap), Could not connect (real_world_integration)
+└─────────────────────────────────
+
+══════════════════════════════════════════════════════════════════
+  SUMMARY: ALL TIERS GREEN — 8,253 passed, 0 failed, 99 skipped
+══════════════════════════════════════════════════════════════════
