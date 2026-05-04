@@ -91,6 +91,13 @@ class AnalyticsEngine:
         cols = [desc[0] for desc in rel.description]
         return [dict(zip(cols, row)) for row in rel.fetchall()]
 
+    def _count_agg(self, db_path: str, table: str, where: str = "") -> int:
+        """Return COUNT(*) pushed into DuckDB — zero row materialisation."""
+        sql = f"SELECT COUNT(*) FROM sqlite_scan('{db_path}', '{table}')"  # nosec B608
+        if where:
+            sql += f" WHERE {where}"
+        return self._conn.execute(sql).fetchone()[0]  # type: ignore[index]
+
     def _try_scan(
         self,
         db_name: str,
@@ -144,28 +151,47 @@ class AnalyticsEngine:
             result["current_score"] = rows[0].get("current_score")
             result["grade"] = rows[0].get("grade")
 
-        # Risk register
-        rows = self._try_scan("risk_register", "risks")
-        if rows is not None:
-            result["total_risks"] = len(rows)
-            result["critical_risks"] = sum(
-                1 for r in rows if str(r.get("severity", "")).lower() == "critical"
-            )
+        # Risk register — push COUNT aggregates into DuckDB, no Python row materialisation
+        risk_path = self.get_db_path("risk_register")
+        if risk_path is not None:
+            try:
+                sql = (
+                    f"SELECT COUNT(*), "  # nosec B608
+                    f"COUNT(*) FILTER (WHERE lower(severity) = 'critical') "
+                    f"FROM sqlite_scan('{risk_path}', 'risks')"
+                )
+                total, critical = self._conn.execute(sql).fetchone()  # type: ignore[misc]
+                result["total_risks"] = total or 0
+                result["critical_risks"] = critical or 0
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("risk_register aggregate failed: %s", exc)
 
-        # Digital forensics — open cases
-        rows = self._try_scan("digital_forensics", "forensic_cases")
-        if rows is not None:
-            result["open_cases"] = sum(
-                1 for r in rows if str(r.get("status", "")).lower() != "closed"
-            )
+        # Digital forensics — open cases via SQL COUNT
+        forensics_path = self.get_db_path("digital_forensics")
+        if forensics_path is not None:
+            try:
+                sql = (
+                    f"SELECT COUNT(*) FILTER (WHERE lower(status) != 'closed') "  # nosec B608
+                    f"FROM sqlite_scan('{forensics_path}', 'forensic_cases')"
+                )
+                result["open_cases"] = self._conn.execute(sql).fetchone()[0] or 0  # type: ignore[index]
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("digital_forensics aggregate failed: %s", exc)
 
-        # Threat hunting findings
-        rows = self._try_scan("threat_hunting", "hunt_findings")
-        if rows is not None:
-            result["total_findings"] = len(rows)
-            result["critical_findings"] = sum(
-                1 for r in rows if str(r.get("severity", "")).lower() == "critical"
-            )
+        # Threat hunting findings — push COUNT aggregates into DuckDB
+        hunt_path = self.get_db_path("threat_hunting")
+        if hunt_path is not None:
+            try:
+                sql = (
+                    f"SELECT COUNT(*), "  # nosec B608
+                    f"COUNT(*) FILTER (WHERE lower(severity) = 'critical') "
+                    f"FROM sqlite_scan('{hunt_path}', 'hunt_findings')"
+                )
+                total, critical = self._conn.execute(sql).fetchone()  # type: ignore[misc]
+                result["total_findings"] = total or 0
+                result["critical_findings"] = critical or 0
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("threat_hunting aggregate failed: %s", exc)
 
         if _get_tg_bus:
             try:
@@ -239,27 +265,27 @@ class AnalyticsEngine:
         # Escape single quotes in ioc for safe interpolation
         safe_ioc = ioc.replace("'", "''")
 
-        # Threat feed aggregator
-        feed_rows = self._try_scan(
-            "threat_feed_aggregator",
-            "feed_items",
-            where=f"iocs LIKE '%{safe_ioc}%'",
-        )
-        if feed_rows is not None:
-            result["feed_hits"] = len(feed_rows)
-            if feed_rows:
-                result["sources"].append("threat_feed_aggregator")
+        # Threat feed aggregator — COUNT pushed into DuckDB, no row materialisation
+        feed_path = self.get_db_path("threat_feed_aggregator")
+        if feed_path is not None:
+            try:
+                n = self._count_agg(feed_path, "feed_items", where=f"iocs LIKE '%{safe_ioc}%'")
+                result["feed_hits"] = n
+                if n:
+                    result["sources"].append("threat_feed_aggregator")
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("threat_feed_aggregator count failed: %s", exc)
 
-        # Threat hunting findings
-        hunt_rows = self._try_scan(
-            "threat_hunting",
-            "hunt_findings",
-            where=f"iocs_found LIKE '%{safe_ioc}%'",
-        )
-        if hunt_rows is not None:
-            result["hunt_hits"] = len(hunt_rows)
-            if hunt_rows:
-                result["sources"].append("threat_hunting")
+        # Threat hunting findings — COUNT pushed into DuckDB
+        hunt_path = self.get_db_path("threat_hunting")
+        if hunt_path is not None:
+            try:
+                n = self._count_agg(hunt_path, "hunt_findings", where=f"iocs_found LIKE '%{safe_ioc}%'")
+                result["hunt_hits"] = n
+                if n:
+                    result["sources"].append("threat_hunting")
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("threat_hunting ioc count failed: %s", exc)
 
         result["correlated"] = result["feed_hits"] > 0 or result["hunt_hits"] > 0
         return result
@@ -317,49 +343,67 @@ class AnalyticsEngine:
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
+        # domains_online: filesystem glob (cheap, stays for metadata)
         available = self.list_available_domains()
         dashboard["domains_online"] = len(available)
-        names = {d["name"] for d in available}
 
-        # Posture score
-        if "posture_score" in names:
-            rows = self._try_scan("posture_score", "posture_scores", limit=1)
-            if rows:
-                dashboard["posture_score"] = rows[0].get("current_score")
-                dashboard["grade"] = rows[0].get("grade")
+        # Posture score — _try_scan with LIMIT 1 is already optimal (single row)
+        rows = self._try_scan("posture_score", "posture_scores", limit=1)
+        if rows:
+            dashboard["posture_score"] = rows[0].get("current_score")
+            dashboard["grade"] = rows[0].get("grade")
 
-        # Open incidents (forensic cases not closed)
-        if "digital_forensics" in names:
-            rows = self._try_scan("digital_forensics", "forensic_cases")
-            if rows is not None:
-                dashboard["open_incidents"] = sum(
-                    1 for r in rows if str(r.get("status", "")).lower() != "closed"
+        # Open incidents — COUNT pushed into DuckDB, no full-table materialisation
+        forensics_path = self.get_db_path("digital_forensics")
+        if forensics_path is not None:
+            try:
+                sql = (
+                    f"SELECT COUNT(*) FILTER (WHERE lower(status) != 'closed') "  # nosec B608
+                    f"FROM sqlite_scan('{forensics_path}', 'forensic_cases')"
                 )
+                dashboard["open_incidents"] = self._conn.execute(sql).fetchone()[0] or 0  # type: ignore[index]
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("exec_dashboard forensics aggregate failed: %s", exc)
 
-        # Critical vulnerabilities from risk register
-        if "risk_register" in names:
-            rows = self._try_scan("risk_register", "risks")
-            if rows is not None:
-                dashboard["critical_vulns"] = sum(
-                    1 for r in rows if str(r.get("severity", "")).lower() == "critical"
+        # Critical vulnerabilities — COUNT FILTER pushed into DuckDB
+        risk_path = self.get_db_path("risk_register")
+        if risk_path is not None:
+            try:
+                sql = (
+                    f"SELECT COUNT(*) FILTER (WHERE lower(severity) = 'critical') "  # nosec B608
+                    f"FROM sqlite_scan('{risk_path}', 'risks')"
                 )
+                dashboard["critical_vulns"] = self._conn.execute(sql).fetchone()[0] or 0  # type: ignore[index]
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("exec_dashboard risk_register aggregate failed: %s", exc)
 
-        # Active threats from threat hunting
-        if "threat_hunting" in names:
-            rows = self._try_scan("threat_hunting", "hunt_findings")
-            if rows is not None:
-                dashboard["active_threats"] = sum(
-                    1 for r in rows
-                    if str(r.get("status", "")).lower() not in ("closed", "resolved", "false_positive")
+        # Active threats — COUNT FILTER pushed into DuckDB
+        hunt_path = self.get_db_path("threat_hunting")
+        if hunt_path is not None:
+            try:
+                sql = (
+                    f"SELECT COUNT(*) FILTER ("  # nosec B608
+                    f"WHERE lower(status) NOT IN ('closed','resolved','false_positive')) "
+                    f"FROM sqlite_scan('{hunt_path}', 'hunt_findings')"
                 )
+                dashboard["active_threats"] = self._conn.execute(sql).fetchone()[0] or 0  # type: ignore[index]
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("exec_dashboard threat_hunting aggregate failed: %s", exc)
 
-        # Compliance score average
-        if "compliance_scanner" in names:
-            rows = self._try_scan("compliance_scanner", "scan_results", limit=10)
-            if rows:
-                scores = [r["score"] for r in rows if r.get("score") is not None]
-                if scores:
-                    dashboard["compliance_score_avg"] = round(sum(scores) / len(scores), 2)
+        # Compliance score average — AVG pushed into DuckDB, no Python sum/div
+        compliance_path = self.get_db_path("compliance_scanner")
+        if compliance_path is not None:
+            try:
+                sql = (
+                    f"SELECT ROUND(AVG(score), 2) "  # nosec B608
+                    f"FROM (SELECT score FROM sqlite_scan('{compliance_path}', 'scan_results') "
+                    f"      WHERE score IS NOT NULL ORDER BY scan_completed DESC NULLS LAST LIMIT 10)"
+                )
+                avg = self._conn.execute(sql).fetchone()[0]  # type: ignore[index]
+                if avg is not None:
+                    dashboard["compliance_score_avg"] = float(avg)
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("exec_dashboard compliance aggregate failed: %s", exc)
 
         return dashboard
 
