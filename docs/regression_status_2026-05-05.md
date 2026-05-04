@@ -122,3 +122,21 @@ Delta vs sweep #6: 0 regressions on passing tests. sweep #6 brain pipeline regre
   not in the sweep #6 spot-check scope). DO NOT FIX in this sweep — report only.
 Commits validated: 1e424547 (HANDOFF v4), 827cee32 (docker/k8s hardening), 1ebf78d3 (admin connectors inventory),
   c0852a5f (pytest markers — 26 perf files categorized).
+
+Sweep #8 — HEAD e124c48d (fix commit) — validated at e124c48d
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.60s
+Suite 2 — Perf benchmarks (-m perf, ignoring 5 broken collectors): 182 passed, 2 skipped, 0 failed, 44486 deselected in 33.53s
+Suite 3 — QA/lockdown (1 file — test_owasp_regression_lockdown.py): 47 passed, 0 failed, 0 errors in 0.50s
+
+Total sweep #8: 982 passed, 0 failed, 2 skipped, 0 errors (excluding 5 broken collectors)
+Timestamp: 2026-05-05T09:24:00Z
+
+SWEEP #7 ISSUE CONFIRMED CLOSED:
+  FIXED: tests/test_admin_db_stats.py::test_db_stats_empty_data_dir
+  Fix commit: e124c48d (replace deprecated asyncio.get_event_loop().run_until_complete() with asyncio.run())
+  Result: 1 passed in 0.43s — GREEN
+
+Delta vs sweep #7: 0 regressions. Sweep #7 asyncio deprecation issue fully closed at e124c48d.
+  All 5 broken collectors remain pre-existing (unchanged from sweep #7).
+  Beast Mode: 753/753 stable. Perf: 182/182 stable. OWASP lockdown: 47/47 stable.
+Commits validated: e124c48d (asyncio fix for test_admin_db_stats).
