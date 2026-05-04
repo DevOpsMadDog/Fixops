@@ -390,54 +390,47 @@ class ThreatExposureEngine:
     # ------------------------------------------------------------------
 
     def get_exposure_stats(self, org_id: str) -> Dict[str, Any]:
-        """Return aggregated exposure statistics for an org."""
+        """Return aggregated exposure statistics for an org.
+
+        Collapsed from 6 sequential SELECTs into 2 queries:
+        one aggregating CTE over exposure_records, one COUNT on threat_correlations.
+        """
         today_prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         with self._conn() as conn:
-            total_assets = conn.execute(
-                "SELECT COUNT(*) FROM exposure_records WHERE org_id = ?",
-                (org_id,),
-            ).fetchone()[0]
-
-            critical_assets = conn.execute(
-                "SELECT COUNT(*) FROM exposure_records "
-                "WHERE org_id = ? AND exposure_level = 'critical'",
-                (org_id,),
-            ).fetchone()[0]
+            # Single pass: total, avg, critical count, assessed-today, and per-level counts
+            agg_row = conn.execute(
+                """
+                SELECT
+                    COUNT(*)                                                AS total_assets,
+                    AVG(exposure_score)                                     AS avg_score,
+                    SUM(CASE WHEN exposure_level = 'critical' THEN 1 ELSE 0 END) AS critical_assets,
+                    SUM(CASE WHEN last_assessed LIKE ? THEN 1 ELSE 0 END)  AS assessed_today
+                FROM exposure_records
+                WHERE org_id = ?
+                """,
+                (f"{today_prefix}%", org_id),
+            ).fetchone()
 
             level_rows = conn.execute(
-                "SELECT exposure_level, COUNT(*) as cnt FROM exposure_records "
+                "SELECT exposure_level, COUNT(*) AS cnt FROM exposure_records "
                 "WHERE org_id = ? GROUP BY exposure_level",
                 (org_id,),
             ).fetchall()
-            by_level = {r["exposure_level"]: r["cnt"] for r in level_rows}
-
-            avg_row = conn.execute(
-                "SELECT AVG(exposure_score) as avg_score FROM exposure_records "
-                "WHERE org_id = ?",
-                (org_id,),
-            ).fetchone()
-            avg_exposure_score = (
-                round(avg_row["avg_score"], 4)
-                if avg_row and avg_row["avg_score"] is not None
-                else 0.0
-            )
 
             total_correlations = conn.execute(
                 "SELECT COUNT(*) FROM threat_correlations WHERE org_id = ?",
                 (org_id,),
             ).fetchone()[0]
 
-            assessed_today = conn.execute(
-                "SELECT COUNT(*) FROM exposure_records "
-                "WHERE org_id = ? AND last_assessed LIKE ?",
-                (org_id, f"{today_prefix}%"),
-            ).fetchone()[0]
+        by_level = {r["exposure_level"]: r["cnt"] for r in level_rows}
+        avg_score_raw = agg_row["avg_score"]
+        avg_exposure_score = round(avg_score_raw, 4) if avg_score_raw is not None else 0.0
 
         return {
-            "total_assets": total_assets,
+            "total_assets": agg_row["total_assets"],
             "by_level": by_level,
             "avg_exposure_score": avg_exposure_score,
-            "critical_assets": critical_assets,
+            "critical_assets": agg_row["critical_assets"],
             "total_correlations": total_correlations,
-            "assessed_today": assessed_today,
+            "assessed_today": agg_row["assessed_today"],
         }

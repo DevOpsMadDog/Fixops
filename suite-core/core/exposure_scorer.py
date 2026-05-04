@@ -171,31 +171,32 @@ class ExposureScorer:
         Returns count of upserted rows.
         """
         now = datetime.now(timezone.utc).isoformat()
-        upserted = 0
-        with sqlite3.connect(self._db_path) as conn:
-            for s in scores:
-                finding_id = str(s.get("finding_id") or s.get("id") or uuid.uuid4())
-                composite = float(s.get("composite_score", 0.0))
-                asset_id = str(s.get("asset_id") or "unknown")
-                status = str(s.get("status") or "open")
-                resolved_at = s.get("resolved_at")
+        # Batch all upserts into a single executemany — avoids N round-trips
+        rows = []
+        for s in scores:
+            finding_id = str(s.get("finding_id") or s.get("id") or uuid.uuid4())
+            composite = float(s.get("composite_score", 0.0))
+            asset_id = str(s.get("asset_id") or "unknown")
+            status = str(s.get("status") or "open")
+            resolved_at = s.get("resolved_at")
+            rows.append((finding_id, asset_id, composite, status, now, resolved_at))
 
-                conn.execute(
-                    """
-                    INSERT INTO finding_scores
-                        (finding_id, asset_id, composite_score, status, scored_at, resolved_at)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(finding_id) DO UPDATE SET
-                        composite_score = excluded.composite_score,
-                        asset_id        = excluded.asset_id,
-                        status          = excluded.status,
-                        scored_at       = excluded.scored_at,
-                        resolved_at     = excluded.resolved_at
-                    """,
-                    (finding_id, asset_id, composite, status, now, resolved_at),
-                )
-                upserted += 1
-        return upserted
+        with sqlite3.connect(self._db_path) as conn:
+            conn.executemany(
+                """
+                INSERT INTO finding_scores
+                    (finding_id, asset_id, composite_score, status, scored_at, resolved_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(finding_id) DO UPDATE SET
+                    composite_score = excluded.composite_score,
+                    asset_id        = excluded.asset_id,
+                    status          = excluded.status,
+                    scored_at       = excluded.scored_at,
+                    resolved_at     = excluded.resolved_at
+                """,
+                rows,
+            )
+        return len(rows)
 
     # ------------------------------------------------------------------
     # Organisation exposure
@@ -232,13 +233,13 @@ class ExposureScorer:
         medium = sum(1 for s in scores if 30 <= s < 60)
         low = sum(1 for s in scores if s < 30)
 
-        # Weight critical findings more heavily
-        weighted_sum = sum(
-            s * (2.0 if s >= 80 else 1.5 if s >= 60 else 1.0) for s in scores
-        )
-        weight_total = sum(
-            2.0 if s >= 80 else 1.5 if s >= 60 else 1.0 for s in scores
-        )
+        # Weight critical findings more heavily — single pass over scores
+        weighted_sum = 0.0
+        weight_total = 0.0
+        for s in scores:
+            w = 2.0 if s >= 80 else 1.5 if s >= 60 else 1.0
+            weighted_sum += s * w
+            weight_total += w
         weighted_avg = weighted_sum / weight_total if weight_total else 0.0
 
         # Velocity penalty: if many criticals relative to total → slow velocity
@@ -395,9 +396,10 @@ _instance_lock = threading.Lock()
 
 
 def get_exposure_scorer(db_path: str = _DEFAULT_DB) -> ExposureScorer:
-    """Return the process-wide ExposureScorer singleton."""
+    """Return the process-wide ExposureScorer singleton (double-checked locking)."""
     global _instance
-    with _instance_lock:
-        if _instance is None:
-            _instance = ExposureScorer(db_path=db_path)
+    if _instance is None:
+        with _instance_lock:
+            if _instance is None:
+                _instance = ExposureScorer(db_path=db_path)
     return _instance
