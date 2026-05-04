@@ -34,29 +34,6 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-const MOCK_STATS = {
-  total_packages: 412,
-  unapproved_packages: 18,
-  open_violations: 11,
-  critical_violations: 3,
-};
-
-const MOCK_RISK_BREAKDOWN = { critical: 3, high: 8, medium: 21, low: 380 };
-
-const MOCK_RECORDS = [
-  { id: "lic-001", package_name: "log4j-core",        version: "2.14.1", license_type: "Apache-2.0", risk: "critical", is_oss: true,  vulnerabilities: 4, approved: false },
-  { id: "lic-002", package_name: "openssl",            version: "1.1.1",  license_type: "OpenSSL",   risk: "high",     is_oss: true,  vulnerabilities: 2, approved: true  },
-  { id: "lic-003", package_name: "lodash",             version: "4.17.21",license_type: "MIT",        risk: "medium",   is_oss: true,  vulnerabilities: 1, approved: true  },
-  { id: "lic-004", package_name: "proprietary-sdk",   version: "3.0.0",  license_type: "Proprietary",risk: "low",      is_oss: false, vulnerabilities: 0, approved: true  },
-  { id: "lic-005", package_name: "gpl-component",     version: "2.1.0",  license_type: "GPL-3.0",   risk: "high",     is_oss: true,  vulnerabilities: 0, approved: false },
-  { id: "lic-006", package_name: "express",            version: "4.18.2", license_type: "MIT",        risk: "low",      is_oss: true,  vulnerabilities: 0, approved: true  },
-];
-
-const MOCK_VIOLATIONS = [
-  { id: "vio-001", record_id: "lic-001", violation_type: "critical_vulnerability", severity: "critical", status: "open"      },
-  { id: "vio-002", record_id: "lic-005", violation_type: "license_incompatibility",severity: "high",     status: "open"      },
-  { id: "vio-003", record_id: "lic-002", violation_type: "unapproved_license",     severity: "medium",   status: "waived"    },
-];
 
 function RiskBadge({ risk }: { risk: string }) {
   const map: Record<string, string> = {
@@ -85,7 +62,7 @@ function ViolationStatusBadge({ status }: { status: string }) {
   );
 }
 
-const recordMap = Object.fromEntries(MOCK_RECORDS.map((r) => [r.id, r.package_name]));
+// recordMap is built from live records below in the component
 
 export default function SoftwareLicenseDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -117,11 +94,20 @@ export default function SoftwareLicenseDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const stats      = liveData.stats      ?? MOCK_STATS;
-  const records    = liveData.records    ?? MOCK_RECORDS;
-  const violations = liveData.violations ?? MOCK_VIOLATIONS;
+  const stats      = liveData.stats      ?? { total_packages: 0, unapproved_packages: 0, open_violations: 0, critical_violations: 0 };
+  const records    = liveData.records    ?? [];
+  const violations = liveData.violations ?? [];
 
-  const breakdown = MOCK_RISK_BREAKDOWN;
+  const recordMap: Record<string, string> = Object.fromEntries(
+    records.map((r: any) => [r.id, r.package_name])
+  );
+
+  const breakdown = {
+    critical: records.filter((r: any) => r.risk === "critical").length,
+    high:     records.filter((r: any) => r.risk === "high").length,
+    medium:   records.filter((r: any) => r.risk === "medium").length,
+    low:      records.filter((r: any) => r.risk === "low").length,
+  };
 
   return (
     <motion.div
