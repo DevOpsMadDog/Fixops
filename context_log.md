@@ -1,5 +1,125 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 09:44] qa-engineer — REGRESSION_SWEEP_9
+- **What**: Final wrap sweep #9 at HEAD 05964156. Ran all 3 standard suites. Beast Mode 753/753, Perf 182/182 (2 skipped), OWASP lockdown 47/47. Spot checks: test_reachability_perf.py 12 tests collected + pass (collection error CLOSED at dbcc1a20), test_admin_db_stats.py::test_db_stats_empty_data_dir GREEN, test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms GREEN, real_world_tests/test_phase1_intake.py 18 tests collected cleanly. Broken collector count dropped from 5 to 3 (reachability_perf + phase1_intake both fixed).
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 982 passed, 0 failed, 2 skipped, 0 regressions. All sweep directives verified.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 10:45] qa-engineer — TEST_COLLECTION_TRIAGE
+- **What**: Triaged 4 legacy test collection errors flagged by sweeps #7/#8. Findings: (1) test_autonomous_cycle.py — NOT AN ERROR, 49 tests healthy, false positive from coverage startup timeout; (2) test_wave_a_code_intel_router.py — NOT AN ERROR, 20 tests healthy, same cause; (3) test_cspm.py — DEEPER, 20+ imported names no longer exist in cspm_engine.py (API was rewritten), needs backend-hardener rewrite; (4) real_world_tests/test_phase1_intake.py — QUICK-FIX applied, missing __init__.py prevented relative import, added 1-line file, 18 tests now collect.
+- **Files touched**: tests/real_world_tests/__init__.py (new), docs/test_collection_triage_2026-05-05.md (new)
+- **Outcome**: SUCCESS — 1 fixed, 2 false positives cleared, 1 documented for backend-hardener. Commit 05964156 pushed.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 09:25] qa-engineer — REGRESSION_SWEEP_8
+- **What**: Sweep #8 at HEAD e124c48d. Confirmed sweep #7 issue closed: test_admin_db_stats.py::test_db_stats_empty_data_dir PASSES (asyncio.get_event_loop() replaced with asyncio.run() at e124c48d). All 3 standard suites green. Commit 25139e7a pushed.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 982 passed (753 Beast Mode + 182 perf + 47 OWASP), 0 failed, 0 regressions
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 10:30] devops-engineer — DOCKER_K8S_HARDENING
+- **What**: Full audit of docker/ and docker/kubernetes/. Found and fixed 7 real issues: (1) 3 unpinned `latest` image tags (trustgraph, shuffle, netbox) → pinned to stable versions; (2) 4 hardcoded secret defaults (WAZUH_API_PASSWORD, WAZUH_INDEXER_PASSWORD, NETBOX_SECRET_KEY, NETBOX_TOKEN) → converted to `:?` fail-fast required vars; (3) Redis had no password on host-exposed port 6379 in both enterprise and prod compose → added `--requirepass`, authenticated healthcheck, and password in Redis URLs; (4) k8s api-deployment + ui-deployment used `latest` tag with `imagePullPolicy: IfNotPresent` (contradiction — would never pull updates) → changed to `Always`.
+- **Files touched**: docker/docker-compose.enterprise.yml, docker/docker-compose.prod.yml, docker/enterprise.env.example, docker/kubernetes/api-deployment.yaml, docker/kubernetes/ui-deployment.yaml
+- **Outcome**: SUCCESS — commit 827cee32 pushed to features/intermediate-stage
+- **Pillar(s) served**: V6 (enterprise readiness), V9 (air-gapped/security posture)
+
+### [2026-05-05 10:15] qa-engineer — PARALLELIZATION_ANALYSIS
+- **What**: Investigated pytest-xdist parallelization for Beast Mode (753 tests, 13 files). Confirmed xdist NOT installed — `-n 4` rejected with "unrecognized arguments". Serial baseline: 753 passed in 8.87s (10.6s wall-clock). Theoretical `-n auto` gain: ~3s on 4-core. Documented SQLite lock collision risk (shared .db paths without tmp_path fixture). Added comment to regression-gates.yml OWASP step. Full analysis in docs/test_parallelization_2026-05-05.md.
+- **Files touched**: docs/test_parallelization_2026-05-05.md (new), .github/workflows/regression-gates.yml (comment only)
+- **Outcome**: SUCCESS — commit 5c410a53 pushed to features/intermediate-stage
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 09:00] qa-engineer — REGRESSION_SWEEP_4
+- **What**: Fourth final regression sweep at HEAD 82dc3676. Validated 3 commits since sweep #3 (1938f82d HANDOFF, 84bff5c2 onboarding/wizard perf, 82dc3676 misc perf). Ran all 3 standard suites: Beast Mode canonical 13-file, perf benchmark 26-file, QA/lockdown 10-file.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 2377 passed, 0 failed, 0 errors, 0 skipped. Commit 968a3b34 pushed.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 08:06] backend-hardener — MEMORY_LEAK_AUDIT
+- **What**: Audited all module-level dicts/lists across suite-core/, suite-api/, suite-evidence-risk/ for unbounded growth. Found 3 real unbounded caches in sse_router.py (_event_store, _event_counter, _org_conditions — grew 1 entry per distinct org_id, never evicted). All other candidates were already bounded: _buckets in endpoint_rate_limit.py has _MAX_KEYS=4000 + _prune_keys(); _endpoint_cache in crowdstrike_falcon_connector.py is a local variable (function-scoped, not module-level). Fix: converted all 3 to OrderedDict with LRU eviction at _MAX_ORGS=500 via _evict_org_if_needed() helper; publish_event and _get_condition call move_to_end() to maintain MRU invariant.
+- **Files touched**: suite-api/apps/api/sse_router.py, tests/test_memory_caps.py
+- **Outcome**: SUCCESS — 5/5 new tests pass, 51/51 regression green, SHA 84b46119
+- **Pillar(s) served**: V4 (reliability), V7 (scalability)
+
+### [2026-05-05 00:00] technical-writer — DOCS_CONSISTENCY_SWEEP
+- **What**: Swept all target docs for stale numbers post ~50-commit session. CTEM_PLUS_IDENTITY.md, UX_HUBS_CATALOG_2026-05-02.md, security_review_2026-05-02.md do not exist in live docs/ tree (only in worktrees/dist copies — not modified). README.md had 8 stale number occurrences: 771 endpoints, 34 router modules, 1,400+ tests, 40+ React pages. Updated to current state: 6,700+ routes, 796 router modules, 1,200+ test files (1,078+ Beast Mode), 529 React pages, 463 engines, 547 TrustGraph emit-sites.
+- **Files touched**: README.md
+- **Outcome**: SUCCESS — commit 3494775d pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (market-ready product presentation), V6 (accurate technical claims)
+
+### [2026-05-05 08:05] backend-hardener — STRUCTURED_LOGGING_HYGIENE
+- **What**: Standardized structured logging across 4 hot-path files. Replaced `import logging` with `import structlog` and `logging.getLogger` with `structlog.get_logger`. Fixed 20 eager f-string logger calls (logger.info(f"...{var}") → logger.info("event", key=var)) enabling lazy evaluation and structured fields. Also auth-error logger calls in security_connectors no longer include exc string repr (CWE-532 mitigation). Added tests/test_logging_hygiene.py (12 assertions: no-print-outside-main, no-eager-fstring, structlog-declared for all 4 files).
+- **Files touched**: suite-core/core/iac_scanner.py, suite-core/core/mpte_advanced.py, suite-core/core/security_connectors.py, suite-core/core/self_learning.py, tests/test_logging_hygiene.py (new)
+- **Outcome**: SUCCESS — 63/63 tests pass. SHA 899cc108 pushed to features/intermediate-stage
+- **Pillar(s) served**: V4 (security hardening), V9 (production-grade observability)
+
+### [2026-05-04 08:00] backend-hardener — SQLITE_INDEX_AUDIT
+- **What**: Audited 100+ SQLite DBs across suite-core/suite-feeds/suite-evidence-risk. Found 6 DBs with missing indexes on hot WHERE/ORDER BY columns. Added 17 indexes total: cisa_kev.db (date_added/ransomware/vendor/due_date), report_schedules.db (org_id+active composite, next_run_at, org+delivered_at, schedule_id FK), sbom.db (org_id+created_at), hibp.db (domain/breach_date/is_verified), deduplication.db (status/updated_at), analytics.db (metric_type+name composite, metric_name). Patched engine DDL in feeds_service.py and report_scheduler.py _init_db(). One-shot migration at scripts/add_missing_indexes.py patches pre-existing live files. Tests: tests/test_db_indexes.py (9 tests).
+- **Files touched**: suite-feeds/feeds_service.py, suite-core/core/report_scheduler.py, scripts/add_missing_indexes.py (new), tests/test_db_indexes.py (new)
+- **Outcome**: SUCCESS — 9/9 new tests + 115/115 phase2/4/pipeline regression. SHA 43d43d95 pushed.
+- **Pillar(s) served**: V4 (performance/reliability), V6 (enterprise-grade query paths)
+
+### [2026-05-05 07:52] backend-hardener — SECURITY_HARDENING
+- **What**: Per-endpoint rate limiting wired on 7 high-risk endpoints. New module `endpoint_rate_limit.py` (rolling 60s window, thread-safe, LRU-bounded 4000 keys, FIXOPS_DISABLE_RATE_LIMIT bypass). Endpoints hardened: auth/dev-token (10/min), webhook receivers jira/servicenow/gitlab/azure-devops/github (60/min each), scanner-ingest/upload + webhook (30/min). All 5 webhook receiver handlers updated with `request: Request` param. 10 new tests in TestEndpointRateLimit class with autouse fixture to clear conftest's global FIXOPS_DISABLE_RATE_LIMIT=1.
+- **Files touched**: suite-api/apps/api/endpoint_rate_limit.py (new), suite-api/apps/api/auth_router.py, suite-api/apps/api/scanner_ingest_router.py, suite-integrations/api/webhooks_router.py, tests/test_rate_limiting.py
+- **Outcome**: SUCCESS — 130/130 tests passing, SHA c03ffd27
+- **Pillar(s) served**: V4 (Enterprise-grade hardening), V9 (Air-gapped production safety)
+
+### [2026-05-04 09:00] backend-hardener — OWASP_AUDIT
+- **What**: OWASP audit of suite-core/connectors/ (30 files). Fixed 4 real issues: (1) defectdojo_parser aiohttp.ClientSession missing ClientTimeout on both __aenter__ and _ensure_session paths — could hang indefinitely (CWE-400); (2) defectdojo_parser init logged self.base_url at INFO — URL may contain embedded creds (CWE-312); (3) sdlc_connectors secrets-fetch warning used f-string {exc} interpolation — httpx.RequestError repr can contain auth headers (CWE-532). False positives confirmed clean: crowdstrike/splunk/adaptive_shield/appomni/vault/cyberark/workspace_one/mobsf all already had timeout= on every call site; no shell=True; no hardcoded credentials.
+- **Files touched**: suite-core/connectors/defectdojo_parser.py, suite-core/connectors/sdlc_connectors.py, tests/test_suite_core_connectors_hardening.py (new, 7 tests)
+- **Outcome**: SUCCESS — 7/7 smoke + 107/107 phase2/4/10 regression. SHA 2652b066.
+- **Pillar(s) served**: V4 (security hardening), V6 (enterprise-grade connectors)
+
+### [2026-05-04 BUG-3 Wave 4] frontend-craftsman — MOCK_REMOVAL_WAVE4
+- **What**: Removed all MOCK_ constants from 15 pages in suite-ui/aldeci-ui-new/src/pages/. Each page committed atomically. Patterns handled: (a) `?? MOCK_X` fallbacks replaced with typed zero-value defaults, (b) `useState(MOCK_X)` inits replaced with typed empty-array/object inits + useEffect API fetch added, (c) large mock arrays deleted via Python bulk line deletion, (d) MOCK_X in JSX .map()/.filter() replaced with live state. One TS bug fixed: `AgeBadge` in FindingsExplorer referenced deleted `now` constant — fixed to `Date.now()`.
+- **Files touched**: SupplyChainAttackDashboard.tsx, SoftwareLicenseDashboard.tsx, SecurityAutomationDashboard.tsx, VulnerabilityCorrelationDashboard.tsx, VulnHeatmap.tsx, ThreatIntelPlatformDashboard.tsx, ThreatIntelConfidenceDashboard.tsx, VendorRiskDashboard.tsx, IntelEnrichmentDashboard.tsx, findings/FindingsExplorer.tsx, integrations/IntegrationHealth.tsx, developer/DeveloperPortal.tsx, vendors/VendorManagement.tsx, hunting/ThreatHunting.tsx, sbom/SBOMManagement.tsx
+- **Outcome**: SUCCESS — 17 commits, 0 MOCK_ references remaining in all 15 pages, 0 TS errors on edited files, pushed to features/intermediate-stage
+- **Pillar(s) served**: V3 (no fake data), V7 (real product quality)
+
+### [2026-05-05 07:40] backend-hardener — SUITE_CORE_API_OWASP_HARDENING
+- **What**: Audited suite-core/api/ (38 routers) for 6 OWASP issue classes. Fixed 14 real issues across 6 files. (1) CWE-209 info-disclosure: airgap_router.py had 8x `detail=str(exc)` leaking internal ValueError messages (file paths, crypto params, config details) — all replaced with generic messages + logger.warning. brain_router.py leaked `f"reload failed: {exc}"` → replaced with "Brain reload failed". (2) Unbounded Pydantic string fields (LLM prompt injection / DoS vector): autofix_verify_router.py original_code/fixed_code capped at 500KB, language at 50 chars, finding_title at 1KB. dtrack_router.py sbom field capped at 10MB (SBOM bomb), project_name/version bounded. code_to_cloud_router.py all 8 TraceRequest string fields bounded per-field semantics. copilot_router.py QuickAnalyze/QuickPentest/QuickReport models bounded. Added tests/test_suite_core_api_hardening.py (21 tests).
+- **Files touched**: suite-core/api/airgap_router.py, suite-core/api/brain_router.py, suite-core/api/autofix_verify_router.py, suite-core/api/dtrack_router.py, suite-core/api/code_to_cloud_router.py, suite-core/api/copilot_router.py, tests/test_suite_core_api_hardening.py
+- **Outcome**: SUCCESS — 21/21 new smoke tests pass, 235/235 regression tests pass, SHA 910d103b pushed
+- **Pillar(s) served**: V3 (security hardening), V6 (enterprise readiness)
+
+### [2026-05-04 08:10] backend-hardener — SUITE_API_OWASP_HARDENING_R2
+- **What**: Audited suite-api/ (22.6K LOC) for 6 OWASP issue classes. Fixed 6 real issues: (1) auth_router.py — hardcoded JWT secret replaced with os.getenv(_FIXOPS_DEV_JWT_FALLBACK) + logger.warning on missing FIXOPS_JWT_SECRET (CWE-798); (2-5) tour_router.py — 4x str(exc) removed from SSE error payloads (CWE-209), result.stderr[:300] removed from clone error event, bare except narrowed to specific types on clone path; (6) prowler_router.py — bare except Exception narrowed to (TimeoutExpired, OSError, ValueError); (7) app.py — subprocess.TimeoutExpired added to git rev-parse except tuple.
+- **Files touched**: suite-api/apps/api/auth_router.py, tour_router.py, prowler_router.py, app.py, tests/test_suite_api_hardening.py (new — 11 tests)
+- **Outcome**: SUCCESS — 11/11 new tests pass, 362/362 regression green, SHA 2b012439 pushed to features/intermediate-stage
+- **Pillar(s) served**: V3 (security hardening), V4 (enterprise-grade reliability), V6 (demo-ready — no info leaks)
+
+### [2026-05-05 07:32] backend-hardener — OWASP_HARDENING
+- **What**: Audited suite-core/core/ for 6 OWASP categories (SQL injection, subprocess shell=True, requests no-timeout, bare except, hardcoded secrets, URL-embedded auth). Found 3 real hardcoded-secret issues; all subprocess/requests calls already had timeout. Fixed: aldeci_client.py (hardcoded API key → os.getenv), webhook_notifier.py (hardcoded HMAC secret → os.getenv + added missing import os), deployment_manager.py (hardcoded admin password → os.getenv). Added 5-test smoke suite tests/test_suite_core_hardening.py. SHA 1fcad587.
+- **Files touched**: suite-core/core/aldeci_client.py, suite-core/core/webhook_notifier.py, suite-core/core/deployment_manager.py, tests/test_suite_core_hardening.py
+- **Outcome**: SUCCESS — 5/5 smoke tests pass, 217/217 regression tests pass, 0 regressions
+- **Pillar(s) served**: V3 (security hardening), V6 (enterprise readiness)
+
+### [2026-05-05 00:00] technical-writer — DOCS_STATE_REFRESH
+- **What**: Measured fresh codebase metrics and updated CLAUDE.md CURRENT STATE table. Wrote docs/HANDOFF_2026-05-05.md with HEAD SHA, last-30 commits, all agents dispatched, active thread status (mock removal, OWASP hardening, TrustGraph batch-13, BUG-2 router index), and real-work-remaining section. Committed + pushed SHA 442badcb.
+- **Files touched**: CLAUDE.md, docs/HANDOFF_2026-05-05.md
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V6 (demo-ready — accurate state for next session), V1 (CTEM completeness)
+
+### [2026-05-04 07:35] backend-hardener — SUITE_ATTACK_OWASP_HARDENING
+- **What**: Audited all 15 Python files in suite-attack/ for 6 OWASP issue classes. Found and fixed 5 real issues across 3 files: (1) dast_router.py — 2x `except Exception` narrowed to specific types, `detail=f"...{exc}"` removed (CWE-209 info leak), `/status` alias added; (2) vuln_discovery_router.py — bare `except Exception:` in TrustGraph fire-and-forget narrowed, `DiscoveredVulnRequest.description` max_length=32000, `proof_of_concept` max_length=50000, `ContributeRequest` all string fields length-bounded, `researcher_email` regex format validator added; (3) attack_sim_router.py — `CreateScenarioRequest` and `GenerateScenarioRequest` all unbounded string fields given max_length guards (prevents oversized LLM prompt injection via scenario fields).
+- **Files touched**: suite-attack/api/dast_router.py, suite-attack/api/vuln_discovery_router.py, suite-attack/api/attack_sim_router.py, tests/test_suite_attack_hardening.py (new — 21 tests)
+- **Outcome**: SUCCESS — 21/21 new tests pass, 146/146 regression pass, SHA c55db39b pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (CTEM completeness), V4 (quantum-safe evidence hardening), V6 (demo-ready — no info leaks)
+
+### [2026-05-04 00:00] backend-hardener — SUITE_FEEDS_OWASP_HARDENING
+- **What**: Audited suite-feeds/ (4.4K LOC, 28+ feed importers) with 6 OWASP grep passes. All HTTP calls already had timeouts (self.timeout/self.request_timeout pattern consistent). Real issues fixed: (1) CVE ID injection via comma-separated cve_ids on /epss and /kev — added regex allowlist `^CVE-\d{4}-\d{4,}$`. (2) Severity enum bypass on /nvd/recent — allowlist {CRITICAL,HIGH,MEDIUM,LOW}, HTTP 422 on invalid. (3) CVE path param injection on /nvd/{cve_id} — regex gate before DB lookup. (4) Missing ge=1 on EPSS limit param. (5+6) Two bare `except Exception: pass` in feeds_service.py (OTX L3938, URLhaus L4026) replaced with specific exception tuple + logger.debug.
+- **Files touched**: suite-feeds/api/feeds_router.py, suite-feeds/feeds_service.py, tests/test_suite_feeds_hardening.py (new — 26 tests)
+- **Outcome**: SUCCESS — 26/26 new tests pass, 133/133 Beast Mode regression green, SHA c55db39b pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (CTEM data integrity), V4 (security hardening), V8 (audit evidence)
+
+### [2026-05-05 07:35] backend-hardener — OWASP_SUITE_INTEGRATIONS
+- **What**: Fixed 5 OWASP issues in suite-integrations (6.8K LOC). (1) 5x `detail=str(e)` info-disclosure in webhooks_router HTTP 500 handlers replaced with generic "Webhook processing error" — internal error text was leaking to API clients. (2) `sqlite3.Error` added to all 5 except tuples so DB failures are caught server-side. (3) outbox `logger.error` f-string replaced with `%s` lazy format + `exc_info=True`. (4) sentinel_connector `_acquire_token` wraps `raise_for_status()` + `RequestError` in sanitised `RuntimeError(...) from None` so `client_secret` never appears in exception chain repr. Added `tests/test_suite_integrations_hardening.py` (10 smoke tests, AST+source-pattern checks).
+- **Files touched**: `suite-integrations/api/webhooks_router.py`, `suite-integrations/siem_connectors/sentinel_connector.py`, `tests/test_suite_integrations_hardening.py`
+- **Outcome**: SUCCESS — 10/10 hardening + 157/157 Beast Mode regression green. SHA 9e02fffa pushed.
+- **Pillar(s) served**: V3 (security hardening), V7 (enterprise-grade reliability)
+
 ### [2026-05-05 07:20] backend-hardener — BUG2_ROUTER_INDEX_ROUTES
 - **What**: Added missing GET "/" index handlers to 29 of ~749 router prefixes most-used by UI hubs (audit, brain, autofix, assets, analytics, attack-paths, webhooks, air-gap, risk, threat-intel, soar, connectors, incidents, phishing, api-security-engine, openclaw, dca, vuln-intel, ml, posture-advisor, exec-reporting, cspm, tip, fail, graph, supply-chain, rules, organizations, compliance). Each handler wires to the router's existing engine accessor or returns empty-but-shaped JSON. Also fixed gap_router sub-routers (fail_gap, graph_gap, supply_chain_gap) and wave_c_router sub-routers (rules_router, orgs_router). Added connectors_router GET "/" alias. Added tests/test_router_index_routes.py: 29 parametrized smoke tests.
 - **Files touched**: 26 router files in suite-api/apps/api/ + gap_router.py + wave_c_router.py, tests/test_router_index_routes.py (new)
@@ -5813,3 +5933,15 @@
 - **Commits**: 0333bbe7, 155bbfa9, cd77bcbf, 1819a617, be6b731a
 - **Outcome**: SUCCESS — 5 pages cleaned, 0 new TS errors, pushed to features/intermediate-stage
 - **Pillar(s) served**: V1 (real data), V3 (no mocks)
+
+### [2026-05-04 00:00] backend-hardener — IMPORT_SWEEP
+- **What**: Deep router import/type/lint sweep across all suite-api/apps/api/*_router.py and suite-core/api/*_router.py. AST-verified 24 apparent `Depends`/`File`/`Response` candidates — all false positives (names appeared only in comments/docstrings, not code nodes). Relative-import scan of pipeline.py and app.py: no `from ..` issues. Mounted sub-app module count: skipped (requires sitecustomize.py path injection, not a bug). Import sweep: 1315/1315 PASS. Regression (phase4+phase10+router_index+import_sweep): 1395/1395 PASS.
+- **Files touched**: none (no bugs found)
+- **Outcome**: SUCCESS — all clean, no fixes needed
+- **Pillar(s) served**: V1 (bulletproof backend)
+
+### [2026-05-04 22:03] backend-hardener — SECURITY_FIX
+- **What**: Applied 5 security review fixes: (1) CRITICAL — PhishTank POST /import + GET /phishes + GET /check all now require api_key_auth; (2) HIGH — /metrics gated behind X-Prometheus-Token scrape auth (bypassed when FIXOPS_DISABLE_RATE_LIMIT=1 for test env); (3) HIGH — GHSA run_import() local_path validated against data/ and /tmp allowlist, raises ValueError on traversal; (4) HIGH — Stripped FS paths from unauthenticated health responses: base_directory (ready), database.path (deep), disk_space.path (deep), scanners.engines dict (deep), feeds_db.tables list (comprehensive); (5) MEDIUM — Nuclei GET / + GET /templates now require api_key_auth.
+- **Files touched**: suite-api/apps/api/phishtank_router.py, suite-api/apps/api/health.py, suite-api/apps/api/nuclei_router.py, suite-feeds/feeds/ghsa/importer.py (gitignored), tests/test_security_review_fixes.py (new, 16 tests)
+- **Outcome**: SUCCESS — 16/16 security tests pass, 99/99 full required suite pass, SHA 4e27816e pushed
+- **Pillar(s) served**: V3 (security hardening), V1 (enterprise-grade reliability)

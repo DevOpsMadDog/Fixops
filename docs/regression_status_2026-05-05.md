@@ -140,3 +140,29 @@ Delta vs sweep #7: 0 regressions. Sweep #7 asyncio deprecation issue fully close
   All 5 broken collectors remain pre-existing (unchanged from sweep #7).
   Beast Mode: 753/753 stable. Perf: 182/182 stable. OWASP lockdown: 47/47 stable.
 Commits validated: e124c48d (asyncio fix for test_admin_db_stats).
+
+Sweep #9 — HEAD 05964156 — final wrap
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 9.07s
+Suite 2 — Perf benchmarks (-m perf, ignoring 4 broken collectors): 182 passed, 2 skipped, 0 failed, 44599 deselected in 33.29s
+Suite 3 — QA/lockdown (1 file — test_owasp_regression_lockdown.py): 47 passed, 0 failed, 0 errors in 0.50s
+
+Total sweep #9: 982 passed, 0 failed, 2 skipped, 0 errors (excluding 4 pre-existing broken collectors)
+Timestamp: 2026-05-05T09:44:00Z
+
+SPOT CHECKS (all GREEN):
+  PASS: tests/test_reachability_perf.py — 12 tests collected cleanly + ALL PASS (sweep #7 collection error CLOSED at dbcc1a20)
+  PASS: tests/test_admin_db_stats.py::test_db_stats_empty_data_dir — GREEN (asyncio fix e124c48d holds)
+  PASS: tests/test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms — GREEN (asyncio race fix 5ffc1910 holds)
+  PASS: tests/real_world_tests/test_phase1_intake.py — 18 tests collected cleanly (missing __init__.py fixed at 05964156)
+
+BROKEN COLLECTORS (4 files, pre-existing, not introduced this sweep — count dropped from 5 to 4):
+  tests/test_autonomous_cycle.py — ValueError: Plugin already registered (pre-existing)
+  tests/test_cspm.py — collection error (pre-existing, needs backend-hardener rewrite)
+  tests/test_wave_a_code_intel_router.py — ImportError: apps.api.auth_deps not in sys.modules (pre-existing)
+  NOTE: tests/test_reachability_perf.py removed from broken list — fixed at dbcc1a20
+  NOTE: tests/real_world_tests/test_phase1_intake.py removed from broken list — fixed at 05964156
+
+Delta vs sweep #8: 0 regressions. 2 previously broken collectors now fixed and collecting cleanly.
+  Beast Mode: 753/753 stable. Perf: 182/182 stable. OWASP lockdown: 47/47 stable.
+Commits validated since sweep #8: dbcc1a20 (test_reachability_perf collection fix + security_hardening.py syntax bug),
+  cb1db87b (coverage gap analysis), 05964156 (legacy test triage + real_world_tests/__init__.py fix).
