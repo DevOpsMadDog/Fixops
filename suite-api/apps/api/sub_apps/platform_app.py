@@ -3453,6 +3453,32 @@ def register_platform_routers(
 
 
     # ------------------------------------------------------------------
+    # Contrast Security — RASP/IAST + SCA libraries (read:scans)
+    # ------------------------------------------------------------------
+    # GET  /api/v1/contrast/                                          capability summary
+    # GET  /api/v1/contrast/api/ng/{org}/applications                 application inventory
+    # GET  /api/v1/contrast/api/ng/{org}/applications/{app_id}        single application
+    # GET  /api/v1/contrast/api/ng/{org}/traces/{app_id}/filter       Assess traces
+    # GET  /api/v1/contrast/api/ng/{org}/traces/{trace_uuid}          single trace
+    # GET  /api/v1/contrast/api/ng/{org}/protect/policies             RASP Protect policies
+    # GET  /api/v1/contrast/api/ng/{org}/servers                      monitored servers
+    # GET  /api/v1/contrast/api/ng/{org}/libraries                    third-party libraries + vulns
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.contrast_router import router as contrast_router  # noqa: PLC0415
+        app.include_router(
+            contrast_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Contrast Security RASP/IAST router at /api/v1/contrast (read:scans)")
+    except ImportError as exc:
+        _logger.warning("contrast_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
     # Apigee Edge X — Google API management platform (read:scans)
     # ------------------------------------------------------------------
     # GET  /api/v1/apigee/                                                                   capability summary
