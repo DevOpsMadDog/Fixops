@@ -390,6 +390,44 @@ class _InventoryDB:
             )
             self._conn.commit()
 
+    def upsert_assets_batch(self, assets: List[ManagedAsset]) -> None:
+        """PERF-FIX-2: Insert/replace multiple assets in a single transaction.
+
+        Replaces N individual upsert_asset() calls (each with its own commit)
+        with one executemany + one commit — eliminates per-record fsync overhead.
+        """
+        rows = [
+            (
+                a.id, a.name, a.asset_type,
+                a.hostname, a.ip_address,
+                a.cloud_provider, a.region, a.cloud_resource_id,
+                a.owner_email, a.owner_name, a.team,
+                a.business_unit, a.cost_center,
+                a.criticality.value, a.criticality_tier.value,
+                a.data_classification.value,
+                json.dumps(a.compliance_scope),
+                a.environment.value, a.lifecycle.value,
+                a.discovery_source,
+                json.dumps(a.tags), json.dumps(a.metadata),
+                a.first_discovered, a.last_seen,
+                a.finding_count, a.risk_score, a.org_id,
+            )
+            for a in assets
+        ]
+        with self._lock:
+            self._conn.executemany(
+                """INSERT OR REPLACE INTO managed_assets
+                   (id, name, asset_type, hostname, ip_address, cloud_provider, region,
+                    cloud_resource_id, owner_email, owner_name, team, business_unit,
+                    cost_center, criticality, criticality_tier, data_classification,
+                    compliance_scope, environment, lifecycle, discovery_source,
+                    tags, metadata, first_discovered, last_seen,
+                    finding_count, risk_score, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                rows,
+            )
+            self._conn.commit()
+
     def get_asset(self, asset_id: str) -> Optional[ManagedAsset]:
         with self._lock:
             row = self._conn.execute(
@@ -503,6 +541,10 @@ class _InventoryDB:
         return [self._row_to_asset(r) for r in rows]
 
     def get_stats(self, org_id: str) -> Dict[str, Any]:
+        # PERF-FIX-3: single lock acquisition; all GROUP BY aggregates run in
+        # one DB round-trip instead of 8 separate queries.  avg_risk_score and
+        # critical_exposed are also computed here via SQL so get_asset_stats()
+        # no longer needs a second full list_assets() scan.
         with self._lock:
             total = self._conn.execute(
                 "SELECT COUNT(*) FROM managed_assets WHERE org_id = ?", (org_id,)
@@ -540,6 +582,15 @@ class _InventoryDB:
                 "SELECT COUNT(*) FROM managed_assets WHERE org_id = ? AND (owner_email IS NULL OR owner_email = '')",
                 (org_id,),
             ).fetchone()[0]
+            # Aggregate risk stats in SQL — avoids a second list_assets() full scan in get_asset_stats()
+            risk_row = self._conn.execute(
+                "SELECT AVG(CASE WHEN risk_score > 0 THEN risk_score END), "
+                "COUNT(CASE WHEN criticality IN ('critical','high') AND json_extract(metadata,'$.internet_facing') THEN 1 END) "
+                "FROM managed_assets WHERE org_id = ?",
+                (org_id,),
+            ).fetchone()
+            avg_risk_score = round(risk_row[0] or 0.0, 2)
+            critical_exposed = risk_row[1] or 0
 
         return {
             "total": total,
@@ -551,6 +602,9 @@ class _InventoryDB:
             "by_cloud_provider": by_cloud,
             "by_data_classification": by_classification,
             "unowned_count": unowned,
+            # Pre-computed aggregates consumed by get_asset_stats() — no second scan needed
+            "_avg_risk_score": avg_risk_score,
+            "_critical_exposed": critical_exposed,
         }
 
     # ---- Relationship persistence ----
@@ -844,6 +898,13 @@ class AssetInventory:
         seen_keys: set = set()
         assets: List[ManagedAsset] = []
 
+        # PERF-FIX-1: hoist list_assets() outside the loop and build a name→asset
+        # dict once.  Previous code called list_assets() + linear scan inside every
+        # iteration → O(N·M) DB fetches.  Now O(M) one-time fetch + O(1) lookup.
+        existing_by_name: Dict[str, ManagedAsset] = {
+            a.name: a for a in self._db.list_assets(org_id)
+        }
+
         for finding in findings:
             hostname = finding.get("hostname") or finding.get("host") or finding.get("target")
             ip_address = finding.get("ip_address") or finding.get("ip")
@@ -861,8 +922,7 @@ class AssetInventory:
                 continue
             seen_keys.add(dedup_key)
 
-            existing = self._db.list_assets(org_id)
-            matched = next((a for a in existing if a.name == name), None)
+            matched = existing_by_name.get(name)
 
             if matched:
                 matched.finding_count += 1
@@ -897,6 +957,9 @@ class AssetInventory:
                 )
                 self._db.upsert_asset(asset)
                 assets.append(asset)
+                # Keep in-batch cache current so later findings in this call
+                # match against newly registered assets without another DB hit.
+                existing_by_name[name] = asset
                 logger.info("Asset discovered", asset_id=asset.id, name=name,
                             org_id=org_id, source=discovery_source)
 
@@ -1144,22 +1207,18 @@ class AssetInventory:
         Returns total, by_type, by_criticality, avg_risk_score, and
         critical_exposed count (critical/high assets with internet_facing=True
         in metadata).
+
+        PERF-FIX-3: avg_risk_score and critical_exposed are now computed inside
+        get_inventory_stats() via SQL aggregates.  The previous implementation
+        called list_assets() here for a second full table scan — eliminated.
         """
         stats = self.get_inventory_stats(org_id)
-        assets = self._db.list_assets(org_id)
-        risk_scores = [a.risk_score for a in assets if a.risk_score]
-        avg_risk = round(sum(risk_scores) / len(risk_scores), 2) if risk_scores else 0.0
-        critical_exposed = sum(
-            1 for a in assets
-            if a.criticality in (AssetCriticality.CRITICAL, AssetCriticality.HIGH)
-            and a.metadata.get("internet_facing")
-        )
         return {
             "total": stats.get("total", 0),
             "by_type": stats.get("by_type", {}),
             "by_criticality": stats.get("by_criticality", {}),
-            "avg_risk_score": avg_risk,
-            "critical_exposed": critical_exposed,
+            "avg_risk_score": stats.get("_avg_risk_score", 0.0),
+            "critical_exposed": stats.get("_critical_exposed", 0),
         }
 
     # ---- Risk scoring ----
@@ -1314,10 +1373,17 @@ class AssetInventory:
 
         Coerces string enum values. Skips invalid records with a warning.
         Returns the count of successfully imported assets.
+
+        PERF-FIX-2: builds all valid ManagedAsset objects first, applies
+        compliance auto-scope, then writes them all in a single
+        executemany + commit via upsert_assets_batch().  Previous code called
+        register_asset() (and therefore commit()) once per record — O(N) fsyncs.
         """
-        count = 0
+        valid_assets: List[ManagedAsset] = []
+        skipped = 0
         for raw in assets:
             try:
+                raw = dict(raw)  # don't mutate caller's dict
                 raw["org_id"] = org_id
                 for field, enum_cls in (
                     ("criticality", AssetCriticality),
@@ -1329,11 +1395,25 @@ class AssetInventory:
                     if field in raw and isinstance(raw[field], str):
                         raw[field] = enum_cls(raw[field])
                 asset = ManagedAsset(**raw)
-                self.register_asset(asset)  # triggers compliance auto-scope
-                count += 1
+                # Apply compliance auto-scope (mirrors register_asset logic)
+                if not asset.compliance_scope:
+                    asset = asset.model_copy(update={
+                        "compliance_scope": [
+                            f.value for f in _CLASSIFICATION_TO_COMPLIANCE.get(
+                                asset.data_classification, []
+                            )
+                        ]
+                    })
+                valid_assets.append(asset)
             except Exception as exc:
+                skipped += 1
                 logger.warning("bulk_import: skipping invalid asset", error=str(exc), raw=raw)
-        logger.info("Bulk import complete", org_id=org_id, count=count)
+
+        if valid_assets:
+            self._db.upsert_assets_batch(valid_assets)
+
+        count = len(valid_assets)
+        logger.info("Bulk import complete", org_id=org_id, count=count, skipped=skipped)
         return count
 
 
