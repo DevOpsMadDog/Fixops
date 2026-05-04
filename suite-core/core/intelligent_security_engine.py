@@ -1077,8 +1077,7 @@ class IntelligentSecurityEngine:
                 f.setdefault("validation", {"method": "none", "reason": "consensus_engine_unavailable"})
             return findings
 
-        validated = []
-        for finding in findings:
+        async def _validate_one(finding: Dict) -> Optional[Dict]:
             try:
                 prompt = (
                     f"Validate this security finding. Is it a true positive?\n"
@@ -1102,15 +1101,19 @@ class IntelligentSecurityEngine:
                     "action": result.action,
                     "confidence": result.confidence,
                 }
-                # Only include confirmed or review findings, drop rejects with high consensus
+                # Drop rejects with high consensus
                 if result.action == "reject" and result.consensus and result.confidence > 0.85:
                     logger.info("finding.rejected_by_consensus", title=finding.get("title"))
-                    continue
-                validated.append(finding)
+                    return None
+                return finding
             except Exception as exc:
                 logger.warning("finding.validation_error", error=str(exc))
                 finding["validation"] = {"method": "error", "error": str(exc)}
-                validated.append(finding)
+                return finding
+
+        # Validate all findings in parallel — each analyse() call is independent
+        results = await asyncio.gather(*(_validate_one(f) for f in findings))
+        validated = [r for r in results if r is not None]
 
         logger.info("findings.validated", total=len(findings), kept=len(validated))
         return validated

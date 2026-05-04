@@ -360,18 +360,17 @@ class SecretScannerEngine:
 
         with self._lock:
             with self._conn() as conn:
-                for f in findings:
-                    conn.execute(
-                        """INSERT INTO secret_findings
-                           (id, org_id, job_id, secret_type, file_path, line_number,
-                            severity, value_masked, entropy, is_valid_secret, status,
-                            remediation_notes, discovered_at, remediated_at)
-                           VALUES (:id, :org_id, :job_id, :secret_type, :file_path,
-                                   :line_number, :severity, :value_masked, :entropy,
-                                   :is_valid_secret, :status, :remediation_notes,
-                                   :discovered_at, :remediated_at)""",
-                        f,
-                    )
+                conn.executemany(
+                    """INSERT INTO secret_findings
+                       (id, org_id, job_id, secret_type, file_path, line_number,
+                        severity, value_masked, entropy, is_valid_secret, status,
+                        remediation_notes, discovered_at, remediated_at)
+                       VALUES (:id, :org_id, :job_id, :secret_type, :file_path,
+                               :line_number, :severity, :value_masked, :entropy,
+                               :is_valid_secret, :status, :remediation_notes,
+                               :discovered_at, :remediated_at)""",
+                    findings,
+                )
                 conn.execute(
                     """UPDATE scan_jobs
                        SET status = 'completed',

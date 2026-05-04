@@ -436,11 +436,20 @@ class DecisionEngine:
                 )
 
         # Fallback to individual components if Processing Layer unavailable
+        # Run independent enrichment steps in parallel for lower latency
+        import asyncio as _asyncio
         enriched_context = await self._real_context_enrichment(context)
-        knowledge_results = await self._real_vector_db_lookup(context, enriched_context)
-        regression_results = await self._real_golden_regression_validation(context)
-        policy_results = await self._real_policy_evaluation(context, enriched_context)
-        criticality_assessment = await self._real_sbom_criticality_assessment(context)
+        (
+            knowledge_results,
+            regression_results,
+            policy_results,
+            criticality_assessment,
+        ) = await _asyncio.gather(
+            self._real_vector_db_lookup(context, enriched_context),
+            self._real_golden_regression_validation(context),
+            self._real_policy_evaluation(context, enriched_context),
+            self._real_sbom_criticality_assessment(context),
+        )
 
         # Real consensus checking
         consensus_result = await self._real_consensus_checking(
