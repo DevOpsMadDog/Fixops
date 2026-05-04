@@ -123,219 +123,6 @@ const now = new Date();
 const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
 const daysFrom = (d: number) => new Date(now.getTime() + d * 86_400_000);
 
-const MOCK_VENDORS: Vendor[] = [
-  {
-    id: "VND-001",
-    name: "HashiCorp",
-    domain: "hashicorp.com",
-    tier: "critical",
-    grade: "A",
-    score: 91,
-    trend: "flat",
-    trendDelta: 1,
-    lastAssessed: daysAgo(12),
-    nextAssessment: daysFrom(78),
-    contactEmail: "security@hashicorp.com",
-    category: "Infrastructure / Secrets",
-    certifications: ["SOC 2 Type II", "ISO 27001"],
-    slaBreaches: 0,
-    criticalFindings: 0,
-    totalFindings: 2,
-    notes: "Vault and Terraform providers. Reviewed BSL license change impact.",
-    components: [
-      { name: "vault", version: "1.15.4", license: "BSL 1.1", cves: 0, path: "docker/vault" },
-      { name: "terraform", version: "1.7.3", license: "BSL 1.1", cves: 1, path: "infra/" },
-      { name: "vault-sdk", version: "0.10.2", license: "MPL 2.0", cves: 0, path: "requirements.txt" },
-    ],
-    assessmentHistory: [
-      { id: "ASM-041", date: daysAgo(12), score: 91, grade: "A", assessor: "jsmith", status: "passed", findings: 2, critical: 0, notes: "No critical issues. BSL license flagged for legal review." },
-      { id: "ASM-028", date: daysAgo(102), score: 89, grade: "B", assessor: "mchen", status: "passed", findings: 3, critical: 0, notes: "Minor config hardening items." },
-      { id: "ASM-015", date: daysAgo(192), score: 86, grade: "B", assessor: "jsmith", status: "passed", findings: 5, critical: 0, notes: "Initial assessment post-IBM acquisition." },
-    ],
-    alerts: [],
-  },
-  {
-    id: "VND-002",
-    name: "Snyk",
-    domain: "snyk.io",
-    tier: "high",
-    grade: "B",
-    score: 78,
-    trend: "improving",
-    trendDelta: 6,
-    lastAssessed: daysAgo(28),
-    nextAssessment: daysFrom(62),
-    contactEmail: "enterprise@snyk.io",
-    category: "Security Scanning / SCA",
-    certifications: ["SOC 2 Type II"],
-    slaBreaches: 1,
-    criticalFindings: 0,
-    totalFindings: 7,
-    notes: "SCA scanning integration. Agent runs with broad file-system access — review permissions.",
-    components: [
-      { name: "snyk", version: "1.1290.1", license: "Apache 2.0", cves: 0, path: "CI/CD pipeline" },
-      { name: "snyk-python-plugin", version: "2.5.1", license: "Apache 2.0", cves: 0, path: "requirements.txt" },
-    ],
-    assessmentHistory: [
-      { id: "ASM-039", date: daysAgo(28), score: 78, grade: "B", assessor: "agarcia", status: "passed", findings: 7, critical: 0, notes: "Agent privilege review outstanding." },
-      { id: "ASM-022", date: daysAgo(118), score: 72, grade: "C", assessor: "jsmith", status: "partial", findings: 11, critical: 1, notes: "Critical: data egress controls not documented." },
-    ],
-    alerts: [
-      { id: "ALR-010", date: daysAgo(5), type: "score_drop", message: "Score improved +6 pts after remediation evidence submitted", severity: "medium", dismissed: true },
-    ],
-  },
-  {
-    id: "VND-003",
-    name: "Datadog",
-    domain: "datadoghq.com",
-    tier: "critical",
-    grade: "B",
-    score: 82,
-    trend: "degrading",
-    trendDelta: -4,
-    lastAssessed: daysAgo(7),
-    nextAssessment: daysFrom(83),
-    contactEmail: "security@datadoghq.com",
-    category: "Observability / APM",
-    certifications: ["SOC 2 Type II", "ISO 27001", "PCI DSS"],
-    slaBreaches: 0,
-    criticalFindings: 1,
-    totalFindings: 9,
-    notes: "Agent deployed across all prod nodes. Ingests traces, logs, metrics. Broad privilege surface.",
-    components: [
-      { name: "datadog-agent", version: "7.52.0", license: "Apache 2.0", cves: 2, path: "k8s/monitoring" },
-      { name: "ddtrace", version: "2.6.3", license: "BSD 3-Clause", cves: 0, path: "requirements.txt" },
-      { name: "datadog", version: "0.49.1", license: "BSD 3-Clause", cves: 0, path: "requirements.txt" },
-    ],
-    assessmentHistory: [
-      { id: "ASM-040", date: daysAgo(7), score: 82, grade: "B", assessor: "mchen", status: "partial", findings: 9, critical: 1, notes: "CRITICAL: agent running as root on 3 nodes. Remediation in progress." },
-      { id: "ASM-025", date: daysAgo(97), score: 86, grade: "B", assessor: "agarcia", status: "passed", findings: 4, critical: 0, notes: "All controls met." },
-    ],
-    alerts: [
-      { id: "ALR-012", date: daysAgo(7), type: "new_cve", message: "CVE-2024-28182 in datadog-agent v7.52.0 — severity HIGH", severity: "high", dismissed: false },
-      { id: "ALR-011", date: daysAgo(9), type: "score_drop", message: "Score dropped 4 pts. Root agent finding elevated to CRITICAL.", severity: "critical", dismissed: false },
-    ],
-  },
-  {
-    id: "VND-004",
-    name: "OpenAI",
-    domain: "openai.com",
-    tier: "high",
-    grade: "C",
-    score: 64,
-    trend: "flat",
-    trendDelta: 0,
-    lastAssessed: daysAgo(45),
-    nextAssessment: daysFrom(45),
-    contactEmail: "security@openai.com",
-    category: "AI / LLM API",
-    certifications: ["SOC 2 Type II"],
-    slaBreaches: 2,
-    criticalFindings: 2,
-    totalFindings: 14,
-    notes: "Used for Copilot summarization. Data classification policy required before expanding scope.",
-    components: [
-      { name: "openai", version: "1.14.3", license: "MIT", cves: 0, path: "suite-core/core/llm_council.py" },
-    ],
-    assessmentHistory: [
-      { id: "ASM-035", date: daysAgo(45), score: 64, grade: "C", assessor: "jsmith", status: "partial", findings: 14, critical: 2, notes: "Data residency controls unclear. DPA not fully executed." },
-      { id: "ASM-018", date: daysAgo(135), score: 59, grade: "D", assessor: "mchen", status: "failed", findings: 18, critical: 4, notes: "Failed on data minimization and audit logging requirements." },
-    ],
-    alerts: [
-      { id: "ALR-009", date: daysAgo(3), type: "cert_expiry", message: "SOC 2 certification due for renewal in 45 days", severity: "medium", dismissed: false },
-    ],
-  },
-  {
-    id: "VND-005",
-    name: "Redis Ltd.",
-    domain: "redis.com",
-    tier: "critical",
-    grade: "A",
-    score: 94,
-    trend: "improving",
-    trendDelta: 3,
-    lastAssessed: daysAgo(19),
-    nextAssessment: daysFrom(71),
-    contactEmail: "security@redis.com",
-    category: "Data / Cache Layer",
-    certifications: ["SOC 2 Type II", "ISO 27001", "FIPS 140-2"],
-    slaBreaches: 0,
-    criticalFindings: 0,
-    totalFindings: 1,
-    notes: "Redis OSS (7.2.4) self-hosted. Excellent security posture. No vendor data egress.",
-    components: [
-      { name: "redis", version: "7.2.4", license: "RSALv2", cves: 0, path: "docker/redis" },
-      { name: "redis-py", version: "5.0.2", license: "MIT", cves: 0, path: "requirements.txt" },
-    ],
-    assessmentHistory: [
-      { id: "ASM-038", date: daysAgo(19), score: 94, grade: "A", assessor: "agarcia", status: "passed", findings: 1, critical: 0, notes: "One low-severity config item. Excellent posture." },
-      { id: "ASM-021", date: daysAgo(109), score: 91, grade: "A", assessor: "jsmith", status: "passed", findings: 2, critical: 0, notes: "All controls verified." },
-    ],
-    alerts: [],
-  },
-  {
-    id: "VND-006",
-    name: "Fortinet",
-    domain: "fortinet.com",
-    tier: "critical",
-    grade: "D",
-    score: 43,
-    trend: "degrading",
-    trendDelta: -18,
-    lastAssessed: daysAgo(3),
-    nextAssessment: daysFrom(7),
-    contactEmail: "psirt@fortinet.com",
-    category: "Network Security / Firewall",
-    certifications: ["Common Criteria EAL 4+"],
-    slaBreaches: 4,
-    criticalFindings: 3,
-    totalFindings: 22,
-    notes: "URGENT: CVE-2024-21762 active exploitation confirmed. Escalation in progress with CISO.",
-    components: [
-      { name: "fortios-sdk-python", version: "2.0.2", license: "Apache 2.0", cves: 3, path: "requirements.txt" },
-      { name: "fortinet-fortigate", version: "7.4.2", license: "Proprietary", cves: 5, path: "Network: fw-prod-01" },
-    ],
-    assessmentHistory: [
-      { id: "ASM-042", date: daysAgo(3), score: 43, grade: "D", assessor: "jsmith", status: "failed", findings: 22, critical: 3, notes: "FAILED: CVE-2024-21762 unpatched. FortiOS 7.4.3 patch required immediately." },
-      { id: "ASM-033", date: daysAgo(93), score: 61, grade: "C", assessor: "mchen", status: "partial", findings: 12, critical: 1, notes: "Patching cadence issues identified." },
-      { id: "ASM-020", date: daysAgo(183), score: 74, grade: "C", assessor: "agarcia", status: "passed", findings: 8, critical: 0, notes: "Acceptable posture. Monitoring required." },
-    ],
-    alerts: [
-      { id: "ALR-015", date: daysAgo(3), type: "new_cve", message: "CVE-2024-21762: FortiOS RCE — CVSS 9.6. Active exploitation in the wild.", severity: "critical", dismissed: false },
-      { id: "ALR-014", date: daysAgo(5), type: "breach_reported", message: "Fortinet confirmed customer data exposure from FortiGate SSL-VPN breach", severity: "critical", dismissed: false },
-      { id: "ALR-013", date: daysAgo(21), type: "score_drop", message: "Score dropped 18 pts after failed re-assessment", severity: "high", dismissed: false },
-    ],
-  },
-  {
-    id: "VND-007",
-    name: "Elastic",
-    domain: "elastic.co",
-    tier: "high",
-    grade: "B",
-    score: 79,
-    trend: "improving",
-    trendDelta: 5,
-    lastAssessed: daysAgo(33),
-    nextAssessment: daysFrom(57),
-    contactEmail: "security@elastic.co",
-    category: "Search / SIEM",
-    certifications: ["SOC 2 Type II", "ISO 27001"],
-    slaBreaches: 1,
-    criticalFindings: 0,
-    totalFindings: 6,
-    notes: "Elasticsearch and Kibana for SIEM correlation. License change from Apache to SSPL monitored.",
-    components: [
-      { name: "elasticsearch", version: "8.12.2", license: "SSPL / Elastic", cves: 1, path: "docker/elastic" },
-      { name: "elasticsearch-py", version: "8.12.0", license: "Apache 2.0", cves: 0, path: "requirements.txt" },
-      { name: "kibana", version: "8.12.2", license: "SSPL / Elastic", cves: 0, path: "docker/elastic" },
-    ],
-    assessmentHistory: [
-      { id: "ASM-037", date: daysAgo(33), score: 79, grade: "B", assessor: "agarcia", status: "passed", findings: 6, critical: 0, notes: "SSPL license compliance confirmed with legal." },
-      { id: "ASM-023", date: daysAgo(123), score: 74, grade: "C", assessor: "jsmith", status: "partial", findings: 9, critical: 0, notes: "Authentication controls partially documented." },
-    ],
-    alerts: [],
-  },
-];
 
 // ═══════════════════════════════════════════════════════════
 // Grade rendering — the signature design element
@@ -855,7 +642,7 @@ function apiVendorToVendor(v: Record<string, any>): Vendor {
 }
 
 export default function VendorManagement() {
-  const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -874,14 +661,12 @@ export default function VendorManagement() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const list: Record<string, any>[] = data.vendors ?? data ?? [];
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         setVendors(list.map(apiVendorToVendor));
       }
-      // If list is empty, keep MOCK_VENDORS as fallback (default state)
     } catch (err: any) {
-      console.warn("VendorManagement: API fetch failed, using mock data:", err.message);
+      console.warn("VendorManagement: API fetch failed:", err.message);
       setError(err.message);
-      // Keep MOCK_VENDORS (already set as default)
     } finally {
       setLoading(false);
     }
