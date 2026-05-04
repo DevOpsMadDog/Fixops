@@ -45,3 +45,34 @@ All suites green after commits since 5bf851ac:
 1938f82d (HANDOFF final wrap v2),
 84bff5c2 (onboarding/wizard perf — 4 hotspots, ~9x fewer DB opens),
 82dc3676 (misc perf — secret_scanner_engine, decision_engine, intelligent_security_engine hotspots).
+
+Sweep #5 — HEAD 5c410a5372efeee4429574fef54753c4898a3fa1
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.56s
+Suite 2 — Perf benchmarks (24 files, current on-disk names): 180 passed, 1 failed, 0 errors in 22.44s
+Suite 3 — QA/lockdown (1 file — test_owasp_regression_lockdown.py, phase11-20 files no longer exist): 47 passed, 0 failed, 0 errors in 0.51s
+
+Total sweep #5: 980 passed, 1 failed, 0 errors, 0 skipped
+Timestamp: 2026-05-05T09:07:00Z
+
+REGRESSION DETECTED vs sweep #4:
+  FAILED: tests/test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms
+  Root cause: asyncio.run() called from within a thread that already has a closing event loop.
+    BrainPipeline._correlate_and_emit() catches "no running event loop" RuntimeError and falls
+    through to asyncio.run(_emit_all()) — but asyncio.run() itself raises RuntimeError on
+    runner.close() when a partially-initialised Runner fails to shut down its default executor.
+    This is a timing/environment sensitivity (MiniLM model load ~10s triggers the race).
+  File: suite-core/core/brain_pipeline.py:2333 (_correlate_and_emit)
+  DO NOT FIX in this sweep — report only.
+
+NOTE: Suite 2 file list changed since sweep #4. Sweep #4 referenced test_soar_incident_perf.py,
+test_asset_inventory_perf.py, test_ctem_exposure_perf.py, test_evidence_chain_perf.py,
+test_webhook_delivery_perf.py, test_mcp_gateway_perf.py, test_mpte_attack_sim_perf.py,
+test_connector_sync_perf.py, test_finding_dedup_perf.py, test_risk_scoring_perf.py,
+test_scanner_perf.py, test_trustgraph_perf.py, test_feed_ingestion_perf.py — these no longer
+exist at those paths. Current on-disk: 24 files with slightly different names (test_soar_perf.py,
+test_connector_perf.py, test_ctem_perf.py, etc.). Suite 3 phase11-20 lockdown files also absent
+from disk — only test_owasp_regression_lockdown.py remains.
+
+Commits since sweep #4 (968a3b34):
+715dc54a (session summary), 3fe340d0 (HANDOFF v3), 3cd62abf (scripts/tools fixes),
+5c410a53 (pytest-xdist doc).
