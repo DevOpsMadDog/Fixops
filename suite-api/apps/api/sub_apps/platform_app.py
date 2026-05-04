@@ -2628,6 +2628,32 @@ def register_platform_routers(
         _logger.warning("abuseipdb_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Braintrust LLM-eval (experiments / datasets / projects / scores) — 2026-05-04
+    # GET  /api/v1/braintrust/                            capability summary  (read:scans)
+    # GET  /api/v1/braintrust/v1/experiment               list experiments    (read:scans)
+    # GET  /api/v1/braintrust/v1/experiment/{exp_id}      single experiment   (read:scans)
+    # POST /api/v1/braintrust/v1/experiment               create experiment   (read:scans)
+    # POST /api/v1/braintrust/v1/experiment/{id}/insert   append events       (read:scans)
+    # GET  /api/v1/braintrust/v1/dataset                  list datasets       (read:scans)
+    # GET  /api/v1/braintrust/v1/dataset/{ds_id}          single dataset      (read:scans)
+    # POST /api/v1/braintrust/v1/dataset/{ds_id}/insert   append dataset rows (read:scans)
+    # GET  /api/v1/braintrust/v1/project                  list projects       (read:scans)
+    # GET  /api/v1/braintrust/v1/score                    list scoring fns    (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.braintrust_router import router as braintrust_router  # noqa: PLC0415
+        app.include_router(
+            braintrust_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Braintrust LLM-eval router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("braintrust_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # JupiterOne Asset Graph (GraphQL/J1QL + Sync + Alerts + Integrations) - 2026-05-04
     # GET  /api/v1/jupiterone/                                           capability summary  (read:scans)
     # POST /api/v1/jupiterone/graphql                                    J1QL graphql query  (read:scans)
@@ -3754,3 +3780,53 @@ def register_platform_routers(
         _logger.info("Mounted Traceable AI router at /api/v1/traceable (read:scans)")
     except ImportError as exc:
         _logger.warning("traceable_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Guardrails AI (LLM input/output validation surface) - 2026-05-04
+    # GET  /api/v1/guardrails/                                        capability summary             (read:scans)
+    # POST /api/v1/guardrails/v1/validate                             ad-hoc validate                (read:scans)
+    # GET  /api/v1/guardrails/v1/specs                                list registered specs          (read:scans)
+    # GET  /api/v1/guardrails/v1/specs/{spec_name}                    spec detail                    (read:scans)
+    # POST /api/v1/guardrails/v1/spec                                 register custom spec (201)     (read:scans)
+    # POST /api/v1/guardrails/v1/guards/{guard_name}/validate         validate against named guard   (read:scans)
+    # POST /api/v1/guardrails/v1/openai/chat/completions              guarded OpenAI passthrough     (read:scans)
+    # GET  /api/v1/guardrails/v1/health                               upstream health probe          (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.guardrails_router import router as guardrails_router  # noqa: PLC0415
+        app.include_router(
+            guardrails_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Guardrails AI router at /api/v1/guardrails (read:scans)")
+    except ImportError as exc:
+        _logger.warning("guardrails_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # LangSmith — LLM observability (runs / datasets / examples / feedback /
+    #   sessions) - 2026-05-04
+    # GET  /api/v1/langsmith/                                  capability summary           (read:scans)
+    # GET  /api/v1/langsmith/api/v1/runs                       list LLM/chain/tool runs     (read:scans)
+    # GET  /api/v1/langsmith/api/v1/runs/{run_id}              single run detail            (read:scans)
+    # GET  /api/v1/langsmith/api/v1/datasets                   list datasets                (read:scans)
+    # GET  /api/v1/langsmith/api/v1/datasets/{dataset_id}      single dataset detail        (read:scans)
+    # GET  /api/v1/langsmith/api/v1/datasets/{id}/examples     list dataset examples        (read:scans)
+    # POST /api/v1/langsmith/api/v1/datasets/{id}/examples     bulk create examples         (read:scans)
+    # POST /api/v1/langsmith/api/v1/feedback                   attach feedback to a run     (read:scans)
+    # GET  /api/v1/langsmith/api/v1/sessions                   list sessions / projects     (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.langsmith_router import router as langsmith_router  # noqa: PLC0415
+        app.include_router(
+            langsmith_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted LangSmith observability router at /api/v1/langsmith (read:scans)")
+    except ImportError as exc:
+        _logger.warning("langsmith_router not available: %s", exc)
