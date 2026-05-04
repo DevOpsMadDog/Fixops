@@ -18,6 +18,10 @@ with a mock provider so they're stable in CI.
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import sqlite3
 import tempfile
 import threading

@@ -7,6 +7,10 @@ Covers three fixes shipped in beast-mode(perf) commit:
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import time
 from collections import deque
 from pathlib import Path

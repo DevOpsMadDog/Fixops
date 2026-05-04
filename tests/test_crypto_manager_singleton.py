@@ -9,6 +9,10 @@ Asserts that the 2,111ms RSA-4096 keygen bottleneck does not repeat:
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import time
 from pathlib import Path
 from typing import Iterator

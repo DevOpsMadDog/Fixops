@@ -11,6 +11,10 @@ Reference: docs/perf/brain_pipeline_profile_2026-04-27.md (Bottleneck #2).
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import math
 import time
 from typing import Any, Dict, List

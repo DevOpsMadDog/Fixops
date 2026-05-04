@@ -7,6 +7,10 @@ Validates:
 - Timeout safety: slow worker still triggers TimeoutError
 """
 
+
+import pytest
+
+pytestmark = pytest.mark.perf
 import concurrent.futures
 import tempfile
 import threading

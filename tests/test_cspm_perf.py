@@ -12,6 +12,10 @@ within acceptable wall-clock budgets:
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import json
 import os
 import sqlite3

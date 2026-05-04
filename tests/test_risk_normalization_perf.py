@@ -10,6 +10,10 @@ Validates that:
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import time
 from typing import Any, Dict
 

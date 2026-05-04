@@ -9,6 +9,10 @@ Covers three hotspot fixes shipped in beast-mode(perf):
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import time
 import tempfile
 from pathlib import Path

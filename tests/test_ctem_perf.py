@@ -7,6 +7,10 @@ that batch ingest is faster than the old per-row loop baseline.
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import os
 import tempfile
 import time

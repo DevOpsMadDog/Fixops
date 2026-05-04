@@ -8,6 +8,10 @@ Validates three hotspot fixes:
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import sqlite3
 import tempfile
 import threading

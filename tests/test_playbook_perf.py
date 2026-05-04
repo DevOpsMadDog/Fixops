@@ -9,6 +9,10 @@ Covers the 3 hotspots fixed in beast-mode(perf):
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import sys
 import time
 import uuid

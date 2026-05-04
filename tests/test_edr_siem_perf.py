@@ -12,6 +12,10 @@ normalize, import_findings) still works after the changes.
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import sys
 import os
 import time

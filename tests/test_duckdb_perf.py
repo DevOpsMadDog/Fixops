@@ -19,6 +19,10 @@ Compliance: SOC2 CC7.2 performance monitoring.
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import sqlite3
 import sys
 import tempfile

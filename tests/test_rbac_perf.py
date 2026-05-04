@@ -11,6 +11,10 @@ any CI box, not just the dev Mac.
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import tempfile
 import time
 from pathlib import Path

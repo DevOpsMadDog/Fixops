@@ -74,6 +74,8 @@ markers = [
     "unit: Unit tests",
     "integration: Integration tests",
     "performance: Performance tests",
+    "perf: Performance benchmark tests (alias for performance; used by CI perf gate)",
+    "benchmark: Micro-benchmark tests measuring raw throughput or latency",
     "slow: Slow running tests",
     "security: Security-related tests",
     "regression: Regression tests",

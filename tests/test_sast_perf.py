@@ -11,6 +11,10 @@ re.compile calls on every scan).
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import time
 from typing import Dict
 

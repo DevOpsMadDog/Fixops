@@ -6,6 +6,10 @@ Validates the three hotspot fixes:
   PERF-FIX-3 — get_asset_stats: no second list_assets() full scan
 """
 
+
+import pytest
+
+pytestmark = pytest.mark.perf
 import time
 import tempfile
 import os

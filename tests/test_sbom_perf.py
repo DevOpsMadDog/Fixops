@@ -9,6 +9,10 @@ Threshold: 1000-component SBOM ingest < 500 ms on any reasonable CI host.
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import json
 import tempfile
 import time

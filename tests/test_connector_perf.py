@@ -9,6 +9,10 @@ Three perf contracts verified here:
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import asyncio
 import time
 from pathlib import Path

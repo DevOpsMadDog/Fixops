@@ -7,6 +7,10 @@ Fix #3: bulk_enrich() uses a single executemany transaction.
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import sys
 import time
 from pathlib import Path

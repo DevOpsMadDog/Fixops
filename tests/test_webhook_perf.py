@@ -10,6 +10,10 @@ Tests verify:
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import json
 import time
 import threading

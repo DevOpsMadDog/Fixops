@@ -8,6 +8,10 @@ Validates that the three hotfixes ship measurable improvements:
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import time
 from pathlib import Path
 

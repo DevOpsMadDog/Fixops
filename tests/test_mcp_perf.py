@@ -11,6 +11,10 @@ All assertions use wall-clock timing with generous headroom so CI machines
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import sys
 import time
 from collections import deque

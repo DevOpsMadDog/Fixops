@@ -6,6 +6,10 @@ Perf assertions for the misc hotspot fixes:
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.perf
+
 import asyncio
 import sys
 import time

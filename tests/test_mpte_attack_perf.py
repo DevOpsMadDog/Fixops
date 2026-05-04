@@ -5,6 +5,10 @@ Validates three optimizations:
 2. asyncio.gather parallel phase execution — all 8 phases run concurrently
 3. _MITRE_PHASE_MAP module-level constant — no dict rebuild per call
 """
+
+import pytest
+
+pytestmark = pytest.mark.perf
 import asyncio
 import time
 
