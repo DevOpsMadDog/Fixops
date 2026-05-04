@@ -76,3 +76,21 @@ from disk — only test_owasp_regression_lockdown.py remains.
 Commits since sweep #4 (968a3b34):
 715dc54a (session summary), 3fe340d0 (HANDOFF v3), 3cd62abf (scripts/tools fixes),
 5c410a53 (pytest-xdist doc).
+
+Sweep #6 — HEAD 5ffc19107dfd9434829c405ced28f992f1379cb6
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.86s
+Suite 2 — Perf benchmarks (24 files, current on-disk names): 194 passed, 0 failed, 0 errors in 25.70s
+Suite 3 — QA/lockdown (1 file — test_owasp_regression_lockdown.py): 47 passed, 0 failed, 0 errors in 0.51s
+
+Total sweep #6: 994 passed, 0 failed, 0 errors, 0 skipped
+Timestamp: 2026-05-05T09:10:33Z
+
+REGRESSION CLOSED vs sweep #5:
+  FIXED: tests/test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms
+  Fix commit: 5ffc1910 (brain_pipeline asyncio race — _correlate_and_emit asyncio.run() removed)
+  All 194 perf tests green including the previously failing brain pipeline benchmark.
+
+Delta vs sweep #5: 0 regressions. +14 perf tests (Suite 2: 180→194; test_soar_perf.py,
+test_asset_inventory_perf.py, test_ctem_perf.py, test_evidence_perf.py, test_webhook_perf.py,
+test_mcp_perf.py, test_onboarding_perf.py, test_misc_perf.py all confirmed present on disk).
+Sweep #5 regression fully closed at 5ffc1910.
