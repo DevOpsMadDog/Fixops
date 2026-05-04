@@ -41,28 +41,6 @@ interface EnrichmentSource {
   total_queries: number;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const MOCK_REQUESTS: EnrichmentRequest[] = [
-  { id: "enr-001", indicator: "185.220.101.45",          ioc_type: "ip",     status: "completed", sources_queried: 8, sources_responded: 8, created_at: "2026-04-16 09:00", reputation_score: 92, malicious: true,  confidence: 95, tags: ["tor-exit-node", "bruteforce"] },
-  { id: "enr-002", indicator: "malware-c2.evil.ru",      ioc_type: "domain", status: "completed", sources_queried: 7, sources_responded: 6, created_at: "2026-04-16 08:45", reputation_score: 88, malicious: true,  confidence: 87, tags: ["c2", "malware", "emotet"] },
-  { id: "enr-003", indicator: "d41d8cd98f00b204e9800998ecf8427e", ioc_type: "hash", status: "completed", sources_queried: 5, sources_responded: 5, created_at: "2026-04-16 08:30", reputation_score: 0, malicious: false, confidence: 99, tags: ["clean", "empty-file"] },
-  { id: "enr-004", indicator: "https://phish.example.com/login", ioc_type: "url",    status: "completed", sources_queried: 6, sources_responded: 5, created_at: "2026-04-16 08:15", reputation_score: 76, malicious: true,  confidence: 82, tags: ["phishing", "credential-harvest"] },
-  { id: "enr-005", indicator: "attacker@protonmail.com",  ioc_type: "email",  status: "in_progress", sources_queried: 4, sources_responded: 2, created_at: "2026-04-16 09:10", reputation_score: null, malicious: null, confidence: null, tags: [] },
-  { id: "enr-006", indicator: "198.51.100.22",            ioc_type: "ip",     status: "pending",  sources_queried: 0, sources_responded: 0, created_at: "2026-04-16 09:15", reputation_score: null, malicious: null, confidence: null, tags: [] },
-  { id: "enr-007", indicator: "AS12345",                  ioc_type: "asn",    status: "failed",   sources_queried: 3, sources_responded: 0, created_at: "2026-04-16 07:00", reputation_score: null, malicious: null, confidence: null, tags: [] },
-];
-
-const MOCK_SOURCES: EnrichmentSource[] = [
-  { id: "src-001", name: "VirusTotal",      ioc_types: ["ip", "domain", "url", "hash"], success_rate: 99,  avg_response_ms: 450,  total_queries: 12847 },
-  { id: "src-002", name: "AbuseIPDB",       ioc_types: ["ip"],                           success_rate: 98,  avg_response_ms: 280,  total_queries: 8921  },
-  { id: "src-003", name: "Shodan",          ioc_types: ["ip", "asn"],                    success_rate: 95,  avg_response_ms: 720,  total_queries: 5634  },
-  { id: "src-004", name: "URLhaus",         ioc_types: ["url", "domain", "hash"],        success_rate: 92,  avg_response_ms: 190,  total_queries: 7245  },
-  { id: "src-005", name: "AlienVault OTX",  ioc_types: ["ip", "domain", "hash", "url"], success_rate: 97,  avg_response_ms: 380,  total_queries: 10112 },
-  { id: "src-006", name: "GreyNoise",       ioc_types: ["ip"],                           success_rate: 94,  avg_response_ms: 210,  total_queries: 4389  },
-  { id: "src-007", name: "Have I Been Pwned", ioc_types: ["email"],                      success_rate: 99,  avg_response_ms: 160,  total_queries: 2108  },
-  { id: "src-008", name: "RiskIQ",          ioc_types: ["domain", "ip", "email"],        success_rate: 88,  avg_response_ms: 940,  total_queries: 3562  },
-];
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -85,34 +63,47 @@ const statusColors: Record<EnrichmentStatus, string> = {
 // ── Component ──────────────────────────────────────────────────
 
 export default function IntelEnrichmentDashboard() {
-  const [requests, setRequests] = useState(MOCK_REQUESTS);
-
+  const [requests, setRequests] = useState<EnrichmentRequest[]>([]);
+  const [sources, setSources] = useState<EnrichmentSource[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadData = () => {
     setFetchError(null);
-    fetch(`${_API_BASE}/requests`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
-      .then(d => { if (Array.isArray(d)) setRequests(d); })
-      .catch((err) => {
-        setFetchError(err instanceof Error ? err.message : "Failed to load enrichment data");
-      });
+    Promise.allSettled([
+      fetch(`${_API_BASE}/requests`, { headers: _getHeaders() })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))),
+      fetch(`${_API_BASE}/sources`, { headers: _getHeaders() })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))),
+    ]).then(([reqRes, srcRes]) => {
+      if (reqRes.status === "fulfilled") {
+        const d = reqRes.value;
+        if (Array.isArray(d)) setRequests(d);
+        else if (Array.isArray(d?.requests)) setRequests(d.requests);
+      } else {
+        setFetchError(reqRes.reason instanceof Error ? reqRes.reason.message : "Failed to load enrichment data");
+      }
+      if (srcRes.status === "fulfilled") {
+        const d = srcRes.value;
+        if (Array.isArray(d)) setSources(d);
+        else if (Array.isArray(d?.sources)) setSources(d.sources);
+      }
+    });
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const [selectedRequest, setSelectedRequest] = useState<string>(MOCK_REQUESTS[0].id);
+  const [selectedRequest, setSelectedRequest] = useState<string>("");
   const [bulkInput, setBulkInput] = useState("");
   const [bulkSubmitted, setBulkSubmitted] = useState(false);
 
-  const selected = MOCK_REQUESTS.find(r => r.id === selectedRequest);
+  const selected = requests.find(r => r.id === selectedRequest);
 
-  const totalCompleted = MOCK_REQUESTS.filter(r => r.status === "completed").length;
-  const totalPending = MOCK_REQUESTS.filter(r => r.status === "pending" || r.status === "in_progress").length;
+  const totalCompleted = requests.filter(r => r.status === "completed").length;
+  const totalPending = requests.filter(r => r.status === "pending" || r.status === "in_progress").length;
   const avgSources = Math.round(
-    MOCK_REQUESTS.filter(r => r.status === "completed").reduce((s, r) => s + r.sources_queried, 0) / totalCompleted || 0
+    requests.filter(r => r.status === "completed").reduce((s, r) => s + r.sources_queried, 0) / (totalCompleted || 1)
   );
 
   function handleBulkSubmit() {
@@ -142,7 +133,7 @@ export default function IntelEnrichmentDashboard() {
       {/* Stats Panel */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Requests", value: MOCK_REQUESTS.length, color: "text-blue-400" },
+          { label: "Total Requests", value: requests.length, color: "text-blue-400" },
           { label: "Completed",      value: totalCompleted,       color: "text-green-400" },
           { label: "Pending",        value: totalPending,         color: "text-amber-400" },
           { label: "Avg Sources",    value: avgSources,           color: "text-purple-400" },
@@ -170,7 +161,7 @@ export default function IntelEnrichmentDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {MOCK_REQUESTS.map(req => (
+                {requests.map(req => (
                   <tr
                     key={req.id}
                     onClick={() => setSelectedRequest(req.id)}
@@ -264,7 +255,7 @@ export default function IntelEnrichmentDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
-              {MOCK_SOURCES.map(src => (
+              {sources.map(src => (
                 <tr key={src.id} className="hover:bg-gray-700/50">
                   <td className="py-3 pr-4 text-white font-medium">{src.name}</td>
                   <td className="py-3 pr-4">
