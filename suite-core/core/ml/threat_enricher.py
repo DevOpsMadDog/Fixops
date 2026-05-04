@@ -34,6 +34,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -117,6 +118,7 @@ class ThreatEnricher:
         self._kev_details: Dict[str, Dict] = {}  # CVE ID → KEV entry details
         self._cvss_cache: Dict[str, float] = {}  # CVE ID → CVSS score
         self._kev_loaded = False
+        self._epss_cache_loaded = False  # perf: skip re-reading cache file each call
         self._stats = {
             "epss_api_hits": 0,
             "epss_cache_hits": 0,
@@ -168,8 +170,9 @@ class ThreatEnricher:
         if not self._kev_loaded:
             self._load_kev_catalog(skip_api=skip_api)
 
-        # Load cached EPSS data
-        self._load_epss_cache()
+        # Load cached EPSS data (once per singleton lifetime — perf fix #1)
+        if not self._epss_cache_loaded:
+            self._load_epss_cache()
 
         # Load cached NVD CVSS data (from data/feeds/nvd-recent.json)
         if not self._cvss_cache:
@@ -271,30 +274,45 @@ class ThreatEnricher:
         The EPSS API supports querying multiple CVEs at once:
         GET https://api.first.org/data/v1/epss?cve=CVE-2021-44228,CVE-2023-44487
 
+        perf fix #2: batches are fetched in parallel via ThreadPoolExecutor
+        instead of sequentially — turns N×RTT into ~1×RTT for the whole set.
+
         Parameters
         ----------
         cve_ids : list of str
             CVE IDs to fetch EPSS scores for.
         """
-        # Process in batches to avoid URL length limits
-        for i in range(0, len(cve_ids), EPSS_BATCH_SIZE):
-            batch = cve_ids[i:i + EPSS_BATCH_SIZE]
-            cve_param = ",".join(batch)
-            url = f"{EPSS_API_URL}?cve={cve_param}"
+        batches = [
+            (i, cve_ids[i:i + EPSS_BATCH_SIZE])
+            for i in range(0, len(cve_ids), EPSS_BATCH_SIZE)
+        ]
 
+        def _fetch_batch(args):
+            i, batch = args
+            url = f"{EPSS_API_URL}?cve={','.join(batch)}"
             data = _fetch_json(url)
-            if data and "data" in data:
-                for entry in data["data"]:
-                    cve = entry.get("cve", "")
-                    epss = float(entry.get("epss", 0))
-                    if cve:
-                        self._epss_cache[cve] = round(epss, 6)
-                        self._stats["epss_api_hits"] += 1
+            return i, batch, data
 
-                logger.debug(
-                    "EPSS batch %d-%d: fetched %d scores",
-                    i, i + len(batch), len(data.get("data", [])),
-                )
+        max_workers = min(8, len(batches))
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {pool.submit(_fetch_batch, b): b for b in batches}
+            for future in as_completed(futures):
+                try:
+                    i, batch, data = future.result()
+                except Exception as exc:
+                    logger.warning("EPSS batch fetch failed: %s", exc)
+                    continue
+                if data and "data" in data:
+                    for entry in data["data"]:
+                        cve = entry.get("cve", "")
+                        epss = float(entry.get("epss", 0))
+                        if cve:
+                            self._epss_cache[cve] = round(epss, 6)
+                            self._stats["epss_api_hits"] += 1
+                    logger.debug(
+                        "EPSS batch %d-%d: fetched %d scores",
+                        i, i + len(batch), len(data.get("data", [])),
+                    )
 
     def _load_epss_cache(self) -> None:
         """Load EPSS scores from local cache."""
@@ -304,6 +322,7 @@ class ThreatEnricher:
             if isinstance(scores, dict):
                 self._epss_cache.update(scores)
                 logger.debug("Loaded %d EPSS scores from cache", len(scores))
+        self._epss_cache_loaded = True  # perf fix #1: avoid re-reading every call
 
     def _save_epss_cache(self) -> None:
         """Save EPSS scores to local cache."""

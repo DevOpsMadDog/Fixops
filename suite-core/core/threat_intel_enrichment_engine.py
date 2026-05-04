@@ -536,14 +536,47 @@ class ThreatIntelEnrichmentEngine:
 
         Each entry: {"indicator": str, "indicator_type": str, "sources_queried": int}
         Returns list of created request dicts.
+
+        perf fix #3: replaced N serial create_enrichment_request() calls (each
+        opening its own connection + RLock acquisition) with a single
+        executemany() inside one connection+transaction — O(N) DB round-trips
+        → O(1).
         """
-        created = []
+        if not indicators:
+            return []
+
+        now = _now_iso()
+        records = []
         for item in indicators:
-            req = self.create_enrichment_request(
-                org_id=org_id,
-                indicator=item.get("indicator", ""),
-                indicator_type=item.get("indicator_type", "ip"),
-                sources_queried=int(item.get("sources_queried", 0)),
-            )
-            created.append(req)
-        return created
+            indicator = (item.get("indicator") or "").strip()
+            if not indicator:
+                raise ValueError("indicator is required.")
+            indicator_type = item.get("indicator_type", "ip")
+            if indicator_type not in _VALID_INDICATOR_TYPES:
+                raise ValueError(
+                    f"Invalid indicator_type: {indicator_type!r}. "
+                    f"Must be one of {sorted(_VALID_INDICATOR_TYPES)}"
+                )
+            records.append({
+                "id": str(uuid.uuid4()),
+                "org_id": org_id,
+                "indicator": indicator,
+                "indicator_type": indicator_type,
+                "status": "pending",
+                "sources_queried": max(0, int(item.get("sources_queried", 0))),
+                "sources_responded": 0,
+                "created_at": now,
+                "completed_at": None,
+            })
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.executemany(
+                    """INSERT INTO enrichment_requests
+                       (id, org_id, indicator, indicator_type, status,
+                        sources_queried, sources_responded, created_at, completed_at)
+                       VALUES (:id, :org_id, :indicator, :indicator_type, :status,
+                               :sources_queried, :sources_responded, :created_at, :completed_at)""",
+                    records,
+                )
+        return records
