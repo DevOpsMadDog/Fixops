@@ -3458,6 +3458,34 @@ def register_platform_routers(
         _logger.warning("akamai_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Veeam Backup Enterprise Manager — REST v1 (read:scans) - 2026-05-04
+    # GET  /api/v1/veeam/                                       capability summary
+    # POST /api/v1/veeam/api/oauth2/token                       OAuth2 token (password/refresh)
+    # GET  /api/v1/veeam/api/v1/backupSessions                  list sessions
+    # GET  /api/v1/veeam/api/v1/backupSessions/{session_id}     single session
+    # GET  /api/v1/veeam/api/v1/jobs                            list jobs
+    # GET  /api/v1/veeam/api/v1/jobs/{job_id}                   single job
+    # POST /api/v1/veeam/api/v1/jobs/{job_id}/start             start job (202)
+    # POST /api/v1/veeam/api/v1/jobs/{job_id}/stop              stop job (202)
+    # GET  /api/v1/veeam/api/v1/backups                         list backups
+    # GET  /api/v1/veeam/api/v1/restorePoints?BackupUid=        restore points
+    # GET  /api/v1/veeam/api/v1/managedServers                  managed Veeam servers
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.veeam_router import router as veeam_router  # noqa: PLC0415
+        app.include_router(
+            veeam_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Veeam Backup Enterprise Manager router at /api/v1/veeam (read:scans)")
+    except ImportError as exc:
+        _logger.warning("veeam_router not available: %s", exc)
+
+
+    # ------------------------------------------------------------------
     # Kong Admin API — services / routes / plugins / consumers / upstreams
     #                  / certs / SNIs / status (read:scans)
     # ------------------------------------------------------------------
