@@ -5,9 +5,11 @@ import hashlib
 import json
 import secrets
 import sqlite3
+import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -74,9 +76,21 @@ class RBACEngine:
     scope inheritance, tenant isolation, and audit trail.
     """
 
+    # Per-instance in-process cache: (user_id, org_id) -> frozenset[str] of scopes
+    # Invalidated on assign_role / revoke_role. Max 512 entries (LRU via ordered dict).
+    _SCOPE_CACHE_MAX = 512
+
     def __init__(self, db_path: str = "data/rbac.db"):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Perf fix 1: in-process scope cache (avoids DB + hierarchy walk per check)
+        self._scope_cache: dict[tuple[str, str], frozenset[str]] = {}
+        self._scope_cache_order: list[tuple[str, str]] = []
+        self._scope_cache_lock = threading.Lock()
+        # Perf fix 2: deferred audit write buffer (batched, avoids per-check SQLite write)
+        self._audit_buf: list[tuple] = []
+        self._audit_buf_lock = threading.Lock()
+        self._audit_buf_limit = 50  # flush every N entries
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -189,6 +203,9 @@ class RBACEngine:
                 (assignment_id, user_id, role, org_id, assigned_by, assigned_at),
             )
 
+        # Perf fix 1: invalidate cached scopes for this user+org
+        self._cache_invalidate(user_id, org_id)
+
         _logger.info(
             "rbac.assign_role",
             user_id=user_id,
@@ -215,6 +232,8 @@ class RBACEngine:
             )
         revoked = cur.rowcount > 0
         if revoked:
+            # Perf fix 1: invalidate cached scopes for this user+org
+            self._cache_invalidate(user_id, org_id)
             _logger.info(
                 "rbac.revoke_role", user_id=user_id, role=role, org_id=org_id
             )
@@ -223,6 +242,32 @@ class RBACEngine:
     # ------------------------------------------------------------------
     # Role queries
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Scope cache helpers (Perf fix 1)
+    # ------------------------------------------------------------------
+
+    def _cache_get(self, key: tuple[str, str]) -> frozenset[str] | None:
+        with self._scope_cache_lock:
+            return self._scope_cache.get(key)
+
+    def _cache_set(self, key: tuple[str, str], scopes: frozenset[str]) -> None:
+        with self._scope_cache_lock:
+            if key not in self._scope_cache:
+                if len(self._scope_cache_order) >= self._SCOPE_CACHE_MAX:
+                    evict = self._scope_cache_order.pop(0)
+                    self._scope_cache.pop(evict, None)
+                self._scope_cache_order.append(key)
+            self._scope_cache[key] = scopes
+
+    def _cache_invalidate(self, user_id: str, org_id: str) -> None:
+        key = (user_id, org_id)
+        with self._scope_cache_lock:
+            self._scope_cache.pop(key, None)
+            try:
+                self._scope_cache_order.remove(key)
+            except ValueError:
+                pass
 
     def get_user_roles(self, user_id: str, org_id: str) -> list[str]:
         """Get all roles for a user in an org."""
@@ -234,9 +279,18 @@ class RBACEngine:
         return [r["role"] for r in rows]
 
     def get_user_scopes(self, user_id: str, org_id: str) -> list[str]:
-        """Get all effective scopes including inherited. Returns deduplicated list."""
+        """Get all effective scopes including inherited. Returns deduplicated list.
+
+        Perf fix 1: result is cached in-process; invalidated on role changes.
+        """
+        key = (user_id, org_id)
+        cached = self._cache_get(key)
+        if cached is not None:
+            return list(cached)
         roles = self.get_user_roles(user_id, org_id)
-        return self.get_effective_scopes(roles)
+        scopes = self.get_effective_scopes(roles)
+        self._cache_set(key, frozenset(scopes))
+        return scopes
 
     # ------------------------------------------------------------------
     # Permission / tenant checks
@@ -326,6 +380,28 @@ class RBACEngine:
     # Audit trail
     # ------------------------------------------------------------------
 
+    def _flush_audit_buf(self, conn: sqlite3.Connection) -> None:
+        """Write buffered audit entries (called under _audit_buf_lock)."""
+        if not self._audit_buf:
+            return
+        conn.executemany(
+            """
+            INSERT INTO audit_trail
+                (id, ts, user_id, action, resource, org_id, allowed, scope_checked)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            self._audit_buf,
+        )
+        self._audit_buf.clear()
+
+    def flush_audit_log(self) -> None:
+        """Force-flush buffered audit entries to DB. Call on shutdown or test teardown."""
+        with self._audit_buf_lock:
+            if not self._audit_buf:
+                return
+            with self._get_conn() as conn:
+                self._flush_audit_buf(conn)
+
     def audit_log(
         self,
         user_id: str,
@@ -335,25 +411,26 @@ class RBACEngine:
         allowed: bool,
         scope_checked: Optional[str] = None,
     ) -> None:
-        """Log an access check to audit trail."""
-        with self._get_conn() as conn:
-            conn.execute(
-                """
-                INSERT INTO audit_trail
-                    (id, ts, user_id, action, resource, org_id, allowed, scope_checked)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    str(uuid.uuid4()),
-                    time.time(),
-                    user_id,
-                    action,
-                    resource,
-                    org_id,
-                    int(allowed),
-                    scope_checked,
-                ),
-            )
+        """Log an access check to audit trail.
+
+        Perf fix 2: writes are buffered and flushed in batches of _audit_buf_limit
+        to avoid one SQLite INSERT per permission check on hot paths.
+        """
+        row = (
+            str(uuid.uuid4()),
+            time.time(),
+            user_id,
+            action,
+            resource,
+            org_id,
+            int(allowed),
+            scope_checked,
+        )
+        with self._audit_buf_lock:
+            self._audit_buf.append(row)
+            if len(self._audit_buf) >= self._audit_buf_limit:
+                with self._get_conn() as conn:
+                    self._flush_audit_buf(conn)
 
     def get_audit_log(
         self,

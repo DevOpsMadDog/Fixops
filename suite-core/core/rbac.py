@@ -107,11 +107,19 @@ class Role:
     description: str = ""
 
     def get_all_permissions(self) -> Set[Permission]:
-        """Recursively resolve all permissions including inherited ones."""
-        perms = set(self.permissions)
-        if self.inherits_from:
-            perms.update(self.inherits_from.get_all_permissions())
-        return perms
+        """Recursively resolve all permissions including inherited ones.
+
+        Perf fix 3: result is memoised on the instance after the first call;
+        Role objects are effectively immutable after construction.
+        """
+        try:
+            return self._cached_permissions  # type: ignore[attr-defined]
+        except AttributeError:
+            perms: Set[Permission] = set(self.permissions)
+            if self.inherits_from:
+                perms.update(self.inherits_from.get_all_permissions())
+            object.__setattr__(self, "_cached_permissions", perms)
+            return perms
 
     def has_permission(self, permission: Permission) -> bool:
         """Check if this role has a permission (including inherited)."""
