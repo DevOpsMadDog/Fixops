@@ -501,6 +501,7 @@ class TestStepEnrichThreats:
         # CVE-2024-001 is a synthetic ID not in the real KEV catalog
         assert "in_kev" in findings[0]
 
+    @pytest.mark.timeout(60)  # 5 pipeline.run() calls each generating RSA-4096 keys; needs headroom under load
     def test_enrich_threats_severity_mapping(self, pipeline):
         for sev, expected_cvss in [
             ("critical", 9.5),
