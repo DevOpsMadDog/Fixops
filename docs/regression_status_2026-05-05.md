@@ -94,3 +94,31 @@ Delta vs sweep #5: 0 regressions. +14 perf tests (Suite 2: 180→194; test_soar_
 test_asset_inventory_perf.py, test_ctem_perf.py, test_evidence_perf.py, test_webhook_perf.py,
 test_mcp_perf.py, test_onboarding_perf.py, test_misc_perf.py all confirmed present on disk).
 Sweep #5 regression fully closed at 5ffc1910.
+
+Sweep #7 — HEAD c0852a5f33026c80b1a8d9f00355aa94d939e27b
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.61s
+Suite 2 — Perf benchmarks (-m perf, ignoring 5 broken collectors): 182 passed, 2 skipped, 0 failed, 44486 deselected in 34.21s
+Suite 3 — QA/lockdown (1 file — test_owasp_regression_lockdown.py): 47 passed, 0 failed, 0 errors in 0.50s
+
+Total sweep #7: 982 passed, 0 failed, 2 skipped, 0 errors (excluding 5 broken collectors)
+Timestamp: 2026-05-05T09:20:00Z
+
+SPOT CHECKS:
+  PASS: tests/test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms — GREEN (1 passed in 10.27s)
+  PASS: tests/test_admin_connectors_inventory.py — GREEN (3/3 collected + passed, just landed at 1ebf78d3)
+  FAIL: tests/test_admin_db_stats.py::test_db_stats_empty_data_dir — RuntimeError: There is no current event loop in thread 'MainThread'
+        asyncio.get_event_loop().run_until_complete() called outside async context in test body.
+        Other 7 tests in file: PASS. Pre-existing issue (not introduced by sweep #7 commits).
+
+BROKEN COLLECTORS (5 files, pre-existing, not introduced this sweep):
+  tests/real_world_tests/test_phase1_intake.py — collection error (pre-existing)
+  tests/test_autonomous_cycle.py — ValueError: Plugin already registered (pre-existing)
+  tests/test_cspm.py — collection error (pre-existing)
+  tests/test_reachability_perf.py — collection error (pre-existing)
+  tests/test_wave_a_code_intel_router.py — ImportError: apps.api.auth_deps not in sys.modules (pre-existing)
+
+Delta vs sweep #6: 0 regressions on passing tests. sweep #6 brain pipeline regression remains CLOSED.
+  test_admin_db_stats.py::test_db_stats_empty_data_dir asyncio issue is pre-existing (present in sweep #6 run,
+  not in the sweep #6 spot-check scope). DO NOT FIX in this sweep — report only.
+Commits validated: 1e424547 (HANDOFF v4), 827cee32 (docker/k8s hardening), 1ebf78d3 (admin connectors inventory),
+  c0852a5f (pytest markers — 26 perf files categorized).
