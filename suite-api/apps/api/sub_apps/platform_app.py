@@ -816,6 +816,18 @@ def register_platform_routers(
         _logger.warning("aws_securityhub_router not available: %s", exc)
 
     try:
+        from apps.api.lacework_router import (
+            router as lacework_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            lacework_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        _logger.info("Mounted Lacework CSPM router at /api/v1/lacework (scope=read:scans)")
+    except ImportError as exc:
+        _logger.warning("lacework_router not available: %s", exc)
+
+    try:
         from apps.api.amazon_inspector_router import (
             router as amazon_inspector_router,  # noqa: PLC0415
         )

@@ -600,20 +600,26 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/sub_apps/platform_app.py",
-      "accessCount": 93,
-      "lastAccessed": 1777834583499,
+      "accessCount": 126,
+      "lastAccessed": 1777860454517,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/abuseipdb_router.py",
-      "accessCount": 9,
-      "lastAccessed": 1777833993295,
+      "accessCount": 11,
+      "lastAccessed": 1777835873115,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/app.py",
       "accessCount": 7,
       "lastAccessed": 1777822350234,
+      "type": "file"
+    },
+    {
+      "path": "tests/conftest.py",
+      "accessCount": 7,
+      "lastAccessed": 1777860455149,
       "type": "file"
     },
     {
@@ -641,12 +647,6 @@
       "type": "file"
     },
     {
-      "path": "tests/conftest.py",
-      "accessCount": 4,
-      "lastAccessed": 1777823225975,
-      "type": "file"
-    },
-    {
       "path": "suite-api/apps/api/greynoise_router.py",
       "accessCount": 4,
       "lastAccessed": 1777831240929,
@@ -656,6 +656,12 @@
       "path": "suite-api/apps/api/trivy_scan_router.py",
       "accessCount": 4,
       "lastAccessed": 1777833483767,
+      "type": "file"
+    },
+    {
+      "path": "sitecustomize.py",
+      "accessCount": 4,
+      "lastAccessed": 1777834908550,
       "type": "file"
     },
     {
@@ -680,12 +686,6 @@
       "path": "suite-api/apps/api/auth_deps.py",
       "accessCount": 3,
       "lastAccessed": 1777833528059,
-      "type": "file"
-    },
-    {
-      "path": "sitecustomize.py",
-      "accessCount": 3,
-      "lastAccessed": 1777834161218,
       "type": "file"
     },
     {
