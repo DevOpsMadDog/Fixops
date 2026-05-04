@@ -227,6 +227,12 @@ MITRE_TECHNIQUES: Dict[str, Dict[str, Any]] = {
     },
 }
 
+# Pre-indexed phase lookup: built once at import time, O(1) per phase lookup.
+# Eliminates the O(N*phases) linear scan in _execute_phase (was 8×34=272 comparisons/campaign).
+_TECHNIQUES_BY_PHASE: Dict[str, List[tuple]] = {}
+for _tid, _info in MITRE_TECHNIQUES.items():
+    _TECHNIQUES_BY_PHASE.setdefault(_info["phase"], []).append((_tid, _info))
+
 PRIVILEGE_LEVELS = [
     "anonymous",
     "guest",
@@ -595,16 +601,21 @@ class AttackSimulationEngine:
                 pass
 
         try:
-            # Execute each kill chain phase
-            all_steps: List[AttackStep] = []
-            for phase in scenario.kill_chain_phases:
-                phase_steps = await self._execute_phase(
-                    phase,
-                    scenario,
-                    campaign,
-                    skip_llm_enrichment=skip_llm_enrichment,
-                )
-                all_steps.extend(phase_steps)
+            import asyncio as _asyncio
+            # Execute all kill chain phases in parallel — phases are independent.
+            # asyncio.gather replaces the sequential for-loop (was O(phases) serial awaits).
+            phase_results = await _asyncio.gather(
+                *[
+                    self._execute_phase(
+                        phase,
+                        scenario,
+                        campaign,
+                        skip_llm_enrichment=skip_llm_enrichment,
+                    )
+                    for phase in scenario.kill_chain_phases
+                ]
+            )
+            all_steps: List[AttackStep] = [s for steps in phase_results for s in steps]
 
             # Build attack paths from successful steps
             attack_paths = self._build_attack_paths(all_steps, scenario)
@@ -694,11 +705,7 @@ class AttackSimulationEngine:
         skip_llm_enrichment: bool = False,
     ) -> List[AttackStep]:
         """Execute a single kill chain phase, returning steps."""
-        techniques = [
-            (tid, info)
-            for tid, info in MITRE_TECHNIQUES.items()
-            if info["phase"] == phase.value
-        ]
+        techniques = _TECHNIQUES_BY_PHASE.get(phase.value, [])
         if not techniques:
             return []
 
