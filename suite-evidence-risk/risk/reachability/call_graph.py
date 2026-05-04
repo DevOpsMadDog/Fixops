@@ -76,19 +76,31 @@ def _add_edge(
     file_path: str,
     line: int,
 ) -> None:
-    """Add a directed edge caller→callee in the graph."""
+    """Add a directed edge caller→callee in the graph.
+
+    Uses O(1) set-based dedup instead of O(N) list membership checks so that
+    repeated edge additions during large-repo scans stay cheap.
+    """
     if callee not in graph:
         graph[callee] = _node(file_path, line)
     if caller not in graph:
         graph[caller] = _node(file_path, line)
 
-    callee_entry = {"function": callee, "file": file_path, "line": line}
-    caller_entry = {"function": caller, "file": file_path, "line": line, "parent": None}
+    # _callee_keys / _caller_keys are O(1) dedup sets kept in sync with the lists.
+    caller_node = graph[caller]
+    callee_node = graph[callee]
 
-    if callee_entry not in graph[caller]["callees"]:
-        graph[caller]["callees"].append(callee_entry)
-    if caller_entry not in graph[callee]["callers"]:
-        graph[callee]["callers"].append(caller_entry)
+    if "_callee_keys" not in caller_node:
+        caller_node["_callee_keys"] = {e["function"] for e in caller_node["callees"]}
+    if callee not in caller_node["_callee_keys"]:
+        caller_node["callees"].append({"function": callee, "file": file_path, "line": line})
+        caller_node["_callee_keys"].add(callee)
+
+    if "_caller_keys" not in callee_node:
+        callee_node["_caller_keys"] = {e["function"] for e in callee_node["callers"]}
+    if caller not in callee_node["_caller_keys"]:
+        callee_node["callers"].append({"function": caller, "file": file_path, "line": line, "parent": None})
+        callee_node["_caller_keys"].add(caller)
 
 
 class CallGraphBuilder:
@@ -811,23 +823,28 @@ class PythonCallGraphVisitor(ast.NodeVisitor):
                 "is_exported": False,
             }
 
-        # Add caller relationship
-        caller_info = {
-            "function": self.current_function,
-            "file": self.file_path,
-            "line": node.lineno,
-            "parent": None,  # Would need more analysis to determine
-        }
-
-        if caller_info not in self.call_graph[called_func]["callers"]:
-            self.call_graph[called_func]["callers"].append(caller_info)
-
-        # Add callee relationship
-        if self.current_function in self.call_graph:
-            callee_info = {
-                "function": called_func,
+        # Add caller relationship — use O(1) set dedup instead of O(N) list search.
+        callee_node = self.call_graph[called_func]
+        if "_caller_keys" not in callee_node:
+            callee_node["_caller_keys"] = {e["function"] for e in callee_node["callers"]}
+        if self.current_function not in callee_node["_caller_keys"]:
+            callee_node["callers"].append({
+                "function": self.current_function,
                 "file": self.file_path,
                 "line": node.lineno,
-            }
-            if callee_info not in self.call_graph[self.current_function]["callees"]:
-                self.call_graph[self.current_function]["callees"].append(callee_info)
+                "parent": None,
+            })
+            callee_node["_caller_keys"].add(self.current_function)
+
+        # Add callee relationship — same O(1) dedup.
+        if self.current_function in self.call_graph:
+            caller_node = self.call_graph[self.current_function]
+            if "_callee_keys" not in caller_node:
+                caller_node["_callee_keys"] = {e["function"] for e in caller_node["callees"]}
+            if called_func not in caller_node["_callee_keys"]:
+                caller_node["callees"].append({
+                    "function": called_func,
+                    "file": self.file_path,
+                    "line": node.lineno,
+                })
+                caller_node["_callee_keys"].add(called_func)

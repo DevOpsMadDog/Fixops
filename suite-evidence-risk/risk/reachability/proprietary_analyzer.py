@@ -1285,10 +1285,18 @@ class ProprietaryReachabilityAnalyzer:
     def _is_reachable_from_entries(
         self, func_name: str, entry_points: List[str], graph: Dict[str, Any]
     ) -> bool:
-        """Proprietary algorithm to check reachability from entry points."""
-        # BFS from entry points
-        visited = set()
-        queue = deque(entry_points)
+        """Proprietary algorithm to check reachability from entry points.
+
+        Perf fix: callee items may be strings (Python builder) or dicts with a
+        "function" key (JS/Java builder).  Previously non-string callees were
+        silently pushed onto the deque and then never matched any graph key,
+        causing the BFS to exhaust the whole reachable subgraph on every CVE
+        call.  We now normalise to string keys up-front and skip unknown keys.
+        """
+        visited: Set[str] = set()
+        queue: deque[str] = deque(
+            ep for ep in entry_points if isinstance(ep, str)
+        )
 
         while queue:
             current = queue.popleft()
@@ -1299,8 +1307,18 @@ class ProprietaryReachabilityAnalyzer:
             if current == func_name:
                 return True
 
-            if current in graph:
-                callees = graph[current].get("callees", [])
-                queue.extend(callees)
+            node = graph.get(current)
+            if node is None:
+                continue
+            for callee in node.get("callees", []):
+                # Normalise: string name or {"function": name} dict
+                if isinstance(callee, str):
+                    callee_name = callee
+                elif isinstance(callee, dict):
+                    callee_name = callee.get("function", "")
+                else:
+                    continue
+                if callee_name and callee_name not in visited and callee_name in graph:
+                    queue.append(callee_name)
 
         return False
