@@ -166,3 +166,26 @@ Delta vs sweep #8: 0 regressions. 2 previously broken collectors now fixed and c
   Beast Mode: 753/753 stable. Perf: 182/182 stable. OWASP lockdown: 47/47 stable.
 Commits validated since sweep #8: dbcc1a20 (test_reachability_perf collection fix + security_hardening.py syntax bug),
   cb1db87b (coverage gap analysis), 05964156 (legacy test triage + real_world_tests/__init__.py fix).
+
+Sweep #10 — HEAD 1ffa7d9d — final-final wrap
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.50s
+Suite 2 — Perf benchmarks (-m perf, ignoring 4 broken collectors): 182 passed, 2 skipped, 0 failed, 44599 deselected in 18.39s
+Suite 3 — QA/lockdown (-m owasp, ignoring 4 broken collectors): 47 passed, 0 failed, 44781 deselected in 17.96s
+
+Total sweep #10: 982 passed, 0 failed, 2 skipped, 0 errors (excluding 4 pre-existing broken collectors)
+Timestamp: 2026-05-05T09:55:00Z
+
+CONFTEST CLEANUP VERIFICATION (commit 1ffa7d9d):
+  No regression introduced by conftest DRY refactor. Beast Mode 753/753 identical to sweep #9.
+  Perf and OWASP deselected counts unchanged (44599 / 44781 — same collector set).
+  The 4 pre-existing broken collectors are unchanged from sweep #9.
+
+BROKEN COLLECTORS (4 files, pre-existing, unchanged from sweep #9):
+  tests/test_autonomous_cycle.py — ValueError: Plugin already registered
+  tests/test_cspm.py — collection error (needs backend-hardener rewrite)
+  tests/test_reachability_perf.py — ImportError: _add_edge from risk.reachability.call_graph
+  tests/test_wave_a_code_intel_router.py — ImportError: apps.api.auth_deps not in sys.modules
+
+Delta vs sweep #9: 0 regressions. conftest cleanup (1ffa7d9d) + HANDOFF v5 (d9d2ae97) validated clean.
+  Beast Mode: 753/753 stable. Perf: 182/182 stable. OWASP lockdown: 47/47 stable.
+Commits validated since sweep #9: d9d2ae97 (HANDOFF v5), 1ffa7d9d (conftest DRY cleanup).
