@@ -23,6 +23,11 @@ try:
 except ImportError:
     _get_tg_bus = None
 
+try:
+    from core.feed_correlator import enrich_finding as _enrich_finding
+except Exception:  # noqa: BLE001
+    _enrich_finding = None
+
 
 _logger = logging.getLogger(__name__)
 
@@ -429,6 +434,9 @@ class VulnScannerEngine:
                         record["status"], record["created_at"], record["updated_at"],
                     ),
                 )
+        # Enrich with unified ALDECI feed-correlation score (non-blocking)
+        if _enrich_finding is not None:
+            _enrich_finding(record)
         return record
 
     def list_findings(

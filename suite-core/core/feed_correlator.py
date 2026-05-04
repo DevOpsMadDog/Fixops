@@ -728,3 +728,278 @@ def reset_correlator(cache_ttl_seconds: int = DEFAULT_CACHE_TTL_SECONDS,
             kev_db_path=kev_db_path,
         )
         return _singleton
+
+
+# ---------------------------------------------------------------------------
+# Synchronous correlate_finding — KEV+NVD+EPSS+GHSA+OSV unified ALDECI score
+#
+# Formula (capped at 100):
+#   KEV-listed    → +30
+#   EPSS          → percentile × 20  (max 20)
+#   CVSS base     → score × 3        (max 30)
+#   GHSA presence → +10
+#   OSV advisory  → +5
+#
+# Sources:
+#   KEV/EPSS/NVD: data/feeds/feeds.db  (primary) + per-feed DBs (fallback)
+#   GHSA:         data/ghsa.db   (PersistentDict — may be empty if not imported)
+#   OSV:          data/osv.db    (PersistentDict — may be empty if not imported)
+# ---------------------------------------------------------------------------
+
+def _feeds_db_conn() -> Optional[sqlite3.Connection]:
+    """Return thread-local connection to the consolidated feeds.db, or None."""
+    path = str(_PROJECT_ROOT / "data" / "feeds" / "feeds.db")
+    key = f"_fdb_{path}"
+    conn = getattr(_tls, key, None)
+    if conn is None:
+        if not os.path.exists(path):
+            return None
+        try:
+            conn = sqlite3.connect(path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            setattr(_tls, key, conn)
+        except sqlite3.Error as exc:
+            logger.debug("feed_correlator: feeds.db open failed: %s", exc)
+            return None
+    return conn
+
+
+def _sync_kev(cve_id: str) -> bool:
+    """True if CVE is in CISA KEV (feeds.db → cisa_kev.db fallback)."""
+    conn = _feeds_db_conn()
+    if conn:
+        try:
+            row = conn.execute(
+                "SELECT cve_id FROM kev_entries WHERE cve_id = ?", (cve_id,)
+            ).fetchone()
+            if row:
+                return True
+        except sqlite3.Error:
+            pass
+
+    # fallback: per-feed importer DB (column name differs: known_ransomware_use)
+    fallback = str(_PROJECT_ROOT / "data" / "cisa_kev.db")
+    if os.path.exists(fallback):
+        try:
+            c2 = sqlite3.connect(fallback, check_same_thread=False)
+            r2 = c2.execute(
+                "SELECT cve_id FROM kev_entries WHERE cve_id = ?", (cve_id,)
+            ).fetchone()
+            c2.close()
+            if r2:
+                return True
+        except sqlite3.Error:
+            pass
+    return False
+
+
+def _sync_epss(cve_id: str) -> Optional[float]:
+    """Return EPSS percentile (0–1) or None."""
+    conn = _feeds_db_conn()
+    if conn:
+        try:
+            row = conn.execute(
+                "SELECT percentile FROM epss_scores WHERE cve_id = ?", (cve_id,)
+            ).fetchone()
+            if row and row["percentile"] is not None:
+                return float(row["percentile"])
+        except sqlite3.Error:
+            pass
+
+    fallback = str(_PROJECT_ROOT / "data" / "epss.db")
+    if os.path.exists(fallback):
+        try:
+            c2 = sqlite3.connect(fallback, check_same_thread=False)
+            c2.row_factory = sqlite3.Row
+            r2 = c2.execute(
+                "SELECT percentile FROM epss_scores WHERE cve_id = ?", (cve_id,)
+            ).fetchone()
+            c2.close()
+            if r2 and r2["percentile"] is not None:
+                return float(r2["percentile"])
+        except sqlite3.Error:
+            pass
+    return None
+
+
+def _sync_cvss(cve_id: str, fallback_severity: Optional[str]) -> Optional[float]:
+    """Return CVSS base score from NVD table or estimate from severity label."""
+    conn = _feeds_db_conn()
+    if conn:
+        try:
+            row = conn.execute(
+                "SELECT cvss_score FROM nvd_cves WHERE cve_id = ?", (cve_id,)
+            ).fetchone()
+            if row and row["cvss_score"] is not None:
+                score = float(row["cvss_score"])
+                if score > 0:
+                    return score
+        except sqlite3.Error:
+            pass
+
+    # Severity heuristic when NVD is empty
+    _SEV_MAP: Dict[str, float] = {
+        "critical": 9.5, "high": 8.0, "medium": 5.5,
+        "moderate": 5.5, "low": 2.5, "info": 0.0, "informational": 0.0,
+    }
+    if fallback_severity:
+        return _SEV_MAP.get(fallback_severity.lower())
+    return None
+
+
+def _sync_ghsa(cve_id: str) -> bool:
+    """True if a GHSA advisory aliases this CVE."""
+    import json as _json
+    ghsa_path = str(_PROJECT_ROOT / "data" / "ghsa.db")
+    if not os.path.exists(ghsa_path):
+        return False
+    try:
+        conn = sqlite3.connect(ghsa_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT value FROM ghsa_advisories WHERE value LIKE ?",
+            (f"%{cve_id}%",),
+        ).fetchall()
+        conn.close()
+        for row in rows:
+            try:
+                adv = _json.loads(row["value"]) if isinstance(row["value"], str) else row["value"]
+                if isinstance(adv, dict) and (adv.get("cve_alias") or "").upper() == cve_id.upper():
+                    return True
+            except (_json.JSONDecodeError, TypeError):
+                continue
+    except sqlite3.Error:
+        pass
+    return False
+
+
+def _sync_osv(cve_id: str) -> bool:
+    """True if an OSV record aliases this CVE."""
+    import json as _json
+    osv_path = str(_PROJECT_ROOT / "data" / "osv.db")
+    if not os.path.exists(osv_path):
+        return False
+    try:
+        conn = sqlite3.connect(osv_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT value FROM osv_vulns WHERE value LIKE ?",
+            (f"%{cve_id}%",),
+        ).fetchall()
+        conn.close()
+        for row in rows:
+            try:
+                vuln = _json.loads(row["value"]) if isinstance(row["value"], str) else row["value"]
+                if isinstance(vuln, dict):
+                    aliases = [a.upper() for a in (vuln.get("aliases") or [])]
+                    if cve_id.upper() in aliases:
+                        return True
+            except (_json.JSONDecodeError, TypeError):
+                continue
+    except sqlite3.Error:
+        pass
+    return False
+
+
+# Typed output mirrors the legacy AldeciScore shape expected by callers.
+class _AldeciComponents(dict):
+    """Typed dict for score components."""
+
+
+def correlate_finding(
+    cve_id: Optional[str],
+    severity: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Compute a unified ALDECI score for a finding (synchronous).
+
+    Args:
+        cve_id:   CVE identifier (e.g. "CVE-2021-44228"). May be None/empty.
+        severity: Severity label ("critical", "high", "medium", "low")
+                  used as CVSS fallback when NVD data is absent.
+
+    Returns::
+
+        {
+            "aldeci_score": int,          # 0–100 (capped)
+            "components": {
+                "kev":  float,            # 0 or 30
+                "epss": float,            # 0–20
+                "cvss": float,            # 0–30
+                "ghsa": float,            # 0 or 10
+                "osv":  float,            # 0 or 5
+            },
+            "confidence": str,            # "high" | "medium" | "low"
+        }
+
+    Formula (capped at 100):
+        KEV-listed    → +30
+        EPSS          → percentile × 20
+        CVSS base     → base_score × 3
+        GHSA presence → +10
+        OSV advisory  → +5
+
+    Confidence:
+        "high"   — 3+ sources returned real data
+        "medium" — exactly 2 sources
+        "low"    — 0–1 sources
+    """
+    normalised = (cve_id or "").strip().upper() or None
+
+    kev_hit = _sync_kev(normalised) if normalised else False
+    epss_pct = _sync_epss(normalised) if normalised else None
+    cvss_base = _sync_cvss(normalised, severity) if normalised else None
+    if cvss_base is None and severity:
+        cvss_base = _sync_cvss("", severity)  # severity-only heuristic
+    ghsa_hit = _sync_ghsa(normalised) if normalised else False
+    osv_hit = _sync_osv(normalised) if normalised else False
+
+    kev_score = 30.0 if kev_hit else 0.0
+    epss_score = round(float(epss_pct) * 20.0, 2) if epss_pct is not None else 0.0
+    cvss_score = round(min(float(cvss_base) * 3.0, 30.0), 2) if cvss_base is not None else 0.0
+    ghsa_score = 10.0 if ghsa_hit else 0.0
+    osv_score = 5.0 if osv_hit else 0.0
+
+    raw = kev_score + epss_score + cvss_score + ghsa_score + osv_score
+    aldeci_score = int(min(raw, 100.0))
+
+    sources_hit = sum([
+        kev_hit,
+        epss_pct is not None,
+        cvss_base is not None,
+        ghsa_hit,
+        osv_hit,
+    ])
+    confidence = "high" if sources_hit >= 3 else ("medium" if sources_hit == 2 else "low")
+
+    return {
+        "aldeci_score": aldeci_score,
+        "components": {
+            "kev": kev_score,
+            "epss": epss_score,
+            "cvss": cvss_score,
+            "ghsa": ghsa_score,
+            "osv": osv_score,
+        },
+        "confidence": confidence,
+    }
+
+
+def enrich_finding(finding: Dict[str, Any]) -> Dict[str, Any]:
+    """Attach ``aldeci_score`` block to a finding dict in-place and return it.
+
+    Compatible with vuln_scanner_engine.VulnScannerEngine.create_finding()
+    record format::
+
+        record = engine.create_finding(org_id, result_id, data)
+        enrich_finding(record)
+        # record["aldeci_score"] now holds the correlate_finding() dict
+
+    Silently no-ops on any exception so it never breaks the finding pipeline.
+    """
+    try:
+        cve_id = finding.get("cve_id") or finding.get("cveId") or ""
+        severity = finding.get("severity", "")
+        finding["aldeci_score"] = correlate_finding(cve_id or None, severity or None)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("enrich_finding: correlation failed: %s", exc)
+    return finding

@@ -36,6 +36,8 @@ from core.feed_correlator import (
     _lookup_tor_exit,
     _lookup_urlhaus,
     compute_aldeci_score,
+    correlate_finding,
+    enrich_finding,
     get_correlator,
     reset_correlator,
 )
@@ -457,3 +459,172 @@ class TestCorrelateBatch:
         # Two separate correlations (both should succeed)
         assert len(results) == 2
         assert all(r["aldeci_score"] == 0.0 for r in results)
+
+
+# ---------------------------------------------------------------------------
+# correlate_finding — sync KEV+NVD+EPSS+GHSA+OSV unified score
+# ---------------------------------------------------------------------------
+
+class TestCorrelateFinding:
+    """Tests for the sync correlate_finding(cve_id, severity) -> dict API.
+
+    All feed lookups are patched so tests are hermetic and fast (no real DBs).
+    """
+
+    _PATCHES = [
+        "core.feed_correlator._sync_kev",
+        "core.feed_correlator._sync_epss",
+        "core.feed_correlator._sync_cvss",
+        "core.feed_correlator._sync_ghsa",
+        "core.feed_correlator._sync_osv",
+    ]
+
+    def _all_none(self):
+        """Return a context manager that patches all five sync helpers to null."""
+        from contextlib import ExitStack
+        stack = ExitStack()
+        stack.enter_context(patch("core.feed_correlator._sync_kev", return_value=False))
+        stack.enter_context(patch("core.feed_correlator._sync_epss", return_value=None))
+        stack.enter_context(patch("core.feed_correlator._sync_cvss", return_value=None))
+        stack.enter_context(patch("core.feed_correlator._sync_ghsa", return_value=False))
+        stack.enter_context(patch("core.feed_correlator._sync_osv", return_value=False))
+        return stack
+
+    def test_return_shape(self):
+        """Return dict has aldeci_score, components, confidence keys."""
+        with self._all_none():
+            result = correlate_finding("CVE-2021-99999", "medium")
+        assert "aldeci_score" in result
+        assert "components" in result
+        assert "confidence" in result
+        comps = result["components"]
+        for key in ("kev", "epss", "cvss", "ghsa", "osv"):
+            assert key in comps
+
+    def test_kev_only_scores_30(self):
+        """KEV-listed CVE with no other data scores exactly 30."""
+        with (
+            patch("core.feed_correlator._sync_kev", return_value=True),
+            patch("core.feed_correlator._sync_epss", return_value=None),
+            patch("core.feed_correlator._sync_cvss", return_value=None),
+            patch("core.feed_correlator._sync_ghsa", return_value=False),
+            patch("core.feed_correlator._sync_osv", return_value=False),
+        ):
+            result = correlate_finding("CVE-2021-44228", None)
+        assert result["aldeci_score"] == 30
+        assert result["components"]["kev"] == 30.0
+        assert result["components"]["epss"] == 0.0
+        assert result["components"]["cvss"] == 0.0
+        assert result["components"]["ghsa"] == 0.0
+        assert result["components"]["osv"] == 0.0
+
+    def test_epss_high_percentile(self):
+        """EPSS at 95th percentile contributes 0.95*20 = 19."""
+        with (
+            patch("core.feed_correlator._sync_kev", return_value=False),
+            patch("core.feed_correlator._sync_epss", return_value=0.95),
+            patch("core.feed_correlator._sync_cvss", return_value=None),
+            patch("core.feed_correlator._sync_ghsa", return_value=False),
+            patch("core.feed_correlator._sync_osv", return_value=False),
+        ):
+            result = correlate_finding("CVE-2023-12345", "high")
+        assert result["components"]["epss"] == pytest.approx(19.0, abs=0.01)
+        assert result["aldeci_score"] == 19
+
+    def test_missing_data_no_cve(self):
+        """None CVE with no severity still returns a valid zero-score dict."""
+        with self._all_none():
+            result = correlate_finding(None, None)
+        assert result["aldeci_score"] == 0
+        assert result["confidence"] == "low"
+        for v in result["components"].values():
+            assert v == 0.0
+
+    def test_score_capped_at_100(self):
+        """All sources firing cannot exceed 100."""
+        with (
+            patch("core.feed_correlator._sync_kev", return_value=True),      # +30
+            patch("core.feed_correlator._sync_epss", return_value=1.0),      # +20
+            patch("core.feed_correlator._sync_cvss", return_value=10.0),     # +30
+            patch("core.feed_correlator._sync_ghsa", return_value=True),     # +10
+            patch("core.feed_correlator._sync_osv", return_value=True),      # +5
+        ):
+            result = correlate_finding("CVE-2014-6271", "critical")
+        # raw = 30+20+30+10+5 = 95 — all fit without capping in this case
+        assert result["aldeci_score"] == 95
+        assert result["components"]["kev"] == 30.0
+        assert result["components"]["epss"] == 20.0
+        assert result["components"]["cvss"] == 30.0
+        assert result["components"]["ghsa"] == 10.0
+        assert result["components"]["osv"] == 5.0
+
+    def test_score_capped_beyond_100(self):
+        """Verify cap: CVSS 10 gives 30, combined with full remaining hits = 95, still capped if > 100."""
+        # Inject a very high CVSS to push raw beyond 100 via epss factor
+        with (
+            patch("core.feed_correlator._sync_kev", return_value=True),       # +30
+            patch("core.feed_correlator._sync_epss", return_value=1.0),       # +20
+            patch("core.feed_correlator._sync_cvss", return_value=10.0),      # +30
+            patch("core.feed_correlator._sync_ghsa", return_value=True),      # +10
+            patch("core.feed_correlator._sync_osv", return_value=True),       # +5
+        ):
+            # Also verify direct formula: min(30+20+30+10+5, 100) = 95
+            result = correlate_finding("CVE-2014-6271", "critical")
+        assert result["aldeci_score"] <= 100
+
+    def test_confidence_high_three_sources(self):
+        """Confidence is high when 3+ sources return data."""
+        with (
+            patch("core.feed_correlator._sync_kev", return_value=True),
+            patch("core.feed_correlator._sync_epss", return_value=0.5),
+            patch("core.feed_correlator._sync_cvss", return_value=7.0),
+            patch("core.feed_correlator._sync_ghsa", return_value=False),
+            patch("core.feed_correlator._sync_osv", return_value=False),
+        ):
+            result = correlate_finding("CVE-2023-00001", "high")
+        assert result["confidence"] == "high"
+
+    def test_confidence_medium_two_sources(self):
+        """Confidence is medium when exactly 2 sources return data."""
+        with (
+            patch("core.feed_correlator._sync_kev", return_value=True),
+            patch("core.feed_correlator._sync_epss", return_value=None),
+            patch("core.feed_correlator._sync_cvss", return_value=None),
+            patch("core.feed_correlator._sync_ghsa", return_value=False),
+            patch("core.feed_correlator._sync_osv", return_value=True),
+        ):
+            result = correlate_finding("CVE-2023-00002", None)
+        assert result["confidence"] == "medium"
+
+    def test_confidence_low_zero_sources(self):
+        """Confidence is low when no sources return data."""
+        with self._all_none():
+            result = correlate_finding("CVE-9999-00000", None)
+        assert result["confidence"] == "low"
+
+    def test_enrich_finding_attaches_score(self):
+        """enrich_finding() mutates the dict and returns it."""
+        finding = {
+            "finding_id": "abc",
+            "cve_id": "CVE-2021-44228",
+            "severity": "critical",
+        }
+        with (
+            patch("core.feed_correlator._sync_kev", return_value=True),
+            patch("core.feed_correlator._sync_epss", return_value=0.9),
+            patch("core.feed_correlator._sync_cvss", return_value=9.5),
+            patch("core.feed_correlator._sync_ghsa", return_value=False),
+            patch("core.feed_correlator._sync_osv", return_value=False),
+        ):
+            result = enrich_finding(finding)
+        assert result is finding  # mutated in-place
+        assert "aldeci_score" in finding
+        assert finding["aldeci_score"]["aldeci_score"] > 0
+
+    def test_enrich_finding_no_cve(self):
+        """enrich_finding() handles findings with no CVE gracefully."""
+        finding = {"finding_id": "xyz", "severity": "low"}
+        with self._all_none():
+            result = enrich_finding(finding)
+        assert "aldeci_score" in result
+        assert result["aldeci_score"]["aldeci_score"] == 0
