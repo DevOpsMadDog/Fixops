@@ -260,3 +260,35 @@ def test_predict_batch_speedup_vs_per_finding_loop(
         f"batch_ms={batch_ms:.1f} ms, loop_ms={loop_ms:.1f} ms, "
         f"speedup={speedup:.1f}x (expected >= 5x)"
     )
+
+
+def test_predict_batch_n100_under_100ms(trained_model: RiskScoringModel) -> None:
+    """N=100 findings must complete via predict_batch in < 100 ms.
+
+    Perf fix #2 target: single vectorized sklearn predict() over (100, 9)
+    matrix instead of 100 individual calls. Baseline per-finding loop was
+    ~527 ms for 50 findings (~1054 ms projected for 100). Target < 100 ms.
+    """
+    findings = _build_findings(100)
+
+    # Warm-up to avoid one-time sklearn/numpy JIT costs.
+    trained_model.predict_batch(findings)
+
+    n_iters = 5
+    timings_ms: List[float] = []
+    for _ in range(n_iters):
+        t0 = time.monotonic()
+        preds = trained_model.predict_batch(findings)
+        timings_ms.append((time.monotonic() - t0) * 1000.0)
+        assert len(preds) == 100
+
+    best_ms = min(timings_ms)
+    assert best_ms < 100.0, (
+        f"predict_batch(100 findings) took {best_ms:.1f} ms best of {n_iters}; "
+        f"expected < 100 ms (per-finding baseline was ~1054 ms projected). "
+        f"All timings: {[round(t, 1) for t in timings_ms]}"
+    )
+
+    # Sanity: all results are valid PredictionResults with scores in [0, 100].
+    assert all(isinstance(p, PredictionResult) for p in preds)
+    assert all(0.0 <= p.risk_score <= 100.0 for p in preds)
