@@ -6105,7 +6105,60 @@ def build_parser() -> argparse.ArgumentParser:
     )
     airgap_parser.set_defaults(func=_handle_airgap)
 
+    # ------------------------------------------------------------------
+    # crypto — key management utilities
+    # ------------------------------------------------------------------
+    crypto_parser = subparsers.add_parser(
+        "crypto",
+        help="Cryptographic key management utilities",
+    )
+    crypto_subparsers = crypto_parser.add_subparsers(dest="crypto_command")
+
+    rotate_keys_parser = crypto_subparsers.add_parser(
+        "rotate-keys",
+        help="Rotate the RSA-4096 signing key pair (regenerates PEMs in data/keys/)",
+    )
+    rotate_keys_parser.add_argument(
+        "--key-size",
+        type=int,
+        default=4096,
+        choices=[2048, 3072, 4096],
+        help="RSA key size in bits (default: 4096)",
+    )
+    crypto_parser.set_defaults(func=_handle_crypto)
+
     return parser
+
+
+def _handle_crypto(args: argparse.Namespace) -> int:
+    """Handle the ``crypto`` subcommand family."""
+    crypto_command = getattr(args, "crypto_command", None)
+    if crypto_command == "rotate-keys":
+        from core.crypto import get_crypto_manager, RSAKeyManager
+        key_size = getattr(args, "key_size", 4096)
+        # Build a manager with the requested key size before getting the singleton
+        # so that rotate() respects the --key-size flag.
+        current = get_crypto_manager()
+        # If key size differs, build a fresh manager targeting same paths but new size
+        if current.key_manager.key_size != key_size:
+            from core.crypto import CryptoManager, reset_crypto_manager
+            reset_crypto_manager()
+            import threading
+            km = RSAKeyManager(key_size=key_size)
+            _ = km.private_key  # force generation
+            from core.crypto import _CRYPTO_MANAGER_LOCK, _CRYPTO_MANAGER_INSTANCE  # noqa: F401
+            import core.crypto as _cm_mod
+            _cm_mod._CRYPTO_MANAGER_INSTANCE = CryptoManager(key_manager=km)
+            new_mgr = _cm_mod._CRYPTO_MANAGER_INSTANCE
+        else:
+            new_mgr = current.rotate()
+        print(f"RSA-{new_mgr.key_manager.key_size} key rotated successfully.")
+        print(f"New fingerprint: {new_mgr.fingerprint[:32]}...")
+        print(f"Keys persisted to: {new_mgr.key_manager.private_key_path}")
+        return 0
+    else:
+        print("Usage: fixops crypto rotate-keys [--key-size {2048,3072,4096}]")
+        return 1
 
 
 def main(argv: Optional[Iterable[str]] = None) -> int:

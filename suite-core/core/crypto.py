@@ -2804,4 +2804,120 @@ __all__ = [
     "verify_evidence",
     "generate_key_pair",
     "generate_rsa_key_pair",
+    # Singleton helpers
+    "CryptoManager",
+    "get_crypto_manager",
+    "reset_crypto_manager",
 ]
+
+
+# ---------------------------------------------------------------------------
+# CryptoManager — module-level singleton (process-wide cached instance)
+# ---------------------------------------------------------------------------
+
+
+class CryptoManager:
+    """Process-wide singleton that owns the RSA key manager.
+
+    Wraps :class:`RSAKeyManager` so that a single RSA-4096 key pair is loaded
+    (or generated) exactly once per process.  Subsequent calls to
+    :func:`get_crypto_manager` return the same instance at O(1) cost.
+
+    Usage::
+
+        mgr = get_crypto_manager()
+        sig, fp = mgr.sign(payload_bytes)
+
+    Key rotation (e.g. via ``fixops crypto rotate-keys``) calls
+    :meth:`rotate`, which regenerates the on-disk PEM files, clears the
+    class-level ``RSAKeyManager._KEY_CACHE``, and replaces the singleton.
+    """
+
+    def __init__(self, key_manager: Optional[RSAKeyManager] = None) -> None:
+        self._km: RSAKeyManager = key_manager or RSAKeyManager()
+
+    @property
+    def key_manager(self) -> RSAKeyManager:
+        return self._km
+
+    def sign(self, data: bytes) -> Tuple[bytes, str]:
+        """Sign *data* with RSA-SHA256. Returns (signature_bytes, fingerprint)."""
+        sig = self._km.private_key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+        return sig, self._km.metadata.fingerprint
+
+    def verify(self, data: bytes, signature: bytes) -> bool:
+        """Verify *signature* over *data* using the current public key."""
+        try:
+            self._km.public_key.verify(signature, data, padding.PKCS1v15(), hashes.SHA256())
+            return True
+        except InvalidSignature:
+            return False
+
+    @property
+    def fingerprint(self) -> str:
+        return self._km.metadata.fingerprint
+
+    def rotate(self) -> "CryptoManager":
+        """Rotate the RSA key pair, persist new PEMs, and replace the singleton.
+
+        Clears the ``RSAKeyManager._KEY_CACHE`` so the fresh key is loaded on
+        the next access.  Returns the new :class:`CryptoManager` instance which
+        has already been stored as the module singleton.
+
+        Returns:
+            The new singleton :class:`CryptoManager` with rotated keys.
+        """
+        global _CRYPTO_MANAGER_INSTANCE
+        # Delete existing PEM files so _generate_key_pair runs unconditionally.
+        priv = self._km.private_key_path
+        pub = self._km.public_key_path
+        for p in (priv, pub):
+            try:
+                if p.is_file():
+                    p.unlink()
+            except OSError:
+                pass
+        # Purge class-level cache so the new manager doesn't hit stale material.
+        with RSAKeyManager._CACHE_LOCK:
+            RSAKeyManager._KEY_CACHE.clear()
+        new_km = RSAKeyManager(
+            private_key_path=str(priv),
+            public_key_path=str(pub),
+            key_size=self._km.key_size,
+        )
+        _ = new_km.private_key  # trigger generation + disk persistence
+        new_mgr = CryptoManager(key_manager=new_km)
+        _CRYPTO_MANAGER_INSTANCE = new_mgr
+        logger.info(
+            "CryptoManager: RSA key rotated (old=%s new=%s)",
+            self.fingerprint[:16],
+            new_mgr.fingerprint[:16],
+        )
+        return new_mgr
+
+
+_CRYPTO_MANAGER_INSTANCE: Optional[CryptoManager] = None
+_CRYPTO_MANAGER_LOCK: threading.Lock = threading.Lock()
+
+
+def get_crypto_manager() -> CryptoManager:
+    """Return the process-wide :class:`CryptoManager` singleton.
+
+    Thread-safe double-checked locking — the singleton is constructed at most
+    once per process, paying the RSA-4096 keygen cost (or disk load) exactly
+    once.  Subsequent calls return in O(1).
+    """
+    global _CRYPTO_MANAGER_INSTANCE
+    if _CRYPTO_MANAGER_INSTANCE is not None:
+        return _CRYPTO_MANAGER_INSTANCE
+    with _CRYPTO_MANAGER_LOCK:
+        if _CRYPTO_MANAGER_INSTANCE is None:
+            _CRYPTO_MANAGER_INSTANCE = CryptoManager()
+    return _CRYPTO_MANAGER_INSTANCE
+
+
+def reset_crypto_manager() -> None:
+    """Reset the module-level singleton (for tests only)."""
+    global _CRYPTO_MANAGER_INSTANCE
+    with _CRYPTO_MANAGER_LOCK:
+        _CRYPTO_MANAGER_INSTANCE = None
