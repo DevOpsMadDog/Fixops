@@ -3,19 +3,14 @@
 from __future__ import annotations
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
+# Use the shared minimal health-router client from conftest to avoid the
+# full create_app() startup cost (which exceeds the 10s timeout).
 @pytest.fixture(scope="module")
-def client():
-    # Build a minimal app containing only the health router to avoid the
-    # full create_app() startup cost (which exceeds the 10s timeout).
-    from apps.api.health import router as health_router
-
-    app = FastAPI()
-    app.include_router(health_router)
-    return TestClient(app)
+def client(health_router_client: TestClient) -> TestClient:
+    return health_router_client
 
 
 def test_comprehensive_health_returns_200(client):

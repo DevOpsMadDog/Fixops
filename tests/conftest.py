@@ -329,6 +329,26 @@ if enterprise_src.exists():
     sys.path.insert(0, str(enterprise_src))
 
 
+# ---------------------------------------------------------------------------
+# Shared minimal-app fixture for router-scoped tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def health_router_client():
+    """Minimal FastAPI app with only the health router mounted.
+
+    Shared by test_health_aggregator and test_prometheus_metrics to avoid
+    the full create_app() startup cost (which can exceed the 10 s timeout).
+    """
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from apps.api.health import router as health_router
+
+    app = FastAPI()
+    app.include_router(health_router)
+    return TestClient(app)
+
+
 @pytest.fixture
 def signing_env(monkeypatch):
     """Provide signing environment variables for tests with valid RSA key."""
