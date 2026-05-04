@@ -15,6 +15,7 @@ Compliance: SOC2 CC7.2, NIST CSF RS.AN-1
 
 from __future__ import annotations
 
+import concurrent.futures
 import hashlib
 import hmac
 import json
@@ -248,6 +249,25 @@ def _post_json(
         (status_code, elapsed_ms, error_message_or_None)
     """
     body = json.dumps(payload, default=str).encode("utf-8")
+    return _post_json_bytes(url, body, headers=headers, timeout=timeout)
+
+
+def _post_json_bytes(
+    url: str,
+    body: bytes,
+    headers: Optional[Dict[str, str]] = None,
+    timeout: float = REQUEST_TIMEOUT,
+) -> Tuple[int, float, Optional[str]]:
+    """
+    POST pre-encoded JSON bytes to url using stdlib urllib.
+
+    Avoids redundant json.dumps/encode when the caller already has the
+    serialized bytes (e.g. for HMAC signing).  Called by _post_json and
+    directly by _deliver_with_retry.
+
+    Returns:
+        (status_code, elapsed_ms, error_message_or_None)
+    """
     if len(body) > MAX_PAYLOAD_BYTES:
         return 0, 0.0, f"Payload too large: {len(body)} bytes"
 
@@ -725,7 +745,8 @@ class WebhookNotifier:
         last_response_ms: Optional[float] = None
         last_error: Optional[str] = None
 
-        # Convert bytes back to dict for _post_json (it re-encodes)
+        # payload_bytes already encoded once above — reuse directly to avoid
+        # a second json.dumps/encode inside _post_json (hotspot fix #1).
         max_attempts = 1 + len(retry_delays)
 
         for attempt in range(max_attempts):
@@ -736,8 +757,8 @@ class WebhookNotifier:
                 url=ep.url,
                 attempt=attempts,
             )
-            status_code, response_ms, error = _post_json(
-                ep.url, payload, headers=extra_headers
+            status_code, response_ms, error = _post_json_bytes(
+                ep.url, payload_bytes, headers=extra_headers
             )
             last_status_code = status_code
             last_response_ms = response_ms
@@ -797,13 +818,27 @@ class WebhookNotifier:
     def deliver_to_all(
         self,
         finding: FindingPayload,
+        max_workers: int = 10,
     ) -> List[DeliveryRecord]:
-        """Deliver a finding to all enabled endpoints for the finding's org."""
-        endpoints = self._log.list_endpoints(finding.org_id)
-        results = []
-        for ep in endpoints:
-            if ep.enabled:
-                results.append(self.deliver(ep.id, finding))
+        """Deliver a finding to all enabled endpoints for the finding's org.
+
+        Fan-out is parallelized via ThreadPoolExecutor (hotspot fix #2).
+        Each HTTP POST runs concurrently; results are collected in
+        endpoint registration order.  max_workers caps thread count so
+        a tenant with hundreds of endpoints cannot exhaust the OS thread
+        limit.
+        """
+        endpoints = [ep for ep in self._log.list_endpoints(finding.org_id) if ep.enabled]
+        if not endpoints:
+            return []
+        if len(endpoints) == 1:
+            # Fast path: skip executor overhead for single endpoint
+            return [self.deliver(endpoints[0].id, finding)]
+
+        workers = min(max_workers, len(endpoints))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(self.deliver, ep.id, finding) for ep in endpoints]
+            results = [f.result() for f in futures]
         return results
 
     def delivery_stats(self, org_id: str) -> Dict[str, Any]:
