@@ -89,87 +89,15 @@ interface VulnHeatmapData {
   zones: NetworkZone[];
 }
 
-// ══════════════════════════════════════════════════════════════
-// Mock Data
-// ══════════════════════════════════════════════════════════════
-
-// Deterministic pseudo-random to keep grid stable across renders
-function seededRisk(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000;
-  return parseFloat((((x - Math.floor(x)) * 10)).toFixed(1));
-}
-
-const ASSET_NAMES = [
-  "prod-web-01", "prod-web-02", "prod-api-01", "prod-api-02", "prod-db-01",
-  "prod-db-02", "prod-cache-01", "prod-lb-01", "prod-mq-01", "prod-auth-01",
-  "staging-web-01", "staging-api-01", "staging-db-01", "dev-box-01", "dev-box-02",
-  "ci-runner-01", "ci-runner-02", "build-server-01", "artifact-store-01", "log-collector-01",
-  "k8s-master-01", "k8s-node-01", "k8s-node-02", "k8s-node-03", "k8s-node-04",
-  "k8s-node-05", "k8s-node-06", "k8s-node-07", "k8s-node-08", "k8s-node-09",
-  "aws-ec2-web-01", "aws-ec2-api-01", "aws-rds-prod-01", "aws-s3-backup", "aws-lambda-01",
-  "aws-lambda-02", "aws-elb-prod-01", "gcp-gke-node-01", "gcp-gke-node-02", "gcp-sql-01",
-  "azure-vm-01", "azure-vm-02", "azure-blob-01", "azure-aks-node-01", "azure-aks-node-02",
-  "endpoint-cto-mbp", "endpoint-dev-01", "endpoint-dev-02", "endpoint-dev-03", "endpoint-qa-01",
-  "endpoint-qa-02", "endpoint-ops-01", "endpoint-ops-02", "endpoint-pm-01", "firewall-edge-01",
-  "firewall-int-01", "vpn-gateway-01", "dns-server-01", "ntp-server-01", "smtp-relay-01",
-  "monitoring-01", "alerting-01", "backup-agent-01", "backup-agent-02", "siem-collector-01",
-  "scanner-01", "scanner-02", "waf-prod-01", "ids-sensor-01", "ids-sensor-02",
-  "mail-server-01", "file-share-01", "print-server-01", "kiosk-01", "iot-sensor-01",
-  "iot-gateway-01", "iot-cam-01", "iot-cam-02", "iot-hvac-01", "container-reg-01",
-];
-
-const ASSET_TYPES: AssetType[] = ["server", "container", "endpoint", "cloud"];
-const TOP_CVES = [
-  "CVE-2021-44228", "CVE-2024-6849", "CVE-2024-3156", "CVE-2024-5638",
-  "CVE-2024-1086", "CVE-2024-2961", "CVE-2024-4577", "CVE-2024-7531",
-];
-
-function buildMockAssets(): HeatmapAsset[] {
-  return ASSET_NAMES.slice(0, 80).map((name, i) => {
-    const risk = seededRisk(i * 7 + 3);
-    return {
-      id: `asset-${i}`,
-      name,
-      type: ASSET_TYPES[i % 4],
-      risk_score: risk,
-      critical_count: risk >= 9 ? Math.floor(risk) - 7 : risk >= 7 ? 1 : 0,
-      high_count: risk >= 5 ? Math.floor(risk) - 3 : 0,
-      top_cve: TOP_CVES[i % TOP_CVES.length],
-    };
-  });
-}
-
-const MOCK_DATA: VulnHeatmapData = {
-  total_vulnerabilities: 1847,
-  critical_assets_exposed: 23,
-  avg_risk_score: 6.4,
-  patched_this_week: 134,
-  assets: buildMockAssets(),
-  categories: [
-    { name: "Information Disclosure", count: 203 },
-    { name: "DoS", count: 156 },
-    { name: "Privilege Escalation", count: 89 },
-    { name: "XSS", count: 78 },
-    { name: "Remote Code Execution", count: 47 },
-    { name: "SQL Injection", count: 34 },
-    { name: "Auth Bypass", count: 23 },
-  ],
-  trend: [
-    { label: "Mon", added: 42, patched: 31 },
-    { label: "Tue", added: 38, patched: 45 },
-    { label: "Wed", added: 55, patched: 28 },
-    { label: "Thu", added: 29, patched: 38 },
-    { label: "Fri", added: 61, patched: 22 },
-    { label: "Sat", added: 18, patched: 41 },
-    { label: "Sun", added: 24, patched: 35 },
-  ],
-  zones: [
-    { name: "DMZ", risk_level: "High", asset_count: 12, vuln_count: 287 },
-    { name: "Internal", risk_level: "Medium", asset_count: 34, vuln_count: 512 },
-    { name: "Cloud", risk_level: "High", asset_count: 18, vuln_count: 394 },
-    { name: "IoT", risk_level: "Critical", asset_count: 8, vuln_count: 341 },
-    { name: "Development", risk_level: "Low", asset_count: 14, vuln_count: 98 },
-  ],
+const EMPTY_DATA: VulnHeatmapData = {
+  total_vulnerabilities: 0,
+  critical_assets_exposed: 0,
+  avg_risk_score: 0,
+  patched_this_week: 0,
+  assets: [],
+  categories: [],
+  trend: [],
+  zones: [],
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -292,7 +220,7 @@ export default function VulnHeatmap() {
       try {
         return await apiFetch(`/api/v1/vuln-heatmap/assets?org_id=${ORG_ID}`);
       } catch {
-        return MOCK_DATA;
+        return EMPTY_DATA;
       }
     },
     staleTime: 5 * 60 * 1000,
@@ -306,7 +234,7 @@ export default function VulnHeatmap() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const d = data ?? MOCK_DATA;
+  const d = data ?? EMPTY_DATA;
 
   // Top 10 assets sorted by risk score
   const top10 = [...d.assets]
