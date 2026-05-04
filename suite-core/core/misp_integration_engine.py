@@ -30,6 +30,11 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 12.0
@@ -156,7 +161,25 @@ class MISPIntegrationEngine:
             "/events/index",
             params={"limit": limit, "page": page},
         )
-        return self._normalize_events(raw)
+        result = self._normalize_events(raw)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    count = result.get("count", 0) if isinstance(result, dict) else 0
+                    _bus.emit(
+                        "threat.detected",
+                        {
+                            "entity_id": f"misp_events_page_{page}",
+                            "type": "misp_threat_events",
+                            "severity": "medium",
+                            "source_engine": "misp_integration",
+                            "event_count": count,
+                        },
+                    )
+            except Exception:
+                pass
+        return result
 
     def get_event(self, event_id: str) -> Dict[str, Any]:
         """Single event view."""

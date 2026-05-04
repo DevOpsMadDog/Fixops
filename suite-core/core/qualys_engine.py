@@ -56,6 +56,12 @@ class QualysUnavailableError(RuntimeError):
     unrecoverable status."""
 
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
+
 class QualysEngine:
     """Thread-safe Qualys VMDR REST client (no cache)."""
 
@@ -328,12 +334,29 @@ class QualysEngine:
             form["iscanner_id"] = int(iscanner_id)
         if iscanner_name:
             form["iscanner_name"] = iscanner_name
-        return self._request(
+        result = self._request(
             "POST",
             "/api/2.0/fo/scan/",
             params=params,
             data=form,
         )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "scan.completed",
+                        {
+                            "entity_id": scan_title,
+                            "type": "qualys_vmdr_scan",
+                            "severity": "unknown",
+                            "source_engine": "qualys",
+                            "target_ip": ip or asset_groups or asset_group_ids or "",
+                        },
+                    )
+            except Exception:
+                pass
+        return result
 
     def list_compliance_policies(
         self,

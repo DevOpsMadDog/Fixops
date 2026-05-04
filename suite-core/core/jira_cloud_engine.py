@@ -35,6 +35,11 @@ from urllib.parse import urljoin
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 _API_PATH = "/rest/api/3/"
@@ -203,7 +208,24 @@ class JiraCloudEngine:
     # ------------------------------------------------------------------ ops
 
     def create_issue(self, fields: Dict[str, Any]) -> Dict[str, Any]:
-        return self._request("POST", "issue", json_body={"fields": fields}) or {}
+        result = self._request("POST", "issue", json_body={"fields": fields}) or {}
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "incident.created",
+                        {
+                            "entity_id": result.get("key", "unknown"),
+                            "type": "jira_issue",
+                            "severity": str(fields.get("priority", {}).get("name", "unknown")).lower() if isinstance(fields.get("priority"), dict) else "unknown",
+                            "source_engine": "jira_cloud",
+                            "summary": str(fields.get("summary", ""))[:120],
+                        },
+                    )
+            except Exception:
+                pass
+        return result
 
     def get_issue(
         self,

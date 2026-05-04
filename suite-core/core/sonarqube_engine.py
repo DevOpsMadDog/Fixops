@@ -26,6 +26,11 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 8.0
@@ -259,7 +264,7 @@ class SonarQubeEngine:
             })
 
         paging = body.get("paging", {}) or {}
-        return {
+        result_payload = {
             "total": int(body.get("total", paging.get("total", len(issues)))),
             "p": int(body.get("p", paging.get("pageIndex", 1))),
             "ps": int(body.get("ps", paging.get("pageSize", len(issues)))),
@@ -274,6 +279,23 @@ class SonarQubeEngine:
             "issues": issues,
             "facets": body.get("facets", []) or [],
         }
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "threat.detected",
+                        {
+                            "entity_id": componentKeys or "all",
+                            "type": "sonarqube_issues",
+                            "severity": (severities or "unknown").split(",")[0].lower(),
+                            "source_engine": "sonarqube",
+                            "issue_count": len(issues),
+                        },
+                    )
+            except Exception:
+                pass
+        return result_payload
 
     def qualitygates_project_status(
         self,

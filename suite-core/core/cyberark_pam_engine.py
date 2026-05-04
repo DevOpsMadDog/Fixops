@@ -39,6 +39,11 @@ from urllib.parse import quote
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 12.0
@@ -525,6 +530,22 @@ class CyberArkPAMEngine:
             )
         if not (text.startswith('"') and text.endswith('"')):
             text = '"' + text.strip('"') + '"'
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "asset.discovered",
+                        {
+                            "entity_id": account_id,
+                            "type": "cyberark_credential_retrieval",
+                            "severity": "high",
+                            "source_engine": "cyberark_pam",
+                            "reason": reason,
+                        },
+                    )
+            except Exception:
+                pass
         return text
 
     def list_safes(

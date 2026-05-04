@@ -33,6 +33,11 @@ from urllib.parse import quote, urljoin
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 # Endpoints we expose — surfaced via the capability summary GET /
@@ -313,12 +318,30 @@ class HarborRegistryEngine:
         digest: str,
     ) -> Dict[str, Any]:
         repo_encoded = quote(repository_name, safe="")
-        return self._request(
+        result = self._request(
             "POST",
             f"api/v2.0/projects/{quote(project_name, safe='')}/repositories/"
             f"{repo_encoded}/artifacts/{quote(digest, safe=':')}/scan",
             expect_202=True,
         ) or {"accepted": True, "status_code": 202}
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "scan.completed",
+                        {
+                            "entity_id": digest,
+                            "type": "harbor_container_scan",
+                            "severity": "unknown",
+                            "source_engine": "harbor_registry",
+                            "project": project_name,
+                            "repository": repository_name,
+                        },
+                    )
+            except Exception:
+                pass
+        return result
 
     def delete_artifact(
         self,

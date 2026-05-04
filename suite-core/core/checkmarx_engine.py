@@ -56,6 +56,12 @@ class CheckmarxUnavailableError(RuntimeError):
     unrecoverable status."""
 
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
+except ImportError:
+    _get_tg_bus = None  # type: ignore
+
+
 class CheckmarxEngine:
     """Thread-safe Checkmarx One REST client with cached OAuth token."""
 
@@ -389,7 +395,25 @@ class CheckmarxEngine:
         project = body.get("project")
         if not isinstance(project, dict) or not project.get("id"):
             raise ValueError("scan body.project.id is required")
-        return self._request("POST", "/api/scans", json_body=body)
+        result = self._request("POST", "/api/scans", json_body=body)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    scan_id = (result or {}).get("id", "unknown") if isinstance(result, dict) else "unknown"
+                    _bus.emit(
+                        "scan.completed",
+                        {
+                            "entity_id": str(scan_id),
+                            "type": "checkmarx_sast_scan",
+                            "severity": "unknown",
+                            "source_engine": "checkmarx",
+                            "project_id": str(project.get("id", "")),
+                        },
+                    )
+            except Exception:
+                pass
+        return result
 
     # ----------------------------------------------------- Scan results
 
