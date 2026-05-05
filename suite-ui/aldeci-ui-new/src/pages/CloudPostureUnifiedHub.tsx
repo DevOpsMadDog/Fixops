@@ -9,18 +9,17 @@
  *
  *   tab       | source page                      | endpoint
  *   ----------|----------------------------------|---------------------------------------------------
- *   posture   | CloudSecurityDashboard            | /api/v1/cloud/{accounts,benchmarks,findings},
- *             |                                   | /api/v1/cloud-security-engine/{accounts,findings,stats}
+ *   posture   | CloudSecurityDashboard            | /api/v1/posture-score/stats + /cloud-security/findings
  *   workloads | CloudWorkloadProtectionDashboard  | /api/v1/cwp/{stats,workloads,threats}
- *   platform  | CWPPDashboard                     | /api/v1/cnapp/{workloads,threats,stats}
- *   unified   | CNAPPDashboard                    | /api/v1/cnapp/{workloads,findings,stats}
+ *   platform  | CWPPDashboard                     | /api/v1/cwpp/{summary,workloads,threats}
+ *   unified   | CNAPPDashboard                    | /api/v1/cloud-findings/{summary,findings,top-resources}
  *
  * Route: /discover/cloud-posture
  * Persona target: Cloud Security Architect (#19), DevSecOps (#14), Platform Engineer (#15)
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.11
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Cloud, ShieldCheck, Layers, Workflow } from "lucide-react";
@@ -28,9 +27,10 @@ import { Cloud, ShieldCheck, Layers, Workflow } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { CloudPosturePanel } from "@/components/cloud-posture/CloudPosturePanel";
+import { WorkloadProtectionPanel } from "@/components/cloud-posture/WorkloadProtectionPanel";
+import { CWPPPanel } from "@/components/cloud-posture/CWPPPanel";
+import { UnifiedCNAPPPanel } from "@/components/cloud-posture/UnifiedCNAPPPanel";
 
 type TabKey = "posture" | "workloads" | "platform" | "unified";
 
@@ -131,18 +131,22 @@ export default function CloudPostureUnifiedHub() {
 
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
+            <CloudPosturePanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="workloads">
           <Suspense fallback={<PageSkeleton />}>
+            <WorkloadProtectionPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="platform">
           <Suspense fallback={<PageSkeleton />}>
+            <CWPPPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="unified">
           <Suspense fallback={<PageSkeleton />}>
+            <UnifiedCNAPPPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
