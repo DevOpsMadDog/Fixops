@@ -596,3 +596,4 @@ Timestamp: 2026-05-05T13:49:00Z
 Delta vs sweep #25: 0 regressions. Doc-only commits validated clean.
   Phase4 integration: 23/23 GREEN.
 | #27 | 2026-05-05 | test_phase4_integration.py | 23/23 | PASS | 4e5e408b |
+| #28 | 2026-05-05 | test_phase4_integration + test_phase10_e2e | 51/51 | PASS | 69dcf1b1 |
