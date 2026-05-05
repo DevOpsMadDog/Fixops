@@ -603,3 +603,4 @@ Delta vs sweep #25: 0 regressions. Doc-only commits validated clean.
 | sweep-32 | 2026-05-05 | test_phase4_integration.py | 23/23 | PASS | 99873de1 |
 | #33 | 2026-05-05 | test_phase4_integration.py | 23/23 | PASS | (no SHA recorded) |
 | #34 | 2026-05-05 | test_phase4_integration.py | 23/23 | PASS | 8f98fda5 |
+| #35 | 2026-05-05 | test_phase4_integration.py | 23/23 | PASS | 099db584 |
