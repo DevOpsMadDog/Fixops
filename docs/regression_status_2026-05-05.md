@@ -636,3 +636,5 @@ Delta vs sweep #25: 0 regressions. Doc-only commits validated clean.
 | #65 | 2026-05-05 | test_phase8_mcp.py | 60/60 | PASS | b24669e7 |
 | #66 | 2026-05-05 | test_pipeline_api.py | 36/36 | PASS | b24669e7 |
 | #68 | 2026-05-05 | test_phase10_e2e.py | 28/28 | PASS | 6f70d220 |
+| #70 | 2026-05-05 | test_persona_workflows.py | 148/148 | PASS | 6f70d220 |
+| #69 | 2026-05-05 | test_connector_framework.py | 60/60 | PASS | 6f70d220 |
