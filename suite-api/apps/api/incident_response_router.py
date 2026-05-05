@@ -312,11 +312,35 @@ def get_post_mortem(incident_id: str) -> Dict[str, Any]:
 
 
 @router.get("/", summary="Incidents index", tags=["incident-response"])
-async def incidents_index(org_id: str = Query("default")) -> Dict[str, Any]:
-    """Return incident response summary for the org."""
+async def incidents_index(
+    org_id: str = Query("default"),
+    status: Optional[str] = Query(None, description="Filter by status (open, investigating, contained, closed, post_mortem)"),
+    severity: Optional[str] = Query(None, description="Filter by severity (critical, high, medium, low)"),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> Dict[str, Any]:
+    """Return incident list and summary stats for the org."""
+    if not _HAS_IR:
+        return {"router": "incidents", "org_id": org_id, "stats": {}, "items": [], "total": 0, "limit": limit, "offset": offset}
     try:
         manager = _get_manager()
-        stats = manager.get_stats(org_id=org_id) if hasattr(manager, "get_stats") else {}
-    except Exception:
-        stats = {}
-    return {"router": "incidents", "org_id": org_id, "stats": stats, "items": [], "count": 0}
+        status_filter = None
+        severity_filter = None
+        if status:
+            try:
+                status_filter = IncidentStatus(status)
+            except ValueError:
+                pass
+        if severity:
+            try:
+                severity_filter = IncidentSeverity(severity)
+            except ValueError:
+                pass
+        incidents = manager.list_incidents(org_id=org_id, status_filter=status_filter, severity_filter=severity_filter)
+        stats = manager.get_incident_stats(org_id=org_id) if hasattr(manager, "get_incident_stats") else {}
+        page = incidents[offset: offset + limit]
+        items = [i.model_dump(mode="json") for i in page]
+    except Exception as exc:
+        _logger.exception("incidents_index: list failed")
+        return {"router": "incidents", "org_id": org_id, "stats": {}, "items": [], "total": 0, "limit": limit, "offset": offset, "error": str(exc)}
+    return {"router": "incidents", "org_id": org_id, "stats": stats, "items": items, "total": len(incidents), "limit": limit, "offset": offset}
