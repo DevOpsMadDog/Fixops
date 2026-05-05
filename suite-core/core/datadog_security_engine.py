@@ -48,17 +48,25 @@ except Exception:  # noqa: BLE001
 
 
 def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
-    """Best-effort TrustGraph emit. Never raises."""
+    """Best-effort TrustGraph emit. Never raises. Handles async bus.emit safely."""
     if _get_tg_bus is None:
         return
     try:
+        import asyncio
+        import inspect
         bus = _get_tg_bus()
         if bus is None:
             return
         emit = getattr(bus, "emit", None) or getattr(bus, "publish", None)
         if emit is None:
             return
-        emit(event_type, payload)
+        result = emit(event_type, payload)
+        if inspect.isawaitable(result):
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(result)
+            except RuntimeError:
+                result.close()
     except Exception:  # pragma: no cover
         pass
 
