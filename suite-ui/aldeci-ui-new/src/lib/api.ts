@@ -621,6 +621,42 @@ export const containerApi = {
   scanDockerfile: (data: unknown) => api.post("/api/v1/container/scan/dockerfile", data),
 };
 
+/** Container image / build scanning — /api/v1/containers (container_scanner_router) */
+export const containerScannerApi = {
+  stats: (org_id = "default") => api.get("/api/v1/containers/stats", { params: { org_id } }),
+  history: (org_id = "default", limit = 50) => api.get("/api/v1/containers/history", { params: { org_id, limit } }),
+  checks: () => api.get("/api/v1/containers/checks"),
+};
+
+/** Container workload protection — /api/v1/cwpp */
+export const cwppApi = {
+  summary: (org_id = "default") => api.get("/api/v1/cwpp/summary", { params: { org_id } }),
+  workloads: (org_id = "default", limit = 50) => api.get("/api/v1/cwpp/workloads", { params: { org_id, limit } }),
+  threats: (org_id = "default", limit = 50) => api.get("/api/v1/cwpp/threats", { params: { org_id, limit } }),
+};
+
+/** Container posture — /api/v1/container-posture */
+export const containerPostureApi = {
+  stats: (org_id = "default") => api.get("/api/v1/container-posture/stats", { params: { org_id } }),
+  clusters: (org_id = "default") => api.get("/api/v1/container-posture/clusters", { params: { org_id } }),
+  findings: (org_id = "default", limit = 50) => api.get("/api/v1/container-posture/findings", { params: { org_id, limit } }),
+};
+
+/** Data discovery — /api/v1/data-discovery */
+export const dataDiscoveryApi = {
+  stats: (org_id = "default") => api.get("/api/v1/data-discovery/stats", { params: { org_id } }),
+  datastores: (org_id = "default", limit = 50) => api.get("/api/v1/data-discovery/datastores", { params: { org_id, limit } }),
+  discoveries: (org_id = "default", limit = 50) => api.get("/api/v1/data-discovery/discoveries", { params: { org_id, limit } }),
+  scans: (org_id = "default") => api.get("/api/v1/data-discovery/scans", { params: { org_id } }),
+};
+
+/** Data exfiltration — /api/v1/data-exfiltration */
+export const dataExfiltrationApi = {
+  stats: (org_id = "default") => api.get("/api/v1/data-exfiltration/stats", { params: { org_id } }),
+  incidents: (org_id = "default", limit = 50) => api.get("/api/v1/data-exfiltration/incidents", { params: { org_id, limit } }),
+  policies: (org_id = "default") => api.get("/api/v1/data-exfiltration/policies", { params: { org_id } }),
+};
+
 export const sastApi = {
   status: () => api.get("/api/v1/sast/status"),
   rules: () => api.get("/api/v1/sast/rules"),

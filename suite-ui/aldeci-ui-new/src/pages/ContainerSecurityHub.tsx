@@ -17,7 +17,7 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.11
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Box, ShieldAlert, Activity } from "lucide-react";
@@ -25,9 +25,9 @@ import { Box, ShieldAlert, Activity } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { ContainerImagePanel } from "@/components/container/ContainerImagePanel";
+import { ContainerRuntimePanel } from "@/components/container/ContainerRuntimePanel";
+import { ContainerPosturePanel } from "@/components/container/ContainerPosturePanel";
 
 type TabKey = "image" | "runtime" | "posture";
 
@@ -121,14 +121,17 @@ export default function ContainerSecurityHub() {
 
         <TabsContent value="image">
           <Suspense fallback={<PageSkeleton />}>
+            <ContainerImagePanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="runtime">
           <Suspense fallback={<PageSkeleton />}>
+            <ContainerRuntimePanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
+            <ContainerPosturePanel />
           </Suspense>
         </TabsContent>
       </Tabs>
