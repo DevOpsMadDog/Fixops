@@ -26,12 +26,18 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 # If auth_deps was already imported by another test file, force a reload so
-# the new env values take effect.
+# the new env values take effect.  If it has NOT been imported yet (e.g. this
+# file is collected first in a broad scan), importlib.reload() would raise
+# ImportError because the module is not in sys.modules.  We guard with a
+# conditional: reload when cached, plain-import when not.
 import importlib  # noqa: E402
+import sys as _sys  # noqa: E402
 
-import apps.api.auth_deps as _auth_mod  # noqa: E402
-
-importlib.reload(_auth_mod)
+if "apps.api.auth_deps" in _sys.modules:
+    _auth_mod = _sys.modules["apps.api.auth_deps"]
+    importlib.reload(_auth_mod)
+else:
+    import apps.api.auth_deps as _auth_mod  # noqa: E402
 
 from apps.api.wave_a_code_intel_router import WAVE_A_ROUTERS  # noqa: E402
 

@@ -7,7 +7,13 @@ behavior instead of missing legacy filenames.
 
 import pytest
 
-pytest_plugins = ["tests.e2e.conftest"]
+# NOTE: do NOT declare pytest_plugins = ["tests.e2e.conftest"] here.
+# When running the full test suite, pytest auto-discovers tests/e2e/conftest.py
+# as a conftest and registers it under its file path key.  A pytest_plugins
+# declaration in a non-conftest module would try to register the same module
+# under its dotted-name key, triggering "Plugin already registered under a
+# different name" (pluggy ValueError).  The fixtures we need from e2e/conftest
+# are available automatically via pytest's conftest discovery.
 
 from tests.e2e.test_bn_lr_hybrid import TestBNLRHybrid as _TestBNLRHybrid
 from tests.e2e.test_branding_namespace import TestBrandingNamespace as _TestBrandingNamespace

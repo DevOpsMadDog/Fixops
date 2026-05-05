@@ -20,8 +20,20 @@ import os
 
 import pytest
 
-# Ensure suite paths resolve without sitecustomize
-sys.path.insert(0, str(Path(__file__).parent.parent / "suite-evidence-risk"))
+# Ensure suite paths resolve without sitecustomize.
+# Insert the correct path first so Python resolves risk.* from source.
+_EVIDENCE_RISK = str(Path(__file__).parent.parent / "suite-evidence-risk")
+if _EVIDENCE_RISK not in sys.path:
+    sys.path.insert(0, _EVIDENCE_RISK)
+
+# In a broad pytest run, an earlier test file may have imported
+# risk.reachability.call_graph from a stale .pyc / namespace that lacks the
+# module-level _add_edge / _node symbols (added in the beast-mode(perf)
+# commit).  Evict any cached version so our sys.path.insert above takes effect
+# and we always import from the live source tree.
+for _mod_key in list(sys.modules.keys()):
+    if _mod_key.startswith("risk.reachability"):
+        del sys.modules[_mod_key]
 
 from risk.reachability.call_graph import CallGraphBuilder, _add_edge, _node
 from risk.reachability.proprietary_analyzer import ProprietaryReachabilityAnalyzer
