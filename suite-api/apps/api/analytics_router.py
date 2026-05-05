@@ -1233,5 +1233,13 @@ async def false_positive_rate(
 
 @router.get("/", summary="Analytics index", tags=["analytics"])
 async def analytics_root_index(org_id: str = Query("default")) -> Dict[str, Any]:
-    """Return analytics overview for the org."""
-    return {"router": "analytics", "org_id": org_id, "items": [], "count": 0}
+    """Return analytics overview for the org from the live AnalyticsDB."""
+    try:
+        overview = db.get_dashboard_overview()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"analytics overview failed: {exc}") from exc
+    return {
+        "router": "analytics",
+        "org_id": org_id,
+        **overview,
+    }
