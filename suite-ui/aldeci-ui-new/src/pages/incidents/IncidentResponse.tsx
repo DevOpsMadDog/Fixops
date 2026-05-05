@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { incidentsApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -805,17 +805,19 @@ export default function IncidentResponse() {
   const [filterState, setFilterState] = useState<IRState | "ALL">("ALL");
   const [filterSeverity, setFilterSeverity] = useState<Severity | "ALL">("ALL");
 
-  // Fetch incidents from real API; empty state renders when none
+  // Fetch incidents from real API via incidentsApi; empty state renders when none
   useEffect(() => {
     let cancelled = false;
     async function fetchIncidents() {
       try {
         setLoading(true);
         setError(null);
-        const resp = await fetch("/api/v1/incidents?org_id=default");
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        const rawList: Record<string, unknown>[] = Array.isArray(data) ? data : (data.incidents ?? []);
+        const res = await incidentsApi.list({ limit: 100 });
+        const data = res.data as Record<string, unknown>;
+        // Index route: { items, total, stats } | list route: { incidents, count }
+        const rawList: Record<string, unknown>[] = Array.isArray(data)
+          ? (data as Record<string, unknown>[])
+          : ((data.items ?? data.incidents ?? []) as Record<string, unknown>[]);
         if (!cancelled && rawList.length > 0) {
           const mapped = rawList.map(mapApiIncident).filter(Boolean) as Incident[];
           if (mapped.length > 0) {
