@@ -232,11 +232,26 @@ def get_components(org_id: str = Query("default", description="Organisation iden
 
 
 @router.get("/", summary="Posture advisor index", tags=["posture-advisor"])
-async def posture_index(org_id: str = Query("default")) -> Dict[str, Any]:
-    """Return posture advisor summary for the org."""
+async def posture_index(
+    org_id: str = Query("default"),
+    status: Optional[str] = Query(None, description="Filter recommendations by status (open/accepted/completed/dismissed)"),
+    limit: int = Query(20, ge=1, le=200),
+) -> Dict[str, Any]:
+    """Return posture advisor summary with live recommendations for the org."""
+    advisor = get_posture_advisor()
+    stats: Dict[str, Any] = {}
     try:
-        advisor = get_posture_advisor()
         stats = advisor.get_stats(org_id=org_id) if hasattr(advisor, "get_stats") else {}
     except Exception:
-        stats = {}
-    return {"router": "posture-advisor", "org_id": org_id, "stats": stats, "items": [], "count": 0}
+        pass
+    try:
+        items = advisor.list_recommendations(org_id=org_id, status=status)[:limit]
+    except Exception:
+        items = []
+    return {
+        "router": "posture-advisor",
+        "org_id": org_id,
+        "stats": stats,
+        "items": items,
+        "count": len(items),
+    }
