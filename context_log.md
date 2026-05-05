@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 13:30] security-analyst — DEPENDABOT_TRIAGE
+- **What**: Triaged 125 Dependabot vulns flagged on main (2 critical / 47 high / 52 moderate / 24 low). Confirmed all originate from legacy suite-ui/aldeci/ which was deleted at 5f415a1d on features/intermediate-stage. pip-audit (requirements.txt) = 0 vulns. npm audit (suite-ui/aldeci-ui-new) = 0 vulns. Wrote docs/dependabot_triage_2026-05-05.md. Committed 33a00359, pushed.
+- **Files touched**: docs/dependabot_triage_2026-05-05.md, context_log.md
+- **Outcome**: SUCCESS — features/intermediate-stage is clean; merge to main closes all 125 alerts automatically
+- **Pillar(s) served**: V6 (enterprise readiness / audit-ready)
+
 ### [2026-05-05 12:52] qa-engineer — REGRESSION_SWEEP_24
 - **What**: Sweep #24 at HEAD 2c72e3a0. Final certification run. Full 4-suite sweep: Beast Mode 13 files 753/753 in 8.63s; Perf -m perf 194 passed, 2 skipped, 44782 deselected in 26.28s; OWASP -m owasp 47 passed, 2 skipped, 44929 deselected in 17.86s; Lockdown (test_no_unsafe_asyncio_run.py + test_no_unawaited_coroutines_at_import.py) 11/11 in 6.50s. Total: 1005 passed, 0 failed, 4 skipped. 0 broken collectors.
 - **Files touched**: docs/regression_status_2026-05-05.md, context_log.md
