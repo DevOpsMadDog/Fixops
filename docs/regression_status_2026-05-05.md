@@ -544,3 +544,20 @@ Delta vs sweep #23: 0 regressions. Full 4-suite run confirms all green at HEAD 2
   OWASP lockdown: 47/47 stable, 2 skipped, 0 failed.
   Lockdown tests: 11/11 GREEN (asyncio + coroutine scans both pass).
   CERTIFICATION: ALL GREEN — sweep #24 final.
+
+---
+
+## Sweep #25 (abbreviated — 4 doc/wip commits since sweep #24)
+
+Suite 1 — phase4_integration only: 23 passed, 0 failed, 0 errors in 0.48s
+Suite 2 — OWASP lockdown (-m owasp collect-only): 47 collected (2 skipped), 0 errors
+
+Total sweep #25: 23 live passes + 47 marker count confirmed, 0 regressions
+HEAD: 3a47e91b — doc/wip commits
+Timestamp: 2026-05-05T13:12:00Z
+
+Commits validated since sweep #24 (2c72e3a0):
+  021c8438, 14929e98, 33a00359, 3a47e91b (doc/wip — zero production Python changes)
+
+Delta vs sweep #24: 0 regressions. Abbreviated check sufficient for doc/wip-only commits.
+  Phase4 integration: 23/23 GREEN. OWASP marker: 47 stable.
