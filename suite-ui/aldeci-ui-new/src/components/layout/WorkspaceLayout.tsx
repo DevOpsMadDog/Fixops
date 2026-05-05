@@ -316,6 +316,13 @@ const navSections: NavSection[] = [
         ],
       },
       {
+        label: "Privacy & DPO",
+        icon: ShieldAlert,
+        items: [
+          { label: "DPO Privacy Center", to: "/comply/dpo", icon: ShieldAlert },
+        ],
+      },
+      {
         label: "Evidence & Audit",
         icon: FileCheck,
         items: [

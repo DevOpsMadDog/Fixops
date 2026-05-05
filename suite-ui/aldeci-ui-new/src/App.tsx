@@ -67,7 +67,8 @@ const LogViewer = lazy(() => import("@/pages/settings/LogViewer"));
 // Onboarding
 const OnboardingWizard = lazy(() => import("@/pages/onboarding/OnboardingWizard"));
 
-// Developer Portal
+// Developer Security Hub (P20 + P11) — replaces DeveloperPortal 2026-05-05
+const DeveloperSecurityHub = lazy(() => import("@/pages/DeveloperSecurityHub"));
 const DeveloperPortal = lazy(() => import("@/pages/developer/DeveloperPortal"));
 const APIExplorer = lazy(() => import("@/pages/developer/APIExplorer"));
 
@@ -420,6 +421,8 @@ const MaturityHub = lazy(() => import("@/pages/MaturityHub"));
 const BehaviorAnalyticsHub = lazy(() => import("@/pages/BehaviorAnalyticsHub"));
 // Phase 3 §2.23 (Privacy/Controls sub-cluster) — PrivacyComplianceHub at /comply/privacy
 const PrivacyComplianceHub = lazy(() => import("@/pages/PrivacyComplianceHub"));
+// P28 DPO persona — DPOPrivacyHub at /comply/dpo
+const DPOPrivacyHub = lazy(() => import("@/pages/DPOPrivacyHub"));
 // Phase 3 §2.20 (Exceptions sub-cluster) — ExceptionsHub at /remediate/exceptions
 const ExceptionsHub = lazy(() => import("@/pages/ExceptionsHub"));
 // Phase 3 §2.22 (Incident Extensions sub-cluster) — IncidentExtensionsHub at /remediate/incidents/extensions
@@ -791,6 +794,8 @@ export default function App() {
             <Route path="/comply/maturity" element={<MaturityHub />} />
             {/* Phase 3 §2.23 — Privacy/Controls sub-cluster folded into PrivacyComplianceHub at /comply/privacy */}
             <Route path="/comply/privacy" element={<PrivacyComplianceHub />} />
+            {/* P28 DPO persona — DPO Privacy Center */}
+            <Route path="/comply/dpo" element={<DPOPrivacyHub />} />
             {/* Security Maturity, Privacy/GDPR, Network Traffic, Container Security */}
             <Route path="/security-maturity" element={<Navigate to="/comply/maturity?tab=security" replace />} />
             <Route path="/posture-maturity" element={<Navigate to="/comply/maturity?tab=posture" replace />} />
