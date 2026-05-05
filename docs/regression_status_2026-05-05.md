@@ -393,3 +393,19 @@ Commits validated since sweep #16:
 Delta vs sweep #16: 0 regressions. Both commits are docs-only (zero production Python changes).
   Beast Mode: 753/753 stable. Perf: 194/194 stable, 2 skipped, 0 failed.
   OWASP/asyncio lockdown: 1/1 stable. All 3 standard suites GREEN at HEAD d65b60df.
+
+Sweep #18 — HEAD 3eb988a0 — production build restored, all green
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors
+Suite 2 — Perf benchmarks (-m perf): 194 passed, 2 skipped, 0 failed
+Suite 3 — OWASP lockdown (test_owasp_regression_lockdown.py direct): 47 passed, 0 failed, 0 errors in 0.50s
+
+Total sweep #18: 994 passed, 0 failed, 2 skipped, 0 errors
+Timestamp: 2026-05-05T11:13:00Z
+
+BROKEN COLLECTORS: 0 — unchanged from sweep #17.
+
+Commits validated since sweep #17: 3eb988a0 (production build restored).
+
+Delta vs sweep #17: 0 regressions. All 3 standard suites GREEN at HEAD 3eb988a0.
+  Beast Mode: 753/753 stable. Perf: 194/194 stable, 2 skipped, 0 failed.
+  OWASP lockdown: 47/47 stable (verified live run 2026-05-05T11:13:03Z).
