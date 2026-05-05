@@ -728,7 +728,13 @@ fail_gap = APIRouter(prefix="/api/v1/fail", tags=["fail-gap"], dependencies=_AUT
 @fail_gap.get("/", summary="Fail engine index", tags=["fail-gap"])
 async def fail_index(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return FAIL chaos engine summary for the org."""
-    return {"router": "fail", "org_id": org_id, "items": [], "count": 0}
+    try:
+        from core.fail_engine import FAILEngine
+        engine = FAILEngine()
+        stats = engine.stats()
+    except Exception:
+        stats = {"total_scored": 0}
+    return {"router": "fail", "org_id": org_id, "stats": stats, "count": stats.get("total_scored", 0)}
 
 
 @fail_gap.get("/history")
