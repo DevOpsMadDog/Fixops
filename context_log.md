@@ -1,5 +1,23 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 11:17] qa-engineer — REGRESSION_SWEEP_19
+- **What**: Sweep #19 at HEAD e3b2660f. Validated 2 commits since sweep #18 (48e6424c CI ui-build-verification job, e3b2660f HANDOFF v10 — both CI config/docs only, zero production Python). Beast Mode 753/753 in 8.57s. Perf -m perf: 194 passed, 2 skipped, 0 failed (44782 deselected) in 27.74s. OWASP lockdown (test_no_unsafe_asyncio_run.py): 1/1 in 6.06s. All 3 suites green. Committed 6ef61fe4, pushed.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 0 regressions, all suites green at HEAD e3b2660f.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 11:00] qa-engineer — REGRESSION_SWEEP_17
+- **What**: Sweep #17 at HEAD d65b60df. Validated 2 commits since sweep #16 (667f62b7 tally v2, d751b66d HANDOFF v9 — both docs-only, zero production Python). Beast Mode 753/753. Perf -m perf broad: 194 passed, 2 skipped, 0 failed (44782 deselected). OWASP/asyncio lockdown: 1/1. 0 broken collectors. All 3 suites green. Committed e755e178, pushed.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 0 regressions, 0 broken collectors, all suites green at HEAD d65b60df.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 10:55] qa-engineer — REGRESSION_SWEEP_16
+- **What**: Sweep #16 at HEAD ed6512e0. Validated module-cache ordering fix (ed6512e0 — closed 3 long-standing broad-scan collection errors). Beast Mode 753/753. Perf -m perf BROAD: 194 passed, 2 skipped, 0 failed (44782 deselected) — +12 tests now collecting that previously errored; 0 broken collectors. OWASP/asyncio lockdown 1/1. All 3 suites green. Previously broken collectors all closed: test_autonomous_cycle.py, test_wave_a_code_intel_router.py, test_reachability_perf.py.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 0 regressions, 0 broken collectors, all suites green at HEAD ed6512e0. Committed b241cd32, pushed.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
 ### [2026-05-05 10:45] qa-engineer — REGRESSION_SWEEP_15
 - **What**: Sweep #15 at HEAD a4b9650d. Validated test_reachability_perf import fix (a4b9650d — stale _add_edge import corrected). Beast Mode 753/753. Perf -m broad: 182 passed, 2 skipped, 0 failed (test_reachability_perf still errors in broad scan due to pre-existing module-cache ordering — NOT a regression from a4b9650d). OWASP/asyncio lockdown 1/1. Targeted Suite 4: test_reachability_perf.py standalone 12/12 GREEN, combined with test_no_unsafe_asyncio_run.py 13/13 GREEN. Fix confirmed correct.
 - **Files touched**: docs/regression_status_2026-05-05.md
