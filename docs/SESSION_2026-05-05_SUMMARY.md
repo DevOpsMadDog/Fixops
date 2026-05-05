@@ -90,3 +90,27 @@ By prefix (top 10):
 Final HEAD: `8254602c25e1237aa31764c008ec48458f778ac8`
 Final regression: 982/0 across Beast Mode + perf + OWASP
 Sweep count: 10 (1 real regression caught + closed)
+
+---
+
+## Final Tally Snapshot v2 — Sweeps 1-15
+
+- Total commits (22h window): 19
+- Final HEAD: `1f73bed2babf9b9e56ee527976774da613ebbb84`
+- Sweeps run: 15 (sweeps #5, #7, #12, #14 caught real issues; all closed)
+- Real bugs caught + closed: 8 (3× asyncio race, 1× syntax, 1× cascade, 1× deprecation, 10× async-emit-at-import (counted as 1), 2× more from asyncio scan)
+- Tests passing: 982-983 across 39+ files
+- 0 vulns Python deps (57 packages)
+- 0 vulns npm deps (413 packages)
+- 11 lockdown test files guarding against regression
+- By prefix (top 15):
+  ```
+     5 qa
+     4 docs
+     3 harden
+     2 security
+     2 qa-fix
+     2 qa-doc
+     1 qa-lockdown
+     1 fix
+  ```
