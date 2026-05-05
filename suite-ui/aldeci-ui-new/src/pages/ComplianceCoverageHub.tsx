@@ -26,8 +26,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Lazy-imported panel components — each wired to a real backend endpoint.
+const ComplianceGapPanel = lazy(() => import("@/components/compliance/ComplianceGapPanel"));
+const CloudCompliancePanel = lazy(() => import("@/components/compliance/CloudCompliancePanel"));
+const EndpointCompliancePanel = lazy(() => import("@/components/compliance/EndpointCompliancePanel"));
 
 type TabKey = "gaps" | "cloud" | "endpoint";
 
@@ -121,14 +123,17 @@ export default function ComplianceCoverageHub() {
 
         <TabsContent value="gaps">
           <Suspense fallback={<PageSkeleton />}>
+            <ComplianceGapPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="cloud">
           <Suspense fallback={<PageSkeleton />}>
+            <CloudCompliancePanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="endpoint">
           <Suspense fallback={<PageSkeleton />}>
+            <EndpointCompliancePanel />
           </Suspense>
         </TabsContent>
       </Tabs>
