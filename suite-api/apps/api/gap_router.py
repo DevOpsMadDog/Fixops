@@ -3667,8 +3667,19 @@ supply_chain_gap = APIRouter(prefix="/api/v1/supply-chain", tags=["supply-chain-
 
 @supply_chain_gap.get("/", summary="Supply chain index", tags=["supply-chain-gap"])
 async def supply_chain_index(org_id: str = Query("default")) -> Dict[str, Any]:
-    """Return supply chain summary for the org."""
-    return {"router": "supply-chain", "org_id": org_id, "items": [], "count": 0}
+    """Return supply chain summary for the org via SupplyChainIntel engine."""
+    try:
+        from core.supply_chain_intel import SupplyChainIntel
+        intel = SupplyChainIntel()
+        stats = intel.get_supply_chain_stats(org_id=org_id)
+        return {
+            "router": "supply-chain",
+            **stats,
+            "count": stats.get("total_packages_analyzed", 0),
+        }
+    except (ImportError, OSError, ValueError, RuntimeError) as exc:
+        logger.debug("SupplyChainIntel unavailable: %s", exc)
+        return {"router": "supply-chain", "org_id": org_id, "count": 0, "error": type(exc).__name__}
 
 
 @supply_chain_gap.get("/graph")
