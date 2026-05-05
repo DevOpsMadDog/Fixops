@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bell, X, AlertTriangle, Info, CheckCircle, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -48,8 +48,7 @@ export function NotificationBell() {
   const { data, isLoading, dataUpdatedAt } = useQuery<AlertsResponse>({
     queryKey: ["notifications", "alert-triage"],
     queryFn: async () => {
-      const base = import.meta.env.VITE_API_URL || "";
-      const { data } = await axios.get(`${base}/api/v1/alert-triage/alerts`, {
+      const { data } = await api.get(`/api/v1/alert-triage/alerts`, {
         params: { org_id: "default", limit: 5 },
       });
       return data;

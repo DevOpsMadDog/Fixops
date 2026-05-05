@@ -1,0 +1,245 @@
+[
+  {
+    "name": "root",
+    "url": "http://localhost:5173/",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "name": "executive",
+    "url": "http://localhost:5173/executive",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      },
+      {
+        "url": "/api/v1/analytics/dashboard/overview",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/analytics/dashboard/summary",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/compliance/status",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/risk/top?n=5",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/exec-reporting/summary",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/exec-reporting/kpis",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/analytics/dashboard/overview",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/analytics/dashboard/summary",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/compliance/status",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/risk/top?n=5",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/exec-reporting/summary",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/exec-reporting/kpis",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "name": "discover-asset-inventory",
+    "url": "http://localhost:5173/discover/asset-inventory",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "name": "discover-vuln-intel",
+    "url": "http://localhost:5173/discover/vuln-intel",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      },
+      {
+        "url": "/api/v1/vuln-intel/cves?org_id=default",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "name": "discover-identity-governance",
+    "url": "http://localhost:5173/discover/identity-governance",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      },
+      {
+        "url": "/api/v1/identity-governance/stats?org_id=default",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/identity-governance/reviews?org_id=default",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/identity-governance/stats?org_id=default",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/identity-governance/reviews?org_id=default",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "name": "discover-architect",
+    "url": "http://localhost:5173/discover/architect",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "name": "protect-crypto-trust",
+    "url": "http://localhost:5173/protect/crypto-trust",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "name": "respond-incident-knowledge",
+    "url": "http://localhost:5173/respond/incident-knowledge",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      }
+    ]
+  },
+  {
+    "name": "comply-auditor",
+    "url": "http://localhost:5173/comply/auditor",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      },
+      {
+        "url": "/api/v1/audit/compliance/controls",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/audit/compliance/controls",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "name": "comply-dpo",
+    "url": "http://localhost:5173/comply/dpo",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      },
+      {
+        "url": "http://localhost:5173/api/v1/privacy/dsrs",
+        "status": 200
+      },
+      {
+        "url": "http://localhost:5173/api/v1/privacy/dsrs",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "name": "developer",
+    "url": "http://localhost:5173/developer",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "networkCalls": [
+      {
+        "url": "/api/v1/alert-triage/alerts?org_id=default&limit=5",
+        "status": 401
+      },
+      {
+        "url": "/api/v1/dast/findings?author=$user&org_id=default",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/sast/findings?author=$user&org_id=default",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/dast/findings?author=$user&org_id=default",
+        "status": 200
+      },
+      {
+        "url": "/api/v1/sast/findings?author=$user&org_id=default",
+        "status": 200
+      }
+    ]
+  }
+]

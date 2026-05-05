@@ -378,6 +378,8 @@ export const auditApi = {
   policyChanges: () => api.get("/api/v1/audit/policy-changes"),
   verify: () => api.post("/api/v1/audit/verify-chain"),
   complianceFrameworks: () => api.get("/api/v1/audit/compliance/frameworks"),
+  /** GET /api/v1/audit/compliance/controls — control-by-control status for AuditorEvidenceHub */
+  auditControls: (params?: Record<string, unknown>) => api.get("/api/v1/audit/compliance/controls", { params }),
 };
 
 /** Incidents — /api/v1/incidents/ (incident_response_router.py, commit 2fa0171e)
@@ -690,7 +692,8 @@ export const webhooksApi = {
 };
 
 export const vulnIntelApi = {
-  index: (orgId = "default") => api.get(`/api/v1/vuln-intel/`, { params: { org_id: orgId } }),
+  /** /api/v1/vuln-intel/ has no GET root — use /cves which is the actual list endpoint */
+  index: (orgId = "default") => api.get(`/api/v1/vuln-intel/cves`, { params: { org_id: orgId } }),
   stats: (orgId = "default") => api.get(`/api/v1/vuln-intel/stats`, { params: { org_id: orgId } }),
 };
 

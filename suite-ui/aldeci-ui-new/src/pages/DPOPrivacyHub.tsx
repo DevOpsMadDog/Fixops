@@ -41,14 +41,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getStoredAuthToken } from "@/lib/api";
 
 // ─── API fetch helper ────────────────────────────────────────────────────────
 
 const BASE = "/api/v1";
 
 async function apiFetch<T>(path: string): Promise<T> {
+  const token = getStoredAuthToken();
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "X-API-Key": token } : {}),
+    },
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;

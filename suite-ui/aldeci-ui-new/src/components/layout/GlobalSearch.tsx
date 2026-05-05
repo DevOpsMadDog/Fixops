@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, X, AlertTriangle, Bug, HardDrive, Siren, ShieldCheck, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import axios from "axios";
+import api from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -74,7 +74,6 @@ function useDebounce<T>(value: T, delay: number): T {
 // ── Search fetch ───────────────────────────────────────────────────────────
 
 async function fetchSearchResults(query: string): Promise<SearchResult[]> {
-  const base = (import.meta.env.VITE_API_URL?.trim() || "");
   const orgId = window.localStorage.getItem("aldeci.orgId")?.trim() || "default";
   const q = encodeURIComponent(query);
 
@@ -84,23 +83,23 @@ async function fetchSearchResults(query: string): Promise<SearchResult[]> {
 
   const [alerts, vulns, assets, incidents, controls] = await Promise.all([
     safe(() =>
-      axios.get(`${base}/api/v1/alert-triage/alerts`, { params: { org_id: orgId, limit: 5 } })
+      api.get(`/api/v1/alert-triage/alerts`, { params: { org_id: orgId, limit: 5 } })
         .then((r) => r.data?.alerts as RawAlert[] ?? [])
     ),
     safe(() =>
-      axios.get(`${base}/api/v1/vuln-lifecycle/vulnerabilities`, { params: { org_id: orgId, limit: 5, search: q } })
+      api.get(`/api/v1/vuln-lifecycle/vulnerabilities`, { params: { org_id: orgId, limit: 5, search: q } })
         .then((r) => r.data?.vulnerabilities as RawVuln[] ?? r.data?.items as RawVuln[] ?? [])
     ),
     safe(() =>
-      axios.get(`${base}/api/v1/assets`, { params: { org_id: orgId, limit: 5, search: q } })
+      api.get(`/api/v1/assets`, { params: { org_id: orgId, limit: 5, search: q } })
         .then((r) => r.data?.assets as RawAsset[] ?? r.data?.items as RawAsset[] ?? [])
     ),
     safe(() =>
-      axios.get(`${base}/api/v1/incident-orchestration/incidents`, { params: { org_id: orgId, limit: 5 } })
+      api.get(`/api/v1/incident-orchestration/incidents`, { params: { org_id: orgId, limit: 5 } })
         .then((r) => r.data?.incidents as RawIncident[] ?? [])
     ),
     safe(() =>
-      axios.get(`${base}/api/v1/compliance/frameworks`, { params: { org_id: orgId } })
+      api.get(`/api/v1/compliance/frameworks`, { params: { org_id: orgId } })
         .then((r) => r.data?.frameworks as RawControl[] ?? r.data as RawControl[] ?? [])
     ),
   ]);

@@ -29,18 +29,15 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { getStoredAuthToken } from "@/lib/api";
 
 // ── API ──────────────────────────────────────────────────────────────────────
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
-const getKey = () =>
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
 
 async function apiFetch<T = unknown>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "X-API-Key": getKey() },
+    headers: { "X-API-Key": getStoredAuthToken() },
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
