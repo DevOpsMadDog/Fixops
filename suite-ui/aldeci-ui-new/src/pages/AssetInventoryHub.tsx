@@ -29,7 +29,7 @@
  * surfaces that sit above the inventory table.
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -46,6 +46,10 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { AssetGroupsPanel } from "@/components/assets/AssetGroupsPanel";
+import { AssetTagsPanel } from "@/components/assets/AssetTagsPanel";
+import { AssetCriticalityPanel } from "@/components/assets/AssetCriticalityPanel";
+import { CMDBPanel } from "@/components/assets/CMDBPanel";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -185,18 +189,22 @@ export default function AssetInventoryHub() {
 
         <TabsContent value="groups">
           <Suspense fallback={<PageSkeleton />}>
+            <AssetGroupsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="tags">
           <Suspense fallback={<PageSkeleton />}>
+            <AssetTagsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="criticality">
           <Suspense fallback={<PageSkeleton />}>
+            <AssetCriticalityPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="cmdb">
           <Suspense fallback={<PageSkeleton />}>
+            <CMDBPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="risk">

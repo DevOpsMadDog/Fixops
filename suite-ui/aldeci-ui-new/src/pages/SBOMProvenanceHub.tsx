@@ -18,7 +18,7 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.25
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -32,10 +32,10 @@ import {
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { SBOMExportPanel } from "@/components/sbom/SBOMExportPanel";
+import { PipelineBOMPanel } from "@/components/sbom/PipelineBOMPanel";
+import { PBOMPropagationPanel } from "@/components/sbom/PBOMPropagationPanel";
+import { SLSAProvenancePanel } from "@/components/sbom/SLSAProvenancePanel";
 
 type TabKey =
   | "export"
@@ -147,28 +147,28 @@ export default function SBOMProvenanceHub() {
         <p className="text-xs text-muted-foreground mt-2 mb-1">{activeMeta.description}</p>
 
         <TabsContent value="export">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <SBOMExportPanel />
         </TabsContent>
         <TabsContent value="pipeline-bom">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <PipelineBOMPanel />
         </TabsContent>
         <TabsContent value="pbom-prop">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <PBOMPropagationPanel />
         </TabsContent>
         <TabsContent value="slsa">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <SLSAProvenancePanel />
         </TabsContent>
         <TabsContent value="attestation">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          {/* SHELL — /api/v1/provenance/{artifact}/attestation — wired in next batch */}
+          <div className="mt-4 flex items-center justify-center py-16 text-sm text-muted-foreground">
+            Attestation graph coming in next wire batch.
+          </div>
         </TabsContent>
         <TabsContent value="sign">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          {/* SHELL — /api/v1/provenance/sign — wired in next batch */}
+          <div className="mt-4 flex items-center justify-center py-16 text-sm text-muted-foreground">
+            Signing form coming in next wire batch.
+          </div>
         </TabsContent>
       </Tabs>
     </motion.div>

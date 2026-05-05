@@ -474,6 +474,29 @@ export const sbomApi = {
   export: (params?: Record<string, string>) => api.get("/api/v1/sbom/export", { params }),
 };
 
+export const sbomExportApi = {
+  list: (orgId = "default") => api.get("/api/v1/sbom-export/", { params: { org_id: orgId } }),
+  projects: (orgId = "default") => api.get("/api/v1/sbom-export/projects", { params: { org_id: orgId } }),
+  projectSummary: (project: string, orgId = "default") =>
+    api.get(`/api/v1/sbom-export/projects/${encodeURIComponent(project)}/summary`, { params: { org_id: orgId } }),
+  history: (project: string, orgId = "default") =>
+    api.get(`/api/v1/sbom-export/projects/${encodeURIComponent(project)}/history`, { params: { org_id: orgId } }),
+};
+
+export const pbomApi = {
+  stats: (orgId = "default") => api.get("/api/v1/pbom/stats", { params: { org_id: orgId } }),
+  artifactProvenance: (sha256: string, orgId = "default") =>
+    api.get(`/api/v1/pbom/artifact/${encodeURIComponent(sha256)}/provenance`, { params: { org_id: orgId } }),
+  exportRun: (runId: string) => api.get(`/api/v1/pbom/run/${encodeURIComponent(runId)}/export`),
+};
+
+export const slsaApi = {
+  stats: (orgId = "default") => api.get("/api/v1/slsa/stats", { params: { org_id: orgId } }),
+  attestations: (orgId = "default", filters?: { subject_name?: string; builder_id?: string }) =>
+    api.get("/api/v1/slsa/attestations", { params: { org_id: orgId, ...filters } }),
+  getAttestation: (id: string) => api.get(`/api/v1/slsa/attestations/${encodeURIComponent(id)}`),
+};
+
 export const cspmApi = {
   status: () => api.get("/api/v1/cspm/status"),
   rules: () => api.get("/api/v1/cspm/rules"),
@@ -675,6 +698,27 @@ export const identityGovernanceApi = {
 };
 
 // ── MCP (Model Context Protocol) ──
+export const assetGroupsApi = {
+  list: (params?: Record<string, string>) => api.get("/api/v1/asset-groups/groups", { params }),
+  stats: (orgId = "default") => api.get("/api/v1/asset-groups/stats", { params: { org_id: orgId } }),
+};
+
+export const assetTagsApi = {
+  listTags: (orgId = "default") => api.get("/api/v1/asset-tags/tags", { params: { org_id: orgId } }),
+  stats: (orgId = "default") => api.get("/api/v1/asset-tags/stats", { params: { org_id: orgId } }),
+};
+
+export const assetCriticalityApi = {
+  list: (orgId = "default") => api.get("/api/v1/asset-criticality/assets", { params: { org_id: orgId } }),
+  summary: (orgId = "default") => api.get("/api/v1/asset-criticality/summary", { params: { org_id: orgId } }),
+};
+
+export const cmdbApi = {
+  listCIs: (params?: Record<string, string>) => api.get("/api/v1/cmdb/cis", { params }),
+  listChanges: (orgId = "default") => api.get("/api/v1/cmdb/changes", { params: { org_id: orgId } }),
+  stats: (orgId = "default") => api.get("/api/v1/cmdb/stats", { params: { org_id: orgId } }),
+};
+
 export const mcpApi = {
   status: () => api.get("/api/v1/mcp-protocol/status"),
   stats: () => api.get("/api/v1/mcp-protocol/stats"),
@@ -686,4 +730,51 @@ export const mcpApi = {
   registerClient: (clientName: string, capabilities?: Record<string, unknown>) =>
     api.post("/api/v1/mcp/clients/register", { client_name: clientName, capabilities }),
   discover: () => api.post("/api/v1/mcp-protocol/discover"),
+};
+
+// ── Upgrade Path Resolver ──
+export const upgradePathApi = {
+  /** GET /api/v1/upgrade-path/stats — resolution counts + rate */
+  stats: (orgId?: string) =>
+    api.get("/api/v1/upgrade-path/stats", { params: orgId ? { org_id: orgId } : {} }),
+  /** POST /api/v1/upgrade-path/resolve — resolve single purl */
+  resolve: (orgId: string, purl: string, cveIds: string[]) =>
+    api.post("/api/v1/upgrade-path/resolve", { org_id: orgId, purl, cve_ids: cveIds }),
+  /** POST /api/v1/upgrade-path/bulk-resolve — batch resolve */
+  bulkResolve: (orgId: string, findings: Array<{ purl: string; cve_ids: string[] }>) =>
+    api.post("/api/v1/upgrade-path/bulk-resolve", { org_id: orgId, findings }),
+};
+
+// ── Network Topology ──
+export const networkTopologyApi = {
+  /** GET /api/v1/network-topology/stats */
+  stats: (orgId = "default") =>
+    api.get("/api/v1/network-topology/stats", { params: { org_id: orgId } }),
+  /** GET /api/v1/network-topology/nodes */
+  nodes: (orgId = "default", nodeType?: string, criticality?: string) =>
+    api.get("/api/v1/network-topology/nodes", {
+      params: { org_id: orgId, node_type: nodeType, criticality },
+    }),
+  /** GET /api/v1/network-topology/segments */
+  segments: (orgId = "default") =>
+    api.get("/api/v1/network-topology/segments", { params: { org_id: orgId } }),
+  /** GET /api/v1/network-topology/exposure */
+  exposure: (orgId = "default") =>
+    api.get("/api/v1/network-topology/exposure", { params: { org_id: orgId } }),
+};
+
+// ── Binary Fingerprint ──
+export const binaryFpApi = {
+  /** GET /api/v1/binary-fp/stats — fingerprint counters per org */
+  stats: (orgId = "default") =>
+    api.get("/api/v1/binary-fp/stats", { params: { org_id: orgId } }),
+};
+
+// ── Risk Overview (suite-evidence-risk) ──
+export const riskOverviewApi = {
+  /** GET /api/v1/risk/overview — overall risk posture summary */
+  overview: () => api.get("/api/v1/risk/overview"),
+  /** GET /api/v1/risk/scores — per-component risk scores */
+  scores: (params?: Record<string, string>) =>
+    api.get("/api/v1/risk/scores", { params }),
 };
