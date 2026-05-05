@@ -426,3 +426,17 @@ Commits validated since sweep #17: 3eb988a0 (production build restored).
 Delta vs sweep #17: 0 regressions. All 3 standard suites GREEN at HEAD 3eb988a0.
   Beast Mode: 753/753 stable. Perf: 194/194 stable, 2 skipped, 0 failed.
   OWASP lockdown: 47/47 stable (verified live run 2026-05-05T11:13:03Z).
+
+---
+
+## Sweep #20 (final)
+
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors
+Suite 2 — Perf benchmarks (-m perf): 194 passed, 2 skipped, 0 failed
+Suite 3 — OWASP lockdown: 47 passed, 0 failed, 0 errors
+Suite 4 — UI (comply only): 24 passed, 40 skipped
+
+Total sweep #20: 1018 passed, 0 failed, 42 skipped, 0 errors
+HEAD: 6f8e137e — round-number wrap
+
+Delta vs sweep #18: 0 regressions. All suites GREEN.
