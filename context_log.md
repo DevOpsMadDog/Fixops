@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 12:52] qa-engineer — REGRESSION_SWEEP_24
+- **What**: Sweep #24 at HEAD 2c72e3a0. Final certification run. Full 4-suite sweep: Beast Mode 13 files 753/753 in 8.63s; Perf -m perf 194 passed, 2 skipped, 44782 deselected in 26.28s; OWASP -m owasp 47 passed, 2 skipped, 44929 deselected in 17.86s; Lockdown (test_no_unsafe_asyncio_run.py + test_no_unawaited_coroutines_at_import.py) 11/11 in 6.50s. Total: 1005 passed, 0 failed, 4 skipped. 0 broken collectors.
+- **Files touched**: docs/regression_status_2026-05-05.md, context_log.md
+- **Outcome**: SUCCESS — 0 regressions, all suites green, final certification at HEAD 2c72e3a0.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
 ### [2026-05-04 00:00] technical-writer — DOCS_INDEX_CREATED
 - **What**: Enumerated all 24 docs/*.md files and created docs/INDEX.md (82 lines) organized into 5 categories: source of truth, session handoffs, 2026-05-05 audits, 2026-05-05 triage reports, agent infrastructure, ruflo evaluation. Includes a 5-file read-order for incoming agents. Committed 9d36830a and pushed.
 - **Files touched**: docs/INDEX.md

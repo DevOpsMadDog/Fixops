@@ -496,3 +496,51 @@ Commits validated since sweep #21 (cfd36eb2):
 
 Delta vs sweep #21: 0 regressions. Abbreviated check sufficient for doc-only commits.
   Phase tests: 111/111 GREEN. Perf marker: 194 stable. OWASP marker: 47 stable.
+
+---
+
+## Sweep #23 (abbreviated — doc-only commits)
+
+Suite 1 — Beast Mode canonical (13 files): abbreviated (doc-only commits, no production Python)
+Suite 2 — Perf benchmarks (-m perf): abbreviated
+Suite 3 — OWASP lockdown (-m owasp): abbreviated
+
+Total sweep #23: abbreviated, 0 regressions reported
+HEAD: a34c5fb6 — context_log session-end refresh
+Timestamp: 2026-05-05T12:40:00Z
+
+Commits validated since sweep #22 (d9b7051e):
+  a34c5fb6 (context_log refresh — doc-only), b97fe29e (gitignore auto-gen state files),
+  f2ddd3b4 (sweep #23 commit — doc-only)
+
+Delta vs sweep #22: 0 regressions. Doc-only commits.
+
+---
+
+## Sweep #24 — HEAD 2c72e3a0 — final certification
+
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.63s
+Suite 2 — Perf benchmarks (-m perf): 194 passed, 2 skipped, 0 failed, 44782 deselected in 26.28s
+Suite 3 — OWASP lockdown (-m owasp): 47 passed, 2 skipped, 0 failed, 44929 deselected in 17.86s
+Suite 4 — Lockdown tests (test_no_unsafe_asyncio_run.py + test_no_unawaited_coroutines_at_import.py): 11 passed, 0 failed in 6.50s
+
+Total sweep #24: 1005 passed, 0 failed, 4 skipped, 0 errors
+HEAD: 2c72e3a0 — docs/INDEX.md TLDR + purge-tools smoke entries
+Timestamp: 2026-05-05T12:52:00Z
+
+Commits validated since sweep #23 (f2ddd3b4):
+  9945b729 (SESSION_2026-05-05_TLDR.md — doc-only)
+  2c72e3a0 (docs/INDEX.md TLDR + purge-tools smoke — doc-only)
+
+LOCKDOWN TESTS DETAIL:
+  test_no_unsafe_asyncio_run.py: passes (AST scan — zero unsafe asyncio.run() violations in codebase)
+  test_no_unawaited_coroutines_at_import.py: passes (import-time coroutine check — zero violations)
+  Combined: 11/11 GREEN
+
+BROKEN COLLECTORS: 0 — broad scan clean, unchanged from sweep #16 forward.
+
+Delta vs sweep #23: 0 regressions. Full 4-suite run confirms all green at HEAD 2c72e3a0.
+  Beast Mode: 753/753 stable. Perf: 194/194 stable, 2 skipped, 0 failed.
+  OWASP lockdown: 47/47 stable, 2 skipped, 0 failed.
+  Lockdown tests: 11/11 GREEN (asyncio + coroutine scans both pass).
+  CERTIFICATION: ALL GREEN — sweep #24 final.
