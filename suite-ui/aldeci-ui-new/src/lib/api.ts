@@ -618,6 +618,32 @@ export const accessMatrixApi = {
     api.get(`/api/v1/access-matrix/permissions/${role}`, { params: { org_id: orgId } }),
 };
 
+// ── EPSS (Exploit Prediction Scoring System) ──
+export const epssApi = {
+  /** GET /api/v1/epss/scores — list scores ordered by epss_score DESC */
+  scores: (params?: { cve_id?: string; epss_min?: number; percentile_min?: number; page?: number; page_size?: number }) =>
+    api.get("/api/v1/epss/scores", { params }),
+  /** GET /api/v1/epss/scores/{cve_id} — score for a single CVE */
+  byCve: (cveId: string) => api.get(`/api/v1/epss/scores/${encodeURIComponent(cveId)}`),
+  /** POST /api/v1/epss/import — trigger FIRST.org daily CSV import */
+  triggerImport: () => api.post("/api/v1/epss/import"),
+};
+
+// ── Webhook DLQ (Dead Letter Queue) ──
+export const webhookDlqApi = {
+  /** GET /api/v1/webhooks/dlq/ — list all deliveries */
+  list: (params?: { limit?: number; offset?: number }) =>
+    api.get("/api/v1/webhooks/dlq/", { params }),
+  /** GET /api/v1/webhooks/dlq/pending — deliveries ready for retry */
+  pending: (params?: { limit?: number }) =>
+    api.get("/api/v1/webhooks/dlq/pending", { params }),
+  /** GET /api/v1/webhooks/dlq/stats — DLQ status counts */
+  stats: () => api.get("/api/v1/webhooks/dlq/stats"),
+  /** POST /api/v1/webhooks/dlq/{delivery_id}/replay — replay single delivery */
+  replay: (deliveryId: string) =>
+    api.post(`/api/v1/webhooks/dlq/${encodeURIComponent(deliveryId)}/replay`),
+};
+
 // ── MCP (Model Context Protocol) ──
 export const mcpApi = {
   status: () => api.get("/api/v1/mcp-protocol/status"),

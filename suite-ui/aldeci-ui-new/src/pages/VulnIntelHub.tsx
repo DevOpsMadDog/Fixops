@@ -34,7 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { vulnIntelApi } from "@/lib/api";
+import { vulnIntelApi, epssApi } from "@/lib/api";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -217,6 +217,134 @@ function VulnIntelOverview() {
   );
 }
 
+interface EpssScore {
+  cve_id?: string;
+  epss?: number;
+  percentile?: number;
+  date?: string;
+  [key: string]: unknown;
+}
+
+interface EpssResponse {
+  scores?: EpssScore[];
+  total?: number;
+  page?: number;
+  page_size?: number;
+}
+
+function EpssScoresPanel() {
+  const { data, isLoading, isError, error } = useQuery<EpssResponse>({
+    queryKey: ["epss", "scores"],
+    queryFn: async () => {
+      const res = await epssApi.scores({ page: 1, page_size: 50 });
+      return res.data as EpssResponse;
+    },
+    staleTime: 120_000,
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">EPSS Scores</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-3 py-10 text-destructive">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p className="text-sm">
+            Failed to load EPSS scores:{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const scores = data?.scores ?? [];
+  const total = data?.total ?? scores.length;
+
+  if (scores.length === 0) {
+    return (
+      <EmptyState
+        icon={Search}
+        title="No EPSS scores ingested"
+        description="Trigger an EPSS import to download the FIRST.org daily feed and populate exploit-prediction scores."
+      />
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center justify-between">
+          <span>EPSS Scores — Exploit Prediction</span>
+          <Badge variant="secondary">{total} CVEs</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground uppercase tracking-wide">
+                <th className="px-4 py-2 font-medium">CVE ID</th>
+                <th className="px-4 py-2 font-medium">EPSS Score</th>
+                <th className="px-4 py-2 font-medium">Percentile</th>
+                <th className="px-4 py-2 font-medium">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {scores.map((row, idx) => {
+                const cveId = row.cve_id ?? `epss-${idx}`;
+                const epss = typeof row.epss === "number" ? row.epss : 0;
+                const pct = typeof row.percentile === "number" ? row.percentile : 0;
+                const epssDisplay = (epss * 100).toFixed(2) + "%";
+                const pctDisplay = (pct * 100).toFixed(1) + "th";
+                const riskClass =
+                  epss >= 0.7
+                    ? "bg-red-600 text-white"
+                    : epss >= 0.4
+                    ? "bg-amber-500 text-black"
+                    : "bg-blue-500 text-white";
+                const dateDisplay = row.date
+                  ? new Date(row.date).toLocaleDateString()
+                  : "—";
+
+                return (
+                  <tr key={cveId} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-2 font-mono text-xs text-indigo-400 whitespace-nowrap">
+                      {cveId}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${riskClass}`}
+                      >
+                        {epssDisplay}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">{pctDisplay}</td>
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{dateDisplay}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function isTabKey(v: string | null): v is TabKey {
   return !!v && VALID_TABS.has(v as TabKey);
 }
@@ -281,6 +409,7 @@ export default function VulnIntelHub() {
         </TabsContent>
         <TabsContent value="cve-search">
           <Suspense fallback={<PageSkeleton />}>
+            <EpssScoresPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="ip-rep">
