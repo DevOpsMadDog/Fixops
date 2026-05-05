@@ -33,6 +33,10 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { UpgradeResolverPanel } from "@/components/upgrade-paths/UpgradeResolverPanel";
+import { DependencyMapPanel } from "@/components/upgrade-paths/DependencyMapPanel";
+import { BinaryFingerprintPanel } from "@/components/upgrade-paths/BinaryFingerprintPanel";
+import { DependencyRiskPanel } from "@/components/upgrade-paths/DependencyRiskPanel";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -148,26 +152,34 @@ export default function UpgradePathsHub() {
 
         <TabsContent value="resolver">
           <Suspense fallback={<PageSkeleton />}>
+            <UpgradeResolverPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="explorer">
+          {/* SHELL — /api/v1/components/{purl}/safe-upgrade explorer (no purl router found) */}
           <Suspense fallback={<PageSkeleton />}>
+            <UpgradeResolverPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="version-graph">
+          {/* SHELL — version-graph shares resolver backend; reuse panel */}
           <Suspense fallback={<PageSkeleton />}>
+            <UpgradeResolverPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="dep-map">
           <Suspense fallback={<PageSkeleton />}>
+            <DependencyMapPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="binary-fp">
           <Suspense fallback={<PageSkeleton />}>
+            <BinaryFingerprintPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="dep-risk">
           <Suspense fallback={<PageSkeleton />}>
+            <DependencyRiskPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
