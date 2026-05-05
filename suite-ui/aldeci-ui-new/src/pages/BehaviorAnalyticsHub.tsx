@@ -25,8 +25,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Panels — lazy-loaded, wired to real backends
+const UBAPanel = lazy(() => import("@/components/behavior/UBAPanel"));
+const BehavioralAnalyticsPanel = lazy(() => import("@/components/behavior/BehavioralAnalyticsPanel"));
+const InsiderThreatPanel = lazy(() => import("@/components/behavior/InsiderThreatPanel"));
 
 type TabKey = "uba" | "behavioral" | "insider";
 
@@ -120,14 +122,17 @@ export default function BehaviorAnalyticsHub() {
 
         <TabsContent value="uba">
           <Suspense fallback={<PageSkeleton />}>
+            <UBAPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="behavioral">
           <Suspense fallback={<PageSkeleton />}>
+            <BehavioralAnalyticsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="insider">
           <Suspense fallback={<PageSkeleton />}>
+            <InsiderThreatPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
