@@ -58,6 +58,7 @@ const SLSAProvenance = lazy(() => import("@/pages/comply/SLSAProvenance"));
 const Reports = lazy(() => import("@/pages/comply/Reports"));
 const Analytics = lazy(() => import("@/pages/comply/Analytics"));
 const EvidenceExportCenter = lazy(() => import("@/pages/comply/EvidenceExportCenter"));
+const AuditorEvidenceHub = lazy(() => import("@/pages/comply/AuditorEvidenceHub"));
 
 // Settings
 const Integrations = lazy(() => import("@/pages/settings/Integrations"));
@@ -508,6 +509,7 @@ export default function App() {
             <Route path="/comply/reports" element={<Reports />} />
             <Route path="/comply/analytics" element={<Analytics />} />
             <Route path="/comply/export" element={<EvidenceExportCenter />} />
+            <Route path="/comply/auditor" element={<AuditorEvidenceHub />} />
 
             {/* Settings */}
             <Route path="/settings/integrations" element={<Integrations />} />
