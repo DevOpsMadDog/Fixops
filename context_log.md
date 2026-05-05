@@ -1,5 +1,17 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 13:00] technical-writer — DOC_INVENTORY
+- **What**: Cross-checked all 14 session docs against HANDOFF_2026-05-05.md. Found 0 references in v1-v13 closing notes. Appended Closing Note v14 with full inventory table (filename + 1-line summary for each of the 14 docs). Committed d9b7051e and pushed.
+- **Files touched**: docs/HANDOFF_2026-05-05.md
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (operational excellence / audit trail)
+
+### [2026-05-05 12:13] qa-engineer — REGRESSION_SWEEP_21
+- **What**: Sweep #21 at HEAD cfd36eb2. Validated 7 commits since sweep #20 (a8a08628): cad33d9a (dedupe), 3519e40b (owasp marker), 465317ae (ci-doc), 64c84eca (snapshot v3), 6381af43 (CLAUDE.md), 426fa14b (marker smoke), cfd36eb2 (dead marker cleanup). Beast Mode 753/753 in 8.74s. Perf -m perf: 194 passed, 2 skipped, 44782 deselected in 26.55s. OWASP -m owasp: 47 passed, 2 skipped, 44929 deselected in 17.95s. All 3 suites green. Committed b69947ae, pushed.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 0 regressions, all suites green at HEAD cfd36eb2.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
 ### [2026-05-05 11:17] qa-engineer — REGRESSION_SWEEP_19
 - **What**: Sweep #19 at HEAD e3b2660f. Validated 2 commits since sweep #18 (48e6424c CI ui-build-verification job, e3b2660f HANDOFF v10 — both CI config/docs only, zero production Python). Beast Mode 753/753 in 8.57s. Perf -m perf: 194 passed, 2 skipped, 0 failed (44782 deselected) in 27.74s. OWASP lockdown (test_no_unsafe_asyncio_run.py): 1/1 in 6.06s. All 3 suites green. Committed 6ef61fe4, pushed.
 - **Files touched**: docs/regression_status_2026-05-05.md
