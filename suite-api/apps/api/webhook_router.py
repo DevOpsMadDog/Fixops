@@ -345,6 +345,13 @@ async def list_events(
 
 
 @router.get("/", summary="Webhooks index", tags=["webhooks"])
-async def webhooks_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Return a summary of registered webhooks for the org."""
-    return {"router": "webhooks", "org_id": org_id, "items": [], "count": 0}
+async def webhooks_index(
+    org_id: str = Query(default="default"),
+    limit: int = Query(default=20, ge=1, le=200),
+) -> Dict[str, Any]:
+    """Return recent webhook events from the SQLite store."""
+    try:
+        items = _list_events(limit=limit)
+    except Exception:
+        items = []
+    return {"router": "webhooks", "org_id": org_id, "items": items, "count": len(items)}
