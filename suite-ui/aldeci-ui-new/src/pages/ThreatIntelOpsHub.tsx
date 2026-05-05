@@ -19,7 +19,7 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.14
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, Rss, FileText, Siren } from "lucide-react";
@@ -27,9 +27,10 @@ import { Eye, Rss, FileText, Siren } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { WatchlistPanel } from "@/components/threat-intel/WatchlistPanel";
+import { FeedSubscriptionsPanel } from "@/components/threat-intel/FeedSubscriptionsPanel";
+import { ThreatBriefsPanel } from "@/components/threat-intel/ThreatBriefsPanel";
+import { ThreatResponsePanel } from "@/components/threat-intel/ThreatResponsePanel";
 
 type TabKey = "watchlist" | "feeds" | "briefs" | "response";
 
@@ -130,18 +131,22 @@ export default function ThreatIntelOpsHub() {
 
         <TabsContent value="watchlist">
           <Suspense fallback={<PageSkeleton />}>
+            <WatchlistPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="feeds">
           <Suspense fallback={<PageSkeleton />}>
+            <FeedSubscriptionsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="briefs">
           <Suspense fallback={<PageSkeleton />}>
+            <ThreatBriefsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="response">
           <Suspense fallback={<PageSkeleton />}>
+            <ThreatResponsePanel />
           </Suspense>
         </TabsContent>
       </Tabs>
