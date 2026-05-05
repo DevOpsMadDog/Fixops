@@ -28,6 +28,7 @@ Architecture:
 
 from __future__ import annotations
 
+import functools
 import logging
 import xml.etree.ElementTree as ET  # nosec B405
 from typing import Any, Dict, List, Optional
@@ -144,8 +145,6 @@ class FormatDetector:
     @staticmethod
     def _detect_json_format(obj: Dict[str, Any]) -> Optional[str]:
         """Detect format from JSON object."""
-        set(obj.keys())
-
         # SARIF v2.1: has "$schema" containing "sarif" or "runs" array with tool.driver
         if "$schema" in obj and "sarif" in obj.get("$schema", "").lower():
             return "sarif"
@@ -690,13 +689,26 @@ class NormalizerGatewayBridge:
 # Utility & Testing
 # ═══════════════════════════════════════════════════════════════════════════
 
+@functools.lru_cache(maxsize=1)
 def get_registry() -> NormalizerRegistry:
     """Get or create singleton NormalizerRegistry.
 
+    Cached: 31 normalizer classes are instantiated only once per process,
+    not on every call. Subsequent calls return the same instance in O(1).
+
     Returns:
-        NormalizerRegistry instance.
+        NormalizerRegistry instance (shared singleton).
     """
     return NormalizerRegistry()
+
+
+@functools.lru_cache(maxsize=1)
+def _get_default_bridge() -> NormalizerGatewayBridge:
+    """Return the process-level default NormalizerGatewayBridge (no-arg variant).
+
+    Cached so the registry + gateway are built only once.
+    """
+    return NormalizerGatewayBridge(registry=get_registry())
 
 
 def get_bridge(
@@ -705,6 +717,10 @@ def get_bridge(
 ) -> NormalizerGatewayBridge:
     """Get or create NormalizerGatewayBridge.
 
+    When called with no arguments, returns the cached singleton bridge
+    (registry instantiation cost paid only once).  Custom registry/gateway
+    arguments bypass the cache and always create a fresh bridge.
+
     Args:
         registry: Optional custom registry.
         gateway: Optional custom gateway.
@@ -712,6 +728,8 @@ def get_bridge(
     Returns:
         NormalizerGatewayBridge instance.
     """
+    if registry is None and gateway is None:
+        return _get_default_bridge()
     return NormalizerGatewayBridge(registry=registry, gateway=gateway)
 
 
