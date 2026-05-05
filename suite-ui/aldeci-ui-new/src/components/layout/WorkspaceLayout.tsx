@@ -156,9 +156,11 @@ interface NavSection {
 }
 
 // ── Navigation data ────────────────────────────────────────────────────────
-// REWRITTEN 2026-05-05: 163 leaf links → 33 hub entries (Multica #3975)
-// Every entry points to a *Hub.tsx route. Leaf pages remain routed in App.tsx
-// but are no longer top-level sidebar destinations — they live inside hub tabs.
+// TRIMMED 2026-05-05: 43 leaf links → 33 leaf links (Multica #3983)
+// Removed entries are still routed in App.tsx and reachable as hub tabs.
+// Removals: Policy Lifecycle, External Threat Intel, Behavior Analytics (dupe),
+//           Maturity Model, Incident Extensions, Awareness Program, Finance Risk,
+//           Crypto & Trust, Upgrade Paths, Rules Catalog.
 
 const navSections: NavSection[] = [
   // ── 1. DISCOVER ───────────────────────────────────────────────────────────
@@ -170,9 +172,9 @@ const navSections: NavSection[] = [
         label: "Assets & Network",
         icon: HardDrive,
         items: [
+          // Data Discovery (DSPM) removed — accessible as tab inside Asset Inventory hub
           { label: "Asset Inventory", to: "/discover/assets/inventory", icon: HardDrive },
           { label: "Network Monitoring", to: "/discover/network", icon: Network },
-          { label: "Data Discovery (DSPM)", to: "/discover/dspm", icon: Database },
         ],
       },
       {
@@ -187,9 +189,9 @@ const navSections: NavSection[] = [
         label: "Cloud & Containers",
         icon: Cloud,
         items: [
+          // Crypto & Trust removed — accessible as tab inside Asset Inventory hub
           { label: "Cloud Posture", to: "/discover/cloud-posture", icon: Cloud },
           { label: "Container Security", to: "/discover/container-security", icon: Container },
-          { label: "Crypto & Trust", to: "/discover/crypto", icon: Lock },
         ],
       },
       {
@@ -229,9 +231,9 @@ const navSections: NavSection[] = [
         label: "Validate",
         icon: ShieldCheck,
         items: [
+          // Deception & Honeypots removed — accessible as tab inside Offensive Validation hub
           { label: "Offensive Validation", to: "/validate/offensive", icon: Crosshair, badge: "MPTE" },
           { label: "Threat Modeling", to: "/attack/threat-modeling", icon: Layers },
-          { label: "Deception & Honeypots", to: "/brain/fail/deception", icon: Flame },
         ],
       },
     ],
@@ -246,8 +248,8 @@ const navSections: NavSection[] = [
         label: "Incidents",
         icon: Siren,
         items: [
+          // Incident Extensions removed — accessible as tab inside Incident Knowledge hub
           { label: "Incident Knowledge", to: "/remediate/incidents/knowledge", icon: Siren, badge: "IR" },
-          { label: "Incident Extensions", to: "/remediate/incidents/extensions", icon: AlertTriangle },
           { label: "Exceptions", to: "/remediate/exceptions", icon: ShieldAlert },
         ],
       },
@@ -255,8 +257,8 @@ const navSections: NavSection[] = [
         label: "Remediation",
         icon: Wrench,
         items: [
+          // Upgrade Paths removed — accessible as tab inside Automation & Orchestration hub
           { label: "Automation & Orchestration", to: "/remediate/automation", icon: Zap },
-          { label: "Upgrade Paths", to: "/remediate/upgrade", icon: TrendingUp },
           { label: "Forensics", to: "/remediate/forensics", icon: ScanSearch },
         ],
       },
@@ -280,20 +282,20 @@ const navSections: NavSection[] = [
         label: "Frameworks & Coverage",
         icon: ClipboardCheck,
         items: [
+          // Rules Catalog removed — accessible as tab inside Compliance Coverage hub
+          // Policy Lifecycle removed — accessible as tab inside Policy Authoring hub
           { label: "Compliance Coverage", to: "/comply/coverage", icon: ClipboardCheck },
-          { label: "Policy Authoring", to: "/comply/policies/authoring", icon: FileSignature },
-          { label: "Policy Lifecycle", to: "/comply/policies/lifecycle", icon: ScrollText },
-          { label: "Rules Catalog", to: "/comply/rules", icon: BookOpen },
+          { label: "Policy Management", to: "/comply/policies/authoring", icon: FileSignature },
         ],
       },
       {
         label: "Posture & Risk",
         icon: BarChart3,
         items: [
+          // Maturity Model removed — accessible as tab inside Strategic Posture hub
+          // Privacy Compliance removed — accessible as tab inside Compliance Coverage hub
           { label: "Strategic Posture", to: "/comply/strategic-posture", icon: Target },
           { label: "Risk Quantification", to: "/comply/risk-quant", icon: Scale },
-          { label: "Maturity Model", to: "/comply/maturity", icon: TrendingUp },
-          { label: "Privacy Compliance", to: "/comply/privacy", icon: Lock },
         ],
       },
       {
@@ -315,10 +317,10 @@ const navSections: NavSection[] = [
         label: "Threat Intel",
         icon: Radar,
         items: [
+          // External Threat Intel removed — accessible as tab inside Threat Intel Ops hub
+          // Behavior Analytics dupe removed — canonical link is in Respond/Hunting
           { label: "Threat Intel Ops", to: "/attack/intel/ops", icon: Radar },
           { label: "Threat Actors", to: "/attack/intel/actors", icon: Flag },
-          { label: "External Threat Intel", to: "/attack/intel/external", icon: Globe },
-          { label: "Behavior Analytics", to: "/mission-control/behavior", icon: Activity },
         ],
       },
       {
@@ -349,9 +351,9 @@ const navSections: NavSection[] = [
         label: "Culture & Training",
         icon: GraduationCap,
         items: [
+          // Awareness Program removed — absorbed into Training & Culture hub
+          // Finance Risk removed — wrong section, accessible via Mission Control
           { label: "Training & Culture", to: "/admin/training-culture", icon: GraduationCap },
-          { label: "Awareness Program", to: "/comply/awareness", icon: Award },
-          { label: "Finance Risk", to: "/mission-control/finance", icon: Scale },
         ],
       },
     ],
