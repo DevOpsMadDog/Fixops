@@ -644,6 +644,36 @@ export const webhookDlqApi = {
     api.post(`/api/v1/webhooks/dlq/${encodeURIComponent(deliveryId)}/replay`),
 };
 
+// ── Deception Analytics ──
+export const deceptionAnalyticsApi = {
+  /** GET /api/v1/deception-analytics/stats */
+  stats: (orgId = "default") =>
+    api.get("/api/v1/deception-analytics/stats", { params: { org_id: orgId } }),
+  /** GET /api/v1/deception-analytics/assets */
+  assets: (orgId = "default", assetType?: string, active?: boolean) =>
+    api.get("/api/v1/deception-analytics/assets", {
+      params: { org_id: orgId, asset_type: assetType, active },
+    }),
+  /** GET /api/v1/deception-analytics/interactions */
+  interactions: (orgId = "default") =>
+    api.get("/api/v1/deception-analytics/interactions", { params: { org_id: orgId } }),
+};
+
+// ── Identity Governance ──
+export const identityGovernanceApi = {
+  /** GET /api/v1/identity-governance/reviews */
+  reviews: (orgId: string, status?: string) =>
+    api.get("/api/v1/identity-governance/reviews", { params: { org_id: orgId, status } }),
+  /** GET /api/v1/identity-governance/entitlements */
+  entitlements: (orgId: string, isOrphaned?: boolean, isExcessive?: boolean) =>
+    api.get("/api/v1/identity-governance/entitlements", {
+      params: { org_id: orgId, is_orphaned: isOrphaned, is_excessive: isExcessive },
+    }),
+  /** GET /api/v1/identity-governance/stats */
+  stats: (orgId: string) =>
+    api.get("/api/v1/identity-governance/stats", { params: { org_id: orgId } }),
+};
+
 // ── MCP (Model Context Protocol) ──
 export const mcpApi = {
   status: () => api.get("/api/v1/mcp-protocol/status"),
