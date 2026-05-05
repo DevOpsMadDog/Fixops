@@ -6284,3 +6284,10 @@
 - **Files touched**: suite-ui/aldeci-ui-new/src/pages/mission-control/CISODashboard.tsx (new), src/App.tsx (route + import + redirect fixes), src/components/layout/WorkspaceLayout.tsx (sidebar entry)
 - **Outcome**: SUCCESS — build green 2.96s, 0 new TS errors, Multica #3986 done, SHA 22d439d5
 - **Pillar(s) served**: V1 (CISO persona), V3 (real API data), V8 (board-level reporting)
+
+### [2026-05-06 09:32] qa-engineer — E2E_IMPORT_SMOKE
+- **What**: Full E2E import smoke test for Multica #4004. Playwright happy path: /import page load, OWASP/NodeGoat repo URL submit, /discover/vuln-intel findings check.
+- **Files touched**: docs/deploy_smoke_2026-05-04/e2e_import_01_page.png, e2e_import_02_submitted.png, e2e_import_03_findings.png
+- **Key findings**: import_router mounts correctly when server started with .env (FIXOPS_API_TOKEN loaded). OpenAPI schema excludes import routes due to Pydantic Dict[str,Any] forward-ref issue (cosmetic only — routes are live). POST /api/v1/import/repo → 202 queued. GET /api/v1/import/status/{id} → 200 processing. UI fires real API call on submit (0 console errors).
+- **Outcome**: SUCCESS — E2E PASS
+- **Pillar(s) served**: V1 (enterprise-grade reliability), V3 (real API data, no mocks)
