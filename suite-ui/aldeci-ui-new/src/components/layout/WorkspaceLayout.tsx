@@ -225,6 +225,7 @@ const navSections: NavSection[] = [
           { label: "App Layer Security", to: "/discover/app-security", icon: Code2 },
           { label: "API Security", to: "/discover/api-security", icon: Wifi },
           { label: "Detect & Respond", to: "/discover/detect-respond", icon: Radar },
+          { label: "Architect View", to: "/discover/architect", icon: Network, badge: "P29" },
         ],
       },
     ],

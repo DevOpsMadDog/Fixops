@@ -41,6 +41,8 @@ const AttackPaths = lazy(() => import("@/pages/discover/AttackPaths"));
 const ThreatFeeds = lazy(() => import("@/pages/discover/ThreatFeeds"));
 const CorrelationEngine = lazy(() => import("@/pages/discover/CorrelationEngine"));
 const DataFabric = lazy(() => import("@/pages/discover/DataFabric"));
+// P29 Software Architect persona — ArchitectWorkspaceHub
+const ArchitectWorkspaceHub = lazy(() => import("@/pages/discover/ArchitectWorkspaceHub"));
 
 // Space 3: Validate
 const AttackSimulation = lazy(() => import("@/pages/validate/AttackSimulation"));
@@ -481,6 +483,8 @@ export default function App() {
             <Route path="/discover/threats" element={<ThreatFeeds />} />
             <Route path="/discover/correlation" element={<CorrelationEngine />} />
             <Route path="/discover/data-fabric" element={<DataFabric />} />
+            {/* P29 Software Architect — ArchitectWorkspaceHub (threat models, code-to-runtime, API deps, arch graph) */}
+            <Route path="/discover/architect" element={<ArchitectWorkspaceHub />} />
             {/* Wave 1 — Discover */}
             <Route path="/discover/code-semantic" element={<CodeSemanticExplorer />} />
             <Route path="/discover/callgraph" element={<CallGraphExplorer />} />
