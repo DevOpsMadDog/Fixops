@@ -18,7 +18,7 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.26
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ListChecks, GitBranch, Code2, CheckCircle2 } from "lucide-react";
@@ -26,9 +26,10 @@ import { ListChecks, GitBranch, Code2, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { RulesCatalogPanel } from "@/components/rules/RulesCatalogPanel";
+import { RuleTaxonomyPanel } from "@/components/rules/RuleTaxonomyPanel";
+import { RuleDSLStudioPanel } from "@/components/rules/RuleDSLStudioPanel";
+import { RuleDSLValidatorPanel } from "@/components/rules/RuleDSLValidatorPanel";
 
 type TabKey = "catalog" | "taxonomy" | "author" | "validate";
 
@@ -129,18 +130,22 @@ export default function RulesCatalogHub() {
 
         <TabsContent value="catalog">
           <Suspense fallback={<PageSkeleton />}>
+            <RulesCatalogPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="taxonomy">
           <Suspense fallback={<PageSkeleton />}>
+            <RuleTaxonomyPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="author">
           <Suspense fallback={<PageSkeleton />}>
+            <RuleDSLStudioPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="validate">
           <Suspense fallback={<PageSkeleton />}>
+            <RuleDSLValidatorPanel />
           </Suspense>
         </TabsContent>
       </Tabs>

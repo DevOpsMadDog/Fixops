@@ -521,6 +521,13 @@ export const secretsApi = {
   get: (id: string) => api.get(`/api/v1/secrets/${id}`),
   resolve: (id: string) => api.post(`/api/v1/secrets/${id}/resolve`),
   scan: (data: unknown) => api.post("/api/v1/secrets/scan/content", data),
+  // Scanner endpoints
+  root: (params?: Record<string, unknown>) => api.get("/api/v1/secrets/", { params }),
+  active: (params?: Record<string, unknown>) => api.get("/api/v1/secrets/active", { params }),
+  rotationStatus: (params?: Record<string, unknown>) => api.get("/api/v1/secrets/rotation-status", { params }),
+  patterns: () => api.get("/api/v1/secrets/patterns"),
+  markFalsePositive: (id: string) => api.post(`/api/v1/secrets/${id}/false-positive`),
+  rotate: (id: string, data: unknown) => api.post(`/api/v1/secrets/${id}/rotate`, data),
 };
 
 export const sbomApi = {
@@ -972,6 +979,8 @@ export const certificatesApi = {
     api.get("/api/v1/certificates/alerts/expiry", { params: { org_id: orgId } }),
   weak: (orgId = "default") =>
     api.get("/api/v1/certificates/weak", { params: { org_id: orgId } }),
+  check: (domain: string, port = 443) =>
+    api.post("/api/v1/certificates/check", { domain, port }),
 };
 
 // ── PKI Management ──
@@ -994,6 +1003,28 @@ export const quantumCryptoApi = {
   rotateKeys: () => api.post("/api/v1/quantum-crypto/keys/rotate"),
 };
 
+// ── Secrets Rotation ──
+export const secretsRotationApi = {
+  list: (orgId = "default") =>
+    api.get("/api/v1/secrets-rotation/", { params: { org_id: orgId } }),
+  metrics: (orgId = "default") =>
+    api.get("/api/v1/secrets-rotation/metrics", { params: { org_id: orgId } }),
+  overdue: (orgId = "default") =>
+    api.get("/api/v1/secrets-rotation/overdue", { params: { org_id: orgId } }),
+};
+
+// ── Security Investment ──
+export const securityInvestmentApi = {
+  portfolio: (orgId = "default") =>
+    api.get("/api/v1/security-investment/portfolio", { params: { org_id: orgId } }),
+  list: (orgId = "default", status?: string) =>
+    api.get("/api/v1/security-investment/investments", { params: { org_id: orgId, status } }),
+  budgetUtilization: (orgId = "default", fiscalYear?: number) =>
+    api.get(`/api/v1/security-investment/budgets/${fiscalYear ?? new Date().getFullYear()}`, {
+      params: { org_id: orgId },
+    }),
+};
+
 // ── Risk Overview (suite-evidence-risk) ──
 export const riskOverviewApi = {
   /** GET /api/v1/risk/overview — overall risk posture summary */
@@ -1001,4 +1032,99 @@ export const riskOverviewApi = {
   /** GET /api/v1/risk/scores — per-component risk scores */
   scores: (params?: Record<string, string>) =>
     api.get("/api/v1/risk/scores", { params }),
+};
+
+// ── Unified Rules Catalog (/api/v1/rules/unified) ──
+export interface UnifiedRule {
+  rule_key: string;
+  domain: string;
+  category: string;
+  severity: string;
+  rule_type: string;
+  source_engine: string;
+  enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RuleTaxonomyCategory {
+  rule_keys: string[];
+  severity_distribution?: Record<string, number>;
+}
+
+export interface RuleTaxonomyDomain {
+  categories: Record<string, RuleTaxonomyCategory>;
+  rule_count?: number;
+}
+
+export interface RuleTaxonomy {
+  domains: Record<string, RuleTaxonomyDomain>;
+  total_rules?: number;
+  generated_at?: string;
+}
+
+export const unifiedRulesApi = {
+  /** GET /api/v1/rules/unified */
+  list: (params?: { domain?: string; source_engine?: string; enabled?: boolean; org_id?: string }) =>
+    api.get<UnifiedRule[]>("/api/v1/rules/unified", { params }),
+  /** GET /api/v1/rules/unified/taxonomy */
+  taxonomy: () => api.get<RuleTaxonomy>("/api/v1/rules/unified/taxonomy"),
+  /** POST /api/v1/rules/unified/{rule_key}/enable */
+  enable: (ruleKey: string, orgId = "default") =>
+    api.post(`/api/v1/rules/unified/${encodeURIComponent(ruleKey)}/enable`, null, {
+      params: { org_id: orgId },
+    }),
+  /** POST /api/v1/rules/unified/{rule_key}/disable */
+  disable: (ruleKey: string, orgId = "default") =>
+    api.post(`/api/v1/rules/unified/${encodeURIComponent(ruleKey)}/disable`, null, {
+      params: { org_id: orgId },
+    }),
+};
+
+// ── DSL Rules (/api/v1/rules/dsl) ──
+export interface DslRule {
+  key: string;
+  status: string;
+  severity?: string;
+  version?: number;
+  authored_by?: string;
+  created_at?: string;
+}
+
+export interface DslSchemaField {
+  name: string;
+  type: string;
+  required: boolean;
+  description?: string;
+}
+
+export interface DslSchema {
+  fields: DslSchemaField[];
+  example?: string;
+}
+
+export interface DslValidateResult {
+  valid: boolean;
+  compiled?: Record<string, unknown>;
+  errors?: string[];
+  warnings?: string[];
+}
+
+export const dslRulesApi = {
+  /** GET /api/v1/rules/dsl */
+  list: (status?: string) =>
+    api.get<DslRule[]>("/api/v1/rules/dsl", { params: status ? { status } : undefined }),
+  /** GET /api/v1/rules/dsl/schema */
+  schema: () => api.get<DslSchema>("/api/v1/rules/dsl/schema"),
+  /** POST /api/v1/rules/dsl/validate */
+  validate: (dsl_text: string, dsl_format: "yaml" | "json" = "yaml") =>
+    api.post<DslValidateResult>("/api/v1/rules/dsl/validate", { dsl_text, dsl_format }),
+  /** POST /api/v1/rules/dsl/publish */
+  publish: (payload: {
+    key: string;
+    dsl_text: string;
+    dsl_format?: string;
+    severity?: string;
+    authored_by?: string;
+  }) => api.post("/api/v1/rules/dsl/publish", payload),
 };

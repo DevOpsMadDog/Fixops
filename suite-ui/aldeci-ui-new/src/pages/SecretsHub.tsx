@@ -20,7 +20,7 @@
  * (no Route) — this fold restores reachability.
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Key, ScanSearch, RotateCw } from "lucide-react";
@@ -28,9 +28,9 @@ import { Key, ScanSearch, RotateCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { SecretsDetectionPanel } from "@/components/secrets/SecretsDetectionPanel";
+import { SecretScannerPanel } from "@/components/secrets/SecretScannerPanel";
+import { SecretsRotationPanel } from "@/components/secrets/SecretsRotationPanel";
 
 type TabKey = "detection" | "scanner" | "rotation";
 
@@ -124,14 +124,17 @@ export default function SecretsHub() {
 
         <TabsContent value="detection">
           <Suspense fallback={<PageSkeleton />}>
+            <SecretsDetectionPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="scanner">
           <Suspense fallback={<PageSkeleton />}>
+            <SecretScannerPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="rotation">
           <Suspense fallback={<PageSkeleton />}>
+            <SecretsRotationPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
