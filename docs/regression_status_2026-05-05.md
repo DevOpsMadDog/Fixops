@@ -375,3 +375,21 @@ Commits validated since sweep #15:
 Delta vs sweep #15: 0 regressions. 3 previously broken broad-scan collectors CLOSED at ed6512e0.
   Beast Mode: 753/753 stable. Perf: 194/194 (+12 newly collecting) stable, 2 skipped, 0 failed.
   OWASP/asyncio lockdown: 1/1 stable. All 3 standard suites GREEN at HEAD ed6512e0.
+
+Sweep #17 — HEAD d65b60df — tally v2 + HANDOFF v9 validated
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.77s
+Suite 2 — Perf benchmarks (-m perf, broad scan): 194 passed, 2 skipped, 0 failed, 44782 deselected in 26.93s
+Suite 3 — OWASP/asyncio lockdown (test_no_unsafe_asyncio_run.py direct): 1 passed, 0 failed in 6.11s
+
+Total sweep #17: 948 passed, 0 failed, 2 skipped, 0 errors
+Timestamp: 2026-05-05T11:00:00Z
+
+BROKEN COLLECTORS: 0 — clean broad scan, unchanged from sweep #16.
+
+Commits validated since sweep #16:
+  667f62b7 (docs: final tally snapshot v2),
+  d751b66d (docs: HANDOFF v9 — 16 sweeps, 0 broken collectors, 8 real bugs caught).
+
+Delta vs sweep #16: 0 regressions. Both commits are docs-only (zero production Python changes).
+  Beast Mode: 753/753 stable. Perf: 194/194 stable, 2 skipped, 0 failed.
+  OWASP/asyncio lockdown: 1/1 stable. All 3 standard suites GREEN at HEAD d65b60df.
