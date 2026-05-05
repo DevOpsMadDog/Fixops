@@ -584,8 +584,26 @@ class PlaybookRunner:
         inputs: Optional[Dict[str, Any]] = None,
         dry_run: bool = False,
     ) -> PlaybookExecutionContext:
-        """Synchronous wrapper for execute()."""
-        return asyncio.run(self.execute(playbook, inputs, dry_run))
+        """Synchronous wrapper for execute().
+
+        Uses get_running_loop() to detect whether we are already inside an
+        event loop (e.g. called via asyncio.to_thread / thread-pool executor).
+        In that case a new loop is created and torn down cleanly to avoid the
+        'no current event loop in thread' RuntimeError that asyncio.run() raises
+        when a running loop exists in the parent thread.
+        """
+        try:
+            asyncio.get_running_loop()
+            # We are inside a running event loop — must use a fresh loop in
+            # this call so we do not interfere with the parent loop.
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(self.execute(playbook, inputs, dry_run))
+            finally:
+                loop.close()
+        except RuntimeError:
+            # No running loop — safe to use asyncio.run().
+            return asyncio.run(self.execute(playbook, inputs, dry_run))
 
     def _validate_inputs(self, playbook: Playbook, inputs: Dict[str, Any]) -> None:
         """Validate playbook inputs."""

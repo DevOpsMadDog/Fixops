@@ -1491,7 +1491,18 @@ def run_cve_tests(
     async def run():
         return await tester.test_multiple_cves(cve_ids, target_urls)
 
-    results = asyncio.run(run())
+    # Guard against executor-race: asyncio.run() raises RuntimeError when
+    # called from a thread that already has a running event loop (e.g. via
+    # asyncio.to_thread).  Use a fresh loop in that case.
+    try:
+        asyncio.get_running_loop()
+        _loop = asyncio.new_event_loop()
+        try:
+            results = _loop.run_until_complete(run())
+        finally:
+            _loop.close()
+    except RuntimeError:
+        results = asyncio.run(run())
 
     return [
         {
