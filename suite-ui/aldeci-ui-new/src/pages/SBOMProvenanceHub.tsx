@@ -36,6 +36,8 @@ import { SBOMExportPanel } from "@/components/sbom/SBOMExportPanel";
 import { PipelineBOMPanel } from "@/components/sbom/PipelineBOMPanel";
 import { PBOMPropagationPanel } from "@/components/sbom/PBOMPropagationPanel";
 import { SLSAProvenancePanel } from "@/components/sbom/SLSAProvenancePanel";
+import { AttestationGraphPanel } from "@/components/sbom/AttestationGraphPanel";
+import { AttestationSignPanel } from "@/components/sbom/AttestationSignPanel";
 
 type TabKey =
   | "export"
@@ -159,16 +161,10 @@ export default function SBOMProvenanceHub() {
           <SLSAProvenancePanel />
         </TabsContent>
         <TabsContent value="attestation">
-          {/* SHELL — /api/v1/provenance/{artifact}/attestation — wired in next batch */}
-          <div className="mt-4 flex items-center justify-center py-16 text-sm text-muted-foreground">
-            Attestation graph coming in next wire batch.
-          </div>
+          <AttestationGraphPanel />
         </TabsContent>
         <TabsContent value="sign">
-          {/* SHELL — /api/v1/provenance/sign — wired in next batch */}
-          <div className="mt-4 flex items-center justify-center py-16 text-sm text-muted-foreground">
-            Signing form coming in next wire batch.
-          </div>
+          <AttestationSignPanel />
         </TabsContent>
       </Tabs>
     </motion.div>

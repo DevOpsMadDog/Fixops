@@ -34,6 +34,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { UpgradeResolverPanel } from "@/components/upgrade-paths/UpgradeResolverPanel";
+import { UpgradeExplorerPanel } from "@/components/upgrade-paths/UpgradeExplorerPanel";
+import { VersionGraphPanel } from "@/components/upgrade-paths/VersionGraphPanel";
 import { DependencyMapPanel } from "@/components/upgrade-paths/DependencyMapPanel";
 import { BinaryFingerprintPanel } from "@/components/upgrade-paths/BinaryFingerprintPanel";
 import { DependencyRiskPanel } from "@/components/upgrade-paths/DependencyRiskPanel";
@@ -156,15 +158,13 @@ export default function UpgradePathsHub() {
           </Suspense>
         </TabsContent>
         <TabsContent value="explorer">
-          {/* SHELL — /api/v1/components/{purl}/safe-upgrade explorer (no purl router found) */}
           <Suspense fallback={<PageSkeleton />}>
-            <UpgradeResolverPanel />
+            <UpgradeExplorerPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="version-graph">
-          {/* SHELL — version-graph shares resolver backend; reuse panel */}
           <Suspense fallback={<PageSkeleton />}>
-            <UpgradeResolverPanel />
+            <VersionGraphPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="dep-map">
