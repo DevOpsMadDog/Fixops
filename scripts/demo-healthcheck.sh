@@ -69,7 +69,7 @@ done
 # ─── Configuration ──────────────────────────────────────────
 HOST="${POSITIONAL_ARGS[0]:-localhost}"
 API_PORT="${FIXOPS_PORT:-8000}"
-UI_PORT="${ALDECI_UI_PORT:-3001}"
+UI_PORT="${ALDECI_UI_PORT:-5173}"
 API_BASE="http://${HOST}:${API_PORT}"
 UI_BASE="http://${HOST}:${UI_PORT}"
 TIMEOUT="${TIMEOUT:-30}"
