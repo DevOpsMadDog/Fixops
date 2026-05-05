@@ -240,17 +240,20 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ## CURRENT STATE (rolling — updated each session)
 
+_2026-05-05 session: 20 sweeps, 9 real bugs caught + closed, 0 shipped, 0 vulns Python+npm, production build live, CI gates wired._
+
 | Layer | Count | How to check |
 |-------|-------|--------------|
-| Backend engines | **463** (measured 2026-05-04; unchanged since 2026-05-05 measure) | `ls suite-core/core/*_engine.py \| wc -l` |
-| API routers | **798** (measured 2026-05-04; +2 since last measure at 796) | `ls suite-api/apps/api/*_router.py \| wc -l` |
+| Backend engines | **463** (measured 2026-05-05; unchanged) | `ls suite-core/core/*_engine.py \| wc -l` |
+| API routers | **798** (measured 2026-05-05; unchanged) | `ls suite-api/apps/api/*_router.py \| wc -l` |
 | API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved**; check next session — boot ~10s) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
-| Frontend pages | **177 top-level / 529 recursive** (measured 2026-05-04; Phase 3 EXHAUSTED) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
+| Frontend pages | **239** (measured 2026-05-05; was 177 — **+62** since last measure; Phase 3 EXHAUSTED) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
-| Beast Mode tests | **1078+ passing (13-file canonical + 84 new tests from 2026-05-05 qa wave), zero regressions** (2026-05-05) + **42/42 hub smoke** + **10/10 DoD E2E smoke** | `pytest tests/test_phase*.py ... -q` |
-| Session lockdown tests | **5/11 files present** (test_owasp_regression, test_import_sweep, test_no_unsafe_asyncio_run, test_health, test_perf_lockdown — remaining 6 not yet created) | `ls tests/test_owasp_regression.py tests/test_import_sweep.py ... \| wc -l` |
+| Beast Mode tests | **1078+ passing (13-file canonical + 84 new tests from 2026-05-05 qa wave), zero regressions** (2026-05-05) + **42/42 hub smoke** + **10/10 DoD E2E smoke** + **perf=182 markers / owasp=47 markers** | `pytest tests/test_phase*.py ... -q` |
+| Session lockdown tests | **1/5 files present** (test_health confirmed; test_owasp_regression, test_import_sweep, test_no_unsafe_asyncio_run, test_perf_lockdown not yet created) | `ls tests/test_*lockdown* tests/test_health.py \| wc -l` |
+| Production build | **live — 3.10s build time** (Vite 6, suite-ui/aldeci-ui-new) | `cd suite-ui/aldeci-ui-new && npm run build` |
 | Graphify graph | **184,684 nodes / 577,447 edges / 9,029 communities** (last refreshed 2026-05-03 04:10 — run `graphify update . --no-llm` to refresh) | `graphify update . --no-llm` |
-| TrustGraph emit-sites | **548** across engines/routers (measured 2026-05-04; was 547 — +1 since last measure) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
+| TrustGraph emit-sites | **548** across engines/routers (measured 2026-05-05; unchanged) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
 
 ### Storage tech
 DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Markdown for docs.
