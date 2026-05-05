@@ -12,6 +12,9 @@ const mocks: Record<string, any> = {
   useAssessCompliance: vi.fn(),
   useComplianceSoc2: vi.fn(),
   useEvidenceBundles: vi.fn(),
+  useEvidenceSummary: vi.fn(),
+  useComplianceEvidenceRequests: vi.fn(),
+  useComplianceOverallStatus: vi.fn(),
   useApps: vi.fn(),
   useGenerateEvidence: vi.fn(),
   useAuditLog: vi.fn(),
@@ -50,6 +53,9 @@ beforeEach(() => {
   mocks.useEvidenceBundles.mockReturnValue(mockQueryResult({ bundles: [] }));
   mocks.useApps.mockReturnValue(mockQueryResult({ apps: [] }));
   mocks.useGenerateEvidence.mockReturnValue(mockMutationResult());
+  mocks.useEvidenceSummary.mockReturnValue(mockQueryResult({ total: 0, collected: 0 }));
+  mocks.useComplianceEvidenceRequests.mockReturnValue(mockQueryResult({ requests: [] }));
+  mocks.useComplianceOverallStatus.mockReturnValue(mockQueryResult({ score: 0, status: "unknown" }));
   mocks.useAuditLog.mockReturnValue(mockQueryResult({ entries: [] }));
   mocks.useReports.mockReturnValue(mockQueryResult({ reports: [] }));
   mocks.useDashboardTrends.mockReturnValue(mockQueryResult({ trends: [], labels: [] }));
@@ -59,12 +65,9 @@ beforeEach(() => {
 async function loadPage(name: string) {
   switch (name) {
     case "ComplianceDashboard": return (await import("@/pages/comply/ComplianceDashboard")).default;
-    case "EvidenceVault": return (await import("@/pages/comply/EvidenceVault")).default;
-    case "EvidenceBundles": return (await import("@/pages/comply/EvidenceBundles")).default;
     case "EvidenceExportCenter": return (await import("@/pages/comply/EvidenceExportCenter")).default;
     case "SOC2Evidence": return (await import("@/pages/comply/SOC2Evidence")).default;
     case "SLSAProvenance": return (await import("@/pages/comply/SLSAProvenance")).default;
-    case "AuditTrail": return (await import("@/pages/comply/AuditTrail")).default;
     case "Reports": return (await import("@/pages/comply/Reports")).default;
     case "Analytics": return (await import("@/pages/comply/Analytics")).default;
     default: throw new Error(`Unknown: ${name}`);
@@ -75,28 +78,12 @@ describe("ComplianceDashboard", () => {
   it("renders heading", async () => {
     const P = await loadPage("ComplianceDashboard");
     renderPage(<P />);
-    expect(screen.getByText("Compliance Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Compliance & Governance")).toBeInTheDocument();
   });
   it("fetches compliance status", async () => {
     const P = await loadPage("ComplianceDashboard");
     renderPage(<P />);
     expect(mocks.useComplianceStatus).toHaveBeenCalled();
-  });
-});
-
-describe("EvidenceVault", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("EvidenceVault");
-    renderPage(<P />);
-    expect(screen.getByText("Evidence Vault")).toBeInTheDocument();
-  });
-});
-
-describe("EvidenceBundles", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("EvidenceBundles");
-    renderPage(<P />);
-    expect(screen.getByText("Evidence Bundles")).toBeInTheDocument();
   });
 });
 
@@ -121,14 +108,6 @@ describe("SLSAProvenance", () => {
     const P = await loadPage("SLSAProvenance");
     renderPage(<P />);
     expect(screen.getByRole("heading", { name: /SLSA/i })).toBeInTheDocument();
-  });
-});
-
-describe("AuditTrail", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("AuditTrail");
-    renderPage(<P />);
-    expect(screen.getByText("Audit Trail")).toBeInTheDocument();
   });
 });
 

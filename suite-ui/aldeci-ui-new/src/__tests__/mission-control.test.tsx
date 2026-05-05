@@ -74,8 +74,6 @@ vi.mock("recharts", () => {
 
 async function loadPage(name: string) {
   switch (name) {
-    case "CommandDashboard": return (await import("@/pages/mission-control/CommandDashboard")).default;
-    case "ExecutiveView": return (await import("@/pages/mission-control/ExecutiveView")).default;
     case "SLADashboard": return (await import("@/pages/mission-control/SLADashboard")).default;
     case "LiveFeed": return (await import("@/pages/mission-control/LiveFeed")).default;
     case "RiskOverview": return (await import("@/pages/mission-control/RiskOverview")).default;
@@ -117,51 +115,7 @@ beforeEach(() => {
 });
 
 // ═══════════════════════════════════════
-// 1. Command Dashboard
-// ═══════════════════════════════════════
-
-describe("CommandDashboard", () => {
-  it("renders with heading", async () => {
-    const Page = await loadPage("CommandDashboard");
-    renderPage(<Page />);
-    expect(screen.getByText("Command Dashboard")).toBeInTheDocument();
-  });
-
-  it("shows loading skeleton when data is pending", async () => {
-    mocks.useDashboardOverview.mockReturnValue(mockQueryLoading());
-    const Page = await loadPage("CommandDashboard");
-    const { container } = renderPage(<Page />);
-    // Should render skeleton placeholders (pulsing elements)
-    expect(container.querySelector('[class*="animate-pulse"], [class*="skeleton"]') || container.firstChild).toBeTruthy();
-  });
-
-  it("calls useDashboardOverview hook", async () => {
-    const Page = await loadPage("CommandDashboard");
-    renderPage(<Page />);
-    expect(mocks.useDashboardOverview).toHaveBeenCalled();
-  });
-});
-
-// ═══════════════════════════════════════
-// 2. Executive View
-// ═══════════════════════════════════════
-
-describe("ExecutiveView", () => {
-  it("renders with heading", async () => {
-    const Page = await loadPage("ExecutiveView");
-    renderPage(<Page />);
-    expect(screen.getByText("Executive View")).toBeInTheDocument();
-  });
-
-  it("renders compliance data", async () => {
-    const Page = await loadPage("ExecutiveView");
-    renderPage(<Page />);
-    expect(mocks.useDashboardOverview).toHaveBeenCalled();
-  });
-});
-
-// ═══════════════════════════════════════
-// 3. SLA Dashboard
+// 1. SLA Dashboard
 // ═══════════════════════════════════════
 
 describe("SLADashboard", () => {

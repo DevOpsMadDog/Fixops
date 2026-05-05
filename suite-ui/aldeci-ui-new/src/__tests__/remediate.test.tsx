@@ -15,6 +15,9 @@ const mocks: Record<string, any> = {
   useIntegrations: vi.fn(),
   useCases: vi.fn(),
   useTriageCase: vi.fn(),
+  useSyncIntegration: vi.fn(),
+  useTestIntegration: vi.fn(),
+  useConfigureIntegration: vi.fn(),
 };
 
 vi.mock("@/hooks/use-api", () => mocks);
@@ -48,49 +51,19 @@ beforeEach(() => {
   mocks.useIntegrations.mockReturnValue(mockQueryResult({ integrations: [] }));
   mocks.useCases.mockReturnValue(mockQueryResult({ cases: [] }));
   mocks.useTriageCase.mockReturnValue(mockMutationResult());
+  mocks.useSyncIntegration.mockReturnValue(mockMutationResult());
+  mocks.useTestIntegration.mockReturnValue(mockMutationResult());
+  mocks.useConfigureIntegration.mockReturnValue(mockMutationResult());
 });
 
 async function loadPage(name: string) {
   switch (name) {
-    case "RemediationCenter": return (await import("@/pages/remediate/RemediationCenter")).default;
-    case "AutoFix": return (await import("@/pages/remediate/AutoFix")).default;
-    case "BulkOperations": return (await import("@/pages/remediate/BulkOperations")).default;
     case "Collaboration": return (await import("@/pages/remediate/Collaboration")).default;
     case "ExposureCases": return (await import("@/pages/remediate/ExposureCases")).default;
-    case "Workflows": return (await import("@/pages/remediate/Workflows")).default;
     case "TicketIntegration": return (await import("@/pages/remediate/TicketIntegration")).default;
     default: throw new Error(`Unknown: ${name}`);
   }
 }
-
-describe("RemediationCenter", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("RemediationCenter");
-    renderPage(<P />);
-    expect(screen.getByText("Remediation Center")).toBeInTheDocument();
-  });
-  it("fetches tasks", async () => {
-    const P = await loadPage("RemediationCenter");
-    renderPage(<P />);
-    expect(mocks.useRemediationTasks).toHaveBeenCalled();
-  });
-});
-
-describe("AutoFix", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("AutoFix");
-    renderPage(<P />);
-    expect(screen.getByText("AutoFix")).toBeInTheDocument();
-  });
-});
-
-describe("BulkOperations", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("BulkOperations");
-    renderPage(<P />);
-    expect(screen.getByText("Bulk Operations")).toBeInTheDocument();
-  });
-});
 
 describe("Collaboration", () => {
   it("renders heading", async () => {
@@ -105,14 +78,6 @@ describe("ExposureCases", () => {
     const P = await loadPage("ExposureCases");
     renderPage(<P />);
     expect(screen.getByText("Exposure Cases")).toBeInTheDocument();
-  });
-});
-
-describe("Workflows", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("Workflows");
-    renderPage(<P />);
-    expect(screen.getByText("Workflows")).toBeInTheDocument();
   });
 });
 

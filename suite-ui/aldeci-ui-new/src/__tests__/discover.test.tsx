@@ -17,13 +17,20 @@ const mocks: Record<string, any> = {
   useDashboardCompliance: vi.fn(),
   useIntegrations: vi.fn(),
   useRunScan: vi.fn(),
+  useAutofix: vi.fn(),
+  useIngestStats: vi.fn(),
+  useIntegrationsStatus: vi.fn(),
 };
 
 vi.mock("@/hooks/use-api", () => mocks);
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/api", () => ({
   secretsApi: { list: vi.fn().mockResolvedValue({ data: [] }) },
-  sbomApi: { components: vi.fn().mockResolvedValue({ data: [] }) },
+  sbomApi: {
+    components: vi.fn().mockResolvedValue({ data: [] }),
+    licenses: vi.fn().mockResolvedValue({ data: [] }),
+  },
+  reachabilityApi: { analysis: vi.fn().mockResolvedValue({ data: { components: [] } }) },
   knowledgeGraphApi: { attackPaths: vi.fn().mockResolvedValue({ data: [] }) },
   streamApi: { connect: vi.fn(), eventsUrl: vi.fn().mockReturnValue("http://localhost/events") },
   getStoredAuthStrategy: vi.fn().mockReturnValue("token"),
@@ -72,18 +79,19 @@ beforeEach(() => {
   mocks.useDashboardCompliance.mockReturnValue(mockQueryResult(complianceData));
   mocks.useIntegrations.mockReturnValue(mockQueryResult(integrationsData));
   mocks.useRunScan.mockReturnValue(mockMutationResult());
+  mocks.useAutofix.mockReturnValue(mockQueryResult({ fixes: [] }));
+  mocks.useIngestStats.mockReturnValue(mockQueryResult({ total: 0, sources: [] }));
+  mocks.useIntegrationsStatus.mockReturnValue(mockQueryResult({ integrations: [] }));
 });
 
 async function loadPage(name: string) {
   switch (name) {
     case "FindingExplorer": return (await import("@/pages/discover/FindingExplorer")).default;
     case "CodeScanning": return (await import("@/pages/discover/CodeScanning")).default;
-    case "SecretsDetection": return (await import("@/pages/discover/SecretsDetection")).default;
     case "IaCScanning": return (await import("@/pages/discover/IaCScanning")).default;
     case "CloudPosture": return (await import("@/pages/discover/CloudPosture")).default;
     case "ContainerSecurity": return (await import("@/pages/discover/ContainerSecurity")).default;
     case "SBOMInventory": return (await import("@/pages/discover/SBOMInventory")).default;
-    case "KnowledgeGraph": return (await import("@/pages/discover/KnowledgeGraph")).default;
     case "AttackPaths": return (await import("@/pages/discover/AttackPaths")).default;
     case "ThreatFeeds": return (await import("@/pages/discover/ThreatFeeds")).default;
     case "CorrelationEngine": return (await import("@/pages/discover/CorrelationEngine")).default;
@@ -110,14 +118,6 @@ describe("CodeScanning", () => {
     const P = await loadPage("CodeScanning");
     renderPage(<P />);
     expect(screen.getByText("Code Scanning")).toBeInTheDocument();
-  });
-});
-
-describe("SecretsDetection", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("SecretsDetection");
-    renderPage(<P />);
-    expect(await screen.findByRole("heading", { name: /Secrets Detection/i })).toBeInTheDocument();
   });
 });
 
@@ -149,15 +149,7 @@ describe("SBOMInventory", () => {
   it("renders heading", async () => {
     const P = await loadPage("SBOMInventory");
     renderPage(<P />);
-    expect(await screen.findByRole("heading", { name: /SBOM/i })).toBeInTheDocument();
-  });
-});
-
-describe("KnowledgeGraph", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("KnowledgeGraph");
-    renderPage(<P />);
-    expect(screen.getByText("Knowledge Graph")).toBeInTheDocument();
+    expect(await screen.findByText("XBOM — Extended Bill of Materials")).toBeInTheDocument();
   });
 });
 

@@ -60,63 +60,17 @@ beforeEach(() => {
 
 async function loadPage(name: string) {
   switch (name) {
-    case "MPTEConsole": return (await import("@/pages/validate/MPTEConsole")).default;
-    case "FAILEngine": return (await import("@/pages/validate/FAILEngine")).default;
     case "AttackSimulation": return (await import("@/pages/validate/AttackSimulation")).default;
-    case "Playbooks": return (await import("@/pages/validate/Playbooks")).default;
-    case "PlaybookEditor": return (await import("@/pages/validate/PlaybookEditor")).default;
     case "Reachability": return (await import("@/pages/validate/Reachability")).default;
     default: throw new Error(`Unknown: ${name}`);
   }
 }
-
-describe("MPTEConsole", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("MPTEConsole");
-    renderPage(<P />);
-    expect(screen.getByText("MPTE Console")).toBeInTheDocument();
-  });
-  it("fetches MPTE status", async () => {
-    const P = await loadPage("MPTEConsole");
-    renderPage(<P />);
-    expect(mocks.useMpteStatus).toHaveBeenCalled();
-  });
-});
-
-describe("FAILEngine", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("FAILEngine");
-    renderPage(<P />);
-    expect(screen.getByText("FAIL Engine")).toBeInTheDocument();
-  });
-  it("fetches drills", async () => {
-    const P = await loadPage("FAILEngine");
-    renderPage(<P />);
-    expect(mocks.useFailDrills).toHaveBeenCalled();
-  });
-});
 
 describe("AttackSimulation", () => {
   it("renders heading", async () => {
     const P = await loadPage("AttackSimulation");
     renderPage(<P />);
     expect(screen.getByText("Attack Simulation")).toBeInTheDocument();
-  });
-});
-
-describe("Playbooks", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("Playbooks");
-    renderPage(<P />);
-    expect(screen.getByText("Playbooks")).toBeInTheDocument();
-  });
-});
-
-describe("PlaybookEditor", () => {
-  it("renders heading", async () => {
-    const P = await loadPage("PlaybookEditor");
-    renderPage(<P />);
-    expect(screen.getByRole("heading", { name: /Create Playbook/i })).toBeInTheDocument();
   });
 });
 
