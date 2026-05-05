@@ -32,6 +32,18 @@ try:
 except ImportError:
     _get_tg_bus = None
 
+# ---------------------------------------------------------------------------
+# Pre-compiled regex constants (module-level, compiled once at import time)
+# ---------------------------------------------------------------------------
+_RE_K8S_API_VERSION = re.compile(r"apiVersion\s*:")
+_RE_K8S_KIND = re.compile(r"kind\s*:")
+_RE_ANSIBLE = re.compile(r"^\s*-\s+(name|hosts|tasks|roles)\s*:", re.MULTILINE)
+_RE_CFN = re.compile(r'AWSTemplateFormatVersion|Resources\s*:')
+_RE_CFN_JSON = re.compile(r'"AWSTemplateFormatVersion"|"Resources"\s*:')
+_RE_YAML_TOPKEY = re.compile(r'^(\w[\w:]*)\s*:')
+_RE_YAML_KV = re.compile(r'^(\w+)\s*:\s*(.+)$')
+_RE_YAML_DOC_SEP = re.compile(r'^---\s*$', re.MULTILINE)
+
 
 def _emit_event(event_type: str, payload) -> None:  # type: ignore[no-untyped-def]
     """Emit an event to the TrustGraph event bus. Never raises."""
@@ -293,19 +305,19 @@ def detect_iac_format(filename: str, content: str) -> IaCFormat:
         return IaCFormat.TERRAFORM
     if suffix in (".yml", ".yaml"):
         # Kubernetes detection
-        if re.search(r"apiVersion\s*:", content) and re.search(r"kind\s*:", content):
+        if _RE_K8S_API_VERSION.search(content) and _RE_K8S_KIND.search(content):
             # Check for Helm chart indicators
             if "{{ " in content or "{{-" in content or ".Values." in content:
                 return IaCFormat.HELM
             return IaCFormat.KUBERNETES
         # Ansible detection
-        if re.search(r"^\s*-\s+(name|hosts|tasks|roles)\s*:", content, re.MULTILINE):
+        if _RE_ANSIBLE.search(content):
             return IaCFormat.ANSIBLE
         # CloudFormation YAML
-        if re.search(r"AWSTemplateFormatVersion|Resources\s*:", content):
+        if _RE_CFN.search(content):
             return IaCFormat.CLOUDFORMATION
     if suffix == ".json":
-        if re.search(r'"AWSTemplateFormatVersion"|"Resources"\s*:', content):
+        if _RE_CFN_JSON.search(content):
             return IaCFormat.CLOUDFORMATION
     return IaCFormat.UNKNOWN
 
@@ -438,7 +450,7 @@ class CloudFormationParser:
         # Fallback: regex-based extraction of top-level keys
         result: Dict[str, Any] = {}
         for line in content.splitlines():
-            m = re.match(r'^(\w[\w:]*)\s*:', line)
+            m = _RE_YAML_TOPKEY.match(line)
             if m and not line.startswith(" "):
                 current_key = m.group(1)
                 result[current_key] = {}
@@ -475,7 +487,7 @@ class KubernetesParser:
         return resources
 
     def _split_docs(self, content: str) -> List[str]:
-        return [d for d in re.split(r'^---\s*$', content, flags=re.MULTILINE) if d.strip()]
+        return [d for d in _RE_YAML_DOC_SEP.split(content) if d.strip()]
 
     def _load_yaml(self, content: str) -> Any:
         try:
@@ -486,7 +498,7 @@ class KubernetesParser:
         # Minimal fallback
         result: Dict[str, Any] = {}
         for line in content.splitlines():
-            m = re.match(r'^(\w+)\s*:\s*(.+)$', line)
+            m = _RE_YAML_KV.match(line)
             if m:
                 result[m.group(1)] = m.group(2).strip()
         return result
