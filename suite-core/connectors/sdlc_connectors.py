@@ -39,9 +39,19 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from base64 import b64encode
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional
+
+# Pre-compiled secret-detection patterns (Jenkins log scanner).
+# Compiled once at import time with IGNORECASE; avoids re-compiling per build per loop iteration.
+_SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("password", re.compile(r"password\s*=\s*[\w\-\.]+", re.IGNORECASE)),
+    ("token", re.compile(r"token\s*:\s*[\w\-\.]+", re.IGNORECASE)),
+    ("api_key", re.compile(r"api_key\s*=\s*[\w\-\.]+", re.IGNORECASE)),
+    ("AWS_SECRET", re.compile(r"AWS_SECRET\s*=\s*[\w\-\.]+", re.IGNORECASE)),
+]
 
 import httpx
 from core.connectors import ConnectorOutcome
@@ -761,21 +771,14 @@ class JenkinsPipelineConnector(PullConnector):
                 log_response = await client.get(f"{build_url}/consoleText", headers=headers)
                 if log_response.status_code == 200:
                     log_text = log_response.text
-                    # Simple regex check for common secret patterns
-                    secret_patterns = [
-                        r"password\s*=\s*[\w\-\.]+",
-                        r"token\s*:\s*[\w\-\.]+",
-                        r"api_key\s*=\s*[\w\-\.]+",
-                        r"AWS_SECRET\s*=\s*[\w\-\.]+",
-                    ]
-                    for pattern in secret_patterns:
-                        import re
-                        if re.search(pattern, log_text, re.IGNORECASE):
+                    # Use module-level pre-compiled patterns (no per-call compile overhead)
+                    for _label, _pat in _SECRET_PATTERNS:
+                        if _pat.search(log_text):
                             findings.append({
                                 "type": "secret_in_logs",
                                 "job": job_name,
                                 "build_number": build_num,
-                                "pattern": pattern,
+                                "pattern": _pat.pattern,
                                 "url": f"{build_url}/console",
                                 "raw": {"job": job_name, "build": build_num},
                             })
