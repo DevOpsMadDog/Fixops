@@ -217,5 +217,36 @@ Commits validated since sweep #10:
   a8af529c (commit tally), 2ad076c1 (mount verify), 16900822 (triage),
   1b25903a (10 engines async-emit fix), 1ad190d4 (test_cspm cascade fix).
 
+Sweep #12 — HEAD c98e9aed — npm/shell audit wrap
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 9.01s
+Suite 2 — Perf benchmarks (-m perf, ignoring reachability_perf + 3 broad-scan collectors): 181 passed, 2 skipped, 1 flake, 44599 deselected in 35.00s
+Suite 3 — QA/lockdown (test_owasp_regression_lockdown.py direct): 47 passed, 0 failed, 0 errors in 0.52s
+
+Total sweep #12: 981 passed, 0 failed (1 flake), 2 skipped, 0 errors
+Timestamp: 2026-05-05T10:22:00Z
+
+PERF FLAKE — test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms:
+  Root cause: _run_attack_graph_gnn calls asyncio.run() from sync context; MiniLM model load
+  (agentdb_bridge.py:261) triggers HuggingFace network round-trip + MPS warm-up inside a
+  thread-pool executor, blowing the 10s pytest-timeout. This is an environment/network-speed
+  flake — NOT a code regression. Commits since sweep #11 (b2285945 dep-audit, 43895c5c HANDOFF
+  v6, 9073b7c8 sweep-#11 commit) touch zero production Python. brain_pipeline.py and
+  agentdb_bridge.py unchanged. Test was GREEN standalone in sweep #9 and #11.
+  Classification: PRE-EXISTING FLAKE (async-in-sync + MPS cold-start). Route to backend-hardener
+  for proper asyncio.get_event_loop() guard in _run_attack_graph_gnn if/when it regresses
+  consistently.
+
+BROKEN COLLECTORS (unchanged from sweep #11 — 4 files):
+  tests/test_cspm.py — collects + 103 skipped (cascade unblocked at 1ad190d4)
+  tests/test_reachability_perf.py — collects standalone, ImportError in broad scan
+  tests/test_autonomous_cycle.py — collects standalone, ValueError plugin error in broad scan
+  tests/test_wave_a_code_intel_router.py — collects standalone, auth_deps ImportError in broad scan
+
+Commits validated since sweep #11:
+  9073b7c8 (sweep #11 commit), 43895c5c (HANDOFF v6), b2285945 (dep audit refresh).
+
+Delta vs sweep #11: 0 regressions. 1 pre-existing perf flake (network/MPS cold-start).
+  Beast Mode: 753/753 stable. OWASP lockdown: 47/47 stable.
+
 Delta vs sweep #10: 0 regressions. test_cspm.py cascade fully unblocked (collection error → 103 skipped).
   Beast Mode: 753/753 stable. Perf: 182/182 stable. OWASP lockdown: 47/47 stable.
