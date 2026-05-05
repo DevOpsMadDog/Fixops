@@ -32,9 +32,10 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { BUHeatmapPanel } from "@/components/finance/BUHeatmapPanel";
+import { BudgetPanel } from "@/components/finance/BudgetPanel";
+import { IncidentCostsPanel } from "@/components/finance/IncidentCostsPanel";
+import { CyberInsurancePanel } from "@/components/finance/CyberInsurancePanel";
 
 type TabKey =
   | "bu-heatmap"
@@ -147,22 +148,27 @@ export default function FinanceHub() {
 
         <TabsContent value="bu-heatmap">
           <Suspense fallback={<PageSkeleton />}>
+            <BUHeatmapPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="investment">
           <Suspense fallback={<PageSkeleton />}>
+            <BudgetPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="budget">
           <Suspense fallback={<PageSkeleton />}>
+            <BudgetPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="incident-costs">
           <Suspense fallback={<PageSkeleton />}>
+            <IncidentCostsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="cyber-insur">
           <Suspense fallback={<PageSkeleton />}>
+            <CyberInsurancePanel />
           </Suspense>
         </TabsContent>
       </Tabs>
