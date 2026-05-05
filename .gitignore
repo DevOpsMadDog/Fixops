@@ -152,6 +152,12 @@ suite-ui/aldeci-ui-new/test-results/
 .claude/team-state/
 
 # ───────────────────────────────────────────────────────────────────────
+# OMC / claude-flow runtime session state (auto-regenerated, no cross-session value)
+# ───────────────────────────────────────────────────────────────────────
+.omc/project-memory.json
+.claude-flow/agents/store.json
+
+# ───────────────────────────────────────────────────────────────────────
 # Executables and compiled objects
 # ───────────────────────────────────────────────────────────────────────
 *.exe
