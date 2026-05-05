@@ -346,3 +346,32 @@ Commits validated since sweep #14:
 Delta vs sweep #14: 0 regressions. test_reachability_perf.py import fix (a4b9650d) confirmed.
   Beast Mode: 753/753 stable. Perf: 182/182 stable (2 skipped, 0 failed). OWASP/asyncio lockdown: 1/1 stable.
   Standalone reachability_perf: 12/12 GREEN. All suites GREEN at HEAD a4b9650d.
+
+Sweep #16 — HEAD ed6512e0 — module-cache ordering fix confirmed, 0 broken collectors
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.84s
+Suite 2 — Perf benchmarks (-m perf, BROAD scan): 194 passed, 2 skipped, 0 failed, 44782 deselected in 26.58s
+Suite 3 — OWASP/asyncio lockdown (test_no_unsafe_asyncio_run.py direct): 1 passed, 0 failed in 6.09s
+
+Total sweep #16: 948 passed, 0 failed, 2 skipped, 0 errors
+Timestamp: 2026-05-05T10:55:00Z
+
+MODULE-CACHE ORDERING FIX CONFIRMED (commit ed6512e0):
+  Previously broken in broad -m perf scan (3 collectors):
+    tests/test_autonomous_cycle.py — ValueError: Plugin already registered
+    tests/test_wave_a_code_intel_router.py — ImportError: apps.api.auth_deps not in sys.modules
+    tests/test_reachability_perf.py — ImportError: _add_edge in broad scan
+  After ed6512e0: ALL 3 now collect cleanly in broad scan — 0 broken collectors.
+  Broad-scan perf count: 194 passed (vs 182 in sweep #15) — +12 tests now collecting that
+  previously errored out. deselected count 44782 (vs 44599 in sweep #14) confirms wider
+  collection. 2 skipped are stable pre-existing skips (not errors).
+
+BROKEN COLLECTORS: 0 — all previously broken collectors now collect cleanly in broad scan.
+
+Commits validated since sweep #15:
+  667f62b7 (docs: final tally snapshot v2),
+  1f73bed2 (qa: regression sweep #15 commit),
+  ed6512e0 (qa-fix: module-cache ordering — fix 3 broad-scan collection errors).
+
+Delta vs sweep #15: 0 regressions. 3 previously broken broad-scan collectors CLOSED at ed6512e0.
+  Beast Mode: 753/753 stable. Perf: 194/194 (+12 newly collecting) stable, 2 skipped, 0 failed.
+  OWASP/asyncio lockdown: 1/1 stable. All 3 standard suites GREEN at HEAD ed6512e0.
