@@ -1,3 +1,24 @@
+Sweep #21 — HEAD cfd36eb2d5b7ea6a43a54ae306e2c96c95c1c3e7 — dedupe + owasp marker + ci-doc + snapshot v3 + CLAUDE.md + marker smoke + dead marker cleanup
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.74s
+Suite 2 — Perf benchmarks (-m perf): 194 passed, 2 skipped, 0 failed, 44782 deselected in 26.55s
+Suite 3 — OWASP lockdown (-m owasp): 47 passed, 2 skipped, 0 failed, 44929 deselected in 17.95s
+
+Total sweep #21: 994 passed, 0 failed, 4 skipped, 0 errors
+Timestamp: 2026-05-05T12:13:00Z
+
+Commits validated since sweep #20 (a8a08628):
+  cad33d9a (dedupe)
+  3519e40b (owasp marker)
+  465317ae (ci-doc)
+  64c84eca (snapshot v3)
+  6381af43 (CLAUDE.md)
+  426fa14b (marker smoke)
+  cfd36eb2 (dead marker cleanup — removes 4 dead markers: unit, regression, e2e, performance)
+
+Dead marker removal confirmed correct: -m perf still collects 194 tests (marker renamed from
+  performance to perf, unchanged). -m owasp collects 47 tests (new marker wired). No regressions.
+Beast Mode: 753/753 stable. Perf: 194/194 stable. OWASP: 47/47 stable.
+
 Sweep #19 — HEAD e3b2660f0d3013c06a0f8286aa4d928109c522b6 — CI ui-build-verification + HANDOFF v10
 Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.57s
 Suite 2 — Perf benchmarks (-m perf): 194 passed, 2 skipped, 0 failed, 44782 deselected in 27.74s
