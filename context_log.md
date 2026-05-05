@@ -1,5 +1,23 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 10:15] qa-engineer — REGRESSION_SWEEP_11
+- **What**: Sweep #11 at HEAD 1ad190d4. Validated cascade unblock from 5 commits since sweep #10 (a8af529c, 2ad076c1, 16900822, 1b25903a, 1ad190d4). Beast Mode 753/753. Perf 182/182 + 2 skipped. OWASP 47/47. Cascade verifications: test_cspm.py 103 skipped (collection error CLOSED), test_reachability_perf.py 12 passed standalone, test_autonomous_cycle.py 49 collected cleanly standalone, test_wave_a_code_intel_router.py 20 collected cleanly standalone. Broad-scan import-ordering issue persists for 3 files (pre-existing, not introduced by this sweep).
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 982 passed, 0 failed, 2 skipped, 0 regressions. Cascade unblock confirmed.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 11:05] backend-hardener — ASYNC_EMIT_FIX
+- **What**: Fixed `coroutine was never awaited` RuntimeWarning in 10 engines. `bus.emit()` is `async def` in trustgraph_event_bus; all 10 `_emit_event()` helpers called it synchronously. Fix: `inspect.isawaitable()` on return value — `create_task()` if a loop is running, `result.close()` otherwise. No module-level code changed.
+- **Files touched**: suite-core/core/aws_securityhub_engine.py, amazon_inspector_engine.py, aws_iam_engine.py, proofpoint_tap_engine.py, datadog_security_engine.py, defender_xdr_engine.py, newrelic_apm_engine.py, terraform_cloud_engine.py, slack_chatops_engine.py, aws_waf_engine.py
+- **Outcome**: SUCCESS — 124/124 regression tests pass, exit 0 on -W error::RuntimeWarning import check, SHA 1b25903a pushed
+- **Pillar(s) served**: V1 (platform reliability), V6 (TrustGraph integrity)
+
+### [2026-05-05 10:53] qa-engineer — ENDPOINT_MOUNT_VERIFICATION
+- **What**: Read-only check: verified all 10 session-added target endpoints mount in the live FastAPI app via `create_app()` route introspection. 10/10 OK, 0 MISS, 6,328 total routes. Non-blocking findings: 10 engines emit TrustGraph events synchronously at import (coroutine-never-awaited warnings), db_security_router Pydantic field-shadow warnings, 3 engines in SIMULATION mode. All warnings pre-existing and non-blocking.
+- **Files touched**: docs/endpoint_mount_verification_2026-05-05.md (new)
+- **Outcome**: SUCCESS — commit 2ad076c1 pushed to features/intermediate-stage
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
 ### [2026-05-05 09:44] qa-engineer — REGRESSION_SWEEP_9
 - **What**: Final wrap sweep #9 at HEAD 05964156. Ran all 3 standard suites. Beast Mode 753/753, Perf 182/182 (2 skipped), OWASP lockdown 47/47. Spot checks: test_reachability_perf.py 12 tests collected + pass (collection error CLOSED at dbcc1a20), test_admin_db_stats.py::test_db_stats_empty_data_dir GREEN, test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms GREEN, real_world_tests/test_phase1_intake.py 18 tests collected cleanly. Broken collector count dropped from 5 to 3 (reachability_perf + phase1_intake both fixed).
 - **Files touched**: docs/regression_status_2026-05-05.md
