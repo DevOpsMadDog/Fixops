@@ -396,14 +396,15 @@ async def classify(body: ClassifyRequest) -> Dict[str, Any]:
         detector = _get_detector()
         results = []
         for fd in body.file_diffs:
-            classification = detector.classify_change(fd.path, [])
+            diff_hunks = fd.diff.splitlines() if fd.diff else []
+            classification = detector.classify_change(fd.path, diff_hunks)
             results.append({"path": fd.path, "classification": classification.value})
         return {"results": results}
     except HTTPException:
         raise
     except Exception as exc:
         logger.warning("classify failed: %s", exc)
-        return {"results": []}
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.post("/review-checklist")
