@@ -28,6 +28,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { MicrosegmentationPanel } from "@/components/network/MicrosegmentationPanel";
+import { FirewallPanel } from "@/components/network/FirewallPanel";
+import { ZeroTrustPolicyPanel } from "@/components/network/ZeroTrustPolicyPanel";
 
 type TabKey = "microseg" | "firewall" | "policy";
 
@@ -126,10 +128,12 @@ export default function NetworkSegmentationHub() {
         </TabsContent>
         <TabsContent value="firewall">
           <Suspense fallback={<PageSkeleton />}>
+            <FirewallPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="policy">
           <Suspense fallback={<PageSkeleton />}>
+            <ZeroTrustPolicyPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
