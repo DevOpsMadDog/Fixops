@@ -1,3 +1,24 @@
+## Summary
+
+- **Total sweeps**: 25 (sweeps #1–25, 2026-05-05)
+- **All green at HEAD**: 04d729fa3be31eed12648ae6e58e238d9e959146
+- **Real bugs caught**: 10
+  1. asyncio.run() race — brain_pipeline._correlate_and_emit (caught #5, fixed #6 / 5ffc1910)
+  2. asyncio.get_event_loop() deprecation — test_admin_db_stats (caught #7, fixed #8 / e124c48d)
+  3. test_reachability_perf collection error — stale module path (caught #7, fixed #9 / dbcc1a20)
+  4. real_world_tests missing __init__.py (caught #9, fixed #9 / 05964156)
+  5. test_cspm stale API imports — collection error (caught #11, fixed #11 / 1ad190d4)
+  6. asyncio.run() race — brain_pipeline._run_attack_graph_gnn (caught #12, fixed #13 / 8b9738ed)
+  7. playbook_runner.py unsafe asyncio.run() in sync context (caught #14, fixed #14 / 32842a75)
+  8. cve_tester.py unsafe asyncio.run() in sync context (caught #14, fixed #14 / 32842a75)
+  9. test_reachability_perf stale _add_edge import (caught #15, fixed #15 / a4b9650d)
+  10. 3 broad-scan module-cache ordering errors (caught #15, fixed #16 / ed6512e0)
+- **Latest sweep (#24 full / #25 abbreviated)**:
+  753 Beast Mode + 194 perf + 47 OWASP + 11 lockdown = **1005 total tests passing**, 0 failed
+- **Workstreams validated**: hardening, perf, frontend, ops, tests, docs
+
+---
+
 Sweep #21 — HEAD cfd36eb2d5b7ea6a43a54ae306e2c96c95c1c3e7 — dedupe + owasp marker + ci-doc + snapshot v3 + CLAUDE.md + marker smoke + dead marker cleanup
 Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.74s
 Suite 2 — Perf benchmarks (-m perf): 194 passed, 2 skipped, 0 failed, 44782 deselected in 26.55s
