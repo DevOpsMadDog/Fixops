@@ -6,7 +6,7 @@
 # Env:   ALDECI_SEED_DEMO=1  — seed demo data on startup
 #        FIXOPS_WORKERS=1|N|auto  — uvicorn (1) or gunicorn (N/auto)
 # ============================================
-set -e
+set -euo pipefail
 
 # ─── Colors ──────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -33,10 +33,12 @@ export FIXOPS_MODE="${FIXOPS_MODE:-enterprise}"
 export FIXOPS_LOG_LEVEL="${FIXOPS_LOG_LEVEL:-warning}"
 
 if [[ -z "${FIXOPS_JWT_SECRET:-}" ]]; then
-    export FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+    export FIXOPS_JWT_SECRET
+    FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 fi
 if [[ -z "${FIXOPS_API_TOKEN:-}" ]]; then
-    export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+    export FIXOPS_API_TOKEN
+    FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
     echo -e "${GREEN}Generated enterprise token: ${FIXOPS_API_TOKEN}${NC}"
 fi
 
@@ -44,9 +46,9 @@ fi
 API_PID=""
 _shutdown() {
     echo -e "\n${YELLOW}Caught SIGTERM — shutting down gracefully...${NC}"
-    if [[ -n "${API_PID:-}" ]] && kill -0 "$API_PID" 2>/dev/null; then
-        kill -SIGTERM "$API_PID"
-        wait "$API_PID" 2>/dev/null || true
+    if [[ -n "${API_PID:-}" ]] && kill -0 "${API_PID}" 2>/dev/null; then
+        kill -SIGTERM "${API_PID}"
+        wait "${API_PID}" 2>/dev/null || true
     fi
     echo -e "${GREEN}ALdeci shutdown complete.${NC}"
     exit 0
@@ -146,7 +148,7 @@ case "${1:-api-only}" in
         echo -e "${GREEN}API:     http://localhost:8000${NC}"
         echo -e "${GREEN}Health:  http://localhost:8000/health${NC}"
         echo -e "${GREEN}Docs:    http://localhost:8000/docs${NC}"
-        wait $API_PID
+        wait "${API_PID}"
         ;;
     interactive|"")
         run_db_init

@@ -5,7 +5,9 @@
 # Usage: ./setup.sh
 # Requires: Python 3.11+, Node.js 20+, npm
 # ─────────────────────────────────────────────────────────────
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -30,15 +32,17 @@ echo -e "${GREEN}  ✓ Node $(node --version)${NC}"
 
 # ── Generate secrets if not set ──────────────────────────────
 echo -e "${YELLOW}[2/7] Configuring secrets...${NC}"
-if [ -z "$FIXOPS_API_TOKEN" ]; then
-  export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(f'fixops_sk_{secrets.token_urlsafe(32)}')")
+if [ -z "${FIXOPS_API_TOKEN:-}" ]; then
+  export FIXOPS_API_TOKEN
+  FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(f'fixops_sk_{secrets.token_urlsafe(32)}')")
   echo -e "${GREEN}  ✓ Generated API token: ${FIXOPS_API_TOKEN:0:20}...${NC}"
 else
   echo -e "${GREEN}  ✓ Using existing API token${NC}"
 fi
 
-if [ -z "$FIXOPS_JWT_SECRET" ]; then
-  export FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+if [ -z "${FIXOPS_JWT_SECRET:-}" ]; then
+  export FIXOPS_JWT_SECRET
+  FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
   echo -e "${GREEN}  ✓ Generated JWT secret${NC}"
 else
   echo -e "${GREEN}  ✓ Using existing JWT secret${NC}"
@@ -49,7 +53,7 @@ export FIXOPS_DISABLE_RATE_LIMIT=0
 
 # ── Install Python dependencies ──────────────────────────────
 echo -e "${YELLOW}[3/7] Installing Python dependencies...${NC}"
-pip install -r requirements.txt -q
+pip install -r "${SCRIPT_DIR}/requirements.txt" -q
 echo -e "${GREEN}  ✓ Python dependencies installed${NC}"
 
 # ── Install Node dependencies (root — for serve.js) ─────────
@@ -59,27 +63,27 @@ echo -e "${GREEN}  ✓ Production server dependencies installed${NC}"
 
 # ── Build frontend ───────────────────────────────────────────
 echo -e "${YELLOW}[5/7] Building frontend...${NC}"
-cd suite-ui/aldeci-ui-new
+cd "${SCRIPT_DIR}/suite-ui/aldeci-ui-new"
 npm install -q
 npx vite build
-cd ../..
+cd "${SCRIPT_DIR}"
 echo -e "${GREEN}  ✓ Frontend built${NC}"
 
 # ── Set PYTHONPATH ───────────────────────────────────────────
-export PYTHONPATH="$(pwd)/suite-api:$(pwd)/suite-api/apps:$(pwd):$(pwd)/suite-core:$(pwd)/suite-attack:$(pwd)/suite-evidence-risk:$(pwd)/suite-integrations"
+export PYTHONPATH="${SCRIPT_DIR}/suite-api:${SCRIPT_DIR}/suite-api/apps:${SCRIPT_DIR}:${SCRIPT_DIR}/suite-core:${SCRIPT_DIR}/suite-attack:${SCRIPT_DIR}/suite-evidence-risk:${SCRIPT_DIR}/suite-integrations"
 
 # ── Start API backend ────────────────────────────────────────
 echo -e "${YELLOW}[6/7] Starting API backend (port 8000)...${NC}"
 python3 -m uvicorn api.app:create_app \
   --factory --host 0.0.0.0 --port 8000 \
-  --app-dir suite-api/apps \
+  --app-dir "${SCRIPT_DIR}/suite-api/apps" \
   --log-level info &
 API_PID=$!
 
 # Wait for API
 for i in $(seq 1 30); do
   if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
-    echo -e "${GREEN}  ✓ API backend ready (PID: $API_PID)${NC}"
+    echo -e "${GREEN}  ✓ API backend ready (PID: ${API_PID})${NC}"
     break
   fi
   sleep 1
@@ -94,7 +98,7 @@ echo -e "║   ALdeci FixOps CTEM+ is LIVE                    ║"
 echo -e "║                                                  ║"
 echo -e "║   → http://localhost:3000                        ║"
 echo -e "║                                                  ║"
-echo -e "║   API Token: $FIXOPS_API_TOKEN  ║"
+echo -e "║   API Token: ${FIXOPS_API_TOKEN}  ║"
 echo -e "║                                                  ║"
 echo -e "║   Press Ctrl+C to stop                           ║"
 echo -e "║                                                  ║"
@@ -102,6 +106,6 @@ echo -e "╚══════════════════════�
 echo ""
 
 # Trap Ctrl+C to cleanup
-trap "echo ''; echo 'Shutting down...'; kill $API_PID 2>/dev/null; exit 0" INT TERM
+trap "echo ''; echo 'Shutting down...'; kill ${API_PID} 2>/dev/null; exit 0" INT TERM
 
-node serve.js
+node "${SCRIPT_DIR}/serve.js"

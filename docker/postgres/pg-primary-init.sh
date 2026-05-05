@@ -6,7 +6,7 @@
 # replication from the replica container.
 # This script runs during initdb (first start only).
 # ============================================================================
-set -e
+set -euo pipefail
 
 echo "Configuring PostgreSQL replication..."
 
