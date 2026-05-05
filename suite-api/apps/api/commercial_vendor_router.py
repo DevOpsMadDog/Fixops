@@ -186,4 +186,13 @@ __all__ = ["router"]
 @router.get("/", summary="Connectors index", tags=["connectors"])
 async def connectors_index(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return list of available commercial vendor connectors."""
-    return {"router": "connectors", "org_id": org_id, "items": [], "count": 0}
+    vendors = ["lacework", "sysdig", "recorded_future", "mandiant"]
+    items = [
+        {
+            "vendor": v,
+            "ingest_endpoint": f"POST /api/v1/connectors/{v.replace('_', '-')}/ingest",
+            "sample_endpoint": f"GET /api/v1/connectors/{v.replace('_', '-')}/sample",
+        }
+        for v in vendors
+    ]
+    return {"router": "connectors", "org_id": org_id, "items": items, "count": len(items)}
