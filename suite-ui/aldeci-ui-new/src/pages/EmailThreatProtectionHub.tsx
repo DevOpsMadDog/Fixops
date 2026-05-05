@@ -8,16 +8,16 @@
  *
  *   tab          | source page                   | endpoint
  *   -------------|-------------------------------|--------------------------------------------
- *   email        | EmailSecurity                 | /api/v1/email-filtering/{threats,stats}
- *   phishing     | PhishingSimulation            | /api/v1/phishing/{stats,campaigns,templates}
- *   ransomware   | RansomwareProtectionDashboard | /api/v1/ransomware-protection/{patterns,backup-status}
+ *   email        | EmailSecurity / EmailFiltering | /api/v1/email-filtering/events + /stats
+ *   phishing     | PhishingSimulation             | /api/v1/phishing/campaigns + /stats
+ *   ransomware   | RansomwareProtectionDashboard  | /api/v1/ransomware-protection/detections + /
  *
  * Route: /discover/threat-protection
  * Persona target: SOC T1 (#5), SOC T2 (#6), Vuln Mgr (#9), GRC Analyst (#12)
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.11
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -25,10 +25,109 @@ import { Mail, Fish, ShieldAlert } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { GenericDashboard } from "@/components/GenericDashboard";
+import type { ColumnDef, KpiDef } from "@/components/GenericDashboard";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// ── Email Security tab ───────────────────────────────────────────────────────
+
+const EMAIL_COLUMNS: ColumnDef[] = [
+  { key: "event_id",    label: "Event ID" },
+  { key: "sender",      label: "Sender" },
+  { key: "subject",     label: "Subject" },
+  { key: "threat_type", label: "Threat Type" },
+  { key: "action",      label: "Action Taken" },
+  { key: "received_at", label: "Received" },
+];
+
+const EMAIL_KPIS: KpiDef[] = [
+  { key: "total_events",    label: "Total Events",    colorClass: "text-indigo-400" },
+  { key: "blocked_count",   label: "Blocked",         colorClass: "text-red-400" },
+  { key: "quarantined_count", label: "Quarantined",   colorClass: "text-amber-400" },
+  { key: "allowed_count",   label: "Allowed",         colorClass: "text-green-400" },
+];
+
+function EmailSecurityPanel() {
+  return (
+    <GenericDashboard
+      title="Email Security"
+      description="Inbound email threat filtering — live threat events, blocking actions and detection statistics."
+      apiPath="/api/v1/email-filtering/events"
+      itemsKey="events"
+      statsPath="/api/v1/email-filtering/stats"
+      columns={EMAIL_COLUMNS}
+      kpis={EMAIL_KPIS}
+      emptyMessage="No email threat events recorded yet. Events are logged automatically when the email filtering engine processes inbound mail."
+    />
+  );
+}
+
+// ── Phishing Simulation tab ──────────────────────────────────────────────────
+
+const PHISHING_COLUMNS: ColumnDef[] = [
+  { key: "campaign_id",   label: "Campaign ID" },
+  { key: "name",          label: "Name" },
+  { key: "status",        label: "Status" },
+  { key: "target_count",  label: "Targets" },
+  { key: "click_rate",    label: "Click Rate (%)" },
+  { key: "created_at",    label: "Created" },
+];
+
+const PHISHING_KPIS: KpiDef[] = [
+  { key: "total_campaigns",   label: "Campaigns",        colorClass: "text-indigo-400" },
+  { key: "active_campaigns",  label: "Active",           colorClass: "text-amber-400" },
+  { key: "avg_click_rate",    label: "Avg Click Rate",   colorClass: "text-red-400" },
+  { key: "avg_report_rate",   label: "Avg Report Rate",  colorClass: "text-green-400" },
+];
+
+function PhishingSimulationPanel() {
+  return (
+    <GenericDashboard
+      title="Phishing Simulation"
+      description="Phishing campaign management, template library and employee security awareness metrics."
+      apiPath="/api/v1/phishing/campaigns"
+      itemsKey="campaigns"
+      statsPath="/api/v1/phishing/stats"
+      columns={PHISHING_COLUMNS}
+      kpis={PHISHING_KPIS}
+      emptyMessage="No phishing simulation campaigns yet. Create a campaign to test and measure employee security awareness across your organisation."
+    />
+  );
+}
+
+// ── Ransomware Protection tab ────────────────────────────────────────────────
+
+const RANSOMWARE_COLUMNS: ColumnDef[] = [
+  { key: "detection_id",  label: "Detection ID" },
+  { key: "host",          label: "Host" },
+  { key: "family",        label: "Family" },
+  { key: "severity",      label: "Severity" },
+  { key: "containment_status", label: "Containment" },
+  { key: "detected_at",   label: "Detected" },
+];
+
+const RANSOMWARE_KPIS: KpiDef[] = [
+  { key: "total_detections",     label: "Detections",        colorClass: "text-indigo-400" },
+  { key: "active_detections",    label: "Active",            colorClass: "text-red-400" },
+  { key: "contained_detections", label: "Contained",         colorClass: "text-amber-400" },
+  { key: "total_backups",        label: "Backups Registered", colorClass: "text-green-400" },
+];
+
+function RansomwareProtectionPanel() {
+  return (
+    <GenericDashboard
+      title="Ransomware Protection"
+      description="Ransomware behavior detections, containment status and backup-readiness posture across all endpoints."
+      apiPath="/api/v1/ransomware-protection/detections"
+      itemsKey="detections"
+      statsPath="/api/v1/ransomware-protection/"
+      columns={RANSOMWARE_COLUMNS}
+      kpis={RANSOMWARE_KPIS}
+      emptyMessage="No ransomware detections recorded. The protection engine monitors endpoints continuously and raises detections on suspicious encryption or lateral-movement activity."
+    />
+  );
+}
+
+// ── Hub shell ────────────────────────────────────────────────────────────────
 
 type TabKey = "email" | "phishing" | "ransomware";
 
@@ -57,7 +156,7 @@ const TABS: Array<{
     label: "Ransomware Protection",
     icon: ShieldAlert,
     description:
-      "Ransomware behavior patterns and backup-readiness posture (Folded from RansomwareProtectionDashboard).",
+      "Ransomware behavior detections and backup-readiness posture (Folded from RansomwareProtectionDashboard).",
   },
 ];
 
@@ -134,16 +233,13 @@ export default function EmailThreatProtectionHub() {
         </p>
 
         <TabsContent value="email">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <EmailSecurityPanel />
         </TabsContent>
         <TabsContent value="phishing">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <PhishingSimulationPanel />
         </TabsContent>
         <TabsContent value="ransomware">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <RansomwareProtectionPanel />
         </TabsContent>
       </Tabs>
     </motion.div>

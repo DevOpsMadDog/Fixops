@@ -9,26 +9,125 @@
  *
  *   tab          | source page              | endpoint
  *   -------------|--------------------------|----------------------------------------------
- *   cloud        | CloudIRDashboard         | /api/v1/cloud-ir/*
- *   breach       | BreachResponse           | /api/v1/breach-response/{stats,cases}
- *   comms        | IncidentCommsDashboard   | /api/v1/incident-comms/{communications,stats}
+ *   cloud        | CloudIRDashboard         | /api/v1/cloud-ir/incidents + /metrics
+ *   breach       | BreachResponse           | /api/v1/breach-response/cases + /stats
+ *   comms        | IncidentCommsDashboard   | /api/v1/incident-comms/comms + /stats
  *
  * Route: /remediate/incidents/extensions
  * Persona target: IR Lead (#7), SOC T2 (#6), Crisis Comms (#13)
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.22
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Cloud, ShieldAlert, MessageCircle } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { GenericDashboard } from "@/components/GenericDashboard";
+import type { ColumnDef, KpiDef } from "@/components/GenericDashboard";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// ── Cloud IR tab ─────────────────────────────────────────────────────────────
+
+const CLOUD_IR_COLUMNS: ColumnDef[] = [
+  { key: "incident_id", label: "Incident ID" },
+  { key: "title",       label: "Title" },
+  { key: "severity",    label: "Severity" },
+  { key: "status",      label: "Status" },
+  { key: "cloud_provider", label: "Provider" },
+  { key: "region",      label: "Region" },
+];
+
+const CLOUD_IR_KPIS: KpiDef[] = [
+  { key: "total_incidents",    label: "Total Incidents",    colorClass: "text-indigo-400" },
+  { key: "active_incidents",   label: "Active",             colorClass: "text-red-400" },
+  { key: "contained_incidents", label: "Contained",         colorClass: "text-amber-400" },
+  { key: "resolved_incidents", label: "Resolved",           colorClass: "text-green-400" },
+];
+
+function CloudIRPanel() {
+  return (
+    <GenericDashboard
+      title="Cloud IR"
+      description="Cloud-native incident response — multi-cloud incident triage, runbook execution and snapshot evidence."
+      apiPath="/api/v1/cloud-ir/incidents"
+      itemsKey="incidents"
+      statsPath="/api/v1/cloud-ir/metrics"
+      columns={CLOUD_IR_COLUMNS}
+      kpis={CLOUD_IR_KPIS}
+      emptyMessage="No cloud incidents recorded. Cloud IR incidents are raised automatically when the Brain Pipeline detects anomalous activity in connected cloud accounts."
+    />
+  );
+}
+
+// ── Breach Response tab ──────────────────────────────────────────────────────
+
+const BREACH_COLUMNS: ColumnDef[] = [
+  { key: "case_id",       label: "Case ID" },
+  { key: "title",         label: "Title" },
+  { key: "breach_type",   label: "Breach Type" },
+  { key: "severity",      label: "Severity" },
+  { key: "status",        label: "Status" },
+  { key: "detected_at",   label: "Detected" },
+];
+
+const BREACH_KPIS: KpiDef[] = [
+  { key: "total_cases",      label: "Total Cases",       colorClass: "text-indigo-400" },
+  { key: "open_cases",       label: "Open",              colorClass: "text-red-400" },
+  { key: "notified_cases",   label: "Notified",          colorClass: "text-amber-400" },
+  { key: "closed_cases",     label: "Closed",            colorClass: "text-green-400" },
+];
+
+function BreachResponsePanel() {
+  return (
+    <GenericDashboard
+      title="Breach Response"
+      description="Active breach cases, response timeline, regulator notifications and disclosure status."
+      apiPath="/api/v1/breach-response/cases"
+      itemsKey="cases"
+      statsPath="/api/v1/breach-response/stats"
+      columns={BREACH_COLUMNS}
+      kpis={BREACH_KPIS}
+      emptyMessage="No breach cases open. Cases are opened automatically when a confirmed data breach is detected or reported."
+    />
+  );
+}
+
+// ── Incident Comms tab ───────────────────────────────────────────────────────
+
+const COMMS_COLUMNS: ColumnDef[] = [
+  { key: "comm_id",       label: "ID" },
+  { key: "title",         label: "Subject" },
+  { key: "comm_type",     label: "Type" },
+  { key: "channel",       label: "Channel" },
+  { key: "status",        label: "Status" },
+  { key: "created_at",    label: "Created" },
+];
+
+const COMMS_KPIS: KpiDef[] = [
+  { key: "total_comms",       label: "Total Comms",        colorClass: "text-indigo-400" },
+  { key: "pending_comms",     label: "Pending",            colorClass: "text-amber-400" },
+  { key: "sent_comms",        label: "Sent",               colorClass: "text-green-400" },
+  { key: "acknowledgment_rate", label: "Ack Rate (%)",     colorClass: "text-sky-400" },
+];
+
+function IncidentCommsPanel() {
+  return (
+    <GenericDashboard
+      title="Incident Comms"
+      description="Stakeholder communications log — internal channels, external disclosures and acknowledgment tracking."
+      apiPath="/api/v1/incident-comms/comms"
+      itemsKey="comms"
+      statsPath="/api/v1/incident-comms/stats"
+      columns={COMMS_COLUMNS}
+      kpis={COMMS_KPIS}
+      emptyMessage="No communications logged yet. Comms are created when incident stakeholder notifications are dispatched."
+    />
+  );
+}
+
+// ── Hub shell ────────────────────────────────────────────────────────────────
 
 type TabKey = "cloud" | "breach" | "comms";
 
@@ -121,16 +220,13 @@ export default function IncidentExtensionsHub() {
         <p className="text-xs text-muted-foreground mt-2 mb-1">{activeMeta.description}</p>
 
         <TabsContent value="cloud">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <CloudIRPanel />
         </TabsContent>
         <TabsContent value="breach">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <BreachResponsePanel />
         </TabsContent>
         <TabsContent value="comms">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <IncidentCommsPanel />
         </TabsContent>
       </Tabs>
     </motion.div>
