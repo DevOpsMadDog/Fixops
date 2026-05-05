@@ -186,35 +186,53 @@ def _get_universal():
 # ---------------------------------------------------------------------------
 
 
+def _connector_type_descriptor(ct: ConnectorType) -> Dict[str, Any]:
+    """Derive connector type metadata from the Pydantic config model for that type.
+
+    Required fields = model fields without a default value.
+    Optional fields = model fields WITH a default value (including None defaults).
+    Keeps /types automatically in sync with the actual validation models.
+    """
+    _config_map: Dict[str, type] = {
+        ConnectorType.jira: JiraConfig,
+        ConnectorType.github: GitHubConfig,
+        ConnectorType.slack: SlackConfig,
+    }
+    _label_map = {
+        ConnectorType.jira: ("Jira", "Atlassian Jira issue tracker"),
+        ConnectorType.github: ("GitHub", "GitHub repository integration"),
+        ConnectorType.slack: ("Slack", "Slack incoming webhook notifications"),
+    }
+    model_cls = _config_map.get(ct)
+    label, description = _label_map.get(ct, (ct.value.title(), ""))
+
+    required_fields: List[str] = []
+    optional_fields: List[str] = []
+    if model_cls is not None:
+        for field_name, field_info in model_cls.model_fields.items():
+            if field_info.is_required():
+                required_fields.append(field_name)
+            else:
+                optional_fields.append(field_name)
+
+    return {
+        "type": ct.value,
+        "label": label,
+        "description": description,
+        "required_fields": required_fields,
+        "optional_fields": optional_fields,
+    }
+
+
 @router.get("/types", summary="List supported connector types")
 async def list_connector_types() -> Dict[str, Any]:
-    """Return all supported connector types and their required configuration fields."""
-    return {
-        "types": [
-            {
-                "type": "jira",
-                "label": "Jira",
-                "description": "Atlassian Jira issue tracker",
-                "required_fields": ["base_url", "email", "api_token", "project_key"],
-                "optional_fields": ["issue_type"],
-            },
-            {
-                "type": "github",
-                "label": "GitHub",
-                "description": "GitHub repository integration",
-                "required_fields": ["token", "owner", "repo"],
-                "optional_fields": [],
-            },
-            {
-                "type": "slack",
-                "label": "Slack",
-                "description": "Slack incoming webhook notifications",
-                "required_fields": ["webhook_url"],
-                "optional_fields": ["channel"],
-            },
-        ],
-        "total": 3,
-    }
+    """Return all supported connector types and their required configuration fields.
+
+    Derived from the ConnectorType enum and Pydantic config models — required/optional
+    field lists are authoritative (introspected from model_fields, not hardcoded).
+    """
+    types = [_connector_type_descriptor(ct) for ct in ConnectorType]
+    return {"types": types, "total": len(types)}
 
 
 @router.get("", summary="List registered connectors")
