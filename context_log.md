@@ -1,5 +1,47 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 18:30] frontend-craftsman — SALVAGE_AND_PARTIAL_HUB_FINISH
+- **What**: Part 1 — salvaged EmailThreatProtectionHub (3 tabs: email/phishing/ransomware → /api/v1/email-filtering, /api/v1/phishing, /api/v1/ransomware-protection) and IncidentExtensionsHub (3 tabs: cloud-ir/breach/comms → /api/v1/cloud-ir, /api/v1/breach-response, /api/v1/incident-comms). Both use GenericDashboard inline panels, no mocks. Part 2 — finished 3 PARTIAL hubs: DataDiscoveryHub (+2 SHELL: classification+exfiltration), IdentityGovernanceHub (+2 SHELL: analytics+digital, linter pre-filled with identityAnalyticsApi+digitalIdentityApi), VulnIntelHub (+2 SHELL: ip-rep+geolocation, linter pre-filled with ipReputationApi+threatGeolocationApi). WebhookIngestionHub bonus fix: all 3 tabs already wired by linter (catalogue+retry+dry-run), fixed React.ComponentType import. Build: 3.16s clean.
+- **Files touched**: EmailThreatProtectionHub.tsx, IncidentExtensionsHub.tsx, DataDiscoveryHub.tsx, IdentityGovernanceHub.tsx, VulnIntelHub.tsx, WebhookIngestionHub.tsx
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1, V3, V7
+
+### [2026-05-05 17:40] frontend-craftsman — WIRE_PRIVACY_COMPLIANCE_HUB
+- **What**: Filled all 3 SHELL tabs in PrivacyComplianceHub — PrivacyGDPRPanel (/api/v1/privacy/stats+dsrs+incidents), PrivacyImpactPanel (/api/v1/privacy-impact/summary+assessments+high-risk), ControlTestingPanel (/api/v1/control-testing/summary+controls+failing+due). Each tab: KPI row, subtab switcher, data table with typed badges, empty/error/loading states, refresh button. 801 LOC, build 3.02s, SHA f83eb42e.
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/PrivacyComplianceHub.tsx, src/components/privacy/PrivacyGDPRPanel.tsx, src/components/privacy/PrivacyImpactPanel.tsx, src/components/privacy/ControlTestingPanel.tsx
+- **Outcome**: SUCCESS — build clean, pushed
+- **Pillar(s) served**: V1 (real data — zero mocks), V6 (enterprise readiness)
+
+### [2026-05-05 17:42] frontend-craftsman — WIRE_NETWORK_SEGMENTATION_HUB
+- **What**: Filled 2 SHELL tabs in NetworkSegmentationHub — FirewallPanel (/api/v1/firewall-policy/stats+firewalls: KPI row + firewalls table with type badges) and ZeroTrustPolicyPanel (/api/v1/zero-trust-policy/stats+compliance+policies: KPI row + policy list + pillar score bars + recommendations). microseg was already wired.
+- **Files touched**: suite-ui/aldeci-ui-new/src/components/network/FirewallPanel.tsx (new, 167 LOC), suite-ui/aldeci-ui-new/src/components/network/ZeroTrustPolicyPanel.tsx (new, 228 LOC), suite-ui/aldeci-ui-new/src/pages/NetworkSegmentationHub.tsx
+- **Outcome**: SUCCESS — build clean 3.10s, SHA 82b987db, pushed
+- **Pillar(s) served**: V1 (real data — zero mocks), V6 (enterprise readiness)
+
+### [2026-05-05 17:10] frontend-craftsman — WIRE_OFFENSIVE_VALIDATION_HUB
+- **What**: Filled all 3 SHELL tabs in OffensiveValidationHub — PentestPanel (/api/v1/pentest-mgmt/stats+engagements+findings), RedTeamPanel (/api/v1/red-team/simulations+attack-surface-score+mitre-coverage), SocialEngPanel (/api/v1/phishing/stats+campaigns). Each tab: KPI row, data table, severity/status badges, empty/error/loading states, refresh button.
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/OffensiveValidationHub.tsx
+- **Outcome**: SUCCESS — build clean 3.07s, SHA 9cac0f38, pushed
+- **Pillar(s) served**: V1 (real data — zero mocks), V6 (enterprise readiness)
+
+### [2026-05-05 16:25] backend-hardener — EMPTY_ENDPOINT_WIRE_PHISHING
+- **What**: Wired /api/v1/phishing/ — added GET /stats (→ get_org_phishing_risk, real SQLite) and GET /campaigns (→ get_campaign_history); fixed GET / from hardcoded items:[] to real campaign list. 19 LOC net in router, 3 tests. SHA 24d7856d.
+- **Files touched**: suite-api/apps/api/phishing_router.py, tests/test_phishing_endpoints.py
+- **Outcome**: SUCCESS — 3/3 new tests pass, phase4 23/23 unaffected
+- **Pillar(s) served**: V1 (enterprise-grade reliability), V3 (zero broken API endpoints)
+
+### [2026-05-05 16:12] backend-hardener — EMPTY_ENDPOINTS_WIRE
+- **What**: Wired /api/v1/threat-hunting to ThreatHuntingEngine. Router was imported but never mounted (prefix was /api/v1/hunting, UI called /api/v1/threat-hunting). Added threat_hunting_alias router with /stats and /hunts endpoints. Mounted both canonical + alias in app.py.
+- **Files touched**: suite-api/apps/api/threat_hunting_router.py, suite-api/apps/api/app.py, tests/test_threat_hunting_alias.py
+- **Outcome**: SUCCESS — 3 new tests pass, 23/23 phase4 green, SHA 33c833c3
+- **Pillar(s) served**: V1 (real data), V3 (threat hunting operational)
+
+### [2026-05-05 16:10] backend-hardener — EMPTY_ENDPOINTS_WIRE
+- **What**: Added /health and /status alias endpoints to 5 U-range routers that were missing both. uba_router backed by UBAEngine.get_uba_stats(); user_analytics_router by get_usage_dashboard(); user_access_review_router by get_review_summary(); urlhaus_router by get_store_stats(); urlscan_router by persistent_store len(). 10 new endpoints total. Zero mocks.
+- **Files touched**: suite-api/apps/api/uba_router.py, user_analytics_router.py, user_access_review_router.py, urlhaus_router.py, urlscan_router.py
+- **Outcome**: SUCCESS — 753/753 Beast Mode PASS, SHA 559362ad
+- **Pillar(s) served**: V1 (API completeness), V3 (observability/health)
+
 ### [2026-05-05 16:30] qa-engineer — UI_WIRE_SMOKE_VERIFY
 - **What**: Read-only smoke verify of 7 newly-wired endpoints. Production build clean (2.85s, 0 errors). All 7 hubs confirmed REAL: AccessMatrixPanel (accessMatrixApi), ConnectorTypesCatalog (connectorsApi.types via useQuery), FAILStatsPanel (failApi.stats), VulnIntelOverview (vulnIntelApi.index via useQuery), WebhookEventsTable (webhooksApi.list), AuditLog (auditApi.recentLogs), IncidentResponse (incidentsApi.list). Zero MOCK_ imports, zero fixture shadows across all 7 components + 3 sub-components.
 - **Files touched**: docs/ui_wire_smoke_2026-05-04.md (created), context_log.md
@@ -6101,3 +6143,9 @@
 - **Files touched**: suite-api/apps/api/audit_router.py, tests/test_empty_endpoint_audit_index.py
 - **Outcome**: SUCCESS — 2/2 tests pass, phase4 23/23 unaffected
 - **Pillar(s) served**: V1 (enterprise-grade reliability), V3 (zero broken API endpoints)
+
+### [2026-05-05 16:46] frontend-craftsman — FEATURE
+- **What**: Wired RulesCatalogHub — 4 SHELL tabs filled with real panel components hitting live backends
+- **Files touched**: src/lib/api.ts (+unifiedRulesApi+dslRulesApi+6 interfaces), src/components/rules/RulesCatalogPanel.tsx, RuleTaxonomyPanel.tsx, RuleDSLStudioPanel.tsx, RuleDSLValidatorPanel.tsx, src/pages/RulesCatalogHub.tsx
+- **Outcome**: SUCCESS — build clean 2.98s, zero new TS errors, SHA df158dcc pushed
+- **Pillar(s) served**: V3 (unified rules catalog), V7 (DSL authoring/validation)

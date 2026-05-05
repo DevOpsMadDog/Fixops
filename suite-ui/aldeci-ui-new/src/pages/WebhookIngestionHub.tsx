@@ -18,6 +18,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import type { ComponentType } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen, RotateCcw, FlaskConical, AlertCircle, RefreshCw, Play, Plus, Trash2 } from "lucide-react";
@@ -44,7 +45,7 @@ type TabKey = "catalogue" | "retry" | "dry-run";
 const TABS: Array<{
   key: TabKey;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   description: string;
 }> = [
   {
