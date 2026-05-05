@@ -250,3 +250,32 @@ Delta vs sweep #11: 0 regressions. 1 pre-existing perf flake (network/MPS cold-s
 
 Delta vs sweep #10: 0 regressions. test_cspm.py cascade fully unblocked (collection error → 103 skipped).
   Beast Mode: 753/753 stable. Perf: 182/182 stable. OWASP lockdown: 47/47 stable.
+
+Sweep #13 — HEAD 8b9738ed45536e9eba163af2e3be6146ae2f6631 — asyncio fix #2 closed
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.53s
+Suite 2 — Perf benchmarks (-m perf, ignoring 4 broad-scan collectors): 182 passed, 2 skipped, 0 failed, 44609 deselected in 26.13s
+Suite 3 — QA/lockdown (test_owasp_regression_lockdown.py direct): 47 passed, 0 failed, 0 errors in 0.51s
+
+Total sweep #13: 982 passed, 0 failed, 2 skipped, 0 errors
+Timestamp: 2026-05-05T00:26:18Z
+
+ASYNCIO FIX #2 CONFIRMED CLOSED:
+  FIXED: tests/test_brain_pipeline_perf.py::test_full_pipeline_100_findings_under_500ms
+  Fix commit: 8b9738ed (brain_pipeline _run_attack_graph_gnn asyncio race — same fix pattern as 5ffc1910)
+  Spot-check result: 1 passed in 3.54s — GREEN (was flaking in sweep #12 due to asyncio.run() in sync
+  context inside _run_attack_graph_gnn; fix applied same guard pattern used at 5ffc1910 for
+  _correlate_and_emit)
+
+BROKEN COLLECTORS (unchanged from sweep #12 — 4 files):
+  tests/test_cspm.py — collects + 103 skipped (cascade unblocked at 1ad190d4)
+  tests/test_reachability_perf.py — collects standalone, ImportError in broad scan
+  tests/test_autonomous_cycle.py — collects standalone, ValueError plugin error in broad scan
+  tests/test_wave_a_code_intel_router.py — collects standalone, auth_deps ImportError in broad scan
+
+Commits validated since sweep #12:
+  3d2471a4 (shell audit — set -euo pipefail fixes), 32e79756 (shell audit report),
+  f663f531 (HANDOFF v7), 8b9738ed (asyncio fix #2 — _run_attack_graph_gnn).
+
+Delta vs sweep #12: 0 regressions. Sweep #12 perf flake (asyncio.run in _run_attack_graph_gnn) CLOSED.
+  Beast Mode: 753/753 stable. Perf: 182/182 stable (2 skipped, 0 failed). OWASP lockdown: 47/47 stable.
+  All 3 standard suites GREEN at HEAD 8b9738ed.
