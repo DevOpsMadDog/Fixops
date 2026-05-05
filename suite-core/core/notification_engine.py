@@ -338,6 +338,15 @@ class NotificationEngine:
         self._lock = threading.Lock()
         self._logger = _logger
 
+        # Persistent connection — reused across all history reads/writes.
+        # check_same_thread=False is safe because all DB access is serialised
+        # through self._lock (see _record_history / get_history).
+        self._conn: sqlite3.Connection = sqlite3.connect(
+            str(self._db_path), check_same_thread=False
+        )
+        self._conn.execute("PRAGMA journal_mode=WAL")  # concurrent readers
+        self._conn.execute("PRAGMA synchronous=NORMAL")  # fast, safe durability
+
         # Initialize database
         self._init_db()
 
@@ -350,8 +359,7 @@ class NotificationEngine:
     def _init_db(self) -> None:
         """Initialize SQLite database for notification history."""
         try:
-            conn = sqlite3.connect(str(self._db_path))
-            cursor = conn.cursor()
+            cursor = self._conn.cursor()
 
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS notification_history (
@@ -375,8 +383,7 @@ class NotificationEngine:
                 "CREATE INDEX IF NOT EXISTS idx_org_id ON notification_history(org_id)"
             )
 
-            conn.commit()
-            conn.close()
+            self._conn.commit()
             self._logger.info(f"Notification database initialized at {self._db_path}")
         except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Failed to initialize notification database: {e}")
@@ -604,28 +611,25 @@ class NotificationEngine:
                 error=error,
             )
 
-            conn = sqlite3.connect(str(self._db_path))
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                INSERT INTO notification_history
-                (history_id, rule_id, channel, event_id, org_id, status, message, error, created_at, sent_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                history.history_id,
-                history.rule_id,
-                history.channel,
-                history.event_id,
-                history.org_id,
-                history.status,
-                history.message,
-                history.error,
-                history.created_at.isoformat(),
-                datetime.now(timezone.utc).isoformat() if status == "sent" else None,
-            ))
-
-            conn.commit()
-            conn.close()
+            with self._lock:
+                cursor = self._conn.cursor()
+                cursor.execute("""
+                    INSERT INTO notification_history
+                    (history_id, rule_id, channel, event_id, org_id, status, message, error, created_at, sent_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    history.history_id,
+                    history.rule_id,
+                    history.channel,
+                    history.event_id,
+                    history.org_id,
+                    history.status,
+                    history.message,
+                    history.error,
+                    history.created_at.isoformat(),
+                    datetime.now(timezone.utc).isoformat() if status == "sent" else None,
+                ))
+                self._conn.commit()
         except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Failed to record notification history: {e}")
 
@@ -647,27 +651,26 @@ class NotificationEngine:
             List of notification history records
         """
         try:
-            conn = sqlite3.connect(str(self._db_path))
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            with self._lock:
+                self._conn.row_factory = sqlite3.Row
+                cursor = self._conn.cursor()
 
-            if event_id:
-                cursor.execute("""
-                    SELECT * FROM notification_history
-                    WHERE org_id = ? AND event_id = ?
-                    ORDER BY created_at DESC
-                    LIMIT ?
-                """, (org_id, event_id, limit))
-            else:
-                cursor.execute("""
-                    SELECT * FROM notification_history
-                    WHERE org_id = ?
-                    ORDER BY created_at DESC
-                    LIMIT ?
-                """, (org_id, limit))
+                if event_id:
+                    cursor.execute("""
+                        SELECT * FROM notification_history
+                        WHERE org_id = ? AND event_id = ?
+                        ORDER BY created_at DESC
+                        LIMIT ?
+                    """, (org_id, event_id, limit))
+                else:
+                    cursor.execute("""
+                        SELECT * FROM notification_history
+                        WHERE org_id = ?
+                        ORDER BY created_at DESC
+                        LIMIT ?
+                    """, (org_id, limit))
 
-            rows = cursor.fetchall()
-            conn.close()
+                rows = cursor.fetchall()
 
             return [dict(row) for row in rows]
         except (sqlite3.Error, OSError) as e:
