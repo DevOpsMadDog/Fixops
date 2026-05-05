@@ -582,3 +582,16 @@ Commits validated since sweep #24 (2c72e3a0):
 
 Delta vs sweep #24: 0 regressions. Abbreviated check sufficient for doc/wip-only commits.
   Phase4 integration: 23/23 GREEN. OWASP marker: 47 stable.
+
+---
+
+## Sweep #26 (micro-verify — 5 doc commits since sweep #25)
+
+Suite 1 — phase4_integration only: 23 passed, 0 failed, 0 errors in 0.47s
+
+Total sweep #26: 23 live passes, 0 regressions
+HEAD: a09d1850 — 5 doc commits since sweep #25
+Timestamp: 2026-05-05T13:49:00Z
+
+Delta vs sweep #25: 0 regressions. Doc-only commits validated clean.
+  Phase4 integration: 23/23 GREEN.
