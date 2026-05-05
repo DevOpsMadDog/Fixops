@@ -296,10 +296,15 @@ def get_mean_time_to_respond(
 @router.get("/", summary="SOAR index", tags=["soar"])
 async def soar_index(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return SOAR playbook summary for the org."""
+    playbooks: List[Any] = []
     try:
         engine = _get_engine()
-        playbooks = engine.list_playbooks(org_id=org_id) if hasattr(engine, "list_playbooks") else []
-        count = len(playbooks)
+        if hasattr(engine, "list_playbooks"):
+            playbooks = engine.list_playbooks(org_id=org_id)
     except Exception:
-        count = 0
-    return {"router": "soar", "org_id": org_id, "items": [], "count": count}
+        pass
+    items = [
+        p.model_dump(mode="json") if hasattr(p, "model_dump") else dict(p)
+        for p in playbooks
+    ]
+    return {"router": "soar", "org_id": org_id, "items": items, "count": len(items)}
