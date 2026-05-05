@@ -24,11 +24,17 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, Globe, Map } from "lucide-react";
+import { ShieldAlert, Search, Globe, Map, AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { vulnIntelApi } from "@/lib/api";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -72,6 +78,144 @@ const TABS: Array<{
 ];
 
 const VALID_TABS = new Set<TabKey>(TABS.map(t => t.key));
+
+// ── Severity badge colour map ──────────────────────────────────────────────
+const SEVERITY_VARIANT: Record<string, string> = {
+  critical: "bg-red-600 text-white",
+  high: "bg-orange-500 text-white",
+  medium: "bg-amber-400 text-black",
+  low: "bg-blue-500 text-white",
+};
+
+interface CveItem {
+  cve_id?: string;
+  id?: string;
+  severity?: string;
+  source?: string;
+  published?: string;
+  published_at?: string;
+  title?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+interface VulnIntelResponse {
+  items?: CveItem[];
+  count?: number;
+  router?: string;
+}
+
+function VulnIntelOverview() {
+  const { data, isLoading, isError, error } = useQuery<VulnIntelResponse>({
+    queryKey: ["vuln-intel", "index"],
+    queryFn: async () => {
+      const res = await vulnIntelApi.index("default");
+      return res.data as VulnIntelResponse;
+    },
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">CVE Feed</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-3 py-10 text-destructive">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p className="text-sm">
+            Failed to load vulnerability intelligence:{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const items = data?.items ?? [];
+  const count = data?.count ?? items.length;
+
+  if (count === 0 || items.length === 0) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title="No CVEs ingested yet"
+        description="Connect a vulnerability feed or run a scan to populate the CVE intelligence feed."
+      />
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center justify-between">
+          <span>CVE Feed</span>
+          <Badge variant="secondary">{count} CVEs</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground uppercase tracking-wide">
+                <th className="px-4 py-2 font-medium">CVE ID</th>
+                <th className="px-4 py-2 font-medium">Severity</th>
+                <th className="px-4 py-2 font-medium">Source</th>
+                <th className="px-4 py-2 font-medium">Published</th>
+                <th className="px-4 py-2 font-medium">Title</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {items.map((item, idx) => {
+                const cveId = item.cve_id ?? item.id ?? `cve-${idx}`;
+                const severity = (item.severity ?? "unknown").toLowerCase();
+                const source = item.source ?? "—";
+                const published = item.published ?? item.published_at ?? "—";
+                const pubDisplay = published !== "—"
+                  ? new Date(published).toLocaleDateString()
+                  : "—";
+                const title = item.title ?? item.description ?? "—";
+                const trimmedTitle = title.length > 80 ? `${title.slice(0, 80)}…` : title;
+
+                return (
+                  <tr key={cveId} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-2 font-mono text-xs text-indigo-400 whitespace-nowrap">
+                      {cveId}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          SEVERITY_VARIANT[severity] ?? "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {severity}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{source}</td>
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{pubDisplay}</td>
+                    <td className="px-4 py-2 text-muted-foreground max-w-xs truncate">{trimmedTitle}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function isTabKey(v: string | null): v is TabKey {
   return !!v && VALID_TABS.has(v as TabKey);
@@ -132,6 +276,7 @@ export default function VulnIntelHub() {
 
         <TabsContent value="vuln-intel">
           <Suspense fallback={<PageSkeleton />}>
+            <VulnIntelOverview />
           </Suspense>
         </TabsContent>
         <TabsContent value="cve-search">

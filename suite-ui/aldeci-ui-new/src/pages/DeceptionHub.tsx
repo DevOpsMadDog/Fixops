@@ -25,6 +25,7 @@ import { Eye, BarChart3, Bot } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { FAILStatsPanel } from "@/components/deception/FAILStatsPanel";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -122,6 +123,7 @@ export default function DeceptionHub() {
 
         <TabsContent value="engine">
           <Suspense fallback={<PageSkeleton />}>
+            <FAILStatsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="analytics">

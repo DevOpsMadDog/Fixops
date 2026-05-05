@@ -211,6 +211,7 @@ export const appsApi = {
 };
 
 export const failApi = {
+  stats: (orgId = "default") => api.get("/api/v1/fail/", { params: { org_id: orgId } }),
   inject: (data: unknown) => api.post("/api/v1/fail/inject", data),
   getDrills: (params?: Record<string, string>) => api.get("/api/v1/fail/drills", { params }),
   getDrill: (id: string) => api.get(`/api/v1/fail/drills/${id}`),
@@ -487,6 +488,17 @@ export const deduplicationApi = {
 
 export const webhookEventsApi = {
   list: (params?: Record<string, unknown>) => api.get("/api/v1/webhooks/events", { params }),
+};
+
+export const webhooksApi = {
+  /** GET /api/v1/webhooks/?org_id=&limit= → { org_id, items: WebhookEvent[], count } */
+  list: (params?: { org_id?: string; limit?: number }) =>
+    api.get("/api/v1/webhooks/", { params }),
+};
+
+export const vulnIntelApi = {
+  index: (orgId = "default") => api.get(`/api/v1/vuln-intel/`, { params: { org_id: orgId } }),
+  stats: (orgId = "default") => api.get(`/api/v1/vuln-intel/stats`, { params: { org_id: orgId } }),
 };
 
 export const casesApi = {
