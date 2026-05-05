@@ -26,8 +26,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Lazy-imported panel components — each wired to a real backend endpoint.
+const XDRPanel  = lazy(() => import("@/components/detect-respond/XDRPanel"));
+const EDRPanel  = lazy(() => import("@/components/detect-respond/EDRPanel"));
+const ITDRPanel = lazy(() => import("@/components/detect-respond/ITDRPanel"));
 
 type TabKey = "xdr" | "edr" | "itdr";
 
@@ -121,14 +123,17 @@ export default function DetectAndRespondHub() {
 
         <TabsContent value="xdr">
           <Suspense fallback={<PageSkeleton />}>
+            <XDRPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="edr">
           <Suspense fallback={<PageSkeleton />}>
+            <EDRPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="itdr">
           <Suspense fallback={<PageSkeleton />}>
+            <ITDRPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
