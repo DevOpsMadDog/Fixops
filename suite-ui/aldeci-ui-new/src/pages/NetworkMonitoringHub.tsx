@@ -26,8 +26,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Lazy-imported panels wired to real backend endpoints.
+import { GenericDashboard } from "@/components/GenericDashboard";
 
 type TabKey = "monitoring" | "anomaly" | "threats";
 
@@ -119,16 +119,86 @@ export default function NetworkMonitoringHub() {
 
         <p className="text-xs text-muted-foreground mt-2 mb-1">{activeMeta.description}</p>
 
+        {/* WIRED: monitoring → /api/v1/network-monitoring */}
         <TabsContent value="monitoring">
           <Suspense fallback={<PageSkeleton />}>
+            <GenericDashboard
+              title="Network Interfaces & Alert Rules"
+              description="Live network interfaces, traffic samples, and active alert rules from /api/v1/network-monitoring."
+              apiPath="/api/v1/network-monitoring/interfaces"
+              itemsKey="interfaces"
+              statsPath="/api/v1/network-monitoring/stats"
+              columns={[
+                { key: "id", label: "Interface ID", className: "font-mono text-xs" },
+                { key: "name", label: "Name" },
+                { key: "ip", label: "IP Address", className: "font-mono text-xs" },
+                { key: "if_type", label: "Type" },
+                { key: "description", label: "Description" },
+              ]}
+              kpis={[
+                { key: "total_interfaces", label: "Interfaces" },
+                { key: "active_alerts", label: "Active Alerts", colorClass: "text-amber-400" },
+                { key: "critical_alerts", label: "Critical", colorClass: "text-red-400" },
+                { key: "total_samples", label: "Samples" },
+              ]}
+              emptyMessage="No interfaces registered. Add network interfaces via the API to begin monitoring."
+            />
           </Suspense>
         </TabsContent>
+
+        {/* WIRED: anomaly → /api/v1/network-traffic (anomalies + flows) */}
         <TabsContent value="anomaly">
           <Suspense fallback={<PageSkeleton />}>
+            <GenericDashboard
+              title="Traffic Anomalies & Baselines"
+              description="Detected traffic anomalies, flow analysis, and per-segment trend data from /api/v1/network-traffic."
+              apiPath="/api/v1/network-traffic/anomalies"
+              itemsKey="anomalies"
+              statsPath="/api/v1/network-traffic/stats"
+              columns={[
+                { key: "id", label: "Anomaly ID", className: "font-mono text-xs" },
+                { key: "anomaly_type", label: "Type" },
+                { key: "severity", label: "Severity" },
+                { key: "src_ip", label: "Source IP", className: "font-mono text-xs" },
+                { key: "status", label: "Status" },
+                { key: "detected_at", label: "Detected", format: (v) => v ? new Date(v as string).toLocaleString() : "—" },
+              ]}
+              kpis={[
+                { key: "total_flows", label: "Total Flows" },
+                { key: "flagged_flows", label: "Flagged Flows", colorClass: "text-amber-400" },
+                { key: "total_anomalies", label: "Anomalies", colorClass: "text-red-400" },
+                { key: "open_anomalies", label: "Open", colorClass: "text-red-400" },
+              ]}
+              emptyMessage="No anomalies detected. Traffic flows are being recorded — anomalies appear when baselines are exceeded."
+            />
           </Suspense>
         </TabsContent>
+
+        {/* WIRED: threats → /api/v1/threat-vectors */}
         <TabsContent value="threats">
           <Suspense fallback={<PageSkeleton />}>
+            <GenericDashboard
+              title="Active Network Threats"
+              description="Threat vectors, MITRE ATT&CK mappings, and mitigation plans from /api/v1/threat-vectors."
+              apiPath="/api/v1/threat-vectors/vectors"
+              itemsKey="items"
+              statsPath="/api/v1/threat-vectors/stats"
+              columns={[
+                { key: "id", label: "Vector ID", className: "font-mono text-xs" },
+                { key: "name", label: "Name" },
+                { key: "vector_type", label: "Type" },
+                { key: "severity", label: "Severity" },
+                { key: "frequency_score", label: "Freq Score", format: (v) => v != null ? `${Number(v).toFixed(0)}` : "—" },
+                { key: "impact_score", label: "Impact Score", format: (v) => v != null ? `${Number(v).toFixed(0)}` : "—" },
+              ]}
+              kpis={[
+                { key: "total_vectors", label: "Vectors" },
+                { key: "critical_vectors", label: "Critical", colorClass: "text-red-400" },
+                { key: "high_vectors", label: "High", colorClass: "text-amber-400" },
+                { key: "total_indicators", label: "Indicators" },
+              ]}
+              emptyMessage="No threat vectors recorded. Import MITRE ATT&CK via POST /api/v1/threat-vectors/import-mitre or record custom vectors."
+            />
           </Suspense>
         </TabsContent>
       </Tabs>
