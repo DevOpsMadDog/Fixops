@@ -54,14 +54,10 @@ import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // Lazy-load existing dashboards as inline drawers (zero functionality loss)
-const ScoreTransparencyPanel = lazy(() => import("@/pages/ScoreTransparencyPanel"));
 const ReachabilityProofView = lazy(() => import("@/pages/validate/ReachabilityProof"));
 // P1 Wave 3 fold-in (S6 Issue Detail) — finding lifecycle timeline + history
-const VulnLifecycle = lazy(() => import("@/pages/VulnLifecycle"));
 // P3 fold-in — VulnIntelFusionDashboard → Issues hero "vuln-intel-fusion" tab
-const VulnIntelFusionDashboard = lazy(() => import("@/pages/VulnIntelFusionDashboard"));
 // P4 fold-in — ThreatFeedDashboard → Issues hero "threat-feed" tab (appended to existing threat-intel tab area)
-const ThreatFeedDashboard = lazy(() => import("@/pages/ThreatFeedDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -126,8 +122,6 @@ const TABS: TabSpec[] = [
   { key: "pr-risk", label: "PR Risk", icon: GitPullRequest, endpoint: "/api/v1/pr/change-risk", description: "Inbound PR risk scores from open pull requests" },
   { key: "explorer", label: "Explorer", icon: Compass, endpoint: "/api/v1/findings", description: "Power-user view: rich filters, severity histogram, scanner facets, full-text search, CSV export" },
   { key: "threat-intel", label: "Threat Intel", icon: Rss, endpoint: "/api/v1/tip/feeds/status", description: "P2 fold-in (S14) — 28+ feed status, latest IoCs, actor tracking, confidence scoring. Cross-references findings to active threats." },
-  { key: "vuln-intel-fusion", label: "Vuln Intel Fusion", icon: ShieldAlert, endpoint: "/api/v1/vuln-intel-fusion/cves", description: "P3 fold-in — multi-source CVE intelligence fusion: CVSS, EPSS, CISA KEV, composite scoring. Folded from VulnIntelFusionDashboard 2026-04-27." },
-  { key: "threat-feed", label: "Threat Feed", icon: Rss, endpoint: "/api/v1/feeds/status", description: "P4 fold-in — aggregated threat intelligence from 28+ sources: feed status, IOC search, APT campaign tracking, feed-type distribution. Folded from ThreatFeedDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -315,11 +309,9 @@ export default function Issues() {
               <ThreatIntelPane />
             ) : t.key === "vuln-intel-fusion" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <VulnIntelFusionDashboard />
               </Suspense>
             ) : t.key === "threat-feed" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <ThreatFeedDashboard />
               </Suspense>
             ) : (
             <>
@@ -473,7 +465,6 @@ export default function Issues() {
             <ScrollArea className="flex-1">
               <Suspense fallback={<div className="p-6 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>}>
                 <TabsContent value="score" className="m-0 p-0">
-                  <ScoreTransparencyPanel />
                 </TabsContent>
                 <TabsContent value="reachability" className="m-0 p-0">
                   <ReachabilityProofView />
@@ -482,7 +473,6 @@ export default function Issues() {
                   {/* P1 Wave 3 (S6) — finding lifecycle timeline + remediation history.
                       Reads /api/v1/findings/{id}/lifecycle through the underlying VulnLifecycle
                       page (already wired to real apiFetch). */}
-                  <VulnLifecycle />
                 </TabsContent>
               </Suspense>
             </ScrollArea>

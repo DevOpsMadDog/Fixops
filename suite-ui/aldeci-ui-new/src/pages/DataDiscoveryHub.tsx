@@ -27,9 +27,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const DataDiscoveryDashboard = lazy(() => import("@/pages/DataDiscoveryDashboard"));
-const DataClassificationDashboard = lazy(() => import("@/pages/DataClassificationDashboard"));
-const DataExfiltrationDashboard = lazy(() => import("@/pages/DataExfiltrationDashboard"));
 
 type TabKey = "discovery" | "classification" | "exfiltration";
 
@@ -123,17 +120,14 @@ export default function DataDiscoveryHub() {
 
         <TabsContent value="discovery">
           <Suspense fallback={<PageSkeleton />}>
-            <DataDiscoveryDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="classification">
           <Suspense fallback={<PageSkeleton />}>
-            <DataClassificationDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="exfiltration">
           <Suspense fallback={<PageSkeleton />}>
-            <DataExfiltrationDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

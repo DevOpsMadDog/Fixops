@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const AirGapBundleConsole = lazy(() => import("@/pages/AirGapBundleConsole"));
-const OfflineFeedRegistry = lazy(() => import("@/pages/OfflineFeedRegistry"));
-const OfflineUpdateStatus = lazy(() => import("@/pages/OfflineUpdateStatus"));
 
 type TabKey = "feed-status" | "feeds" | "update-status";
 
@@ -124,17 +121,14 @@ export default function AirGapHub() {
 
         <TabsContent value="feed-status">
           <Suspense fallback={<PageSkeleton />}>
-            <AirGapBundleConsole />
           </Suspense>
         </TabsContent>
         <TabsContent value="feeds">
           <Suspense fallback={<PageSkeleton />}>
-            <OfflineFeedRegistry />
           </Suspense>
         </TabsContent>
         <TabsContent value="update-status">
           <Suspense fallback={<PageSkeleton />}>
-            <OfflineUpdateStatus />
           </Suspense>
         </TabsContent>
       </Tabs>

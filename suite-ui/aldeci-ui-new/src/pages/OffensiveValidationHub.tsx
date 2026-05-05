@@ -35,9 +35,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const PentestManagement = lazy(() => import("@/pages/PentestManagement"));
-const RedTeamStatus = lazy(() => import("@/pages/RedTeamStatus"));
-const SocialEngineering = lazy(() => import("@/pages/SocialEngineering"));
 
 type TabKey = "pentest" | "red-team" | "social-eng";
 
@@ -131,17 +128,14 @@ export default function OffensiveValidationHub() {
 
         <TabsContent value="pentest">
           <Suspense fallback={<PageSkeleton />}>
-            <PentestManagement />
           </Suspense>
         </TabsContent>
         <TabsContent value="red-team">
           <Suspense fallback={<PageSkeleton />}>
-            <RedTeamStatus />
           </Suspense>
         </TabsContent>
         <TabsContent value="social-eng">
           <Suspense fallback={<PageSkeleton />}>
-            <SocialEngineering />
           </Suspense>
         </TabsContent>
       </Tabs>

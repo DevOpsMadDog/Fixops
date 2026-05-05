@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const NetworkMonitoringDashboard = lazy(() => import("@/pages/NetworkMonitoringDashboard"));
-const NetworkAnomalyDashboard = lazy(() => import("@/pages/NetworkAnomalyDashboard"));
-const NetworkThreatsDashboard = lazy(() => import("@/pages/NetworkThreatsDashboard"));
 
 type TabKey = "monitoring" | "anomaly" | "threats";
 
@@ -124,17 +121,14 @@ export default function NetworkMonitoringHub() {
 
         <TabsContent value="monitoring">
           <Suspense fallback={<PageSkeleton />}>
-            <NetworkMonitoringDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="anomaly">
           <Suspense fallback={<PageSkeleton />}>
-            <NetworkAnomalyDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="threats">
           <Suspense fallback={<PageSkeleton />}>
-            <NetworkThreatsDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

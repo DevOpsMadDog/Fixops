@@ -29,11 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const CryptoKeyDashboard = lazy(() => import("@/pages/CryptoKeyDashboard"));
-const CertificateDashboard = lazy(() => import("@/pages/CertificateDashboard"));
-const CertificateManager = lazy(() => import("@/pages/CertificateManager"));
-const PKIManagementDashboard = lazy(() => import("@/pages/PKIManagementDashboard"));
-const QuantumCryptoDashboard = lazy(() => import("@/pages/QuantumCryptoDashboard"));
 
 type TabKey = "keys" | "certs" | "manager" | "pki" | "quantum";
 
@@ -141,27 +136,22 @@ export default function CryptoTrustHub() {
 
         <TabsContent value="keys">
           <Suspense fallback={<PageSkeleton />}>
-            <CryptoKeyDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="certs">
           <Suspense fallback={<PageSkeleton />}>
-            <CertificateDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="manager">
           <Suspense fallback={<PageSkeleton />}>
-            <CertificateManager />
           </Suspense>
         </TabsContent>
         <TabsContent value="pki">
           <Suspense fallback={<PageSkeleton />}>
-            <PKIManagementDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="quantum">
           <Suspense fallback={<PageSkeleton />}>
-            <QuantumCryptoDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

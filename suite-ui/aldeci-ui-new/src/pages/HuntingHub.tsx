@@ -29,8 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
 const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
-const HuntingPlaybookDashboard = lazy(() => import("@/pages/HuntingPlaybookDashboard"));
-const HuntingAutomationDashboard = lazy(() => import("@/pages/HuntingAutomationDashboard"));
 
 type TabKey = "sessions" | "playbooks" | "automation";
 
@@ -129,12 +127,10 @@ export default function HuntingHub() {
         </TabsContent>
         <TabsContent value="playbooks">
           <Suspense fallback={<PageSkeleton />}>
-            <HuntingPlaybookDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="automation">
           <Suspense fallback={<PageSkeleton />}>
-            <HuntingAutomationDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

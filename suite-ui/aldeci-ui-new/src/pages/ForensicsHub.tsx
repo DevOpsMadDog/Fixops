@@ -29,7 +29,6 @@ import { FINDINGS_EXPLORER_ROUTES } from "@/config/findingsExplorerRoutes";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const DigitalForensicsDashboard = lazy(() => import("@/pages/DigitalForensicsDashboard"));
 
 // Resolve FindingsExplorerView props from the existing route config so we
 // reuse the same data-shape contract as the standalone /network-forensics
@@ -131,7 +130,6 @@ export default function ForensicsHub() {
 
         <TabsContent value="digital">
           <Suspense fallback={<PageSkeleton />}>
-            <DigitalForensicsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="network">

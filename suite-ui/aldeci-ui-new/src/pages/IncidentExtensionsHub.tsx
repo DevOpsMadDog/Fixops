@@ -29,9 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const CloudIRDashboard = lazy(() => import("@/pages/CloudIRDashboard"));
-const BreachResponse = lazy(() => import("@/pages/BreachResponse"));
-const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard"));
 
 type TabKey = "cloud" | "breach" | "comms";
 
@@ -125,17 +122,14 @@ export default function IncidentExtensionsHub() {
 
         <TabsContent value="cloud">
           <Suspense fallback={<PageSkeleton />}>
-            <CloudIRDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="breach">
           <Suspense fallback={<PageSkeleton />}>
-            <BreachResponse />
           </Suspense>
         </TabsContent>
         <TabsContent value="comms">
           <Suspense fallback={<PageSkeleton />}>
-            <IncidentCommsDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

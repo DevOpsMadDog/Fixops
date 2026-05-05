@@ -68,20 +68,14 @@ import { cn } from "@/lib/utils";
 // P2 fold-ins (S28 MCP Gateway, S30 System Health)
 const MCPToolRegistry = lazy(() => import("@/pages/ai/MCPToolRegistry"));
 // P4 fold-in — PrivilegedIdentityDashboard → Admin hero "privileged-access" tab
-const PrivilegedIdentityDashboard = lazy(() => import("@/pages/PrivilegedIdentityDashboard"));
 // Wave 1 Phase 3 fold-ins (2026-04-27)
 const SecurityAwareness = lazy(() => import("@/pages/SecurityAwareness"));
 const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsDashboard"));
 const ScopeManager = lazy(() => import("@/pages/ScopeManager"));
 const ClaudeSkillsRegistry = lazy(() => import("@/pages/ClaudeSkillsRegistry"));
 const SkillsInstallPrompt = lazy(() => import("@/pages/SkillsInstallPrompt"));
-const OpenClawDashboard = lazy(() => import("@/pages/OpenClawDashboard"));
-const AirGapBundleConsole = lazy(() => import("@/pages/AirGapBundleConsole"));
-const AirGapBundleDashboard = lazy(() => import("@/pages/AirGapBundleDashboard"));
 const SystemHealthDashboard = lazy(() => import("@/pages/SystemHealthDashboard"));
-const SettingsSystemHealth = lazy(() => import("@/pages/settings/SystemHealth"));
 const CapacityPlanningDashboard = lazy(() => import("@/pages/CapacityPlanningDashboard"));
-const FIPSModeStatus = lazy(() => import("@/pages/FIPSModeStatus"));
 const LocalStoreStatus = lazy(() => import("@/pages/LocalStoreStatus"));
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,7 +193,6 @@ const TABS: TabSpec[] = [
   { key: "system", label: "System", icon: Server, description: "HA status, uptime, component health" },
   { key: "mcp", label: "MCP Gateway", icon: Zap, description: "P2 fold-in (S28) — 650+ tool registry, Claude Skills, OpenClaw agents, air-gap bundles. The full agent toolchain." },
   { key: "system-health", label: "System Health", icon: HeartPulse, description: "P2 fold-in (S30) — detailed metrics, capacity planning, FIPS attestation, local-store status, telemetry pipelines." },
-  { key: "privileged-access", label: "Privileged Access", icon: Shield, description: "P4 fold-in — privileged account lifecycle, session monitoring, MFA status, password rotation tracking, and access certification. Folded from PrivilegedIdentityDashboard 2026-04-27." },
   { key: "awareness",  label: "Security Awareness",  icon: Users,    description: "Wave 1 Phase 3 fold-in — phishing simulations, training completion, human risk scores by department. /api/v1/security-awareness." },
   { key: "champions",  label: "Security Champions",  icon: Shield,   description: "Wave 1 Phase 3 fold-in — champion leaderboard, certifications, campaigns, level distribution. /api/v1/security-champions." },
   { key: "scopes",     label: "Scopes",              icon: Layers,   description: "Wave 1 Phase 3 fold-in — org/repo/asset scope management: list, create, deactivate. /api/v1/scopes." },
@@ -633,7 +626,6 @@ export default function Admin() {
         {/* ─────────── PRIVILEGED ACCESS TAB (P4 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="privileged-access" className="space-y-4">
           <Suspense fallback={<AdminTabSkeleton />}>
-            <PrivilegedIdentityDashboard />
           </Suspense>
         </TabsContent>
 
@@ -734,13 +726,10 @@ function MCPGatewayPane() {
           <Suspense fallback={<AdminTabSkeleton />}><SkillsInstallPrompt /></Suspense>
         </TabsContent>
         <TabsContent value="openclaw">
-          <Suspense fallback={<AdminTabSkeleton />}><OpenClawDashboard /></Suspense>
         </TabsContent>
         <TabsContent value="airgap">
-          <Suspense fallback={<AdminTabSkeleton />}><AirGapBundleConsole /></Suspense>
         </TabsContent>
         <TabsContent value="airgap-status">
-          <Suspense fallback={<AdminTabSkeleton />}><AirGapBundleDashboard /></Suspense>
         </TabsContent>
       </Tabs>
     </div>
@@ -798,13 +787,11 @@ function SystemHealthPane() {
           <Suspense fallback={<AdminTabSkeleton />}><SystemHealthDashboard /></Suspense>
         </TabsContent>
         <TabsContent value="settings">
-          <Suspense fallback={<AdminTabSkeleton />}><SettingsSystemHealth /></Suspense>
         </TabsContent>
         <TabsContent value="capacity">
           <Suspense fallback={<AdminTabSkeleton />}><CapacityPlanningDashboard /></Suspense>
         </TabsContent>
         <TabsContent value="fips">
-          <Suspense fallback={<AdminTabSkeleton />}><FIPSModeStatus /></Suspense>
         </TabsContent>
         <TabsContent value="local-store">
           <Suspense fallback={<AdminTabSkeleton />}><LocalStoreStatus /></Suspense>

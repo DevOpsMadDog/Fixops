@@ -27,9 +27,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const PrivacyGDPRDashboard = lazy(() => import("@/pages/PrivacyGDPRDashboard"));
-const PrivacyImpactDashboard = lazy(() => import("@/pages/PrivacyImpactDashboard"));
-const ControlTestingDashboard = lazy(() => import("@/pages/ControlTestingDashboard"));
 
 type TabKey = "gdpr" | "impact" | "controls";
 
@@ -123,17 +120,14 @@ export default function PrivacyComplianceHub() {
 
         <TabsContent value="gdpr">
           <Suspense fallback={<PageSkeleton />}>
-            <PrivacyGDPRDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="impact">
           <Suspense fallback={<PageSkeleton />}>
-            <PrivacyImpactDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="controls">
           <Suspense fallback={<PageSkeleton />}>
-            <ControlTestingDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

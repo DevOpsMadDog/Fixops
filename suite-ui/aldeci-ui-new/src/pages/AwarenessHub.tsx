@@ -31,10 +31,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const AwarenessCampaignDashboard = lazy(() => import("@/pages/AwarenessCampaignDashboard"));
-const AwarenessProgramDashboard = lazy(() => import("@/pages/AwarenessProgramDashboard"));
-const AwarenessMetricsDashboard = lazy(() => import("@/pages/AwarenessMetricsDashboard"));
-const AwarenessScoreDashboard = lazy(() => import("@/pages/AwarenessScoreDashboard"));
 
 type TabKey = "campaigns" | "program" | "metrics" | "score";
 
@@ -135,22 +131,18 @@ export default function AwarenessHub() {
 
         <TabsContent value="campaigns">
           <Suspense fallback={<PageSkeleton />}>
-            <AwarenessCampaignDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="program">
           <Suspense fallback={<PageSkeleton />}>
-            <AwarenessProgramDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="metrics">
           <Suspense fallback={<PageSkeleton />}>
-            <AwarenessMetricsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="score">
           <Suspense fallback={<PageSkeleton />}>
-            <AwarenessScoreDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

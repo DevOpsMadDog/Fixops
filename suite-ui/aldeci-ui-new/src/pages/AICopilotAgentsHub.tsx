@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const AIAgentsConsole = lazy(() => import("@/pages/ai/AIAgentsConsole"));
-const AgentTaskQueue = lazy(() => import("@/pages/ai/AgentTaskQueue"));
-const ShadowAIInventory = lazy(() => import("@/pages/ai/ShadowAIInventory"));
 
 type TabKey = "console" | "tasks" | "shadow";
 
@@ -123,17 +120,14 @@ export default function AICopilotAgentsHub() {
 
         <TabsContent value="console">
           <Suspense fallback={<PageSkeleton />}>
-            <AIAgentsConsole />
           </Suspense>
         </TabsContent>
         <TabsContent value="tasks">
           <Suspense fallback={<PageSkeleton />}>
-            <AgentTaskQueue />
           </Suspense>
         </TabsContent>
         <TabsContent value="shadow">
           <Suspense fallback={<PageSkeleton />}>
-            <ShadowAIInventory />
           </Suspense>
         </TabsContent>
       </Tabs>

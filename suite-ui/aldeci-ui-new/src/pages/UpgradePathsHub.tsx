@@ -36,12 +36,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
-const UpgradePathExplorer = lazy(() => import("@/pages/UpgradePathExplorer"));
-const ComponentVersionGraph = lazy(() => import("@/pages/ComponentVersionGraph"));
-const DependencyMappingDashboard = lazy(() => import("@/pages/DependencyMappingDashboard"));
-const BinaryFingerprintDashboard = lazy(() => import("@/pages/BinaryFingerprintDashboard"));
-const SecurityDependencyRiskDashboard = lazy(() => import("@/pages/SecurityDependencyRiskDashboard"));
 
 type TabKey =
   | "resolver"
@@ -154,32 +148,26 @@ export default function UpgradePathsHub() {
 
         <TabsContent value="resolver">
           <Suspense fallback={<PageSkeleton />}>
-            <UpgradePathDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="explorer">
           <Suspense fallback={<PageSkeleton />}>
-            <UpgradePathExplorer />
           </Suspense>
         </TabsContent>
         <TabsContent value="version-graph">
           <Suspense fallback={<PageSkeleton />}>
-            <ComponentVersionGraph />
           </Suspense>
         </TabsContent>
         <TabsContent value="dep-map">
           <Suspense fallback={<PageSkeleton />}>
-            <DependencyMappingDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="binary-fp">
           <Suspense fallback={<PageSkeleton />}>
-            <BinaryFingerprintDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="dep-risk">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityDependencyRiskDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

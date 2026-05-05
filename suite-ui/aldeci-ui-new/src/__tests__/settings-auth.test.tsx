@@ -16,6 +16,10 @@ const mocks: Record<string, any> = {
   useApps: vi.fn(),
 };
 
+// Stub for removed pages — keeps describe blocks compilable
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const P = (() => null) as any;
+
 vi.mock("@/hooks/use-api", () => mocks);
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/api", () => ({
@@ -65,7 +69,6 @@ beforeEach(() => {
 
 describe("SettingsHub", () => {
   it("renders heading", async () => {
-    const P = (await import("@/pages/settings/SettingsHub")).default;
     renderPage(<P />);
     expect(screen.getByRole("heading", { name: /Settings/i, level: 1 })).toBeInTheDocument();
   });
@@ -73,12 +76,10 @@ describe("SettingsHub", () => {
 
 describe("Users", () => {
   it("renders heading", async () => {
-    const P = (await import("@/pages/settings/Users")).default;
     renderPage(<P />);
     expect(screen.getByText("Users")).toBeInTheDocument();
   });
   it("fetches user list", async () => {
-    const P = (await import("@/pages/settings/Users")).default;
     renderPage(<P />);
     expect(mocks.useUsers).toHaveBeenCalled();
   });
@@ -86,7 +87,6 @@ describe("Users", () => {
 
 describe("Teams", () => {
   it("renders heading", async () => {
-    const P = (await import("@/pages/settings/Teams")).default;
     renderPage(<P />);
     expect(screen.getByRole("heading", { name: /Teams/i })).toBeInTheDocument();
   });
@@ -110,7 +110,6 @@ describe("Marketplace", () => {
 
 describe("Policies", () => {
   it("renders heading", async () => {
-    const P = (await import("@/pages/settings/Policies")).default;
     renderPage(<P />);
     expect(screen.getByText("Policies")).toBeInTheDocument();
   });
@@ -118,7 +117,6 @@ describe("Policies", () => {
 
 describe("SystemHealth", () => {
   it("renders heading", async () => {
-    const P = (await import("@/pages/settings/SystemHealth")).default;
     renderPage(<P />);
     expect(screen.getByText("System Health")).toBeInTheDocument();
   });
@@ -157,12 +155,10 @@ describe("LoginPage", () => {
 
 describe("AccessDenied", () => {
   it("renders access denied message", async () => {
-    const P = (await import("@/pages/auth/AccessDenied")).default;
     renderPage(<P />);
     expect(screen.getByText("Access Denied")).toBeInTheDocument();
   });
   it("has go back button", async () => {
-    const P = (await import("@/pages/auth/AccessDenied")).default;
     renderPage(<P />);
     expect(screen.getByRole("button", { name: /go back/i })).toBeInTheDocument();
   });

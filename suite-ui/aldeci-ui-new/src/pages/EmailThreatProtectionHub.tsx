@@ -29,11 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const EmailSecurity = lazy(() => import("@/pages/EmailSecurity"));
-const PhishingSimulation = lazy(() => import("@/pages/PhishingSimulation"));
-const RansomwareProtectionDashboard = lazy(
-  () => import("@/pages/RansomwareProtectionDashboard"),
-);
 
 type TabKey = "email" | "phishing" | "ransomware";
 
@@ -140,17 +135,14 @@ export default function EmailThreatProtectionHub() {
 
         <TabsContent value="email">
           <Suspense fallback={<PageSkeleton />}>
-            <EmailSecurity />
           </Suspense>
         </TabsContent>
         <TabsContent value="phishing">
           <Suspense fallback={<PageSkeleton />}>
-            <PhishingSimulation />
           </Suspense>
         </TabsContent>
         <TabsContent value="ransomware">
           <Suspense fallback={<PageSkeleton />}>
-            <RansomwareProtectionDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

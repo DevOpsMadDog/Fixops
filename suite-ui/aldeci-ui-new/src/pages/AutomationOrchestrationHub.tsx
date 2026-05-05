@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const PatchManagementDashboard = lazy(() => import("@/pages/PatchManagementDashboard"));
-const PatchPrioritizer = lazy(() => import("@/pages/PatchPrioritizer"));
-const SOARDashboard = lazy(() => import("@/pages/SOARDashboard"));
 
 type TabKey = "patch" | "prioritize" | "soar";
 
@@ -124,17 +121,14 @@ export default function AutomationOrchestrationHub() {
 
         <TabsContent value="patch">
           <Suspense fallback={<PageSkeleton />}>
-            <PatchManagementDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="prioritize">
           <Suspense fallback={<PageSkeleton />}>
-            <PatchPrioritizer />
           </Suspense>
         </TabsContent>
         <TabsContent value="soar">
           <Suspense fallback={<PageSkeleton />}>
-            <SOARDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

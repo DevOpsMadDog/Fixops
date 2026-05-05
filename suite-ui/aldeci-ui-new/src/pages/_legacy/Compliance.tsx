@@ -82,48 +82,20 @@ import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // Lazy-load companion dashboards as inline tabs (zero functionality loss)
-const ShadowAIInventory = lazy(() => import("@/pages/ai/ShadowAIInventory"));
 const AIAttackPathView = lazy(() => import("@/pages/ai/AIAttackPathView"));
 const ComplianceMappingDashboard = lazy(() => import("@/pages/ComplianceMappingDashboard"));
 const ComplianceCalendarDashboard = lazy(() => import("@/pages/ComplianceCalendarDashboard"));
 const ComplianceWorkflowDashboard = lazy(() => import("@/pages/ComplianceWorkflowDashboard"));
 const ComplianceAutomationDashboard = lazy(() => import("@/pages/ComplianceAutomationDashboard"));
-const ComplianceGapDashboard = lazy(() => import("@/pages/ComplianceGapDashboard"));
-const EvidenceVault = lazy(() => import("@/pages/comply/EvidenceVault"));
-const EvidenceBundles = lazy(() => import("@/pages/comply/EvidenceBundles"));
-const AuditLogExplorer = lazy(() => import("@/pages/AuditLogExplorer"));
 // Wave 1 Phase 3 fold-in (2026-04-27)
 const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerDashboard"));
 // P2 fold-ins (S20 Waivers, S26 Policies)
-const WaiversExplorer = lazy(() => import("@/pages/WaiversExplorer"));
-const AutoWaiverRules = lazy(() => import("@/pages/AutoWaiverRules"));
-const SecurityExceptionDashboard = lazy(() => import("@/pages/SecurityExceptionDashboard"));
-const ExceptionWorkflowDashboard = lazy(() => import("@/pages/ExceptionWorkflowDashboard"));
-const PolicyLibraryBrowser = lazy(() => import("@/pages/PolicyLibraryBrowser"));
-const PolicyStageEditor = lazy(() => import("@/pages/PolicyStageEditor"));
-const PolicyInheritanceView = lazy(() => import("@/pages/PolicyInheritanceView"));
-const StagePolicyMatrix = lazy(() => import("@/pages/StagePolicyMatrix"));
-const RuleDSLAuthoringStudio = lazy(() => import("@/pages/RuleDSLAuthoringStudio"));
-const RuleDSLValidator = lazy(() => import("@/pages/RuleDSLValidator"));
-const UnifiedRulesCatalog = lazy(() => import("@/pages/UnifiedRulesCatalog"));
-const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector"));
-const HooksPolicyEditor = lazy(() => import("@/pages/HooksPolicyEditor"));
 // P1 Wave 3 fold-ins (S4 SLA & Risk Register)
-const SLADashboard = lazy(() => import("@/pages/SLADashboard"));
-const RiskRegister = lazy(() => import("@/pages/RiskRegister"));
 const RiskAcceptance = lazy(() => import("@/pages/RiskAcceptance"));
 const RiskTreatmentDashboard = lazy(() => import("@/pages/RiskTreatmentDashboard"));
-const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
 // P3 fold-ins 2026-04-27
-const RiskQuantDashboard = lazy(() => import("@/pages/RiskQuantDashboard"));
-const TprmExchangeDashboard = lazy(() => import("@/pages/TprmExchangeDashboard"));
-const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
 // P4 fold-in — PostureReportingDashboard → Compliance hero "posture-reports" tab
-const PostureReportingDashboard = lazy(() => import("@/pages/PostureReportingDashboard"));
 // Wave 2 Phase 3 fold-ins (2026-04-27)
-const CSPMDashboard = lazy(() => import("@/pages/CSPMDashboard"));
-const EvidenceVaultDashboard = lazy(() => import("@/pages/EvidenceVaultDashboard"));
-const CloudPostureDashboard = lazy(() => import("@/pages/CloudPostureDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Frameworks canon (NIST 800-53 / ISO 27001 / SOC2 / HIPAA / PCI-DSS / FedRAMP / SCIF)
@@ -913,12 +885,10 @@ export default function Compliance() {
 
         {/* ─────────────── EVIDENCE TAB ─────────────── */}
         <TabsContent value="evidence">
-          <Suspense fallback={<TabSkeleton />}><EvidenceVault /></Suspense>
         </TabsContent>
 
         {/* ─────────────── BUNDLES TAB ─────────────── */}
         <TabsContent value="bundles">
-          <Suspense fallback={<TabSkeleton />}><EvidenceBundles /></Suspense>
         </TabsContent>
 
         {/* ─────────────── EVIDENCE VAULT TAB (P1 Wave 2) ─────────────── */}
@@ -992,7 +962,6 @@ export default function Compliance() {
 
         {/* ─────────────── COMPANION TABS ─────────────── */}
         <TabsContent value="mapping"><Suspense fallback={<TabSkeleton />}><ComplianceMappingDashboard /></Suspense></TabsContent>
-        <TabsContent value="gaps"><Suspense fallback={<TabSkeleton />}><ComplianceGapDashboard /></Suspense></TabsContent>
         <TabsContent value="calendar"><Suspense fallback={<TabSkeleton />}><ComplianceCalendarDashboard /></Suspense></TabsContent>
         <TabsContent value="workflows"><Suspense fallback={<TabSkeleton />}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1000,7 +969,6 @@ export default function Compliance() {
             <ComplianceAutomationDashboard />
           </div>
         </Suspense></TabsContent>
-        <TabsContent value="audit"><Suspense fallback={<TabSkeleton />}><AuditLogExplorer /></Suspense></TabsContent>
 
         {/* ─────────────── AI EXPOSURE TAB (Tenable parity — GAP-059) ─────────────── */}
         <TabsContent value="ai-exposure">
@@ -1017,7 +985,6 @@ export default function Compliance() {
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Suspense fallback={<TabSkeleton />}><ShadowAIInventory /></Suspense>
             <Suspense fallback={<TabSkeleton />}><AIAttackPathView /></Suspense>
           </div>
         </TabsContent>
@@ -1072,21 +1039,18 @@ export default function Compliance() {
         {/* ─────────── CSPM TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="cspm" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <CSPMDashboard />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── EVIDENCE VAULT DASHBOARD TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="evidence-vault-dash" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <EvidenceVaultDashboard />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── CLOUD POSTURE TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="cloud-posture-dash" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <CloudPostureDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>
@@ -1102,7 +1066,6 @@ export default function Compliance() {
 function RiskQuantPane() {
   return (
     <Suspense fallback={<TabSkeleton />}>
-      <RiskQuantDashboard />
     </Suspense>
   );
 }
@@ -1115,7 +1078,6 @@ function RiskQuantPane() {
 function TprmPane() {
   return (
     <Suspense fallback={<TabSkeleton />}>
-      <TprmExchangeDashboard />
     </Suspense>
   );
 }
@@ -1128,7 +1090,6 @@ function TprmPane() {
 function PostureReportsPane() {
   return (
     <Suspense fallback={<TabSkeleton />}>
-      <PostureReportingDashboard />
     </Suspense>
   );
 }
@@ -1141,7 +1102,6 @@ function PostureReportsPane() {
 function ScorecardPane() {
   return (
     <Suspense fallback={<TabSkeleton />}>
-      <SecurityScorecardDashboard />
     </Suspense>
   );
 }
@@ -1178,10 +1138,8 @@ function SLARiskPane() {
       </TabsList>
 
       <TabsContent value="sla">
-        <Suspense fallback={<TabSkeleton />}><SLADashboard /></Suspense>
       </TabsContent>
       <TabsContent value="register">
-        <Suspense fallback={<TabSkeleton />}><RiskRegister /></Suspense>
       </TabsContent>
       <TabsContent value="acceptance">
         <Suspense fallback={<TabSkeleton />}><RiskAcceptance /></Suspense>
@@ -1190,7 +1148,6 @@ function SLARiskPane() {
         <Suspense fallback={<TabSkeleton />}><RiskTreatmentDashboard /></Suspense>
       </TabsContent>
       <TabsContent value="scenarios">
-        <Suspense fallback={<TabSkeleton />}><RiskScenarioDashboard /></Suspense>
       </TabsContent>
     </Tabs>
   );
@@ -1879,16 +1836,12 @@ function WaiversExceptionsPane() {
         </TabsList>
 
         <TabsContent value="explorer">
-          <Suspense fallback={<TabSkeleton />}><WaiversExplorer /></Suspense>
         </TabsContent>
         <TabsContent value="auto-rules">
-          <Suspense fallback={<TabSkeleton />}><AutoWaiverRules /></Suspense>
         </TabsContent>
         <TabsContent value="exceptions">
-          <Suspense fallback={<TabSkeleton />}><SecurityExceptionDashboard /></Suspense>
         </TabsContent>
         <TabsContent value="approvals">
-          <Suspense fallback={<TabSkeleton />}><ExceptionWorkflowDashboard /></Suspense>
         </TabsContent>
       </Tabs>
     </div>
@@ -1954,31 +1907,22 @@ function PoliciesRulesPane() {
         </TabsList>
 
         <TabsContent value="library">
-          <Suspense fallback={<TabSkeleton />}><PolicyLibraryBrowser /></Suspense>
         </TabsContent>
         <TabsContent value="stage-matrix">
-          <Suspense fallback={<TabSkeleton />}><StagePolicyMatrix /></Suspense>
         </TabsContent>
         <TabsContent value="stage-editor">
-          <Suspense fallback={<TabSkeleton />}><PolicyStageEditor /></Suspense>
         </TabsContent>
         <TabsContent value="inheritance">
-          <Suspense fallback={<TabSkeleton />}><PolicyInheritanceView /></Suspense>
         </TabsContent>
         <TabsContent value="rules-catalog">
-          <Suspense fallback={<TabSkeleton />}><UnifiedRulesCatalog /></Suspense>
         </TabsContent>
         <TabsContent value="dsl-author">
-          <Suspense fallback={<TabSkeleton />}><RuleDSLAuthoringStudio /></Suspense>
         </TabsContent>
         <TabsContent value="dsl-validator">
-          <Suspense fallback={<TabSkeleton />}><RuleDSLValidator /></Suspense>
         </TabsContent>
         <TabsContent value="taxonomy">
-          <Suspense fallback={<TabSkeleton />}><RuleTaxonomyInspector /></Suspense>
         </TabsContent>
         <TabsContent value="hooks">
-          <Suspense fallback={<TabSkeleton />}><HooksPolicyEditor /></Suspense>
         </TabsContent>
       </Tabs>
     </div>

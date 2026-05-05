@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const WebhookEventCatalogExplorer = lazy(() => import("@/pages/WebhookEventCatalogExplorer"));
-const WebhookRetryConsole = lazy(() => import("@/pages/WebhookRetryConsole"));
-const UniversalIngestionTester = lazy(() => import("@/pages/UniversalIngestionTester"));
 
 type TabKey = "catalogue" | "retry" | "dry-run";
 
@@ -124,17 +121,14 @@ export default function WebhookIngestionHub() {
 
         <TabsContent value="catalogue">
           <Suspense fallback={<PageSkeleton />}>
-            <WebhookEventCatalogExplorer />
           </Suspense>
         </TabsContent>
         <TabsContent value="retry">
           <Suspense fallback={<PageSkeleton />}>
-            <WebhookRetryConsole />
           </Suspense>
         </TabsContent>
         <TabsContent value="dry-run">
           <Suspense fallback={<PageSkeleton />}>
-            <UniversalIngestionTester />
           </Suspense>
         </TabsContent>
       </Tabs>

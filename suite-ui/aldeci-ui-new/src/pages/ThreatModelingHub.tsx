@@ -28,13 +28,7 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const ThreatModelDashboard = lazy(() => import("@/pages/ThreatModelDashboard"));
-const CyberThreatModelingDashboard = lazy(
-  () => import("@/pages/CyberThreatModelingDashboard"),
-);
-const ThreatModelingPipelineDashboard = lazy(
-  () => import("@/pages/ThreatModelingPipelineDashboard"),
-);
+
 
 type TabKey = "models" | "cyber" | "pipeline";
 
@@ -128,17 +122,14 @@ export default function ThreatModelingHub() {
 
         <TabsContent value="models">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatModelDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="cyber">
           <Suspense fallback={<PageSkeleton />}>
-            <CyberThreatModelingDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="pipeline">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatModelingPipelineDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

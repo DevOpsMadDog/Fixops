@@ -31,10 +31,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const VulnerabilityAgeDashboard = lazy(() => import("@/pages/VulnerabilityAgeDashboard"));
-const VulnLifecycle = lazy(() => import("@/pages/VulnLifecycle"));
-const VulnPrioritizationDashboard = lazy(() => import("@/pages/VulnPrioritizationDashboard"));
-const VulnWorkflowDashboard = lazy(() => import("@/pages/VulnWorkflowDashboard"));
 
 type TabKey = "age" | "lifecycle" | "prioritize" | "workflow";
 
@@ -135,22 +131,18 @@ export default function VulnLifecyclePipelineHub() {
 
         <TabsContent value="age">
           <Suspense fallback={<PageSkeleton />}>
-            <VulnerabilityAgeDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="lifecycle">
           <Suspense fallback={<PageSkeleton />}>
-            <VulnLifecycle />
           </Suspense>
         </TabsContent>
         <TabsContent value="prioritize">
           <Suspense fallback={<PageSkeleton />}>
-            <VulnPrioritizationDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="workflow">
           <Suspense fallback={<PageSkeleton />}>
-            <VulnWorkflowDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

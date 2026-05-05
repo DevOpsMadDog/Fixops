@@ -29,10 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const UnifiedRulesCatalog = lazy(() => import("@/pages/UnifiedRulesCatalog"));
-const RuleTaxonomyInspector = lazy(() => import("@/pages/RuleTaxonomyInspector"));
-const RuleDSLAuthoringStudio = lazy(() => import("@/pages/RuleDSLAuthoringStudio"));
-const RuleDSLValidator = lazy(() => import("@/pages/RuleDSLValidator"));
 
 type TabKey = "catalog" | "taxonomy" | "author" | "validate";
 
@@ -133,22 +129,18 @@ export default function RulesCatalogHub() {
 
         <TabsContent value="catalog">
           <Suspense fallback={<PageSkeleton />}>
-            <UnifiedRulesCatalog />
           </Suspense>
         </TabsContent>
         <TabsContent value="taxonomy">
           <Suspense fallback={<PageSkeleton />}>
-            <RuleTaxonomyInspector />
           </Suspense>
         </TabsContent>
         <TabsContent value="author">
           <Suspense fallback={<PageSkeleton />}>
-            <RuleDSLAuthoringStudio />
           </Suspense>
         </TabsContent>
         <TabsContent value="validate">
           <Suspense fallback={<PageSkeleton />}>
-            <RuleDSLValidator />
           </Suspense>
         </TabsContent>
       </Tabs>

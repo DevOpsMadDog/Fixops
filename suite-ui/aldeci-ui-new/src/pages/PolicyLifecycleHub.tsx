@@ -29,9 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const PolicyLibraryBrowser = lazy(() => import("@/pages/PolicyLibraryBrowser"));
-const PolicyInheritanceView = lazy(() => import("@/pages/PolicyInheritanceView"));
-const PolicyStageEditor = lazy(() => import("@/pages/PolicyStageEditor"));
 
 type TabKey = "library" | "inheritance" | "stage-edit";
 
@@ -125,17 +122,14 @@ export default function PolicyLifecycleHub() {
 
         <TabsContent value="library">
           <Suspense fallback={<PageSkeleton />}>
-            <PolicyLibraryBrowser />
           </Suspense>
         </TabsContent>
         <TabsContent value="inheritance">
           <Suspense fallback={<PageSkeleton />}>
-            <PolicyInheritanceView />
           </Suspense>
         </TabsContent>
         <TabsContent value="stage-edit">
           <Suspense fallback={<PageSkeleton />}>
-            <PolicyStageEditor />
           </Suspense>
         </TabsContent>
       </Tabs>

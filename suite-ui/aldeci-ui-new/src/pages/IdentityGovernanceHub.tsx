@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const IdentityGovernance = lazy(() => import("@/pages/IdentityGovernance"));
-const IdentityAnalyticsDashboard = lazy(() => import("@/pages/IdentityAnalyticsDashboard"));
-const DigitalIdentityDashboard = lazy(() => import("@/pages/DigitalIdentityDashboard"));
 
 type TabKey = "governance" | "analytics" | "digital";
 
@@ -124,17 +121,14 @@ export default function IdentityGovernanceHub() {
 
         <TabsContent value="governance">
           <Suspense fallback={<PageSkeleton />}>
-            <IdentityGovernance />
           </Suspense>
         </TabsContent>
         <TabsContent value="analytics">
           <Suspense fallback={<PageSkeleton />}>
-            <IdentityAnalyticsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="digital">
           <Suspense fallback={<PageSkeleton />}>
-            <DigitalIdentityDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

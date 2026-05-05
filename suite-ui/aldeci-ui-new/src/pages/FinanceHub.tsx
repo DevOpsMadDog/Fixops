@@ -35,11 +35,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const BUDollarRiskHeatmap = lazy(() => import("@/pages/BUDollarRiskHeatmap"));
-const SecurityInvestmentDashboard = lazy(() => import("@/pages/SecurityInvestmentDashboard"));
-const SecurityBudgetDashboard = lazy(() => import("@/pages/SecurityBudgetDashboard"));
-const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
-const CyberInsuranceDashboard = lazy(() => import("@/pages/CyberInsuranceDashboard"));
 
 type TabKey =
   | "bu-heatmap"
@@ -152,27 +147,22 @@ export default function FinanceHub() {
 
         <TabsContent value="bu-heatmap">
           <Suspense fallback={<PageSkeleton />}>
-            <BUDollarRiskHeatmap />
           </Suspense>
         </TabsContent>
         <TabsContent value="investment">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityInvestmentDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="budget">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityBudgetDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="incident-costs">
           <Suspense fallback={<PageSkeleton />}>
-            <IncidentCostsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="cyber-insur">
           <Suspense fallback={<PageSkeleton />}>
-            <CyberInsuranceDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

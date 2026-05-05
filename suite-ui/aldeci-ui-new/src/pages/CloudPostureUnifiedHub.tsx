@@ -31,12 +31,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const CloudSecurityDashboard = lazy(() => import("@/pages/CloudSecurityDashboard"));
-const CloudWorkloadProtectionDashboard = lazy(
-  () => import("@/pages/CloudWorkloadProtectionDashboard"),
-);
-const CWPPDashboard = lazy(() => import("@/pages/CWPPDashboard"));
-const CNAPPDashboard = lazy(() => import("@/pages/CNAPPDashboard"));
 
 type TabKey = "posture" | "workloads" | "platform" | "unified";
 
@@ -137,22 +131,18 @@ export default function CloudPostureUnifiedHub() {
 
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
-            <CloudSecurityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="workloads">
           <Suspense fallback={<PageSkeleton />}>
-            <CloudWorkloadProtectionDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="platform">
           <Suspense fallback={<PageSkeleton />}>
-            <CWPPDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="unified">
           <Suspense fallback={<PageSkeleton />}>
-            <CNAPPDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

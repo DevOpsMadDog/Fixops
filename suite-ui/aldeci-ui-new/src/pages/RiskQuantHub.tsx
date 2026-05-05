@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const RiskQuantification = lazy(() => import("@/pages/RiskQuantification"));
-const RiskQuantDashboard = lazy(() => import("@/pages/RiskQuantDashboard"));
-const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
 
 type TabKey = "fair" | "dashboard" | "scenarios";
 
@@ -124,17 +121,14 @@ export default function RiskQuantHub() {
 
         <TabsContent value="fair">
           <Suspense fallback={<PageSkeleton />}>
-            <RiskQuantification />
           </Suspense>
         </TabsContent>
         <TabsContent value="dashboard">
           <Suspense fallback={<PageSkeleton />}>
-            <RiskQuantDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="scenarios">
           <Suspense fallback={<PageSkeleton />}>
-            <RiskScenarioDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

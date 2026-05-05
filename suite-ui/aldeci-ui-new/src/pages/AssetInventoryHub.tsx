@@ -49,14 +49,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const AssetGroupsDashboard = lazy(() => import("@/pages/AssetGroupsDashboard"));
-const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
-const AssetCriticalityDashboard = lazy(() => import("@/pages/AssetCriticalityDashboard"));
-const CMDBDashboard = lazy(() => import("@/pages/CMDBDashboard"));
-const AssetRiskDashboard = lazy(() => import("@/pages/AssetRiskDashboard"));
-const CloudResourceInventoryDashboard = lazy(() => import("@/pages/CloudResourceInventoryDashboard"));
-const AgentlessSnapshotDashboard = lazy(() => import("@/pages/AgentlessSnapshotDashboard"));
-const CloudAccountsDashboard = lazy(() => import("@/pages/CloudAccountsDashboard"));
 
 type TabKey =
   | "groups"
@@ -193,42 +185,34 @@ export default function AssetInventoryHub() {
 
         <TabsContent value="groups">
           <Suspense fallback={<PageSkeleton />}>
-            <AssetGroupsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="tags">
           <Suspense fallback={<PageSkeleton />}>
-            <AssetTagsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="criticality">
           <Suspense fallback={<PageSkeleton />}>
-            <AssetCriticalityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="cmdb">
           <Suspense fallback={<PageSkeleton />}>
-            <CMDBDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="risk">
           <Suspense fallback={<PageSkeleton />}>
-            <AssetRiskDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="cloud-res">
           <Suspense fallback={<PageSkeleton />}>
-            <CloudResourceInventoryDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="snapshot">
           <Suspense fallback={<PageSkeleton />}>
-            <AgentlessSnapshotDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="cloud-accts">
           <Suspense fallback={<PageSkeleton />}>
-            <CloudAccountsDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

@@ -27,9 +27,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const UBADashboard = lazy(() => import("@/pages/UBADashboard"));
-const BehavioralAnalyticsDashboard = lazy(() => import("@/pages/BehavioralAnalyticsDashboard"));
-const InsiderThreatMonitor = lazy(() => import("@/pages/InsiderThreatMonitor"));
 
 type TabKey = "uba" | "behavioral" | "insider";
 
@@ -123,17 +120,14 @@ export default function BehaviorAnalyticsHub() {
 
         <TabsContent value="uba">
           <Suspense fallback={<PageSkeleton />}>
-            <UBADashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="behavioral">
           <Suspense fallback={<PageSkeleton />}>
-            <BehavioralAnalyticsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="insider">
           <Suspense fallback={<PageSkeleton />}>
-            <InsiderThreatMonitor />
           </Suspense>
         </TabsContent>
       </Tabs>

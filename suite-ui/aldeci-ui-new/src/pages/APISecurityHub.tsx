@@ -27,9 +27,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const APISecurityDashboard = lazy(() => import("@/pages/APISecurityDashboard"));
-const APISecurityMgmtDashboard = lazy(() => import("@/pages/APISecurityMgmtDashboard"));
-const APIDiscoveryDashboard = lazy(() => import("@/pages/APIDiscoveryDashboard"));
 
 type TabKey = "inventory" | "management" | "discovery";
 
@@ -123,17 +120,14 @@ export default function APISecurityHub() {
 
         <TabsContent value="inventory">
           <Suspense fallback={<PageSkeleton />}>
-            <APISecurityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="management">
           <Suspense fallback={<PageSkeleton />}>
-            <APISecurityMgmtDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="discovery">
           <Suspense fallback={<PageSkeleton />}>
-            <APIDiscoveryDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

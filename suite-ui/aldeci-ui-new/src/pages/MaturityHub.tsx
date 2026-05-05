@@ -27,9 +27,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const SecurityMaturityDashboard = lazy(() => import("@/pages/SecurityMaturityDashboard"));
-const SecurityPostureMaturityDashboard = lazy(() => import("@/pages/SecurityPostureMaturityDashboard"));
-const ProgramMaturityDashboard = lazy(() => import("@/pages/ProgramMaturityDashboard"));
 
 type TabKey = "security" | "posture" | "program";
 
@@ -123,17 +120,14 @@ export default function MaturityHub() {
 
         <TabsContent value="security">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityMaturityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityPostureMaturityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="program">
           <Suspense fallback={<PageSkeleton />}>
-            <ProgramMaturityDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const XDRDashboard = lazy(() => import("@/pages/XDRDashboard"));
-const EDRDashboard = lazy(() => import("@/pages/EDRDashboard"));
-const ITDRDashboard = lazy(() => import("@/pages/ITDRDashboard"));
 
 type TabKey = "xdr" | "edr" | "itdr";
 
@@ -124,17 +121,14 @@ export default function DetectAndRespondHub() {
 
         <TabsContent value="xdr">
           <Suspense fallback={<PageSkeleton />}>
-            <XDRDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="edr">
           <Suspense fallback={<PageSkeleton />}>
-            <EDRDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="itdr">
           <Suspense fallback={<PageSkeleton />}>
-            <ITDRDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

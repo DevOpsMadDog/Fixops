@@ -30,10 +30,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const WatchlistManager = lazy(() => import("@/pages/WatchlistManager"));
-const FeedSubscriptionsDashboard = lazy(() => import("@/pages/FeedSubscriptionsDashboard"));
-const ThreatBriefDashboard = lazy(() => import("@/pages/ThreatBriefDashboard"));
-const ThreatResponseDashboard = lazy(() => import("@/pages/ThreatResponseDashboard"));
 
 type TabKey = "watchlist" | "feeds" | "briefs" | "response";
 
@@ -134,22 +130,18 @@ export default function ThreatIntelOpsHub() {
 
         <TabsContent value="watchlist">
           <Suspense fallback={<PageSkeleton />}>
-            <WatchlistManager />
           </Suspense>
         </TabsContent>
         <TabsContent value="feeds">
           <Suspense fallback={<PageSkeleton />}>
-            <FeedSubscriptionsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="briefs">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatBriefDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="response">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatResponseDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

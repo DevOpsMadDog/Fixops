@@ -29,9 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const PostureBenchmarkingDashboard = lazy(() => import("@/pages/PostureBenchmarkingDashboard"));
-const PostureScoringDashboard = lazy(() => import("@/pages/PostureScoringDashboard"));
-const PostureTrendsDashboard = lazy(() => import("@/pages/PostureTrendsDashboard"));
 
 type TabKey = "benchmarking" | "scoring" | "trends";
 
@@ -125,17 +122,14 @@ export default function PostureMetricsHub() {
 
         <TabsContent value="benchmarking">
           <Suspense fallback={<PageSkeleton />}>
-            <PostureBenchmarkingDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="scoring">
           <Suspense fallback={<PageSkeleton />}>
-            <PostureScoringDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="trends">
           <Suspense fallback={<PageSkeleton />}>
-            <PostureTrendsDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

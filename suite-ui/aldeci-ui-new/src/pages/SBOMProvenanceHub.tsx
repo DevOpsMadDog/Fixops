@@ -36,12 +36,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const SBOMExportDashboard = lazy(() => import("@/pages/SBOMExportDashboard"));
-const PipelineBomDashboard = lazy(() => import("@/pages/PipelineBomDashboard"));
-const PBOMViewer = lazy(() => import("@/pages/PBOMViewer"));
-const SlsaProvenanceDashboard = lazy(() => import("@/pages/SlsaProvenanceDashboard"));
-const PipelineAttestationGraph = lazy(() => import("@/pages/PipelineAttestationGraph"));
-const SLSAAttestationSigner = lazy(() => import("@/pages/SLSAAttestationSigner"));
 
 type TabKey =
   | "export"
@@ -154,32 +148,26 @@ export default function SBOMProvenanceHub() {
 
         <TabsContent value="export">
           <Suspense fallback={<PageSkeleton />}>
-            <SBOMExportDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="pipeline-bom">
           <Suspense fallback={<PageSkeleton />}>
-            <PipelineBomDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="pbom-prop">
           <Suspense fallback={<PageSkeleton />}>
-            <PBOMViewer />
           </Suspense>
         </TabsContent>
         <TabsContent value="slsa">
           <Suspense fallback={<PageSkeleton />}>
-            <SlsaProvenanceDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="attestation">
           <Suspense fallback={<PageSkeleton />}>
-            <PipelineAttestationGraph />
           </Suspense>
         </TabsContent>
         <TabsContent value="sign">
           <Suspense fallback={<PageSkeleton />}>
-            <SLSAAttestationSigner />
           </Suspense>
         </TabsContent>
       </Tabs>

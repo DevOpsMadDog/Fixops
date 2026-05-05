@@ -28,13 +28,7 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const DeceptionEngine = lazy(() => import("@/pages/DeceptionEngine"));
-const DeceptionAnalyticsDashboard = lazy(
-  () => import("@/pages/DeceptionAnalyticsDashboard")
-);
-const ThreatDeceptionDashboard = lazy(
-  () => import("@/pages/ThreatDeceptionDashboard")
-);
+
 
 type TabKey = "engine" | "analytics" | "decoys";
 
@@ -128,17 +122,14 @@ export default function DeceptionHub() {
 
         <TabsContent value="engine">
           <Suspense fallback={<PageSkeleton />}>
-            <DeceptionEngine />
           </Suspense>
         </TabsContent>
         <TabsContent value="analytics">
           <Suspense fallback={<PageSkeleton />}>
-            <DeceptionAnalyticsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="decoys">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatDeceptionDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

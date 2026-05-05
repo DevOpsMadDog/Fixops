@@ -29,9 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const SupplyChainSecurity = lazy(() => import("@/pages/SupplyChainSecurity"));
-const SupplyChainDashboard = lazy(() => import("@/pages/SupplyChainDashboard"));
-const SupplyChainIntelDashboard = lazy(() => import("@/pages/SupplyChainIntelDashboard"));
 
 type TabKey = "security" | "risk" | "intel";
 
@@ -125,17 +122,14 @@ export default function SupplyChainHub() {
 
         <TabsContent value="security">
           <Suspense fallback={<PageSkeleton />}>
-            <SupplyChainSecurity />
           </Suspense>
         </TabsContent>
         <TabsContent value="risk">
           <Suspense fallback={<PageSkeleton />}>
-            <SupplyChainDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="intel">
           <Suspense fallback={<PageSkeleton />}>
-            <SupplyChainIntelDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const SecurityExceptionDashboard = lazy(() => import("@/pages/SecurityExceptionDashboard"));
-const ExceptionWorkflowDashboard = lazy(() => import("@/pages/ExceptionWorkflowDashboard"));
-const AutoWaiverRules = lazy(() => import("@/pages/AutoWaiverRules"));
 
 type TabKey = "exceptions" | "workflow" | "auto-rules";
 
@@ -124,17 +121,14 @@ export default function ExceptionsHub() {
 
         <TabsContent value="exceptions">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityExceptionDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="workflow">
           <Suspense fallback={<PageSkeleton />}>
-            <ExceptionWorkflowDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="auto-rules">
           <Suspense fallback={<PageSkeleton />}>
-            <AutoWaiverRules />
           </Suspense>
         </TabsContent>
       </Tabs>

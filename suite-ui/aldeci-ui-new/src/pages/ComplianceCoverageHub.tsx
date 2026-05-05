@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const ComplianceGapDashboard = lazy(() => import("@/pages/ComplianceGapDashboard"));
-const CloudComplianceDashboard = lazy(() => import("@/pages/CloudComplianceDashboard"));
-const EndpointComplianceDashboard = lazy(() => import("@/pages/EndpointComplianceDashboard"));
 
 type TabKey = "gaps" | "cloud" | "endpoint";
 
@@ -124,17 +121,14 @@ export default function ComplianceCoverageHub() {
 
         <TabsContent value="gaps">
           <Suspense fallback={<PageSkeleton />}>
-            <ComplianceGapDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="cloud">
           <Suspense fallback={<PageSkeleton />}>
-            <CloudComplianceDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="endpoint">
           <Suspense fallback={<PageSkeleton />}>
-            <EndpointComplianceDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

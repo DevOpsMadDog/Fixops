@@ -30,11 +30,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const ThreatActorDashboard = lazy(() => import("@/pages/ThreatActorDashboard"));
-const ActorTrackingDashboard = lazy(() => import("@/pages/ActorTrackingDashboard"));
-const ThreatAttributionDashboard = lazy(() => import("@/pages/ThreatAttributionDashboard"));
-const ThreatIndicatorDashboard = lazy(() => import("@/pages/ThreatIndicatorDashboard"));
-const IOCHunter = lazy(() => import("@/pages/IOCHunter"));
 
 type TabKey = "actors" | "tracking" | "attribution" | "indicators" | "ioc-hunter";
 
@@ -142,27 +137,22 @@ export default function ThreatActorsHub() {
 
         <TabsContent value="actors">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatActorDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="tracking">
           <Suspense fallback={<PageSkeleton />}>
-            <ActorTrackingDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="attribution">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatAttributionDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="indicators">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatIndicatorDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="ioc-hunter">
           <Suspense fallback={<PageSkeleton />}>
-            <IOCHunter />
           </Suspense>
         </TabsContent>
       </Tabs>

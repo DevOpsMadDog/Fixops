@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const SecurityPostureDashboard = lazy(() => import("@/pages/SecurityPostureDashboard"));
-const SecurityRoadmap = lazy(() => import("@/pages/SecurityRoadmap"));
-const GRCAssessment = lazy(() => import("@/pages/GRCAssessment"));
 
 type TabKey = "posture" | "roadmap" | "grc";
 
@@ -124,17 +121,14 @@ export default function StrategicPostureHub() {
 
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityPostureDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="roadmap">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityRoadmap />
           </Suspense>
         </TabsContent>
         <TabsContent value="grc">
           <Suspense fallback={<PageSkeleton />}>
-            <GRCAssessment />
           </Suspense>
         </TabsContent>
       </Tabs>

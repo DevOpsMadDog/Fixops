@@ -34,13 +34,7 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const AppSecurity = lazy(() => import("@/pages/AppSecurity"));
-const MobileAppSecurityDashboard = lazy(
-  () => import("@/pages/MobileAppSecurityDashboard"),
-);
-const BrowserSecurityDashboard = lazy(
-  () => import("@/pages/BrowserSecurityDashboard"),
-);
+
 
 type TabKey = "web" | "mobile" | "browser";
 
@@ -139,17 +133,14 @@ export default function AppLayerSecurityHub() {
 
         <TabsContent value="web">
           <Suspense fallback={<PageSkeleton />}>
-            <AppSecurity />
           </Suspense>
         </TabsContent>
         <TabsContent value="mobile">
           <Suspense fallback={<PageSkeleton />}>
-            <MobileAppSecurityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="browser">
           <Suspense fallback={<PageSkeleton />}>
-            <BrowserSecurityDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

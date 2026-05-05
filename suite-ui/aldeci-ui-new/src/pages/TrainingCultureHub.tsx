@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const SecurityTrainingDashboard = lazy(() => import("@/pages/SecurityTrainingDashboard"));
-const TrainingEffectivenessDashboard = lazy(() => import("@/pages/TrainingEffectivenessDashboard"));
-const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
 
 type TabKey = "training" | "effectiveness" | "culture";
 
@@ -124,17 +121,14 @@ export default function TrainingCultureHub() {
 
         <TabsContent value="training">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityTrainingDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="effectiveness">
           <Suspense fallback={<PageSkeleton />}>
-            <TrainingEffectivenessDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="culture">
           <Suspense fallback={<PageSkeleton />}>
-            <SecurityCultureDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

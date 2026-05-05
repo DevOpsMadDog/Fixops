@@ -70,14 +70,6 @@ const CopilotGraphChat = lazy(() => import("@/pages/ai/CopilotGraphChat"));
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 
 // P1 Wave 3 fold-ins (S2 Executive Brief, S3 SOC Operations) — full sub-tab content
-const ExecutiveBriefing = lazy(() => import("@/pages/ExecutiveBriefing"));
-const ExecutiveReportingDashboard = lazy(() => import("@/pages/ExecutiveReportingDashboard"));
-const CISOReportDashboard = lazy(() => import("@/pages/CISOReportDashboard"));
-const ExecutiveRiskReport = lazy(() => import("@/pages/ExecutiveRiskReport"));
-const BUDollarRiskHeatmap = lazy(() => import("@/pages/BUDollarRiskHeatmap"));
-const AlertTriageDashboard = lazy(() => import("@/pages/AlertTriageDashboard"));
-const SOCT1Dashboard = lazy(() => import("@/pages/mission-control/SOCT1Dashboard"));
-const IncidentResponseDashboard = lazy(() => import("@/pages/IncidentResponseDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -423,27 +415,22 @@ export default function Command() {
             </TabsList>
             <TabsContent value="briefing">
               <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
-                <ExecutiveBriefing />
               </Suspense>
             </TabsContent>
             <TabsContent value="ciso">
               <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
-                <CISOReportDashboard />
               </Suspense>
             </TabsContent>
             <TabsContent value="bu-heatmap">
               <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
-                <BUDollarRiskHeatmap />
               </Suspense>
             </TabsContent>
             <TabsContent value="risk-report">
               <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
-                <ExecutiveRiskReport />
               </Suspense>
             </TabsContent>
             <TabsContent value="reporting">
               <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
-                <ExecutiveReportingDashboard />
               </Suspense>
             </TabsContent>
           </Tabs>
@@ -518,17 +505,14 @@ export default function Command() {
 
             <TabsContent value="t1">
               <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
-                <SOCT1Dashboard />
               </Suspense>
             </TabsContent>
             <TabsContent value="triage">
               <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
-                <AlertTriageDashboard />
               </Suspense>
             </TabsContent>
             <TabsContent value="ir">
               <Suspense fallback={<Skeleton className="h-[640px] w-full" />}>
-                <IncidentResponseDashboard />
               </Suspense>
             </TabsContent>
           </Tabs>

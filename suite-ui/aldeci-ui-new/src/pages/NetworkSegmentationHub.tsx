@@ -16,7 +16,6 @@
  * Persona target: Platform Engineer (#20), Security Architect (#11), SRE (#19)
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.11 (Network Posture tab)
  *
- * Note: MicrosegmentationPolicyDashboard was previously orphan-imported (no
  * Route in App.tsx); this fold restores its reachability via the new hub.
  */
 
@@ -31,11 +30,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const MicrosegmentationPolicyDashboard = lazy(
-  () => import("@/pages/MicrosegmentationPolicyDashboard"),
-);
-const FirewallAnalyzer = lazy(() => import("@/pages/FirewallAnalyzer"));
-const FirewallPolicyDashboard = lazy(() => import("@/pages/FirewallPolicyDashboard"));
 
 type TabKey = "microseg" | "firewall" | "policy";
 
@@ -129,17 +123,14 @@ export default function NetworkSegmentationHub() {
 
         <TabsContent value="microseg">
           <Suspense fallback={<PageSkeleton />}>
-            <MicrosegmentationPolicyDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="firewall">
           <Suspense fallback={<PageSkeleton />}>
-            <FirewallAnalyzer />
           </Suspense>
         </TabsContent>
         <TabsContent value="policy">
           <Suspense fallback={<PageSkeleton />}>
-            <FirewallPolicyDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

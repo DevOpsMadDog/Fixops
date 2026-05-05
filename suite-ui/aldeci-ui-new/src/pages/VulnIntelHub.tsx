@@ -32,10 +32,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const VulnIntelligenceDashboard = lazy(() => import("@/pages/VulnIntelligenceDashboard"));
-const CVESearch = lazy(() => import("@/pages/CVESearch"));
-const IPReputationDashboard = lazy(() => import("@/pages/IPReputationDashboard"));
-const ThreatGeolocationDashboard = lazy(() => import("@/pages/ThreatGeolocationDashboard"));
 
 type TabKey = "vuln-intel" | "cve-search" | "ip-rep" | "geolocation";
 
@@ -136,22 +132,18 @@ export default function VulnIntelHub() {
 
         <TabsContent value="vuln-intel">
           <Suspense fallback={<PageSkeleton />}>
-            <VulnIntelligenceDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="cve-search">
           <Suspense fallback={<PageSkeleton />}>
-            <CVESearch />
           </Suspense>
         </TabsContent>
         <TabsContent value="ip-rep">
           <Suspense fallback={<PageSkeleton />}>
-            <IPReputationDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="geolocation">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatGeolocationDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

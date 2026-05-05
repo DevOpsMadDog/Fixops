@@ -29,9 +29,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const IncidentMetricsDashboard = lazy(() => import("@/pages/IncidentMetricsDashboard"));
-const IncidentKBDashboard = lazy(() => import("@/pages/IncidentKBDashboard"));
-const IncidentLessonsDashboard = lazy(() => import("@/pages/IncidentLessonsDashboard"));
 
 type TabKey = "metrics" | "knowledge" | "lessons";
 
@@ -125,17 +122,14 @@ export default function IncidentKnowledgeHub() {
 
         <TabsContent value="metrics">
           <Suspense fallback={<PageSkeleton />}>
-            <IncidentMetricsDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="knowledge">
           <Suspense fallback={<PageSkeleton />}>
-            <IncidentKBDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="lessons">
           <Suspense fallback={<PageSkeleton />}>
-            <IncidentLessonsDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

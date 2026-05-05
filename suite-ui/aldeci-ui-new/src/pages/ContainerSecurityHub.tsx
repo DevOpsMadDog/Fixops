@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const ContainerSecurityDashboard = lazy(() => import("@/pages/ContainerSecurityDashboard"));
-const ContainerRuntimeSecurityDashboard = lazy(() => import("@/pages/ContainerRuntimeSecurityDashboard"));
-const ContainerPostureDashboard = lazy(() => import("@/pages/ContainerPostureDashboard"));
 
 type TabKey = "image" | "runtime" | "posture";
 
@@ -124,17 +121,14 @@ export default function ContainerSecurityHub() {
 
         <TabsContent value="image">
           <Suspense fallback={<PageSkeleton />}>
-            <ContainerSecurityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="runtime">
           <Suspense fallback={<PageSkeleton />}>
-            <ContainerRuntimeSecurityDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
-            <ContainerPostureDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

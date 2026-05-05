@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const ProwlerDashboard = lazy(() => import("@/pages/ProwlerDashboard"));
-const ServiceNowDashboard = lazy(() => import("@/pages/ServiceNowDashboard"));
-const SIEMOutputDashboard = lazy(() => import("@/pages/SIEMOutputDashboard"));
 
 type TabKey = "prowler" | "servicenow" | "siem";
 
@@ -124,17 +121,14 @@ export default function IntegrationTargetsHub() {
 
         <TabsContent value="prowler">
           <Suspense fallback={<PageSkeleton />}>
-            <ProwlerDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="servicenow">
           <Suspense fallback={<PageSkeleton />}>
-            <ServiceNowDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="siem">
           <Suspense fallback={<PageSkeleton />}>
-            <SIEMOutputDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

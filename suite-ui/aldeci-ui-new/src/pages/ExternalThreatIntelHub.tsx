@@ -28,9 +28,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const ZeroDayIntelligenceDashboard = lazy(() => import("@/pages/ZeroDayIntelligenceDashboard"));
-const DarkWebMonitoringDashboard = lazy(() => import("@/pages/DarkWebMonitoringDashboard"));
-const ThreatScoreDashboard = lazy(() => import("@/pages/ThreatScoreDashboard"));
 
 type TabKey = "zeroday" | "darkweb" | "scores";
 
@@ -124,17 +121,14 @@ export default function ExternalThreatIntelHub() {
 
         <TabsContent value="zeroday">
           <Suspense fallback={<PageSkeleton />}>
-            <ZeroDayIntelligenceDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="darkweb">
           <Suspense fallback={<PageSkeleton />}>
-            <DarkWebMonitoringDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="scores">
           <Suspense fallback={<PageSkeleton />}>
-            <ThreatScoreDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

@@ -59,34 +59,18 @@ import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // Lazy-load companion dashboards as tabs (zero functionality loss)
-const MultiLLM = lazy(() => import("@/pages/ai/MultiLLM"));
-const AlgorithmicLab = lazy(() => import("@/pages/ai/AlgorithmicLab"));
-const Predictions = lazy(() => import("@/pages/ai/Predictions"));
-const MLDashboard = lazy(() => import("@/pages/ai/MLDashboard"));
 const BrainVisualization = lazy(() => import("@/pages/BrainVisualization"));
-const FactorWeightsView = lazy(() => import("@/pages/FactorWeightsView"));
-const ScoreTransparencyPanel = lazy(() => import("@/pages/ScoreTransparencyPanel"));
 // P1 fold-in (S10) — Code Intelligence: DCA + reachability + components
 const CodeSemanticExplorer = lazy(() => import("@/pages/discover/CodeSemanticExplorer"));
 const CallGraphExplorer = lazy(() => import("@/pages/discover/CallGraphExplorer"));
 const ComponentIdentityView = lazy(() => import("@/pages/discover/ComponentIdentityView"));
 const ReachabilityProofView = lazy(() => import("@/pages/validate/ReachabilityProof"));
 // P2 fold-ins (S13 MPTE Console, S17 FAIL Chaos)
-const MPTEConsole = lazy(() => import("@/pages/validate/MPTEConsole"));
-const FAILEngine = lazy(() => import("@/pages/validate/FAILEngine"));
 // P4 fold-in — IncidentTimelineDashboard → Brain hero "incident-timeline" tab
-const IncidentTimelineDashboard = lazy(() => import("@/pages/IncidentTimelineDashboard"));
 // Wave 1 Phase 3 fold-in (2026-04-27)
 const SecurityChaosDashboard = lazy(() => import("@/pages/SecurityChaosDashboard"));
 // Wave 2 Phase 3 fold-ins (2026-04-27)
-const AlertEnrichmentDashboard = lazy(() => import("@/pages/AlertEnrichmentDashboard"));
-const AttackChainDashboard = lazy(() => import("@/pages/AttackChainDashboard"));
 // Wave 3 Phase 3 fold-ins (2026-04-27)
-const MITREAttackDashboard = lazy(() => import("@/pages/MITREAttackDashboard"));
-const BugBounty = lazy(() => import("@/pages/BugBounty"));
-const AlertTriageDashboard = lazy(() => import("@/pages/AlertTriageDashboard"));
-const AIGovernanceDashboard = lazy(() => import("@/pages/AIGovernanceDashboard"));
-const ActorTrackingDashboard = lazy(() => import("@/pages/ActorTrackingDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 12-step Brain Pipeline canon (from CTEM_PLUS_IDENTITY.md + brain_pipeline.py)
@@ -336,7 +320,6 @@ export default function Brain() {
           <TabsTrigger value="neural">Neural Map</TabsTrigger>
           <TabsTrigger value="consensus">Multi-LLM Consensus</TabsTrigger>
           <TabsTrigger value="lab">Algorithmic Lab</TabsTrigger>
-          <TabsTrigger value="predictions">Predictions</TabsTrigger>
           <TabsTrigger value="ml">ML Dashboard</TabsTrigger>
           <TabsTrigger value="score">Score Transparency</TabsTrigger>
           <TabsTrigger value="weights">Factor Weights</TabsTrigger>
@@ -621,22 +604,16 @@ export default function Brain() {
           <Suspense fallback={<TabSkeleton />}><BrainVisualization /></Suspense>
         </TabsContent>
         <TabsContent value="consensus">
-          <Suspense fallback={<TabSkeleton />}><MultiLLM /></Suspense>
         </TabsContent>
         <TabsContent value="lab">
-          <Suspense fallback={<TabSkeleton />}><AlgorithmicLab /></Suspense>
         </TabsContent>
         <TabsContent value="predictions">
-          <Suspense fallback={<TabSkeleton />}><Predictions /></Suspense>
         </TabsContent>
         <TabsContent value="ml">
-          <Suspense fallback={<TabSkeleton />}><MLDashboard /></Suspense>
         </TabsContent>
         <TabsContent value="score">
-          <Suspense fallback={<TabSkeleton />}><ScoreTransparencyPanel /></Suspense>
         </TabsContent>
         <TabsContent value="weights">
-          <Suspense fallback={<TabSkeleton />}><FactorWeightsView /></Suspense>
         </TabsContent>
 
         {/* ─────────── CODE INTELLIGENCE TAB (P1 fold-in S10 -> Brain hero) ─────────── */}
@@ -660,7 +637,6 @@ export default function Brain() {
               </div>
             </div>
           </div>
-          <Suspense fallback={<TabSkeleton />}><MPTEConsole /></Suspense>
         </TabsContent>
 
         {/* ─────────── FAIL CHAOS TAB (P2 fold-in S17 -> Brain hero) ─────────── */}
@@ -678,7 +654,6 @@ export default function Brain() {
               </div>
             </div>
           </div>
-          <Suspense fallback={<TabSkeleton />}><FAILEngine /></Suspense>
         </TabsContent>
 
         {/* ─────────── LEARNING LOOP TAB (LLM Phase 1 closed-loop telemetry) ─────────── */}
@@ -689,7 +664,6 @@ export default function Brain() {
         {/* ─────────── INCIDENT TIMELINE TAB (P4 fold-in) ─────────── */}
         <TabsContent value="incident-timeline" className="space-y-4">
           <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>}>
-            <IncidentTimelineDashboard />
           </Suspense>
         </TabsContent>
 
@@ -703,49 +677,42 @@ export default function Brain() {
         {/* ─────────── ALERT ENRICHMENT TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="alert-enrichment" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <AlertEnrichmentDashboard />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── ATTACK CHAIN TAB (Wave 2 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="attack-chain" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <AttackChainDashboard />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── MITRE ATT&CK TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="mitre" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <MITREAttackDashboard />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── BUG BOUNTY TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="bug-bounty" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <BugBounty />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── ALERT TRIAGE TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="alert-triage" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <AlertTriageDashboard />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── AI GOVERNANCE TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="ai-governance" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <AIGovernanceDashboard />
           </Suspense>
         </TabsContent>
 
         {/* ─────────── ACTOR TRACKING TAB (Wave 3 Phase 3 fold-in 2026-04-27) ─────────── */}
         <TabsContent value="actor-tracking" className="space-y-4">
           <Suspense fallback={<TabSkeleton />}>
-            <ActorTrackingDashboard />
           </Suspense>
         </TabsContent>
       </Tabs>

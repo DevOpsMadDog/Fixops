@@ -70,22 +70,10 @@ import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // P2 fold-in (S21) — Upgrade Paths companion dashboards
-const UpgradePathExplorer = lazy(() => import("@/pages/UpgradePathExplorer"));
-const UpgradePathDashboard = lazy(() => import("@/pages/UpgradePathDashboard"));
 // P3 fold-in — ServiceCatalogDashboard → AssetGraph hero "catalog" tab
-const ServiceCatalogDashboard = lazy(() => import("@/pages/ServiceCatalogDashboard"));
 // Wave 2 Phase 3 fold-ins (2026-04-27)
-const AttackSurfaceDashboard = lazy(() => import("@/pages/AttackSurfaceDashboard"));
-const IoTSecurityDashboard = lazy(() => import("@/pages/IoTSecurityDashboard"));
-const ApplicationRiskDashboard = lazy(() => import("@/pages/ApplicationRiskDashboard"));
 // P4 fold-in — SecurityToolInventoryDashboard → AssetGraph hero "tool-inventory" tab
-const SecurityToolInventoryDashboard = lazy(() => import("@/pages/SecurityToolInventoryDashboard"));
 // Wave 3 Phase 3 fold-ins (2026-04-27)
-const ZeroTrustDashboard = lazy(() => import("@/pages/ZeroTrustDashboard"));
-const AccessAnomalyDashboard = lazy(() => import("@/pages/AccessAnomalyDashboard"));
-const AccessGovernanceDashboard = lazy(() => import("@/pages/AccessGovernanceDashboard"));
-const APIAbuseDashboard = lazy(() => import("@/pages/APIAbuseDashboard"));
-const APIInventoryDashboard = lazy(() => import("@/pages/APIInventoryDashboard"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -165,16 +153,6 @@ const TABS: TabSpec[] = [
   { key: "attack-paths", label: "Attack Paths", icon: Target, endpoint: "/api/v1/attack-paths/graph", description: "P1 Wave 2 (S12) — interactive attack-path explorer. Click a node to drill into the kill-chain through that asset." },
   { key: "sbom",         label: "SBOM",         icon: Package, endpoint: "/api/v1/sbom", description: "P1 Wave 2 (S25) — components, SLSA attestations, propagation tracking. Provenance graph for every artifact." },
   { key: "upgrade-paths", label: "Upgrade Paths", icon: ArrowUpCircle, endpoint: "/api/v1/components/upgrade-paths", description: "P2 fold-in (S21) — safe-upgrade resolver per pURL. Shows next-secure version, breaking-change risk, and dependency-mapping impact." },
-  { key: "catalog", label: "Service Catalog", icon: Package, endpoint: "/api/v1/service-catalog/services", description: "P3 fold-in — security service catalog with SLA tracking, request management, and availability monitoring. Folded from ServiceCatalogDashboard 2026-04-27." },
-  { key: "tool-inventory", label: "Tool Inventory", icon: Wrench, endpoint: "/api/v1/tool-inventory/stats", description: "P4 fold-in — security tool portfolio: coverage, cost, effectiveness, and utilization tracking across all deployed tools. Folded from SecurityToolInventoryDashboard 2026-04-27." },
-  { key: "attack-surface", label: "Attack Surface", icon: Target,  endpoint: "/api/v1/attack-surface/exposures", description: "Wave 2 Phase 3 fold-in — external attack surface exposures: open ports, misconfigs, public endpoints, EASM findings. Folded from AttackSurfaceDashboard 2026-04-27." },
-  { key: "iot-security",   label: "IoT Security",   icon: Cpu,     endpoint: "/api/v1/iot/devices",              description: "Wave 2 Phase 3 fold-in — IoT/OT device inventory, firmware risk, protocol exposure, network segmentation. Folded from IoTSecurityDashboard 2026-04-27." },
-  { key: "app-risk",       label: "App Risk",       icon: Shield,  endpoint: "/api/v1/application-risk/summary", description: "Wave 2 Phase 3 fold-in — application risk scoring: top risky apps, component exposure, reachable vulns. Folded from ApplicationRiskDashboard 2026-04-27." },
-  { key: "zero-trust",     label: "Zero Trust",     icon: Lock,    endpoint: "/api/v1/zero-trust-policy/stats",  description: "Wave 3 Phase 3 fold-in — Zero Trust policy compliance: access events, policy violations, trust scores. Folded from ZeroTrustDashboard 2026-04-27." },
-  { key: "access-anomaly", label: "Access Anomaly", icon: AlertTriangle, endpoint: "/api/v1/access-anomaly/anomalies", description: "Wave 3 Phase 3 fold-in — access anomaly detection: unusual patterns, risk scores, behavioral baselines. Folded from AccessAnomalyDashboard 2026-04-27." },
-  { key: "access-governance", label: "Access Gov", icon: Users,   endpoint: "/api/v1/access-governance/summary", description: "Wave 3 Phase 3 fold-in — access governance: certifications, orphaned accounts, over-privileged identities. Folded from AccessGovernanceDashboard 2026-04-27." },
-  { key: "api-abuse",      label: "API Abuse",      icon: Zap,     endpoint: "/api/v1/api-abuse/detections",     description: "Wave 3 Phase 3 fold-in — API abuse detection: anomalous calls, rate violations, credential stuffing, data exfil. Folded from APIAbuseDashboard 2026-04-27." },
-  { key: "api-inventory",  label: "API Inventory",  icon: Network, endpoint: "/api/v1/api-inventory/apis",       description: "Wave 3 Phase 3 fold-in — full API inventory: discovered endpoints, auth posture, sensitive data exposure, risk scores. Folded from APIInventoryDashboard 2026-04-27." },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -424,43 +402,33 @@ export default function AssetGraph() {
               <UpgradePathsPane />
             ) : t.key === "catalog" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <ServiceCatalogDashboard />
               </Suspense>
             ) : t.key === "tool-inventory" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <SecurityToolInventoryDashboard />
               </Suspense>
             ) : t.key === "attack-surface" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <AttackSurfaceDashboard />
               </Suspense>
             ) : t.key === "iot-security" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <IoTSecurityDashboard />
               </Suspense>
             ) : t.key === "app-risk" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <ApplicationRiskDashboard />
               </Suspense>
             ) : t.key === "zero-trust" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <ZeroTrustDashboard />
               </Suspense>
             ) : t.key === "access-anomaly" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <AccessAnomalyDashboard />
               </Suspense>
             ) : t.key === "access-governance" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <AccessGovernanceDashboard />
               </Suspense>
             ) : t.key === "api-abuse" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <APIAbuseDashboard />
               </Suspense>
             ) : t.key === "api-inventory" ? (
               <Suspense fallback={<div className="space-y-2 p-4">{Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-10 w-full"/>)}</div>}>
-                <APIInventoryDashboard />
               </Suspense>
             ) : (
             <>
@@ -1152,7 +1120,6 @@ function InventoryPane() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UpgradePathsPane — P2 fold-in (S21) on Asset Graph hero. Folds in
-// UpgradePathExplorer + UpgradePathDashboard via lazy imports. Shows components
 // that have safe-upgrade paths, breaking-change risk, and dependency-mapping
 // impact. Real /api/v1/components/upgrade-paths + per-pURL drill via the
 // existing UpgradePathExplorer.
@@ -1201,13 +1168,11 @@ function UpgradePathsPane() {
 
         <TabsContent value="summary">
           <Suspense fallback={<PaneSkeleton />}>
-            <UpgradePathDashboard />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="explorer">
           <Suspense fallback={<PaneSkeleton />}>
-            <UpgradePathExplorer />
           </Suspense>
         </TabsContent>
       </Tabs>

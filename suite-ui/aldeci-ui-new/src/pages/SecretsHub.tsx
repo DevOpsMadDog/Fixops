@@ -31,9 +31,6 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
-const SecretsDetection = lazy(() => import("@/pages/discover/SecretsDetection"));
-const SecretScannerDashboard = lazy(() => import("@/pages/SecretScannerDashboard"));
-const SecretsRotation = lazy(() => import("@/pages/SecretsRotation"));
 
 type TabKey = "detection" | "scanner" | "rotation";
 
@@ -127,17 +124,14 @@ export default function SecretsHub() {
 
         <TabsContent value="detection">
           <Suspense fallback={<PageSkeleton />}>
-            <SecretsDetection />
           </Suspense>
         </TabsContent>
         <TabsContent value="scanner">
           <Suspense fallback={<PageSkeleton />}>
-            <SecretScannerDashboard />
           </Suspense>
         </TabsContent>
         <TabsContent value="rotation">
           <Suspense fallback={<PageSkeleton />}>
-            <SecretsRotation />
           </Suspense>
         </TabsContent>
       </Tabs>
