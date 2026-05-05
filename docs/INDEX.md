@@ -46,6 +46,15 @@ Generated 2026-05-04. 24 files. Organized by category.
 
 ---
 
+## Pre-Merge Plan (2026-05-05)
+
+| File | Summary |
+|------|---------|
+| `NEXT_SESSION_PRIORITIES_2026-05-05.md` | Forward roadmap with 5 ROI-ordered priorities for next agent inheriting the branch |
+| `PR_DESCRIPTION_DRAFT_2026-05-05.md` | Copy-paste-ready PR body for features/intermediate-stage → main merge |
+
+---
+
 ## Session 2026-05-05 — Triage & Cleanup Reports
 
 | File | Summary |
