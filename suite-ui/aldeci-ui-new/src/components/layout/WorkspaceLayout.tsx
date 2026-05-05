@@ -163,6 +163,23 @@ interface NavSection {
 //           Crypto & Trust, Upgrade Paths, Rules Catalog.
 
 const navSections: NavSection[] = [
+  // ── 0. EXECUTIVE ─────────────────────────────────────────────────────────
+  {
+    section: "Executive",
+    icon: Crown,
+    groups: [
+      {
+        label: "CISO View",
+        icon: Crown,
+        items: [
+          { label: "CISO Dashboard", to: "/executive", icon: Crown, badge: "P01" },
+          { label: "Risk Overview", to: "/mission-control/risk", icon: Target },
+          { label: "BRS Executive", to: "/brs-executive", icon: Building2 },
+        ],
+      },
+    ],
+  },
+
   // ── 1. DISCOVER ───────────────────────────────────────────────────────────
   {
     section: "Discover",

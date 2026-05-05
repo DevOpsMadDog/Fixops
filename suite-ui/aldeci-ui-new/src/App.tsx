@@ -25,6 +25,7 @@ const RiskOverview = lazy(() => import("@/pages/mission-control/RiskOverview"));
 const MissionControlComplianceDashboard = lazy(() => import("@/pages/mission-control/ComplianceDashboard"));
 const ThreatIntelDashboard = lazy(() => import("@/pages/mission-control/ThreatIntelDashboard"));
 const RiskRegister = lazy(() => import("@/pages/mission-control/RiskRegister"));
+const CISODashboard = lazy(() => import("@/pages/mission-control/CISODashboard"));
 
 // Findings Explorer (universal — all personas)
 const FindingsExplorer = lazy(() => import("@/pages/findings/FindingsExplorer"));
@@ -442,10 +443,13 @@ export default function App() {
 
           {/* Protected workspace */}
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
+            {/* CISO / Executive landing — P01 board-level view (Multica #3986) */}
+            <Route path="/executive" element={<CISODashboard />} />
+
             {/* Space 1: Mission Control — Phase 3 P0 Wave 3: root → CommandHero, legacy → redirects */}
-            <Route path="/mission-control" element={<Navigate to="/" replace />} />
-            <Route path="/mission-control/ciso" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/mission-control/executive" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/mission-control" element={<Navigate to="/executive" replace />} />
+            <Route path="/mission-control/ciso" element={<Navigate to="/executive" replace />} />
+            <Route path="/mission-control/executive" element={<Navigate to="/executive" replace />} />
             <Route path="/mission-control/sla" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/mission-control/live-feed" element={<LiveFeed />} />
             <Route path="/mission-control/risk" element={<RiskOverview />} />
@@ -1062,13 +1066,13 @@ export default function App() {
             {/* 90-day muscle-memory redirects → Command hero */}
             <Route path="/main" element={<Navigate to="/" replace />} />
             <Route path="/overview" element={<Navigate to="/" replace />} />
-            <Route path="/executive-brief" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/executive-report" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/executive-reporting" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/mission-control" element={<Navigate to="/" replace />} />
-            <Route path="/mission-control/ciso" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/mission-control/executive" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-brief" element={<Navigate to="/executive" replace />} />
+            <Route path="/executive-briefing" element={<Navigate to="/executive" replace />} />
+            <Route path="/executive-report" element={<Navigate to="/executive" replace />} />
+            <Route path="/executive-reporting" element={<Navigate to="/executive" replace />} />
+            <Route path="/mission-control" element={<Navigate to="/executive" replace />} />
+            <Route path="/mission-control/ciso" element={<Navigate to="/executive" replace />} />
+            <Route path="/mission-control/executive" element={<Navigate to="/executive" replace />} />
             <Route path="/mission-control/soc" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/mission-control/soc-t1" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
@@ -1123,11 +1127,11 @@ export default function App() {
             <Route path="/incidents/response" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
 
-            {/* P1 Wave 3 — Executive Brief redirects → Command hero executive tab (S2) */}
-            <Route path="/ciso" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/ciso-report" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/bu-risk-heatmap" element={<Navigate to="/?view=executive" replace />} />
-            <Route path="/executive-risk-report" element={<Navigate to="/?view=executive" replace />} />
+            {/* P1 Wave 3 — Executive Brief redirects → CISO Dashboard (Multica #3986) */}
+            <Route path="/ciso" element={<Navigate to="/executive" replace />} />
+            <Route path="/ciso-report" element={<Navigate to="/executive" replace />} />
+            <Route path="/bu-risk-heatmap" element={<Navigate to="/executive" replace />} />
+            <Route path="/executive-risk-report" element={<Navigate to="/executive" replace />} />
 
             {/* P1 Wave 3 — Issue Detail (S6) — drill-in pattern: /issues/:id → hero with selection */}
             <Route path="/issues/:findingId" element={<Navigate to="/issues" replace />} />
