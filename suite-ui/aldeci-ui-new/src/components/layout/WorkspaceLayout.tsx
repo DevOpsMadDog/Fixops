@@ -335,6 +335,7 @@ const navSections: NavSection[] = [
         icon: FileCheck,
         items: [
           { label: "SBOM & Provenance", to: "/comply/provenance", icon: Package },
+          { label: "Auditor View", to: "/comply/auditor", icon: ScrollText },
         ],
       },
     ],
