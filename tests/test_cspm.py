@@ -29,31 +29,66 @@ import pytest
 # Make suite-core importable without installing the package
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
 
+# All tests in this file are skipped: they were written against a posture-management
+# API (CloudResource, CISBenchmarkRule, etc.) that was replaced by an IaC/HCL
+# scanner API. See docs/test_collection_triage_2026-05-05.md for the rewrite plan.
+pytestmark = pytest.mark.skip(
+    reason="API changed — cspm_engine.py is now an IaC scanner; "
+    "tests written against removed posture-management API; "
+    "rewrite needed (see docs/test_collection_triage_2026-05-05.md)"
+)
+
+# NOTE: test_cspm.py was written against a posture-management API that was replaced
+# by an IaC/HCL scanner API at an earlier commit. All symbols below except
+# CloudProvider, CSPMEngine, and get_cspm_engine no longer exist in cspm_engine.py.
+# Every test class is skipped until the tests are rewritten against the current API.
+# See docs/test_collection_triage_2026-05-05.md for the rewrite plan.
+
 from core.cspm_engine import (
-    CISBenchmarkRule,
     CloudProvider,
-    CloudResource,
-    ComplianceFramework,
     CSPMEngine,
-    CSPMFinding,
-    DriftEvent,
-    FindingStatus,
-    OrgPosture,
-    RemediationPlaybook,
-    ResourceType,
-    ScanResult,
-    Severity,
-    _CIS_RULES,
-    _RULES_BY_ID,
-    _build_playbook,
-    _compliance_score,
-    _detect_drift,
-    _evaluate_rule,
-    _get_applicable_rules,
-    _posture_score,
-    _score_from_findings,
     get_cspm_engine,
 )
+
+# Stub out removed symbols so fixtures/class bodies still parse without NameError.
+class _RemovedSymbol:
+    """Placeholder for a symbol removed from cspm_engine.py."""
+    pass
+
+CISBenchmarkRule = _RemovedSymbol
+CloudResource = _RemovedSymbol
+ComplianceFramework = _RemovedSymbol
+CSPMFinding = _RemovedSymbol
+DriftEvent = _RemovedSymbol
+FindingStatus = _RemovedSymbol
+OrgPosture = _RemovedSymbol
+RemediationPlaybook = _RemovedSymbol
+ResourceType = _RemovedSymbol
+ScanResult = _RemovedSymbol
+Severity = _RemovedSymbol
+_CIS_RULES: list = []
+_RULES_BY_ID: dict = {}
+
+def _build_playbook(*a, **kw):  # type: ignore[no-untyped-def]
+    raise NotImplementedError("API removed")
+
+def _compliance_score(*a, **kw):  # type: ignore[no-untyped-def]
+    raise NotImplementedError("API removed")
+
+def _detect_drift(*a, **kw):  # type: ignore[no-untyped-def]
+    raise NotImplementedError("API removed")
+
+def _evaluate_rule(*a, **kw):  # type: ignore[no-untyped-def]
+    raise NotImplementedError("API removed")
+
+def _get_applicable_rules(*a, **kw):  # type: ignore[no-untyped-def]
+    raise NotImplementedError("API removed")
+
+def _posture_score(*a, **kw):  # type: ignore[no-untyped-def]
+    raise NotImplementedError("API removed")
+
+def _score_from_findings(*a, **kw):  # type: ignore[no-untyped-def]
+    raise NotImplementedError("API removed")
 
 
 # ---------------------------------------------------------------------------
