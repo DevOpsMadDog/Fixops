@@ -1230,3 +1230,146 @@ export const dslRulesApi = {
     authored_by?: string;
   }) => api.post("/api/v1/rules/dsl/publish", payload),
 };
+
+// ---------------------------------------------------------------------------
+// Posture Score — /api/v1/posture-score
+// ---------------------------------------------------------------------------
+
+export interface PostureStats {
+  current_score: number;
+  grade: string;
+  trend_30d: number | null;
+  days_at_risk: number | null;
+  computed_at: string | null;
+}
+
+export interface PostureComponent {
+  name: string;
+  score: number;
+  weight: number | null;
+  source: string;
+}
+
+export const postureScoreApi = {
+  /** GET /api/v1/posture-score/stats */
+  stats: (org_id = "default") =>
+    api.get<PostureStats>("/api/v1/posture-score/stats", { params: { org_id } }),
+  /** GET /api/v1/posture-score/components */
+  components: (org_id = "default") =>
+    api.get<PostureComponent[]>("/api/v1/posture-score/components", { params: { org_id } }),
+  /** GET /api/v1/posture-score/history */
+  history: (org_id = "default", days = 30) =>
+    api.get<Record<string, unknown>[]>("/api/v1/posture-score/history", { params: { org_id, days } }),
+  /** POST /api/v1/posture-score/compute */
+  compute: (org_id = "default", save = true) =>
+    api.post("/api/v1/posture-score/compute", { org_id, save }),
+};
+
+// ---------------------------------------------------------------------------
+// Security Roadmap — /api/v1/security-roadmap
+// ---------------------------------------------------------------------------
+
+export interface RoadmapInitiative {
+  id?: string;
+  title: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+  status: string;
+  owner?: string;
+  budget_usd?: number;
+  start_date?: string;
+  target_date?: string;
+  risk_reduction_score?: number;
+}
+
+export interface RoadmapGap {
+  id?: string;
+  title: string;
+  description?: string;
+  gap_type?: string;
+  severity?: string;
+  linked_initiative_id?: string;
+}
+
+export interface RoadmapStats {
+  total_initiatives: number;
+  in_progress: number;
+  completed: number;
+  open_gaps: number;
+}
+
+export const securityRoadmapApi = {
+  /** GET /api/v1/security-roadmap/initiatives */
+  initiatives: (params: { org_id: string; status?: string; category?: string }) =>
+    api.get<RoadmapInitiative[]>("/api/v1/security-roadmap/initiatives", { params }),
+  /** GET /api/v1/security-roadmap/gaps */
+  gaps: (params: { org_id: string; severity?: string }) =>
+    api.get<RoadmapGap[]>("/api/v1/security-roadmap/gaps", { params }),
+  /** GET /api/v1/security-roadmap/stats */
+  stats: (org_id: string) =>
+    api.get<RoadmapStats>("/api/v1/security-roadmap/stats", { params: { org_id } }),
+};
+
+// ---------------------------------------------------------------------------
+// GRC — /api/v1/grc
+// ---------------------------------------------------------------------------
+
+export interface GrcStats {
+  total_frameworks: number;
+  total_controls: number;
+  implemented_controls: number;
+  open_risks: number;
+}
+
+export interface GrcFramework {
+  id?: string;
+  name: string;
+  version?: string;
+  total_controls?: number;
+  implemented_controls?: number;
+  compliance_score?: number;
+  last_assessed?: string;
+}
+
+export interface GrcControl {
+  id?: string;
+  framework_id?: string;
+  control_ref?: string;
+  title?: string;
+  category?: string;
+  status: string;
+  evidence_count?: number;
+  owner?: string;
+  due_date?: string;
+}
+
+export interface GrcRisk {
+  id?: string;
+  title: string;
+  category?: string;
+  likelihood?: number;
+  impact?: number;
+  treatment?: string;
+  owner?: string;
+  status?: string;
+  notes?: string;
+}
+
+export const grcApi = {
+  /** GET /api/v1/grc/stats */
+  stats: (org_id = "default") =>
+    api.get<GrcStats>("/api/v1/grc/stats", { params: { org_id } }),
+  /** GET /api/v1/grc/frameworks */
+  frameworks: (org_id = "default") =>
+    api.get<GrcFramework[]>("/api/v1/grc/frameworks", { params: { org_id } }),
+  /** GET /api/v1/grc/controls */
+  controls: (params?: { org_id?: string; framework_id?: string; status?: string }) =>
+    api.get<GrcControl[]>("/api/v1/grc/controls", { params: { org_id: "default", ...params } }),
+  /** GET /api/v1/grc/risks */
+  risks: (params?: { org_id?: string; status?: string; category?: string }) =>
+    api.get<GrcRisk[]>("/api/v1/grc/risks", { params: { org_id: "default", ...params } }),
+  /** GET /api/v1/grc/assessments */
+  assessments: (org_id = "default") =>
+    api.get<Record<string, unknown>[]>("/api/v1/grc/assessments", { params: { org_id } }),
+};

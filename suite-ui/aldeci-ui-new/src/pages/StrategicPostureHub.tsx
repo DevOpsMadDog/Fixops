@@ -17,7 +17,7 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.23
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield, Map, ClipboardCheck } from "lucide-react";
@@ -25,9 +25,9 @@ import { Shield, Map, ClipboardCheck } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { PostureScorePanel } from "@/components/strategic-posture/PostureScorePanel";
+import { SecurityRoadmapPanel } from "@/components/strategic-posture/SecurityRoadmapPanel";
+import { GRCAssessmentPanel } from "@/components/strategic-posture/GRCAssessmentPanel";
 
 type TabKey = "posture" | "roadmap" | "grc";
 
@@ -121,14 +121,17 @@ export default function StrategicPostureHub() {
 
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
+            <PostureScorePanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="roadmap">
           <Suspense fallback={<PageSkeleton />}>
+            <SecurityRoadmapPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="grc">
           <Suspense fallback={<PageSkeleton />}>
+            <GRCAssessmentPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
