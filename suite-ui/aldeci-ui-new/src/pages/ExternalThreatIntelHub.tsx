@@ -26,8 +26,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Lazy-imported panel components — each wired to real backend endpoints.
+const ZeroDayPanel = lazy(() => import("@/components/threat-intel/ZeroDayPanel"));
+const DarkWebPanel = lazy(() => import("@/components/threat-intel/DarkWebPanel"));
+const ThreatScoresPanel = lazy(() => import("@/components/threat-intel/ThreatScoresPanel"));
 
 type TabKey = "zeroday" | "darkweb" | "scores";
 
@@ -121,14 +123,17 @@ export default function ExternalThreatIntelHub() {
 
         <TabsContent value="zeroday">
           <Suspense fallback={<PageSkeleton />}>
+            <ZeroDayPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="darkweb">
           <Suspense fallback={<PageSkeleton />}>
+            <DarkWebPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="scores">
           <Suspense fallback={<PageSkeleton />}>
+            <ThreatScoresPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
