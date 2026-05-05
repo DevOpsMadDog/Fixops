@@ -93,3 +93,21 @@ def list_results_endpoint(
     except Exception as exc:
         logger.exception("Failed to list URLscan results")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/health")
+def urlscan_health() -> Dict[str, Any]:
+    """Health check for the URLscan.io integration service."""
+    try:
+        from core.persistent_store import get_persistent_store
+        store = get_persistent_store("urlscan_results")
+        return {"status": "healthy", "service": "aldeci-urlscan", "version": "1.0.0",
+                "results_cached": len(store)}
+    except Exception as exc:
+        return {"status": "degraded", "service": "aldeci-urlscan", "error": str(exc)}
+
+
+@router.get("/status")
+def urlscan_status() -> Dict[str, Any]:
+    """Status alias — delegates to /health."""
+    return urlscan_health()

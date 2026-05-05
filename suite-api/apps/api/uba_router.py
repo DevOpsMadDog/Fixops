@@ -228,3 +228,27 @@ def get_uba_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
     except Exception as exc:
         logger.exception("get_uba_stats error")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/health", summary="UBA service health check")
+def uba_health() -> Dict[str, Any]:
+    """Health check for the User Behavior Analytics service."""
+    try:
+        engine = _get_engine()
+        stats = engine.get_uba_stats("default")
+        return {
+            "status": "healthy",
+            "service": "aldeci-uba",
+            "version": "1.0.0",
+            "users_tracked": stats.get("total_users", 0),
+            "alerts_open": stats.get("open_alerts", 0),
+        }
+    except Exception as exc:
+        logger.exception("uba_health error")
+        return {"status": "degraded", "service": "aldeci-uba", "error": str(exc)}
+
+
+@router.get("/status", summary="UBA service status alias")
+def uba_status() -> Dict[str, Any]:
+    """Status alias — delegates to /health."""
+    return uba_health()

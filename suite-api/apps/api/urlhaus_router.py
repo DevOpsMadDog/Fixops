@@ -125,3 +125,21 @@ def get_stats() -> Dict[str, Any]:
     except Exception as exc:
         logger.exception("Failed to get URLhaus stats")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/health")
+def urlhaus_health() -> Dict[str, Any]:
+    """Health check for the URLhaus threat feed service."""
+    try:
+        _r, _l, _c, get_store_stats = _get_importer()
+        stats = get_store_stats()
+        return {"status": "healthy", "service": "aldeci-urlhaus", "version": "1.0.0",
+                "urls_tracked": stats.get("total", 0)}
+    except Exception as exc:
+        return {"status": "degraded", "service": "aldeci-urlhaus", "error": str(exc)}
+
+
+@router.get("/status")
+def urlhaus_status() -> Dict[str, Any]:
+    """Status alias — delegates to /health."""
+    return urlhaus_health()

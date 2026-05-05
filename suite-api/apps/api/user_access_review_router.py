@@ -202,3 +202,20 @@ def get_review_summary(org_id: str = Query(default="default")):
 def get_root(org_id: str = Query(default="default")):
     """Root endpoint — returns reviews list for dashboard health-checks."""
     return _get_engine().list_reviews(org_id=org_id)
+
+
+@router.get("/health")
+def access_review_health() -> Dict[str, Any]:
+    """Health check for the user access review service."""
+    try:
+        summary = _get_engine().get_review_summary(org_id="default")
+        return {"status": "healthy", "service": "aldeci-access-reviews", "version": "1.0.0",
+                "total_reviews": summary.get("total", 0)}
+    except Exception as exc:
+        return {"status": "degraded", "service": "aldeci-access-reviews", "error": str(exc)}
+
+
+@router.get("/status")
+def access_review_status() -> Dict[str, Any]:
+    """Status alias — delegates to /health."""
+    return access_review_health()

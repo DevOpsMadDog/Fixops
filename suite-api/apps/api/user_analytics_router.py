@@ -167,3 +167,20 @@ async def cleanup_old_activities(body: CleanupRequest) -> Dict[str, Any]:
     """Purge activity records older than the specified number of days."""
     deleted = _get_engine().cleanup_old_activities(days=body.days)
     return {"deleted": deleted, "older_than_days": body.days}
+
+
+@router.get("/health", response_model=Dict[str, Any])
+async def user_analytics_health() -> Dict[str, Any]:
+    """Health check for the user analytics service."""
+    try:
+        dashboard = _get_engine().get_usage_dashboard(org_id="default")
+        return {"status": "healthy", "service": "aldeci-user-analytics", "version": "1.0.0",
+                "metrics_tracked": len(dashboard)}
+    except Exception as exc:
+        return {"status": "degraded", "service": "aldeci-user-analytics", "error": str(exc)}
+
+
+@router.get("/status", response_model=Dict[str, Any])
+async def user_analytics_status() -> Dict[str, Any]:
+    """Status alias — delegates to /health."""
+    return await user_analytics_health()
