@@ -2678,9 +2678,23 @@ ALL_GAP_ROUTERS = [
 logs_gap = APIRouter(prefix="/api/v1/logs", tags=["logs-gap"], dependencies=_AUTH_DEP)
 
 @logs_gap.get("/stats")
-async def logs_stats():
-    """Log management statistics — safe fallback endpoint."""
-    return {"total": 0, "by_level": {"info": 0, "warning": 0, "error": 0, "debug": 0}, "sources": 0, "retention_policies": 0, "status": "ok"}
+async def logs_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Log management statistics — live query from LogManagementEngine."""
+    try:
+        from core.log_management_engine import LogManagementEngine
+        engine = LogManagementEngine()
+        data = engine.get_log_stats(org_id)
+        return {
+            "total": data.get("total_entries", 0),
+            "by_level": data.get("entries_by_level", {}),
+            "sources": data.get("total_sources", 0),
+            "retention_policies": data.get("retention_policies_count", 0),
+            "by_log_type": data.get("by_log_type", {}),
+            "status": "ok",
+        }
+    except Exception as exc:
+        _logger.warning("logs_stats: engine unavailable: %s", exc)
+        return {"total": 0, "by_level": {}, "sources": 0, "retention_policies": 0, "status": "degraded"}
 
 ALL_GAP_ROUTERS.append(logs_gap)
 
