@@ -6675,6 +6675,19 @@ def create_app() -> FastAPI:
     except Exception as _e:  # noqa: BLE001
         _logger.warning("threat_brief_router unavailable: %s", _e)
 
+    # Threat Hunting — hunt sessions, queries, IOC correlation (/api/v1/hunting)
+    # Also mounts alias at /api/v1/threat-hunting for UI consumers (ThreatHuntingDashboard)
+    try:
+        from apps.api.threat_hunting_router import (
+            router as _th_router,
+            threat_hunting_alias as _th_alias,
+        )
+        app.include_router(_th_router)
+        app.include_router(_th_alias)
+        _logger.info("Mounted Threat Hunting router at /api/v1/hunting + alias /api/v1/threat-hunting")
+    except Exception as _e:  # noqa: BLE001
+        _logger.warning("threat_hunting_router unavailable: %s", _e)
+
     # Zero Day Intelligence — CVE registry, patch status, mitigations, stats
     try:
         from apps.api.zero_day_intelligence_router import router as zero_day_intelligence_router

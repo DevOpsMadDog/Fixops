@@ -400,3 +400,35 @@ async def delete_hunt(hunt_id: str) -> None:
     deleted = engine.delete_hunt(hunt_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Hunt {hunt_id} not found")
+
+
+# ---------------------------------------------------------------------------
+# Alias router: /api/v1/threat-hunting  (UI calls this prefix)
+# The canonical router above uses /api/v1/hunting; this alias exposes the
+# two endpoints consumed by ThreatHuntingDashboard.tsx without duplicating
+# any business logic.
+# ---------------------------------------------------------------------------
+
+threat_hunting_alias = APIRouter(
+    prefix="/api/v1/threat-hunting",
+    tags=["threat-hunting"],
+    dependencies=[require_role(*_ANALYST_ROLES)],
+)
+
+
+@threat_hunting_alias.get("/stats")
+async def alias_hunt_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Alias: GET /api/v1/threat-hunting/stats — delegates to ThreatHuntingEngine."""
+    engine = _get_engine()
+    return engine.get_hunt_stats(org_id=org_id)
+
+
+@threat_hunting_alias.get("/hunts")
+async def alias_list_hunts(
+    limit: int = Query(20, ge=1, le=200),
+    org_id: str = Depends(get_org_id),
+) -> List[Dict[str, Any]]:
+    """Alias: GET /api/v1/threat-hunting/hunts — returns saved hunt definitions."""
+    engine = _get_hunt_engine()
+    hunts = engine.list_hunts(org_id=org_id)
+    return [h if isinstance(h, dict) else h.model_dump() for h in hunts[:limit]]
