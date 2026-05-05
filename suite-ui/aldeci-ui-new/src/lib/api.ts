@@ -1505,3 +1505,52 @@ export const threatModelingPipelineApi = {
   unmitigated: (orgId = "default") =>
     api.get("/api/v1/threat-modeling-pipeline/unmitigated", { params: { org_id: orgId } }),
 };
+
+// ── Identity Analytics — /api/v1/identity-analytics ──
+export const identityAnalyticsApi = {
+  profiles: (orgId = "default", limit = 50) =>
+    api.get("/api/v1/identity-analytics/profiles", { params: { org_id: orgId, limit } }),
+  getProfile: (userId: string, orgId = "default") =>
+    api.get(`/api/v1/identity-analytics/profiles/${encodeURIComponent(userId)}`, { params: { org_id: orgId } }),
+};
+
+// ── Digital Identity — /api/v1/digital-identity ──
+export const digitalIdentityApi = {
+  identities: (orgId = "default", limit = 50, offset = 0) =>
+    api.get("/api/v1/digital-identity/identities", { params: { org_id: orgId, limit, offset } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/digital-identity/stats", { params: { org_id: orgId } }),
+  risks: (orgId = "default", limit = 50) =>
+    api.get("/api/v1/digital-identity/risks", { params: { org_id: orgId, limit } }),
+};
+
+// ── IP Reputation — /api/v1/ip-reputation ──
+export const ipReputationApi = {
+  blocklist: (orgId = "default", limit = 100, offset = 0) =>
+    api.get("/api/v1/ip-reputation/blocklist", { params: { org_id: orgId, limit, offset } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/ip-reputation/stats", { params: { org_id: orgId } }),
+  bulkCheck: (ips: string[], orgId = "default") =>
+    api.post("/api/v1/ip-reputation/bulk-check", { ips, org_id: orgId }),
+};
+
+// ── Threat Geolocation — /api/v1/threat-geolocation ──
+export const threatGeolocationApi = {
+  heatmap: (orgId = "default") =>
+    api.get("/api/v1/threat-geolocation/heatmap", { params: { org_id: orgId } }),
+  events: (orgId = "default", limit = 50) =>
+    api.get("/api/v1/threat-geolocation/events", { params: { org_id: orgId, limit } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/threat-geolocation/stats", { params: { org_id: orgId } }),
+  blockRules: (orgId = "default") =>
+    api.get("/api/v1/threat-geolocation/block-rules", { params: { org_id: orgId } }),
+};
+
+// ── Connector Mapping Dry-Run — /api/v1/connectors/mapping/dry-run ──
+export const connectorMappingApi = {
+  dryRun: (payload: {
+    connector_id: string;
+    sample_payload: Record<string, unknown>;
+    mappings: Array<{ source_field: string; target_field: string }>;
+  }) => api.post("/api/v1/connectors/mapping/dry-run", payload),
+};

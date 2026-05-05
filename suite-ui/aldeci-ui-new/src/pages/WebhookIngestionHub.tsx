@@ -17,10 +17,10 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.27
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, RotateCcw, FlaskConical, AlertCircle, RefreshCw } from "lucide-react";
+import { BookOpen, RotateCcw, FlaskConical, AlertCircle, RefreshCw, Play, Plus, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -32,7 +32,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { WebhookEventsTable } from "@/components/webhooks/WebhookEventsTable";
-import { webhookDlqApi } from "@/lib/api";
+import { webhookDlqApi, connectorMappingApi } from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -274,6 +276,173 @@ function WebhookRetryQueuePanel() {
   );
 }
 
+// ── Connector Mapping Dry-Run Panel ─────────────────────────────────────────
+
+interface MappingRow {
+  source_field: string;
+  target_field: string;
+}
+
+interface DryRunResult {
+  connector_id?: string;
+  mapped_payload?: Record<string, unknown>;
+  applied?: number;
+  errors?: string[];
+}
+
+const DEFAULT_SAMPLE = JSON.stringify({ event: "push", repo: "acme/api", actor: "alice" }, null, 2);
+
+function IngestionDryRunPanel() {
+  const [connectorId, setConnectorId] = useState("my-connector");
+  const [sampleJson, setSampleJson] = useState(DEFAULT_SAMPLE);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [mappings, setMappings] = useState<MappingRow[]>([
+    { source_field: "event", target_field: "event_type" },
+    { source_field: "repo", target_field: "repository" },
+  ]);
+  const [result, setResult] = useState<DryRunResult | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (payload: Parameters<typeof connectorMappingApi.dryRun>[0]) =>
+      connectorMappingApi.dryRun(payload),
+    onSuccess: (res) => setResult(res.data as DryRunResult),
+  });
+
+  const addMapping = useCallback(() => setMappings(m => [...m, { source_field: "", target_field: "" }]), []);
+  const removeMapping = useCallback((idx: number) => setMappings(m => m.filter((_, i) => i !== idx)), []);
+  const updateMapping = useCallback((idx: number, field: keyof MappingRow, value: string) => {
+    setMappings(m => m.map((row, i) => i === idx ? { ...row, [field]: value } : row));
+  }, []);
+
+  const handleRun = () => {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(sampleJson) as Record<string, unknown>;
+      setJsonError(null);
+    } catch (e) {
+      setJsonError("Invalid JSON in sample payload");
+      return;
+    }
+    const validMappings = mappings.filter(m => m.source_field && m.target_field);
+    mutation.mutate({ connector_id: connectorId, sample_payload: parsed, mappings: validMappings });
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FlaskConical className="h-4 w-4 text-indigo-400" />
+            Connector Mapping Dry-Run
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <Label className="text-xs">Connector ID</Label>
+            <Input
+              className="h-7 text-xs font-mono"
+              value={connectorId}
+              onChange={e => setConnectorId(e.target.value)}
+              placeholder="my-connector"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Sample Payload (JSON)</Label>
+            <textarea
+              className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-xs font-mono resize-y min-h-[100px] focus:outline-none focus:ring-1 focus:ring-ring"
+              value={sampleJson}
+              onChange={e => setSampleJson(e.target.value)}
+              spellCheck={false}
+            />
+            {jsonError && <p className="text-xs text-destructive">{jsonError}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Field Mappings</Label>
+              <Button size="sm" variant="outline" className="h-6 px-2 text-xs gap-1" onClick={addMapping}>
+                <Plus className="h-3 w-3" /> Add
+              </Button>
+            </div>
+            {mappings.map((row, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Input
+                  className="h-7 text-xs font-mono flex-1"
+                  value={row.source_field}
+                  onChange={e => updateMapping(idx, "source_field", e.target.value)}
+                  placeholder="source.field"
+                />
+                <span className="text-xs text-muted-foreground shrink-0">→</span>
+                <Input
+                  className="h-7 text-xs font-mono flex-1"
+                  value={row.target_field}
+                  onChange={e => updateMapping(idx, "target_field", e.target.value)}
+                  placeholder="target_field"
+                />
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeMapping(idx)}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <Button
+            size="sm"
+            className="gap-1.5"
+            disabled={mutation.isPending || !connectorId}
+            onClick={handleRun}
+          >
+            <Play className="h-3.5 w-3.5" />
+            {mutation.isPending ? "Running…" : "Run Dry-Run"}
+          </Button>
+
+          {mutation.isError && (
+            <div className="flex items-center gap-2 text-destructive text-xs">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {mutation.error instanceof Error ? mutation.error.message : "Dry-run failed"}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {result && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>Dry-Run Result</span>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{result.applied ?? 0} applied</Badge>
+                {(result.errors?.length ?? 0) > 0 && (
+                  <Badge className="bg-red-600 text-white">{result.errors!.length} errors</Badge>
+                )}
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Mapped Payload</p>
+              <pre className="rounded-md bg-muted/40 px-3 py-2 text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                {JSON.stringify(result.mapped_payload ?? {}, null, 2)}
+              </pre>
+            </div>
+            {(result.errors?.length ?? 0) > 0 && (
+              <div>
+                <p className="text-xs text-destructive mb-1">Mapping Errors</p>
+                <ul className="space-y-1">
+                  {result.errors!.map((e, i) => (
+                    <li key={i} className="text-xs text-destructive font-mono">{e}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 function isTabKey(v: string | null): v is TabKey {
   return !!v && VALID_TABS.has(v as TabKey);
 }
@@ -343,6 +512,7 @@ export default function WebhookIngestionHub() {
         </TabsContent>
         <TabsContent value="dry-run">
           <Suspense fallback={<PageSkeleton />}>
+            <IngestionDryRunPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
