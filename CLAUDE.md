@@ -240,7 +240,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ## CURRENT STATE (rolling — updated each session)
 
-_2026-05-05 session: 20 sweeps, 9 real bugs caught + closed, 0 shipped, 0 vulns Python+npm, production build live, CI gates wired._
+_2026-05-05 session: 25 sweeps, 9 real bugs caught + closed, 0 shipped, 0 vulns Python+npm, production build live, CI gates wired._
 
 | Layer | Count | How to check |
 |-------|-------|--------------|
@@ -273,6 +273,8 @@ DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Ma
 | `docs/security_review_2026-05-02.md` | 7-commit STRIDE/DREAD review — SCIF deployable |
 | `docs/beast_mode_sweep_2026-05-02.md` | 905-pass regression evidence |
 | `docs/dependency_audit_2026-05-02.md` | 3 Python CVEs closed; Node 0/0 |
+| `docs/PR_READINESS_2026-05-05.md` | PR readiness checklist — gates before merge to main |
+| `docs/dependabot_triage_2026-05-05.md` | Dependabot vuln triage — sweep 25 baseline |
 | `docs/SESSION_HISTORY.md` | Full per-wave DONE history |
 | `raw/competitive/gap-matrix-2026-04-26.md` | 71-row competitive gap matrix (re-scored) |
 
