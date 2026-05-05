@@ -1,5 +1,18 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 22:25] backend-hardener — PERF_HUNT_8
+- **What**: Pre-compiled 3 hot regex groups in `dast_engine.py`: `SQL_ERROR_PATTERNS` (9 patterns) → `_SQL_ERROR_RE` combined, 5 stack-trace patterns → `_STACK_TRACE_RE`, server version → `_SERVER_VERSION_RE`. Eliminates per-call re.compile inside scan loops. Measured: SQLi no-match 3.2x faster, stack-trace no-match 11.2x faster (100K iterations). 26 regression+perf tests all PASS. Beast Mode 753/753.
+- **Files touched**: `suite-core/core/dast_engine.py`, `tests/test_perf_dast_engine_regex.py` (new)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (platform reliability / performance), V6 (scanner engine hardening)
+
+### [2026-05-05 22:15] backend-hardener — EMPTY_ENDPOINT_WIRE
+- **What**: Wired `GET /api/v1/logs/stats` (gap_router.py `logs_gap`) from hardcoded zero-dict stub to live `LogManagementEngine.get_log_stats(org_id)` call. Adds `org_id` query param; graceful `degraded` fallback if engine unavailable. 4 new tests (4/4 PASS). phase4 regression 23/23 clean.
+- **Files touched**: `suite-api/apps/api/gap_router.py`, `tests/test_empty_endpoint_16_logs_stats.py` (new)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (real data, no mocks), V3 (platform reliability)
+- **SHA**: dc4bb1bf
+
 ### [2026-05-05 21:00] technical-writer — HANDOFF_DOC
 - **What**: Wrote `docs/HANDOFF_2026-05-04-night.md` — 7-bullet session summary covering 100% hub coverage, 13+ stub endpoints wired, 2 perf wins (15.6x rank_findings, license_scanner batch), 3 stale gap verifications, dependabot triage, shadow-route bug fix, 4 regression sweeps clean. Includes PR readiness table, quality notes (commit msg accuracy pattern, UI-consumer-first pattern), and 4 open threads for next session.
 - **Files touched**: `docs/HANDOFF_2026-05-04-night.md` (new, 72 lines)

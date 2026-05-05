@@ -542,6 +542,20 @@ SQL_ERROR_PATTERNS = [
     r"SQLSTATE",
     r"syntax error at or near",
 ]
+# Pre-compiled for hot-loop performance: avoids re-compiling 9 patterns per URL/payload pair
+_SQL_ERROR_RE = re.compile("|".join(SQL_ERROR_PATTERNS), re.IGNORECASE)
+
+# Pre-compiled stack-trace patterns used in _test_api_error_handling
+_STACK_TRACE_RE = re.compile(
+    r"Traceback \(most recent call"
+    r"|at .+\(.+\.java:\d+\)"
+    r"|at .+\(.+\.js:\d+:\d+\)"
+    r"|Fatal error:.+in .+\.php"
+    r"|Microsoft\.AspNetCore",
+)
+
+# Pre-compiled server version disclosure pattern
+_SERVER_VERSION_RE = re.compile(r"[\d.]+")
 
 SECURITY_HEADERS = [
     ("Strict-Transport-Security", "high", "Missing HSTS header"),
@@ -947,28 +961,19 @@ class DASTEngine:
 
             if resp.status_code >= 500:
                 # Check for stack traces in error response
-                error_patterns = [
-                    r"Traceback \(most recent call",
-                    r"at .+\(.+\.java:\d+\)",
-                    r"at .+\(.+\.js:\d+:\d+\)",
-                    r"Fatal error:.+in .+\.php",
-                    r"Microsoft\.AspNetCore",
-                ]
-                for pattern in error_patterns:
-                    if re.search(pattern, resp.text):
-                        findings.append(DastFinding(
-                            finding_id=f"DAST-{uuid.uuid4().hex[:8]}",
-                            title=f"Stack Trace Exposed on {endpoint.method} {endpoint.path}",
-                            severity=DastSeverity.MEDIUM,
-                            category=DastCategory.INFO_DISCLOSURE,
-                            url=url,
-                            method=endpoint.method,
-                            evidence=resp.text[:300],
-                            cwe_id="CWE-209",
-                            description="Server error response contains stack trace information",
-                            recommendation="Configure custom error pages, disable debug mode in production",
-                        ))
-                        break
+                if _STACK_TRACE_RE.search(resp.text):
+                    findings.append(DastFinding(
+                        finding_id=f"DAST-{uuid.uuid4().hex[:8]}",
+                        title=f"Stack Trace Exposed on {endpoint.method} {endpoint.path}",
+                        severity=DastSeverity.MEDIUM,
+                        category=DastCategory.INFO_DISCLOSURE,
+                        url=url,
+                        method=endpoint.method,
+                        evidence=resp.text[:300],
+                        cwe_id="CWE-209",
+                        description="Server error response contains stack trace information",
+                        recommendation="Configure custom error pages, disable debug mode in production",
+                    ))
         except (httpx.TimeoutException, OSError, ValueError, RuntimeError):
             pass
         return findings
@@ -1035,7 +1040,7 @@ class DASTEngine:
                     )
             # Check for server version disclosure
             server = resp.headers.get("server", "")
-            if re.search(r"[\d.]+", server):
+            if _SERVER_VERSION_RE.search(server):
                 findings.append(
                     DastFinding(
                         finding_id=f"DAST-{uuid.uuid4().hex[:8]}",
@@ -1066,24 +1071,23 @@ class DASTEngine:
             test_url = f"{base}?{qs}&test={payload}"
             try:
                 resp = await client.get(test_url)
-                for pattern in SQL_ERROR_PATTERNS:
-                    if re.search(pattern, resp.text, re.IGNORECASE):
-                        findings.append(
-                            DastFinding(
-                                finding_id=f"DAST-{uuid.uuid4().hex[:8]}",
-                                title="SQL Injection",
-                                severity=DastSeverity.CRITICAL,
-                                category=DastCategory.INJECTION,
-                                url=url,
-                                parameter="test",
-                                payload=payload,
-                                evidence=resp.text[:200],
-                                cwe_id="CWE-89",
-                                description="SQL error in response indicates injection vulnerability",
-                                recommendation="Use parameterized queries",
-                            )
+                if _SQL_ERROR_RE.search(resp.text):
+                    findings.append(
+                        DastFinding(
+                            finding_id=f"DAST-{uuid.uuid4().hex[:8]}",
+                            title="SQL Injection",
+                            severity=DastSeverity.CRITICAL,
+                            category=DastCategory.INJECTION,
+                            url=url,
+                            parameter="test",
+                            payload=payload,
+                            evidence=resp.text[:200],
+                            cwe_id="CWE-89",
+                            description="SQL error in response indicates injection vulnerability",
+                            recommendation="Use parameterized queries",
                         )
-                        return findings
+                    )
+                    return findings
             except httpx.TimeoutException:
                 logger.debug("SQLi test timeout for %s", test_url)
             except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
