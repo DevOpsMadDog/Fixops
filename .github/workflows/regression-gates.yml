@@ -62,3 +62,25 @@ jobs:
             --override-ini="addopts=" \
             --override-ini="log_cli=false" \
             || echo "perf-lockdown file may not exist yet -- skipping"
+
+  ui-build-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: suite-ui/aldeci-ui-new/package-lock.json
+      - name: Install
+        working-directory: suite-ui/aldeci-ui-new
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        working-directory: suite-ui/aldeci-ui-new
+        run: npm run build
+      - name: Verify dist exists
+        working-directory: suite-ui/aldeci-ui-new
+        run: |
+          test -d dist || (echo "BUILD FAILED — no dist directory" && exit 1)
+          ls -la dist/ | head -10
