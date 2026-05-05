@@ -19,6 +19,7 @@ Pytest markers registered in `pyproject.toml` under `[tool.pytest.ini_options] m
 | `requires_docker` | Needs a running Docker daemon (container scans, sandbox verifier). |
 | `requires_k8s` | Needs a live Kubernetes cluster. |
 | `asyncio` | Async tests using pytest-asyncio (auto-mode enabled globally). |
+| `owasp` | OWASP regression lockdown tests — 7 hardening commits, real source inspection + TestClient HTTP calls. CI runs `pytest -m owasp`. |
 
 ## CI Usage Examples
 
@@ -40,6 +41,9 @@ pytest -m "not requires_network"
 
 # Run perf tests but skip ones that also need Docker
 pytest -m "perf and not requires_docker"
+
+# Run OWASP regression lockdown tests
+pytest -m owasp
 ```
 
 ## Perf-Tagged Files (26 files)
@@ -79,6 +83,7 @@ All files below carry `pytestmark = pytest.mark.perf` at module level.
 
 | Marker | Approximate test count |
 |--------|----------------------|
+| `owasp` | 47 |
 | `perf` | 182 |
 | `unit` | varies (not yet mass-tagged) |
 | `integration` | varies (not yet mass-tagged) |

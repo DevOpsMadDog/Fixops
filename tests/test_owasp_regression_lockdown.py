@@ -25,6 +25,8 @@ from typing import Any
 
 import pytest
 
+pytestmark = pytest.mark.owasp
+
 # ---------------------------------------------------------------------------
 # Repo root + sys.path bootstrap (mirrors sitecustomize.py intent)
 # ---------------------------------------------------------------------------

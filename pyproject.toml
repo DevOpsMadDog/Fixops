@@ -84,6 +84,7 @@ markers = [
     "requires_k8s: Tests that require Kubernetes",
     "e2e: End-to-end scenario tests",
     "asyncio: Async tests using pytest-asyncio",
+    "owasp: OWASP regression lockdown tests",
 ]
 log_cli = true
 log_cli_level = "INFO"
