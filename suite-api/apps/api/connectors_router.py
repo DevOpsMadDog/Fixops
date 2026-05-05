@@ -191,7 +191,7 @@ def _connector_type_descriptor(ct: ConnectorType) -> Dict[str, Any]:
 
     Required fields = model fields without a default value.
     Optional fields = model fields WITH a default value (including None defaults).
-    Keeps /types automatically in sync with the actual validation models.
+    This keeps /types automatically in sync with the actual validation models.
     """
     _config_map: Dict[str, type] = {
         ConnectorType.jira: JiraConfig,

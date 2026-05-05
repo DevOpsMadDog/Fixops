@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import sys
 
+# Ensure suite paths are on sys.path (mirrors sitecustomize.py)
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for _sub in ("suite-api", "suite-core", "suite-attack", "suite-feeds", "suite-evidence-risk"):
     _p = os.path.join(_ROOT, _sub)
@@ -42,7 +43,7 @@ def test_connector_types_returns_200(client):
     assert "types" in body, "Response must have 'types' key"
     assert "total" in body, "Response must have 'total' key"
     types = body["types"]
-    assert len(types) >= 3, f"Must return at least 3 connector types, got {len(types)}"
+    assert len(types) >= 3, f"Must return at least 3 connector types (jira/github/slack), got {len(types)}"
     assert body["total"] == len(types), "total must match len(types)"
 
 
@@ -69,6 +70,7 @@ def test_connector_types_required_fields_from_pydantic(client):
     jira_entry = next((t for t in resp.json()["types"] if t["type"] == "jira"), None)
     assert jira_entry is not None, "jira connector type must be present"
 
+    # Introspect JiraConfig for expected required fields
     expected_required = [
         name for name, fi in JiraConfig.model_fields.items() if fi.is_required()
     ]
