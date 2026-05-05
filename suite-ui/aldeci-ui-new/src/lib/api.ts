@@ -1356,6 +1356,80 @@ export interface GrcRisk {
   notes?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Agent Tasks (wave_d /agents/{role}/task) + Queue (/queue/*)
+// ---------------------------------------------------------------------------
+
+export interface AgentTaskDispatch {
+  task_id: string;
+  org_id: string;
+  role: string;
+  title: string;
+  prompt_preview: string;
+  priority: string;
+  status: string;
+  created_at: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface QueueStatus {
+  backend: string;
+  depth: number;
+  workers: number;
+}
+
+export interface QueuePeekItem {
+  task_id?: string;
+  task_type?: string;
+  priority?: number;
+  [key: string]: unknown;
+}
+
+export const agentTasksApi = {
+  /** POST /api/v1/agents/{role}/task */
+  dispatch: (role: string, body: { title: string; prompt: string; priority?: string; metadata?: Record<string, unknown> }) =>
+    api.post<AgentTaskDispatch>(`/api/v1/agents/${role}/task`, body),
+  /** GET /api/v1/queue/status */
+  queueStatus: () =>
+    api.get<QueueStatus>("/api/v1/queue/status"),
+  /** GET /api/v1/queue/peek */
+  queuePeek: (limit = 20) =>
+    api.get<{ tasks: QueuePeekItem[] }>("/api/v1/queue/peek", { params: { limit } }),
+};
+
+// ---------------------------------------------------------------------------
+// Shadow AI (/shadow-ai/*)
+// ---------------------------------------------------------------------------
+
+export interface ShadowAiStats {
+  registered_services: number;
+  total_signals: number;
+  unregistered_count: number;
+  registered_count: number;
+  coverage_pct: number;
+  top_providers: string[];
+}
+
+export interface ShadowAiService {
+  service_name: string;
+  provider: string;
+  data_classification: string;
+  approved_by: string;
+  [key: string]: unknown;
+}
+
+export const shadowAiApi = {
+  /** GET /api/v1/shadow-ai/stats */
+  stats: (org_id = "default") =>
+    api.get<ShadowAiStats>("/api/v1/shadow-ai/stats", { params: { org_id } }),
+  /** GET /api/v1/shadow-ai/registry */
+  registry: (org_id = "default") =>
+    api.get<ShadowAiService[]>("/api/v1/shadow-ai/registry", { params: { org_id } }),
+  /** POST /api/v1/shadow-ai/discover */
+  discover: (org_id = "default", flag_unregistered = false) =>
+    api.post<Record<string, unknown>>("/api/v1/shadow-ai/discover", { sources: [], flag_unregistered }, { params: { org_id } }),
+};
+
 export const grcApi = {
   /** GET /api/v1/grc/stats */
   stats: (org_id = "default") =>
