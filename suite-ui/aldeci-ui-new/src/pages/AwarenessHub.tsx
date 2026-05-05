@@ -29,8 +29,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Lazy-imported panel components — each hits a real backend endpoint.
+const CampaignsPanel = lazy(() => import("@/components/awareness/CampaignsPanel"));
+const ProgramPanel = lazy(() => import("@/components/awareness/ProgramPanel"));
+const MetricsPanel = lazy(() => import("@/components/awareness/MetricsPanel"));
+const ScorePanel = lazy(() => import("@/components/awareness/ScorePanel"));
 
 type TabKey = "campaigns" | "program" | "metrics" | "score";
 
@@ -131,18 +134,22 @@ export default function AwarenessHub() {
 
         <TabsContent value="campaigns">
           <Suspense fallback={<PageSkeleton />}>
+            <CampaignsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="program">
           <Suspense fallback={<PageSkeleton />}>
+            <ProgramPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="metrics">
           <Suspense fallback={<PageSkeleton />}>
+            <MetricsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="score">
           <Suspense fallback={<PageSkeleton />}>
+            <ScorePanel />
           </Suspense>
         </TabsContent>
       </Tabs>
