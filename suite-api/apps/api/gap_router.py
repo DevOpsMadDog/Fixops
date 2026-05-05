@@ -1163,15 +1163,16 @@ async def list_playbooks():
             return {"items": items, "total": len(items)}
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Playbooks from WorkflowDB failed: %s", e)
-    # Fallback: scan data directory for playbook definitions
+    # Fallback: SecurityPlaybookEngine — real DB + 5 built-in templates
     try:
-        playbook_dir = Path("data/remediation")
-        if playbook_dir.exists():
-            count = sum(1 for f in playbook_dir.rglob("*.json"))
-            if count > 0:
-                return {"items": [], "total": count, "note": f"Found {count} playbook definitions in data/remediation"}
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-        pass
+        from core.security_playbook_engine import SecurityPlaybookEngine
+        spe = SecurityPlaybookEngine()
+        items = spe.list_playbooks(org_id="default") or []
+        if not items:
+            items = spe.get_builtin_playbooks()
+        return {"items": items, "total": len(items), "source": "security_playbook_engine"}
+    except (OSError, ValueError, KeyError, RuntimeError) as e:
+        logger.warning("SecurityPlaybookEngine fallback failed: %s", e)
     return {"items": [], "total": 0, "note": "No playbooks configured — create via POST /api/v1/workflows"}
 
 
