@@ -6254,3 +6254,9 @@
 - **Files touched**: src/lib/api.ts (+unifiedRulesApi+dslRulesApi+6 interfaces), src/components/rules/RulesCatalogPanel.tsx, RuleTaxonomyPanel.tsx, RuleDSLStudioPanel.tsx, RuleDSLValidatorPanel.tsx, src/pages/RulesCatalogHub.tsx
 - **Outcome**: SUCCESS — build clean 2.98s, zero new TS errors, SHA df158dcc pushed
 - **Pillar(s) served**: V3 (unified rules catalog), V7 (DSL authoring/validation)
+
+### [2026-05-05 session] frontend-craftsman — NAV_REWRITE
+- **What**: Rewrote WorkspaceLayout.tsx navSections array — 163 leaf-page links → 49 hub-route entries across 18 groups under 6 sections. Every sidebar entry now resolves to a *Hub.tsx component. No App.tsx routes changed, no hub files deleted.
+- **Files touched**: suite-ui/aldeci-ui-new/src/components/layout/WorkspaceLayout.tsx
+- **Outcome**: SUCCESS — build green 3.68s, pushed SHA 1b13155d, Multica #3975 closed
+- **Pillar(s) served**: V3 (UX consolidation), V1 (CTEM platform identity)

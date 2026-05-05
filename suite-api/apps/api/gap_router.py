@@ -826,7 +826,33 @@ graph_gap = APIRouter(prefix="/api/v1/graph", tags=["graph-gap"], dependencies=_
 @graph_gap.get("/", summary="Graph index", tags=["graph-gap"])
 async def graph_index(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return knowledge graph summary for the org."""
-    return {"router": "graph", "org_id": org_id, "items": [], "count": 0}
+    try:
+        from core.falkordb_client import KnowledgeGraphEngine
+        kg = KnowledgeGraphEngine()
+        analytics = kg.get_graph_analytics()
+        return {
+            "router": "graph",
+            "org_id": org_id,
+            "node_count": analytics.get("node_count", 0),
+            "edge_count": analytics.get("edge_count", 0),
+            "node_type_distribution": analytics.get("node_type_distribution", {}),
+            "top_central_nodes": analytics.get("top_central_nodes", []),
+            "backend": analytics.get("backend", "unknown"),
+            "status": "ok",
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("KnowledgeGraphEngine unavailable: %s", exc)
+        return {
+            "router": "graph",
+            "org_id": org_id,
+            "node_count": 0,
+            "edge_count": 0,
+            "node_type_distribution": {},
+            "top_central_nodes": [],
+            "backend": "unavailable",
+            "status": "degraded",
+            "error": type(exc).__name__,
+        }
 
 
 @graph_gap.get("/attack-paths")
