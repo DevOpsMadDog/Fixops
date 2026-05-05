@@ -575,28 +575,33 @@ class LicenseScanner:
         return _DEFAULT_RISK_POLICY.get(risk_level, LicensePolicy.WARN)
 
     def _persist_results(self, results: List[LicenseResult]) -> None:
-        """Upsert scan results into DB."""
+        """Upsert scan results into DB — one executemany() instead of N execute() calls."""
+        if not results:
+            return
         conn = self._conn()
-        for r in results:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO scan_results
-                  (id, package, version, license_name, risk_level, policy_action,
-                   spdx_id, org_id, scanned_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    r.id,
-                    r.package,
-                    r.version,
-                    r.license_name,
-                    r.risk_level.value,
-                    r.policy_action.value,
-                    r.spdx_id,
-                    r.org_id,
-                    r.scanned_at.isoformat(),
-                ),
+        rows = [
+            (
+                r.id,
+                r.package,
+                r.version,
+                r.license_name,
+                r.risk_level.value,
+                r.policy_action.value,
+                r.spdx_id,
+                r.org_id,
+                r.scanned_at.isoformat(),
             )
+            for r in results
+        ]
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO scan_results
+              (id, package, version, license_name, risk_level, policy_action,
+               spdx_id, org_id, scanned_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
         conn.commit()
 
     def _build_result(
@@ -772,14 +777,14 @@ class LicenseScanner:
         """
         conn = self._conn()
         now = datetime.now(timezone.utc).isoformat()
-        for key, value in rules.items():
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO org_policies (org_id, rule_key, rule_value, updated_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (org_id, key, json.dumps(value), now),
-            )
+        rows = [(org_id, key, json.dumps(value), now) for key, value in rules.items()]
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO org_policies (org_id, rule_key, rule_value, updated_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            rows,
+        )
         conn.commit()
         logger.info("Policy updated for org %s: %d rules", org_id, len(rules))
 
