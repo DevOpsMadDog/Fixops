@@ -680,7 +680,7 @@ class CEFAdapter(BaseSIEMAdapter):
     @staticmethod
     def _parse_ext(ext: str) -> Dict[str, str]:
         out: Dict[str, str] = {}
-        for m in re.finditer(r"(\w+)=([^=]+?)(?=\s+\w+=|$)", ext):
+        for m in _CEF_EXT_RE.finditer(ext):
             out[m.group(1)] = m.group(2).strip()
         return out
 
@@ -705,6 +705,9 @@ class CEFAdapter(BaseSIEMAdapter):
 _SYSLOG_PRI_RE = re.compile(r"^<(\d+)>")
 _SYSLOG_5424_RE = re.compile(r"^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$")
 _SYSLOG_3164_RE = re.compile(r"^(\w{3}\s+\d+\s+[\d:]+)\s+(\S+)\s+([^:]+):\s*(.*)$")
+_SYSLOG_IP_RE = re.compile(r"\b(\d{1,3}(?:\.\d{1,3}){3})\b")
+_SYSLOG_USER_RE = re.compile(r"(?:user|for)\s+(\S+)", re.IGNORECASE)
+_CEF_EXT_RE = re.compile(r"(\w+)=([^=]+?)(?=\s+\w+=|$)")
 
 
 class SyslogAdapter(BaseSIEMAdapter):
@@ -775,12 +778,12 @@ class SyslogAdapter(BaseSIEMAdapter):
 
     @staticmethod
     def _extract_ip(msg: str) -> str:
-        m = re.search(r"\b(\d{1,3}(?:\.\d{1,3}){3})\b", msg or "")
+        m = _SYSLOG_IP_RE.search(msg or "")
         return m.group(1) if m else ""
 
     @staticmethod
     def _extract_user(msg: str) -> str:
-        m = re.search(r"(?:user|for)\s+(\S+)", msg or "", re.IGNORECASE)
+        m = _SYSLOG_USER_RE.search(msg or "")
         return m.group(1).strip(",;") if m else ""
 
 
