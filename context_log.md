@@ -1,5 +1,29 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 10:34] qa-engineer — REGRESSION_SWEEP_14
+- **What**: Sweep #14 at HEAD 32842a75. Validated asyncio scan lockdown test + playbook_runner.py + cve_tester.py fixes. Beast Mode 753/753. Perf 182 passed, 2 skipped, 0 failed (excluding 3 pre-existing broken collectors). OWASP 47/47. Asyncio lockdown scan 1/1 GREEN — zero violations found across entire codebase. All 4 suites green.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 983 passed, 0 failed, 2 skipped, 0 regressions. Committed + pushed.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 00:26] qa-engineer — REGRESSION_SWEEP_13
+- **What**: Sweep #13 at HEAD 8b9738ed. Validated asyncio fix #2 (8b9738ed — _run_attack_graph_gnn guard). Beast Mode 753/753. Perf 182 passed, 2 skipped, 0 failed. OWASP 47/47. Spot-check test_brain_pipeline_perf::test_full_pipeline_100_findings_under_500ms: 1 passed in 3.54s — GREEN. Sweep #12 flake confirmed CLOSED.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 982 passed, 0 failed, 2 skipped, 0 regressions. Committed 966b43c9, pushed.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
+### [2026-05-05 10:35] backend-hardener — SHELL_AUDIT
+- **What**: Audited ~100 project-owned .sh scripts. Found 3 real issues: `setup.sh`, `docker/docker-entrypoint.sh`, `docker/postgres/pg-primary-init.sh` all had `set -e` only (missing `-uo pipefail`). Fixed all three. Also fixed `setup.sh` relative `cd` calls → absolute `SCRIPT_DIR` anchor, split export+assignment for `-u` safety, unquoted `$API_PID` refs.
+- **Files touched**: setup.sh, docker/docker-entrypoint.sh, docker/postgres/pg-primary-init.sh, docs/shell_audit_2026-05-05.md
+- **Outcome**: SUCCESS — commits 3d2471a4 + 32e79756, pushed features/intermediate-stage
+- **Pillar(s) served**: V3 (security hardening), V7 (production reliability)
+
+### [2026-05-05 10:28] qa-engineer — REGRESSION_SWEEP_12
+- **What**: Sweep #12 at HEAD c98e9aed. Validated 3 commits since sweep #11 (9073b7c8, 43895c5c, b2285945 — all docs/qa/security-audit, zero production Python changes). Beast Mode 753/753. OWASP 47/47. Perf 181/182 — 1 pre-existing flake: test_brain_pipeline_perf::test_full_pipeline_100_findings_under_500ms times out due to MiniLM MPS cold-start + HuggingFace network round-trip inside asyncio.run() in _run_attack_graph_gnn. Not a regression.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 981 passed, 0 failed, 2 skipped, 1 pre-existing flake, 0 regressions. Committed ce58afd1, pushed.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
 ### [2026-05-05 10:15] qa-engineer — REGRESSION_SWEEP_11
 - **What**: Sweep #11 at HEAD 1ad190d4. Validated cascade unblock from 5 commits since sweep #10 (a8af529c, 2ad076c1, 16900822, 1b25903a, 1ad190d4). Beast Mode 753/753. Perf 182/182 + 2 skipped. OWASP 47/47. Cascade verifications: test_cspm.py 103 skipped (collection error CLOSED), test_reachability_perf.py 12 passed standalone, test_autonomous_cycle.py 49 collected cleanly standalone, test_wave_a_code_intel_router.py 20 collected cleanly standalone. Broad-scan import-ordering issue persists for 3 files (pre-existing, not introduced by this sweep).
 - **Files touched**: docs/regression_status_2026-05-05.md

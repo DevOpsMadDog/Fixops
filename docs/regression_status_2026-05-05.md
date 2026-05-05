@@ -279,3 +279,34 @@ Commits validated since sweep #12:
 Delta vs sweep #12: 0 regressions. Sweep #12 perf flake (asyncio.run in _run_attack_graph_gnn) CLOSED.
   Beast Mode: 753/753 stable. Perf: 182/182 stable (2 skipped, 0 failed). OWASP lockdown: 47/47 stable.
   All 3 standard suites GREEN at HEAD 8b9738ed.
+
+Sweep #14 — HEAD 32842a75 — asyncio scan fixes + lockdown test
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors in 8.56s
+Suite 2 — Perf benchmarks (-m perf, excluding 3 broad-scan collectors): 182 passed, 2 skipped, 0 failed, 44713 deselected in 26.24s
+Suite 3 — QA/lockdown (test_owasp_regression_lockdown.py direct): 47 passed, 0 failed, 0 errors in 0.50s
+Suite 4 — Asyncio lockdown scan (test_no_unsafe_asyncio_run.py): 1 passed, 0 failed in 6.04s
+
+Total sweep #14: 983 passed, 0 failed, 2 skipped, 0 errors
+Timestamp: 2026-05-05T10:34:00Z
+
+ASYNCIO SCAN LOCKDOWN CONFIRMED GREEN:
+  PASS: tests/test_no_unsafe_asyncio_run.py — 1 passed in 6.04s
+  The AST-scan test (landed at 32842a75) walks the entire codebase for unsafe asyncio.run()
+  calls and finds zero violations. playbook_runner.py and cve_tester.py fixes (both landed in
+  32842a75) pass the scan — no new asyncio.run() calls in sync contexts detected.
+
+BROKEN COLLECTORS (unchanged from sweep #13 — 3 broad-scan errors, all pre-existing):
+  tests/test_autonomous_cycle.py — ValueError: Plugin already registered (broad scan only)
+  tests/test_reachability_perf.py — ImportError: _add_edge from risk.reachability.call_graph (broad scan only)
+  tests/test_wave_a_code_intel_router.py — ImportError: apps.api.auth_deps not in sys.modules (broad scan only)
+  NOTE: tests/test_cspm.py drops out of broken list — collects + 103 skipped (unblocked at 1ad190d4,
+        confirmed again this sweep via broad-scan deselected count 44713 matching sweep #13 44609 delta).
+
+Commits validated since sweep #13:
+  e3460b26 (HANDOFF v8 — sweep #13 + asyncio race #2 docs), 32842a75 (asyncio scan lockdown test +
+  playbook_runner.py + cve_tester.py fixes).
+
+Delta vs sweep #13: 0 regressions. +1 new suite (asyncio lockdown scan, 1/1 GREEN).
+  Beast Mode: 753/753 stable. Perf: 182/182 stable (2 skipped, 0 failed). OWASP lockdown: 47/47 stable.
+  Asyncio lockdown scan: 1/1 GREEN. playbook_runner.py + cve_tester.py fixes confirmed safe.
+  All 4 suites GREEN at HEAD 32842a75.
