@@ -28,6 +28,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { CryptoKeysPanel } from "@/components/crypto/CryptoKeysPanel";
 import { CertificatesPanel } from "@/components/crypto/CertificatesPanel";
+import { CertificateManagerPanel } from "@/components/crypto/CertificateManagerPanel";
 import { PKIPanel } from "@/components/crypto/PKIPanel";
 import { QuantumCryptoPanel } from "@/components/crypto/QuantumCryptoPanel";
 
@@ -149,10 +150,10 @@ export default function CryptoTrustHub() {
           </Suspense>
         </TabsContent>
 
-        {/* WIRED: cert manager — same backend as certs, certificate lifecycle view */}
+        {/* WIRED: cert manager — weak certs, domain TLS probe, lifecycle operations */}
         <TabsContent value="manager">
           <Suspense fallback={<PageSkeleton />}>
-            <CertificatesPanel />
+            <CertificateManagerPanel />
           </Suspense>
         </TabsContent>
 

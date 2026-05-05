@@ -33,6 +33,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { BUHeatmapPanel } from "@/components/finance/BUHeatmapPanel";
+import { InvestmentPanel } from "@/components/finance/InvestmentPanel";
 import { BudgetPanel } from "@/components/finance/BudgetPanel";
 import { IncidentCostsPanel } from "@/components/finance/IncidentCostsPanel";
 import { CyberInsurancePanel } from "@/components/finance/CyberInsurancePanel";
@@ -152,8 +153,9 @@ export default function FinanceHub() {
           </Suspense>
         </TabsContent>
         <TabsContent value="investment">
+          {/* WIRED: SecurityInvestmentDashboard — /api/v1/security-investment portfolio + investments */}
           <Suspense fallback={<PageSkeleton />}>
-            <BudgetPanel />
+            <InvestmentPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="budget">

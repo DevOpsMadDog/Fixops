@@ -29,6 +29,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 import { ThreatActorsPanel } from "@/components/threat-actors/ThreatActorsPanel";
+import { ActorTrackingPanel } from "@/components/threat-actors/ActorTrackingPanel";
 import { AttributionPanel } from "@/components/threat-actors/AttributionPanel";
 import { IndicatorsPanel } from "@/components/threat-actors/IndicatorsPanel";
 import { IOCHunterPanel } from "@/components/threat-actors/IOCHunterPanel";
@@ -143,9 +144,9 @@ export default function ThreatActorsHub() {
           </Suspense>
         </TabsContent>
         <TabsContent value="tracking">
-          {/* FOLDED: ActorTrackingDashboard — shares /threat-attribution backend; attribution tab covers this data */}
+          {/* WIRED: ActorTrackingDashboard — /api/v1/actor-tracking summary + actors + active + ttp-summary */}
           <Suspense fallback={<PageSkeleton />}>
-            <AttributionPanel />
+            <ActorTrackingPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="attribution">
