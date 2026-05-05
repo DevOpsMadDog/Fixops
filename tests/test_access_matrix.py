@@ -573,3 +573,21 @@ class TestRouter:
         })
         assert resp.status_code == 200
         assert resp.json()["access_level"] == "owner"
+
+    def test_index_returns_service_envelope(self, app):
+        """GET / returns service name, org_id, resource_types, and stats."""
+        resp = app.get("/api/v1/access-matrix/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["service"] == "access-matrix"
+        assert "resource_types" in data
+        assert len(data["resource_types"]) > 0
+        assert "stats" in data
+
+    def test_index_empty_org_returns_valid_envelope(self, app):
+        """GET / for a fresh org with no rules still returns a valid envelope."""
+        resp = app.get("/api/v1/access-matrix/?org_id=brand-new-org")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["org_id"] == "brand-new-org"
+        assert isinstance(data["stats"], dict)

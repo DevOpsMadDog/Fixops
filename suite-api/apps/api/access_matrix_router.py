@@ -59,6 +59,18 @@ class CheckAccessResponse(BaseModel):
 # ============================================================================
 
 
+@router.get("/", response_model=Dict[str, Any])
+async def index(org_id: str = Query("default")):
+    """Access Matrix index — returns stats and available resource types."""
+    stats = _matrix().get_access_stats(org_id=org_id)
+    return {
+        "service": "access-matrix",
+        "org_id": org_id,
+        "resource_types": [rt.value for rt in ResourceType],
+        "stats": stats,
+    }
+
+
 @router.post("/rules", response_model=Dict[str, Any], status_code=201)
 async def grant_access(body: GrantAccessRequest):
     """Grant access: create or replace an access rule."""
