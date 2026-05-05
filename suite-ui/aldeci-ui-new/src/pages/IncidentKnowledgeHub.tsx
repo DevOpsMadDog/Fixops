@@ -18,17 +18,117 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.22
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+// Note: Suspense/PageSkeleton removed — GenericDashboard handles its own loading state
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Activity, BookOpen, Lightbulb } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { GenericDashboard } from "@/components/GenericDashboard";
+import type { ColumnDef, KpiDef } from "@/components/GenericDashboard";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// ── Metrics tab ──────────────────────────────────────────────────────────────
+
+const METRICS_COLUMNS: ColumnDef[] = [
+  { key: "incident_id", label: "Incident ID" },
+  { key: "title",       label: "Title" },
+  { key: "severity",    label: "Severity" },
+  { key: "category",    label: "Category" },
+  { key: "status",      label: "Status" },
+  { key: "team",        label: "Team" },
+];
+
+const METRICS_KPIS: KpiDef[] = [
+  { key: "total_incidents",   label: "Total Incidents",   colorClass: "text-indigo-400" },
+  { key: "open_incidents",    label: "Open",              colorClass: "text-amber-400" },
+  { key: "avg_mttr_minutes",  label: "Avg MTTR (min)",    colorClass: "text-sky-400" },
+  { key: "sla_breach_count",  label: "SLA Breaches",      colorClass: "text-red-400" },
+];
+
+function IncidentMetricsPanel() {
+  return (
+    <GenericDashboard
+      title="Incident Metrics"
+      description="Operational KPIs: volume, MTTR and SLA breach tracking across all security incidents."
+      apiPath="/api/v1/incident-metrics/incidents"
+      itemsKey="incidents"
+      statsPath="/api/v1/incident-metrics/stats"
+      columns={METRICS_COLUMNS}
+      kpis={METRICS_KPIS}
+      emptyMessage="No incidents recorded yet. Incidents are created automatically when the Brain Pipeline detects a security event."
+    />
+  );
+}
+
+// ── Knowledge Base tab ───────────────────────────────────────────────────────
+
+const KB_COLUMNS: ColumnDef[] = [
+  { key: "article_id",    label: "ID" },
+  { key: "title",         label: "Title" },
+  { key: "article_type",  label: "Type" },
+  { key: "incident_type", label: "Incident Type" },
+  { key: "severity",      label: "Severity" },
+  { key: "helpful_count", label: "Helpful" },
+];
+
+const KB_KPIS: KpiDef[] = [
+  { key: "total_articles",   label: "Articles",         colorClass: "text-indigo-400" },
+  { key: "total_runbooks",   label: "Runbooks",         colorClass: "text-sky-400" },
+  { key: "total_views",      label: "Total Views",      colorClass: "text-green-400" },
+  { key: "helpful_rate",     label: "Helpful Rate",     colorClass: "text-amber-400" },
+];
+
+function IncidentKBPanel() {
+  return (
+    <GenericDashboard
+      title="Knowledge Base"
+      description="Searchable incident KB articles, runbooks and playbooks built from past investigations."
+      apiPath="/api/v1/incident-kb/search?query="
+      itemsKey="articles"
+      statsPath="/api/v1/incident-kb/stats"
+      columns={KB_COLUMNS}
+      kpis={KB_KPIS}
+      emptyMessage="No KB articles yet. Articles are auto-generated from closed incidents and post-mortems."
+    />
+  );
+}
+
+// ── Lessons Learned tab ──────────────────────────────────────────────────────
+
+const LESSONS_COLUMNS: ColumnDef[] = [
+  { key: "lesson_id",    label: "ID" },
+  { key: "title",        label: "Title" },
+  { key: "lesson_type",  label: "Type" },
+  { key: "severity",     label: "Severity" },
+  { key: "status",       label: "Status" },
+  { key: "identified_by", label: "Identified By" },
+];
+
+const LESSONS_KPIS: KpiDef[] = [
+  { key: "total",             label: "Total Lessons",       colorClass: "text-indigo-400" },
+  { key: "implemented",       label: "Implemented",         colorClass: "text-green-400" },
+  { key: "pending",           label: "Pending",             colorClass: "text-amber-400" },
+  { key: "implementation_rate", label: "Impl. Rate (%)",    colorClass: "text-sky-400" },
+];
+
+function IncidentLessonsPanel() {
+  return (
+    <GenericDashboard
+      title="Lessons Learned"
+      description="Post-mortem lessons register with action items, ownership, and implementation tracking."
+      apiPath="/api/v1/incident-lessons/lessons"
+      itemsKey="lessons"
+      statsPath="/api/v1/incident-lessons/summary"
+      columns={LESSONS_COLUMNS}
+      kpis={LESSONS_KPIS}
+      emptyMessage="No lessons-learned entries yet. Create one after closing an incident post-mortem."
+    />
+  );
+}
+
+// ── Hub shell ────────────────────────────────────────────────────────────────
 
 type TabKey = "metrics" | "knowledge" | "lessons";
 
@@ -121,16 +221,13 @@ export default function IncidentKnowledgeHub() {
         <p className="text-xs text-muted-foreground mt-2 mb-1">{activeMeta.description}</p>
 
         <TabsContent value="metrics">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <IncidentMetricsPanel />
         </TabsContent>
         <TabsContent value="knowledge">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <IncidentKBPanel />
         </TabsContent>
         <TabsContent value="lessons">
-          <Suspense fallback={<PageSkeleton />}>
-          </Suspense>
+          <IncidentLessonsPanel />
         </TabsContent>
       </Tabs>
     </motion.div>
