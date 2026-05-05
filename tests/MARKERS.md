@@ -6,15 +6,11 @@ Pytest markers registered in `pyproject.toml` under `[tool.pytest.ini_options] m
 
 | Marker | Meaning |
 |--------|---------|
-| `unit` | Pure logic tests — no I/O, no DB, no network. Fast (<100ms each). |
 | `integration` | Touches a real database, subprocess, or network socket. May be slow. |
 | `slow` | Any test expected to take >1s wall time. Applied in addition to other markers. |
 | `perf` | Performance benchmark / regression guard. Asserts timing contracts (e.g., "must complete in <200ms"). CI perf gate runs `pytest -m perf`. |
 | `benchmark` | Micro-benchmark measuring raw throughput or latency with explicit timing loops. Subset of `perf`. |
-| `performance` | Alias registered for historical compatibility — prefer `perf` for new tests. |
 | `security` | Tests that verify security properties (auth, crypto, RBAC enforcement). |
-| `regression` | Regression guards — protect previously-fixed bugs from reappearing. |
-| `e2e` | End-to-end scenario tests that exercise a full user workflow across multiple components. |
 | `requires_network` | Needs live external network access (e.g., threat intel feeds, CVE APIs). |
 | `requires_docker` | Needs a running Docker daemon (container scans, sandbox verifier). |
 | `requires_k8s` | Needs a live Kubernetes cluster. |
@@ -29,9 +25,6 @@ pytest -m perf
 
 # Run everything except slow tests (fast CI gate)
 pytest -m "not slow"
-
-# Run unit tests only (pre-commit hook)
-pytest -m unit
 
 # Run integration tests only
 pytest -m integration
