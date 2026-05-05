@@ -19,7 +19,7 @@
  * Route in App.tsx); this fold restores its reachability via the new hub.
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Network, ShieldCheck, FileCog } from "lucide-react";
@@ -27,9 +27,7 @@ import { Network, ShieldCheck, FileCog } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { MicrosegmentationPanel } from "@/components/network/MicrosegmentationPanel";
 
 type TabKey = "microseg" | "firewall" | "policy";
 
@@ -123,6 +121,7 @@ export default function NetworkSegmentationHub() {
 
         <TabsContent value="microseg">
           <Suspense fallback={<PageSkeleton />}>
+            <MicrosegmentationPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="firewall">

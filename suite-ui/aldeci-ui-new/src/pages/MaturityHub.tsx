@@ -16,7 +16,7 @@
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.23
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Gauge, ShieldCheck, Layers } from "lucide-react";
@@ -24,9 +24,9 @@ import { Gauge, ShieldCheck, Layers } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { SecurityMaturityPanel } from "@/components/maturity/SecurityMaturityPanel";
+import { PostureMaturityPanel } from "@/components/maturity/PostureMaturityPanel";
+import { ProgramMaturityPanel } from "@/components/maturity/ProgramMaturityPanel";
 
 type TabKey = "security" | "posture" | "program";
 
@@ -120,14 +120,17 @@ export default function MaturityHub() {
 
         <TabsContent value="security">
           <Suspense fallback={<PageSkeleton />}>
+            <SecurityMaturityPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="posture">
           <Suspense fallback={<PageSkeleton />}>
+            <PostureMaturityPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="program">
           <Suspense fallback={<PageSkeleton />}>
+            <ProgramMaturityPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
