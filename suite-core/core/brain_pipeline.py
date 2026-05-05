@@ -2879,7 +2879,13 @@ class BrainPipeline:
                     _asyncio.get_running_loop()
                     _asyncio.ensure_future(_emit_paths())
                 except RuntimeError:
-                    _asyncio.run(_emit_paths())
+                    # No running loop — create an isolated one to avoid
+                    # thread-pool teardown race from asyncio.run()
+                    _loop = _asyncio.new_event_loop()
+                    try:
+                        _loop.run_until_complete(_emit_paths())
+                    finally:
+                        _loop.close()
             except Exception as bus_e:  # noqa: BLE001 - event emission is best-effort
                 logger.warning("attack graph event emission skipped: %s", bus_e)
         except Exception as exc:  # noqa: BLE001 - GNN is optional
