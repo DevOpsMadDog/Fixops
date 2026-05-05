@@ -25,6 +25,7 @@ import { BookOpen, RotateCcw, FlaskConical } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { WebhookEventsTable } from "@/components/webhooks/WebhookEventsTable";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -121,6 +122,7 @@ export default function WebhookIngestionHub() {
 
         <TabsContent value="catalogue">
           <Suspense fallback={<PageSkeleton />}>
+            <WebhookEventsTable />
           </Suspense>
         </TabsContent>
         <TabsContent value="retry">
