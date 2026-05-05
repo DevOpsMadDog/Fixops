@@ -25,12 +25,49 @@
 - **Outcome**: SUCCESS
 - **Pillar(s) served**: V1 (real data, no mocks), V3 (platform reliability)
 - **SHA**: dc4bb1bf
+### [2026-05-05 22:15] backend-hardener — EMPTY_ENDPOINT_FIX
+- **What**: Wired `GET /api/v1/analytics/` (analytics_router.py:1234) from pure literal stub `{"router": "analytics", "items": [], "count": 0}` to real `db.get_dashboard_overview()` call on the AnalyticsDB singleton already imported in that file. Returns total_findings, open_findings, critical_findings, recent_findings_30d, timestamp. 8 LOC change. 2 new tests, 2/2 pass. Phase4 23/23 green.
+- **Files touched**: `suite-api/apps/api/analytics_router.py`, `tests/test_empty_endpoint_15_analytics_index.py` (new)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (production-quality API), V4 (analytics visibility)
+- **SHA**: 576194ca
+
+### [2026-05-05 22:00] backend-hardener — PERF_FIX
+- **What**: sast_engine.py `_snippet_conn()` opened a new `sqlite3.connect()` on every call — 5 call sites on the AI-generated code scan hot path. Replaced with persistent module-level connection (`_SNIPPET_CONN`), WAL+NORMAL sync set once at open time. `_snippet_set_db_path()` closes/resets cached conn for test isolation. ~25x fewer file-open syscalls at N=50 calls.
+- **Files touched**: `suite-core/core/sast_engine.py` (lines 2350, 2380-2440), `tests/test_perf_sast_snippet_conn.py` (new, 4 tests)
+- **Outcome**: SUCCESS — 4/4 new tests pass, 753/753 Beast Mode green
+- **Pillar(s) served**: V3 (performance), V7 (scanner hardening)
+- **SHA**: 98d3009a
+
+### [2026-05-05 21:46] backend-hardener — EMPTY_ENDPOINT_FIX
+- **What**: Wired `GET /api/v1/connectors/` (commercial_vendor_router) from hardcoded `{"items": [], "count": 0}` to real vendor manifest — returns all 4 commercial vendor entries (lacework, sysdig, recorded_future, mandiant) with ingest/sample endpoint paths. 11 LOC change. 2 tests added (2/2 pass). Phase4 23/23 green.
+- **Files touched**: `suite-api/apps/api/commercial_vendor_router.py`, `tests/test_empty_endpoint_14_connectors_index.py`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (production-quality API), V3 (connector coverage)
+
+### [2026-05-05 21:45] backend-hardener — PERF_FIX
+- **What**: dlp_engine.py scan_text hot path: (1) pre-compiled all 8 DLP_PATTERNS at import time into _DLP_COMPILED, (2) added _ORG_PATTERN_CACHE per-org compiled pattern cache with invalidation on add_custom_pattern, (3) replaced per-call sqlite3.connect()/close() with persistent _NoCloseConn proxy connection, (4) pre-compiled 8 _mask_pii regexes as module-level constants. Combined: 1.01ms → 0.30ms per call = 3.4x speedup at N=200.
+- **Files touched**: `suite-core/core/dlp_engine.py`, `tests/test_perf_dlp_engine.py`
+- **Outcome**: SUCCESS — 18/18 new tests pass, 753/753 Beast Mode green, SHA 4687aee7
+- **Pillar(s) served**: V3 (performance), V7 (security — DLP is a security-critical path)
+
+### [2026-05-05 19:10] backend-hardener — PERF_FIX
+- **What**: Pre-compiled 43 regex patterns (8 Dockerfile rules, 15 Helm rules, 20 layer-secret patterns) at module load in container_scanner.py. Replaced per-call re.search(string_pat, ...) with pre-compiled Pattern.search() in 3 hot loops. Measured: Dockerfile loop 3.33x faster (746ms→224ms, N=500×200lines), layer-secrets loop 2.07x faster (1160ms→559ms). 7 new tests (5 regression + 2 perf gate ≥1.5x). 97/97 phase4+5 passing. SHA 23855592.
+- **Files touched**: `suite-core/core/container_scanner.py`, `tests/test_perf_container_scanner_regex.py`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (performance), V1 (production quality)
 
 ### [2026-05-05 21:00] technical-writer — HANDOFF_DOC
 - **What**: Wrote `docs/HANDOFF_2026-05-04-night.md` — 7-bullet session summary covering 100% hub coverage, 13+ stub endpoints wired, 2 perf wins (15.6x rank_findings, license_scanner batch), 3 stale gap verifications, dependabot triage, shadow-route bug fix, 4 regression sweeps clean. Includes PR readiness table, quality notes (commit msg accuracy pattern, UI-consumer-first pattern), and 4 open threads for next session.
 - **Files touched**: `docs/HANDOFF_2026-05-04-night.md` (new, 72 lines)
 - **Outcome**: SUCCESS
 - **Pillar(s) served**: V1 (accuracy), V4 (operational clarity)
+
+### [2026-05-05 19:05] backend-hardener — EMPTY_ENDPOINT_WIRE_13
+- **What**: Wired GET /api/v1/supply-chain/ stub to SupplyChainIntel.get_supply_chain_stats(). Was returning hardcoded {"items": [], "count": 0}. Now returns total_packages_analyzed, high_risk_packages, critical_risk_packages, unresolved_alerts, known_malicious_detected from SQLite. Graceful fallback on ImportError/OSError. 6 tests added, phase4 23/23 green.
+- **Files touched**: `suite-api/apps/api/gap_router.py` (+12 LOC), `tests/test_empty_endpoint_supply_chain_index.py` (new, 6 tests)
+- **Outcome**: SUCCESS — SHA c91873d7, pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (real data), V3 (API reliability)
 
 ### [2026-05-05 18:52] backend-hardener — PERF_FIX_LICENSE_SCANNER
 - **What**: Eliminated two N+1 execute() loops in `LicenseScanner`. `_persist_results()` and `set_policy()` both had `for row: conn.execute()` — replaced with tuple-list comprehension + single `conn.executemany()`. Added empty-list early-return guard to `_persist_results()`. 6 tests cover structural (executemany call count via `_TrackingConn` sqlite3 subclass), correctness (N=50 rows + N=30 policy keys round-trip), perf (N=50 < 200ms), and guard (empty no-op).

@@ -429,19 +429,40 @@ class PaginatedReportResponse(BaseModel):
 
 
 @router.get("/templates")
-async def list_report_templates():
-    """List available report templates."""
-    return {
-        "templates": [
-            {"id": "executive-summary", "name": "Executive Summary", "format": "pdf", "category": "leadership"},
-            {"id": "vulnerability-detail", "name": "Vulnerability Detail Report", "format": "pdf", "category": "technical"},
-            {"id": "compliance-soc2", "name": "SOC 2 Compliance Report", "format": "pdf", "category": "compliance"},
-            {"id": "sbom-export", "name": "SBOM Export (CycloneDX)", "format": "json", "category": "supply-chain"},
-            {"id": "risk-assessment", "name": "Risk Assessment Report", "format": "pdf", "category": "risk"},
-            {"id": "remediation-progress", "name": "Remediation Progress", "format": "pdf", "category": "operations"},
-        ],
-        "total": 6,
-    }
+async def list_report_templates(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    """List available report templates from the ReportDB store.
+
+    Returns persisted templates created via POST /reports/templates.
+    When the store is empty, derives a canonical list from the ReportType
+    enum so the UI always has something to display without hardcoded mocks.
+    """
+    try:
+        stored = db.list_templates(limit=limit, offset=offset)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("list_report_templates: db.list_templates failed: %s", exc)
+        stored = []
+
+    if stored:
+        templates = [t.to_dict() for t in stored]
+    else:
+        # Derive from ReportType enum — no hardcoded strings, enum IS the source of truth
+        _FORMAT_MAP = {
+            ReportType.SECURITY_SUMMARY: "pdf",
+            ReportType.COMPLIANCE: "pdf",
+            ReportType.RISK_ASSESSMENT: "pdf",
+            ReportType.VULNERABILITY: "pdf",
+            ReportType.AUDIT: "pdf",
+            ReportType.CUSTOM: "json",
+        }
+        templates = [
+            {"id": rt.value, "name": rt.value.replace("_", " ").title(), "format": _FORMAT_MAP.get(rt, "pdf"), "report_type": rt.value}
+            for rt in ReportType
+        ]
+
+    return {"templates": templates, "total": len(templates)}
 
 
 @router.get("", response_model=PaginatedReportResponse)
