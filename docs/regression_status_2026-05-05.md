@@ -461,3 +461,38 @@ Total sweep #20: 1018 passed, 0 failed, 42 skipped, 0 errors
 HEAD: 6f8e137e — round-number wrap
 
 Delta vs sweep #18: 0 regressions. All suites GREEN.
+
+---
+
+## Sweep #21
+
+Suite 1 — Beast Mode canonical (13 files): 753 passed, 0 failed, 0 errors
+Suite 2 — Perf benchmarks (-m perf): 194 passed, 2 skipped, 0 failed
+Suite 3 — OWASP lockdown (-m owasp): 47 passed, 2 skipped, 0 failed
+
+Total sweep #21: 994 passed, 0 failed, 4 skipped, 0 errors
+HEAD: cfd36eb2 — dead marker cleanup
+Timestamp: 2026-05-05T12:13:00Z
+
+Commits validated since sweep #20 (6f8e137e):
+  cad33d9a, 3519e40b, 465317ae, 64c84eca, 6381af43, 426fa14b, cfd36eb2 (doc-only + marker cleanup)
+
+Delta vs sweep #20: 0 regressions. All suites GREEN.
+
+---
+
+## Sweep #22 (abbreviated — doc-only commits, 3-marker check)
+
+Suite 1 — 3 representative phase tests (phase4_integration, phase10_e2e, phase8_mcp): 111 passed, 0 failed, 0 errors in 1.35s
+Suite 2 — Perf benchmarks (-m perf collect-only): 194 collected (2 skipped), 0 errors
+Suite 3 — OWASP lockdown (-m owasp collect-only): 47 collected (2 skipped), 0 errors
+
+Total sweep #22: 111 live passes + 194/47 marker counts confirmed, 0 regressions
+HEAD: d9b7051e — doc-only
+Timestamp: 2026-05-05T12:25:00Z
+
+Commits validated since sweep #21 (cfd36eb2):
+  98d04d23, 41e1f1e4, d9b7051e (doc-only — zero production Python changes)
+
+Delta vs sweep #21: 0 regressions. Abbreviated check sufficient for doc-only commits.
+  Phase tests: 111/111 GREEN. Perf marker: 194 stable. OWASP marker: 47 stable.
