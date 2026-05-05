@@ -26,8 +26,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+const StagePolicyMatrixPanel = lazy(() => import("@/components/policy-authoring/StagePolicyMatrixPanel"));
+const HooksPolicyPanel = lazy(() => import("@/components/policy-authoring/HooksPolicyPanel"));
+const HooksStatusPanel = lazy(() => import("@/components/policy-authoring/HooksStatusPanel"));
 
 type TabKey = "stage-matrix" | "hooks-policy" | "hooks-status";
 
@@ -121,14 +122,17 @@ export default function PolicyAuthoringHub() {
 
         <TabsContent value="stage-matrix">
           <Suspense fallback={<PageSkeleton />}>
+            <StagePolicyMatrixPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="hooks-policy">
           <Suspense fallback={<PageSkeleton />}>
+            <HooksPolicyPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="hooks-status">
           <Suspense fallback={<PageSkeleton />}>
+            <HooksStatusPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
