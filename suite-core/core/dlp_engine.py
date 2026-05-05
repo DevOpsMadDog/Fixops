@@ -53,6 +53,36 @@ DLP_PATTERNS = {
     },
 }
 
+# Pre-compiled built-in patterns (compiled once at import time).
+# Each value keeps the original metadata plus a 'compiled' key.
+_DLP_COMPILED: dict = {
+    name: {**meta, "compiled": re.compile(meta["pattern"])}
+    for name, meta in DLP_PATTERNS.items()
+}
+
+# Per-org cache: org_id -> dict[name, {compiled, severity, category}]
+# Invalidated whenever a custom pattern is added/deleted for that org.
+_ORG_PATTERN_CACHE: dict = {}
+
+
+def _invalidate_org_cache(org_id: str) -> None:
+    _ORG_PATTERN_CACHE.pop(org_id, None)
+
+
+# Pre-compiled regexes for _mask_pii (avoids re-compilation on every call)
+_MASK_CC_RE = re.compile(r'\b(\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?)(\d{4})\b')
+_MASK_SSN_RE = re.compile(r'\b(\d{3})[\-\s]?(\d{2})[\-\s]?(\d{4})\b')
+_MASK_EMAIL_RE = re.compile(
+    r'\b([a-zA-Z0-9])[a-zA-Z0-9._%+\-]*@([a-zA-Z0-9])[a-zA-Z0-9.\-]*(\.[a-zA-Z]{2,})\b'
+)
+_MASK_PHONE_RE = re.compile(
+    r'\b(\+?1?\s?)?(\(?\d{3}\)?[\s\-\.]?\d{3}[\s\-\.]?\d{4})\b'
+)
+_MASK_IBAN_RE = re.compile(r'\b([A-Z]{2}\d{2})\s?[\dA-Z\s]{10,26}([\dA-Z]{4})\b')
+_MASK_PASSPORT_RE = re.compile(r'\b([A-Z]{1,2})\d{6,8}\b')
+_MASK_MEDICAL_RE = re.compile(r'\b\d{3,12}\b')
+_MASK_IP_RE = re.compile(r'\b(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}\b')
+
 _SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 
 
@@ -71,17 +101,44 @@ def _compute_risk_level(findings: list) -> str:
     return {0: "low", 1: "medium", 2: "high", 3: "critical"}[highest]
 
 
+class _NoCloseConn:
+    """Thin proxy that swallows close() calls so callers' finally-blocks
+    don't destroy the persistent engine connection."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def close(self) -> None:  # intentional no-op
+        pass
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+    # Explicit pass-throughs for the context-manager protocol so
+    # ``with self._get_connection() as conn:`` also works.
+    def __enter__(self):
+        return self._conn.__enter__()
+
+    def __exit__(self, *args):
+        return self._conn.__exit__(*args)
+
+
 class DLPEngine:
     def __init__(self, db_path: str = "data/dlp.db"):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Persistent connection — opened once, reused for the engine lifetime.
+        # WAL mode allows concurrent readers; check_same_thread=False is safe
+        # because each engine instance is used from a single async worker.
+        _raw = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        _raw.execute("PRAGMA journal_mode=WAL")
+        _raw.row_factory = sqlite3.Row
+        self._persistent_conn = _NoCloseConn(_raw)
         self._init_tables()
 
-    def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path))
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _get_connection(self) -> "_NoCloseConn":
+        """Return the persistent connection (close() is a no-op on the proxy)."""
+        return self._persistent_conn
 
     def _init_tables(self):
         conn = self._get_connection()
@@ -117,8 +174,16 @@ class DLPEngine:
             conn.close()
 
     def _get_patterns_for_org(self, org_id: str) -> dict:
-        """Return merged built-in + org-specific patterns."""
-        patterns = dict(DLP_PATTERNS)
+        """Return merged built-in + org-specific compiled patterns (cached per org).
+
+        Returns dict[name -> {compiled, severity, category}].
+        """
+        if org_id in _ORG_PATTERN_CACHE:
+            return _ORG_PATTERN_CACHE[org_id]
+
+        # Start from pre-compiled built-ins
+        patterns: dict = dict(_DLP_COMPILED)
+
         conn = self._get_connection()
         try:
             rows = conn.execute(
@@ -126,13 +191,18 @@ class DLPEngine:
                 (org_id,)
             ).fetchall()
             for row in rows:
-                patterns[row["name"]] = {
-                    "pattern": row["pattern"],
-                    "severity": row["severity"],
-                    "category": row["category"],
-                }
+                try:
+                    patterns[row["name"]] = {
+                        "compiled": re.compile(row["pattern"]),
+                        "severity": row["severity"],
+                        "category": row["category"],
+                    }
+                except re.error:
+                    pass  # bad custom pattern — skip silently
         finally:
             conn.close()
+
+        _ORG_PATTERN_CACHE[org_id] = patterns
         return patterns
 
     def scan_text(self, text: str, context: str = "", org_id: str = "default") -> dict:
@@ -148,7 +218,7 @@ class DLPEngine:
 
         for pattern_name, meta in patterns.items():
             try:
-                matches = re.findall(meta["pattern"], text)
+                matches = meta["compiled"].findall(text)
             except re.error as exc:
                 _logger.warning("dlp.bad_pattern", pattern=pattern_name, error=str(exc))
                 continue
@@ -355,6 +425,7 @@ class DLPEngine:
         finally:
             conn.close()
 
+        _invalidate_org_cache(org_id)
         _logger.info("dlp.custom_pattern_added", name=name, org_id=org_id)
         return {
             "id": record_id,
@@ -472,56 +543,37 @@ class DLPEngine:
 
     @staticmethod
     def _mask_pii(content: str, data_type: str) -> str:
-        """Mask PII in content based on data_type."""
+        """Mask PII in content based on data_type (uses pre-compiled regexes)."""
         if not content:
             return content
         if data_type == "credit_card":
-            masked = re.sub(
-                r'\b(\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?)(\d{4})\b',
-                r'****-****-****-\2',
-                content,
-            )
+            masked = _MASK_CC_RE.sub(r'****-****-****-\2', content)
             return masked if masked != content else "****-****-****-1234"
         if data_type == "ssn":
-            masked = re.sub(
-                r'\b(\d{3})[\-\s]?(\d{2})[\-\s]?(\d{4})\b',
-                lambda m: f"***-**-{m.group(3)}",
-                content,
-            )
+            masked = _MASK_SSN_RE.sub(lambda m: f"***-**-{m.group(3)}", content)
             return masked if masked != content else "***-**-6789"
         if data_type == "email":
-            masked = re.sub(
-                r'\b([a-zA-Z0-9])[a-zA-Z0-9._%+\-]*@([a-zA-Z0-9])[a-zA-Z0-9.\-]*(\.[a-zA-Z]{2,})\b',
+            masked = _MASK_EMAIL_RE.sub(
                 lambda m: f"{m.group(1)}***@***.{m.group(3).lstrip('.')}",
                 content,
             )
             return masked if masked != content else "j***@***.com"
         if data_type == "phone":
-            masked = re.sub(
-                r'\b(\+?1?\s?)?(\(?\d{3}\)?[\s\-\.]?\d{3}[\s\-\.]?\d{4})\b',
-                r'***-***-****',
-                content,
-            )
+            masked = _MASK_PHONE_RE.sub(r'***-***-****', content)
             return masked if masked != content else "***-***-****"
         if data_type == "iban":
-            masked = re.sub(
-                r'\b([A-Z]{2}\d{2})\s?[\dA-Z\s]{10,26}([\dA-Z]{4})\b',
-                lambda m: f"{m.group(1)}****...{m.group(2)}",
-                content,
+            masked = _MASK_IBAN_RE.sub(
+                lambda m: f"{m.group(1)}****...{m.group(2)}", content
             )
             return masked if masked != content else "GB******...****"
         if data_type == "passport":
-            masked = re.sub(r'\b([A-Z]{1,2})\d{6,8}\b', r'\1*******', content)
+            masked = _MASK_PASSPORT_RE.sub(r'\1*******', content)
             return masked if masked != content else "P*******"
         if data_type == "medical":
-            masked = re.sub(r'\b\d{3,12}\b', '****', content)
+            masked = _MASK_MEDICAL_RE.sub('****', content)
             return masked if masked != content else "[MEDICAL-REDACTED]"
         if data_type == "ip_address":
-            masked = re.sub(
-                r'\b(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}\b',
-                r'\1.\2.*.*',
-                content,
-            )
+            masked = _MASK_IP_RE.sub(r'\1.\2.*.*', content)
             return masked if masked != content else "*.*.*.*"
         return content[:3] + "***" + content[-3:] if len(content) > 6 else "***"
 
