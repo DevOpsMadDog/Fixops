@@ -17,6 +17,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Thread-local storage for persistent per-thread SQLite connections.
+# Avoids the overhead of sqlite3.connect() on every read call (~0.3ms each).
+_tls = threading.local()
+
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:
@@ -39,6 +43,9 @@ class PAMEngine:
     def __init__(self, db_path: str = _DEFAULT_DB) -> None:
         self.db_path = db_path
         self._lock = threading.RLock()
+        # Unique key per db_path so multiple PAMEngine instances sharing the
+        # same thread-local namespace don't clobber each other's connections.
+        self._tls_key = db_path.replace("/", "_").replace(".", "_")
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -122,8 +129,19 @@ class PAMEngine:
             )
 
     def _conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, timeout=10)
-        conn.row_factory = sqlite3.Row
+        """Return a persistent per-thread SQLite connection.
+
+        Re-using the same connection object eliminates the ~0.3 ms overhead of
+        sqlite3.connect() that was previously paid on every read call.  WAL mode
+        is set once at __init__ time via _init_db(); subsequent calls just reuse
+        the open handle.  Each thread gets its own connection (sqlite3 objects
+        are not safe to share across threads).
+        """
+        conn: sqlite3.Connection | None = getattr(_tls, "conn_" + self._tls_key, None)
+        if conn is None:
+            conn = sqlite3.connect(self.db_path, timeout=10, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            setattr(_tls, "conn_" + self._tls_key, conn)
         return conn
 
     # ------------------------------------------------------------------
@@ -411,44 +429,41 @@ class PAMEngine:
     # ------------------------------------------------------------------
 
     def get_pam_stats(self, org_id: str) -> Dict[str, Any]:
-        """Return summary statistics for PAM inventory."""
-        with self._conn() as conn:
-            total_accounts = conn.execute(
-                "SELECT COUNT(*) FROM privileged_accounts WHERE org_id=?", (org_id,)
-            ).fetchone()[0]
+        """Return summary statistics for PAM inventory.
 
-            vaulted = conn.execute(
-                "SELECT COUNT(*) FROM privileged_accounts WHERE org_id=? AND is_vaulted=1",
-                (org_id,),
-            ).fetchone()[0]
+        Collapsed from 6 separate SELECT statements to 2 (one per table) using
+        conditional aggregation.  This eliminates 4 round-trips to SQLite per call.
+        """
+        conn = self._conn()
+        acct_row = conn.execute(
+            """
+            SELECT
+                COUNT(*)                                      AS total_accounts,
+                SUM(CASE WHEN is_vaulted=1   THEN 1 ELSE 0 END) AS vaulted,
+                SUM(CASE WHEN status='expired' THEN 1 ELSE 0 END) AS accounts_expired,
+                AVG(risk_score)                               AS avg_risk_score
+            FROM privileged_accounts
+            WHERE org_id=?
+            """,
+            (org_id,),
+        ).fetchone()
 
-            active_sessions = conn.execute(
-                """SELECT COUNT(*) FROM pam_sessions
-                WHERE org_id=? AND approval_status='approved' AND ended_at IS NULL""",
-                (org_id,),
-            ).fetchone()[0]
-
-            pending_approvals = conn.execute(
-                "SELECT COUNT(*) FROM pam_sessions WHERE org_id=? AND approval_status='pending'",
-                (org_id,),
-            ).fetchone()[0]
-
-            accounts_expired = conn.execute(
-                "SELECT COUNT(*) FROM privileged_accounts WHERE org_id=? AND status='expired'",
-                (org_id,),
-            ).fetchone()[0]
-
-            avg_risk_row = conn.execute(
-                "SELECT AVG(risk_score) FROM privileged_accounts WHERE org_id=?",
-                (org_id,),
-            ).fetchone()
-            avg_risk_score = round(avg_risk_row[0] or 0.0, 1)
+        sess_row = conn.execute(
+            """
+            SELECT
+                SUM(CASE WHEN approval_status='approved' AND ended_at IS NULL THEN 1 ELSE 0 END) AS active_sessions,
+                SUM(CASE WHEN approval_status='pending'                        THEN 1 ELSE 0 END) AS pending_approvals
+            FROM pam_sessions
+            WHERE org_id=?
+            """,
+            (org_id,),
+        ).fetchone()
 
         return {
-            "total_accounts": total_accounts,
-            "vaulted": vaulted,
-            "active_sessions": active_sessions,
-            "pending_approvals": pending_approvals,
-            "accounts_expired": accounts_expired,
-            "avg_risk_score": avg_risk_score,
+            "total_accounts":    acct_row[0] or 0,
+            "vaulted":           acct_row[1] or 0,
+            "accounts_expired":  acct_row[2] or 0,
+            "avg_risk_score":    round(acct_row[3] or 0.0, 1),
+            "active_sessions":   sess_row[0] or 0,
+            "pending_approvals": sess_row[1] or 0,
         }
