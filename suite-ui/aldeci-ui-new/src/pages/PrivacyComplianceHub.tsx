@@ -25,8 +25,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Lazy-imported panel components — each wired to a real backend endpoint.
+const PrivacyGDPRPanel = lazy(() => import("@/components/privacy/PrivacyGDPRPanel"));
+const PrivacyImpactPanel = lazy(() => import("@/components/privacy/PrivacyImpactPanel"));
+const ControlTestingPanel = lazy(() => import("@/components/privacy/ControlTestingPanel"));
 
 type TabKey = "gdpr" | "impact" | "controls";
 
@@ -120,14 +122,17 @@ export default function PrivacyComplianceHub() {
 
         <TabsContent value="gdpr">
           <Suspense fallback={<PageSkeleton />}>
+            <PrivacyGDPRPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="impact">
           <Suspense fallback={<PageSkeleton />}>
+            <PrivacyImpactPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="controls">
           <Suspense fallback={<PageSkeleton />}>
+            <ControlTestingPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
