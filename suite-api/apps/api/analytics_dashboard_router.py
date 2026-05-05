@@ -185,9 +185,14 @@ async def get_executive_summary(
 
 @router.get("/", summary="Analytics dashboard index", tags=["analytics-dashboard"])
 async def analytics_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Return analytics dashboard summary for the org."""
+    """Return analytics dashboard summary and severity distribution for the org."""
     try:
         summary = _analytics.generate_executive_summary(org_id=org_id)
     except Exception:
         summary = {}
-    return {"router": "analytics", "org_id": org_id, "summary": summary, "items": [], "count": 0}
+    try:
+        dist = _analytics.get_severity_distribution(org_id=org_id)
+        items = [{"severity": k, "count": v} for k, v in dist.items()]
+    except Exception:
+        items = []
+    return {"router": "analytics", "org_id": org_id, "summary": summary, "items": items, "count": len(items)}

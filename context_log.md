@@ -1,5 +1,17 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-06 09:10] backend-hardener — EMPTY_ENDPOINT_WIRE
+- **What**: Wired `GET /api/v1/analytics/` (analytics_dashboard_router) root from stub `items:[], count:0` to real `VulnerabilityAnalytics.get_severity_distribution()` — returns live severity buckets as `items` list with `count` matching len. 8 LOC change. 2 tests (2/2 PASS). Phase4 23/23 green. Multica #4000 closed.
+- **Files touched**: `suite-api/apps/api/analytics_dashboard_router.py`, `tests/test_empty_endpoint_23_analytics_dashboard_index.py`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (real data, no mocks), V4 (analytics visibility)
+
+### [2026-05-05 23:15] frontend-craftsman — BUG_FIX
+- **What**: P0 infinite `history.replaceState` loop fixed. All 48 `*Hub.tsx` pages had two circular `useEffect` blocks: Effect 1 depended on `[tab, params, setParams]` and called `setParams()`, which updated the `params` object (new reference each render), re-triggering Effect 1 forever (100+ replaceState/10s, browser kills UI). Collapsed to single effect with deps `[tab, params.toString()]` — primitive string breaks object-identity churn. Zero remaining `[tab, params, setParams]` deps in codebase.
+- **Files touched**: 48 files under `suite-ui/aldeci-ui-new/src/pages/*Hub.tsx`
+- **Outcome**: SUCCESS — build clean (3.21s exit 0), SHA e72d3037 pushed, Multica #3984 done
+- **Pillar(s) served**: V1 (platform stability)
+
 ### [2026-05-05 22:35] backend-hardener — PERF_WIN
 - **What**: PAMEngine perf hunt #9. Two bottlenecks fixed: (1) per-call sqlite3.connect() replaced with thread-local persistent connection keyed per db_path; (2) get_pam_stats() collapsed from 6 sequential SELECTs to 2 conditional-aggregation queries. Measured 16.5x speedup: 0.363ms → 0.022ms per full-read-cycle (N=500). 4 new perf tests added; 4/4 pass; 753/753 Beast Mode pass; 28/28 existing pam tests pass.
 - **Files touched**: `suite-core/core/pam_engine.py`, `tests/test_perf_pam_engine.py`
@@ -6260,3 +6272,15 @@
 - **Files touched**: suite-ui/aldeci-ui-new/src/components/layout/WorkspaceLayout.tsx
 - **Outcome**: SUCCESS — build green 3.68s, pushed SHA 1b13155d, Multica #3975 closed
 - **Pillar(s) served**: V3 (UX consolidation), V1 (CTEM platform identity)
+
+### [2026-05-05 session] frontend-craftsman — SIDEBAR_TRIM
+- **What**: Trimmed navSections leaf items from 43 → 33 (Multica #3983). Removed 10 redundant sidebar entries: Crypto & Trust, Data Discovery (DSPM), Deception & Honeypots, Policy Lifecycle, Rules Catalog, Maturity Model, Privacy Compliance, Incident Extensions, Upgrade Paths, Awareness Program, Finance Risk, Behavior Analytics (duplicate). All routes remain in App.tsx and are reachable as hub tabs.
+- **Files touched**: suite-ui/aldeci-ui-new/src/components/layout/WorkspaceLayout.tsx
+- **Outcome**: SUCCESS — 33 leaf items confirmed, build clean (4.42s), SHA 43daa1e7, Multica #3983 closed
+- **Pillar(s) served**: V3 (UX consolidation — 25-40 screen target)
+
+### [2026-05-05 session] frontend-craftsman — CISO_DASHBOARD_WIRE
+- **What**: Built CISODashboard.tsx (P01 CISO landing page) at /executive. 6-API fanout (analytics/dashboard/overview+summary, risk/top, compliance/status, exec-reporting/summary+kpis). 6-KPI strip + 4-quadrant grid (Risk gauge, Top Risks, Compliance Scorecard, Security KPIs). Wired all /?view=executive / /ciso / /mission-control redirects to /executive. Added "Executive" as first sidebar section.
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/mission-control/CISODashboard.tsx (new), src/App.tsx (route + import + redirect fixes), src/components/layout/WorkspaceLayout.tsx (sidebar entry)
+- **Outcome**: SUCCESS — build green 2.96s, 0 new TS errors, Multica #3986 done, SHA 22d439d5
+- **Pillar(s) served**: V1 (CISO persona), V3 (real API data), V8 (board-level reporting)
