@@ -1554,3 +1554,25 @@ export const connectorMappingApi = {
     mappings: Array<{ source_field: string; target_field: string }>;
   }) => api.post("/api/v1/connectors/mapping/dry-run", payload),
 };
+
+// ── Threat Deception — /api/v1/threat-deception ──
+export const threatDeceptionApi = {
+  listDecoys: (orgId = "default", decoyType?: string, active?: boolean) =>
+    api.get("/api/v1/threat-deception/decoys", {
+      params: { org_id: orgId, ...(decoyType ? { decoy_type: decoyType } : {}), ...(active !== undefined ? { active } : {}) },
+    }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/threat-deception/stats", { params: { org_id: orgId } }),
+  listCampaigns: (orgId = "default") =>
+    api.get("/api/v1/threat-deception/campaigns", { params: { org_id: orgId } }),
+};
+
+// ── Digital Forensics — /api/v1/digital-forensics ──
+export const digitalForensicsApi = {
+  listCases: (orgId = "default", status?: string) =>
+    api.get("/api/v1/digital-forensics/cases", {
+      params: { org_id: orgId, ...(status ? { status } : {}) },
+    }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/digital-forensics/stats", { params: { org_id: orgId } }),
+};

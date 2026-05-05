@@ -27,6 +27,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { FAILStatsPanel } from "@/components/deception/FAILStatsPanel";
 import { DeceptionAnalyticsPanel } from "@/components/deception/DeceptionAnalyticsPanel";
+import { DecoysPanel } from "@/components/deception/DecoysPanel";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -134,6 +135,7 @@ export default function DeceptionHub() {
         </TabsContent>
         <TabsContent value="decoys">
           <Suspense fallback={<PageSkeleton />}>
+            <DecoysPanel />
           </Suspense>
         </TabsContent>
       </Tabs>

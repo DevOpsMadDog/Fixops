@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { FindingsExplorerView } from "@/components/FindingsExplorerView";
 import { FINDINGS_EXPLORER_ROUTES } from "@/config/findingsExplorerRoutes";
+import { DigitalForensicsPanel } from "@/components/forensics/DigitalForensicsPanel";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
@@ -130,6 +131,7 @@ export default function ForensicsHub() {
 
         <TabsContent value="digital">
           <Suspense fallback={<PageSkeleton />}>
+            <DigitalForensicsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="network">
