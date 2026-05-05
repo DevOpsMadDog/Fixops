@@ -1,5 +1,29 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 16:30] qa-engineer — UI_WIRE_SMOKE_VERIFY
+- **What**: Read-only smoke verify of 7 newly-wired endpoints. Production build clean (2.85s, 0 errors). All 7 hubs confirmed REAL: AccessMatrixPanel (accessMatrixApi), ConnectorTypesCatalog (connectorsApi.types via useQuery), FAILStatsPanel (failApi.stats), VulnIntelOverview (vulnIntelApi.index via useQuery), WebhookEventsTable (webhooksApi.list), AuditLog (auditApi.recentLogs), IncidentResponse (incidentsApi.list). Zero MOCK_ imports, zero fixture shadows across all 7 components + 3 sub-components.
+- **Files touched**: docs/ui_wire_smoke_2026-05-04.md (created), context_log.md
+- **Outcome**: SUCCESS — 7/7 REAL, 0 CRITICAL fakes
+- **Pillar(s) served**: V1 (real data — zero mocks), V6 (enterprise readiness)
+
+### [2026-05-05 16:00] frontend-craftsman — WIRE_AUDIT_INCIDENTS_UI
+- **What**: Wired AuditLog.tsx to auditApi.recentLogs() and IncidentResponse.tsx to incidentsApi.list(). Added auditApi.recentLogs(limit) and full incidentsApi namespace to api.ts. AuditLog refactored with typed AuditLogsTable child (timestamp/user/action/resource/status + StatusBadge). IncidentResponse replaced raw fetch() with incidentsApi; normalizes {items} and {incidents} shapes. Build clean 2.80s. SHA fe03e151 → pushed 6ed934f0.
+- **Files touched**: suite-ui/aldeci-ui-new/src/lib/api.ts, suite-ui/aldeci-ui-new/src/pages/AuditLog.tsx, suite-ui/aldeci-ui-new/src/pages/incidents/IncidentResponse.tsx
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (real data — zero mocks), V6 (enterprise readiness)
+
+### [2026-05-05 15:28] backend-hardener — EMPTY_ENDPOINT_WIRE_FAIL_INDEX
+- **What**: Wired GET /api/v1/fail/ index from hardcoded stub ({"items":[],"count":0}) to FAILEngine().stats(). Handler now returns grade_distribution, average_score, critical_count, high_count. Fallback to {"total_scored":0} if engine unavailable. +8 LOC router, +63 LOC tests (2 new). SHA 8833cec8.
+- **Files touched**: suite-api/apps/api/gap_router.py, tests/test_empty_endpoint_fail_index.py
+- **Outcome**: SUCCESS — 2/2 new tests PASS, 23/23 phase4 regression PASS
+- **Pillar(s) served**: V1 (real data), V4 (reliability)
+
+### [2026-05-05 15:22] backend-hardener — EMPTY_ENDPOINT_WIRE_CONNECTOR_TYPES
+- **What**: Wired GET /api/v1/connectors/types to ConnectorType enum + Pydantic model introspection. Replaced hardcoded 3-item list with _connector_type_descriptor() that reads model_fields from JiraConfig/GitHubConfig/SlackConfig; required/optional field lists auto-sync with validation models. Also wired reports_router.py /reports/templates to db.list_templates() with ReportType enum fallback (routing shadowed by exec_security_reports_router /{id}). +56 LOC net. 3 new tests, 23/23 phase4 regression PASS. SHA 5ea1571e.
+- **Files touched**: suite-api/apps/api/connectors_router.py, suite-api/apps/api/reports_router.py, tests/test_empty_endpoint_connector_types.py
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (real data), V3 (hardening)
+
 ### [2026-05-05 15:08] backend-hardener — EMPTY_ENDPOINT_WIRE_ACCESS_MATRIX
 - **What**: Wired GET /api/v1/access-matrix/ index handler to real AccessMatrix.get_access_stats() + ResourceType enum. No mocks, no new deps. +11 LOC router. Added 2 regression tests to tests/test_access_matrix.py (test_index_returns_service_envelope, test_index_empty_org_returns_valid_envelope). 2/2 new tests PASS, 23/23 phase4 regression PASS. Committed in 10874d63, pushed.
 - **Files touched**: suite-api/apps/api/access_matrix_router.py, tests/test_access_matrix.py
@@ -6065,3 +6089,15 @@
 - **Files touched**: suite-api/apps/api/phishtank_router.py, suite-api/apps/api/health.py, suite-api/apps/api/nuclei_router.py, suite-feeds/feeds/ghsa/importer.py (gitignored), tests/test_security_review_fixes.py (new, 16 tests)
 - **Outcome**: SUCCESS — 16/16 security tests pass, 99/99 full required suite pass, SHA 4e27816e pushed
 - **Pillar(s) served**: V3 (security hardening), V1 (enterprise-grade reliability)
+
+### [2026-05-05 15:38] backend-hardener — ROUTE_FIX
+- **What**: Fixed /reports/templates shadowed by exec_security_reports_router GET /{report_id} catch-all. Root cause: exec_security_reports_router (prefix /api/v1/reports) mounted via grc_app.py line 3063, before reports_router at line 3272. Its /{report_id} handler swallowed /templates, /stats, /schedules/list (all 404 "Report X not found"). Fix: removed GET /recent and GET /{report_id} from exec_security_reports_router — redundant with executive_report_router which owns /api/v1/reports/executive/*. POST routes unaffected.
+- **Files touched**: suite-api/apps/api/exec_security_reports_router.py, tests/test_reports_router_smoke.py (new, 4 tests)
+- **Outcome**: SUCCESS — /reports/templates returns 200, 27/27 pass (4 smoke + 23 phase4), SHA 896b3a66 pushed
+- **Pillar(s) served**: V1 (enterprise-grade reliability), V3 (zero broken API endpoints)
+
+### [2026-05-05 15:48] backend-hardener — EMPTY_ENDPOINT_WIRE_AUDIT_INDEX
+- **What**: Wired GET /api/v1/audit/ index from hardcoded stub (items:[], count:0, called non-existent db.get_logs()) to AuditDB.list_audit_logs(org_id, limit=5). Response now returns real recent logs from SQLite audit store. +8 LOC router, +34 LOC tests (2 new). SHA 182c2943.
+- **Files touched**: suite-api/apps/api/audit_router.py, tests/test_empty_endpoint_audit_index.py
+- **Outcome**: SUCCESS — 2/2 tests pass, phase4 23/23 unaffected
+- **Pillar(s) served**: V1 (enterprise-grade reliability), V3 (zero broken API endpoints)
