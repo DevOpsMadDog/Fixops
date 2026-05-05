@@ -203,6 +203,13 @@ const navSections: NavSection[] = [
         ],
       },
       {
+        label: "Developer",
+        icon: Code2,
+        items: [
+          { label: "Developer Security Hub", to: "/developer", icon: GitBranch, badge: "P20" },
+        ],
+      },
+      {
         label: "Cloud & Containers",
         icon: Cloud,
         items: [

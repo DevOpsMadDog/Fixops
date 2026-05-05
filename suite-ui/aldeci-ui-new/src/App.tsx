@@ -579,8 +579,10 @@ export default function App() {
             <Route path="/hunting" element={<ThreatHunting />} />
             <Route path="/threat-hunting" element={<Navigate to="/mission-control/hunt?tab=sessions" replace />} />
 
-            {/* Developer Portal */}
-            <Route path="/developer" element={<DeveloperPortal />} />
+            {/* Developer Security Hub (P20 + P11) — 4-tab hub 2026-05-05 */}
+            <Route path="/developer" element={<DeveloperSecurityHub />} />
+            {/* Legacy DeveloperPortal still reachable as /developer-portal */}
+            <Route path="/developer-portal" element={<DeveloperPortal />} />
             <Route path="/api-explorer" element={<APIExplorer />} />
 
             {/* Vendor Management */}
@@ -788,7 +790,7 @@ export default function App() {
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (canonical) */}
             <Route path="/validate/offensive" element={<OffensiveValidationHub />} />
             <Route path="/threat-actors" element={<Navigate to="/attack/intel/actors?tab=actors" replace />} />
-            <Route path="/security-champions" element={<SecurityChampionsDashboard />} />
+            <Route path="/security-champions" element={<Navigate to="/developer?tab=champion" replace />} />
 
             {/* Phase 3 §2.23 — Maturity sub-cluster folded into MaturityHub at /comply/maturity */}
             <Route path="/comply/maturity" element={<MaturityHub />} />
