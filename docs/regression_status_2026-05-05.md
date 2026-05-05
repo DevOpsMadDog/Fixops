@@ -656,3 +656,4 @@ Delta vs sweep #25: 0 regressions. Doc-only commits validated clean.
 | #83 | 2026-05-05 | test_phase4_integration.py + nav-smoke | 23/23 + sidebar:200-OK(curl-fallback) | PASS | 53a67116 |
 | FULL #84 | 2026-05-05 | beast-mode + ui-build (post-P0-fix + 3 persona hubs) | 753/753 + build:3.07s | PASS | 31e81763 |
 | #85 | 2026-05-06 | test_phase4_integration.py | 23/23 | PASS | 31ab00fd |
+| #86 | 2026-05-06 | test_phase4_integration.py | 23/23 | PASS | 0bc1858f |
