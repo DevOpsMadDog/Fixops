@@ -58,6 +58,7 @@ Generated 2026-05-04. 24 files. Organized by category.
 | `test_parallelization_2026-05-05.md` | pytest-xdist feasibility analysis — safe vs unsafe test files for parallel runs |
 | `marker_smoke_2026-05-05.md` | 14 pytest markers declared; collect-only smoke against 44,976 tests |
 | `purge_tools_smoke_2026-05-05.md` | 5 purge scripts idempotency audit — caught false-positive in fix_orphaned_test_describes |
+| `lockdown_inventory_2026-05-05.md` | Definitive lockdown test count: 14 files / 1,474 tests |
 
 ---
 

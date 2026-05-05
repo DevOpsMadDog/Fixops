@@ -19,7 +19,7 @@
 5. 14 TrustGraph engines wired (548 emit-sites)
 
 ## What's protected against regression
-- 11+ lockdown test files
+- 14 lockdown test files
 - 194 perf benchmark tests
 - 47 OWASP regression tests
 - Engine + router import sweep (1315 modules)
