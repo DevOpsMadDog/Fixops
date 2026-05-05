@@ -123,6 +123,7 @@ import {
   UserCircle,
   Bell,
   Command,
+  Upload,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -198,6 +199,7 @@ const navSections: NavSection[] = [
         label: "Code & Secrets",
         icon: Code,
         items: [
+          { label: "Import Repo / Zip", to: "/import", icon: Upload },
           { label: "Secrets Scanner", to: "/discover/secrets-hub", icon: KeyRound },
           { label: "Supply Chain", to: "/discover/supply-chain", icon: Package },
         ],

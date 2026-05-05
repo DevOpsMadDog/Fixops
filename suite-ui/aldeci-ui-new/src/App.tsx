@@ -413,6 +413,8 @@ const OrgHierarchyExplorer = lazy(() => import("@/pages/OrgHierarchyExplorer"));
 const StaleBaselineBanner = lazy(() => import("@/pages/StaleBaselineBanner"));
 const TracedFlowViewer = lazy(() => import("@/pages/TracedFlowViewer"));
 const ZeroSetupOnboarding = lazy(() => import("@/pages/ZeroSetupOnboarding"));
+// Founder-P0 #4003 — repo URL + zip import page
+const ImportPage = lazy(() => import("@/pages/ImportPage"));
 
 // Frontend Wave 2 — policy / waivers / rules / audit (14 screens, 2026-04-26)
 const WaiverRequestModal = lazy(() => import("@/pages/WaiverRequestModal"));
@@ -445,6 +447,7 @@ export default function App() {
           <Route path="/tour" element={<Tour />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingWizard />} />
+          <Route path="/import" element={<ImportPage />} />
           <Route path="/landing" element={<LandingPage />} />
 
           {/* Protected workspace */}

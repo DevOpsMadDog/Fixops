@@ -3286,6 +3286,15 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Scanner Ingest router")
 
+    # Import façade — POST /api/v1/import/repo + /upload (Multica #4003)
+    try:
+        from apps.api.import_router import router as import_router
+
+        app.include_router(import_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Import router at /api/v1/import")
+    except Exception as _import_router_err:
+        _logger.warning("Import router not mounted: %s", _import_router_err)
+
     # Scanners alias — POST /api/v1/scanners/ingest (JSON-body alias for demo path)
     if scanners_alias_router:
         app.include_router(
