@@ -74,6 +74,66 @@ OWASP audit across 7 packages — ~38 individual fixes including:
 
 ---
 
+### Late-Session Additions (2026-05-05 evening)
+
+> **Range**: `43d43d95..98d04d23` (~60 commits, sweeps #7–#21)
+> **Tip SHA at entry cut**: `98d04d23`
+
+#### Hardening
+
+- **Docker/k8s** — 7 hardening issues resolved (missing resource limits, privileged flags, image pinning) [`827cee32`]
+- **Shell scripts** — `set -euo pipefail` + cwd anchors applied across 3 scripts; shellcheck clean [`3d2471a4`]
+- **Async-emit-at-import** — coroutine-not-awaited warnings fixed in 10 engines (import-time async emit converted to sync wrappers) [`1b25903a`]
+- **`asyncio.run()` scan** — 2 executor-race candidates fixed in brain pipeline scan path [`32842a75`]
+- **Brain pipeline asyncio race x2** — `_run_attack_graph_gnn` race fixed with same pattern as first fix [`8b9738ed`]; lockdown test added [`32842a75`]
+- **Dead lazy imports purge** — 280 dead `lazy()` imports + matching routes removed; restores production build [`3eb988a0`]
+
+#### Performance / CI
+
+- **UI build verification job** — CI now catches dead lazy import regressions before merge [`48e6424c`]
+- **Regression-gates workflow** — validated and cleaned; run history verified [`ab2e691a`, `465317ae`]
+
+#### Tests / Regression Cycle
+
+- **Sweep #7** — all green at HEAD `c0852a5f` [`33998754`]
+- **Sweep #8** — `test_admin_db_stats` asyncio fix confirmed (`e124c48d`), all green [`25139e7a`]
+- **Sweep #9** — final wrap, all green at HEAD `05964156` [`c3f7982f`]
+- **Sweep #10** — all green at HEAD `1ffa7d9d` [`8254602c`]
+- **Sweep #11** — cascade unblocked, all green at HEAD `1ad190d4` [`9073b7c8`]
+- **Sweep #12** — all green at HEAD `c98e9aed` [`ce58afd1`]
+- **Sweep #13** — asyncio fix #2 confirmed (`8b9738ed`), all green [`966b43c9`]
+- **Sweep #14** — asyncio scan fixes confirmed (`32842a75`), all green [`a41b7e65`]
+- **Sweep #15** — `test_reachability_perf` import fix confirmed, all green [`1f73bed2`]
+- **Sweep #16** — module-cache fix confirmed (`ed6512e0`), 0 broken collectors, all green [`b241cd32`]
+- **Sweep #17** — all green at HEAD `d65b60df` [`e755e178`]
+- **Sweep #18** — production build restored, all green at HEAD `3eb988a0` [`3b49bcb9`]
+- **Sweep #19** — all green at HEAD `e3b2660f` [`6ef61fe4`]
+- **Sweep #20** — all green; HANDOFF v12 wrapped [`a8a08628`]
+- **Sweep #21** — all green at HEAD `cfd36eb2`; true session close [`b69947ae`]
+- **Async-emit lockdown test** — 10 engines covered [`498b1908`]
+- **pytest markers** — 26 perf test files categorized for CI prioritization [`c0852a5f`]; `owasp` marker added for parity with `-m perf` [`3519e40b`]
+- **Dead marker removal** — 4 dead markers (`unit`, `regression`, `e2e`, `performance`) removed [`cfd36eb2`]; marker smoke verified across 14 markers × 44,976 tests [`426fa14b`]
+- **Conftest DRY** — minimal-app fixture factored to conftest, eliminating duplication across 2 test files [`1ffa7d9d`]
+- **Broken collector triage** — 4 collection errors documented, 1 fixed; stale `_add_edge` import patched in `test_reachability_perf` [`a4b9650d`]; `test_cspm.py` stale imports patched + removed-API tests skipped [`1ad190d4`]; module-cache ordering fixed for 3 broad-scan collection errors [`ed6512e0`]
+- **UI test files** — 5 test files finalized after Phase 3 page-deletion cleanup [`6f8e137e`]
+
+#### Docs
+
+- **HANDOFF v5–v13** — rolling session handoffs capturing open threads, sweep timelines, bug tallies, and branch SHAs [`d9d2ae97`, `43895c5c`, `f663f531`, `e3460b26`, `d751b66d`, `9cfa0f75`, `e3b2660f`, `a8a08628`, `98d04d23`]
+- **Dependency audits** — Python pip-audit and npm audit reports for 2026-05-05 [`b2285945`, `c98e9aed`]
+- **Shell audit report** — shellcheck findings documented [`32e79756`]
+- **UI bundle size audit** — bundle analysis with code-split recommendations [`5b88eada`]
+- **Regression-gates CI doc** — workflow run history verified and documented [`465317ae`]
+- **Session snapshots** — final commit tallies and state-row refreshes [`a8af529c`, `667f62b7`, `64c84eca`, `6381af43`]
+- **Duplicate `regression_status` canonicalized** — single authoritative copy at `docs/` [`cad33d9a`]
+
+#### Features / Admin
+
+- **`/api/v1/admin/connectors/inventory`** — new endpoint exposing connector capability surface [`1ebf78d3`]
+- **pytest marker smoke** — 14 active markers verified across full 44,976-test suite [`426fa14b`]
+
+---
+
 ## [0.1.0-alpha] - 2026-04-26
 
 > **Branch**: `features/intermediate-stage`
