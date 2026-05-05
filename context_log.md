@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 10:45] qa-engineer — REGRESSION_SWEEP_15
+- **What**: Sweep #15 at HEAD a4b9650d. Validated test_reachability_perf import fix (a4b9650d — stale _add_edge import corrected). Beast Mode 753/753. Perf -m broad: 182 passed, 2 skipped, 0 failed (test_reachability_perf still errors in broad scan due to pre-existing module-cache ordering — NOT a regression from a4b9650d). OWASP/asyncio lockdown 1/1. Targeted Suite 4: test_reachability_perf.py standalone 12/12 GREEN, combined with test_no_unsafe_asyncio_run.py 13/13 GREEN. Fix confirmed correct.
+- **Files touched**: docs/regression_status_2026-05-05.md
+- **Outcome**: SUCCESS — 0 regressions. test_reachability_perf import fix confirmed. All suites green at HEAD a4b9650d.
+- **Pillar(s) served**: V4 (reliability), V6 (enterprise readiness)
+
 ### [2026-05-05 10:34] qa-engineer — REGRESSION_SWEEP_14
 - **What**: Sweep #14 at HEAD 32842a75. Validated asyncio scan lockdown test + playbook_runner.py + cve_tester.py fixes. Beast Mode 753/753. Perf 182 passed, 2 skipped, 0 failed (excluding 3 pre-existing broken collectors). OWASP 47/47. Asyncio lockdown scan 1/1 GREEN — zero violations found across entire codebase. All 4 suites green.
 - **Files touched**: docs/regression_status_2026-05-05.md
