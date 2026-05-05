@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 15:08] backend-hardener — EMPTY_ENDPOINT_WIRE_ACCESS_MATRIX
+- **What**: Wired GET /api/v1/access-matrix/ index handler to real AccessMatrix.get_access_stats() + ResourceType enum. No mocks, no new deps. +11 LOC router. Added 2 regression tests to tests/test_access_matrix.py (test_index_returns_service_envelope, test_index_empty_org_returns_valid_envelope). 2/2 new tests PASS, 23/23 phase4 regression PASS. Committed in 10874d63, pushed.
+- **Files touched**: suite-api/apps/api/access_matrix_router.py, tests/test_access_matrix.py
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V4 (reliability — zero 404s on router index), V6 (enterprise readiness)
+
 ### [2026-05-05 15:00] technical-writer — HANDOFF_V18_CLOSING_NOTE
 - **What**: Appended "Closing Note v18 — Sweep #30 Round-Number Milestone" to docs/HANDOFF_2026-05-05.md. Committed fe438c24 and pushed to features/intermediate-stage.
 - **Files touched**: docs/HANDOFF_2026-05-05.md, context_log.md
