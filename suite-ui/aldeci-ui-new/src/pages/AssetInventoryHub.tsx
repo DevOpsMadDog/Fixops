@@ -50,9 +50,10 @@ import { AssetGroupsPanel } from "@/components/assets/AssetGroupsPanel";
 import { AssetTagsPanel } from "@/components/assets/AssetTagsPanel";
 import { AssetCriticalityPanel } from "@/components/assets/AssetCriticalityPanel";
 import { CMDBPanel } from "@/components/assets/CMDBPanel";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { AssetRiskPanel } from "@/components/assets/AssetRiskPanel";
+import { CloudResourcesPanel } from "@/components/assets/CloudResourcesPanel";
+import { AgentlessSnapshotPanel } from "@/components/assets/AgentlessSnapshotPanel";
+import { CloudAccountsPanel } from "@/components/assets/CloudAccountsPanel";
 
 type TabKey =
   | "groups"
@@ -209,18 +210,22 @@ export default function AssetInventoryHub() {
         </TabsContent>
         <TabsContent value="risk">
           <Suspense fallback={<PageSkeleton />}>
+            <AssetRiskPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="cloud-res">
           <Suspense fallback={<PageSkeleton />}>
+            <CloudResourcesPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="snapshot">
           <Suspense fallback={<PageSkeleton />}>
+            <AgentlessSnapshotPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="cloud-accts">
           <Suspense fallback={<PageSkeleton />}>
+            <CloudAccountsPanel />
           </Suspense>
         </TabsContent>
       </Tabs>

@@ -553,6 +553,20 @@ export const slsaApi = {
   attestations: (orgId = "default", filters?: { subject_name?: string; builder_id?: string }) =>
     api.get("/api/v1/slsa/attestations", { params: { org_id: orgId, ...filters } }),
   getAttestation: (id: string) => api.get(`/api/v1/slsa/attestations/${encodeURIComponent(id)}`),
+  /** POST /api/v1/slsa/attest — generate a new in-toto SLSA v0.2 attestation */
+  attest: (payload: {
+    subject_name: string;
+    subject_digest: string;
+    builder_id?: string;
+    build_type?: string;
+    slsa_level?: number;
+    org_id?: string;
+  }) => api.post("/api/v1/slsa/attest", payload),
+  /** POST /api/v1/slsa/verify/{id} — verify an attestation by id */
+  verify: (attestationId: string, verifier = "internal") =>
+    api.post(`/api/v1/slsa/verify/${encodeURIComponent(attestationId)}`, null, {
+      params: { verifier },
+    }),
 };
 
 export const cspmApi = {
@@ -775,6 +789,46 @@ export const cmdbApi = {
   listCIs: (params?: Record<string, string>) => api.get("/api/v1/cmdb/cis", { params }),
   listChanges: (orgId = "default") => api.get("/api/v1/cmdb/changes", { params: { org_id: orgId } }),
   stats: (orgId = "default") => api.get("/api/v1/cmdb/stats", { params: { org_id: orgId } }),
+};
+
+export const assetRiskApi = {
+  listAssets: (orgId = "default", assetType?: string, criticality?: string) =>
+    api.get("/api/v1/asset-risk/assets", { params: { org_id: orgId, asset_type: assetType, criticality } }),
+  listScores: (orgId = "default", riskLevel?: string) =>
+    api.get("/api/v1/asset-risk/scores", { params: { org_id: orgId, risk_level: riskLevel } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/asset-risk/stats", { params: { org_id: orgId } }),
+};
+
+export const cloudInventoryApi = {
+  listResources: (orgId = "default", provider?: string, resourceType?: string) =>
+    api.get("/api/v1/cloud-inventory/resources", {
+      params: { org_id: orgId, provider, resource_type: resourceType },
+    }),
+  listFindings: (orgId = "default", severity?: string) =>
+    api.get("/api/v1/cloud-inventory/findings", { params: { org_id: orgId, severity } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/cloud-inventory/stats", { params: { org_id: orgId } }),
+};
+
+export const agentlessSnapshotApi = {
+  listSnapshots: (orgId = "default", provider?: string, scanStatus?: string) =>
+    api.get("/api/v1/agentless-snapshot/snapshots", {
+      params: { org_id: orgId, provider, scan_status: scanStatus },
+    }),
+  listFindings: (orgId = "default", severity?: string) =>
+    api.get("/api/v1/agentless-snapshot/findings", { params: { org_id: orgId, severity } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/agentless-snapshot/stats", { params: { org_id: orgId } }),
+};
+
+export const cloudAccountsApi = {
+  listAccounts: (orgId = "default", provider?: string) =>
+    api.get("/api/v1/cloud-accounts/accounts", { params: { org_id: orgId, provider } }),
+  riskSummary: (orgId = "default") =>
+    api.get("/api/v1/cloud-accounts/risk-summary", { params: { org_id: orgId } }),
+  unresolvedEvents: (orgId = "default", severity?: string) =>
+    api.get("/api/v1/cloud-accounts/events/unresolved", { params: { org_id: orgId, severity } }),
 };
 
 export const mcpApi = {
