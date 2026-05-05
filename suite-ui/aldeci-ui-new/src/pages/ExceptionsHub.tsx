@@ -9,15 +9,15 @@
  *   tab          | source page                    | endpoint
  *   -------------|--------------------------------|----------------------------------------------
  *   exceptions   | SecurityExceptionDashboard     | /api/v1/security-exceptions/{list,stats}
- *   workflow     | ExceptionWorkflowDashboard     | /api/v1/exception-workflow/{exceptions,stats}
- *   auto-rules   | AutoWaiverRules                | /api/v1/auto-waiver/{rules,rule}
+ *   workflow     | ExceptionWorkflowDashboard     | /api/v1/exception-workflow/{requests,summary}
+ *   auto-rules   | AutoWaiverRules                | /api/v1/auto-waiver/{rules,stats}
  *
  * Route: /remediate/exceptions
  * Persona target: GRC Analyst (#12), SOC T2 (#6), AppSec Lead (#15)
  * Plan: docs/UX_CONSOLIDATION_PLAN_2026-04-26.md §2.20
  */
 
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShieldOff, GitPullRequest, ListChecks } from "lucide-react";
@@ -25,9 +25,9 @@ import { ShieldOff, GitPullRequest, ListChecks } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { ExceptionsListPanel } from "@/components/exceptions/ExceptionsListPanel";
+import { ExceptionWorkflowPanel } from "@/components/exceptions/ExceptionWorkflowPanel";
+import { AutoWaiverRulesPanel } from "@/components/exceptions/AutoWaiverRulesPanel";
 
 type TabKey = "exceptions" | "workflow" | "auto-rules";
 
@@ -42,21 +42,21 @@ const TABS: Array<{
     label: "Exceptions",
     icon: ShieldOff,
     description:
-      "Risk-accepted exceptions with approval queue and expiry tracking (Folded from SecurityExceptionDashboard).",
+      "Risk-accepted exceptions with approval queue and expiry tracking (/api/v1/security-exceptions).",
   },
   {
     key: "workflow",
     label: "Workflow",
     icon: GitPullRequest,
     description:
-      "Approval workflow status across exception requests (Folded from ExceptionWorkflowDashboard).",
+      "Approval workflow status across exception requests (/api/v1/exception-workflow/requests).",
   },
   {
     key: "auto-rules",
     label: "Auto-Waiver Rules",
     icon: ListChecks,
     description:
-      "Manage and publish auto-waiver rules that suppress matching findings (Folded from AutoWaiverRules).",
+      "Manage and publish auto-waiver rules that suppress matching findings (/api/v1/auto-waiver/rules).",
   },
 ];
 
@@ -73,8 +73,6 @@ export default function ExceptionsHub() {
     : "exceptions";
   const [tab, setTab] = useState<TabKey>(initial);
 
-  // Keep ?tab= in sync with the active tab so deep-links and old-route
-  // redirects (e.g. /security-exceptions → /remediate/exceptions?tab=exceptions) work.
   useEffect(() => {
     if (params.get("tab") !== tab) {
       const next = new URLSearchParams(params);
@@ -83,7 +81,6 @@ export default function ExceptionsHub() {
     }
   }, [tab, params, setParams]);
 
-  // React when query string changes (e.g. user clicks an old link in another tab).
   useEffect(() => {
     const incoming = params.get("tab");
     if (isTabKey(incoming) && incoming !== tab) setTab(incoming);
@@ -121,14 +118,17 @@ export default function ExceptionsHub() {
 
         <TabsContent value="exceptions">
           <Suspense fallback={<PageSkeleton />}>
+            <ExceptionsListPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="workflow">
           <Suspense fallback={<PageSkeleton />}>
+            <ExceptionWorkflowPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="auto-rules">
           <Suspense fallback={<PageSkeleton />}>
+            <AutoWaiverRulesPanel />
           </Suspense>
         </TabsContent>
       </Tabs>

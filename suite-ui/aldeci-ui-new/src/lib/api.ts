@@ -1447,3 +1447,61 @@ export const grcApi = {
   assessments: (org_id = "default") =>
     api.get<Record<string, unknown>[]>("/api/v1/grc/assessments", { params: { org_id } }),
 };
+
+// ── Security Exceptions ──
+export const securityExceptionsApi = {
+  list: (orgId = "default", status?: string, riskLevel?: string) =>
+    api.get(`/api/v1/security-exceptions/${orgId}`, {
+      params: { ...(status ? { status } : {}), ...(riskLevel ? { risk_level: riskLevel } : {}) },
+    }),
+  stats: (orgId = "default") =>
+    api.get(`/api/v1/security-exceptions/${orgId}/stats`),
+  expiring: (orgId = "default", daysAhead = 7) =>
+    api.get(`/api/v1/security-exceptions/${orgId}/expiring`, { params: { days_ahead: daysAhead } }),
+};
+
+// ── Exception Workflow ──
+export const exceptionWorkflowApi = {
+  list: (orgId = "default", status?: string) =>
+    api.get("/api/v1/exception-workflow/requests", {
+      params: { org_id: orgId, ...(status ? { status } : {}) },
+    }),
+  summary: (orgId = "default") =>
+    api.get("/api/v1/exception-workflow/summary", { params: { org_id: orgId } }),
+  expiring: (orgId = "default", daysAhead = 30) =>
+    api.get("/api/v1/exception-workflow/expiring", { params: { org_id: orgId, days_ahead: daysAhead } }),
+};
+
+// ── Auto-Waiver ──
+export const autoWaiverApi = {
+  rules: (orgId = "default") =>
+    api.get("/api/v1/auto-waiver/rules", { params: { org_id: orgId } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/auto-waiver/stats", { params: { org_id: orgId } }),
+};
+
+// ── STRIDE Threat Modeling ──
+export const threatModelingApi = {
+  models: (orgId = "default") =>
+    api.get("/api/v1/threat-modeling/models", { params: { org_id: orgId } }),
+  strideCategories: () =>
+    api.get("/api/v1/threat-modeling/stride-categories"),
+};
+
+// ── Cyber Threat Models ──
+export const cyberThreatModelsApi = {
+  summary: (orgId = "default") =>
+    api.get("/api/v1/cyber-threat-models/summary", { params: { org_id: orgId } }),
+  unmitigated: (orgId = "default") =>
+    api.get("/api/v1/cyber-threat-models/unmitigated", { params: { org_id: orgId } }),
+};
+
+// ── Threat Modeling Pipeline ──
+export const threatModelingPipelineApi = {
+  models: (orgId = "default", status?: string) =>
+    api.get("/api/v1/threat-modeling-pipeline/models", {
+      params: { org_id: orgId, ...(status ? { status } : {}) },
+    }),
+  unmitigated: (orgId = "default") =>
+    api.get("/api/v1/threat-modeling-pipeline/unmitigated", { params: { org_id: orgId } }),
+};
