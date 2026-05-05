@@ -342,6 +342,32 @@ LAYER_SECRET_PATTERNS: List[Dict[str, str]] = [
     {"id": "SEC-020", "name": "Password in ARG/ENV", "pattern": r"(?i)(ARG|ENV)\s+\S*PASS(WORD)?\s*=\s*['\"]?[^\s'\"]{4,}", "severity": "high"},
 ]
 
+# ── Pre-compiled regex caches (module-load time, O(1) per scan call) ──────────
+# DOCKERFILE_RULES: skip sentinel strings starting with "__"; compile the rest.
+_DOCKERFILE_RULES_COMPILED: List[Tuple[str, str, str, str, "re.Pattern[str]", str, str]] = [
+    (rid, title, sev, cwe, re.compile(pat, re.IGNORECASE), desc, rec)
+    for rid, title, sev, cwe, pat, desc, rec in DOCKERFILE_RULES
+    if not pat.startswith("__")
+]
+
+# HELM_CHART_RULES: compile pattern + optional anti_pattern per rule.
+_HELM_RULES_COMPILED: List[Tuple[Dict[str, str], "re.Pattern[str]", "Optional[re.Pattern[str]]"]] = [
+    (
+        rule,
+        re.compile(rule["pattern"], re.IGNORECASE | re.MULTILINE),
+        re.compile(rule["anti_pattern"], re.IGNORECASE | re.MULTILINE)
+        if rule.get("anti_pattern")
+        else None,
+    )
+    for rule in HELM_CHART_RULES
+]
+
+# LAYER_SECRET_PATTERNS: compile pattern per entry.
+_LAYER_SECRET_COMPILED: List[Tuple[Dict[str, str], "re.Pattern[str]"]] = [
+    (sp, re.compile(sp["pattern"]))
+    for sp in LAYER_SECRET_PATTERNS
+]
+
 KNOWN_VULNERABLE_IMAGES = {
     "python:2": ("critical", "Python 2 is EOL since Jan 2020"),
     "node:8": ("critical", "Node.js 8 is EOL"),
@@ -464,11 +490,9 @@ class ContainerImageScanner:
                     )
                 continue
 
-            # Pattern-based rules
-            for rid, title, sev, cwe, pat, desc, rec in DOCKERFILE_RULES:
-                if pat.startswith("__"):
-                    continue
-                if re.search(pat, stripped, re.IGNORECASE):
+            # Pattern-based rules (pre-compiled — no per-line recompilation)
+            for rid, title, sev, cwe, pat, desc, rec in _DOCKERFILE_RULES_COMPILED:
+                if pat.search(stripped):
                     findings.append(
                         ContainerFinding(
                             finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
@@ -719,19 +743,16 @@ class ContainerImageScanner:
                 )
             )
 
-        # ── Pattern-based rules ──
-        for rule in HELM_CHART_RULES:
-            pattern = rule["pattern"]
-            anti_pattern = rule.get("anti_pattern")
-
-            if re.search(pattern, full_text, re.IGNORECASE | re.MULTILINE):
+        # ── Pattern-based rules (pre-compiled — no per-rule recompilation) ──
+        for rule, pat_re, anti_re in _HELM_RULES_COMPILED:
+            if pat_re.search(full_text):
                 # If anti_pattern is defined, only flag if anti_pattern is ABSENT
-                if anti_pattern and re.search(anti_pattern, full_text, re.IGNORECASE | re.MULTILINE):
+                if anti_re and anti_re.search(full_text):
                     continue
                 # Find line number of first match
                 line_num = 0
                 for i, line in enumerate(content.split("\n"), 1):
-                    if re.search(pattern, line, re.IGNORECASE):
+                    if pat_re.search(line):
                         line_num = i
                         break
                 findings.append(
@@ -781,8 +802,8 @@ class ContainerImageScanner:
             if not stripped or stripped.startswith("#"):
                 continue
 
-            for sp in LAYER_SECRET_PATTERNS:
-                if re.search(sp["pattern"], stripped):
+            for sp, sp_re in _LAYER_SECRET_COMPILED:
+                if sp_re.search(stripped):
                     findings.append(
                         _ContainerFindingDC(
                             finding_id=f"SEC-{uuid.uuid4().hex[:8]}",
