@@ -26,8 +26,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+// Panel components — each calls a real backend endpoint; no mocks.
+import { FAIRQuantPanel } from "@/components/risk-quant/FAIRQuantPanel";
+import { RiskQuantDashboardPanel } from "@/components/risk-quant/RiskQuantDashboardPanel";
+import { RiskScenariosPanel } from "@/components/risk-quant/RiskScenariosPanel";
 
 type TabKey = "fair" | "dashboard" | "scenarios";
 
@@ -121,14 +123,17 @@ export default function RiskQuantHub() {
 
         <TabsContent value="fair">
           <Suspense fallback={<PageSkeleton />}>
+            <FAIRQuantPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="dashboard">
           <Suspense fallback={<PageSkeleton />}>
+            <RiskQuantDashboardPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="scenarios">
           <Suspense fallback={<PageSkeleton />}>
+            <RiskScenariosPanel />
           </Suspense>
         </TabsContent>
       </Tabs>

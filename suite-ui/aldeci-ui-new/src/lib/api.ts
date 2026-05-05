@@ -481,6 +481,38 @@ export const knowledgeGraphApi = {
   stats: () => api.get("/api/v1/graph/stats"),
 };
 
+export const riskQuantApi = {
+  // /api/v1/risk-quantification (FAIR scenarios + treatments + financial impacts)
+  listScenarios: (orgId = "default") =>
+    api.get("/api/v1/risk-quantification/scenarios", { params: { org_id: orgId } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/risk-quantification/stats", { params: { org_id: orgId } }),
+  treatments: (orgId = "default", scenarioId?: string) =>
+    api.get("/api/v1/risk-quantification/treatments", {
+      params: { org_id: orgId, ...(scenarioId ? { scenario_id: scenarioId } : {}) },
+    }),
+  financialImpacts: (orgId = "default") =>
+    api.get("/api/v1/risk-quantification/financial-impacts", { params: { org_id: orgId } }),
+  // /api/v1/risk-quantifier (Monte Carlo engine)
+  portfolio: (orgId = "default") =>
+    api.get("/api/v1/risk-quantifier/portfolio", { params: { org_id: orgId } }),
+  heatmap: (orgId = "default") =>
+    api.get("/api/v1/risk-quantifier/heatmap", { params: { org_id: orgId } }),
+  quantifierScenarios: (orgId = "default") =>
+    api.get("/api/v1/risk-quantifier/scenarios", { params: { org_id: orgId } }),
+  roi: (orgId = "default") =>
+    api.get("/api/v1/risk-quantifier/roi", { params: { org_id: orgId } }),
+  // /api/v1/risk-scenarios (scenario lifecycle engine)
+  scenariosList: (orgId = "default") =>
+    api.get("/api/v1/risk-scenarios/scenarios", { params: { org_id: orgId } }),
+  topRisks: (orgId = "default", limit = 10) =>
+    api.get("/api/v1/risk-scenarios/top-risks", { params: { org_id: orgId, limit } }),
+  riskReduction: (orgId = "default") =>
+    api.get("/api/v1/risk-scenarios/risk-reduction", { params: { org_id: orgId } }),
+  scenarioStats: (orgId = "default") =>
+    api.get("/api/v1/risk-scenarios/stats", { params: { org_id: orgId } }),
+};
+
 export const threatFeedsApi = {
   list: (params?: Record<string, string>) => api.get("/api/v1/feeds", { params }),
   trending: () => api.get("/api/v1/feeds/trending"),
@@ -1023,6 +1055,40 @@ export const securityInvestmentApi = {
     api.get(`/api/v1/security-investment/budgets/${fiscalYear ?? new Date().getFullYear()}`, {
       params: { org_id: orgId },
     }),
+};
+
+// ── Feed Subscriptions ──
+export const feedSubscriptionsApi = {
+  list: (orgId = "default", status?: string) =>
+    api.get("/api/v1/feed-subscriptions/subscriptions", { params: { org_id: orgId, status } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/feed-subscriptions/stats", { params: { org_id: orgId } }),
+  logs: (orgId = "default", limit = 50) =>
+    api.get("/api/v1/feed-subscriptions/logs", { params: { org_id: orgId, limit } }),
+  refresh: (subscriptionId: string, orgId = "default") =>
+    api.post(`/api/v1/feed-subscriptions/subscriptions/${subscriptionId}/refresh`, null, {
+      params: { org_id: orgId },
+    }),
+};
+
+// ── Threat Briefs ──
+export const threatBriefsApi = {
+  list: (orgId = "default", tlp?: string, briefType?: string, limit = 50) =>
+    api.get("/api/v1/threat-briefs/briefs", {
+      params: { org_id: orgId, tlp, brief_type: briefType, limit },
+    }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/threat-briefs/stats", { params: { org_id: orgId } }),
+};
+
+// ── Threat Response ──
+export const threatResponseApi = {
+  activeIncidents: (orgId = "default") =>
+    api.get("/api/v1/threat-response/incidents/active", { params: { org_id: orgId } }),
+  playbooks: (orgId = "default", status?: string) =>
+    api.get("/api/v1/threat-response/playbooks", { params: { org_id: orgId, status } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/threat-response/stats", { params: { org_id: orgId } }),
 };
 
 // ── Risk Overview (suite-evidence-risk) ──
