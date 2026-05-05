@@ -576,9 +576,22 @@ def get_compliance_report(
 @router.get("/", summary="CSPM index", tags=["CSPM Deep Scan"])
 async def cspm_index(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return CSPM posture summary for the org."""
+    posture_score = 0.0
+    findings: list = []
     try:
         eng = _engine()
-        score = eng.get_posture_score(org_id=org_id) if hasattr(eng, "get_posture_score") else 0
+        if hasattr(eng, "get_posture"):
+            posture = eng.get_posture(org_id=org_id)
+            posture_score = float(getattr(posture, "overall_score", 0))
+        if hasattr(eng, "list_findings"):
+            raw = eng.list_findings(org_id=org_id) or []
+            findings = [f.model_dump(mode="json") if hasattr(f, "model_dump") else (f.to_dict() if hasattr(f, "to_dict") else dict(f)) for f in raw]
     except Exception:
-        score = 0
-    return {"router": "cspm", "org_id": org_id, "posture_score": score, "items": [], "count": 0}
+        pass
+    return {
+        "router": "cspm",
+        "org_id": org_id,
+        "posture_score": posture_score,
+        "items": findings,
+        "count": len(findings),
+    }
