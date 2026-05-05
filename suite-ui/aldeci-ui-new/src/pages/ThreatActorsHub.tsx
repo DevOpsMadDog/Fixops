@@ -28,8 +28,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { ThreatActorsPanel } from "@/components/threat-actors/ThreatActorsPanel";
+import { AttributionPanel } from "@/components/threat-actors/AttributionPanel";
+import { IndicatorsPanel } from "@/components/threat-actors/IndicatorsPanel";
+import { IOCHunterPanel } from "@/components/threat-actors/IOCHunterPanel";
 
 type TabKey = "actors" | "tracking" | "attribution" | "indicators" | "ioc-hunter";
 
@@ -137,22 +139,28 @@ export default function ThreatActorsHub() {
 
         <TabsContent value="actors">
           <Suspense fallback={<PageSkeleton />}>
+            <ThreatActorsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="tracking">
+          {/* FOLDED: ActorTrackingDashboard — shares /threat-attribution backend; attribution tab covers this data */}
           <Suspense fallback={<PageSkeleton />}>
+            <AttributionPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="attribution">
           <Suspense fallback={<PageSkeleton />}>
+            <AttributionPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="indicators">
           <Suspense fallback={<PageSkeleton />}>
+            <IndicatorsPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="ioc-hunter">
           <Suspense fallback={<PageSkeleton />}>
+            <IOCHunterPanel />
           </Suspense>
         </TabsContent>
       </Tabs>

@@ -403,6 +403,64 @@ export const policiesApi = {
   update: (id: string, data: unknown) => api.put(`/api/v1/policies/${id}`, data),
 };
 
+// ── Finance domain APIs ──────────────────────────────────────────────────────
+
+export const fairApi = {
+  businessUnits: (orgId = "default") =>
+    api.get("/api/v1/fair/business-units", { params: { org_id: orgId } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/fair/stats", { params: { org_id: orgId } }),
+  roiTrend: (orgId = "default", windowDays = 90) =>
+    api.get("/api/v1/fair/roi-trend", { params: { org_id: orgId, window_days: windowDays } }),
+  computePerBuRisk: (data: unknown, orgId = "default") =>
+    api.post("/api/v1/fair/per-bu-risk", data, { params: { org_id: orgId } }),
+};
+
+export const securityBudgetApi = {
+  stats: (orgId = "default", fiscalYear?: number) =>
+    api.get("/api/v1/security-budget/stats", {
+      params: { org_id: orgId, ...(fiscalYear ? { fiscal_year: fiscalYear } : {}) },
+    }),
+  allocations: (orgId = "default", fiscalYear?: number, category?: string) =>
+    api.get("/api/v1/security-budget/allocations", {
+      params: {
+        org_id: orgId,
+        ...(fiscalYear ? { fiscal_year: fiscalYear } : {}),
+        ...(category ? { category } : {}),
+      },
+    }),
+  transactions: (orgId = "default") =>
+    api.get("/api/v1/security-budget/transactions", { params: { org_id: orgId } }),
+  roiAssessments: (orgId = "default") =>
+    api.get("/api/v1/security-budget/roi-assessments", { params: { org_id: orgId } }),
+};
+
+export const incidentCostsApi = {
+  analytics: (orgId = "default") =>
+    api.get("/api/v1/incident-costs/analytics", { params: { org_id: orgId } }),
+  summaries: (orgId = "default", incidentType?: string, severity?: string) =>
+    api.get("/api/v1/incident-costs/summaries", {
+      params: {
+        org_id: orgId,
+        ...(incidentType ? { incident_type: incidentType } : {}),
+        ...(severity ? { severity } : {}),
+      },
+    }),
+};
+
+export const cyberInsuranceApi = {
+  stats: (orgId = "default") =>
+    api.get("/api/v1/cyber-insurance/stats", { params: { org_id: orgId } }),
+  policies: (orgId = "default") =>
+    api.get("/api/v1/cyber-insurance/policies", { params: { org_id: orgId } }),
+  claims: (orgId = "default", status?: string) =>
+    api.get("/api/v1/cyber-insurance/claims", {
+      params: { org_id: orgId, ...(status ? { status } : {}) },
+    }),
+  assessments: (orgId = "default") =>
+    api.get("/api/v1/cyber-insurance/assessments", { params: { org_id: orgId } }),
+};
+
 export const systemApi = {
   health: () => api.get("/api/v1/system/health"),
   metrics: () => api.get("/api/v1/system/metrics"),
@@ -768,6 +826,118 @@ export const binaryFpApi = {
   /** GET /api/v1/binary-fp/stats — fingerprint counters per org */
   stats: (orgId = "default") =>
     api.get("/api/v1/binary-fp/stats", { params: { org_id: orgId } }),
+};
+
+// ── Threat Actors ──
+export const threatActorsApi = {
+  list: (orgId = "default", actorType?: string, active?: boolean) =>
+    api.get("/api/v1/threat-actors/actors", {
+      params: { org_id: orgId, actor_type: actorType, active },
+    }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/threat-actors/stats", { params: { org_id: orgId } }),
+  watchlist: (orgId = "default") =>
+    api.get("/api/v1/threat-actors/watchlist", { params: { org_id: orgId } }),
+  iocs: (orgId = "default", actorId?: string) =>
+    api.get("/api/v1/threat-actors/iocs", { params: { org_id: orgId, actor_id: actorId } }),
+};
+
+// ── Threat Attribution ──
+export const threatAttributionApi = {
+  listActors: (orgId = "default", actorType?: string, active?: boolean) =>
+    api.get("/api/v1/threat-attribution/actors", {
+      params: { org_id: orgId, actor_type: actorType, active },
+    }),
+  listAttributions: (orgId = "default", status?: string, confidence?: string) =>
+    api.get("/api/v1/threat-attribution/attributions", {
+      params: { org_id: orgId, status, confidence },
+    }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/threat-attribution/stats", { params: { org_id: orgId } }),
+};
+
+// ── Threat Indicators ──
+export const threatIndicatorsApi = {
+  list: (orgId = "default", indicatorType?: string, severity?: string) =>
+    api.get("/api/v1/threat-indicators/indicators", {
+      params: { org_id: orgId, indicator_type: indicatorType, severity },
+    }),
+  summary: (orgId = "default") =>
+    api.get("/api/v1/threat-indicators/summary", { params: { org_id: orgId } }),
+  search: (orgId = "default", query: string) =>
+    api.get("/api/v1/threat-indicators/search", { params: { org_id: orgId, query } }),
+};
+
+// ── IOC Enrichment ──
+export const iocEnrichmentApi = {
+  list: (orgId = "default", iocType?: string, severity?: string, limit = 50) =>
+    api.get("/api/v1/ioc-enrichment/iocs", {
+      params: { org_id: orgId, ioc_type: iocType, severity, limit },
+    }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/ioc-enrichment/stats", { params: { org_id: orgId } }),
+  enrich: (iocId: string, orgId = "default") =>
+    api.post(`/api/v1/ioc-enrichment/iocs/${iocId}/enrich`, null, {
+      params: { org_id: orgId },
+    }),
+};
+
+// ── Actor Tracking ──
+export const actorTrackingApi = {
+  list: (orgId = "default", actorType?: string, threatLevel?: string) =>
+    api.get("/api/v1/actor-tracking/actors", {
+      params: { org_id: orgId, actor_type: actorType, threat_level: threatLevel },
+    }),
+  summary: (orgId = "default") =>
+    api.get("/api/v1/actor-tracking/summary", { params: { org_id: orgId } }),
+  activeThreats: (orgId = "default") =>
+    api.get("/api/v1/actor-tracking/active", { params: { org_id: orgId } }),
+  ttpSummary: (orgId = "default") =>
+    api.get("/api/v1/actor-tracking/ttp-summary", { params: { org_id: orgId } }),
+};
+
+// ── Crypto Key Management ──
+export const cryptoKeysApi = {
+  list: (orgId = "default", status?: string) =>
+    api.get("/api/v1/crypto-keys/", { params: { org_id: orgId, status } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/crypto-keys/stats", { params: { org_id: orgId } }),
+  expiring: (orgId = "default", days = 30) =>
+    api.get("/api/v1/crypto-keys/expiring", { params: { org_id: orgId, days } }),
+  rotate: (keyId: string) =>
+    api.post(`/api/v1/crypto-keys/${keyId}/rotate`),
+};
+
+// ── Certificates ──
+export const certificatesApi = {
+  list: (orgId = "default", certType?: string, status?: string) =>
+    api.get("/api/v1/certificates/", { params: { org_id: orgId, cert_type: certType, status } }),
+  stats: (orgId = "default") =>
+    api.get("/api/v1/certificates/stats", { params: { org_id: orgId } }),
+  expiryAlerts: (orgId = "default") =>
+    api.get("/api/v1/certificates/alerts/expiry", { params: { org_id: orgId } }),
+  weak: (orgId = "default") =>
+    api.get("/api/v1/certificates/weak", { params: { org_id: orgId } }),
+};
+
+// ── PKI Management ──
+export const pkiApi = {
+  stats: (orgId = "default") =>
+    api.get("/api/v1/pki/stats", { params: { org_id: orgId } }),
+  listCAs: (orgId = "default") =>
+    api.get("/api/v1/pki/cas", { params: { org_id: orgId } }),
+  listCertificates: (orgId = "default", caId?: string) =>
+    api.get("/api/v1/pki/certificates", { params: { org_id: orgId, ca_id: caId } }),
+  expiringCerts: (orgId = "default", days = 30) =>
+    api.get("/api/v1/pki/certificates/expiring", { params: { org_id: orgId, days } }),
+};
+
+// ── Quantum Crypto ──
+export const quantumCryptoApi = {
+  health: () => api.get("/api/v1/quantum-crypto/health"),
+  status: () => api.get("/api/v1/quantum-crypto/status"),
+  keys: () => api.get("/api/v1/quantum-crypto/keys"),
+  rotateKeys: () => api.post("/api/v1/quantum-crypto/keys/rotate"),
 };
 
 // ── Risk Overview (suite-evidence-risk) ──

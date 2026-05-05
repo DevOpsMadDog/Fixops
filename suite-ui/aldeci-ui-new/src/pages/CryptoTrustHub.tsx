@@ -7,11 +7,11 @@
  *
  *   tab        | source page             | endpoint
  *   -----------|-------------------------|----------------------------------------------
- *   keys       | CryptoKeyDashboard      | /api/v1/crypto-keys/{keys,stats}
- *   certs      | CertificateDashboard    | /api/v1/certificates/{certificates,stats}
- *   manager    | CertificateManager      | /api/v1/certificates/{certificates,stats}
+ *   keys       | CryptoKeyDashboard      | /api/v1/crypto-keys/{keys,stats,expiring}
+ *   certs      | CertificateDashboard    | /api/v1/certificates/{certificates,stats,alerts}
+ *   manager    | CertificateManager      | /api/v1/certificates/{certificates,stats,alerts}
  *   pki        | PKIManagementDashboard  | /api/v1/pki/{stats,certificates,cas}
- *   quantum    | QuantumCryptoDashboard  | /api/v1/quantum-crypto/{assets,migrations,readiness}
+ *   quantum    | QuantumCryptoDashboard  | /api/v1/quantum-crypto/{health,status,keys}
  *
  * Route: /discover/crypto
  * Persona target: Sec Architect (#11), GRC Analyst (#12), Compliance Mgr (#13)
@@ -26,9 +26,10 @@ import { Key, ShieldCheck, FileBadge, Network, Atom } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { CryptoKeysPanel } from "@/components/crypto/CryptoKeysPanel";
+import { CertificatesPanel } from "@/components/crypto/CertificatesPanel";
+import { PKIPanel } from "@/components/crypto/PKIPanel";
+import { QuantumCryptoPanel } from "@/components/crypto/QuantumCryptoPanel";
 
 type TabKey = "keys" | "certs" | "manager" | "pki" | "quantum";
 
@@ -134,24 +135,38 @@ export default function CryptoTrustHub() {
 
         <p className="text-xs text-muted-foreground mt-2 mb-1">{activeMeta.description}</p>
 
+        {/* WIRED: crypto-keys inventory + stats + expiring */}
         <TabsContent value="keys">
           <Suspense fallback={<PageSkeleton />}>
+            <CryptoKeysPanel />
           </Suspense>
         </TabsContent>
+
+        {/* WIRED: certificate inventory + stats + expiry alerts */}
         <TabsContent value="certs">
           <Suspense fallback={<PageSkeleton />}>
+            <CertificatesPanel />
           </Suspense>
         </TabsContent>
+
+        {/* WIRED: cert manager — same backend as certs, certificate lifecycle view */}
         <TabsContent value="manager">
           <Suspense fallback={<PageSkeleton />}>
+            <CertificatesPanel />
           </Suspense>
         </TabsContent>
+
+        {/* WIRED: PKI hierarchy — CAs, intermediates, issued certs */}
         <TabsContent value="pki">
           <Suspense fallback={<PageSkeleton />}>
+            <PKIPanel />
           </Suspense>
         </TabsContent>
+
+        {/* WIRED: post-quantum readiness + health checks + active PQC key */}
         <TabsContent value="quantum">
           <Suspense fallback={<PageSkeleton />}>
+            <QuantumCryptoPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
