@@ -4,6 +4,14 @@ Generated 2026-05-04. 24 files. Organized by category.
 
 ---
 
+## TL;DR Path
+
+| File | Summary |
+|------|---------|
+| `SESSION_2026-05-05_TLDR.md` | **Start here** — executive 1-pager scannable in 60 seconds: headline numbers + top wins + bug ledger + next priorities |
+
+---
+
 ## Source of Truth
 
 | File | Summary |
@@ -27,6 +35,7 @@ Generated 2026-05-04. 24 files. Organized by category.
 
 | File | Summary |
 |------|---------|
+| `SESSION_2026-05-05_TLDR.md` | Executive 1-pager scannable in 60 seconds — headline numbers + top wins + bug ledger + next priorities |
 | `SESSION_2026-05-05_SUMMARY.md` | Executive summary for the full 2026-05-05 session |
 | `ci_workflow_audit_2026-05-05.md` | Audit of `regression-gates.yml` — gate coverage, step correctness |
 | `ci_workflow_runs_2026-05-05.md` | CI run history check — pass/fail trends for regression gates |
@@ -48,7 +57,7 @@ Generated 2026-05-04. 24 files. Organized by category.
 | `endpoint_mount_verification_2026-05-05.md` | Verified all routers mount correctly; 6722 routes confirmed on branch HEAD |
 | `test_parallelization_2026-05-05.md` | pytest-xdist feasibility analysis — safe vs unsafe test files for parallel runs |
 | `marker_smoke_2026-05-05.md` | 14 pytest markers declared; collect-only smoke against 44,976 tests |
-| `purge_tools_smoke_2026-05-05.md` | Smoke test after tool/engine purge — no regressions |
+| `purge_tools_smoke_2026-05-05.md` | 5 purge scripts idempotency audit — caught false-positive in fix_orphaned_test_describes |
 
 ---
 
