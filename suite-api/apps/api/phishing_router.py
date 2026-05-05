@@ -261,13 +261,27 @@ def add_template(req: AddTemplateRequest):
     }
 
 
+@router.get("/stats", response_model=Dict[str, Any], summary="Org-wide phishing stats")
+def get_stats(org_id: str = Query("default", description="Organisation identifier")):
+    """Return org-wide phishing susceptibility metrics (click rate, report rate, risk level)."""
+    sim = _get_simulator()
+    return sim.get_org_phishing_risk(org_id)
+
+
+@router.get("/campaigns", response_model=List[Dict[str, Any]], summary="List campaigns")
+def list_campaigns(org_id: str = Query("default", description="Organisation identifier")):
+    """Return all phishing campaigns for an org, newest first."""
+    sim = _get_simulator()
+    return sim.get_campaign_history(org_id)
+
+
 @router.get("/", summary="Phishing index", tags=["phishing-simulation"])
-async def phishing_index(org_id: str = Query("default")) -> Dict[str, Any]:
+def phishing_index(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return phishing campaign summary for the org."""
     try:
         sim = _get_simulator()
-        campaigns = sim.list_campaigns(org_id=org_id) if hasattr(sim, "list_campaigns") else []
-        count = len(campaigns)
+        items = sim.get_campaign_history(org_id)
+        count = len(items)
     except Exception:
-        count = 0
-    return {"router": "phishing", "org_id": org_id, "items": [], "count": count}
+        items, count = [], 0
+    return {"router": "phishing", "org_id": org_id, "items": items, "count": count}
