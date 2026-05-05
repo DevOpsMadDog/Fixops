@@ -2347,6 +2347,7 @@ import threading as _snippet_threading
 _SNIPPET_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
 _SNIPPET_DB_LOCK = _snippet_threading.RLock()
 _SNIPPET_DB_PATH: Optional[str] = None
+_SNIPPET_CONN: Optional[_snippet_sqlite3.Connection] = None  # PERF: persistent connection
 
 _SNIPPET_DDL = """
 PRAGMA journal_mode=WAL;
@@ -2377,15 +2378,26 @@ def _snippet_db_path() -> str:
 
 
 def _snippet_conn() -> _snippet_sqlite3.Connection:
-    conn = _snippet_sqlite3.connect(_snippet_db_path(), check_same_thread=False)
-    conn.row_factory = _snippet_sqlite3.Row
-    return conn
+    """Return the persistent module-level connection, creating it if needed.
+
+    PERF: Opening sqlite3.connect() on every call costs ~0.5 ms of file-open
+    + header-read overhead. A single persistent connection with WAL mode
+    eliminates that overhead entirely; the RLock still serialises writers.
+    """
+    global _SNIPPET_CONN
+    if _SNIPPET_CONN is None:
+        conn = _snippet_sqlite3.connect(_snippet_db_path(), check_same_thread=False)
+        conn.row_factory = _snippet_sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        _SNIPPET_CONN = conn
+    return _SNIPPET_CONN
 
 
 def _snippet_init_db() -> None:
     with _SNIPPET_DB_LOCK:
-        with _snippet_conn() as conn:
-            conn.executescript(_SNIPPET_DDL)
+        conn = _snippet_conn()
+        conn.executescript(_SNIPPET_DDL)
 
 
 def _language_to_extension(language: str) -> str:
@@ -2415,8 +2427,16 @@ def _language_to_extension(language: str) -> str:
 
 # Reset DB path helper (used by tests)
 def _snippet_set_db_path(path: str) -> None:
-    global _SNIPPET_DB_PATH
+    global _SNIPPET_DB_PATH, _SNIPPET_CONN
     _SNIPPET_DB_PATH = path
+    # Close and drop the cached connection so the next _snippet_conn() call
+    # opens against the new path (important for test isolation).
+    if _SNIPPET_CONN is not None:
+        try:
+            _SNIPPET_CONN.close()
+        except Exception:
+            pass
+        _SNIPPET_CONN = None
     _snippet_init_db()
 
 
