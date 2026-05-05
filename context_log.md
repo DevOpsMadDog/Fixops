@@ -1,5 +1,18 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 22:35] backend-hardener — PERF_WIN
+- **What**: PAMEngine perf hunt #9. Two bottlenecks fixed: (1) per-call sqlite3.connect() replaced with thread-local persistent connection keyed per db_path; (2) get_pam_stats() collapsed from 6 sequential SELECTs to 2 conditional-aggregation queries. Measured 16.5x speedup: 0.363ms → 0.022ms per full-read-cycle (N=500). 4 new perf tests added; 4/4 pass; 753/753 Beast Mode pass; 28/28 existing pam tests pass.
+- **Files touched**: `suite-core/core/pam_engine.py`, `tests/test_perf_pam_engine.py`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V4 (performance), V1 (reliability)
+- **SHA**: 8e5e3f64
+
+### [2026-05-05 22:30] devops-engineer — DEPLOY_SMOKE
+- **What**: Verified live deployment of features/intermediate-stage. API healthy at http://localhost:8000 (7960 routes). UI live at http://localhost:5173 (HTTP 200). UI prod build clean 3.53s. Smoke: app-security/findings returns live finding. Fixed demo-healthcheck.sh UI port 3001→5173; 7/7 PASS in 1s (DEMO-007 gate). 3 screenshots captured. Multica #3967 closed.
+- **Files touched**: `scripts/demo-healthcheck.sh`, `docs/DEPLOY_2026-05-04-night.md`, `docs/deploy_smoke_2026-05-04/{root,hub1,hub2}.png`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (platform availability), V3 (operational reliability)
+
 ### [2026-05-05 22:25] backend-hardener — PERF_HUNT_8
 - **What**: Pre-compiled 3 hot regex groups in `dast_engine.py`: `SQL_ERROR_PATTERNS` (9 patterns) → `_SQL_ERROR_RE` combined, 5 stack-trace patterns → `_STACK_TRACE_RE`, server version → `_SERVER_VERSION_RE`. Eliminates per-call re.compile inside scan loops. Measured: SQLi no-match 3.2x faster, stack-trace no-match 11.2x faster (100K iterations). 26 regression+perf tests all PASS. Beast Mode 753/753.
 - **Files touched**: `suite-core/core/dast_engine.py`, `tests/test_perf_dast_engine_regex.py` (new)
