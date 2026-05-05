@@ -20,16 +20,17 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ShieldCheck, BarChart3, Fingerprint } from "lucide-react";
+import { ShieldCheck, BarChart3, Fingerprint, Grid3x3 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { AccessMatrixPanel } from "@/components/access-matrix/AccessMatrixPanel";
 
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
 
-type TabKey = "governance" | "analytics" | "digital";
+type TabKey = "governance" | "analytics" | "digital" | "access-matrix";
 
 const TABS: Array<{
   key: TabKey;
@@ -57,6 +58,13 @@ const TABS: Array<{
     icon: Fingerprint,
     description:
       "Digital identity inventory and lifecycle stats (Folded from DigitalIdentityDashboard).",
+  },
+  {
+    key: "access-matrix",
+    label: "Access Matrix",
+    icon: Grid3x3,
+    description:
+      "Roles × resource-types permission grid — effective access levels per ALDECI RBAC role. Live from /api/v1/access-matrix/.",
   },
 ];
 
@@ -129,6 +137,11 @@ export default function IdentityGovernanceHub() {
         </TabsContent>
         <TabsContent value="digital">
           <Suspense fallback={<PageSkeleton />}>
+          </Suspense>
+        </TabsContent>
+        <TabsContent value="access-matrix">
+          <Suspense fallback={<PageSkeleton />}>
+            <AccessMatrixPanel />
           </Suspense>
         </TabsContent>
       </Tabs>

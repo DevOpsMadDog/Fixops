@@ -331,6 +331,11 @@ export const integrationsApi = {
   configure: (id: string, data: unknown) => api.put(`/api/v1/integrations/${id}`, data),
 };
 
+export const connectorsApi = {
+  types: () => api.get("/api/v1/connectors/types"),
+  list: () => api.get("/api/v1/connectors"),
+};
+
 export const reportsApi = {
   list: () => api.get("/api/v1/reports"),
   generate: (data: unknown) => api.post("/api/v1/reports/generate", data),
@@ -364,6 +369,8 @@ export const workflowsApi = {
 export const auditApi = {
   list: (params?: Record<string, unknown>) => api.get("/api/v1/audit", { params }),
   logs: (params?: Record<string, unknown>) => api.get("/api/v1/audit/logs", { params }),
+  /** Convenience: fetch the N most recent audit log entries (default 50). */
+  recentLogs: (limit = 50) => api.get("/api/v1/audit/logs", { params: { limit } }),
   getLog: (id: string) => api.get(`/api/v1/audit/logs/${id}`),
   exportLogs: (params?: Record<string, unknown>) => api.get("/api/v1/audit/logs/export", { params }),
   decisionTrail: (params?: Record<string, unknown>) => api.get("/api/v1/audit/decision-trail", { params }),
@@ -371,6 +378,22 @@ export const auditApi = {
   policyChanges: () => api.get("/api/v1/audit/policy-changes"),
   verify: () => api.post("/api/v1/audit/verify-chain"),
   complianceFrameworks: () => api.get("/api/v1/audit/compliance/frameworks"),
+};
+
+/** Incidents — /api/v1/incidents/ (incident_response_router.py, commit 2fa0171e)
+ *  Index response shape: { router, org_id, stats, items, total, limit, offset }
+ *  List  response shape: { incidents: [...], count }
+ */
+export const incidentsApi = {
+  list: (params?: { status?: string; severity?: string; limit?: number; offset?: number; org_id?: string }) =>
+    api.get("/api/v1/incidents/", { params }),
+  get: (id: string) => api.get(`/api/v1/incidents/${id}`),
+  stats: (orgId = "default") => api.get("/api/v1/incidents/stats", { params: { org_id: orgId } }),
+  create: (data: Record<string, unknown>) => api.post("/api/v1/incidents/", data),
+  updateStatus: (id: string, status: string, notes?: string) =>
+    api.post(`/api/v1/incidents/${id}/status`, { status, notes }),
+  addTimeline: (id: string, event: Record<string, unknown>) =>
+    api.post(`/api/v1/incidents/${id}/timeline`, event),
 };
 
 export const policiesApi = {
@@ -574,6 +597,25 @@ export const marketplaceApi = {
   purchase: (itemId: string) => api.post(`/api/v1/marketplace/purchase/${itemId}`),
   contribute: (data: unknown) => api.post("/api/v1/marketplace/contribute", data),
   contributors: () => api.get("/api/v1/marketplace/contributors"),
+};
+
+// ── Access Control Matrix ──
+export const accessMatrixApi = {
+  /** GET /api/v1/access-matrix/ — stats + resource types */
+  index: (orgId = "default") =>
+    api.get("/api/v1/access-matrix/", { params: { org_id: orgId } }),
+  /** GET /api/v1/access-matrix/stats */
+  stats: (orgId = "default") =>
+    api.get("/api/v1/access-matrix/stats", { params: { org_id: orgId } }),
+  /** GET /api/v1/access-matrix/matrix — full roles × resource-types grid */
+  matrix: (orgId = "default") =>
+    api.get("/api/v1/access-matrix/matrix", { params: { org_id: orgId } }),
+  /** GET /api/v1/access-matrix/rules */
+  rules: (orgId = "default") =>
+    api.get("/api/v1/access-matrix/rules", { params: { org_id: orgId } }),
+  /** GET /api/v1/access-matrix/permissions/:role */
+  permissions: (role: string, orgId = "default") =>
+    api.get(`/api/v1/access-matrix/permissions/${role}`, { params: { org_id: orgId } }),
 };
 
 // ── MCP (Model Context Protocol) ──
