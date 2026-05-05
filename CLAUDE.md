@@ -201,8 +201,18 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 **Open security debt:**
 - 117 dependabot vulns on default branch (frozen `suite-ui/aldeci/` deleted in commit 5f415a1d — retired ~17 vulns; CI/dev scripts repointed to `suite-ui/aldeci-ui-new/`)
-- 29 deferred empty-endpoints needing real-source importers (`docs/empty_endpoints_triage_2026-04-26.md`)
+- ~12-15 deferred empty-endpoints still needing real-source importers (was 29; 12-17 wired 2026-05-04 night — see commits below)
 - ~13,100 legacy code-quality violations from TrueCourse audit (hot paths cleaned, rest sprint-able)
+
+**VERIFIED FIXED 2026-05-04 night (remove from platform-gaps list):**
+- RSA-4096 key cache — DONE: 3-layer cache in `suite-core/core/crypto.py` (`RSAKeyManager._KEY_CACHE` + disk persist at `data/keys/*.pem` + module singleton). No action needed.
+- `/api/v1/risk-scoring/summary` 404 — FALSE ALARM: was a 401 unauthenticated probe; route returns 200 with correct shape when `X-API-Key` supplied. Smoke suite added (commit `2bd8b399`, 8 tests).
+- pip-audit SARIF conversion gap — DONE: `PipAuditNormalizer` + `pip_audit_to_sarif()` in `suite-core/core/scanner_parsers.py` with 24-test coverage at `tests/test_pip_audit_sarif.py`.
+
+**Wired this session (2026-05-04 night):**
+- 100% UI hub coverage — 168/168 tabs wired (zero SHELL stubs remaining)
+- 12+ stub endpoints replaced with real engine calls (commits: `10874d63`, `5ea1571e`, `8833cec8`, `2858a7a3`, `e33906e4`, `182c2943`, `2fa0171e`, `33c833c3`, `559362ad`, `f410e978`, `24d7856d`, `5e8035b1`, `e83562de`)
+- 2 performance fixes: `rank_findings` 15.6x speedup (N sqlite connects → 1 executemany, commit `40b83361`); SOAR `list_playbooks` stub replaced with real engine call (commit `e83562de`)
 
 **Full per-session history:** `docs/SESSION_HISTORY.md` (1130 lines, Wave 6 → Wave 60+).
 
@@ -247,7 +257,7 @@ _2026-05-05 session: 25 sweeps, 9 real bugs caught + closed, 0 shipped, 0 vulns 
 | Backend engines | **463** (measured 2026-05-05; unchanged) | `ls suite-core/core/*_engine.py \| wc -l` |
 | API routers | **798** (measured 2026-05-05; unchanged) | `ls suite-api/apps/api/*_router.py \| wc -l` |
 | API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved**; check next session — boot ~10s) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
-| Frontend pages | **239** (measured 2026-05-05; was 177 — **+62** since last measure; Phase 3 EXHAUSTED) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
+| Frontend pages | **~289** (239 measured 2026-05-05 + ~50 panel files added 2026-05-04 night; recount next session) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
 | Beast Mode tests | **1078+ passing (13-file canonical + 84 new tests from 2026-05-05 qa wave), zero regressions** (2026-05-05) + **42/42 hub smoke** + **10/10 DoD E2E smoke** + **perf=182 markers / owasp=47 markers** | `pytest tests/test_phase*.py ... -q` |
 | Session lockdown tests | **5/5 files present** (all created 2026-05-05 night session: test_health, test_owasp_regression_lockdown, test_engine_router_import_sweep, test_no_unsafe_asyncio_run, test_no_unawaited_coroutines_at_import) | `ls tests/test_*lockdown* tests/test_health.py tests/test_engine_router_import_sweep.py tests/test_no_unsafe_asyncio_run.py tests/test_no_unawaited_coroutines_at_import.py \| wc -l` |
