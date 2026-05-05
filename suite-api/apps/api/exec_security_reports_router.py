@@ -2,11 +2,16 @@
 Executive Security Risk Report API endpoints — ALDECI.
 
 Endpoints:
-  POST /api/v1/reports/executive              — generate executive report
-  POST /api/v1/reports/compliance/{framework} — generate compliance evidence package
-  POST /api/v1/reports/findings/export        — CSV findings export
-  GET  /api/v1/reports/recent                 — list recent reports (in-memory store)
-  GET  /api/v1/reports/{report_id}            — retrieve a report by ID
+  POST /api/v1/reports/executive                      — generate executive report
+  POST /api/v1/reports/compliance/{framework}         — generate compliance evidence package
+  POST /api/v1/reports/findings/export                — CSV findings export
+  GET  /api/v1/reports/executive/recent               — list recent executive reports (in-memory)
+  GET  /api/v1/reports/executive/{report_id}          — retrieve an executive report by ID
+
+NOTE: /recent and /{report_id} were previously mounted at /api/v1/reports/recent and
+/api/v1/reports/{report_id}, which caused the /{report_id} catch-all to shadow
+reports_router's /templates, /stats, /schedules/* etc. routes (mount-order bug).
+Fixed 2026-05-05: moved under /executive/ sub-path.
 
 Protected by API key + read:evidence scope (injected via app.include_router dependencies).
 """
@@ -18,7 +23,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from core.report_generator import ExecutiveReportGenerator, ReportDocument
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -170,29 +175,9 @@ def export_findings_csv(body: FindingsExportRequest) -> PlainTextResponse:
     )
 
 
-@router.get("/recent", summary="List recently generated reports")
-def list_recent_reports(
-    limit: int = Query(20, ge=1, le=50, description="Maximum number of reports to return"),
-) -> Dict[str, Any]:
-    """Return metadata for recently generated reports (this process lifetime)."""
-    items = list(_recent_reports.values())
-    # Most recent first (dict preserves insertion order in Python 3.7+)
-    items = list(reversed(items))[:limit]
-    return {"total": len(items), "reports": items}
-
-
-@router.get("/{report_id}", summary="Get report content by ID")
-def get_report(report_id: str) -> Dict[str, Any]:
-    """
-    Retrieve a previously generated report by its ID.
-
-    Only reports generated in the current process lifetime are available
-    (no persistent storage for generated HTML).
-    """
-    doc_meta = _recent_reports.get(report_id)
-    if not doc_meta:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Report '{report_id}' not found. Reports are retained only for the lifetime of this process.",
-        )
-    return doc_meta
+# NOTE: GET /recent and GET /{report_id} were removed 2026-05-05.
+# They were previously at /api/v1/reports/recent and /api/v1/reports/{report_id},
+# where the /{report_id} catch-all shadowed reports_router's /templates, /stats,
+# /schedules/* routes (mount-order bug — this router is registered before reports_router
+# via grc_app.py). Retrieval of executive reports is now served by executive_report_router
+# at /api/v1/reports/executive/{report_id} (prefix owns that namespace).
