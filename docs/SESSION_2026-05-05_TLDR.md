@@ -8,6 +8,8 @@
 - **0 vulnerabilities** in Python (57 pkgs) and npm (413 pkgs)
 - **Production build live** (3.10s); previously broken
 - **CI gates wired**: OWASP regression + UI build verification
+- **25 regression sweeps** (was 23 — +2 from sweep #24 final certification + sweep #25 abbreviated)
+- **278 total branch commits** since main divergence (PR fast-forward eligible)
 
 ## Top 5 wins
 1. Production build restored (280 dead lazy imports removed in App.tsx)
@@ -39,4 +41,4 @@
 - Frontend bundle size optimization (529 pages)
 - 117 dependabot vulns on default branch (require main-branch work)
 
-_Final HEAD: f2ddd3b. All synced. Ready to ship._
+_Final HEAD: 718ffe19. All synced. Ready to ship._
