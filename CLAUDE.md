@@ -242,14 +242,15 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 | Layer | Count | How to check |
 |-------|-------|--------------|
-| Backend engines | **463** (measured 2026-05-05; +112 since 2026-05-03 — OWASP hardening waves added new engine files) | `ls suite-core/core/*_engine.py \| wc -l` |
-| API routers | **796** (measured 2026-05-05; +112 since 2026-05-02 — BUG-2 index routes + OWASP hardening waves) | `ls suite-api/apps/api/*_router.py \| wc -l` |
+| Backend engines | **463** (measured 2026-05-04; unchanged since 2026-05-05 measure) | `ls suite-core/core/*_engine.py \| wc -l` |
+| API routers | **798** (measured 2026-05-04; +2 since last measure at 796) | `ls suite-api/apps/api/*_router.py \| wc -l` |
 | API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved**; check next session — boot ~10s) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
-| Frontend pages | **529 recursive** (measured 2026-05-05; Phase 3 EXHAUSTED — mock-fallback removal wave in progress) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
+| Frontend pages | **177 top-level / 529 recursive** (measured 2026-05-04; Phase 3 EXHAUSTED) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
 | Beast Mode tests | **1078+ passing (13-file canonical + 84 new tests from 2026-05-05 qa wave), zero regressions** (2026-05-05) + **42/42 hub smoke** + **10/10 DoD E2E smoke** | `pytest tests/test_phase*.py ... -q` |
+| Session lockdown tests | **5/11 files present** (test_owasp_regression, test_import_sweep, test_no_unsafe_asyncio_run, test_health, test_perf_lockdown — remaining 6 not yet created) | `ls tests/test_owasp_regression.py tests/test_import_sweep.py ... \| wc -l` |
 | Graphify graph | **184,684 nodes / 577,447 edges / 9,029 communities** (last refreshed 2026-05-03 04:10 — run `graphify update . --no-llm` to refresh) | `graphify update . --no-llm` |
-| TrustGraph emit-sites | **547** across engines/routers (measured 2026-05-05; was 501 — +46 from TrustGraph batch-11/12/13 waves) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
+| TrustGraph emit-sites | **548** across engines/routers (measured 2026-05-04; was 547 — +1 since last measure) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
 
 ### Storage tech
 DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Markdown for docs.
