@@ -27,8 +27,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
-// Lazy-imported existing pages — preserved as-is so all behavior, API calls,
-// loading/error/empty states, and form interactions continue to work.
+import { SupplyChainSecurityPanel } from "@/pages/supply-chain/SupplyChainSecurityPanel";
+import { SupplyChainRiskPanel } from "@/pages/supply-chain/SupplyChainRiskPanel";
+import { SupplyChainIntelPanel } from "@/pages/supply-chain/SupplyChainIntelPanel";
 
 type TabKey = "security" | "risk" | "intel";
 
@@ -122,14 +123,17 @@ export default function SupplyChainHub() {
 
         <TabsContent value="security">
           <Suspense fallback={<PageSkeleton />}>
+            <SupplyChainSecurityPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="risk">
           <Suspense fallback={<PageSkeleton />}>
+            <SupplyChainRiskPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="intel">
           <Suspense fallback={<PageSkeleton />}>
+            <SupplyChainIntelPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
