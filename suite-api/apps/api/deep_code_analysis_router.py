@@ -131,10 +131,12 @@ async def get_stats(
 
 @router.get("/", summary="Deep code analysis index", tags=["dca"])
 async def dca_index(org_id: str = Query("default")) -> Dict[str, Any]:
-    """Return deep code analysis summary for the org."""
+    """Return deep code analysis summary and recent analyses for the org."""
     try:
         engine = _get_engine()
-        stats = engine.stats(org_id=org_id) if hasattr(engine, "stats") else {}
+        stats = engine.stats(org_id=org_id)
+        items = engine.list_analyses(org_id=org_id)
     except Exception:
         stats = {}
-    return {"router": "dca", "org_id": org_id, "stats": stats, "items": [], "count": 0}
+        items = []
+    return {"router": "dca", "org_id": org_id, "stats": stats, "items": items, "count": len(items)}
