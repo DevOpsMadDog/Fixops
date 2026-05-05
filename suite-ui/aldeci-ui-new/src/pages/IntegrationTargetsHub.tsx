@@ -26,6 +26,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
+const ProwlerPanel    = lazy(() => import("./integration-targets/ProwlerPanel"));
+const ServiceNowPanel = lazy(() => import("./integration-targets/ServiceNowPanel"));
+const SIEMPanel       = lazy(() => import("./integration-targets/SIEMPanel"));
+
 // Lazy-imported existing pages — preserved as-is so all behavior, API calls,
 // loading/error/empty states, and form interactions continue to work.
 
@@ -121,14 +125,17 @@ export default function IntegrationTargetsHub() {
 
         <TabsContent value="prowler">
           <Suspense fallback={<PageSkeleton />}>
+            <ProwlerPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="servicenow">
           <Suspense fallback={<PageSkeleton />}>
+            <ServiceNowPanel />
           </Suspense>
         </TabsContent>
         <TabsContent value="siem">
           <Suspense fallback={<PageSkeleton />}>
+            <SIEMPanel />
           </Suspense>
         </TabsContent>
       </Tabs>
