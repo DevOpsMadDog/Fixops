@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useIntegrations, useTestIntegration, useConfigureIntegration } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
-import { marketplaceApi } from "@/lib/api";
+import { marketplaceApi, connectorsApi } from "@/lib/api";
 import { toast } from "sonner";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -32,10 +32,11 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   Cloud: Cloud,
   Notification: Bell,
   Community: Users,
+  "Connector Types": Puzzle,
 };
 
-type MarketplaceCategory = "All" | "Scanners" | "ALM" | "Cloud" | "Notification" | "Community";
-const CATEGORIES: MarketplaceCategory[] = ["All", "Scanners", "ALM", "Cloud", "Notification", "Community"];
+type MarketplaceCategory = "All" | "Scanners" | "ALM" | "Cloud" | "Notification" | "Community" | "Connector Types";
+const CATEGORIES: MarketplaceCategory[] = ["All", "Scanners", "ALM", "Cloud", "Notification", "Community", "Connector Types"];
 
 // Empty default — community playbooks are loaded exclusively from the API
 const COMMUNITY_PLAYBOOKS_EMPTY: { name: string; author: string; stars: number; downloads: number; category: string; verified: boolean }[] = [];
@@ -278,6 +279,115 @@ function ConnectorDetailDialog({ connector, isInstalled, onToggle }: {
   );
 }
 
+// ── Connector Types Catalog ────────────────────────────────────────────────
+interface ConnectorTypeDescriptor {
+  type: string;
+  label: string;
+  description: string;
+  required_fields: string[];
+  optional_fields: string[];
+}
+
+function ConnectorTypesCatalog() {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["connector-types"],
+    queryFn: () => connectorsApi.types().then((r) => r.data),
+    staleTime: 120_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="h-44 rounded-xl bg-muted/40 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <p className="text-sm">Failed to load connector types catalog.</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
+      </div>
+    );
+  }
+
+  const types: ConnectorTypeDescriptor[] = Array.isArray(data?.types) ? data.types : [];
+
+  if (types.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+        <Puzzle className="h-8 w-8" />
+        <p className="text-sm">No connector types available.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {types.map((ct) => (
+        <motion.div
+          key={ct.type}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Card className="hover:shadow-md transition-shadow h-full flex flex-col">
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Puzzle className="h-4 w-4 text-primary" />
+                  </div>
+                  <CardTitle className="text-sm truncate">{ct.label}</CardTitle>
+                </div>
+                <Badge variant="outline" className="text-xs shrink-0">
+                  {ct.required_fields.length} req.
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 flex flex-col flex-1 gap-3">
+              <CardDescription className="text-xs leading-relaxed flex-1">
+                {ct.description || `Configure a ${ct.label} connector.`}
+              </CardDescription>
+              {ct.required_fields.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Required fields</p>
+                  <div className="flex flex-wrap gap-1">
+                    {ct.required_fields.map((f) => (
+                      <code key={f} className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{f}</code>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {ct.optional_fields.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Optional</p>
+                  <div className="flex flex-wrap gap-1">
+                    {ct.optional_fields.slice(0, 4).map((f) => (
+                      <code key={f} className="text-xs bg-muted/50 px-1.5 py-0.5 rounded font-mono text-muted-foreground">{f}</code>
+                    ))}
+                    {ct.optional_fields.length > 4 && (
+                      <span className="text-xs text-muted-foreground">+{ct.optional_fields.length - 4} more</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              <Button size="sm" variant="outline" className="w-full text-xs gap-1.5 mt-auto" disabled>
+                <Settings className="h-3 w-3" />
+                Configure
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 export default function Marketplace() {
   const integrationsQuery = useIntegrations();
   const refetch = useCallback(() => integrationsQuery.refetch(), [integrationsQuery]);
@@ -406,8 +516,11 @@ export default function Marketplace() {
         </TabsList>
       </Tabs>
 
+      {/* Connector Types catalog — sourced from /api/v1/connectors/types */}
+      {category === "Connector Types" && <ConnectorTypesCatalog />}
+
       {/* Connector grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {category !== "Connector Types" && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filtered.length === 0 ? (
           <div className="col-span-full text-center py-12 text-muted-foreground">
             No connectors match your search
@@ -472,7 +585,7 @@ export default function Marketplace() {
             );
           })
         )}
-      </div>
+      </div>}
 
       {/* Community playbooks */}
       {(category === "All" || category === "Community") && (
