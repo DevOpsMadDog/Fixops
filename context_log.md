@@ -1,5 +1,47 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 21:00] technical-writer — HANDOFF_DOC
+- **What**: Wrote `docs/HANDOFF_2026-05-04-night.md` — 7-bullet session summary covering 100% hub coverage, 13+ stub endpoints wired, 2 perf wins (15.6x rank_findings, license_scanner batch), 3 stale gap verifications, dependabot triage, shadow-route bug fix, 4 regression sweeps clean. Includes PR readiness table, quality notes (commit msg accuracy pattern, UI-consumer-first pattern), and 4 open threads for next session.
+- **Files touched**: `docs/HANDOFF_2026-05-04-night.md` (new, 72 lines)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (accuracy), V4 (operational clarity)
+
+### [2026-05-05 18:52] backend-hardener — PERF_FIX_LICENSE_SCANNER
+- **What**: Eliminated two N+1 execute() loops in `LicenseScanner`. `_persist_results()` and `set_policy()` both had `for row: conn.execute()` — replaced with tuple-list comprehension + single `conn.executemany()`. Added empty-list early-return guard to `_persist_results()`. 6 tests cover structural (executemany call count via `_TrackingConn` sqlite3 subclass), correctness (N=50 rows + N=30 policy keys round-trip), perf (N=50 < 200ms), and guard (empty no-op).
+- **Files touched**: `suite-core/core/license_scanner.py` (-28 LOC loop body, +8 LOC executemany), `tests/test_license_scanner_batch_persist.py` (new, 6 tests)
+- **Outcome**: SUCCESS — 6/6 new tests pass, phase4 23/23 green. SHA a3318566. Pushed.
+- **Pillar(s) served**: V3 (performance), V7 (reliability)
+
+### [2026-05-05 20:10] technical-writer — CLAUDE_MD_STALE_GAP_UPDATE
+- **What**: Removed 3 stale platform-gap entries from CLAUDE.md "Open security debt" section. Added "VERIFIED FIXED 2026-05-04" subsection (RSA cache, risk-scoring 401 false alarm, pip-audit SARIF). Updated empty-endpoints count from 29 → ~12-15. Added "Wired this session" subsection (168/168 tabs, 13 commits, 2 perf fixes). Updated Frontend pages estimate to ~289.
+- **Files touched**: CLAUDE.md (+12 lines, -2 lines)
+- **Outcome**: SUCCESS — commit 96e5a691, pushed to features/intermediate-stage
+- **Pillar(s) served**: V1 (accuracy), V4 (operational clarity)
+
+### [2026-05-05 19:45] backend-hardener — RISK_SCORING_SUMMARY_AUDIT
+- **What**: Probed /api/v1/risk-scoring/summary per CLAUDE.md platform-gaps report (404). Found false alarm — endpoint returns 200 with correct shape when auth header supplied. Root cause: original probe lacked X-API-Key → 401. Added 8-test smoke suite (tests/test_risk_scoring_router_smoke.py) covering auth guard, shape, org_id param, by_severity structure, exposure/org, exposure/trend. Auth bypass uses dependency_overrides[verify_api_key]+[api_key_auth] (mount-level+router-level). No code changes to router or engine.
+- **Files touched**: tests/test_risk_scoring_router_smoke.py (new, 119 LOC / 8 tests)
+- **Outcome**: SUCCESS — 8/8 smoke + 23/23 phase4 PASS. SHA 2bd8b399. Pushed.
+- **Pillar(s) served**: V1 (correctness), V3 (API completeness / test coverage)
+
+### [2026-05-05 19:15] backend-hardener — EMPTY_ENDPOINT_WIRE_SOAR
+- **What**: Wired /api/v1/soar/ GET index — was hardcoding `items=[]` while already fetching from SOAREngine.list_playbooks(). One-line fix: serialize playbook list into items[]. Degrades gracefully on engine error. 2 new tests, 23/23 phase4 green. SHA e83562de.
+- **Files touched**: suite-api/apps/api/soar_router.py (+10 LOC), tests/test_soar_index_wire.py (new, 2 tests)
+- **Outcome**: SUCCESS — 2/2 new tests pass, 23/23 phase4 unaffected
+- **Pillar(s) served**: V1 (real data, zero mocks), V3 (API completeness)
+
+### [2026-05-05 18:28] backend-hardener — PERF_FIX
+- **What**: Batched DB persist in `risk_prioritizer.rank_findings()` — N sqlite3.connect() calls → 1 executemany. 15.6x speedup on DB I/O (17.6ms → 1.1ms for N=50, network mocked). Added `_persist_scores_batch()`, `_score_to_row()`, `_UPSERT_SQL` constant. `_persist_score()` (single path) unchanged.
+- **Files touched**: `suite-core/core/risk_prioritizer.py`, `tests/test_risk_prioritizer_batch_persist.py` (5 new tests)
+- **Outcome**: SUCCESS — 5/5 new tests pass, 23/23 phase4 regression green. SHA 40b83361.
+- **Pillar(s) served**: V3 (performance), V7 (reliability)
+
+### [2026-05-05 18:14] qa-engineer — BEAST_MODE_REGRESSION
+- **What**: Full Beast Mode regression #79 — 13 canonical files, 753/753 passed in 9.85s at HEAD c3fb37b8
+- **Files touched**: (read-only — no code modified)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1, V4
+
 ### [2026-05-05 18:30] frontend-craftsman — SALVAGE_AND_PARTIAL_HUB_FINISH
 - **What**: Part 1 — salvaged EmailThreatProtectionHub (3 tabs: email/phishing/ransomware → /api/v1/email-filtering, /api/v1/phishing, /api/v1/ransomware-protection) and IncidentExtensionsHub (3 tabs: cloud-ir/breach/comms → /api/v1/cloud-ir, /api/v1/breach-response, /api/v1/incident-comms). Both use GenericDashboard inline panels, no mocks. Part 2 — finished 3 PARTIAL hubs: DataDiscoveryHub (+2 SHELL: classification+exfiltration), IdentityGovernanceHub (+2 SHELL: analytics+digital, linter pre-filled with identityAnalyticsApi+digitalIdentityApi), VulnIntelHub (+2 SHELL: ip-rep+geolocation, linter pre-filled with ipReputationApi+threatGeolocationApi). WebhookIngestionHub bonus fix: all 3 tabs already wired by linter (catalogue+retry+dry-run), fixed React.ComponentType import. Build: 3.16s clean.
 - **Files touched**: EmailThreatProtectionHub.tsx, IncidentExtensionsHub.tsx, DataDiscoveryHub.tsx, IdentityGovernanceHub.tsx, VulnIntelHub.tsx, WebhookIngestionHub.tsx
