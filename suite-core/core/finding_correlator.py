@@ -117,6 +117,10 @@ _ATTACK_CHAIN_PATTERNS = [
 
 _SEVERITY_ORDER = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
 
+# Compiled once at import time — avoids per-call re.compile overhead in hot loops
+_RE_TAG_SPLIT = re.compile(r"[\s,_\-]+")
+_RE_CVE = re.compile(r"CVE-\d{4}-\d{4,}", re.IGNORECASE)
+
 
 def _max_severity(severities: List[str]) -> str:
     """Return the highest severity from a list."""
@@ -131,7 +135,7 @@ def _finding_tags(finding: Dict[str, Any]) -> set:
         if isinstance(val, list):
             tokens.update(str(v).lower() for v in val)
         elif isinstance(val, str):
-            tokens.update(re.split(r"[\s,_\-]+", val.lower()))
+            tokens.update(_RE_TAG_SPLIT.split(val.lower()))
     return tokens
 
 
@@ -144,8 +148,7 @@ def _extract_cve_ids(finding: Dict[str, Any]) -> List[str]:
             text = " ".join(str(v) for v in val)
         else:
             text = str(val)
-        found = re.findall(r"CVE-\d{4}-\d{4,}", text, re.IGNORECASE)
-        cves.extend(c.upper() for c in found)
+        cves.extend(c.upper() for c in _RE_CVE.findall(text))
     return list(dict.fromkeys(cves))  # deduplicate, preserve order
 
 
