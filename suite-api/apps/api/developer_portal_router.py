@@ -172,3 +172,36 @@ async def get_leaderboard(
 ) -> List[Dict[str, Any]]:
     """Return a leaderboard of developers ranked by findings fixed."""
     return _portal.get_leaderboard(org_id, limit=limit)
+
+
+# ---------------------------------------------------------------------------
+# /api/v1/developer-portal alias router — fixes smoke #4019 (hyphenated prefix)
+# ---------------------------------------------------------------------------
+
+alias_router = APIRouter(
+    prefix="/api/v1/developer-portal",
+    tags=["Developer Portal"],
+    dependencies=[Depends(api_key_auth)],
+)
+
+
+@alias_router.get("/repos", summary="Repos alias")
+async def alias_repos(
+    developer_email: str = Query("default"),
+    org_id: str = Query("default"),
+) -> List[Dict[str, Any]]:
+    owned = _portal._get_owned_repos(developer_email, org_id)
+    return [_portal.get_repo_score(r, org_id).model_dump() for r in owned]
+
+
+@alias_router.get("/findings", summary="Findings alias")
+async def alias_findings(
+    developer_email: str = Query("default"),
+    org_id: str = Query("default"),
+    author: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+) -> List[Dict[str, Any]]:
+    findings = _portal.get_my_findings(developer_email, org_id, status=status)
+    if author:
+        findings = [f for f in findings if f.get("author") == author]
+    return findings
