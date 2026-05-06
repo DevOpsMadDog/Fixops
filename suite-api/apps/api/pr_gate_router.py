@@ -745,3 +745,24 @@ async def get_history(
         "total": len(evaluations),
         "evaluations": evaluations,
     }
+
+
+@router.get("/", summary="PR Gate domain summary")
+async def pr_gate_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return a live summary of PR gate state for the organisation."""
+    policy = _get_org_policy(org_id)
+    history_store = _get_history_store()
+    prefix = f"eval:{org_id}:"
+    recent = [v for k, v in history_store.items() if k.startswith(prefix)]
+    recent.sort(key=lambda e: e.get("evaluated_at", ""), reverse=True)
+    total = len(recent)
+    passed = sum(1 for e in recent if e.get("verdict") == "pass")
+    failed = sum(1 for e in recent if e.get("verdict") == "fail")
+    warned = sum(1 for e in recent if e.get("verdict") == "warn")
+    return {
+        "router": "pr-gate",
+        "org_id": org_id,
+        "policy": policy.model_dump(),
+        "evaluations": {"total": total, "passed": passed, "failed": failed, "warned": warned},
+        "last_evaluation": recent[0] if recent else None,
+    }
