@@ -375,33 +375,32 @@ class BehavioralAnalyticsEngine:
     # ------------------------------------------------------------------
 
     def get_user_risk_profile(self, org_id: str, user_id: str) -> Dict[str, Any]:
-        """Return a risk profile for a specific user."""
+        """Return a risk profile for a specific user.
+
+        Perf: previously 5 sequential COUNT queries; now a single aggregated
+        query (COUNT(*) + SUM(CASE) + MAX) — ~5x fewer SQLite round-trips.
+        """
         with self._conn() as conn:
-            total_anomalies = conn.execute(
-                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ?",
-                (org_id, user_id),
-            ).fetchone()[0]
-
-            critical_count = conn.execute(
-                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ? AND severity = 'critical'",
-                (org_id, user_id),
-            ).fetchone()[0]
-
-            high_count = conn.execute(
-                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ? AND severity = 'high'",
-                (org_id, user_id),
-            ).fetchone()[0]
-
-            open_anomalies = conn.execute(
-                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ? AND status NOT IN ('resolved','false_positive')",
-                (org_id, user_id),
-            ).fetchone()[0]
-
-            last_row = conn.execute(
-                "SELECT detected_at FROM ba_anomalies WHERE org_id = ? AND user_id = ? ORDER BY detected_at DESC LIMIT 1",
+            row = conn.execute(
+                """
+                SELECT
+                    COUNT(*)                                                      AS total_anomalies,
+                    SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END)       AS critical_count,
+                    SUM(CASE WHEN severity = 'high'     THEN 1 ELSE 0 END)       AS high_count,
+                    SUM(CASE WHEN status NOT IN ('resolved','false_positive')
+                             THEN 1 ELSE 0 END)                                  AS open_anomalies,
+                    MAX(detected_at)                                              AS last_anomaly_at
+                FROM ba_anomalies
+                WHERE org_id = ? AND user_id = ?
+                """,
                 (org_id, user_id),
             ).fetchone()
-            last_anomaly_at = last_row["detected_at"] if last_row else None
+
+        total_anomalies  = row["total_anomalies"]  or 0
+        critical_count   = row["critical_count"]   or 0
+        high_count       = row["high_count"]        or 0
+        open_anomalies   = row["open_anomalies"]    or 0
+        last_anomaly_at  = row["last_anomaly_at"]
 
         if _anomaly_ml is not None:
             try:
