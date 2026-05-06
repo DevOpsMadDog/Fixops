@@ -2817,6 +2817,17 @@ def create_app() -> FastAPI:
     from apps.api.version_router import router as version_router
     app.include_router(version_router)  # GET /api/v1/version
 
+    # ── Import façade (P0 — Multica #4003/#4007) ──────────────────────────────
+    # Mounted early so it lands within the 800-path OpenAPI cap.
+    # Routes: POST /api/v1/import/repo, POST /api/v1/import/upload,
+    #         GET  /api/v1/import/status/{job_id}
+    try:
+        from apps.api.import_router import router as import_router
+        app.include_router(import_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Import router at /api/v1/import")
+    except Exception as _import_router_err:
+        _logger.warning("Import router not mounted: %s", _import_router_err)
+
     # Legacy /health endpoint — required by Dockerfile HEALTHCHECK and
     # scripts/docker-entrypoint.sh readiness probes that poll /health directly.
     @app.get("/health", tags=["health"])
@@ -3286,14 +3297,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Scanner Ingest router")
 
-    # Import façade — POST /api/v1/import/repo + /upload (Multica #4003)
-    try:
-        from apps.api.import_router import router as import_router
-
-        app.include_router(import_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted Import router at /api/v1/import")
-    except Exception as _import_router_err:
-        _logger.warning("Import router not mounted: %s", _import_router_err)
+    # Import façade is mounted early (near version_router) — see Multica #4007.
 
     # Scanners alias — POST /api/v1/scanners/ingest (JSON-body alias for demo path)
     if scanners_alias_router:
