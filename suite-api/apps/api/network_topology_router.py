@@ -223,6 +223,29 @@ async def topology_stats(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@router.get("/", summary="Network topology index")
+async def network_topology_index(
+    org_id: str = Query(default="default"),
+    _auth=Depends(_verify_api_key),
+) -> Dict[str, Any]:
+    """Return topology summary: node count, edge count, and stats for the org."""
+    try:
+        engine = _get_engine()
+        stats = engine.get_topology_stats(org_id)
+        nodes = engine.list_nodes(org_id)
+    except Exception as exc:
+        _logger.error("network_topology_index error: %s", exc)
+        return {"router": "network-topology", "org_id": org_id, "error": str(exc)}
+    return {
+        "router": "network-topology",
+        "org_id": org_id,
+        "node_count": stats.get("node_count", len(nodes)),
+        "edge_count": stats.get("edge_count", 0),
+        "segment_count": stats.get("segment_count", 0),
+        "stats": stats,
+    }
+
+
 @router.get("/exposure", summary="Detect external exposure to critical nodes")
 async def detect_exposure(
      org_id: str = Query(default="default"),
