@@ -522,10 +522,15 @@ def get_sync_history(asset_id: str) -> List[CMDBSyncRecord]:
 
 @router.get("/", summary="Asset inventory index", tags=["asset-inventory"])
 def asset_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Return asset inventory summary stats for the org."""
+    """Return asset inventory summary stats and top assets for the org."""
+    inv = _inv()
     try:
-        inv = _inv()
         stats = inv.get_stats(org_id=org_id) if hasattr(inv, "get_stats") else {}
     except Exception:
         stats = {}
-    return {"router": "assets", "org_id": org_id, "stats": stats, "items": [], "count": 0}
+    try:
+        assets = inv.list_assets(org_id=org_id)
+        items = [a.model_dump() for a in assets[:50]]
+    except Exception:
+        items = []
+    return {"router": "assets", "org_id": org_id, "stats": stats, "items": items, "count": len(items)}
