@@ -114,10 +114,32 @@ class RegistryScanRequest(BaseModel):
 
 @router.get("/")
 async def container_runtime_index() -> Dict[str, Any]:
-    """Return container runtime security service capabilities summary."""
+    """Return container runtime security service capabilities + live engine stats."""
+    try:
+        from core.container_runtime import get_container_runtime_engine
+        engine = get_container_runtime_engine()
+        policies = engine.policy_engine.list_policies()
+        policy_count = len(policies)
+        engine_available = True
+    except Exception as exc:
+        _logger.warning("container_runtime_index: engine unavailable: %s", exc)
+        policy_count = 0
+        engine_available = False
+
     return {
         "service": "container-runtime-security",
         "version": "1.0.0",
+        "engine_available": engine_available,
+        "policies_configured": policy_count,
+        "capabilities": [
+            "image-analysis",
+            "runtime-policy",
+            "drift-detection",
+            "vuln-mapping",
+            "cis-benchmark",
+            "image-signing",
+            "registry-scan",
+        ],
         "endpoints": [
             "POST /images/analyse",
             "POST /policies",
@@ -128,15 +150,6 @@ async def container_runtime_index() -> Dict[str, Any]:
             "POST /compliance/cis",
             "POST /images/verify-signature",
             "POST /registries/scan",
-        ],
-        "capabilities": [
-            "image-analysis",
-            "runtime-policy",
-            "drift-detection",
-            "vuln-mapping",
-            "cis-benchmark",
-            "image-signing",
-            "registry-scan",
         ],
         "status": "operational",
     }
