@@ -95,7 +95,7 @@ When the user says "test with real apps", that means **onboard them as real tena
 | **Agent Memory Bridge** | ✅ ACTIVE | `suite-core/core/agent_memory_bridge.py` — per-agent namespace memory. 124 commits backfilled across 10 specialist namespaces. Tomorrow's agents inherit context. |
 | **Agent Routing Advisor** | ✅ ACTIVE | `tools/agent_routing_advisor.py` — Q-Learning task→agent router (118 states / 372 routing rows). |
 | **LLM Phase 2 distillation** | ✅ SCAFFOLDED | `scripts/llm_distill_*.py` + `llm_distill_router.py`. Qwen 2.5 7B + LoRA r=16 + 4-bit nf4. Cost-guard via `FIXOPS_DISTILL_TRAIN=1`. Triggers at 10K DPO pairs. |
-| **ruflo (claude-flow v3.5.80)** | 🟡 PARTIAL — AgentDB only | **ACTIVE-USED**: AgentDB schema + 5 AgentDB skills + 2 ReasoningBank skills + HNSW `vector_indexes` + async drain daemon. **BROKEN**: hive-mind autonomous executor (no `task run` subcommand). **NOT-USED**: 27 hooks, 12 background workers, 98 agent templates, 18 of 26 CLI commands. **Full audit**: `docs/ruflo_full_audit_2026-04-26.md`. |
+| **ruflo (claude-flow v3.5.80)** | 🟡 PARTIAL — AgentDB only | **ACTIVE-USED**: AgentDB schema + 5 AgentDB skills + 2 ReasoningBank skills + HNSW `vector_indexes` + async drain daemon. **BROKEN**: hive-mind autonomous executor (no `task run` subcommand). **NOT-USED**: 27 hooks, 12 background workers, 98 agent templates, 18 of 26 CLI commands. **Full audit**: `docs/ruflo_full_audit_2026-04-26.md`. **2026-05-06 RE-VERIFIED**: hive-mind spawn --claude -n N still launches only 1 interactive claude (arg parser eats -o objective, treats -n as obj). Use native Agent tool with model="haiku" instead — 60x cheaper than Opus, see memory feedback_ruflo_vs_native_agent_truth.md. |
 
 ### DORMANT / RETIRED:
 
