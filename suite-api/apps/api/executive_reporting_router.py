@@ -474,7 +474,6 @@ async def exec_reporting_index(org_id: str = Query("default")) -> Dict[str, Any]
     try:
         engine = _get_engine()
         reports = engine.list_reports(org_id=org_id) if hasattr(engine, "list_reports") else []
-        count = len(reports)
     except Exception:
-        count = 0
-    return {"router": "exec-reporting", "org_id": org_id, "items": [], "count": count}
+        reports = []
+    return {"router": "exec-reporting", "org_id": org_id, "items": reports, "count": len(reports)}
