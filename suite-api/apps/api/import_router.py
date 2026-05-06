@@ -187,21 +187,91 @@ async def import_upload(
 
         _logger.info("Extracted upload %s → %s (%d bytes)", filename, extract_dir, len(raw))
 
-        # Run SAST engine on extracted files
+        # Run SAST engine on extracted files and persist findings
         try:
             from core.sast_engine import SASTEngine
+            from apps.api.findings_routes import _findings_store
 
             sast = SASTEngine()
-            sast.scan_directory(extract_dir, org_id=org_id, job_id=job_id)
+            result = sast.scan_path(extract_dir)
+            now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+            for finding in result.findings:
+                fid = f"sast-{job_id}-{uuid.uuid4().hex[:8]}"
+                _findings_store[fid] = {
+                    "id": fid,
+                    "title": finding.rule_id or "SAST Finding",
+                    "description": getattr(finding, "message", str(finding)),
+                    "severity": getattr(finding, "severity", "medium"),
+                    "status": "open",
+                    "connector": "import-upload",
+                    "asset_id": org_id,
+                    "cve_id": None,
+                    "risk_score": 5.0,
+                    "created_at": now,
+                    "updated_at": now,
+                    "last_seen": now,
+                    "job_id": job_id,
+                    "org_id": org_id,
+                    "filename": filename,
+                    "file_path": getattr(finding, "filename", None),
+                    "line": getattr(finding, "line_number", None),
+                }
+            _logger.info(
+                "SAST scan complete for job %s: %d findings persisted",
+                job_id,
+                len(result.findings),
+            )
         except Exception as exc:
             _logger.warning("SAST engine skipped (non-fatal): %s", exc)
 
-        # Run secrets scanner
+        # Run secrets scanner (async scan_content per file)
         try:
+            import asyncio
             from core.secrets_scanner import SecretScannerEngine
+            from apps.api.findings_routes import _findings_store
 
             secrets = SecretScannerEngine()
-            secrets.scan_directory(extract_dir, org_id=org_id, job_id=job_id)
+            import os as _os
+            now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+            secret_count = 0
+            for root, _dirs, files in _os.walk(extract_dir):
+                for fname in files:
+                    fpath = _os.path.join(root, fname)
+                    try:
+                        content = open(fpath, encoding="utf-8", errors="replace").read()
+                        loop = asyncio.new_event_loop()
+                        scan_result = loop.run_until_complete(
+                            secrets.scan_content(content, filename=fname)
+                        )
+                        loop.close()
+                        for secret in (scan_result if isinstance(scan_result, list) else []):
+                            fid = f"secret-{job_id}-{uuid.uuid4().hex[:8]}"
+                            _findings_store[fid] = {
+                                "id": fid,
+                                "title": secret.get("type", "Secret Detected"),
+                                "description": secret.get("description", "Potential secret found"),
+                                "severity": "high",
+                                "status": "open",
+                                "connector": "import-upload",
+                                "asset_id": org_id,
+                                "cve_id": None,
+                                "risk_score": 8.0,
+                                "created_at": now,
+                                "updated_at": now,
+                                "last_seen": now,
+                                "job_id": job_id,
+                                "org_id": org_id,
+                                "filename": filename,
+                                "file_path": fname,
+                            }
+                            secret_count += 1
+                    except Exception:
+                        continue
+            _logger.info(
+                "Secrets scan complete for job %s: %d findings persisted",
+                job_id,
+                secret_count,
+            )
         except Exception as exc:
             _logger.debug("Secrets scanner skipped (non-fatal): %s", exc)
 
@@ -235,9 +305,25 @@ async def import_upload(
 )
 def import_status(job_id: str, org_id: str = "default") -> Dict[str, Any]:
     """
-    Lightweight status check.  Delegates to devsecops engine run lookup.
-    Returns a stable envelope regardless of whether the engine is available.
+    Lightweight status check.  Checks findings_store for persisted findings from this job,
+    then falls back to devsecops engine run lookup.
     """
+    # Primary: check how many findings were written for this job_id
+    try:
+        from apps.api.findings_routes import _findings_store
+
+        job_findings = [f for f in _findings_store.values() if f.get("job_id") == job_id]
+        if job_findings:
+            return {
+                "job_id": job_id,
+                "status": "done",
+                "findings_count": len(job_findings),
+                "detail": f"Scan complete — {len(job_findings)} finding(s) persisted.",
+            }
+    except Exception as exc:
+        _logger.debug("findings_store lookup failed: %s", exc)
+
+    # Secondary: devsecops engine run lookup
     try:
         from core.devsecops_engine import get_devsecops_engine
 
@@ -248,4 +334,4 @@ def import_status(job_id: str, org_id: str = "default") -> Dict[str, Any]:
     except Exception as exc:
         _logger.debug("Status lookup fallback: %s", exc)
 
-    return {"job_id": job_id, "status": "processing", "detail": "Scan is in progress."}
+    return {"job_id": job_id, "status": "queued", "detail": "Scan queued — no findings yet."}
