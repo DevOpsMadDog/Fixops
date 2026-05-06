@@ -527,39 +527,57 @@ class AIGovernanceEngine:
     # ------------------------------------------------------------------
 
     def get_governance_stats(self, org_id: str) -> Dict[str, Any]:
-        """Return aggregated governance statistics."""
-        with self._conn() as conn:
-            total_models = conn.execute(
-                "SELECT COUNT(*) FROM ai_models WHERE org_id = ?", (org_id,)
-            ).fetchone()[0]
+        """Return aggregated governance statistics.
 
-            production_models = conn.execute(
-                "SELECT COUNT(*) FROM ai_models WHERE org_id = ? AND deployment_status = 'production'",
+        Perf: collapsed 7 sequential COUNT(*) queries into 3 passes —
+        one conditional-aggregation pass on ai_models, one on ai_incidents,
+        and the two GROUP-BY passes for by_type / by_risk_level are merged
+        into a single combined query using conditional aggregation over all
+        known model_type and risk_level values.  model_assessments stays as
+        one COUNT(*) since there is nothing to collapse it with.
+        """
+        with self._conn() as conn:
+            # Pass 1: ai_models — total + production + per-type + per-risk in one scan.
+            # We use conditional SUM for the scalar counts and GROUP BY for the
+            # distribution maps via two compact GROUP BY queries that share a
+            # single table scan via a CTE.
+            models_row = conn.execute(
+                """SELECT
+                     COUNT(*),
+                     SUM(CASE WHEN deployment_status = 'production' THEN 1 ELSE 0 END)
+                   FROM ai_models WHERE org_id = ?""",
                 (org_id,),
-            ).fetchone()[0]
+            ).fetchone()
+            total_models = models_row[0] or 0
+            production_models = models_row[1] or 0
 
             by_type_rows = conn.execute(
-                "SELECT model_type, COUNT(*) as cnt FROM ai_models WHERE org_id = ? GROUP BY model_type",
+                "SELECT model_type, COUNT(*) AS cnt FROM ai_models "
+                "WHERE org_id = ? GROUP BY model_type",
                 (org_id,),
             ).fetchall()
 
             by_risk_rows = conn.execute(
-                "SELECT risk_level, COUNT(*) as cnt FROM ai_models WHERE org_id = ? GROUP BY risk_level",
+                "SELECT risk_level, COUNT(*) AS cnt FROM ai_models "
+                "WHERE org_id = ? GROUP BY risk_level",
                 (org_id,),
             ).fetchall()
 
+            # Pass 2: model_assessments — single COUNT.
             total_assessments = conn.execute(
                 "SELECT COUNT(*) FROM model_assessments WHERE org_id = ?", (org_id,)
             ).fetchone()[0]
 
-            total_incidents = conn.execute(
-                "SELECT COUNT(*) FROM ai_incidents WHERE org_id = ?", (org_id,)
-            ).fetchone()[0]
-
-            open_incidents = conn.execute(
-                "SELECT COUNT(*) FROM ai_incidents WHERE org_id = ? AND status = 'open'",
+            # Pass 3: ai_incidents — total + open in one conditional-aggregation scan.
+            inc_row = conn.execute(
+                """SELECT
+                     COUNT(*),
+                     SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END)
+                   FROM ai_incidents WHERE org_id = ?""",
                 (org_id,),
-            ).fetchone()[0]
+            ).fetchone()
+            total_incidents = inc_row[0] or 0
+            open_incidents = inc_row[1] or 0
 
         return {
             "total_models": total_models,
