@@ -464,21 +464,24 @@ class AccessGovernanceEngine:
     # ------------------------------------------------------------------
 
     def get_access_summary(self, org_id: str) -> Dict[str, Any]:
-        """Return access governance summary statistics."""
+        """Return access governance summary statistics.
+
+        Perf: collapsed 3 per-status COUNT(*) queries on entitlements into a
+        single CASE-aggregate scan (3 queries → 1 for that table), reducing
+        total round-trips from 5 to 3.
+        """
         with self._conn() as conn:
-            total_entitlements = conn.execute(
-                "SELECT COUNT(*) FROM entitlements WHERE org_id = ?", (org_id,)
-            ).fetchone()[0]
-
-            active_count = conn.execute(
-                "SELECT COUNT(*) FROM entitlements WHERE org_id = ? AND status = 'active'",
+            ent_row = conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'active'  THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN status = 'revoked' THEN 1 ELSE 0 END) AS revoked
+                FROM entitlements
+                WHERE org_id = ?
+                """,
                 (org_id,),
-            ).fetchone()[0]
-
-            revoked_count = conn.execute(
-                "SELECT COUNT(*) FROM entitlements WHERE org_id = ? AND status = 'revoked'",
-                (org_id,),
-            ).fetchone()[0]
+            ).fetchone()
 
             violations_open = conn.execute(
                 "SELECT COUNT(*) FROM sod_violations WHERE org_id = ? AND status = 'open'",
@@ -494,9 +497,9 @@ class AccessGovernanceEngine:
             ).fetchone()[0]
 
         return {
-            "total_entitlements": total_entitlements,
-            "active_entitlements": active_count,
-            "revoked_entitlements": revoked_count,
+            "total_entitlements": ent_row[0] or 0,
+            "active_entitlements": ent_row[1] or 0,
+            "revoked_entitlements": ent_row[2] or 0,
             "violations_open": violations_open,
             "high_risk_roles": high_risk_roles,
         }
