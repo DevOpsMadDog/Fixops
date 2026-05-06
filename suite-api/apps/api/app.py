@@ -6773,6 +6773,10 @@ def create_app() -> FastAPI:
         app.include_router(versioning_router)
         _logger.info("Mounted API Versioning router at /api/versions")
 
+    if incident_response_router is not None:
+        app.include_router(incident_response_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Incident Response router at /api/v1/incidents")
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they
