@@ -191,17 +191,23 @@ async def import_upload(
         try:
             from core.sast_engine import SASTEngine
             from apps.api.findings_routes import _findings_store
+            from core.security_findings_engine import SecurityFindingsEngine
 
             sast = SASTEngine()
             result = sast.scan_path(extract_dir)
             now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+            _sfe = SecurityFindingsEngine()
             for finding in result.findings:
                 fid = f"sast-{job_id}-{uuid.uuid4().hex[:8]}"
-                _findings_store[fid] = {
+                title = finding.rule_id or "SAST Finding"
+                description = getattr(finding, "message", str(finding))
+                severity = getattr(finding, "severity", "medium")
+                file_path = getattr(finding, "filename", None)
+                row = {
                     "id": fid,
-                    "title": finding.rule_id or "SAST Finding",
-                    "description": getattr(finding, "message", str(finding)),
-                    "severity": getattr(finding, "severity", "medium"),
+                    "title": title,
+                    "description": description,
+                    "severity": severity,
                     "status": "open",
                     "connector": "import-upload",
                     "asset_id": org_id,
@@ -213,9 +219,27 @@ async def import_upload(
                     "job_id": job_id,
                     "org_id": org_id,
                     "filename": filename,
-                    "file_path": getattr(finding, "filename", None),
+                    "file_path": file_path,
                     "line": getattr(finding, "line_number", None),
                 }
+                _findings_store[fid] = row
+                # Persist to canonical SQLite store — survives restart
+                try:
+                    _sfe.record_finding(
+                        org_id=org_id,
+                        title=title,
+                        finding_type="vulnerability",
+                        source_tool="SAST",
+                        severity=severity if severity in ("critical", "high", "medium", "low", "informational") else "medium",
+                        cvss_score=5.0,
+                        asset_id=org_id,
+                        asset_type="repository",
+                        description=description,
+                        remediation="",
+                        scan_id=job_id,
+                    )
+                except Exception as _sfe_exc:
+                    _logger.debug("SecurityFindingsEngine write skipped: %s", _sfe_exc)
             _logger.info(
                 "SAST scan complete for job %s: %d findings persisted",
                 job_id,
@@ -229,10 +253,12 @@ async def import_upload(
             import asyncio
             from core.secrets_scanner import SecretScannerEngine
             from apps.api.findings_routes import _findings_store
+            from core.security_findings_engine import SecurityFindingsEngine
 
             secrets = SecretScannerEngine()
             import os as _os
             now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+            _sfe2 = SecurityFindingsEngine()
             secret_count = 0
             for root, _dirs, files in _os.walk(extract_dir):
                 for fname in files:
@@ -246,10 +272,12 @@ async def import_upload(
                         loop.close()
                         for secret in (scan_result if isinstance(scan_result, list) else []):
                             fid = f"secret-{job_id}-{uuid.uuid4().hex[:8]}"
-                            _findings_store[fid] = {
+                            title = secret.get("type", "Secret Detected")
+                            description = secret.get("description", "Potential secret found")
+                            row = {
                                 "id": fid,
-                                "title": secret.get("type", "Secret Detected"),
-                                "description": secret.get("description", "Potential secret found"),
+                                "title": title,
+                                "description": description,
                                 "severity": "high",
                                 "status": "open",
                                 "connector": "import-upload",
@@ -264,6 +292,24 @@ async def import_upload(
                                 "filename": filename,
                                 "file_path": fname,
                             }
+                            _findings_store[fid] = row
+                            # Persist to canonical SQLite store — survives restart
+                            try:
+                                _sfe2.record_finding(
+                                    org_id=org_id,
+                                    title=title,
+                                    finding_type="secret-exposure",
+                                    source_tool="custom",
+                                    severity="high",
+                                    cvss_score=8.0,
+                                    asset_id=org_id,
+                                    asset_type="repository",
+                                    description=description,
+                                    remediation="Rotate the secret immediately.",
+                                    scan_id=job_id,
+                                )
+                            except Exception as _sfe2_exc:
+                                _logger.debug("SecurityFindingsEngine secret write skipped: %s", _sfe2_exc)
                             secret_count += 1
                     except Exception:
                         continue
