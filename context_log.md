@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-06 21:45] qa-engineer — P06_THREAT_HUNTER_VERIFY
+- **What**: Verified P06 Threat Hunter persona coverage. Tested 3 consolidated hubs: (1) /discover/detect-respond (Threat Hunting), (2) /attack/intel/ops (Threat Intel Ops w/ 4 tabs), (3) /attack/intel/external (External Threat w/ 3 tabs). All components real React implementations, wired to 9 active backend endpoints. No mocks detected. Lazy-loading + Suspense pattern used throughout. Follows Phase 3 UX consolidation. Multica #4017 closed.
+- **Files touched**: none (verification only)
+- **Outcome**: SUCCESS — 3/3 hubs LIVE, all API-wired, ready for production
+- **Pillar(s) served**: V1 (real UI, no mocks), V10 (persona coverage)
+
 ### [2026-05-06 21:08] backend-hardener — PERSIST_IMPORT_FINDINGS
 - **What**: import_router.py upload handler now calls `SecurityFindingsEngine.record_finding()` for every SAST and secrets finding in addition to writing to `_findings_store`. Findings persist to `.fixops_data/security_findings_engine.db` keyed by `scan_id=job_id`. SFE write is non-fatal (DEBUG log on error). 1 new test `test_upload_findings_persist_to_sqlite` asserts DB is reachable post-upload and org_id integrity.
 - **Files touched**: `suite-api/apps/api/import_router.py`, `tests/test_import_router.py`
@@ -6297,3 +6303,11 @@
 - **Key findings**: import_router mounts correctly when server started with .env (FIXOPS_API_TOKEN loaded). OpenAPI schema excludes import routes due to Pydantic Dict[str,Any] forward-ref issue (cosmetic only — routes are live). POST /api/v1/import/repo → 202 queued. GET /api/v1/import/status/{id} → 200 processing. UI fires real API call on submit (0 console errors).
 - **Outcome**: SUCCESS — E2E PASS
 - **Pillar(s) served**: V1 (enterprise-grade reliability), V3 (real API data, no mocks)
+
+### [2026-05-06 21:20] qa-engineer — P04_PERSONA_SMOKE_TEST
+- **What**: Smoke test of P04 Vulnerability Manager persona across 3 hubs: /protect/vuln-intel, /protect/vuln-lifecycle, /discover/asset-inventory. All pages render HTTP 200. API wiring verified: 19/20 endpoints exist and respond (401/403 auth required). No mocks detected. Real API integration confirmed.
+- **Files touched**: (read-only inspection)
+- **Outcome**: PASS — Pages render, real API wiring confirmed, auth pattern understood
+- **Pillar(s) served**: V1 (no mocks, real data), V2 (UI delivery)
+- **Multica**: #4015 closed
+
