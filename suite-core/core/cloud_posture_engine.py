@@ -83,6 +83,10 @@ class CloudPostureEngine:
                     resolved_at DATETIME,
                     notes TEXT NOT NULL DEFAULT ''
                 );
+                CREATE INDEX IF NOT EXISTS idx_cp_findings_org_status_sev
+                    ON cp_findings(org_id, status, severity);
+                CREATE INDEX IF NOT EXISTS idx_cp_accounts_org_provider
+                    ON cp_accounts(org_id, provider);
                 """
             )
 
@@ -495,42 +499,63 @@ class CloudPostureEngine:
     # ------------------------------------------------------------------
 
     def get_posture_stats(self, org_id: str) -> Dict[str, Any]:
-        """Return aggregate posture statistics for the org."""
+        """Return aggregate posture statistics for the org.
+
+        Perf: collapsed from 6 round-trips to 2 (one scalar CTE + one GROUP BY
+        per dimension) to eliminate repeated SQLite connection overhead.
+        """
         with self._lock:
             with self._conn() as conn:
-                acc_row = conn.execute(
-                    "SELECT COUNT(*) AS cnt, AVG(posture_score) AS avg_score FROM cp_accounts WHERE org_id = ?",
-                    (org_id,),
+                # Query 1: all scalar aggregates in one pass via CTE.
+                scalar = conn.execute(
+                    """
+                    WITH accts AS (
+                        SELECT COUNT(*) AS cnt, AVG(posture_score) AS avg_score
+                        FROM cp_accounts WHERE org_id = ?
+                    ),
+                    finds AS (
+                        SELECT
+                            COUNT(*) AS total,
+                            SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS open_cnt,
+                            SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS crit_cnt
+                        FROM cp_findings WHERE org_id = ?
+                    )
+                    SELECT
+                        accts.cnt        AS total_accounts,
+                        accts.avg_score  AS avg_score,
+                        finds.total      AS total_findings,
+                        finds.open_cnt   AS open_findings,
+                        finds.crit_cnt   AS critical_findings
+                    FROM accts, finds
+                    """,
+                    (org_id, org_id),
                 ).fetchone()
-                total_accounts = acc_row["cnt"] or 0
-                avg_posture_score = round(acc_row["avg_score"] or 100.0, 2)
 
-                total_findings = conn.execute(
-                    "SELECT COUNT(*) AS cnt FROM cp_findings WHERE org_id = ?",
-                    (org_id,),
-                ).fetchone()["cnt"]
+                total_accounts = scalar["total_accounts"] or 0
+                avg_posture_score = round(scalar["avg_score"] or 100.0, 2)
+                total_findings = scalar["total_findings"] or 0
+                open_findings = scalar["open_findings"] or 0
+                critical_findings = scalar["critical_findings"] or 0
 
-                open_findings = conn.execute(
-                    "SELECT COUNT(*) AS cnt FROM cp_findings WHERE org_id = ? AND status = 'open'",
-                    (org_id,),
-                ).fetchone()["cnt"]
-
-                critical_findings = conn.execute(
-                    "SELECT COUNT(*) AS cnt FROM cp_findings WHERE org_id = ? AND severity = 'critical'",
-                    (org_id,),
-                ).fetchone()["cnt"]
-
-                provider_rows = conn.execute(
-                    "SELECT provider, COUNT(*) AS cnt FROM cp_accounts WHERE org_id = ? GROUP BY provider",
-                    (org_id,),
+                # Query 2: both GROUP BY breakdowns in a single UNION ALL pass.
+                breakdown_rows = conn.execute(
+                    """
+                    SELECT 'provider' AS dim, provider AS val, COUNT(*) AS cnt
+                    FROM cp_accounts WHERE org_id = ? GROUP BY provider
+                    UNION ALL
+                    SELECT 'severity' AS dim, severity AS val, COUNT(*) AS cnt
+                    FROM cp_findings WHERE org_id = ? GROUP BY severity
+                    """,
+                    (org_id, org_id),
                 ).fetchall()
-                by_provider = {r["provider"]: r["cnt"] for r in provider_rows}
 
-                sev_rows = conn.execute(
-                    "SELECT severity, COUNT(*) AS cnt FROM cp_findings WHERE org_id = ? GROUP BY severity",
-                    (org_id,),
-                ).fetchall()
-                by_severity = {r["severity"]: r["cnt"] for r in sev_rows}
+        by_provider: Dict[str, int] = {}
+        by_severity: Dict[str, int] = {}
+        for r in breakdown_rows:
+            if r["dim"] == "provider":
+                by_provider[r["val"]] = r["cnt"]
+            else:
+                by_severity[r["val"]] = r["cnt"]
 
         return {
             "total_accounts": total_accounts,
