@@ -802,10 +802,10 @@ async def get_ip_geo(ip: str) -> Dict[str, Any]:
 
 @router.get("/", summary="Threat intel index", tags=["threat-intel"])
 async def threat_intel_index(org_id: str = Query("default")) -> Dict[str, Any]:
-    """Return threat intel summary for the org."""
+    """Return active threat actors and landscape summary for the org."""
     try:
-        actors = _get_engine().list_actors(org_id=org_id) if hasattr(_get_engine(), "list_actors") else []
-        count = len(actors)
+        actors = _correlator.get_active_threats(org_id=org_id)
+        items = [a.model_dump(mode="json") if hasattr(a, "model_dump") else dict(a) for a in actors]
     except Exception:
-        count = 0
-    return {"router": "threat-intel", "org_id": org_id, "items": [], "count": count}
+        items = []
+    return {"router": "threat-intel", "org_id": org_id, "items": items, "count": len(items)}
