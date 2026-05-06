@@ -836,63 +836,91 @@ class RiskRegister:
     # ---- Board Report ----
 
     def get_board_report(self, org_id: str) -> BoardReport:
-        """Generate a board-level risk summary."""
+        """Generate a board-level risk summary (single-pass aggregation)."""
         risks = self._db.list_risks(org_id)
         appetites = {a.category.value: a for a in self._db.list_appetites(org_id)}
         kris = self._db.list_kris(org_id)
 
-        open_risks = [r for r in risks if r.status in (RiskStatus.OPEN, RiskStatus.IN_TREATMENT)]
-        above_appetite: List[Risk] = []
-        above_tolerance: List[Risk] = []
+        # --- single pass over risks: collect all aggregates at once ---
+        _OPEN_STATUSES = (RiskStatus.OPEN, RiskStatus.IN_TREATMENT)
+        open_count = 0
+        above_appetite_count = 0
+        above_tolerance_count = 0
+        trend_increasing = 0
+        trend_decreasing = 0
 
-        for r in risks:
-            ap = appetites.get(r.category.value)
+        # per-category accumulators
+        from collections import defaultdict
+        cat_total: Dict[str, int] = defaultdict(int)
+        cat_open: Dict[str, int] = defaultdict(int)
+        cat_residual_sum: Dict[str, float] = defaultdict(float)
+        cat_residual_max: Dict[str, float] = defaultdict(float)
+
+        # top-10 heap (avoid full sort until end); idx as tiebreaker prevents Risk comparison
+        import heapq
+        heap: list = []  # (score, idx, risk) — min-heap of size 10
+
+        for idx, r in enumerate(risks):
+            cv = r.category.value
+            rs = r.residual_risk_score
+            is_open = r.status in _OPEN_STATUSES
+
+            if is_open:
+                open_count += 1
+
+            ap = appetites.get(cv)
             if ap:
-                if r.residual_risk_score > ap.tolerance_score:
-                    above_tolerance.append(r)
-                elif r.residual_risk_score > ap.appetite_score:
-                    above_appetite.append(r)
+                if rs > ap.tolerance_score:
+                    above_tolerance_count += 1
+                elif rs > ap.appetite_score:
+                    above_appetite_count += 1
 
-        # Top 10 by residual score
-        top10 = sorted(risks, key=lambda r: r.residual_risk_score, reverse=True)[:10]
+            td = _trend_direction(r.score_history)
+            if td == "increasing":
+                trend_increasing += 1
+            elif td == "decreasing":
+                trend_decreasing += 1
 
-        # Category summary
+            cat_total[cv] += 1
+            if is_open:
+                cat_open[cv] += 1
+            cat_residual_sum[cv] += rs
+            if rs > cat_residual_max[cv]:
+                cat_residual_max[cv] = rs
+
+            # maintain top-10 min-heap
+            if len(heap) < 10:
+                heapq.heappush(heap, (rs, idx, r))
+            elif rs > heap[0][0]:
+                heapq.heapreplace(heap, (rs, idx, r))
+
+        top10 = [r for _, _i, r in sorted(heap, key=lambda x: x[0], reverse=True)]
+
+        # Category summary (O(|categories|) = O(5))
         cat_summary: Dict[str, Any] = {}
-        for cat in RiskCategory:
-            cat_risks = [r for r in risks if r.category == cat]
-            cat_summary[cat.value] = {
-                "total": len(cat_risks),
-                "open": sum(1 for r in cat_risks if r.status in (RiskStatus.OPEN, RiskStatus.IN_TREATMENT)),
-                "avg_residual": (
-                    sum(r.residual_risk_score for r in cat_risks) / len(cat_risks)
-                    if cat_risks else 0.0
-                ),
-                "max_residual": max((r.residual_risk_score for r in cat_risks), default=0.0),
-            }
-
-        # Appetite vs actual
         appetite_vs_actual: Dict[str, Any] = {}
         for cat in RiskCategory:
-            cat_risks = [r for r in risks if r.category == cat]
-            ap = appetites.get(cat.value)
-            avg_actual = (
-                sum(r.residual_risk_score for r in cat_risks) / len(cat_risks)
-                if cat_risks else 0.0
-            )
-            appetite_vs_actual[cat.value] = {
+            cv = cat.value
+            total = cat_total[cv]
+            avg_res = cat_residual_sum[cv] / total if total else 0.0
+            ap = appetites.get(cv)
+            cat_summary[cv] = {
+                "total": total,
+                "open": cat_open[cv],
+                "avg_residual": avg_res,
+                "max_residual": cat_residual_max[cv],
+            }
+            appetite_vs_actual[cv] = {
                 "appetite_score": ap.appetite_score if ap else None,
                 "tolerance_score": ap.tolerance_score if ap else None,
-                "actual_avg": round(avg_actual, 2),
-                "within_appetite": ap is None or avg_actual <= ap.appetite_score,
+                "actual_avg": round(avg_res, 2),
+                "within_appetite": ap is None or avg_res <= ap.appetite_score,
             }
 
-        # Trend summary
-        increasing = sum(1 for r in risks if _trend_direction(r.score_history) == "increasing")
-        decreasing = sum(1 for r in risks if _trend_direction(r.score_history) == "decreasing")
         trend_summary = {
-            "increasing": increasing,
-            "decreasing": decreasing,
-            "stable": len(risks) - increasing - decreasing,
+            "increasing": trend_increasing,
+            "decreasing": trend_decreasing,
+            "stable": len(risks) - trend_increasing - trend_decreasing,
         }
 
         # KRI alerts
@@ -914,9 +942,9 @@ class RiskRegister:
             generated_at=datetime.now(timezone.utc).isoformat(),
             org_id=org_id,
             total_risks=len(risks),
-            open_risks=len(open_risks),
-            risks_above_appetite=len(above_appetite),
-            risks_above_tolerance=len(above_tolerance),
+            open_risks=open_count,
+            risks_above_appetite=above_appetite_count,
+            risks_above_tolerance=above_tolerance_count,
             top_10_risks=[
                 {
                     "id": r.id,
