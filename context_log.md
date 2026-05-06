@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-06 21:08] backend-hardener — PERSIST_IMPORT_FINDINGS
+- **What**: import_router.py upload handler now calls `SecurityFindingsEngine.record_finding()` for every SAST and secrets finding in addition to writing to `_findings_store`. Findings persist to `.fixops_data/security_findings_engine.db` keyed by `scan_id=job_id`. SFE write is non-fatal (DEBUG log on error). 1 new test `test_upload_findings_persist_to_sqlite` asserts DB is reachable post-upload and org_id integrity.
+- **Files touched**: `suite-api/apps/api/import_router.py`, `tests/test_import_router.py`
+- **Outcome**: SUCCESS — 29/29 tests PASS; SHA 758cb36a; Multica #4010 closed
+- **Pillar(s) served**: V3 (persistent findings store), V5 (import pipeline hardening)
+
 ### [2026-05-06 09:10] backend-hardener — EMPTY_ENDPOINT_WIRE
 - **What**: Wired `GET /api/v1/analytics/` (analytics_dashboard_router) root from stub `items:[], count:0` to real `VulnerabilityAnalytics.get_severity_distribution()` — returns live severity buckets as `items` list with `count` matching len. 8 LOC change. 2 tests (2/2 PASS). Phase4 23/23 green. Multica #4000 closed.
 - **Files touched**: `suite-api/apps/api/analytics_dashboard_router.py`, `tests/test_empty_endpoint_23_analytics_dashboard_index.py`
