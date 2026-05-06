@@ -157,11 +157,16 @@ interface NavSection {
 }
 
 // ── Navigation data ────────────────────────────────────────────────────────
-// TRIMMED 2026-05-05: 43 leaf links → 33 leaf links (Multica #3983)
-// Removed entries are still routed in App.tsx and reachable as hub tabs.
-// Removals: Policy Lifecycle, External Threat Intel, Behavior Analytics (dupe),
-//           Maturity Model, Incident Extensions, Awareness Program, Finance Risk,
-//           Crypto & Trust, Upgrade Paths, Rules Catalog.
+// TRIMMED 2026-05-05: 38 leaf links → 21 daily-use + 10 RARE in collapsed Admin group
+// (Multica #4088 — sidebar prune to <25 visible top-level entries)
+//
+// RARE items (moved to adminItems below, hidden behind collapsible Admin group):
+//   BRS Executive, Developer Security Hub, Architect View,
+//   Identity Governance, Privileged Access (PAM),
+//   DPO Privacy Center, SBOM & Provenance, Auditor View,
+//   Integration Targets, Webhook Ingestion, Air-Gap Mode, Training & Culture
+//
+// All routes remain mounted in App.tsx and reachable via direct URL.
 
 const navSections: NavSection[] = [
   // ── 0. EXECUTIVE ─────────────────────────────────────────────────────────
@@ -175,7 +180,6 @@ const navSections: NavSection[] = [
         items: [
           { label: "CISO Dashboard", to: "/executive", icon: Crown, badge: "P01" },
           { label: "Risk Overview", to: "/mission-control/risk", icon: Target },
-          { label: "BRS Executive", to: "/brs-executive", icon: Building2 },
         ],
       },
     ],
@@ -190,7 +194,6 @@ const navSections: NavSection[] = [
         label: "Assets & Network",
         icon: HardDrive,
         items: [
-          // Data Discovery (DSPM) removed — accessible as tab inside Asset Inventory hub
           { label: "Asset Inventory", to: "/discover/assets/inventory", icon: HardDrive },
           { label: "Network Monitoring", to: "/discover/network", icon: Network },
         ],
@@ -205,17 +208,9 @@ const navSections: NavSection[] = [
         ],
       },
       {
-        label: "Developer",
-        icon: Code2,
-        items: [
-          { label: "Developer Security Hub", to: "/developer", icon: GitBranch, badge: "P20" },
-        ],
-      },
-      {
         label: "Cloud & Containers",
         icon: Cloud,
         items: [
-          // Crypto & Trust removed — accessible as tab inside Asset Inventory hub
           { label: "Cloud Posture", to: "/discover/cloud-posture", icon: Cloud },
           { label: "Container Security", to: "/discover/container-security", icon: Container },
         ],
@@ -227,7 +222,6 @@ const navSections: NavSection[] = [
           { label: "App Layer Security", to: "/discover/app-security", icon: Code2 },
           { label: "API Security", to: "/discover/api-security", icon: Wifi },
           { label: "Detect & Respond", to: "/discover/detect-respond", icon: Radar },
-          { label: "Architect View", to: "/discover/architect", icon: Network, badge: "P29" },
         ],
       },
     ],
@@ -247,18 +241,9 @@ const navSections: NavSection[] = [
         ],
       },
       {
-        label: "Identity & Access",
-        icon: UserCheck,
-        items: [
-          { label: "Identity Governance", to: "/discover/identity-governance", icon: UserCheck },
-          { label: "Privileged Access (PAM)", to: "/discover/privileged-access", icon: Key },
-        ],
-      },
-      {
         label: "Validate",
         icon: ShieldCheck,
         items: [
-          // Deception & Honeypots removed — accessible as tab inside Offensive Validation hub
           { label: "Offensive Validation", to: "/validate/offensive", icon: Crosshair, badge: "MPTE" },
           { label: "Threat Modeling", to: "/attack/threat-modeling", icon: Layers },
         ],
@@ -275,7 +260,6 @@ const navSections: NavSection[] = [
         label: "Incidents",
         icon: Siren,
         items: [
-          // Incident Extensions removed — accessible as tab inside Incident Knowledge hub
           { label: "Incident Knowledge", to: "/remediate/incidents/knowledge", icon: Siren, badge: "IR" },
           { label: "Exceptions", to: "/remediate/exceptions", icon: ShieldAlert },
         ],
@@ -284,76 +268,16 @@ const navSections: NavSection[] = [
         label: "Remediation",
         icon: Wrench,
         items: [
-          // Upgrade Paths removed — accessible as tab inside Automation & Orchestration hub
           { label: "Automation & Orchestration", to: "/remediate/automation", icon: Zap },
           { label: "Forensics", to: "/remediate/forensics", icon: ScanSearch },
         ],
       },
       {
-        label: "Hunting",
+        label: "Hunting & Intel",
         icon: Crosshair,
         items: [
           { label: "Threat Hunting", to: "/mission-control/hunt", icon: Crosshair },
           { label: "Behavior Analytics", to: "/mission-control/behavior", icon: Activity },
-        ],
-      },
-    ],
-  },
-
-  // ── 4. COMPLY ─────────────────────────────────────────────────────────────
-  {
-    section: "Comply",
-    icon: ClipboardCheck,
-    groups: [
-      {
-        label: "Frameworks & Coverage",
-        icon: ClipboardCheck,
-        items: [
-          // Rules Catalog removed — accessible as tab inside Compliance Coverage hub
-          // Policy Lifecycle removed — accessible as tab inside Policy Authoring hub
-          { label: "Compliance Coverage", to: "/comply/coverage", icon: ClipboardCheck },
-          { label: "Policy Management", to: "/comply/policies/authoring", icon: FileSignature },
-        ],
-      },
-      {
-        label: "Posture & Risk",
-        icon: BarChart3,
-        items: [
-          // Maturity Model removed — accessible as tab inside Strategic Posture hub
-          // Privacy Compliance removed — accessible as tab inside Compliance Coverage hub
-          { label: "Strategic Posture", to: "/comply/strategic-posture", icon: Target },
-          { label: "Risk Quantification", to: "/comply/risk-quant", icon: Scale },
-        ],
-      },
-      {
-        label: "Privacy & DPO",
-        icon: ShieldAlert,
-        items: [
-          { label: "DPO Privacy Center", to: "/comply/dpo", icon: ShieldAlert },
-        ],
-      },
-      {
-        label: "Evidence & Audit",
-        icon: FileCheck,
-        items: [
-          { label: "SBOM & Provenance", to: "/comply/provenance", icon: Package },
-          { label: "Auditor View", to: "/comply/auditor", icon: ScrollText },
-        ],
-      },
-    ],
-  },
-
-  // ── 5. INTELLIGENCE ───────────────────────────────────────────────────────
-  {
-    section: "Intelligence",
-    icon: Brain,
-    groups: [
-      {
-        label: "Threat Intel",
-        icon: Radar,
-        items: [
-          // External Threat Intel removed — accessible as tab inside Threat Intel Ops hub
-          // Behavior Analytics dupe removed — canonical link is in Respond/Hunting
           { label: "Threat Intel Ops", to: "/attack/intel/ops", icon: Radar },
           { label: "Threat Actors", to: "/attack/intel/actors", icon: Flag },
         ],
@@ -368,31 +292,53 @@ const navSections: NavSection[] = [
     ],
   },
 
-  // ── 6. PLATFORM ───────────────────────────────────────────────────────────
+  // ── 4. COMPLY ─────────────────────────────────────────────────────────────
   {
-    section: "Platform",
-    icon: Settings,
+    section: "Comply",
+    icon: ClipboardCheck,
     groups: [
       {
-        label: "Integrations",
-        icon: Wifi,
+        label: "Frameworks & Coverage",
+        icon: ClipboardCheck,
         items: [
-          { label: "Integration Targets", to: "/connect/targets", icon: Wifi },
-          { label: "Webhook Ingestion", to: "/connect/webhook-ingestion", icon: Rss },
-          { label: "Air-Gap Mode", to: "/connect/mcp/air-gap", icon: ShieldOff, badge: "AIRGAP" },
+          { label: "Compliance Coverage", to: "/comply/coverage", icon: ClipboardCheck },
+          { label: "Policy Management", to: "/comply/policies/authoring", icon: FileSignature },
         ],
       },
       {
-        label: "Culture & Training",
-        icon: GraduationCap,
+        label: "Posture & Risk",
+        icon: BarChart3,
         items: [
-          // Awareness Program removed — absorbed into Training & Culture hub
-          // Finance Risk removed — wrong section, accessible via Mission Control
-          { label: "Training & Culture", to: "/admin/training-culture", icon: GraduationCap },
+          { label: "Strategic Posture", to: "/comply/strategic-posture", icon: Target },
+          { label: "Risk Quantification", to: "/comply/risk-quant", icon: Scale },
         ],
       },
     ],
   },
+];
+
+// ── RARE / Admin items — hidden behind collapsed "Admin & Integrations" row ──
+// Routes still mounted in App.tsx and reachable via direct URL.
+interface AdminNavItem {
+  label: string;
+  to: string;
+  icon: LucideIcon;
+  badge?: string;
+}
+
+const adminItems: AdminNavItem[] = [
+  { label: "BRS Executive",           to: "/brs-executive",                  icon: Building2 },
+  { label: "Developer Security",      to: "/developer",                      icon: GitBranch },
+  { label: "Architect View",          to: "/discover/architect",             icon: Network   },
+  { label: "Identity Governance",     to: "/discover/identity-governance",   icon: UserCheck },
+  { label: "Privileged Access (PAM)", to: "/discover/privileged-access",     icon: Key       },
+  { label: "DPO Privacy Center",      to: "/comply/dpo",                     icon: ShieldAlert },
+  { label: "SBOM & Provenance",       to: "/comply/provenance",              icon: Package   },
+  { label: "Auditor View",            to: "/comply/auditor",                 icon: ScrollText },
+  { label: "Integration Targets",     to: "/connect/targets",                icon: Wifi      },
+  { label: "Webhook Ingestion",       to: "/connect/webhook-ingestion",      icon: Rss       },
+  { label: "Air-Gap Mode",            to: "/connect/mcp/air-gap",            icon: ShieldOff, badge: "AIRGAP" },
+  { label: "Training & Culture",      to: "/admin/training-culture",         icon: GraduationCap },
 ];
 
 // Flat navGroups derived from sections — used for breadcrumbs
@@ -700,6 +646,122 @@ function NavGroupItem({
   );
 }
 
+// ── Admin & Integrations collapsible (RARE items) ─────────────────────────
+
+function AdminGroup({ collapsed, pathname }: { collapsed: boolean; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const isAnyActive = adminItems.some(
+    (item) => pathname === item.to || pathname.startsWith(item.to + "/")
+  );
+
+  // Auto-open if current route is inside admin items
+  useEffect(() => {
+    if (isAnyActive) setOpen(true);
+  }, [isAnyActive]);
+
+  if (collapsed) {
+    return (
+      <NavTooltip label="Admin & Integrations">
+        <NavLink
+          to={adminItems[0]?.to ?? "/"}
+          className={({ isActive: active }) =>
+            cn(
+              "flex h-9 w-full items-center justify-center rounded-lg transition-all relative",
+              (active || isAnyActive)
+                ? "bg-cyan-500/15 text-cyan-400"
+                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+            )
+          }
+        >
+          {({ isActive: active }) => (
+            <>
+              {(active || isAnyActive) && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-r-full bg-cyan-400" />
+              )}
+              <Settings className="h-4 w-4 shrink-0" />
+            </>
+          )}
+        </NavLink>
+      </NavTooltip>
+    );
+  }
+
+  return (
+    <div className="mb-0.5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all relative",
+          isAnyActive
+            ? "text-foreground"
+            : "text-sidebar-foreground hover:text-foreground hover:bg-sidebar-accent/40"
+        )}
+      >
+        {isAnyActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-r-full bg-cyan-400" />
+        )}
+        <Settings className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isAnyActive ? "text-cyan-400" : "text-muted-foreground group-hover:text-foreground")} />
+        <span className="flex-1 text-left">Admin & Integrations</span>
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="ml-4 border-l border-sidebar-border/60 pl-2.5 py-0.5 space-y-px">
+              {adminItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive: active }) =>
+                    cn(
+                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] transition-all relative",
+                      active
+                        ? "bg-cyan-500/12 text-cyan-300 font-medium"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-foreground"
+                    )
+                  }
+                >
+                  {({ isActive: active }) => (
+                    <>
+                      {active && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-3 w-0.5 rounded-r-full bg-cyan-400" />
+                      )}
+                      <item.icon className={cn("h-3 w-3 shrink-0", active ? "text-cyan-400" : "text-muted-foreground/60")} />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          "ml-auto rounded px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider leading-none",
+                          item.badge === "AIRGAP"
+                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                            : "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Breadcrumbs ────────────────────────────────────────────────────────────
 
 function Breadcrumbs({ navGroups: groups, pathname }: { navGroups: NavGroup[]; pathname: string }) {
@@ -893,6 +955,18 @@ export function WorkspaceLayout() {
                 pathname={location.pathname}
               />
             ))}
+
+            {/* ── Admin & Integrations (RARE — collapsed by default) ── */}
+            <div className={cn("mt-2 pt-2 border-t border-sidebar-border/40")}>
+              {!collapsed && (
+                <div className="mb-1 px-2">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/30">
+                    Admin
+                  </span>
+                </div>
+              )}
+              <AdminGroup collapsed={collapsed} pathname={location.pathname} />
+            </div>
           </nav>
 
           {/* ── Bottom: User + actions ── */}
