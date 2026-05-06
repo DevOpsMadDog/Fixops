@@ -94,9 +94,19 @@ class AlertTriageEngine:
                 """
             )
 
+    _local = threading.local()
+
     def _conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, timeout=10)
-        conn.row_factory = sqlite3.Row
+        """Return a per-thread cached connection (avoids repeated connect overhead)."""
+        cache = self._local.__dict__
+        key = f"conn_{self.db_path}"
+        conn = cache.get(key)
+        if conn is None:
+            conn = sqlite3.connect(self.db_path, timeout=10, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            cache[key] = conn
         return conn
 
     @staticmethod
@@ -558,24 +568,22 @@ class AlertTriageEngine:
     def get_triage_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate triage statistics for the org."""
         with self._conn() as conn:
-            total = conn.execute(
-                "SELECT COUNT(*) FROM at_alerts WHERE org_id = ?", (org_id,)
-            ).fetchone()[0]
-
-            new_alerts = conn.execute(
-                "SELECT COUNT(*) FROM at_alerts WHERE org_id = ? AND status = 'new'",
+            # Single-pass conditional aggregation replaces 4 separate COUNT queries
+            agg = conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS total,
+                    COUNT(CASE WHEN status = 'new' THEN 1 END) AS new_alerts,
+                    COUNT(CASE WHEN status = 'escalated' THEN 1 END) AS escalated,
+                    COUNT(CASE WHEN status = 'false_positive' THEN 1 END) AS fp_count
+                FROM at_alerts WHERE org_id = ?
+                """,
                 (org_id,),
-            ).fetchone()[0]
-
-            escalated = conn.execute(
-                "SELECT COUNT(*) FROM at_alerts WHERE org_id = ? AND status = 'escalated'",
-                (org_id,),
-            ).fetchone()[0]
-
-            fp_count = conn.execute(
-                "SELECT COUNT(*) FROM at_alerts WHERE org_id = ? AND status = 'false_positive'",
-                (org_id,),
-            ).fetchone()[0]
+            ).fetchone()
+            total      = agg["total"]
+            new_alerts = agg["new_alerts"]
+            escalated  = agg["escalated"]
+            fp_count   = agg["fp_count"]
 
             false_positive_rate = (fp_count / total * 100.0) if total else 0.0
 
