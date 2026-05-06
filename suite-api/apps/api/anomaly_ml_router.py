@@ -464,3 +464,28 @@ def submit_feedback(body: FeedbackRequest) -> FeedbackResponse:
     except Exception as exc:
         logger.exception("Feedback submission failed for anomaly %s", body.anomaly_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/",
+    summary="Anomaly ML summary — counts and feedback stats",
+    tags=["anomaly-ml"],
+)
+def anomaly_ml_index(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return aggregate anomaly counts and feedback stats from the real engine."""
+    engine = _get_engine()
+    try:
+        anomalies: List[Any] = engine.list_anomalies(org_id=org_id)
+        feedback_stats: Dict[str, Any] = engine.get_feedback_stats(org_id=org_id)
+    except Exception as exc:
+        logger.warning("anomaly_ml_index: engine error — %s", exc)
+        anomalies = []
+        feedback_stats = {}
+    return {
+        "router": "anomaly-ml",
+        "org_id": org_id,
+        "count": len(anomalies),
+        "items": anomalies,
+        "feedback_stats": feedback_stats,
+        "status": "ok",
+    }

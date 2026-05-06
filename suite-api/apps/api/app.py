@@ -6457,6 +6457,10 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    if anomaly_ml_router is not None:
+        app.include_router(anomaly_ml_router)
+        _logger.info("Mounted Anomaly ML router at /api/v1/anomaly-ml")
+
     try:
         from apps.api.dbir_router import router as dbir_router
         app.include_router(dbir_router)
