@@ -136,6 +136,7 @@ class AuditLogger:
         self._db_path = db_path if isinstance(db_path, Path) else Path(str(db_path))
         self._lock = threading.RLock()
         self._mem_conn: Optional[sqlite3.Connection] = None
+        self._file_conn: Optional[sqlite3.Connection] = None  # persistent file-backed connection
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -148,10 +149,12 @@ class AuditLogger:
                 self._mem_conn = sqlite3.connect(":memory:", check_same_thread=False)
                 self._mem_conn.row_factory = sqlite3.Row
             return self._mem_conn
-        self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        return conn
+        # Reuse a single persistent connection per instance (thread-safe via self._lock).
+        if self._file_conn is None:
+            self._db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._file_conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
+            self._file_conn.row_factory = sqlite3.Row
+        return self._file_conn
 
     def _init_db(self) -> None:
         with self._lock:
