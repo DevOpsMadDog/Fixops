@@ -233,8 +233,11 @@ def get_asset_score(
 @router.get("/", summary="Risk index", tags=["composite-risk"])
 async def risk_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return composite risk summary for the org."""
+    if not _HAS_SCORER or _get_scorer is None:
+        return {"router": "risk", "org_id": org_id, "items": [], "count": 0}
     try:
-        top = _get_engine().get_top_risks(org_id=org_id, n=5) if hasattr(_get_engine(), "get_top_risks") else []
+        results = _get_scorer().top_risks(org_id=org_id, n=5)
+        top = [_serialise(r) for r in results]
     except Exception:
         top = []
     return {"router": "risk", "org_id": org_id, "items": top, "count": len(top)}
