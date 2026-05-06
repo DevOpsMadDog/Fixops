@@ -523,5 +523,6 @@ async def openclaw_index(org_id: str = Query("default")) -> Dict[str, Any]:
         campaigns = engine.list_campaigns(org_id=org_id) if hasattr(engine, "list_campaigns") else []
         count = len(campaigns)
     except Exception:
+        campaigns = []
         count = 0
-    return {"router": "openclaw", "org_id": org_id, "items": [], "count": count}
+    return {"router": "openclaw", "org_id": org_id, "items": campaigns, "count": count}
