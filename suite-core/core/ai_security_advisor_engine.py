@@ -1447,57 +1447,53 @@ class AISecurityAdvisorEngine:
 
         with self._lock:
             with self._conn() as conn:
-                session_count = conn.execute(
-                    "SELECT COUNT(*) FROM advisor_sessions WHERE org_id=?", (org_id,)
-                ).fetchone()[0]
+                # Single pass over advisor_sessions (was 2 separate COUNT queries)
+                sess_row = conn.execute(
+                    """SELECT
+                           COUNT(*) AS total,
+                           COUNT(*) FILTER (WHERE created_at >= ?) AS this_week
+                       FROM advisor_sessions WHERE org_id=?""",
+                    (week_ago, org_id),
+                ).fetchone()
+                session_count = sess_row["total"]
+                sessions_this_week = sess_row["this_week"]
 
-                sessions_this_week = conn.execute(
-                    "SELECT COUNT(*) FROM advisor_sessions WHERE org_id=? AND created_at>=?",
-                    (org_id, week_ago),
-                ).fetchone()[0]
-
-                implemented_count = conn.execute(
-                    "SELECT COUNT(*) FROM recommendations WHERE org_id=? AND status='implemented'",
-                    (org_id,),
-                ).fetchone()[0]
-
-                total_impact = conn.execute(
-                    "SELECT COALESCE(SUM(impact_score),0) FROM recommendations WHERE org_id=?",
-                    (org_id,),
-                ).fetchone()[0]
-
-                priority_rows = conn.execute(
-                    """SELECT priority, COUNT(*) as cnt
+                # Single pass over recommendations (was 4 separate queries)
+                rec_agg = conn.execute(
+                    """SELECT
+                           priority,
+                           status,
+                           COUNT(*) AS cnt,
+                           COALESCE(SUM(impact_score), 0) AS impact
                        FROM recommendations WHERE org_id=?
-                       GROUP BY priority""",
+                       GROUP BY priority, status""",
                     (org_id,),
                 ).fetchall()
 
-                status_rows = conn.execute(
-                    """SELECT status, COUNT(*) as cnt
-                       FROM recommendations WHERE org_id=?
-                       GROUP BY status""",
-                    (org_id,),
-                ).fetchall()
+                # Derive all four scalars + dicts from one result set
+                priority_rows: dict = {}
+                status_rows: dict = {}
+                implemented_count = 0
+                total_impact = 0.0
+                for row in rec_agg:
+                    p, s, cnt, imp = row["priority"], row["status"], row["cnt"], row["impact"]
+                    priority_rows[p] = priority_rows.get(p, 0) + cnt
+                    status_rows[s] = status_rows.get(s, 0) + cnt
+                    if s == "implemented":
+                        implemented_count += cnt
+                    total_impact += imp
 
                 conversation_count = conn.execute(
                     "SELECT COUNT(*) FROM advisor_conversations WHERE org_id=?",
                     (org_id,),
                 ).fetchone()[0]
 
-        recommendations_by_priority = {
-            row["priority"]: row["cnt"] for row in priority_rows
-        }
-        recommendations_by_status = {
-            row["status"]: row["cnt"] for row in status_rows
-        }
-
         return {
             "org_id": org_id,
             "session_count": session_count,
             "sessions_this_week": sessions_this_week,
-            "recommendations_by_priority": recommendations_by_priority,
-            "recommendations_by_status": recommendations_by_status,
+            "recommendations_by_priority": priority_rows,
+            "recommendations_by_status": status_rows,
             "implemented_count": implemented_count,
             "total_impact_score": float(total_impact),
             "conversation_count": conversation_count,
