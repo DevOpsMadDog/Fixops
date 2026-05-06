@@ -25,22 +25,21 @@ logger = logging.getLogger(__name__)
 # Lazy singleton — graceful degradation if core is unavailable
 # ---------------------------------------------------------------------------
 
-try:
-    from core.ide_integration import IDEFinding, IDEIntegration
+_integration = None
 
-    _integration: Optional[IDEIntegration] = None
 
-    def _get_integration() -> IDEIntegration:
-        global _integration
-        if _integration is None:
-            db_path = os.getenv("ALDECI_IDE_DB", "")
-            _integration = IDEIntegration(db_path=db_path or ":memory:")
-        return _integration
+def _get_integration():
+    global _integration
+    if _integration is None:
+        from core.ide_integration import IDEIntegration  # noqa: PLC0415
+        db_path = os.getenv("ALDECI_IDE_DB", "")
+        _integration = IDEIntegration(db_path=db_path or ":memory:")
+    return _integration
 
-    _HAS_INTEGRATION = True
-except ImportError as _exc:
-    logger.warning("ide_router: ide_integration unavailable: %s", _exc)
-    _HAS_INTEGRATION = False
+
+def _ide_finding_cls():
+    from core.ide_integration import IDEFinding  # noqa: PLC0415
+    return IDEFinding
 
 router = APIRouter(
     prefix="/api/v1/ide",
@@ -96,8 +95,6 @@ class FindingsForFileRequest(BaseModel):
 @router.get("/")
 def get_ide_status() -> Dict[str, Any]:
     """IDE integration health and capability summary."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     patterns = integration.get_patterns()
     return {
@@ -122,8 +119,6 @@ def get_ide_status() -> Dict[str, Any]:
 @router.post("/scan/file")
 def scan_file(request: ScanFileRequest) -> Dict[str, Any]:
     """Scan a file's content for SAST findings."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     findings = integration.scan_file(request.content, request.file_path, request.language)
     return {
@@ -136,8 +131,6 @@ def scan_file(request: ScanFileRequest) -> Dict[str, Any]:
 @router.post("/scan/diff")
 def scan_diff(request: ScanDiffRequest) -> Dict[str, Any]:
     """Scan a unified diff for SAST findings in added lines only."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     findings = integration.scan_diff(request.diff_text)
     return {
@@ -149,10 +142,8 @@ def scan_diff(request: ScanDiffRequest) -> Dict[str, Any]:
 @router.post("/fix")
 def get_fix(request: GetFixRequest) -> Dict[str, Any]:
     """Get a fix suggestion for a specific finding."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
-    finding = IDEFinding(
+    finding = _ide_finding_cls()(
         file_path=request.file_path,
         line_start=request.line_start,
         line_end=request.line_end,
@@ -169,8 +160,6 @@ def get_fix(request: GetFixRequest) -> Dict[str, Any]:
 @router.post("/sessions/register")
 def register_session(request: RegisterSessionRequest) -> Dict[str, Any]:
     """Register a new IDE session."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     session = integration.register_session(
         user_email=request.user_email,
@@ -184,8 +173,6 @@ def register_session(request: RegisterSessionRequest) -> Dict[str, Any]:
 @router.post("/sessions/{session_id}/heartbeat")
 def heartbeat(session_id: str) -> Dict[str, Any]:
     """Send a heartbeat to keep a session active."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     integration.heartbeat(session_id)
     return {"session_id": session_id, "status": "ok"}
@@ -196,8 +183,6 @@ def get_active_sessions(
     org_id: str = Query(..., description="Organisation ID to filter sessions"),
 ) -> Dict[str, Any]:
     """List active IDE sessions for an organisation."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     sessions = integration.get_active_sessions(org_id)
     return {"sessions": sessions, "count": len(sessions)}
@@ -208,8 +193,6 @@ def get_stats(
     org_id: str = Query(..., description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Get aggregate IDE usage statistics for an organisation."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     return integration.get_ide_stats(org_id)
 
@@ -217,8 +200,6 @@ def get_stats(
 @router.get("/patterns")
 def get_patterns() -> Dict[str, Any]:
     """List all supported SAST detection patterns."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     patterns = integration.get_patterns()
     return {"patterns": patterns, "count": len(patterns)}
@@ -227,8 +208,6 @@ def get_patterns() -> Dict[str, Any]:
 @router.post("/findings/file")
 def findings_for_file(request: FindingsForFileRequest) -> Dict[str, Any]:
     """Return all findings for a given file (alias for scan/file with richer metadata)."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     findings = integration.scan_file(request.content, request.file_path, request.language)
     high = sum(1 for f in findings if f.severity == "HIGH")
@@ -247,8 +226,6 @@ def project_summary(
     org_id: str = Query(..., description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Return a project-level summary combining session stats and pattern catalogue."""
-    if not _HAS_INTEGRATION:
-        raise HTTPException(status_code=501, detail="IDEIntegration not available")
     integration = _get_integration()
     stats = integration.get_ide_stats(org_id)
     patterns = integration.get_patterns()
