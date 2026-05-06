@@ -255,8 +255,28 @@ _TYPE_HINTS: Dict[str, ComponentType] = {
 }
 
 
+# Pre-split tokens for O(1) per-token lookup instead of O(37) substring scan.
+import re as _re
+from functools import lru_cache as _lru_cache
+_TOKEN_RE = _re.compile(r"[^a-z0-9]+")
+
+
+@_lru_cache(maxsize=512)
 def _infer_component_type(name: str) -> ComponentType:
+    """Infer component type from name via token-split O(1) dict lookup.
+
+    Splits the name on non-alphanumeric separators (-, _, ., space) and checks
+    each token against _TYPE_HINTS directly — O(tokens) dict lookups vs the
+    old O(37 hints × len(name)) linear substring scan.  Falls back to a full
+    lower-cased substring scan only when no token matches, preserving accuracy
+    for multi-word hints like 'cloudfront'.
+    """
     lower = name.lower()
+    # Fast path: check each token as an exact key
+    for tok in _TOKEN_RE.split(lower):
+        if tok and tok in _TYPE_HINTS:
+            return _TYPE_HINTS[tok]
+    # Slow-path fallback for multi-word hints (e.g. "cloudfront", "rabbitmq")
     for hint, ctype in _TYPE_HINTS.items():
         if hint in lower:
             return ctype
