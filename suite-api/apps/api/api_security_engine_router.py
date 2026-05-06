@@ -222,10 +222,15 @@ def get_api_stats(org_id: str = Query(default="default")):
 
 
 @router.get("/", summary="API security engine index", tags=["api-security-engine"])
-def api_security_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
-    """Return API security engine summary for the org."""
+def api_security_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)):
+    """Return API security engine summary and registered endpoints for the org."""
+    engine = _get_engine()
     try:
-        stats = _get_engine().get_api_stats(org_id=org_id)
+        stats = engine.get_api_stats(org_id=org_id)
     except Exception:
         stats = {}
-    return {"router": "api-security-engine", "org_id": org_id, "stats": stats, "items": [], "count": 0}
+    try:
+        items = engine.list_endpoints(org_id=org_id)
+    except Exception:
+        items = []
+    return {"router": "api-security-engine", "org_id": org_id, "stats": stats, "items": items, "count": len(items)}
