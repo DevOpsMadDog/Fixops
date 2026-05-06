@@ -6777,6 +6777,10 @@ def create_app() -> FastAPI:
         app.include_router(incident_response_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Incident Response router at /api/v1/incidents")
 
+    if fix_engine_router is not None:
+        app.include_router(fix_engine_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Fix Engine router at /api/v1/remediation (playbooks/executions)")
+
     try:
         from apps.api.code_to_runtime_router import router as code_to_runtime_router
         app.include_router(code_to_runtime_router)
