@@ -247,8 +247,13 @@ def get_tip_stats(org_id: str = Query("default")) -> Dict[str, Any]:
 @router.get("/", summary="TIP index", tags=["tip"])
 def tip_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
     """Return threat intelligence platform summary for the org."""
+    engine = _get_engine()
     try:
-        stats = _get_engine().get_tip_stats(org_id=org_id)
+        stats = engine.get_tip_stats(org_id=org_id)
     except Exception:
         stats = {}
-    return {"router": "tip", "org_id": org_id, "stats": stats, "items": [], "count": 0}
+    try:
+        items = engine.list_sources(org_id=org_id)
+    except Exception:
+        items = []
+    return {"router": "tip", "org_id": org_id, "stats": stats, "items": items, "count": len(items)}
