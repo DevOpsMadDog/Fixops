@@ -6640,6 +6640,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.semantic_analyzer_router import router as semantic_analyzer_router
+        app.include_router(semantic_analyzer_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Semantic Analyzer router at /api/v1/semantic")
+    except ImportError:
+        pass
+
     # slack_notifier_router — moved to platform_app.py (Wave 5)
 
     # export_router — moved to platform_app.py (Wave 5)
