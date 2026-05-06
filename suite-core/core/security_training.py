@@ -845,20 +845,43 @@ class SecurityTrainingTracker:
     # ------------------------------------------------------------------
 
     def get_catalog(self, category: Optional[str] = None, role: Optional[str] = None) -> List[TrainingModule]:
-        """Return all active training modules, optionally filtered by category or role."""
+        """Return all active training modules, optionally filtered by category or role.
+
+        Role filtering is pushed into SQL via json_each so rows that don't match
+        are never deserialized (avoids 3x json.loads + Pydantic construct per row).
+        """
         with self._conn() as conn:
-            if category:
+            if category and role:
+                rows = conn.execute(
+                    """SELECT m.* FROM training_modules m
+                       WHERE m.active = 1 AND m.category = ?
+                         AND (m.required_roles = '[]'
+                              OR EXISTS (
+                                SELECT 1 FROM json_each(m.required_roles) j
+                                WHERE j.value = ?
+                              ))""",
+                    (category, role),
+                ).fetchall()
+            elif category:
                 rows = conn.execute(
                     "SELECT * FROM training_modules WHERE active = 1 AND category = ?", (category,)
+                ).fetchall()
+            elif role:
+                rows = conn.execute(
+                    """SELECT m.* FROM training_modules m
+                       WHERE m.active = 1
+                         AND (m.required_roles = '[]'
+                              OR EXISTS (
+                                SELECT 1 FROM json_each(m.required_roles) j
+                                WHERE j.value = ?
+                              ))""",
+                    (role,),
                 ).fetchall()
             else:
                 rows = conn.execute(
                     "SELECT * FROM training_modules WHERE active = 1"
                 ).fetchall()
-        modules = [self._row_to_module(r) for r in rows]
-        if role:
-            modules = [m for m in modules if not m.required_roles or role in m.required_roles]
-        return modules
+        return [self._row_to_module(r) for r in rows]
 
     def get_module(self, module_id: str) -> Optional[TrainingModule]:
         """Return a single training module by ID."""
