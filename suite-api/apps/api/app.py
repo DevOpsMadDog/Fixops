@@ -720,6 +720,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Fix Engine router not available: %s", e)
 
+pipeline_bom_router: Optional[APIRouter] = None
+try:
+    from apps.api.pipeline_bom_router import router as pipeline_bom_router
+    logging.getLogger(__name__).info("Loaded Pipeline BOM router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Pipeline BOM router not available: %s", e)
+
 incident_response_router: Optional[APIRouter] = None
 try:
     from apps.api.incident_response_router import router as incident_response_router
@@ -6787,6 +6794,10 @@ def create_app() -> FastAPI:
     if fix_engine_router is not None:
         app.include_router(fix_engine_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Fix Engine router at /api/v1/remediation (playbooks/executions)")
+
+    if pipeline_bom_router is not None:
+        app.include_router(pipeline_bom_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Pipeline BOM router at /api/v1/pbom")
 
     try:
         from apps.api.code_to_runtime_router import router as code_to_runtime_router
