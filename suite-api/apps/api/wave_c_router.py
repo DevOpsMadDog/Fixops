@@ -1219,9 +1219,9 @@ def list_rules(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return a summary of available detection rules for the org."""
     rules: List[Dict[str, Any]] = []
     try:
-        from core.dynamic_rule_dsl import RuleDSLEngine
-        engine = RuleDSLEngine()
-        rules = engine.list_rules(org_id=org_id) if hasattr(engine, "list_rules") else []
+        from core.dynamic_rule_dsl_engine import DynamicRuleDSLEngine
+        engine = DynamicRuleDSLEngine()
+        rules = engine.list_rules(org_id=org_id)
     except Exception:
         pass
     return {"items": rules, "count": len(rules), "router": "rules"}
