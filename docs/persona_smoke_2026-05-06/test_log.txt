@@ -1,0 +1,18 @@
+=== DPO Persona (P28) — Smoke Test ===
+Time: Wed  6 May 2026 21:21:17 AEST
+
+TAB 1: DSRs
+Status: 200
+✅ PASS — Endpoint returns 200
+
+TAB 2: DPIA
+Status: 200
+✅ PASS — Endpoint returns 200
+
+TAB 3: Cross-Border
+✅ PASS — EmptyState (no API call)
+
+TAB 4: Discovery
+Status: 200
+✅ PASS — Endpoint returns 200
+
