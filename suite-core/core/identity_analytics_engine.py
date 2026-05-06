@@ -565,52 +565,51 @@ class IdentityAnalyticsEngine:
     # ------------------------------------------------------------------
 
     def get_identity_stats(self, org_id: str) -> Dict[str, Any]:
-        """Aggregate identity analytics stats for an org."""
+        """Aggregate identity analytics stats for an org.
+
+        Perf: collapsed 8 sequential COUNT queries into 3 queries using
+        conditional aggregation (SUM+CASE), reducing round-trips 8x→3x.
+        """
         cutoff_90d = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
         with self._lock:
             with self._conn() as conn:
-                total = conn.execute(
-                    "SELECT COUNT(*) FROM identity_profiles WHERE org_id=?", (org_id,)
-                ).fetchone()[0]
-                privileged = conn.execute(
-                    "SELECT COUNT(*) FROM identity_profiles WHERE org_id=? AND privileged=1",
+                # Query 1: all identity_profiles aggregates in one pass
+                ip_row = conn.execute(
+                    """SELECT
+                           COUNT(*)                                                  AS total,
+                           SUM(CASE WHEN privileged=1 THEN 1 ELSE 0 END)            AS privileged,
+                           SUM(CASE WHEN privileged=1 AND mfa_enabled=0 THEN 1 ELSE 0 END) AS mfa_disabled,
+                           SUM(CASE WHEN risk_tier='critical' THEN 1 ELSE 0 END)    AS critical_risk,
+                           SUM(CASE WHEN last_login IS NULL OR last_login < ?
+                                    THEN 1 ELSE 0 END)                              AS dormant
+                       FROM identity_profiles WHERE org_id=?""",
+                    (cutoff_90d, org_id),
+                ).fetchone()
+
+                # Query 2: all identity_risks aggregates in one pass
+                ir_row = conn.execute(
+                    """SELECT
+                           SUM(CASE WHEN resolved_at IS NULL THEN 1 ELSE 0 END)                          AS open_risks,
+                           SUM(CASE WHEN risk_type='impossible_travel' AND resolved_at IS NULL
+                                    THEN 1 ELSE 0 END)                                                   AS impossible_travel
+                       FROM identity_risks WHERE org_id=?""",
                     (org_id,),
-                ).fetchone()[0]
-                mfa_disabled = conn.execute(
-                    "SELECT COUNT(*) FROM identity_profiles WHERE org_id=? AND mfa_enabled=0 AND privileged=1",
-                    (org_id,),
-                ).fetchone()[0]
-                critical_risk = conn.execute(
-                    "SELECT COUNT(*) FROM identity_profiles WHERE org_id=? AND risk_tier='critical'",
-                    (org_id,),
-                ).fetchone()[0]
-                open_risks = conn.execute(
-                    "SELECT COUNT(*) FROM identity_risks WHERE org_id=? AND resolved_at IS NULL",
-                    (org_id,),
-                ).fetchone()[0]
-                impossible_travel = conn.execute(
-                    "SELECT COUNT(*) FROM identity_risks WHERE org_id=? AND risk_type='impossible_travel' AND resolved_at IS NULL",
-                    (org_id,),
-                ).fetchone()[0]
-                # Dormant: last_login older than 90 days OR never logged in
-                dormant = conn.execute(
-                    """SELECT COUNT(*) FROM identity_profiles
-                       WHERE org_id=? AND (last_login IS NULL OR last_login < ?)""",
-                    (org_id, cutoff_90d),
-                ).fetchone()[0]
+                ).fetchone()
+
+                # Query 3: certifications
                 pending_certs = conn.execute(
                     "SELECT COUNT(*) FROM access_certifications WHERE org_id=? AND status='pending'",
                     (org_id,),
                 ).fetchone()[0]
 
         return {
-            "total_identities": total,
-            "privileged_identities": privileged,
-            "mfa_disabled": mfa_disabled,
-            "critical_risk_identities": critical_risk,
-            "open_risks": open_risks,
-            "impossible_travel_count": impossible_travel,
-            "dormant_identities": dormant,
+            "total_identities":       ip_row["total"]          or 0,
+            "privileged_identities":  ip_row["privileged"]     or 0,
+            "mfa_disabled":           ip_row["mfa_disabled"]   or 0,
+            "critical_risk_identities": ip_row["critical_risk"] or 0,
+            "open_risks":             ir_row["open_risks"]      or 0,
+            "impossible_travel_count": ir_row["impossible_travel"] or 0,
+            "dormant_identities":     ip_row["dormant"]         or 0,
             "pending_certifications": pending_certs,
         }
 
