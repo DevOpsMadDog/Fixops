@@ -305,3 +305,36 @@ def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Return aggregate CTEM statistics for the org."""
     engine = _get_engine()
     return engine.get_ctem_stats(org_id=org_id)
+
+
+@router.get("/", dependencies=[Depends(_verify_api_key)])
+def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """5-state CTEM domain summary — delegates to dashboard + stats."""
+    try:
+        engine = _get_engine()
+        dashboard = engine.get_ctem_dashboard(org_id=org_id)
+        stats = engine.get_ctem_stats(org_id=org_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _logger.error("ctem.summary error: %s", exc)
+        return {"status": "error", "domain": "ctem", "error": str(exc)}
+
+    active_cycles = stats.get("active_cycles", 0)
+    total_exposures = stats.get("total_exposures", 0)
+    open_high = stats.get("exposures_by_risk", {}).get("high", 0)
+
+    if total_exposures == 0 and active_cycles == 0:
+        status = "empty"
+    elif open_high > 0:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    return {
+        "status": status,
+        "domain": "ctem",
+        "org_id": org_id,
+        "dashboard": dashboard,
+        "stats": stats,
+    }
