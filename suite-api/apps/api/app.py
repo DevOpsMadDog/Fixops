@@ -6777,6 +6777,13 @@ def create_app() -> FastAPI:
         app.include_router(incident_response_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Incident Response router at /api/v1/incidents")
 
+    try:
+        from apps.api.code_to_runtime_router import router as code_to_runtime_router
+        app.include_router(code_to_runtime_router)
+        _logger.info("Mounted Code-to-Runtime router at /api/v1/code-to-runtime")
+    except Exception as _e:
+        _logger.warning("code_to_runtime_router unavailable: %s", _e)
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they
