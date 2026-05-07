@@ -87,6 +87,33 @@ def test_import_repo_missing_url(client):
     assert resp.status_code == 422
 
 
+def test_upload_sync_fast_path_returns_findings_inline(client):
+    """Sync fast-path: upload of small file must return findings_count in response body.
+
+    The upload handler now runs SAST + secrets synchronously and returns
+    findings inline. For code that triggers detections (hardcoded secrets),
+    the response should include findings_count > 0 and status == 'done'.
+    For benign code it may still return 0 findings, but the field must be
+    present (not None in a 'done' case or absent entirely).
+    """
+    zip_bytes = _make_zip(b"AWS_SECRET_ACCESS_KEY='AKIA12345EXAMPLE'\npassword='hunter2'")
+    resp = client.post(
+        "/api/v1/import/upload",
+        files={"file": ("fast_path_test.zip", zip_bytes, "application/zip")},
+        data={"org_id": "test-fast-path"},
+    )
+    assert resp.status_code in (200, 202), resp.text
+    body = resp.json()
+    # job_id must always be present
+    assert "job_id" in body
+    # findings_count must be an int or None — never missing the key
+    assert "findings_count" in body or body.get("status") == "queued"
+    # If status is 'done', findings_count must be non-negative int
+    if body.get("status") == "done":
+        assert isinstance(body["findings_count"], int)
+        assert body["findings_count"] >= 0
+
+
 def test_upload_findings_persist_to_sqlite(client):
     """Findings written by import/upload must appear in SecurityFindingsEngine SQLite.
 

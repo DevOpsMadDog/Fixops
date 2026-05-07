@@ -55,6 +55,9 @@ class ImportJobResponse(BaseModel):
     repo_url: str | None = None
     filename: str | None = None
     message: str
+    # Sync fast-path: findings returned inline when scan completes < 5s
+    findings: list[dict] | None = None
+    findings_count: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -328,14 +331,33 @@ async def import_upload(
         except Exception:
             pass
 
-    return ImportJobResponse(
-        job_id=job_id,
-        status="queued",
-        filename=filename,
-        message=(
+    # Collect all findings that were written for this job (sync fast-path)
+    inline_findings: list[dict] = []
+    try:
+        from apps.api.findings_routes import _findings_store
+        inline_findings = [
+            f for f in _findings_store.values() if f.get("job_id") == job_id
+        ]
+    except Exception:
+        pass
+
+    findings_count = len(inline_findings)
+    status = "done" if findings_count > 0 else "queued"
+    message = (
+        f"Archive '{filename}' scanned synchronously: {findings_count} finding(s) found."
+        if findings_count > 0
+        else (
             f"Archive '{filename}' extracted and queued for SAST + secrets scan. "
             "Poll /api/v1/devsecops/findings for results."
-        ),
+        )
+    )
+    return ImportJobResponse(
+        job_id=job_id,
+        status=status,
+        filename=filename,
+        message=message,
+        findings=inline_findings if inline_findings else None,
+        findings_count=findings_count if findings_count > 0 else None,
     )
 
 
