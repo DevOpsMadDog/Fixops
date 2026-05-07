@@ -154,10 +154,12 @@ class UserDB:
         conn = self._get_connection()
         try:
             conn.execute(
-                """UPDATE users SET email=?, first_name=?, last_name=?, role=?,
-                   status=?, department=?, updated_at=?, last_login_at=? WHERE id=?""",
+                """UPDATE users SET email=?, password_hash=?, first_name=?, last_name=?,
+                   role=?, status=?, department=?, updated_at=?, last_login_at=?
+                   WHERE id=?""",
                 (
                     user.email,
+                    user.password_hash,
                     user.first_name,
                     user.last_name,
                     user.role.value,

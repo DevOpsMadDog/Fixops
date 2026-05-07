@@ -172,7 +172,7 @@ if "FIXOPS_MODE" not in os.environ:
 
 # Set JWT secret for enterprise mode (required for app initialization)
 if "FIXOPS_JWT_SECRET" not in os.environ:
-    os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-for-ci-testing"
+    os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-for-ci-testing-ok"
 
 # Disable rate limiting in tests to avoid 429 errors
 if "FIXOPS_DISABLE_RATE_LIMIT" not in os.environ:
