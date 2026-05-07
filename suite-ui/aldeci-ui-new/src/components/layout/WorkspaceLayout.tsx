@@ -135,6 +135,7 @@ import { Button } from "@/components/ui/button";
 import { CopilotSidebar } from "./CopilotSidebar";
 import { NotificationBell } from "./NotificationBell";
 import { GlobalSearch } from "./GlobalSearch";
+import { OrgSwitcher } from "./OrgSwitcher";
 import { useAuth, isDevBypassActive } from "@/lib/auth";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -1118,6 +1119,8 @@ export function WorkspaceLayout() {
                     DEV MODE
                   </span>
                 )}
+                {/* Org switcher */}
+                <OrgSwitcher />
                 {/* Tier badge + upgrade button */}
                 <TierBadgeButton />
                 {/* Global search — also triggered by Cmd+K  */}

@@ -2472,6 +2472,19 @@ def create_app() -> FastAPI:
     else:
         logger.info("RateLimitMiddleware disabled (FIXOPS_DISABLE_RATE_LIMIT=1)")
 
+    # Org-tier daily quota middleware — enforces per-billing-tier daily API call limits:
+    #   Starter 1,000/day | Pro 10,000/day | Enterprise unlimited
+    # Disabled when FIXOPS_DISABLE_TIER_RATE_LIMIT=1 (e.g. in CI/test environments)
+    if os.getenv("FIXOPS_DISABLE_TIER_RATE_LIMIT") != "1":
+        try:
+            from apps.api.org_tier_rate_limit_middleware import OrgTierRateLimitMiddleware
+            app.add_middleware(OrgTierRateLimitMiddleware)
+            logger.info("OrgTierRateLimitMiddleware enabled (starter=1000/day, pro=10000/day, enterprise=unlimited)")
+        except (OSError, ImportError, ValueError) as _trl_err:
+            logger.warning("OrgTierRateLimitMiddleware not available: %s", _trl_err)
+    else:
+        logger.info("OrgTierRateLimitMiddleware disabled (FIXOPS_DISABLE_TIER_RATE_LIMIT=1)")
+
     app.add_middleware(RequestLoggingMiddleware)
 
     # Prometheus metrics middleware — tracks request counts, latencies, active

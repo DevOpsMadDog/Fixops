@@ -466,6 +466,15 @@ export const workflowsApi = {
   trigger: (id: string) => api.post(`/api/v1/workflows/${id}/execute`),
 };
 
+export const apiKeysApi = {
+  list: (params?: { include_revoked?: boolean; user_id?: string }) =>
+    api.get("/api/v1/auth/keys", { params }),
+  create: (data: { name: string; user_id: string; role?: string; scopes?: string[]; ttl_days?: number | null }) =>
+    api.post<{ id: string; key_prefix: string; name: string; user_id: string; role: string; scopes: string[]; is_active: boolean; created_at: string; expires_at: string | null; last_used_at: string | null; plaintext_key: string }>("/api/v1/auth/keys", data),
+  revoke: (keyId: string) => api.delete(`/api/v1/auth/keys/${keyId}`),
+  expiring: (withinDays = 7) => api.get("/api/v1/auth/keys/expiring", { params: { within_days: withinDays } }),
+};
+
 export const auditApi = {
   list: (params?: Record<string, unknown>) => api.get("/api/v1/audit", { params }),
   logs: (params?: Record<string, unknown>) => api.get("/api/v1/audit/logs", { params }),
@@ -1710,4 +1719,24 @@ export const billingApi = {
   tier: () => api.get<BillingTierResponse>("/api/v1/billing/tier"),
   upgrade: (target_tier: BillingTier) =>
     api.post<BillingUpgradeResponse>("/api/v1/billing/upgrade", { target_tier }),
+};
+
+// ── Orgs API — /api/v1/orgs ───────────────────────────────────────────────
+
+export interface OrgItem {
+  org_id: string;
+  name: string;
+  slug?: string;
+}
+
+export interface OrgListResponse {
+  items?: OrgItem[];
+  orgs?: OrgItem[];
+}
+
+export const orgsApi = {
+  list: (includeDiscovered = false) =>
+    api.get<OrgListResponse>("/api/v1/orgs", {
+      params: { include_discovered: includeDiscovered },
+    }),
 };
