@@ -49,6 +49,12 @@
 - **Pillar(s) served**: V4 (performance), V1 (reliability)
 - **SHA**: 8e5e3f64
 
+### [2026-05-07 23:12] devops-engineer — INFRA_BACKUP_RESTORE
+- **What**: Created backup/restore infrastructure: scripts/backup.sh (tar -czf data/ .swarm/memory.db .hive-mind/ .env, excludes __pycache__), scripts/restore.sh (interactive untar), docs/BACKUP.md (usage patterns, cron, K8s, ~50-175MB typical). Each script <60 LOC, executable. Tested: 113M backup created successfully. No Multica task closure (task #4122 not found in this Multica instance).
+- **Files touched**: `scripts/backup.sh`, `scripts/restore.sh`, `docs/BACKUP.md`
+- **Outcome**: SUCCESS — infra verified, commit 961db65a pushed
+- **Pillar(s) served**: V2 (enterprise deployment), V1 (infrastructure)
+
 ### [2026-05-05 22:30] devops-engineer — DEPLOY_SMOKE
 - **What**: Verified live deployment of features/intermediate-stage. API healthy at http://localhost:8000 (7960 routes). UI live at http://localhost:5173 (HTTP 200). UI prod build clean 3.53s. Smoke: app-security/findings returns live finding. Fixed demo-healthcheck.sh UI port 3001→5173; 7/7 PASS in 1s (DEMO-007 gate). 3 screenshots captured. Multica #3967 closed.
 - **Files touched**: `scripts/demo-healthcheck.sh`, `docs/DEPLOY_2026-05-04-night.md`, `docs/deploy_smoke_2026-05-04/{root,hub1,hub2}.png`
