@@ -639,9 +639,14 @@ class TestChannelAdapters:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_slack_adapter(self):
-        """Test Slack adapter send (stub)."""
-        adapter = SlackAdapter(webhook_url="https://hooks.slack.com/...")
+    async def test_slack_adapter(self, mocker):
+        """Test Slack adapter send with mocked HTTP call."""
+        # Mock httpx.post to avoid real network calls
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mocker.patch("httpx.post", return_value=mock_response)
+
+        adapter = SlackAdapter(webhook_url="https://hooks.slack.com/services/real/webhook")
 
         event = StreamEvent(event_type=EventType.SYSTEM_ALERT)
         action = NotificationAction(
