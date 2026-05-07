@@ -75,31 +75,27 @@ def _make_saml_response(email: str = "alice@testcorp.example") -> str:
 def saml_client():
     """FastAPI TestClient with SAML env vars and mocked user/JWT deps."""
     with patch.dict(os.environ, _ENV_PATCH):
-        # Import app fresh inside the patch so env vars are visible at import time
         from fastapi.testclient import TestClient
-
-        # Build a minimal FastAPI app that only mounts auth_router
         from fastapi import FastAPI
-        app = FastAPI()
 
-        # Patch heavy deps before importing auth_router
+        # Build a mock user returned by get_user_by_email (existing user path)
         mock_user = MagicMock()
         mock_user.id = "user-saml-001"
         mock_user.email = "alice@testcorp.example"
         mock_user.org_id = "default"
-        mock_user.status = MagicMock()  # will pass != check
+        # Make status comparisons pass the ACTIVE check
+        from core.user_models import UserStatus
+        mock_user.status = UserStatus.ACTIVE
+        mock_user.role = MagicMock()
+        mock_user.role.value = "viewer"
 
         mock_user_db = MagicMock()
-        mock_user_db.get_user_by_email.return_value = None  # triggers auto-provision
+        mock_user_db.get_user_by_email.return_value = mock_user  # existing user — skip create
         mock_user_db.create_user.return_value = mock_user
 
-        # Patch UserStatus check — make status == ACTIVE by making comparison True
-        mock_user.status.__ne__ = lambda self, other: False  # status != ACTIVE → False
-
-        with patch("apps.api.auth_router._user_db", mock_user_db):
-            import importlib
-            import apps.api.auth_router as ar
-            importlib.reload(ar)  # reload with fresh env + patched user_db
+        import apps.api.auth_router as ar
+        app = FastAPI()
+        with patch.object(ar, "_user_db", mock_user_db):
             app.include_router(ar.router)
             with TestClient(app, raise_server_exceptions=True) as client:
                 yield client, mock_user_db
