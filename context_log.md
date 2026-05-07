@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-08 10:15] frontend-craftsman — Multica #4141 DONE
+- **What**: Implemented public /changelog page with backend API. Backend: GET /api/v1/changelog/recent endpoint fetches last N commits via git log, parses beast-mode(scope): msg format, groups by scope. Frontend: ChangelogPage.tsx renders commits with color-coded scope badges, dark mode, responsive. Public route /changelog (no auth). Build passes (3.87s), phase2 56/56 tests pass.
+- **Files touched**: suite-api/apps/api/changelog_router.py, suite-ui/aldeci-ui-new/src/pages/ChangelogPage.tsx, suite-ui/aldeci-ui-new/src/App.tsx
+- **Outcome**: SUCCESS — SHA cd382049 pushed, Multica #4141 → done
+- **Pillar(s) served**: V3 (product UI), V1 (transparency)
+
 ### [2026-05-08] devops-engineer — Multica #4134 DONE
 - **What**: Wrote idempotent demo data seeder `scripts/seed_demo_data.py` (~160 LOC). Seeds org `demo-org-001` with 15 findings (3 crit/4 high/5 med/3 low), 3 incidents, 2 executive reports, 1 SOC2 assessment (5 controls via collect_evidence). Uses SecurityFindingsEngine.record_finding, IncidentResponseEngine.create_incident, ExecutiveReportingEngine.create_report, ComplianceAutomationEngine.collect_evidence — NO direct SQL. Idempotent: findings dedup by engine, incidents/reports skip by title. Verified: GET /api/v1/security-findings/findings?org_id=demo-org-001 returns 15.
 - **Files touched**: scripts/seed_demo_data.py
