@@ -17,7 +17,9 @@ const Tour = lazy(() => import("@/pages/Tour"));
 const StatusPage = lazy(() => import("@/pages/StatusPage"));
 // Pricing — public landing page, no auth required (Multica #4123)
 const PricingPage = lazy(() => import("@/pages/PricingPage"));
-
+// Password reset — public, no auth required (Multica #4132)
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
 
 // Auth — LoginPage is eagerly imported above (must always work, no Suspense boundary)
 
@@ -121,6 +123,7 @@ const VulnHeatmap = lazy(() => import("@/pages/VulnHeatmap"));
 const AuditLog = lazy(() => import("@/pages/AuditLog"));
 const AdminAuditLogPage = lazy(() => import("@/pages/AdminAuditLogPage"));
 const AdminUsersPage = lazy(() => import("@/pages/AdminUsersPage"));
+const AdminApiKeysPage = lazy(() => import("@/pages/AdminApiKeysPage"));
 const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
 const OffensiveValidationHub = lazy(() => import("@/pages/OffensiveValidationHub"));
 const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
@@ -473,6 +476,9 @@ export default function App() {
           <Route path="/docs/dpa" element={<DocsPage />} />
           <Route path="/docs/install" element={<DocsPage />} />
           <Route path="/docs/poc" element={<DocsPage />} />
+          {/* Password reset — public, no auth required (Multica #4132) */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
           {/* Protected workspace */}
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
@@ -700,6 +706,7 @@ export default function App() {
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/admin/audit-log" element={<AdminAuditLogPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/api-keys" element={<RequireRole roles={["admin"]}><AdminApiKeysPage /></RequireRole>} />
             <Route path="/cspm" element={<Navigate to="/compliance?tab=cspm" replace />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED PentestManagement) */}
             <Route path="/pentest" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
