@@ -13,7 +13,9 @@ import os
 import pytest
 
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
-os.environ.setdefault("FIXOPS_DISABLE_TIER_RATE_LIMIT", "1")
+# NOTE: do NOT set FIXOPS_DISABLE_TIER_RATE_LIMIT here — these tests exercise
+# the middleware directly and need it enabled. Each test wraps the middleware
+# as the ASGI app, so the kill-switch must be off for headers to appear.
 
 from apps.api.org_tier_rate_limit_middleware import (
     _DailyCounter,

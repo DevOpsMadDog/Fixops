@@ -31,6 +31,16 @@ from starlette.responses import JSONResponse
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Kill-switch: FIXOPS_DISABLE_TIER_RATE_LIMIT=1 disables middleware entirely.
+# Set in CI / perf tests to eliminate per-request DB overhead.
+# Read live per-dispatch (not cached at import time) so test suites that set
+# the env var after import still see the correct value.
+# ---------------------------------------------------------------------------
+
+def _is_globally_disabled() -> bool:
+    return os.environ.get("FIXOPS_DISABLE_TIER_RATE_LIMIT", "0").strip() == "1"
+
+# ---------------------------------------------------------------------------
 # Tier daily limits
 # ---------------------------------------------------------------------------
 
@@ -119,12 +129,20 @@ class _DailyCounter:
 # Middleware
 # ---------------------------------------------------------------------------
 
+_TIER_CACHE_TTL_S: float = 60.0  # seconds before re-querying DB for org tier
+
+
 class OrgTierRateLimitMiddleware(BaseHTTPMiddleware):
     """Daily quota enforcement middleware keyed by org billing tier.
 
     Reads org_id from request.state.org_id (set by OrgIdMiddleware) then
     calls billing_router.get_org_tier() to resolve the tier.  Falls back to
     'starter' limits on any error so the middleware never crashes the API.
+
+    Tier lookups are cached for _TIER_CACHE_TTL_S seconds (default 60s) to
+    avoid a SQLite round-trip on every request.
+
+    Disabled entirely when FIXOPS_DISABLE_TIER_RATE_LIMIT=1 (CI / perf tests).
 
     Usage in create_app():
         app.add_middleware(OrgTierRateLimitMiddleware)
@@ -135,6 +153,9 @@ class OrgTierRateLimitMiddleware(BaseHTTPMiddleware):
         self._counters: Dict[str, _DailyCounter] = {}
         self._max_orgs = max(100, max_tracked_orgs)
         self._lock = threading.Lock()
+        # Tier cache: org_id -> (tier_str, expiry_monotonic)
+        self._tier_cache: Dict[str, Tuple[str, float]] = {}
+        self._tier_cache_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Helpers
@@ -165,14 +186,22 @@ class OrgTierRateLimitMiddleware(BaseHTTPMiddleware):
             org_id = request.headers.get("X-Org-ID") or request.query_params.get("org_id")
         return org_id or "default"
 
-    @staticmethod
-    def _resolve_tier(org_id: str) -> str:
-        """Look up billing tier for org; never raises."""
+    def _resolve_tier(self, org_id: str) -> str:
+        """Look up billing tier for org with 60s in-memory TTL cache; never raises."""
+        now = time.monotonic()
+        with self._tier_cache_lock:
+            cached = self._tier_cache.get(org_id)
+            if cached is not None and now < cached[1]:
+                return cached[0]
+        # Cache miss or expired — do the DB lookup outside the lock.
         try:
             from apps.api.billing_router import get_org_tier
-            return get_org_tier(org_id)
+            tier = get_org_tier(org_id)
         except Exception:
-            return "starter"
+            tier = "starter"
+        with self._tier_cache_lock:
+            self._tier_cache[org_id] = (tier, now + _TIER_CACHE_TTL_S)
+        return tier
 
     @staticmethod
     def _resolve_limit(tier: str) -> Optional[int]:
@@ -183,6 +212,9 @@ class OrgTierRateLimitMiddleware(BaseHTTPMiddleware):
     # ------------------------------------------------------------------
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if _is_globally_disabled():
+            return await call_next(request)
+
         try:
             if self._is_exempt(request.url.path):
                 return await call_next(request)
