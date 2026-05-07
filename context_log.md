@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-08] devops-engineer — Multica #4134 DONE
+- **What**: Wrote idempotent demo data seeder `scripts/seed_demo_data.py` (~160 LOC). Seeds org `demo-org-001` with 15 findings (3 crit/4 high/5 med/3 low), 3 incidents, 2 executive reports, 1 SOC2 assessment (5 controls via collect_evidence). Uses SecurityFindingsEngine.record_finding, IncidentResponseEngine.create_incident, ExecutiveReportingEngine.create_report, ComplianceAutomationEngine.collect_evidence — NO direct SQL. Idempotent: findings dedup by engine, incidents/reports skip by title. Verified: GET /api/v1/security-findings/findings?org_id=demo-org-001 returns 15.
+- **Files touched**: scripts/seed_demo_data.py
+- **Outcome**: SUCCESS — SHA c24ef470, Multica #4134 → done
+- **Pillar(s) served**: V3 (demo readiness), V1 (product quality)
+
 ### [2026-05-08 00:35] frontend-craftsman — Multica #4132 DONE
 - **What**: Wired 3 deferred routes in suite-ui/aldeci-ui-new/src/App.tsx: AdminApiKeysPage → /admin/api-keys (auth-gated, admin role), ForgotPasswordPage → /forgot-password (public), ResetPasswordPage → /reset-password/:token (public). All lazy imports added, routes verified, build clean (15.77s).
 - **Files touched**: suite-ui/aldeci-ui-new/src/App.tsx
