@@ -23,6 +23,12 @@ try:
 except ImportError:
     _get_tg_bus = None
 
+try:
+    from core.notification_engine import NotificationEngine as _NotificationEngine
+    _notification_engine: Optional[_NotificationEngine] = _NotificationEngine()
+except Exception:  # pragma: no cover
+    _notification_engine = None
+
 
 _logger = logging.getLogger(__name__)
 
@@ -364,6 +370,11 @@ class SecurityFindingsEngine:
                                :previous_violation_id, :resolved_at, :unchanged_scan_count)""",
                     record,
                 )
+                if severity == "critical" and _notification_engine is not None:
+                    _notification_engine.send_slack_alert(
+                        text=f"New critical finding recorded by {source_tool}",
+                        finding=record,
+                    )
                 return record
 
     def update_status(

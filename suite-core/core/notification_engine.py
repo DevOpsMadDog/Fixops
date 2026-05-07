@@ -266,7 +266,7 @@ class SlackAdapter:
 
     async def send(self, action: NotificationAction) -> bool:
         """
-        Send notification to Slack (stub implementation).
+        Send notification to Slack via incoming webhook.
 
         Args:
             action: NotificationAction to send
@@ -274,13 +274,38 @@ class SlackAdapter:
         Returns:
             True if successful
         """
+        if not self._webhook_url or self._webhook_url.startswith("https://hooks.slack.com/services/STUB"):
+            self._logger.debug(
+                "SlackAdapter: webhook not configured — skipping event %s",
+                action.event.event_id,
+            )
+            return True
 
-        self._logger.info(
-            f"Slack notification (stub): Event {action.event.event_id} "
-            f"to {self._webhook_url[:20]}..."
-        )
-        # Stub implementation - would use aiohttp to POST to webhook
-        return True
+        import httpx
+
+        payload = {
+            "text": (
+                f":rotating_light: *ALDECI Critical Alert*\n"
+                f"*Event*: {action.event.event_type}\n"
+                f"*ID*: {action.event.event_id}\n"
+                f"*Severity*: {action.event.severity}\n"
+                f"*Org*: {action.event.org_id}"
+            )
+        }
+        try:
+            response = httpx.post(self._webhook_url, json=payload, timeout=10)
+            response.raise_for_status()
+            self._logger.info(
+                "SlackAdapter: sent event %s to webhook", action.event.event_id
+            )
+            return True
+        except Exception as exc:
+            self._logger.error(
+                "SlackAdapter: failed to send event %s — %s",
+                action.event.event_id,
+                exc,
+            )
+            return False
 
 
 class WebhookAdapter:
@@ -444,10 +469,11 @@ class NotificationEngine:
 
     def _register_default_adapters(self) -> None:
         """Register default notification channel adapters."""
+        import os
         self._adapters[NotificationChannel.WEBSOCKET] = WebSocketAdapter(EventBus())
         self._adapters[NotificationChannel.EMAIL] = EmailAdapter()
         self._adapters[NotificationChannel.SLACK] = SlackAdapter(
-            webhook_url="https://hooks.slack.com/services/STUB"
+            webhook_url=os.getenv("FIXOPS_SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/STUB")
         )
         self._adapters[NotificationChannel.WEBHOOK] = WebhookAdapter(
             webhook_url="https://webhook.example.com/alerts"
@@ -730,3 +756,52 @@ class NotificationEngine:
         except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Failed to retrieve notification history: {e}")
             return []
+
+    def send_slack_alert(self, text: str, finding: Dict[str, Any]) -> bool:
+        """Post a plain-text alert to the configured Slack webhook synchronously.
+
+        Reads FIXOPS_SLACK_WEBHOOK_URL from the environment.  No-ops cleanly
+        when the env var is absent.
+
+        Args:
+            text: Human-readable alert message.
+            finding: SecurityFindingsEngine record dict (id, title, severity …).
+
+        Returns:
+            True if the POST succeeded (or was skipped due to missing config).
+        """
+        import os
+        import httpx
+
+        webhook_url = os.getenv("FIXOPS_SLACK_WEBHOOK_URL", "")
+        if not webhook_url:
+            self._logger.debug(
+                "send_slack_alert: FIXOPS_SLACK_WEBHOOK_URL not set — skipping finding %s",
+                finding.get("id", "?"),
+            )
+            return True
+
+        severity = finding.get("severity", "unknown")
+        finding_id = finding.get("id", "?")
+        title = finding.get("title", "Untitled")
+        payload = {
+            "text": (
+                f":rotating_light: *ALDECI Critical Finding*\n"
+                f"{text}\n"
+                f"*ID*: {finding_id}\n"
+                f"*Title*: {title}\n"
+                f"*Severity*: {severity}"
+            )
+        }
+        try:
+            response = httpx.post(webhook_url, json=payload, timeout=10)
+            response.raise_for_status()
+            self._logger.info(
+                "send_slack_alert: posted finding %s to Slack", finding_id
+            )
+            return True
+        except Exception as exc:
+            self._logger.error(
+                "send_slack_alert: failed for finding %s — %s", finding_id, exc
+            )
+            return False
