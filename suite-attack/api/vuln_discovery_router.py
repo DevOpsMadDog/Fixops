@@ -387,9 +387,11 @@ async def list_discovered_vulnerabilities(
     severity: Optional[VulnSeverity] = None,
     limit: int = Query(default=50, le=200),
     offset: int = Query(default=0, ge=0),
+    org_id: str = Depends(get_org_id),
 ) -> List[DiscoveredVulnResponse]:
     """List discovered vulnerabilities (GET alias for /internal)."""
-    vulns = list(_discovered_vulns.values())
+    # AUTHZ: filter to caller's org to prevent cross-tenant data leak
+    vulns = [v for v in _discovered_vulns.values() if v.get("org_id", "default") == org_id]
     if status:
         vulns = [v for v in vulns if str(v.get("status", "")) == status.value or v.get("status") == status]
     if severity:

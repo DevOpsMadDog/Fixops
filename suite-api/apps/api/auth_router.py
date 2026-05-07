@@ -802,6 +802,143 @@ async def auth_login(body: LoginRequestBody, request: Request) -> LoginResponseB
     )
 
 
+# ---------------------------------------------------------------------------
+# Email verification — signup + verify-email
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_EMAIL_RE = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_ev_db = None  # lazy singleton
+
+
+def _get_ev_db():
+    global _ev_db
+    if _ev_db is None:
+        from core.email_verification_db import EmailVerificationDB
+        _ev_db = EmailVerificationDB()
+    return _ev_db
+
+
+def _send_verification_email(to_email: str, token: str, base_url: str) -> None:
+    """Fire-and-forget SMTP send — graceful no-op when FIXOPS_SMTP_HOST unset."""
+    import asyncio
+    import os
+    smtp_host = os.getenv("FIXOPS_SMTP_HOST", "")
+    if not smtp_host:
+        _logger.info("Verification email skipped (SMTP not configured) for %s", to_email)
+        return
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        smtp_port = int(os.getenv("FIXOPS_SMTP_PORT", "587"))
+        smtp_user = os.getenv("FIXOPS_SMTP_USER", "")
+        smtp_pass = os.getenv("FIXOPS_SMTP_PASS", "")
+        smtp_from = os.getenv("FIXOPS_SMTP_FROM", "noreply@aldeci.ai")
+        verify_url = f"{base_url}/api/v1/auth/verify-email/{token}"
+        body = (
+            f"Welcome to ALDECI!\n\n"
+            f"Verify your email address by visiting:\n{verify_url}\n\n"
+            f"This link expires in 24 hours."
+        )
+        msg = MIMEText(body)
+        msg["Subject"] = "[ALDECI] Verify your email address"
+        msg["From"] = smtp_from
+        msg["To"] = to_email
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as smtp:
+            if smtp_user and smtp_pass:
+                smtp.starttls()
+                smtp.login(smtp_user, smtp_pass)
+            smtp.sendmail(smtp_from, [to_email], msg.as_string())
+        _logger.info("Verification email sent to %s", to_email)
+    except Exception as exc:
+        _logger.warning("Verification email failed for %s: %s", to_email, exc)
+
+
+class SignupRequestBody(BaseModel):
+    email: str = Field(..., min_length=1, max_length=255)
+    password: str = Field(..., min_length=8, max_length=1024)
+    first_name: str = Field(..., min_length=1, max_length=128)
+    last_name: str = Field(..., min_length=1, max_length=128)
+
+
+class SignupResponseBody(BaseModel):
+    user_id: str
+    email: str
+    message: str
+    email_verified: bool = False
+
+
+@router.post(
+    "/signup",
+    response_model=SignupResponseBody,
+    status_code=201,
+    summary="Self-service signup — creates user and sends email verification link",
+)
+async def auth_signup(body: SignupRequestBody, request: Request) -> SignupResponseBody:
+    """Self-service signup.
+
+    Creates user (role=viewer, status=active), generates UUID verification token
+    (24h TTL), fires SMTP email (no-op when FIXOPS_SMTP_HOST not set).
+    """
+    if not _EMAIL_RE.match(body.email):
+        raise HTTPException(status_code=422, detail="Invalid email format")
+    if _user_db.get_user_by_email(body.email):
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    from core.user_models import User as _User, UserRole as _UserRole, UserStatus as _UserStatusSignup
+    new_user = _User(
+        id="",
+        email=body.email,
+        password_hash=_user_db.hash_password(body.password),
+        first_name=body.first_name,
+        last_name=body.last_name,
+        role=_UserRole.VIEWER,
+        status=_UserStatusSignup.ACTIVE,
+    )
+    created = _user_db.create_user(new_user)
+    token = _get_ev_db().create_token(user_id=created.id, email=created.email)
+    base_url = str(request.base_url).rstrip("/")
+    _send_verification_email(to_email=created.email, token=token, base_url=base_url)
+    _logger.info("Signup: user_id=%s email=%s", created.id, created.email)
+    return SignupResponseBody(
+        user_id=created.id,
+        email=created.email,
+        message="Account created. Check your email for a verification link.",
+        email_verified=False,
+    )
+
+
+class VerifyEmailResponse(BaseModel):
+    user_id: str
+    email: str
+    email_verified: bool
+
+
+@router.get(
+    "/verify-email/{token}",
+    response_model=VerifyEmailResponse,
+    status_code=200,
+    summary="Verify email address using the token sent on signup",
+)
+async def verify_email(token: str) -> VerifyEmailResponse:
+    """Consume a verification token and mark user email_verified=true.
+
+    Returns 400 if token unknown, expired, or already used.
+    """
+    if not token or len(token) > 64:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    result = _get_ev_db().consume_token(token)
+    if not result:
+        raise HTTPException(status_code=400, detail="Token invalid, expired, or already used")
+    _logger.info("Email verified: user_id=%s email=%s", result["user_id"], result["email"])
+    return VerifyEmailResponse(
+        user_id=result["user_id"],
+        email=result["email"],
+        email_verified=True,
+    )
+
+
 @router.post(
     "/refresh",
     response_model=RefreshResponseBody,
@@ -880,4 +1017,311 @@ async def auth_refresh(body: RefreshRequestBody, request: Request) -> RefreshRes
     return RefreshResponseBody(
         access_token=access_token,
         expires_in=_ACCESS_TOKEN_TTL_SECONDS,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Multica #4112 — Social OAuth2 (Google + GitHub)
+#
+# POST /api/v1/auth/oauth/{provider}/start    → redirect_url + state cookie
+# GET  /api/v1/auth/oauth/{provider}/callback → exchange code → JWT pair
+#
+# Env vars required per provider:
+#   FIXOPS_OAUTH_GOOGLE_CLIENT_ID / FIXOPS_OAUTH_GOOGLE_CLIENT_SECRET
+#   FIXOPS_OAUTH_GITHUB_CLIENT_ID / FIXOPS_OAUTH_GITHUB_CLIENT_SECRET
+#
+# The implementation is a minimal (~80 LOC) OAuth2 Authorization-Code client
+# written with httpx — no authlib dependency required.
+# ---------------------------------------------------------------------------
+
+import hashlib as _hashlib
+import hmac as _hmac
+from urllib.parse import urlencode as _urlencode
+
+import httpx as _httpx
+
+_OAUTH_STATE_TTL = 600  # seconds — state token validity window
+_OAUTH_STATE_SECRET = os.getenv(
+    "FIXOPS_OAUTH_STATE_SECRET",
+    os.getenv("FIXOPS_JWT_SECRET", "fixops-dev-state-secret-change-me"),
+)
+
+# Provider config — loaded lazily so missing env vars don't crash import
+_PROVIDER_CONFIG = {
+    "google": {
+        "client_id_env": "FIXOPS_OAUTH_GOOGLE_CLIENT_ID",
+        "client_secret_env": "FIXOPS_OAUTH_GOOGLE_CLIENT_SECRET",
+        "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "userinfo_url": "https://openidconnect.googleapis.com/v1/userinfo",
+        "scope": "openid email profile",
+    },
+    "github": {
+        "client_id_env": "FIXOPS_OAUTH_GITHUB_CLIENT_ID",
+        "client_secret_env": "FIXOPS_OAUTH_GITHUB_CLIENT_SECRET",
+        "auth_url": "https://github.com/login/oauth/authorize",
+        "token_url": "https://github.com/login/oauth/access_token",
+        "userinfo_url": "https://api.github.com/user",
+        "scope": "read:user user:email",
+    },
+}
+
+
+def _get_provider_cfg(provider: str) -> dict:
+    if provider not in _PROVIDER_CONFIG:
+        raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}. Use 'google' or 'github'.")
+    cfg = _PROVIDER_CONFIG[provider]
+    client_id = os.getenv(cfg["client_id_env"], "")
+    client_secret = os.getenv(cfg["client_secret_env"], "")
+    if not client_id or not client_secret:
+        raise HTTPException(
+            status_code=503,
+            detail=f"OAuth provider '{provider}' not configured. Set {cfg['client_id_env']} and {cfg['client_secret_env']}.",
+        )
+    return {**cfg, "client_id": client_id, "client_secret": client_secret}
+
+
+def _generate_state(provider: str) -> str:
+    """HMAC-signed state token: base64url(provider:timestamp:nonce):sig"""
+    nonce = _secrets.token_urlsafe(16)
+    ts = int(_time.time())
+    payload = f"{provider}:{ts}:{nonce}"
+    sig = _hmac.new(
+        _OAUTH_STATE_SECRET.encode(),
+        payload.encode(),
+        _hashlib.sha256,
+    ).hexdigest()[:16]
+    import base64 as _b64
+    raw = f"{payload}:{sig}"
+    return _b64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+
+
+def _verify_state(state: str, expected_provider: str) -> None:
+    """Verify HMAC-signed state. Raises 400 on tampering or expiry."""
+    import base64 as _b64
+    try:
+        padded = state + "=" * (-len(state) % 4)
+        raw = _b64.urlsafe_b64decode(padded).decode()
+        parts = raw.split(":")
+        if len(parts) != 4:
+            raise ValueError("bad parts")
+        provider, ts_str, nonce, sig = parts
+        ts = int(ts_str)
+        payload = f"{provider}:{ts_str}:{nonce}"
+        expected_sig = _hmac.new(
+            _OAUTH_STATE_SECRET.encode(),
+            payload.encode(),
+            _hashlib.sha256,
+        ).hexdigest()[:16]
+        if not _hmac.compare_digest(sig, expected_sig):
+            raise ValueError("sig mismatch")
+        if provider != expected_provider:
+            raise ValueError("provider mismatch")
+        if _time.time() - ts > _OAUTH_STATE_TTL:
+            raise ValueError("state expired")
+    except (ValueError, Exception) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid OAuth state: {exc}") from exc
+
+
+class OAuthStartResponse(BaseModel):
+    redirect_url: str
+    state: str
+    provider: str
+
+
+class OAuthTokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = _ACCESS_TOKEN_TTL_SECONDS
+    provider: str
+    email: str
+
+
+@router.post(
+    "/oauth/{provider}/start",
+    response_model=OAuthStartResponse,
+    summary="Start OAuth2 Authorization Code flow — returns redirect URL + state",
+)
+async def oauth_start(provider: str, request: Request) -> OAuthStartResponse:
+    """Return the provider's authorization URL with a HMAC-signed state token.
+
+    The caller (UI or mobile app) should redirect the user to `redirect_url`.
+    After the user approves, the provider redirects to the configured callback
+    URI with ?code=...&state=... — then call the callback endpoint.
+
+    No auth required on this endpoint (it's the beginning of the auth flow).
+    """
+    cfg = _get_provider_cfg(provider)
+    state = _generate_state(provider)
+
+    redirect_uri = os.getenv(
+        f"FIXOPS_OAUTH_{provider.upper()}_REDIRECT_URI",
+        str(request.base_url).rstrip("/") + f"/api/v1/auth/oauth/{provider}/callback",
+    )
+
+    params: dict = {
+        "client_id": cfg["client_id"],
+        "redirect_uri": redirect_uri,
+        "scope": cfg["scope"],
+        "state": state,
+        "response_type": "code",
+    }
+    if provider == "google":
+        params["access_type"] = "offline"
+        params["prompt"] = "select_account"
+
+    redirect_url = cfg["auth_url"] + "?" + _urlencode(params)
+    return OAuthStartResponse(redirect_url=redirect_url, state=state, provider=provider)
+
+
+@router.get(
+    "/oauth/{provider}/callback",
+    response_model=OAuthTokenResponse,
+    summary="OAuth2 callback — validates state, exchanges code, returns JWT pair",
+)
+async def oauth_callback(
+    provider: str,
+    code: str,
+    state: str,
+    request: Request,
+) -> OAuthTokenResponse:
+    """Complete the OAuth2 Authorization Code flow.
+
+    1. Validate HMAC state (prevents CSRF).
+    2. Exchange `code` for provider access token via httpx.
+    3. Fetch user profile (email) from provider userinfo endpoint.
+    4. Find or create the ALDECI user record in UserDB.
+    5. Return a standard JWT pair (access + refresh) identical to /auth/login.
+    """
+    _verify_state(state, provider)
+    cfg = _get_provider_cfg(provider)
+
+    redirect_uri = os.getenv(
+        f"FIXOPS_OAUTH_{provider.upper()}_REDIRECT_URI",
+        str(request.base_url).rstrip("/") + f"/api/v1/auth/oauth/{provider}/callback",
+    )
+
+    # --- Step 1: Exchange authorization code for access token ---------------
+    token_params: dict = {
+        "client_id": cfg["client_id"],
+        "client_secret": cfg["client_secret"],
+        "code": code,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    headers = {"Accept": "application/json"}
+    try:
+        async with _httpx.AsyncClient(timeout=10.0) as client:
+            token_resp = await client.post(cfg["token_url"], data=token_params, headers=headers)
+            token_resp.raise_for_status()
+            token_data = token_resp.json()
+
+            provider_access_token = token_data.get("access_token", "")
+            if not provider_access_token:
+                raise HTTPException(status_code=502, detail="Provider did not return access_token")
+
+            # --- Step 2: Fetch user profile ----------------------------------
+            userinfo_headers = {
+                "Authorization": f"Bearer {provider_access_token}",
+                "Accept": "application/json",
+            }
+            if provider == "github":
+                userinfo_headers["User-Agent"] = "ALDECI/1.0"
+            ui_resp = await client.get(cfg["userinfo_url"], headers=userinfo_headers)
+            ui_resp.raise_for_status()
+            userinfo = ui_resp.json()
+
+    except _httpx.HTTPStatusError as exc:
+        _logger.error("OAuth %s HTTP error: %s", provider, exc)
+        raise HTTPException(status_code=502, detail=f"OAuth provider error: {exc.response.status_code}") from exc
+    except _httpx.RequestError as exc:
+        _logger.error("OAuth %s network error: %s", provider, exc)
+        raise HTTPException(status_code=502, detail="OAuth provider unreachable") from exc
+
+    # Extract email — GitHub may require a separate /user/emails call when email is private
+    email: str = userinfo.get("email") or ""
+    if not email and provider == "github":
+        # Attempt secondary emails endpoint (public email may be unset on GitHub)
+        try:
+            async with _httpx.AsyncClient(timeout=10.0) as client:
+                emails_resp = await client.get(
+                    "https://api.github.com/user/emails",
+                    headers={**userinfo_headers, "User-Agent": "ALDECI/1.0"},
+                )
+                if emails_resp.status_code == 200:
+                    emails_data = emails_resp.json()
+                    primary = next(
+                        (e["email"] for e in emails_data if e.get("primary") and e.get("verified")),
+                        None,
+                    )
+                    email = primary or ""
+        except Exception:
+            pass  # non-fatal — fall through to error below
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Could not retrieve email from OAuth provider")
+
+    display_name: str = (
+        userinfo.get("name")
+        or userinfo.get("login")
+        or email.split("@")[0]
+    )
+
+    # --- Step 3: Find or create ALDECI user ----------------------------------
+    user = _user_db.get_user_by_email(email)
+    if user is None:
+        # Auto-provision with viewer role; admin can promote later
+        from core.user_models import UserRole, UserStatus as _US2
+        try:
+            user = _user_db.create_user(
+                email=email,
+                name=display_name,
+                role=UserRole.viewer,
+                org_id="default",
+                password_hash="",  # OAuth users have no local password
+                status=_US2.ACTIVE,
+            )
+        except Exception as exc:
+            _logger.error("OAuth user auto-provision failed for %s: %s", email, exc)
+            raise HTTPException(status_code=500, detail="User provisioning failed") from exc
+
+    if getattr(user, "status", None) is not None:
+        from core.user_models import UserStatus as _US3
+        if user.status != _US3.ACTIVE:
+            raise HTTPException(status_code=403, detail="Account is not active")
+
+    org_id = getattr(user, "org_id", "default") or "default"
+    role_value = getattr(user.role, "value", "viewer") if hasattr(user, "role") else "viewer"
+
+    _ROLE_SCOPES = {
+        "admin": ["admin:all"],
+        "security_analyst": ["read:findings", "write:findings", "read:sbom", "read:evidence"],
+        "developer": ["read:findings", "read:sbom"],
+        "viewer": ["read:findings", "read:sbom"],
+    }
+
+    token_claims = {
+        "sub": user.id,
+        "email": email,
+        "role": role_value,
+        "org_id": org_id,
+        "scopes": _ROLE_SCOPES.get(role_value, ["read:findings"]),
+        "token_type": "access",
+        "oauth_provider": provider,
+    }
+    access_token = _mint_token(token_claims, _ACCESS_TOKEN_TTL_SECONDS)
+    refresh_token = _mint_token(
+        {"sub": user.id, "email": email, "org_id": org_id, "token_type": "refresh"},
+        _REFRESH_TOKEN_TTL_SECONDS,
+    )
+
+    _logger.info("OAuth login success provider=%s user=%s org=%s", provider, user.id, org_id)
+
+    return OAuthTokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=_ACCESS_TOKEN_TTL_SECONDS,
+        provider=provider,
+        email=email,
     )

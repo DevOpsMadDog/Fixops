@@ -3,7 +3,7 @@ Billing Tier API — ALDECI Commercial P2.
 
 Endpoints (all under /api/v1/billing):
     GET  /tier        — current org billing tier (Starter / Pro / Enterprise)
-    POST /upgrade     — record upgrade intent, return Stripe checkout URL placeholder
+    POST /upgrade     — initiate Stripe Checkout Session, return session.url
 
 Tier hierarchy (lowest → highest):
     starter < pro < enterprise
@@ -13,7 +13,7 @@ org's current tier is below the required tier.  Applied to high-value endpoints
 in executive_reporting_router, risk_quantifier_router, and remediation_board_router.
 
 Auth: inherited from app.py (_verify_api_key applied globally).
-No real Stripe SDK — stripe dependency not present in requirements.txt.
+Stripe SDK (stripe-python >=7) is used when FIXOPS_STRIPE_SECRET_KEY is set.
 """
 from __future__ import annotations
 
@@ -235,8 +235,33 @@ async def initiate_upgrade(body: UpgradeRequest, org_id: str = Depends(get_org_i
 
     stripe_key = os.getenv("FIXOPS_STRIPE_SECRET_KEY", "")
     if stripe_key:
-        # Real Stripe integration: import stripe; session = stripe.checkout.Session.create(...)
-        checkout_url = f"https://checkout.stripe.com/pay/stub_{org_id}_{target}"
+        try:
+            import stripe as _stripe  # type: ignore
+
+            _stripe.api_key = stripe_key
+
+            # Resolve Stripe Price ID for the target tier
+            price_id_env = f"FIXOPS_STRIPE_PRICE_ID_{target.upper()}"
+            price_id = os.getenv(price_id_env, "")
+            if not price_id:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Stripe price ID not configured: set {price_id_env}",
+                )
+
+            session = _stripe.checkout.Session.create(
+                mode="subscription",
+                line_items=[{"price": price_id, "quantity": body.seats}],
+                success_url="https://aldeci.ai/billing/success?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url="https://aldeci.ai/billing/cancel",
+                metadata={"org_id": org_id, "target_tier": target},
+            )
+            checkout_url = session.url or ""
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("stripe checkout session creation failed: %s", exc)
+            raise HTTPException(status_code=502, detail="Stripe checkout session creation failed")
     else:
         checkout_url = (
             f"https://aldeci.ai/billing/checkout?org={org_id}&tier={target}&seats={body.seats}"

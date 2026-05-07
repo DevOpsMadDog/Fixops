@@ -9,20 +9,16 @@ Processes Stripe event types:
     customer.subscription.updated  → update org tier
     customer.subscription.deleted  → downgrade org to Starter
 
-Signature verification: stubbed (FIXOPS_STRIPE_WEBHOOK_SECRET env var gates real hmac).
+Signature verification: stripe.Webhook.construct_event() when FIXOPS_STRIPE_WEBHOOK_SECRET
+is set; falls back to raw JSON parse in dev mode (no secret configured).
 Auth: exempt from API key check (Stripe calls this endpoint directly).
 All events logged via AuditLogger.
-
-No stripe SDK dependency — raw JSON body only.
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import logging
 import os
-import time
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request
@@ -48,32 +44,6 @@ _PLAN_TO_TIER: Dict[str, str] = {
 }
 
 
-def _verify_stripe_signature(payload: bytes, sig_header: str, secret: str) -> bool:
-    """
-    Validate Stripe-Signature header (t=timestamp,v1=hmac_sha256).
-    Returns True when signature matches or no secret is configured (dev mode).
-    """
-    if not secret:
-        logger.warning("stripe_webhook: FIXOPS_STRIPE_WEBHOOK_SECRET not set — skipping sig check")
-        return True
-
-    try:
-        parts = dict(item.split("=", 1) for item in sig_header.split(","))
-        timestamp = parts.get("t", "0")
-        v1_sig = parts.get("v1", "")
-        signed_payload = f"{timestamp}.".encode() + payload
-        expected = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
-        # Constant-time comparison to prevent timing attacks
-        if not hmac.compare_digest(expected, v1_sig):
-            return False
-        # Reject replays older than 5 minutes
-        age = abs(time.time() - int(timestamp))
-        return age <= 300
-    except Exception as exc:
-        logger.warning("stripe_webhook: signature parse error: %s", exc)
-        return False
-
-
 def _extract_tier_from_subscription(subscription: Dict[str, Any]) -> str:
     """Derive ALDECI tier from Stripe subscription object."""
     items = subscription.get("items", {}).get("data", [])
@@ -97,19 +67,31 @@ def _extract_tier_from_subscription(subscription: Dict[str, Any]) -> str:
 async def stripe_webhook(request: Request):
     """
     Receive and process Stripe webhook events.
-    Signature is verified when FIXOPS_STRIPE_WEBHOOK_SECRET is set.
+    When FIXOPS_STRIPE_WEBHOOK_SECRET is set, signature is validated via
+    stripe.Webhook.construct_event() — cryptographically sound, replay-safe.
+    In dev mode (no secret), raw JSON is accepted without verification.
     """
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
     secret = os.getenv("FIXOPS_STRIPE_WEBHOOK_SECRET", "")
 
-    if not _verify_stripe_signature(payload, sig_header, secret):
-        raise HTTPException(status_code=400, detail="Invalid Stripe signature")
+    if secret:
+        try:
+            import stripe as _stripe  # type: ignore
 
-    try:
-        event = json.loads(payload)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+            _stripe.api_key = os.getenv("FIXOPS_STRIPE_SECRET_KEY", "")
+            event_obj = _stripe.Webhook.construct_event(payload, sig_header, secret)
+            # construct_event returns a stripe.Event object; convert to plain dict
+            event: Dict[str, Any] = json.loads(payload)
+        except Exception as exc:
+            logger.warning("stripe_webhook: signature verification failed: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid Stripe signature")
+    else:
+        logger.warning("stripe_webhook: FIXOPS_STRIPE_WEBHOOK_SECRET not set — skipping sig check")
+        try:
+            event = json.loads(payload)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
     event_type: str = event.get("type", "")
     event_id: str = event.get("id", "unknown")

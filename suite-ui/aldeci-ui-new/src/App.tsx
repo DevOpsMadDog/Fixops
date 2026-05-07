@@ -13,6 +13,9 @@ import { FINDINGS_EXPLORER_ROUTES } from "@/config/findingsExplorerRoutes";
 
 // Tour — public demo mode (no auth)
 const Tour = lazy(() => import("@/pages/Tour"));
+// Status — public, no auth required (Multica #4113)
+const StatusPage = lazy(() => import("@/pages/StatusPage"));
+
 
 // Auth — LoginPage is eagerly imported above (must always work, no Suspense boundary)
 
@@ -114,6 +117,7 @@ const SecurityAwareness = lazy(() => import("@/pages/SecurityAwareness"));
 const NetworkAnalysis = lazy(() => import("@/pages/NetworkAnalysis"));
 const VulnHeatmap = lazy(() => import("@/pages/VulnHeatmap"));
 const AuditLog = lazy(() => import("@/pages/AuditLog"));
+const AdminAuditLogPage = lazy(() => import("@/pages/AdminAuditLogPage"));
 const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
 const OffensiveValidationHub = lazy(() => import("@/pages/OffensiveValidationHub"));
 const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
@@ -442,6 +446,9 @@ const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycle
 // P24 Board Member landing — Multica #4092
 const BoardLandingPage = lazy(() => import("@/pages/BoardLandingPage"));
 
+// DocsPage — Public documentation hub (Multica #4118)
+const DocsPage = lazy(() => import("@/pages/DocsPage"));
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -455,6 +462,13 @@ export default function App() {
           <Route path="/onboard" element={<OnboardingPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/status" element={<StatusPage />} />
+          {/* DocsPage — public legal, install, POC docs (Multica #4118) */}
+          <Route path="/docs/tos" element={<DocsPage />} />
+          <Route path="/docs/privacy" element={<DocsPage />} />
+          <Route path="/docs/dpa" element={<DocsPage />} />
+          <Route path="/docs/install" element={<DocsPage />} />
+          <Route path="/docs/poc" element={<DocsPage />} />
 
           {/* Protected workspace */}
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
@@ -680,6 +694,7 @@ export default function App() {
             <Route path="/network-analysis" element={<NetworkAnalysis />} />
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
+            <Route path="/admin/audit-log" element={<AdminAuditLogPage />} />
             <Route path="/cspm" element={<Navigate to="/compliance?tab=cspm" replace />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED PentestManagement) */}
             <Route path="/pentest" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />

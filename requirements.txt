@@ -56,3 +56,5 @@ google-cloud-securitycenter>=1.30
 google-auth>=2.27
 peft>=0.10
 dilithium-py>=1.0
+# Stripe SDK — real payment integration (Multica #4119)
+stripe>=7.0,<16.0

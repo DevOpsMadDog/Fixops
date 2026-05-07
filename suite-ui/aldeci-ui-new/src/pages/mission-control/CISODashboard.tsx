@@ -42,6 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { HealthCardWidget } from "@/components/HealthCardWidget";
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -320,7 +321,7 @@ export default function CISODashboard() {
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col gap-6"
     >
-      {/* ── Page header ── */}
+      {/* ── Page header + Health widget ── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -336,21 +337,26 @@ export default function CISODashboard() {
             Board-level security posture — real-time risk, compliance, and threat intelligence
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">
-            <Clock className="inline h-3 w-3 mr-1" />
-            {lastRefresh.toLocaleTimeString()}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => load(true)} disabled={refreshing}>
-            <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", refreshing && "animate-spin")} />
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/comply/reports">
-              <FileBarChart className="h-3.5 w-3.5 mr-1.5" />
-              Executive Report
-            </Link>
-          </Button>
+        <div className="flex flex-col gap-2 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <span className="text-[11px] text-muted-foreground">
+              <Clock className="inline h-3 w-3 mr-1" />
+              {lastRefresh.toLocaleTimeString()}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => load(true)} disabled={refreshing}>
+              <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", refreshing && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/comply/reports">
+                <FileBarChart className="h-3.5 w-3.5 mr-1.5" />
+                Executive Report
+              </Link>
+            </Button>
+          </div>
+          <div className="w-full md:min-w-[320px]">
+            <HealthCardWidget />
+          </div>
         </div>
       </div>
 

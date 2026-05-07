@@ -345,6 +345,7 @@ const adminItems: AdminNavItem[] = [
   { label: "Webhook Ingestion",       to: "/connect/webhook-ingestion",      icon: Rss       },
   { label: "Air-Gap Mode",            to: "/connect/mcp/air-gap",            icon: ShieldOff, badge: "AIRGAP" },
   { label: "Training & Culture",      to: "/admin/training-culture",         icon: GraduationCap },
+  { label: "Admin Audit Log",         to: "/admin/audit-log",                icon: ScrollText },
 ];
 
 // Flat navGroups derived from sections — used for breadcrumbs
