@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import { Mail, Send, CheckCircle, AlertCircle } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import api from "@/lib/api";
 
 interface SupportForm {
   name: string;
@@ -46,7 +46,7 @@ export default function SupportPage() {
     setErrorMsg("");
 
     try {
-      const response = await apiClient.post("/api/v1/support/ticket", form);
+      const response = await api.post("/api/v1/support/ticket", form);
       if (response.status === 200 || response.status === 201) {
         setStatus("success");
         setForm({ name: "", email: "", subject: "", description: "" });
