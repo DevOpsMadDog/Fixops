@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-08] backend-hardener — Multica #4150 DONE
+- **What**: GDPR right-to-be-forgotten for orgs. DELETE /api/v1/orgs/{id} soft-deletes (sets deleted_at + status=DELETED, leaves engine data intact). OrgEngine.soft_delete_org() + hard_purge_org() methods added to org_engine.py (~130 LOC). scripts/purge_deleted_orgs.py ops cron script (~90 LOC) finds orgs with deleted_at >= 30d and calls hard_purge_org(_force=True) to remove rows from findings/incidents/audit_events/users across all engine DBs. 4/4 smoke tests pass, phase4 23/23 green.
+- **Files touched**: suite-core/core/org_engine.py, suite-api/apps/api/org_router.py, scripts/purge_deleted_orgs.py (new), tests/test_gdpr_org_delete.py (new)
+- **Outcome**: SUCCESS — SHA 5be20890, pushed, Multica #4150 closed (done)
+- **Pillar(s) served**: V1 (security/compliance hardening), V3 (enterprise trust)
+
 ### [2026-05-05 00:00] frontend-craftsman — Multica #4143 DONE
 - **What**: Built src/pages/marketing/LandingPage.tsx (~300 LOC) — polished public marketing page wired at /marketing and /home. Sections: hero with CTA, trust strip, problem-3-bullets, solution-3-pillars, 3-step how-it-works, 3-tier pricing cards, social proof placeholder, CTA bar with email form, footer with TOS/Privacy/DPA links. Framer Motion fade-up animations, shadcn Button/Badge, dark-mode-first (slate-950).
 - **Files touched**: suite-ui/aldeci-ui-new/src/pages/marketing/LandingPage.tsx (new), suite-ui/aldeci-ui-new/src/App.tsx (lazy import + /marketing + /home routes)

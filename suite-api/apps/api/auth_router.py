@@ -1378,7 +1378,7 @@ def _build_authn_request(sp_entity_id: str, idp_sso_url: str, acs_url: str) -> s
         f' AllowCreate="true"/>'
         f'</samlp:AuthnRequest>'
     )
-    deflated = _zlib.compress(xml.encode("utf-8"), _zlib.BEST_COMPRESSION)[2:-4]  # raw deflate
+    deflated = _zlib.compress(xml.encode("utf-8"), 9)[2:-4]  # raw deflate (level 9)
     return _b64.b64encode(deflated).decode("ascii")
 
 
@@ -1606,14 +1606,18 @@ async def saml_callback(
         if isinstance(display_name, list):
             display_name = display_name[0]
         try:
-            user = _user_db.create_user(
+            from core.user_models import User as _UserModel
+            _parts = str(display_name).split(" ", 1)
+            _new_user = _UserModel(
+                id="",
                 email=email,
-                name=str(display_name),
-                role=_UR.viewer,
-                org_id="default",
-                password_hash="",
+                password_hash="",  # SAML users have no local password
+                first_name=_parts[0],
+                last_name=_parts[1] if len(_parts) > 1 else "",
+                role=_UR.VIEWER,
                 status=_US.ACTIVE,
             )
+            user = _user_db.create_user(_new_user)
         except Exception as exc:
             _logger.error("SAML user auto-provision failed for %s: %s", email, exc)
             raise HTTPException(status_code=500, detail="User provisioning failed") from exc
