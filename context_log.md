@@ -1,5 +1,17 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-08] backend-hardener — Multica #4145 DONE
+- **What**: SAML 2.0 SSO for Enterprise tier. POST /api/v1/auth/saml/{idp_name}/initiate returns SAMLRequest redirect URL (deflate+base64, raw AuthnRequest XML). GET /api/v1/auth/saml/{idp_name}/callback validates SAMLResponse (XML parse, status check, NameID email extraction, optional XML-DSig via cryptography+signxml, graceful dev-mode skip when no cert). Auto-provisions user on first login. Returns standard JWT pair (access 2h + refresh 7d). IdP config via FIXOPS_SAML_IDP_{NAME}_{ENTITY_ID,SSO_URL,X509_CERT}. Stdlib-only (xml.etree + zlib + base64). 2/2 smoke tests pass, 26/26 phase4 pass. SHA 8c27bddb.
+- **Files touched**: suite-api/apps/api/auth_router.py (~280 LOC added), tests/test_saml_sso.py (new, 2 smoke tests)
+- **Outcome**: SUCCESS — Multica c91a9d6d → done
+- **Pillar(s) served**: V6 (enterprise demo), V1 (auth hardening)
+
+### [2026-05-08] backend-hardener — Multica #4151 DONE
+- **What**: CRUD /api/v1/webhooks/outbound — per-org outbound webhook subscriptions to TrustGraph event topics (finding.created.critical, incident.opened, council.escalated). POST creates (SSRF-blocked, auto-generates HMAC-SHA256 secret), GET lists (secret redacted), DELETE revokes (soft-delete). Async httpx dispatcher signs payload envelope and HTTP-POSTs to subscribed URLs. SQLite WAL storage at data/outbound_webhooks.db. 3 smoke tests in test_phase4_integration.py (topic validation, HTTPS enforcement, HMAC correctness). 26/26 phase4 pass. SHA 38c524a1.
+- **Files touched**: suite-api/apps/api/outbound_webhooks_router.py (new, ~330 LOC), suite-api/apps/api/app.py (mount block +8 LOC), tests/test_phase4_integration.py (+35 LOC)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (Decision Intelligence), V7 (MCP-Native), V9 (Air-Gapped)
+
 ### [2026-05-08] backend-hardener — Multica #4150 DONE
 - **What**: GDPR right-to-be-forgotten for orgs. DELETE /api/v1/orgs/{id} soft-deletes (sets deleted_at + status=DELETED, leaves engine data intact). OrgEngine.soft_delete_org() + hard_purge_org() methods added to org_engine.py (~130 LOC). scripts/purge_deleted_orgs.py ops cron script (~90 LOC) finds orgs with deleted_at >= 30d and calls hard_purge_org(_force=True) to remove rows from findings/incidents/audit_events/users across all engine DBs. 4/4 smoke tests pass, phase4 23/23 green.
 - **Files touched**: suite-core/core/org_engine.py, suite-api/apps/api/org_router.py, scripts/purge_deleted_orgs.py (new), tests/test_gdpr_org_delete.py (new)
