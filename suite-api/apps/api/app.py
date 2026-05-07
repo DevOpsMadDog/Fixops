@@ -6810,6 +6810,22 @@ def create_app() -> FastAPI:
     except Exception as _e:
         _logger.warning("code_to_runtime_router unavailable: %s", _e)
 
+    # Billing tier API + Stripe webhook — Commercial P2 (Multica #4101)
+    try:
+        from apps.api.billing_router import router as billing_router
+        app.include_router(billing_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Billing router at /api/v1/billing")
+    except Exception as _e:
+        _logger.warning("billing_router unavailable: %s", _e)
+
+    try:
+        from apps.api.stripe_webhook_router import router as stripe_webhook_router
+        # Stripe webhook must NOT require ALDECI API key — Stripe calls it directly
+        app.include_router(stripe_webhook_router)
+        _logger.info("Mounted Stripe webhook router at /api/v1/billing/stripe-webhook")
+    except Exception as _e:
+        _logger.warning("stripe_webhook_router unavailable: %s", _e)
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they

@@ -165,36 +165,90 @@ class WebSocketAdapter:
 
 
 class EmailAdapter:
-    """Adapter for email notifications (SMTP stub)."""
+    """Adapter for email notifications.
 
-    def __init__(self, smtp_host: str = "localhost", smtp_port: int = 587):
-        """
-        Initialize email adapter.
+    Reads SMTP config from env vars at construction time:
+        FIXOPS_SMTP_HOST, FIXOPS_SMTP_PORT, FIXOPS_SMTP_USER,
+        FIXOPS_SMTP_PASS, FIXOPS_SMTP_FROM
 
-        Args:
-            smtp_host: SMTP server hostname
-            smtp_port: SMTP server port
-        """
-        self._smtp_host = smtp_host
-        self._smtp_port = smtp_port
+    When FIXOPS_SMTP_HOST is not set the adapter no-ops cleanly (logs a
+    debug message and returns True so the notification pipeline continues).
+    """
+
+    def __init__(
+        self,
+        smtp_host: str = "",
+        smtp_port: int = 587,
+        smtp_user: str = "",
+        smtp_pass: str = "",
+        smtp_from: str = "noreply@aldeci.ai",
+    ):
+        import os
+        self._smtp_host = smtp_host or os.getenv("FIXOPS_SMTP_HOST", "")
+        self._smtp_port = int(os.getenv("FIXOPS_SMTP_PORT", str(smtp_port)))
+        self._smtp_user = smtp_user or os.getenv("FIXOPS_SMTP_USER", "")
+        self._smtp_pass = smtp_pass or os.getenv("FIXOPS_SMTP_PASS", "")
+        self._smtp_from = smtp_from or os.getenv("FIXOPS_SMTP_FROM", "noreply@aldeci.ai")
         self._logger = _logger
 
     async def send(self, action: NotificationAction) -> bool:
         """
-        Send notification via email (stub implementation).
+        Send notification via SMTP when configured; no-op otherwise.
 
         Args:
             action: NotificationAction to send
 
         Returns:
-            True if successful
+            True if sent (or gracefully skipped when SMTP unconfigured)
         """
-        self._logger.info(
-            f"Email notification (stub): Event {action.event.event_id} "
-            f"to {self._smtp_host}:{self._smtp_port}"
-        )
-        # Stub implementation - would integrate with smtplib
-        return True
+        if not self._smtp_host:
+            self._logger.debug(
+                "EmailAdapter: FIXOPS_SMTP_HOST not set — skipping email for event %s",
+                action.event.event_id,
+            )
+            return True
+
+        import smtplib
+        from email.mime.text import MIMEText
+
+        event_meta = getattr(action.event, "metadata", None) or {}
+        recipient = event_meta.get("email") if event_meta else None
+        if not recipient:
+            self._logger.debug(
+                "EmailAdapter: no recipient in event metadata — skipping event %s",
+                action.event.event_id,
+            )
+            return True
+
+        subject = f"[ALDECI] {action.event.event_type} — {action.event.event_id[:8]}"
+        body = f"Event: {action.event.event_type}\nID: {action.event.event_id}\n"
+
+        msg = MIMEText(body)
+        msg["Subject"] = subject
+        msg["From"] = self._smtp_from
+        msg["To"] = recipient
+
+        try:
+            with smtplib.SMTP(self._smtp_host, self._smtp_port, timeout=10) as smtp:
+                if self._smtp_user and self._smtp_pass:
+                    smtp.starttls()
+                    smtp.login(self._smtp_user, self._smtp_pass)
+                smtp.sendmail(self._smtp_from, [recipient], msg.as_string())
+            self._logger.info(
+                "EmailAdapter: sent event %s to %s via %s:%s",
+                action.event.event_id,
+                recipient,
+                self._smtp_host,
+                self._smtp_port,
+            )
+            return True
+        except Exception as exc:
+            self._logger.error(
+                "EmailAdapter: failed to send event %s — %s",
+                action.event.event_id,
+                exc,
+            )
+            return False
 
 
 class SlackAdapter:

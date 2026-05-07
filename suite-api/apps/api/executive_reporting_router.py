@@ -30,9 +30,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+
+from apps.api.billing_router import requires_tier
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +98,7 @@ class BoardPresentationIn(BaseModel):
 @router.post("/reports", status_code=201)
 def create_report(
     payload: ReportIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(requires_tier("pro")),
 ) -> Dict[str, Any]:
     """Create an executive report."""
     try:
@@ -237,7 +239,7 @@ def get_kpi(
 @router.post("/board-presentations", status_code=201)
 def create_board_presentation(
     payload: BoardPresentationIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(requires_tier("enterprise")),
 ) -> Dict[str, Any]:
     """Create a board presentation."""
     try:

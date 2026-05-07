@@ -23,6 +23,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
+from apps.api.billing_router import requires_tier
 from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -87,7 +88,7 @@ class CompareRequest(BaseModel):
 @router.post("/scenarios")
 async def create_scenario(
     req: CreateScenarioRequest,
-    org_id: str = Depends(get_org_id),
+    org_id: str = Depends(requires_tier("pro")),
 ) -> Dict[str, Any]:
     """
     Create a new FAIR risk scenario with financial parameters.
