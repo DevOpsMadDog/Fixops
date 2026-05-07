@@ -154,19 +154,31 @@ class TestOAuthCallback:
         return user
 
     def test_github_callback_returns_jwt_pair(self):
+        import jwt as pyjwt
+
         email = "alice@github.example.com"
+        secret = os.environ["FIXOPS_JWT_SECRET"]
+
+        # Build state token
         state = _make_valid_state("github")
         mock_client = self._mock_httpx("github", email=email)
         mock_user = self._mock_user_db(email)
 
+        # _mint_token reads FIXOPS_JWT_SECRET via _get_login_jwt_secret().
+        # Patch that function to always return our test secret so the
+        # module-level import-time caching in auth_deps doesn't interfere.
+        def _fake_get_login_jwt_secret():
+            return secret
+
         with (
             patch("apps.api.auth_router._httpx.AsyncClient", return_value=mock_client),
             patch("apps.api.auth_router._user_db") as mock_db,
+            patch("apps.api.auth_router._get_login_jwt_secret", _fake_get_login_jwt_secret),
         ):
             mock_db.get_user_by_email.return_value = mock_user
 
             resp = _client.get(
-                f"/api/v1/auth/oauth/github/callback",
+                "/api/v1/auth/oauth/github/callback",
                 params={"code": "fake-github-code", "state": state},
             )
 
@@ -181,8 +193,6 @@ class TestOAuthCallback:
         assert body["expires_in"] > 0
 
         # Verify the access_token is a parseable JWT with correct claims
-        import jwt as pyjwt
-        secret = os.environ["FIXOPS_JWT_SECRET"]
         claims = pyjwt.decode(
             body["access_token"],
             secret,
