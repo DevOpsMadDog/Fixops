@@ -1021,6 +1021,143 @@ async def auth_refresh(body: RefreshRequestBody, request: Request) -> RefreshRes
 
 
 # ---------------------------------------------------------------------------
+# Multica #4127 — Forgot password / reset password
+#
+# POST /api/v1/auth/forgot-password  — email → generate token → SMTP send link
+# POST /api/v1/auth/reset-password   — token + new_password → bcrypt hash + persist
+#
+# Token table lives in password_reset_db.py (same pattern as email_verification_db.py).
+# No email enumeration: both registered and unregistered addresses return 200.
+# ---------------------------------------------------------------------------
+
+_pr_db = None  # lazy singleton
+
+
+def _get_pr_db():
+    global _pr_db
+    if _pr_db is None:
+        from core.password_reset_db import PasswordResetDB
+        _pr_db = PasswordResetDB()
+    return _pr_db
+
+
+def _send_password_reset_email(to_email: str, token: str, base_url: str) -> None:
+    """Fire-and-forget SMTP send — graceful no-op when FIXOPS_SMTP_HOST unset."""
+    smtp_host = os.getenv("FIXOPS_SMTP_HOST", "")
+    if not smtp_host:
+        _logger.info("Password reset email skipped (SMTP not configured) for %s", to_email)
+        return
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        smtp_port = int(os.getenv("FIXOPS_SMTP_PORT", "587"))
+        smtp_user = os.getenv("FIXOPS_SMTP_USER", "")
+        smtp_pass = os.getenv("FIXOPS_SMTP_PASS", "")
+        smtp_from = os.getenv("FIXOPS_SMTP_FROM", "noreply@aldeci.ai")
+        reset_url = f"{base_url}/reset-password/{token}"
+        body = (
+            f"You requested a password reset for your ALDECI account.\n\n"
+            f"Click the link below to set a new password:\n{reset_url}\n\n"
+            f"This link expires in 60 minutes. If you did not request this, ignore this email."
+        )
+        msg = MIMEText(body)
+        msg["Subject"] = "[ALDECI] Reset your password"
+        msg["From"] = smtp_from
+        msg["To"] = to_email
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as smtp:
+            if smtp_user and smtp_pass:
+                smtp.starttls()
+                smtp.login(smtp_user, smtp_pass)
+            smtp.sendmail(smtp_from, [to_email], msg.as_string())
+        _logger.info("Password reset email sent to %s", to_email)
+    except Exception as exc:
+        _logger.warning("Password reset email failed for %s: %s", to_email, exc)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=1, max_length=255)
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=1, max_length=64)
+    new_password: str = Field(..., min_length=8, max_length=1024)
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    status_code=200,
+    summary="Request a password reset link via email",
+)
+async def auth_forgot_password(body: ForgotPasswordRequest, request: Request) -> ForgotPasswordResponse:
+    """Send a password reset link to the provided email address.
+
+    Always returns 200 regardless of whether the email is registered (prevents enumeration).
+    Token is UUID4, 60-minute TTL, single-use. Previous tokens for the same email are invalidated.
+    """
+    if not _EMAIL_RE.match(body.email):
+        # Return 200 even for malformed — no enumeration, but skip DB/SMTP work
+        return ForgotPasswordResponse(
+            message="If that email is registered you will receive a reset link shortly."
+        )
+
+    user = _user_db.get_user_by_email(body.email)
+    if user is not None:
+        try:
+            token = _get_pr_db().create_token(user_id=user.id, email=body.email)
+            base_url = str(request.base_url).rstrip("/")
+            _send_password_reset_email(to_email=body.email, token=token, base_url=base_url)
+            _logger.info("Password reset token created for user_id=%s", user.id)
+        except Exception as exc:
+            _logger.error("Failed to create password reset token for %s: %s", body.email, exc)
+            # Still return 200 — do not leak failure details
+    else:
+        _logger.info("Password reset requested for unknown email (no token created)")
+
+    return ForgotPasswordResponse(
+        message="If that email is registered you will receive a reset link shortly."
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=ResetPasswordResponse,
+    status_code=200,
+    summary="Consume a reset token and set a new password",
+)
+async def auth_reset_password(body: ResetPasswordRequest) -> ResetPasswordResponse:
+    """Consume a password reset token and persist the new bcrypt-hashed password.
+
+    Returns 400 if the token is invalid, expired, or already used.
+    """
+    result = _get_pr_db().consume_token(body.token)
+    if not result:
+        raise HTTPException(status_code=400, detail="Token invalid, expired, or already used")
+
+    user = _user_db.get_user(result["user_id"])
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+
+    user.password_hash = _user_db.hash_password(body.new_password)
+    try:
+        _user_db.update_user(user)
+    except Exception as exc:
+        _logger.error("Failed to update password for user_id=%s: %s", user.id, exc)
+        raise HTTPException(status_code=500, detail="Password update failed") from exc
+
+    _logger.info("Password reset completed for user_id=%s", user.id)
+    return ResetPasswordResponse(message="Password updated successfully.")
+
+
+# ---------------------------------------------------------------------------
 # Multica #4112 — Social OAuth2 (Google + GitHub)
 #
 # POST /api/v1/auth/oauth/{provider}/start    → redirect_url + state cookie
