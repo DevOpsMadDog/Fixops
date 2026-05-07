@@ -456,6 +456,9 @@ const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycle
 // P24 Board Member landing — Multica #4092
 const BoardLandingPage = lazy(() => import("@/pages/BoardLandingPage"));
 
+// Outbound Webhooks admin page — Multica #4155
+const WebhooksOutboundPage = lazy(() => import("@/pages/admin/WebhooksOutboundPage"));
+
 // DocsPage — Public documentation hub (Multica #4118)
 const DocsPage = lazy(() => import("@/pages/DocsPage"));
 // ChangelogPage — Public changelog (Multica #4141)
@@ -720,6 +723,8 @@ export default function App() {
             <Route path="/admin/audit-log" element={<AdminAuditLogPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/api-keys" element={<RequireRole roles={["admin"]}><AdminApiKeysPage /></RequireRole>} />
+            {/* Outbound Webhooks — Multica #4155 */}
+            <Route path="/admin/webhooks-out" element={<WebhooksOutboundPage />} />
             <Route path="/cspm" element={<Navigate to="/compliance?tab=cspm" replace />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED PentestManagement) */}
             <Route path="/pentest" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />

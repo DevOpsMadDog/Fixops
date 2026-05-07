@@ -129,6 +129,7 @@ import {
   Command,
   Upload,
   Rocket,
+  Webhook,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -344,6 +345,7 @@ const adminItems: AdminNavItem[] = [
   { label: "Auditor View",            to: "/comply/auditor",                 icon: ScrollText },
   { label: "Integration Targets",     to: "/connect/targets",                icon: Wifi      },
   { label: "Webhook Ingestion",       to: "/connect/webhook-ingestion",      icon: Rss       },
+  { label: "Outbound Webhooks",       to: "/admin/webhooks-out",             icon: Webhook   },
   { label: "Air-Gap Mode",            to: "/connect/mcp/air-gap",            icon: ShieldOff, badge: "AIRGAP" },
   { label: "Training & Culture",      to: "/admin/training-culture",         icon: GraduationCap },
   { label: "Admin Audit Log",         to: "/admin/audit-log",                icon: ScrollText },
