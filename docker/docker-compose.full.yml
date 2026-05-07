@@ -219,6 +219,34 @@ services:
       - "aldeci.tier=application"
 
   # ──────────────────────────────────────────────────────────────────────────
+  # seed-demo-data — Demo data seeder (runs after API healthy — idempotent)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Role: Populates demo-org-001 with findings, incidents, reports, SOC2 evidence.
+  # Runs once, then stops. Re-run via: docker compose run --rm seed-demo-data
+  seed-demo-data:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: aldeci-seed-demo
+    <<: *default-restart
+    command: ["python", "scripts/seed_demo_data.py"]
+    depends_on:
+      aldeci-api:
+        condition: service_healthy
+    environment:
+      <<: *aldeci-env
+      PYTHONPATH: "/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app"
+    volumes:
+      - aldeci-data:/app/data
+    logging: *default-logging
+    labels:
+      - "aldeci.service=bootstrap"
+      - "aldeci.role=seed"
+      - "aldeci.tier=init"
+    profiles:
+      - seed
+
+  # ──────────────────────────────────────────────────────────────────────────
   # aldeci-ui — React 19 frontend (Nginx serving built assets)
   # ──────────────────────────────────────────────────────────────────────────
   # Role: Serves the ALDECI UI (React 19 + Vite 6 + Tailwind v4).

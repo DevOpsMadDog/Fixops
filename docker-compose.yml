@@ -63,6 +63,27 @@ services:
       - aldeci-net
     restart: unless-stopped
 
+  # Demo data seeder (runs after API healthy — idempotent)
+  seed-demo-data:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aldeci-seed-demo
+    command: ["python", "scripts/seed_demo_data.py"]
+    environment:
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-aldeci-demo-token}
+      - FIXOPS_MODE=enterprise
+    volumes:
+      - aldeci-data:/app/data
+      - aldeci-state:/app/.fixops_data
+    depends_on:
+      aldeci:
+        condition: service_healthy
+    networks:
+      - aldeci-net
+    profiles:
+      - seed
+
   # TrustGraph indexer (one-shot: populates Knowledge Cores)
   trustgraph-init:
     build:
