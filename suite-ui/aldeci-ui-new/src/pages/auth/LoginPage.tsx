@@ -184,6 +184,26 @@ export default function LoginPage() {
     [apiKey, navigate],
   );
 
+  const handleQuickSSO = useCallback(async () => {
+    setError(null);
+    const defaultIdp = import.meta.env.VITE_SAML_DEFAULT_IDP;
+    const idpName = defaultIdp || prompt("Enter IdP name (e.g., okta, azure, google):");
+    if (!idpName?.trim()) return;
+
+    try {
+      const url = buildApiUrl(`/api/v1/auth/saml/${idpName.trim()}/initiate`);
+      const res = await fetch(url, { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      }
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message || "SSO initiation failed.";
+      setError(msg);
+    }
+  }, []);
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -594,6 +614,23 @@ export default function LoginPage() {
                         <ArrowRight className="ml-auto h-4 w-4 opacity-70" />
                       </>
                     )}
+                  </Button>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11 font-semibold text-sm"
+                    onClick={handleQuickSSO}
+                    style={{
+                      background: "oklch(0.11 0.01 250)",
+                      border: "1px solid oklch(0.22 0.01 250)",
+                      color: "oklch(0.85 0.005 250)",
+                    }}
+                  >
+                    <Shield className="mr-2 h-4 w-4" style={{ color: "oklch(0.65 0.15 195)" }} />
+                    Sign in with SSO
                   </Button>
                 </div>
               </motion.form>
