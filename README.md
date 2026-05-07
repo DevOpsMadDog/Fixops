@@ -8,6 +8,7 @@
 [![Tests: 1,078+ passing](https://img.shields.io/badge/tests-1078%2B_passing-brightgreen)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)]()
+[![Deploy to Fly.io](https://github.com/DevOpsMadDog/Fixops/actions/workflows/deploy.yml/badge.svg)](https://github.com/DevOpsMadDog/Fixops/actions/workflows/deploy.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)]()
