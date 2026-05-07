@@ -633,13 +633,13 @@ async def get_finding_timeline(finding_id: str) -> List[TimelineEvent]:
 
 
 @router.get("/summary", response_model=FindingSummary)
-async def get_findings_summary() -> FindingSummary:
+async def get_findings_summary(org_id: str = Depends(get_org_id)) -> FindingSummary:
     """Get executive summary of findings.
 
     Returns:
         FindingSummary with key metrics and trends
     """
-    findings = list(_findings_store.values())
+    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
 
     by_severity = {}
     by_status = {}
@@ -712,7 +712,7 @@ async def get_findings_summary() -> FindingSummary:
 
 
 @router.get("/sla", response_model=SLAStatus)
-async def get_sla_status() -> SLAStatus:
+async def get_sla_status(org_id: str = Depends(get_org_id)) -> SLAStatus:
     """Get SLA compliance for findings.
 
     Default SLAs (would be configurable):
@@ -724,7 +724,7 @@ async def get_sla_status() -> SLAStatus:
     Returns:
         SLAStatus with compliance metrics
     """
-    findings = list(_findings_store.values())
+    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
 
     sla_map = {
         "critical": timedelta(days=1),
@@ -782,6 +782,7 @@ async def get_sla_status() -> SLAStatus:
 @router.post("/bulk/status", response_model=BulkStatusUpdateResponse)
 async def bulk_update_status(
     update: BulkStatusUpdateRequest = Body(...),
+    org_id: str = Depends(get_org_id),
 ) -> BulkStatusUpdateResponse:
     """Bulk update status for multiple findings.
 
@@ -809,6 +810,11 @@ async def bulk_update_status(
                 continue
 
             finding = _findings_store[finding_id]
+            # AUTHZ: enforce org_id isolation on bulk updates
+            if finding.get("org_id") != org_id:
+                errors.append(f"Finding {finding_id} not found")
+                failed += 1
+                continue
             old_status = finding.get("status", "open")
 
             finding["status"] = update.status
@@ -848,6 +854,7 @@ async def bulk_update_status(
 @router.post("/export", response_model=Dict[str, str])
 async def export_findings(
     export_req: ExportRequest = Body(...),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, str]:
     """Export findings in JSON or CSV format.
 
@@ -860,7 +867,7 @@ async def export_findings(
     Note:
         In production, would stream response as StreamingResponse
     """
-    findings = list(_findings_store.values())
+    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
 
     # Apply filters from export_req.filters if provided
     if export_req.filters:

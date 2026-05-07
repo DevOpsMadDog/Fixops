@@ -23,8 +23,14 @@ import re
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field, field_validator
+
+try:
+    from apps.api.dependencies import get_org_id as _get_org_id
+except ImportError:  # pragma: no cover — test environments without full app
+    def _get_org_id() -> str:  # type: ignore[misc]
+        return "default"
 
 logger = logging.getLogger(__name__)
 
@@ -235,11 +241,27 @@ async def list_connector_types() -> Dict[str, Any]:
     return {"types": types, "total": len(types)}
 
 
+def _org_prefix(org_id: str) -> str:
+    """Return the internal name prefix used to namespace connectors per-org."""
+    return f"{org_id}::"
+
+
+def _strip_prefix(name: str, org_id: str) -> str:
+    """Strip org namespace prefix from internal connector name."""
+    prefix = _org_prefix(org_id)
+    return name[len(prefix):] if name.startswith(prefix) else name
+
+
 @router.get("", summary="List registered connectors")
-async def list_connectors() -> Dict[str, Any]:
-    """Return metadata for all registered connectors."""
+async def list_connectors(org_id: str = Depends(_get_org_id)) -> Dict[str, Any]:
+    """Return metadata for connectors registered by the caller's org."""
     uc = _get_universal()
-    connectors = uc.list_connectors()
+    prefix = _org_prefix(org_id)
+    connectors = [
+        {**c, "name": _strip_prefix(c["name"], org_id)}
+        for c in uc.list_connectors()
+        if c["name"].startswith(prefix)
+    ]
     return {
         "connectors": connectors,
         "total": len(connectors),
@@ -247,7 +269,10 @@ async def list_connectors() -> Dict[str, Any]:
 
 
 @router.post("/register", summary="Register a new connector")
-async def register_connector(req: RegisterConnectorRequest) -> Dict[str, Any]:
+async def register_connector(
+    req: RegisterConnectorRequest,
+    org_id: str = Depends(_get_org_id),
+) -> Dict[str, Any]:
     """Register a Jira, GitHub, or Slack connector.
 
     Credentials are validated for format but not tested against the
@@ -302,8 +327,10 @@ async def register_connector(req: RegisterConnectorRequest) -> Dict[str, Any]:
     else:
         raise HTTPException(status_code=422, detail=f"Unsupported type: {req.type}")
 
-    uc.register(req.name, connector)
-    logger.info("Registered connector: %s (type=%s)", req.name, req.type.value)
+    # Namespace the connector name by org to prevent cross-tenant access
+    internal_name = f"{_org_prefix(org_id)}{req.name}"
+    uc.register(internal_name, connector)
+    logger.info("Registered connector: %s (type=%s, org=%s)", req.name, req.type.value, org_id)
 
     return {
         "status": "registered",
@@ -345,11 +372,13 @@ async def create_ticket(req: CreateTicketRequest) -> Dict[str, Any]:
 @router.post("/{name}/test", summary="Test a specific connector")
 async def test_connector(
     name: str = Path(..., min_length=1, max_length=63),
+    org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """Test connectivity to a specific registered connector."""
     name_lower = name.strip().lower()
+    internal_name = f"{_org_prefix(org_id)}{name_lower}"
     uc = _get_universal()
-    conn = uc.get_connector(name_lower)
+    conn = uc.get_connector(internal_name)
 
     if conn is None:
         raise HTTPException(
@@ -364,12 +393,14 @@ async def test_connector(
 @router.delete("/{name}", summary="Remove a connector")
 async def remove_connector(
     name: str = Path(..., min_length=1, max_length=63),
+    org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """Unregister and remove a connector."""
     name_lower = name.strip().lower()
+    internal_name = f"{_org_prefix(org_id)}{name_lower}"
     uc = _get_universal()
 
-    conn = uc.get_connector(name_lower)
+    conn = uc.get_connector(internal_name)
     if conn is None:
         raise HTTPException(
             status_code=404,
@@ -378,8 +409,8 @@ async def remove_connector(
 
     # Close HTTP client before removing
     await conn.close()
-    uc.unregister(name_lower)
-    logger.info("Removed connector: %s", name_lower)
+    uc.unregister(internal_name)
+    logger.info("Removed connector: %s (org=%s)", name_lower, org_id)
 
     return {"status": "removed", "name": name_lower}
 
@@ -387,6 +418,7 @@ async def remove_connector(
 @router.get("/{name}/health", summary="Connector-level health check")
 async def connector_health(
     name: str = Path(..., min_length=1, max_length=63),
+    org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """Return the live health status of a single registered connector.
 
@@ -399,8 +431,9 @@ async def connector_health(
     Raises 502 if the health probe itself raises an unexpected exception.
     """
     name_lower = name.strip().lower()
+    internal_name = f"{_org_prefix(org_id)}{name_lower}"
     uc = _get_universal()
-    conn = uc.get_connector(name_lower)
+    conn = uc.get_connector(internal_name)
 
     if conn is None:
         raise HTTPException(
@@ -423,10 +456,11 @@ async def connector_health(
 
 
 @router.get("/health", summary="Connectors health")
-async def connectors_health() -> Dict[str, Any]:
-    """Return health status of the connectors subsystem."""
+async def connectors_health(org_id: str = Depends(_get_org_id)) -> Dict[str, Any]:
+    """Return health status of the connectors subsystem for the caller's org."""
     uc = _get_universal()
-    connectors = uc.list_connectors()
+    prefix = _org_prefix(org_id)
+    connectors = [c for c in uc.list_connectors() if c["name"].startswith(prefix)]
     configured_count = sum(1 for c in connectors if c.get("configured"))
 
     return {
@@ -434,13 +468,17 @@ async def connectors_health() -> Dict[str, Any]:
         "total_connectors": len(connectors),
         "configured_connectors": configured_count,
         "connectors": [
-            {"name": c["name"], "type": c["type"], "configured": c["configured"]}
+            {
+                "name": _strip_prefix(c["name"], org_id),
+                "type": c["type"],
+                "configured": c["configured"],
+            }
             for c in connectors
         ],
     }
 
 
 @router.get("/", summary="List connectors (alias)", tags=["connectors"])
-async def list_connectors_root() -> Dict[str, Any]:
+async def list_connectors_root(org_id: str = Depends(_get_org_id)) -> Dict[str, Any]:
     """Alias for GET /api/v1/connectors — returns registered connectors."""
-    return await list_connectors()
+    return await list_connectors(org_id=org_id)
