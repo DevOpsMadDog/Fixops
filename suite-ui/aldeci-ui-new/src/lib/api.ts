@@ -1570,6 +1570,20 @@ export const threatDeceptionApi = {
     api.get("/api/v1/threat-deception/campaigns", { params: { org_id: orgId } }),
 };
 
+// ── Risk — /api/v1/risk ──
+export const riskApi = {
+  topRisks: (n = 5) =>
+    api.get("/api/v1/risk/top", { params: { n } }),
+  score: () =>
+    api.get("/api/v1/risk/score"),
+};
+
+// ── Exec Reporting — /api/v1/exec-reporting ──
+export const execReportingApi = {
+  summary: () => api.get("/api/v1/exec-reporting/summary"),
+  kpis: () => api.get("/api/v1/exec-reporting/kpis"),
+};
+
 // ── Digital Forensics — /api/v1/digital-forensics ──
 export const digitalForensicsApi = {
   listCases: (orgId = "default", status?: string) =>

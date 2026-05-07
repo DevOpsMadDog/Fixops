@@ -179,6 +179,7 @@ const navSections: NavSection[] = [
         icon: Crown,
         items: [
           { label: "CISO Dashboard", to: "/executive", icon: Crown, badge: "P01" },
+          { label: "Board Overview", to: "/board", icon: BarChart3, badge: "P24" },
           { label: "Risk Overview", to: "/mission-control/risk", icon: Target },
         ],
       },

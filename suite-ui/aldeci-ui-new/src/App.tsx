@@ -438,6 +438,9 @@ const ComplianceCoverageHub = lazy(() => import("@/pages/ComplianceCoverageHub")
 const DataDiscoveryHub = lazy(() => import("@/pages/DataDiscoveryHub"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
 
+// P24 Board Member landing — Multica #4092
+const BoardLandingPage = lazy(() => import("@/pages/BoardLandingPage"));
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -454,6 +457,9 @@ export default function App() {
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
             {/* CISO / Executive landing — P01 board-level view (Multica #3986) */}
             <Route path="/executive" element={<CISODashboard />} />
+
+            {/* P24 Board Member landing — Multica #4092 */}
+            <Route path="/board" element={<BoardLandingPage />} />
 
             {/* Space 1: Mission Control — Phase 3 P0 Wave 3: root → CommandHero, legacy → redirects */}
             <Route path="/mission-control" element={<Navigate to="/executive" replace />} />
