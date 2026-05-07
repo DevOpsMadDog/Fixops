@@ -69,6 +69,7 @@ const LogViewer = lazy(() => import("@/pages/settings/LogViewer"));
 
 // Onboarding
 const OnboardingWizard = lazy(() => import("@/pages/onboarding/OnboardingWizard"));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 
 // Developer Security Hub (P20 + P11) — replaces DeveloperPortal 2026-05-05
 const DeveloperSecurityHub = lazy(() => import("@/pages/DeveloperSecurityHub"));
@@ -450,6 +451,7 @@ export default function App() {
           <Route path="/tour" element={<Tour />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingWizard />} />
+          <Route path="/onboard" element={<OnboardingPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/landing" element={<LandingPage />} />
 

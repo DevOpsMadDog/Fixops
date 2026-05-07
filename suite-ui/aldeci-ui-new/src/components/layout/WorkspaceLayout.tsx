@@ -124,6 +124,7 @@ import {
   Bell,
   Command,
   Upload,
+  Rocket,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -909,12 +910,30 @@ export function WorkspaceLayout() {
               <span className="text-[11px] font-black text-white tracking-tight">AL</span>
             </div>
             {!collapsed && (
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <span className="block text-[13px] font-bold tracking-tight text-foreground">ALDECI</span>
                 <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground/70 leading-none mt-px">
                   Security Platform
                 </span>
               </div>
+            )}
+            {!collapsed && (
+              <NavTooltip label="Get Started — onboarding wizard" disabled={false}>
+                <NavLink
+                  to="/onboard"
+                  className={({ isActive }) =>
+                    cn(
+                      "shrink-0 flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                      isActive
+                        ? "bg-cyan-500/20 text-cyan-400"
+                        : "text-muted-foreground/60 hover:text-cyan-400 hover:bg-cyan-500/10"
+                    )
+                  }
+                  title="Get Started"
+                >
+                  <Rocket className="h-3.5 w-3.5" />
+                </NavLink>
+              </NavTooltip>
             )}
           </div>
 
