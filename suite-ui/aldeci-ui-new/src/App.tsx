@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import LoginPage from "@/pages/auth/LoginPage";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -13,8 +14,7 @@ import { FINDINGS_EXPLORER_ROUTES } from "@/config/findingsExplorerRoutes";
 // Tour — public demo mode (no auth)
 const Tour = lazy(() => import("@/pages/Tour"));
 
-// Auth
-const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+// Auth — LoginPage is eagerly imported above (must always work, no Suspense boundary)
 
 // ── Lazy-loaded pages ──
 
@@ -448,8 +448,9 @@ export default function App() {
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
           {/* Public routes */}
-          <Route path="/tour" element={<Tour />} />
+          {/* /login — eagerly imported, never suspends; listed first for priority */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/tour" element={<Tour />} />
           <Route path="/onboarding" element={<OnboardingWizard />} />
           <Route path="/onboard" element={<OnboardingPage />} />
           <Route path="/import" element={<ImportPage />} />

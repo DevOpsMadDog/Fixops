@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +97,7 @@ const fadeIn = (delay = 0) => ({
 export default function LoginPage() {
   usePageTitle("Sign In");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, loading } = useAuth();
 
   const [activeTab, setActiveTab] = useState<Tab>("credentials");
@@ -128,7 +129,8 @@ export default function LoginPage() {
       }
       try {
         await login(email.trim(), password);
-        navigate("/", { replace: true });
+        const next = searchParams.get("next") ?? "/executive";
+        navigate(next, { replace: true });
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { detail?: string } } })?.response?.data

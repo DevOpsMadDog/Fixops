@@ -10,13 +10,16 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import {
-  usersApi,
+  authApi,
   setStoredAuthToken,
   setStoredAuthStrategy,
   getStoredAuthToken,
   getStoredAuthStrategy,
   setStoredOrgId,
   getStoredOrgId,
+  setJwtAccessToken,
+  setJwtRefreshToken,
+  clearJwtTokens,
 } from "@/lib/api";
 
 // ── Dev-bypass helpers ──
@@ -186,13 +189,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { data } = await usersApi.login({ email, password });
-      const token = data.access_token as string;
+      const { data } = await authApi.login({ email, password });
+      const accessToken = data.access_token;
+      const refreshToken = data.refresh_token;
       const userData = data.user as AuthUser;
 
-      // Persist JWT
+      // Access token: memory only (XSS-safe)
+      setJwtAccessToken(accessToken);
+      // Refresh token: localStorage (survives reload, 7d TTL)
+      setJwtRefreshToken(refreshToken);
+      // Legacy token store kept in sync for interceptors that read getStoredAuthToken()
       setStoredAuthStrategy("jwt");
-      setStoredAuthToken(token);
+      setStoredAuthToken(accessToken);
       persistUser(userData);
       setUser(userData);
     } finally {
@@ -201,11 +209,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    clearJwtTokens();
     setStoredAuthToken(null);
     setStoredAuthStrategy("token");
     persistUser(null);
     setUser(null);
-    // Navigate to login — the router will handle the redirect
     window.location.assign("/login");
   }, []);
 
