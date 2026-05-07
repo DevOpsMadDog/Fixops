@@ -628,3 +628,256 @@ async def end_role_view_endpoint(override_id: str, request: Request):
     if not ok:
         raise HTTPException(status_code=404, detail="Override not found or already ended")
     return {"status": "ended", "override_id": override_id}
+
+
+# ---------------------------------------------------------------------------
+# Commercial P1 — /api/v1/auth/login + /api/v1/auth/refresh
+# Short-lived access token (2h) + long-lived refresh token (7d).
+# Audit-logged via AuditLogger on every attempt (success or failure).
+# ---------------------------------------------------------------------------
+
+import secrets as _secrets
+import time as _time
+from core.audit_logger import AuditLogger as _AuditLogger, AuditEvent as _AuditEvent, create_audit_logger as _create_audit_logger
+from core.user_db import UserDB as _UserDB
+from core.user_models import UserStatus as _UserStatus
+
+_auth_audit: _AuditLogger = _create_audit_logger()
+_user_db = _UserDB()
+
+_ACCESS_TOKEN_TTL_SECONDS = int(os.getenv("FIXOPS_JWT_EXPIRE_HOURS", "2")) * 3600
+_REFRESH_TOKEN_TTL_SECONDS = int(os.getenv("FIXOPS_JWT_REFRESH_DAYS", "7")) * 86400
+_JWT_ALG = "HS256"
+
+# Per-email failed-attempt tracking (in-memory; survives restart via PersistentDict in users_router)
+_login_failures: dict = {}
+_MAX_LOGIN_ATTEMPTS = 5
+_LOCKOUT_SECONDS = 900  # 15 minutes
+
+
+def _get_login_jwt_secret() -> str:
+    secret = os.getenv("FIXOPS_JWT_SECRET", "").strip()
+    if len(secret) < 32:
+        raise HTTPException(status_code=503, detail="JWT auth not configured (FIXOPS_JWT_SECRET missing or too short)")
+    return secret
+
+
+def _check_login_rate_limit(email: str) -> None:
+    now = _time.time()
+    attempts = [t for t in _login_failures.get(email, []) if now - t < _LOCKOUT_SECONDS]
+    _login_failures[email] = attempts
+    if len(attempts) >= _MAX_LOGIN_ATTEMPTS:
+        remaining = int(_LOCKOUT_SECONDS - (now - attempts[0]))
+        raise HTTPException(status_code=429, detail=f"Too many login attempts. Retry in {remaining}s.")
+
+
+def _record_login_failure(email: str) -> None:
+    _login_failures.setdefault(email, []).append(_time.time())
+
+
+def _clear_login_failures(email: str) -> None:
+    _login_failures.pop(email, None)
+
+
+def _mint_token(payload_extra: dict, ttl_seconds: int) -> str:
+    secret = _get_login_jwt_secret()
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iat": now,
+        "exp": now + timedelta(seconds=ttl_seconds),
+        "jti": _secrets.token_urlsafe(16),
+        **payload_extra,
+    }
+    return jwt.encode(payload, secret, algorithm=_JWT_ALG)
+
+
+class LoginRequestBody(BaseModel):
+    email: str = Field(..., min_length=1, max_length=255)
+    password: str = Field(..., min_length=1, max_length=1024)
+
+
+class LoginResponseBody(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = _ACCESS_TOKEN_TTL_SECONDS
+
+
+class RefreshRequestBody(BaseModel):
+    refresh_token: str = Field(..., min_length=1)
+
+
+class RefreshResponseBody(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = _ACCESS_TOKEN_TTL_SECONDS
+
+
+@router.post(
+    "/login",
+    response_model=LoginResponseBody,
+    status_code=200,
+    summary="Email+password login — returns short-lived JWT access token + refresh token",
+)
+async def auth_login(body: LoginRequestBody, request: Request) -> LoginResponseBody:
+    """Commercial-grade login endpoint.
+
+    - Rate-limited (5 attempts / 15 min per email).
+    - Validates against UserDB (bcrypt).
+    - Returns HS256 access token (2h) + refresh token (7d).
+    - Every attempt (success or failure) is written to AuditLogger.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    _check_login_rate_limit(body.email)
+
+    user = _user_db.get_user_by_email(body.email)
+    if not user or not _user_db.verify_password(body.password, user.password_hash):
+        _record_login_failure(body.email)
+        _auth_audit.log(_AuditEvent(
+            actor_id=body.email,
+            actor_role="unknown",
+            action="auth.login.failure",
+            resource_type="session",
+            resource_id="",
+            org_id=getattr(user, "org_id", "default") if user else "default",
+            result="failure",
+            details={"ip": client_ip, "reason": "invalid_credentials"},
+        ))
+        _logger.warning("Failed login for %s from %s", body.email, client_ip)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if user.status != _UserStatus.ACTIVE:
+        _auth_audit.log(_AuditEvent(
+            actor_id=body.email,
+            actor_role=user.role.value,
+            action="auth.login.failure",
+            resource_type="session",
+            resource_id="",
+            org_id=getattr(user, "org_id", "default"),
+            result="failure",
+            details={"ip": client_ip, "reason": "account_inactive"},
+        ))
+        raise HTTPException(status_code=403, detail="Account is not active")
+
+    _clear_login_failures(body.email)
+
+    org_id = getattr(user, "org_id", "default") or "default"
+    token_claims = {
+        "sub": user.id,
+        "email": user.email,
+        "role": user.role.value,
+        "org_id": org_id,
+        "scopes": {
+            "admin": ["admin:all"],
+            "security_analyst": ["read:findings", "write:findings", "read:sbom", "read:evidence"],
+            "developer": ["read:findings", "read:sbom"],
+            "viewer": ["read:findings", "read:sbom"],
+        }.get(user.role.value, ["read:findings"]),
+        "token_type": "access",
+    }
+    access_token = _mint_token(token_claims, _ACCESS_TOKEN_TTL_SECONDS)
+    refresh_token = _mint_token({
+        "sub": user.id,
+        "email": user.email,
+        "org_id": org_id,
+        "token_type": "refresh",
+    }, _REFRESH_TOKEN_TTL_SECONDS)
+
+    _auth_audit.log(_AuditEvent(
+        actor_id=user.id,
+        actor_role=user.role.value,
+        action="auth.login.success",
+        resource_type="session",
+        resource_id="",
+        org_id=org_id,
+        result="success",
+        details={"ip": client_ip, "email": user.email},
+    ))
+    _logger.info("Successful login user=%s org=%s ip=%s", user.id, org_id, client_ip)
+
+    return LoginResponseBody(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=_ACCESS_TOKEN_TTL_SECONDS,
+    )
+
+
+@router.post(
+    "/refresh",
+    response_model=RefreshResponseBody,
+    status_code=200,
+    summary="Exchange a valid refresh token for a new short-lived access token",
+)
+async def auth_refresh(body: RefreshRequestBody, request: Request) -> RefreshResponseBody:
+    """Refresh token endpoint.
+
+    Validates the refresh token (HS256, FIXOPS_JWT_SECRET), checks token_type==refresh,
+    then mints a new access token. Audit-logged on success and failure.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    secret = _get_login_jwt_secret()
+
+    try:
+        claims = jwt.decode(
+            body.refresh_token,
+            secret,
+            algorithms=[_JWT_ALG],
+            options={"require": ["exp", "iat", "sub"]},
+        )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if claims.get("token_type") != "refresh":
+        raise HTTPException(status_code=401, detail="Token is not a refresh token")
+
+    sub = claims.get("sub", "")
+    email = claims.get("email", "")
+    org_id = claims.get("org_id", "default")
+
+    # Re-validate user still active
+    user = _user_db.get_user_by_email(email) if email else None
+    if not user or user.status != _UserStatus.ACTIVE:
+        _auth_audit.log(_AuditEvent(
+            actor_id=sub or email,
+            actor_role="unknown",
+            action="auth.refresh.failure",
+            resource_type="session",
+            resource_id="",
+            org_id=org_id,
+            result="failure",
+            details={"ip": client_ip, "reason": "user_not_active_or_missing"},
+        ))
+        raise HTTPException(status_code=401, detail="User no longer active")
+
+    token_claims = {
+        "sub": sub,
+        "email": email,
+        "role": user.role.value,
+        "org_id": org_id,
+        "scopes": {
+            "admin": ["admin:all"],
+            "security_analyst": ["read:findings", "write:findings", "read:sbom", "read:evidence"],
+            "developer": ["read:findings", "read:sbom"],
+            "viewer": ["read:findings", "read:sbom"],
+        }.get(user.role.value, ["read:findings"]),
+        "token_type": "access",
+    }
+    access_token = _mint_token(token_claims, _ACCESS_TOKEN_TTL_SECONDS)
+
+    _auth_audit.log(_AuditEvent(
+        actor_id=sub,
+        actor_role=user.role.value,
+        action="auth.refresh.success",
+        resource_type="session",
+        resource_id="",
+        org_id=org_id,
+        result="success",
+        details={"ip": client_ip, "email": email},
+    ))
+
+    return RefreshResponseBody(
+        access_token=access_token,
+        expires_in=_ACCESS_TOKEN_TTL_SECONDS,
+    )
