@@ -404,6 +404,15 @@ interface Bundle {
   created_at?: string;
 }
 
+type FrameworkType = "SOC2" | "PCI-DSS" | "HIPAA" | "ISO27001";
+
+const FRAMEWORK_EXPORTS: Array<{ framework: FrameworkType; label: string; color: string }> = [
+  { framework: "SOC2", label: "SOC 2 Type II", color: "bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20" },
+  { framework: "PCI-DSS", label: "PCI-DSS v3.2.1", color: "bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20" },
+  { framework: "HIPAA", label: "HIPAA BAA", color: "bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20" },
+  { framework: "ISO27001", label: "ISO 27001:2022", color: "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20" },
+];
+
 function ExportTab() {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -411,6 +420,27 @@ function ExportTab() {
   const [selected, setSelected] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
+  const [frameworkExporting, setFrameworkExporting] = useState<FrameworkType | null>(null);
+
+  const downloadFramework = async (framework: FrameworkType) => {
+    setFrameworkExporting(framework);
+    try {
+      const res = await evidenceApi.exportFramework(framework);
+      const blob = res.data as Blob;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${framework}-evidence-bundle.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError((e as Error)?.message ?? `Failed to export ${framework}`);
+    } finally {
+      setFrameworkExporting(null);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
