@@ -22,7 +22,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Cloud, ShieldCheck, Layers, Workflow } from "lucide-react";
+import { Cloud, ShieldCheck, Layers, Workflow, Download } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -101,6 +101,11 @@ export default function CloudPostureUnifiedHub() {
 
   const activeMeta = useMemo(() => TABS.find(t => t.key === tab) ?? TABS[0], [tab]);
 
+  const handleExportCsv = () => {
+    const orgId = localStorage.getItem("org_id") || "default";
+    window.location.href = `/api/v1/security-findings/export?format=csv&org_id=${orgId}`;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -112,6 +117,15 @@ export default function CloudPostureUnifiedHub() {
         title="Cloud Posture & CNAPP"
         description="Unified cloud-native application protection workspace — posture (CSPM), workload protection (CWP/CWPP), and the cross-pillar CNAPP view."
         badge={activeMeta.label}
+        actions={
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+        }
       />
 
       <Tabs value={tab} onValueChange={v => setTab(v as TabKey)} className="w-full">
