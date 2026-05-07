@@ -15,6 +15,8 @@ import { FINDINGS_EXPLORER_ROUTES } from "@/config/findingsExplorerRoutes";
 const Tour = lazy(() => import("@/pages/Tour"));
 // Status — public, no auth required (Multica #4113)
 const StatusPage = lazy(() => import("@/pages/StatusPage"));
+// Pricing — public landing page, no auth required (Multica #4123)
+const PricingPage = lazy(() => import("@/pages/PricingPage"));
 
 
 // Auth — LoginPage is eagerly imported above (must always work, no Suspense boundary)
@@ -458,6 +460,7 @@ export default function App() {
           {/* /login — eagerly imported, never suspends; listed first for priority */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/tour" element={<Tour />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/onboarding" element={<OnboardingWizard />} />
           <Route path="/onboard" element={<OnboardingPage />} />
           <Route path="/import" element={<ImportPage />} />
