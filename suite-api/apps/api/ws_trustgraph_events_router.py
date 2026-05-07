@@ -147,6 +147,11 @@ def _authenticate_ws(api_key: Optional[str], token: Optional[str], header_key: O
 # Event filtering
 # ---------------------------------------------------------------------------
 
+#: Event types that are internal startup noise and must never be forwarded to
+#: WebSocket subscribers.  engine.loaded fires once per engine import (~90+
+#: engines at startup) and accounts for ~23% of bus traffic with zero UI value.
+_WS_BLOCKED_TOPICS: frozenset[str] = frozenset({"engine.loaded"})
+
 
 def _payload_matches_org(payload: Dict[str, Any], org_filter: Optional[str]) -> bool:
     """Return True if *payload* should be delivered for an org_filter scope.
@@ -214,6 +219,9 @@ async def ws_trustgraph_events(
 
         def _on_event(payload: Dict[str, Any]) -> bool:
             try:
+                # Drop startup-noise topics (e.g. engine.loaded) — 23% of bus traffic.
+                if event_type in _WS_BLOCKED_TOPICS:
+                    return True
                 # Apply server-side org filter to avoid cross-tenant leak.
                 if not _payload_matches_org(payload, org_id):
                     return True
@@ -239,7 +247,10 @@ async def ws_trustgraph_events(
 
     # Register a handler per known event type (so new types added later still
     # need a code-side opt-in — explicit is better than implicit for the WS).
+    # Skip blocked topics (startup noise) so they never reach the queue.
     for event_type in sorted(ALL_EVENT_TYPES):
+        if event_type in _WS_BLOCKED_TOPICS:
+            continue
         handler = _build_handler(event_type)
         bus.on(event_type, handler)
         registered_handlers.append((event_type, handler))
