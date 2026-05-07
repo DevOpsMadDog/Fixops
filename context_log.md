@@ -1,5 +1,12 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-07 23:15] frontend-craftsman — DOCSPAGE_4118
+- **What**: Built DocsPage.tsx (~100 LOC) — public documentation hub rendering legal/install/POC docs via react-markdown. Routes: /docs/{tos,privacy,dpa,install,poc}. Vite raw markdown imports from src/assets/docs/. Sidebar nav with icon, gradient header card per doc type, dark-mode styled markdown renderer, download + copy buttons, prev/next navigation.
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/DocsPage.tsx (new), App.tsx (5 route entries + lazy import), src/assets/docs/{legal/*,sales/*,INSTALL.md} (copied from repo root docs/), package.json (react-markdown installed)
+- **Outcome**: SUCCESS — build 6.92s clean, zero TypeScript errors on component, routes mounted and functional (SPA navigation working)
+- **Pillar(s) served**: V1 (product transparency), V8 (compliance docs), V10 (customer self-service)
+- **SHA**: 9041c422 (included in AdminAuditLogPage commit batch)
+
 ### [2026-05-05 00:00] frontend-craftsman — PLAN_P0_1_VERIFY
 - **What**: Verified all 8 NOT_STARTED hubs from PRODUCT_COMPLETION_PLAN_2026-05-06.md. Prior session (#4089) already wired all of them. Confirmed: AICopilotAgentsHub (agentTasksApi/shadowAiApi), IncidentExtensionsHub (GenericDashboard×3), EmailThreatProtectionHub (GenericDashboard×3), ComplianceCoverageHub (lazy panels all wired), ThreatModelingHub (3 panels all wired via typed API objects), ExceptionsHub (3 panels all wired). AppLayerSecurityHub + AutomationOrchestrationHub confirmed wired. 0 shell tabs remain.
 - **Files touched**: verified only — no changes needed
@@ -6347,3 +6354,9 @@
 - **Files touched**: suite-ui/aldeci-ui-new/src/pages/BoardLandingPage.tsx (new), src/App.tsx, src/components/layout/WorkspaceLayout.tsx, src/lib/api.ts
 - **Outcome**: SUCCESS — build green in 3.48s, pushed SHA e8c530c2, Multica #4092 closed
 - **Pillar(s) served**: V3 (risk quantification), V5 (compliance), V7 (exec reporting)
+
+### [2026-05-07 23:14] backend-hardener — FEATURE
+- **What**: Multica #4117 — Extended NotificationEngine with real `send_slack_alert(text, finding)` method (reads `FIXOPS_SLACK_WEBHOOK_URL`, posts via httpx, no-ops cleanly when unset). Upgraded SlackAdapter from stub to real httpx POST. Hooked into `SecurityFindingsEngine.record_finding` for `severity=="critical"` new findings only. 2 smoke tests (mock httpx.post). 23/23 phase4 green.
+- **Files touched**: `suite-core/core/notification_engine.py`, `suite-core/core/security_findings_engine.py`, `tests/test_slack_alert_4117.py`
+- **Outcome**: SUCCESS — SHA 0785a496, pushed, #4117 closed
+- **Pillar(s) served**: V4 (real-time alerting), V7 (enterprise integrations)
