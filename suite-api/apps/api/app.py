@@ -41,6 +41,7 @@ import jwt
 
 # ── PLATFORM CORE — Auth, Users, Teams, Admin, SLA, Workflows ─────────────────
 from apps.api.audit_router import router as audit_router
+from apps.api.audit_evidence_export_router import router as audit_evidence_export_router
 
 # Evidence Chain router — tamper-proof cryptographic audit trail
 evidence_chain_router: Optional[APIRouter] = None
@@ -3302,6 +3303,7 @@ def create_app() -> FastAPI:
     # ── Evidence / Audit (non-Platform domain — stays inline) ─────────────────
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+    app.include_router(audit_evidence_export_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     if evidence_chain_router:
         app.include_router(evidence_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Evidence Chain router")
