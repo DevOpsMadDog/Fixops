@@ -279,6 +279,172 @@ class OrgEngine:
             "source": "registry",
         }
 
+    def soft_delete_org(self, org_id: str) -> Dict[str, Any]:
+        """Soft-delete an org: set deleted_at + status=DELETED.
+
+        The org row is NOT removed; a hard purge job removes all data after
+        30 days.  The built-in 'default' org may not be deleted.
+
+        Args:
+            org_id: Organisation to mark for deletion.
+
+        Returns:
+            Updated org dict with deleted_at timestamp.
+
+        Raises:
+            ValueError: If org_id is 'default' or not found.
+        """
+        if org_id == "default":
+            raise ValueError("The built-in 'default' org cannot be deleted")
+
+        with self._lock:
+            conn = self._connect()
+            try:
+                # Ensure columns exist (idempotent migrations)
+                existing_cols = [
+                    c[1]
+                    for c in conn.execute("PRAGMA table_info(orgs)").fetchall()
+                ]
+                if "deleted_at" not in existing_cols:
+                    conn.execute("ALTER TABLE orgs ADD COLUMN deleted_at TEXT DEFAULT NULL")
+                if "status" not in existing_cols:
+                    conn.execute("ALTER TABLE orgs ADD COLUMN status TEXT DEFAULT 'ACTIVE'")
+                conn.commit()
+
+                row = conn.execute(
+                    "SELECT org_id, name, description, created_at, is_active FROM orgs WHERE org_id = ?",
+                    (org_id,),
+                ).fetchone()
+                if row is None:
+                    raise ValueError(f"Organisation '{org_id}' not found")
+
+                deleted_at = datetime.now(timezone.utc).isoformat()
+                conn.execute(
+                    "UPDATE orgs SET deleted_at = ?, status = 'DELETED', is_active = 0 WHERE org_id = ?",
+                    (deleted_at, org_id),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+        _emit_event("org_engine.org_soft_deleted", {"org_id": org_id, "deleted_at": deleted_at})
+        return {
+            "org_id": org_id,
+            "status": "DELETED",
+            "deleted_at": deleted_at,
+            "purge_after_days": 30,
+        }
+
+    def hard_purge_org(self, org_id: str, *, _force: bool = False) -> Dict[str, Any]:
+        """Hard-purge all data for an org from the registry and engine tables.
+
+        Only executes when the org has been soft-deleted for >= 30 days,
+        unless ``_force=True`` (used by the purge job for exactly-30d orgs).
+
+        Removes rows from:
+          - orgs registry (this DB)
+          - findings / incidents / audit_events / users tables in engine DBs
+            (any table whose columns include org_id)
+
+        Args:
+            org_id: Organisation to purge.
+            _force: Skip age check (caller guarantees 30d elapsed).
+
+        Returns:
+            Dict with purge statistics.
+
+        Raises:
+            ValueError: If org not soft-deleted or 30d window not elapsed.
+        """
+        from datetime import timedelta
+
+        with self._lock:
+            conn = self._connect()
+            try:
+                existing_cols = [
+                    c[1]
+                    for c in conn.execute("PRAGMA table_info(orgs)").fetchall()
+                ]
+                has_deleted_at = "deleted_at" in existing_cols
+                has_status = "status" in existing_cols
+
+                if not has_deleted_at or not has_status:
+                    raise ValueError(f"Organisation '{org_id}' has not been soft-deleted")
+
+                row = conn.execute(
+                    "SELECT org_id, deleted_at, status FROM orgs WHERE org_id = ?",
+                    (org_id,),
+                ).fetchone()
+                if row is None:
+                    raise ValueError(f"Organisation '{org_id}' not found")
+                if row["status"] != "DELETED" or row["deleted_at"] is None:
+                    raise ValueError(f"Organisation '{org_id}' has not been soft-deleted")
+
+                if not _force:
+                    deleted_at_dt = datetime.fromisoformat(row["deleted_at"])
+                    if deleted_at_dt.tzinfo is None:
+                        deleted_at_dt = deleted_at_dt.replace(tzinfo=timezone.utc)
+                    age = datetime.now(timezone.utc) - deleted_at_dt
+                    if age < timedelta(days=30):
+                        days_remaining = 30 - age.days
+                        raise ValueError(
+                            f"Organisation '{org_id}' cannot be purged yet — "
+                            f"{days_remaining} day(s) remaining before 30-day window elapses"
+                        )
+
+                conn.execute("DELETE FROM orgs WHERE org_id = ?", (org_id,))
+                conn.commit()
+            finally:
+                conn.close()
+
+        # Purge from all engine DBs (findings / incidents / audit_events / users)
+        _PURGE_TABLES = {"findings", "incidents", "audit_events", "users", "security_findings"}
+        purged_tables: list[str] = []
+        rows_deleted = 0
+
+        for db_file in self._all_engine_db_files():
+            try:
+                conn2 = sqlite3.connect(db_file, check_same_thread=False, timeout=5)
+                try:
+                    tables = [
+                        r[0]
+                        for r in conn2.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table'"
+                        ).fetchall()
+                    ]
+                    for table in tables:
+                        if table not in _PURGE_TABLES:
+                            continue
+                        cols = [
+                            c[1]
+                            for c in conn2.execute(f"PRAGMA table_info({table})").fetchall()
+                        ]
+                        if "org_id" not in cols:
+                            continue
+                        n = conn2.execute(
+                            f"DELETE FROM {table} WHERE org_id = ?", (org_id,)
+                        ).rowcount
+                        if n:
+                            purged_tables.append(f"{os.path.basename(db_file)}:{table}")
+                            rows_deleted += n
+                    conn2.commit()
+                finally:
+                    conn2.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+        _emit_event("org_engine.org_hard_purged", {
+            "org_id": org_id,
+            "rows_deleted": rows_deleted,
+            "tables": purged_tables,
+        })
+        return {
+            "org_id": org_id,
+            "status": "PURGED",
+            "rows_deleted": rows_deleted,
+            "tables_purged": purged_tables,
+        }
+
     def get_org_summary(self, org_id: str) -> Dict[str, Any]:
         """Return a dashboard summary for an org.
 

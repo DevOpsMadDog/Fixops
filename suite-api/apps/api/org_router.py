@@ -120,6 +120,32 @@ def get_org_summary(org_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.delete("/{org_id}", dependencies=[Depends(api_key_auth)], status_code=200)
+def delete_org(org_id: str) -> Dict[str, Any]:
+    """GDPR right-to-be-forgotten — soft-delete an organisation.
+
+    Sets ``deleted_at`` and ``status=DELETED`` on the registry row.
+    Data is NOT removed immediately; the ops purge job (scripts/purge_deleted_orgs.py)
+    performs the hard purge after 30 days.
+
+    The built-in 'default' org cannot be deleted.
+    Returns 404 when org_id is unknown, 400 for the protected default org.
+    """
+    if not org_id or not org_id.strip():
+        raise HTTPException(status_code=400, detail="org_id is required")
+    try:
+        result = _get_engine().soft_delete_org(org_id)
+    except ValueError as exc:
+        msg = str(exc)
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=msg) from exc
+        raise HTTPException(status_code=400, detail=msg) from exc
+    except Exception as exc:
+        _logger.exception("Error soft-deleting org %s", org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return result
+
+
 @router.get("/{org_id}", dependencies=[Depends(api_key_auth)])
 def get_org(org_id: str) -> Dict[str, Any]:
     """Return the registry record for a specific org by slug.
