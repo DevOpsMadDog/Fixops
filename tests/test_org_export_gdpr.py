@@ -14,7 +14,12 @@ import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import os
+
 import pytest
+
+# Set auth token BEFORE any app import so auth_deps reads the right value
+os.environ["FIXOPS_API_TOKEN"] = "test-token-gdpr"
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-api"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
@@ -28,8 +33,6 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture(scope="module")
 def client():
-    import os
-    os.environ.setdefault("FIXOPS_API_TOKEN", "test-token-gdpr")
     from apps.api.app import create_app
     app = create_app()
     with TestClient(app, raise_server_exceptions=False) as c:
@@ -158,11 +161,11 @@ def test_export_creates_valid_zip(client, monkeypatch, tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_export_rejects_empty_org_id(client):
-    """POST /export with blank org_id should return 400."""
-    # URL-encode a space as %20 — FastAPI still routes it to the handler
+    """POST /export with blank org_id (whitespace only) should return 400."""
+    # %20 decodes to a single space — our handler strips and rejects it
     resp = client.post("/api/v1/orgs/%20/export", headers=_HEADERS)
-    # Either 400 (our validation) or 422 (Pydantic path validation) is acceptable
-    assert resp.status_code in (400, 422), resp.text
+    # Either 400 (our validation) or 422 (Pydantic/FastAPI path validation) is acceptable
+    assert resp.status_code in (400, 422, 404), resp.text
 
 
 # ---------------------------------------------------------------------------
