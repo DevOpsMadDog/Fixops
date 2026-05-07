@@ -1,5 +1,42 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-08 00:35] frontend-craftsman — Multica #4132 DONE
+- **What**: Wired 3 deferred routes in suite-ui/aldeci-ui-new/src/App.tsx: AdminApiKeysPage → /admin/api-keys (auth-gated, admin role), ForgotPasswordPage → /forgot-password (public), ResetPasswordPage → /reset-password/:token (public). All lazy imports added, routes verified, build clean (15.77s).
+- **Files touched**: suite-ui/aldeci-ui-new/src/App.tsx
+- **Outcome**: SUCCESS — SHA 60df0eae pushed
+- **Pillar(s) served**: V3 (enterprise UI), V1 (auth flows)
+
+### [2026-05-08 00:25] backend-hardener — Multica #4125 DONE
+- **What**: bcrypt password hardening audit. Confirmed auth path is already fully bcrypt: user_db.py uses bcrypt.hashpw/checkpw, auth_router signup/login call hash_password()/verify_password(), requirements.txt already pins bcrypt>=4.0.0 and passlib[bcrypt]>=1.7.4. sha256 in auth_router is HMAC for OAuth2 state (not passwords). md5 in db_security.py uses usedforsecurity=False for role-key deduplication (not passwords). Added 4 smoke tests: hash!=plaintext, unique salts, verify correct/wrong/empty, API signup+login round-trip.
+- **Files touched**: tests/test_bcrypt_password_hardening.py (new, 164 LOC)
+- **Outcome**: SUCCESS — 4/4 smoke tests pass, phase4 23/23 green, SHA d643f6d2
+- **Pillar(s) served**: V1 (security hardening)
+
+### [2026-05-08 00:10] backend-hardener — Multica #4126 DONE
+- **What**: Org-tier daily token-bucket rate limit middleware. New `OrgTierRateLimitMiddleware` in `org_tier_rate_limit_middleware.py` (~170 LOC). Reads org_id from request state/header, calls `get_org_tier()` from billing_router, enforces Starter 1000/day, Pro 10000/day, Enterprise unlimited. Returns 429 + `Retry-After` (seconds to UTC midnight) on exhaustion. Sets `X-RateLimit-Daily-Limit`, `X-RateLimit-Daily-Remaining`, `X-RateLimit-Tier` headers on allowed responses. In-memory `_DailyCounter` per org (FIFO eviction at 5K orgs). Exempt paths: /health /status /docs /redoc /openapi.json /auth/ /billing/. Wired into app.py after RateLimitMiddleware, gated by `FIXOPS_DISABLE_TIER_RATE_LIMIT=1`. 3/3 smoke tests pass, phase4 23/23 green.
+- **Files touched**: suite-api/apps/api/org_tier_rate_limit_middleware.py (new), suite-api/apps/api/app.py, tests/test_org_tier_rate_limit.py (new)
+- **Outcome**: SUCCESS — SHA 1e056593 pushed, Multica #4126 → done
+- **Pillar(s) served**: V1 (production hardening), V3 (commercial monetization / tier enforcement)
+
+### [2026-05-08 00:05] backend-hardener — Multica #4112 DONE
+- **What**: Social OAuth2 login (Google + GitHub). POST /api/v1/auth/oauth/{provider}/start returns HMAC-SHA256 signed state + provider redirect URL. GET /api/v1/auth/oauth/{provider}/callback validates state (CSRF guard), exchanges code via httpx, auto-provisions viewer-role user, returns same JWT pair shape as /auth/login. Minimal ~80 LOC OAuth2 client, no authlib dep. Env: FIXOPS_OAUTH_{GOOGLE,GITHUB}_{CLIENT_ID,CLIENT_SECRET}.
+- **Files touched**: suite-api/apps/api/auth_router.py, tests/test_oauth_social_login.py
+- **Outcome**: SUCCESS — 5/5 smoke tests pass, phase4 23/23 green, SHA 6541c96a pushed
+- **Pillar(s) served**: V3 (enterprise auth), V1 (production hardening)
+
+### [2026-05-07 23:20] backend-hardener — Multica #4114 DONE
+- **What**: Email verification on signup. New `email_verification_db.py` (SQLite, UUID tokens, 24h TTL, single-use). `POST /api/v1/auth/signup` creates user (role=viewer) + generates token + fires SMTP (graceful no-op when FIXOPS_SMTP_HOST unset). `GET /api/v1/auth/verify-email/{token}` marks email_verified=true; 400 on expired/reused. 2/2 smoke tests pass. phase4 23/23 green.
+- **Files touched**: suite-core/core/email_verification_db.py, suite-api/apps/api/auth_router.py, tests/test_email_verification.py
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (security hardening), V3 (enterprise auth)
+
+### [2026-05-07 23:20] backend-hardener — Multica #4119 DONE
+- **What**: Replaced Stripe stub (#4101) with real stripe-python SDK. billing_router.py POST /upgrade now calls stripe.checkout.Session.create() using FIXOPS_STRIPE_SECRET_KEY + FIXOPS_STRIPE_PRICE_ID_{TIER} env vars. stripe_webhook_router.py now validates signatures via stripe.Webhook.construct_event() instead of broken manual hmac.new(). stripe>=7.0,<16.0 added to requirements.txt. 5 new smoke tests (mock stripe.checkout) in test_stripe_real_integration.py — 12/12 pass. phase4 23/23 green. Multica #4119 → done.
+- **Files touched**: suite-api/apps/api/billing_router.py, suite-api/apps/api/stripe_webhook_router.py, requirements.txt, tests/test_stripe_real_integration.py
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (commercial monetization), V1 (production hardening)
+- **SHA**: 9041c422
+
 ### [2026-05-06 00:22] qa-engineer — Multica #4120 DONE
 - **What**: Full Beast Mode canonical #104 test run + UI production build. All 122 BM tests passing (13-file canonical suite). React UI built in 10.05s, 3346 modules transformed, zero errors. Regression status updated + committed.
 - **Files touched**: docs/regression_status_2026-05-05.md (sweep #26 results added)
@@ -6372,3 +6409,15 @@
 - **Files touched**: `suite-core/core/notification_engine.py`, `suite-core/core/security_findings_engine.py`, `tests/test_slack_alert_4117.py`
 - **Outcome**: SUCCESS — SHA 0785a496, pushed, #4117 closed
 - **Pillar(s) served**: V4 (real-time alerting), V7 (enterprise integrations)
+
+### [2026-05-05 session] frontend-craftsman — FEATURE
+- **What**: Built StatusPage.tsx (~120 LOC) at public `/status` route (above RequireAuth gate). Shows commit SHA (VITE_COMMIT_SHA env), uptime, last deploy timestamp, BM test count (1078), and traffic-light health indicators for 5 subsystems (trustgraph/feeds_db/crypto/risk_scorer/brain_pipeline) via GET /api/v1/health/comprehensive. Auto-refreshes every 30s. Zero dependencies beyond existing fetch/api.ts.
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/StatusPage.tsx (new), suite-ui/aldeci-ui-new/src/App.tsx (lazy import + /status route added above RequireAuth)
+- **Outcome**: SUCCESS — TypeScript clean, production build passes (29.99s), already committed+pushed in HEAD, Multica #4113 closed as done
+- **Pillar(s) served**: V1 (platform observability), V10 (operational trust/transparency)
+
+### [2026-05-08 00:03] backend-hardener — BUG_FIX
+- **What**: Fixed #4127/#4131 forgot-password reset bug. Two root causes: (1) UserDB.update_user() SQL omitted password_hash from SET clause — new bcrypt hash was silently dropped on every update; (2) conftest.py FIXOPS_JWT_SECRET fallback was 30 chars, one short of the 32-char minimum, causing /login to return 503 in suite-order test runs.
+- **Files touched**: suite-core/core/user_db.py, tests/conftest.py
+- **Outcome**: SUCCESS — 5/5 test_forgot_password PASS, 23/23 test_phase4_integration PASS, SHA 4b4dbe43, Multica #4131 → done
+- **Pillar(s) served**: V1 (security correctness), V3 (enterprise auth)
