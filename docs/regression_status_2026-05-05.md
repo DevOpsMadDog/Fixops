@@ -1,7 +1,7 @@
 ## Summary
 
-- **Total sweeps**: 25 (sweeps #1–25, 2026-05-05)
-- **All green at HEAD**: 04d729fa3be31eed12648ae6e58e238d9e959146
+- **Total sweeps**: 26 (sweeps #1–26, 2026-05-05 to 2026-05-06)
+- **All green at HEAD**: cee11ca4 (full BM canonical #104 + UI build)
 - **Real bugs caught**: 10
   1. asyncio.run() race — brain_pipeline._correlate_and_emit (caught #5, fixed #6 / 5ffc1910)
   2. asyncio.get_event_loop() deprecation — test_admin_db_stats (caught #7, fixed #8 / e124c48d)
@@ -13,9 +13,24 @@
   8. cve_tester.py unsafe asyncio.run() in sync context (caught #14, fixed #14 / 32842a75)
   9. test_reachability_perf stale _add_edge import (caught #15, fixed #15 / a4b9650d)
   10. 3 broad-scan module-cache ordering errors (caught #15, fixed #16 / ed6512e0)
-- **Latest sweep (#24 full / #25 abbreviated)**:
-  753 Beast Mode + 194 perf + 47 OWASP + 11 lockdown = **1005 total tests passing**, 0 failed
+- **Latest sweep (#26 full)**:
+  122 Beast Mode canonical (13 files) + UI build 10.05s = **PASS**
 - **Workstreams validated**: hardening, perf, frontend, ops, tests, docs
+
+---
+
+Sweep #26 — HEAD cee11ca4 — Full BM canonical #104 + UI build production
+Suite 1 — Beast Mode canonical (13 files): 122 passed, 0 failed, 1 coverage warning (not a test failure) in 70.35s
+UI Build — React 19 Vite 6: ✓ 3346 modules transformed, built in 10.05s
+
+Total sweep #26: 122 passed, 0 failed, 0 errors
+Timestamp: 2026-05-06T00:15:00Z
+
+| Iteration | Date | Tests | Build | Result | SHA |
+|-----------|------|-------|-------|--------|-----|
+| FULL #104 | 2026-05-06 | 122/122 | 10.05s | PASS | cee11ca4 |
+
+All Beast Mode tests passing. UI production build green. Multica #4120 complete.
 
 ---
 
