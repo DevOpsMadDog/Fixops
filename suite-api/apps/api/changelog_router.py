@@ -5,6 +5,7 @@ Exposes changelog generation, version suggestion, and release notes
 via REST API backed by ChangelogGenerator.
 
 Endpoints:
+  GET  /api/v1/changelog/recent          — last 50 commits grouped by scope
   POST /api/v1/changelog/generate        — generate from commit list
   GET  /api/v1/changelog/unreleased      — changes since last tag
   POST /api/v1/changelog/suggest-version — suggest next semver
@@ -14,6 +15,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import subprocess
 from typing import Any, Dict, List
 
 from core.changelog_generator import (
@@ -94,6 +96,24 @@ class UnreleasedResponse(BaseModel):
     entry_count: int
     entries: List[Dict[str, Any]]
     suggested_version: str
+
+
+class RecentCommitResponse(BaseModel):
+    """Single commit in recent changelog."""
+
+    sha: str = Field(..., description="Git commit SHA (7-char)")
+    scope: str = Field(..., description="Scope (feat/fix/perf/ui/qa/etc)")
+    message: str = Field(..., description="Commit message after scope")
+    timestamp: str = Field(..., description="ISO 8601 timestamp")
+
+
+class RecentChangelogResponse(BaseModel):
+    """Response for /recent."""
+
+    limit: int = Field(..., description="Number of commits fetched")
+    total_count: int = Field(..., description="Total commits in repo")
+    commits: List[RecentCommitResponse] = Field(..., description="Commits grouped by scope")
+    scopes: Dict[str, int] = Field(..., description="Count by scope")
 
 
 # ============================================================================
