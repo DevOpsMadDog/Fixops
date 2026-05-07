@@ -127,6 +127,30 @@ def test_health_comprehensive_has_elapsed_ms(client: TestClient) -> None:
     )
 
 
+def test_health_comprehensive_has_resources_with_metrics(client: TestClient) -> None:
+    """Top-level 'resources' dict must have disk_percent, memory_percent, sqlite_wal_size_mb."""
+    resp = client.get("/api/v1/health/comprehensive")
+    body = resp.json()
+    assert "resources" in body, f"'resources' key missing: {body}"
+    resources = body.get("resources", {})
+    assert isinstance(resources, dict), (
+        f"'resources' must be a dict, got {type(resources)}"
+    )
+    # Verify required metric keys
+    required_metrics = {"disk_percent", "memory_percent", "sqlite_wal_size_mb"}
+    missing = required_metrics - set(resources.keys())
+    assert not missing, (
+        f"Missing resource metrics in /health/comprehensive: {missing}\n"
+        f"Got keys: {sorted(resources.keys())}"
+    )
+    # Verify numeric types (None is acceptable for unreachable metrics)
+    for metric_key in required_metrics:
+        value = resources.get(metric_key)
+        assert value is None or isinstance(value, (int, float)), (
+            f"Resource metric '{metric_key}' must be numeric or None, got {type(value)}: {value}"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Test 3 — Prometheus metrics
 # ---------------------------------------------------------------------------

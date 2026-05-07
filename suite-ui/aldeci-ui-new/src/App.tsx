@@ -20,6 +20,8 @@ const PricingPage = lazy(() => import("@/pages/PricingPage"));
 // Password reset — public, no auth required (Multica #4132)
 const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
+// Support — public, no auth required (Multica #4137)
+const SupportPage = lazy(() => import("@/pages/SupportPage"));
 
 // Auth — LoginPage is eagerly imported above (must always work, no Suspense boundary)
 
@@ -479,6 +481,8 @@ export default function App() {
           {/* Password reset — public, no auth required (Multica #4132) */}
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          {/* Support — public, no auth required (Multica #4137) */}
+          <Route path="/support" element={<SupportPage />} />
 
           {/* Protected workspace */}
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>

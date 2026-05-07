@@ -432,10 +432,13 @@ async def comprehensive_health() -> Dict[str, Any]:
     Single JSON snapshot of platform health for monitoring dashboards and alerting.
 
     Aggregates 5 subsystem checks: TrustGraph event bus, feeds DB, crypto manager,
-    risk scorer, and brain pipeline importability.  Always returns 200 — callers
-    inspect the top-level ``status`` field (``ok`` | ``degraded``).
+    risk scorer, and brain pipeline importability.  Includes resource metrics: disk_percent,
+    memory_percent, and sqlite_wal_size_mb.  Always returns 200 — callers inspect the
+    top-level ``status`` field (``ok`` | ``degraded``).
     """
+    import shutil
     import time
+    from pathlib import Path
 
     started = time.perf_counter()
     checks: Dict[str, Any] = {}
@@ -489,12 +492,65 @@ async def comprehensive_health() -> Dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         checks["brain_pipeline"] = {"status": "error", "reason": type(exc).__name__}
 
+    # Resource metrics
+    resources: Dict[str, Any] = {}
+
+    # Disk percent
+    try:
+        disk = shutil.disk_usage(os.getcwd())
+        disk_percent = (disk.used / disk.total * 100) if disk.total > 0 else 0.0
+        resources["disk_percent"] = round(disk_percent, 1)
+    except OSError:
+        resources["disk_percent"] = None
+
+    # Memory percent
+    try:
+        import psutil  # type: ignore[import]
+        vm = psutil.virtual_memory()
+        resources["memory_percent"] = round(vm.percent, 1)
+    except ImportError:
+        # Fallback to /proc/meminfo (Linux)
+        proc_meminfo = Path("/proc/meminfo")
+        if proc_meminfo.exists():
+            try:
+                info: Dict[str, float] = {}
+                for line in proc_meminfo.read_text().splitlines():
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        info[parts[0].rstrip(":")] = float(parts[1])
+                mem_total_kb = info.get("MemTotal", 0.0)
+                mem_available_kb = info.get("MemAvailable", 0.0)
+                if mem_total_kb > 0:
+                    memory_percent = ((mem_total_kb - mem_available_kb) / mem_total_kb) * 100
+                    resources["memory_percent"] = round(memory_percent, 1)
+                else:
+                    resources["memory_percent"] = None
+            except (OSError, ValueError):
+                resources["memory_percent"] = None
+        else:
+            resources["memory_percent"] = None
+    except (OSError, ValueError):
+        resources["memory_percent"] = None
+
+    # SQLite WAL size (check .swarm/memory.db-wal)
+    try:
+        wal_path = Path(".swarm/memory.db-wal")
+        if wal_path.exists():
+            wal_size_bytes = wal_path.stat().st_size
+            wal_size_mb = wal_size_bytes / (1024 * 1024)
+            resources["sqlite_wal_size_mb"] = round(wal_size_mb, 2)
+        else:
+            resources["sqlite_wal_size_mb"] = 0.0
+    except OSError:
+        resources["sqlite_wal_size_mb"] = None
+
     overall = "ok" if all(c.get("status") == "ok" for c in checks.values()) else "degraded"
     elapsed_ms = (time.perf_counter() - started) * 1000
 
     return {
         "status": overall,
         "checks": checks,
+        "resources": resources,
         "elapsed_ms": round(elapsed_ms, 2),
         "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "service": "fixops-api",
