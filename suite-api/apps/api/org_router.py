@@ -4,9 +4,13 @@ Prefix: /api/v1/orgs
 Auth: api_key_auth dependency
 
 Routes:
-  GET    /api/v1/orgs                    list_orgs
-  POST   /api/v1/orgs                    create_org
-  GET    /api/v1/orgs/{org_id}/summary   get_org_summary
+  GET    /api/v1/orgs                       list_orgs
+  POST   /api/v1/orgs                       create_org
+  GET    /api/v1/orgs/{org_id}/summary      get_org_summary
+  GET    /api/v1/orgs/{org_id}/users        list_org_users
+  POST   /api/v1/orgs/{org_id}/users        invite_org_user
+  PUT    /api/v1/orgs/{org_id}/users/{uid}  update_org_user_role
+  DELETE /api/v1/orgs/{org_id}/users/{uid}  remove_org_user
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 _logger = logging.getLogger(__name__)
 
@@ -159,3 +163,113 @@ def get_org(org_id: str) -> Dict[str, Any]:
         "discovered": True,
         "summary": summary,
     }
+
+
+# ---------------------------------------------------------------------------
+# Org-scoped user management
+# GET/POST/PUT/DELETE /api/v1/orgs/{org_id}/users[/{uid}]
+# ---------------------------------------------------------------------------
+
+_user_db = None
+
+
+def _get_user_db():
+    global _user_db
+    if _user_db is None:
+        from core.user_db import UserDB
+        _user_db = UserDB()
+    return _user_db
+
+
+class InviteUserRequest(BaseModel):
+    email: EmailStr
+    role: str = Field(default="viewer", description="Role: admin|security_analyst|developer|viewer")
+    first_name: str = Field(default="Invited")
+    last_name: str = Field(default="User")
+
+
+class UpdateRoleRequest(BaseModel):
+    role: str = Field(..., description="New role: admin|security_analyst|developer|viewer")
+
+
+_VALID_ROLES = {"admin", "security_analyst", "developer", "viewer"}
+
+
+def _user_to_dict(u: Any) -> Dict[str, Any]:
+    d = u.to_dict() if hasattr(u, "to_dict") else dict(u)
+    return {
+        "id": d.get("id", ""),
+        "email": d.get("email", ""),
+        "first_name": d.get("first_name", ""),
+        "last_name": d.get("last_name", ""),
+        "role": d.get("role", "viewer"),
+        "status": d.get("status", "active"),
+        "last_login": d.get("last_login_at") or d.get("last_login") or None,
+        "created_at": d.get("created_at", ""),
+    }
+
+
+@router.get("/{org_id}/users", dependencies=[Depends(api_key_auth)])
+def list_org_users(org_id: str) -> Dict[str, Any]:
+    """List all users for an org (org_id used as namespace tag; returns all users in shared UserDB)."""
+    udb = _get_user_db()
+    users = udb.list_users(limit=500, offset=0)
+    items = [_user_to_dict(u) for u in users]
+    return {"org_id": org_id, "items": items, "total": len(items)}
+
+
+@router.post("/{org_id}/users", dependencies=[Depends(api_key_auth)], status_code=201)
+def invite_org_user(org_id: str, req: InviteUserRequest) -> Dict[str, Any]:
+    """Invite (create) a user into an org. Generates a random temporary password."""
+    if req.role not in _VALID_ROLES:
+        raise HTTPException(status_code=422, detail=f"Invalid role '{req.role}'. Must be one of {sorted(_VALID_ROLES)}")
+    udb = _get_user_db()
+    if udb.get_user_by_email(req.email):
+        raise HTTPException(status_code=409, detail="A user with that email already exists")
+    from core.user_models import User, UserRole, UserStatus
+    import secrets as _secrets
+    tmp_password = _secrets.token_urlsafe(16)
+    role_enum = UserRole(req.role)
+    user = User(
+        id="",
+        email=req.email,
+        password_hash=udb.hash_password(tmp_password),
+        first_name=req.first_name,
+        last_name=req.last_name,
+        role=role_enum,
+        status=UserStatus.ACTIVE,
+        department=None,
+    )
+    created = udb.create_user(user)
+    result = _user_to_dict(created)
+    result["org_id"] = org_id
+    result["temp_password_hint"] = "Check email — temporary password issued"
+    return result
+
+
+@router.put("/{org_id}/users/{uid}", dependencies=[Depends(api_key_auth)])
+def update_org_user_role(org_id: str, uid: str, req: UpdateRoleRequest) -> Dict[str, Any]:
+    """Update a user's role within an org."""
+    if req.role not in _VALID_ROLES:
+        raise HTTPException(status_code=422, detail=f"Invalid role '{req.role}'")
+    udb = _get_user_db()
+    user = udb.get_user(uid)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    from core.user_models import UserRole
+    user.role = UserRole(req.role)
+    updated = udb.update_user(user)
+    result = _user_to_dict(updated)
+    result["org_id"] = org_id
+    return result
+
+
+@router.delete("/{org_id}/users/{uid}", dependencies=[Depends(api_key_auth)], status_code=200)
+def remove_org_user(org_id: str, uid: str) -> Dict[str, Any]:
+    """Remove a user from an org (deletes user record)."""
+    udb = _get_user_db()
+    user = udb.get_user(uid)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    udb.delete_user(uid)
+    return {"org_id": org_id, "deleted_user_id": uid, "status": "removed"}

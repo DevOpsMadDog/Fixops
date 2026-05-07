@@ -120,6 +120,7 @@ const NetworkAnalysis = lazy(() => import("@/pages/NetworkAnalysis"));
 const VulnHeatmap = lazy(() => import("@/pages/VulnHeatmap"));
 const AuditLog = lazy(() => import("@/pages/AuditLog"));
 const AdminAuditLogPage = lazy(() => import("@/pages/AdminAuditLogPage"));
+const AdminUsersPage = lazy(() => import("@/pages/AdminUsersPage"));
 const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
 const OffensiveValidationHub = lazy(() => import("@/pages/OffensiveValidationHub"));
 const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
@@ -698,6 +699,7 @@ export default function App() {
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/admin/audit-log" element={<AdminAuditLogPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/cspm" element={<Navigate to="/compliance?tab=cspm" replace />} />
             {/* S13 MPTE Offensive Validation hub — folded 2026-05-02 (FOLDED PentestManagement) */}
             <Route path="/pentest" element={<Navigate to="/validate/offensive?tab=pentest" replace />} />
