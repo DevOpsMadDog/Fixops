@@ -2336,8 +2336,8 @@ def create_app() -> FastAPI:
                     "paths": {},
                 }
 
-        # Trim paths to first 800 to avoid memory/response size issues
-        _MAX_PATHS = 800
+        # Cap raised from 800 → 7000 to expose all 6722 mounted routes (Multica #4115).
+        _MAX_PATHS = 7000
         paths = schema.get("paths", {})
         if len(paths) > _MAX_PATHS:
             trimmed = dict(list(paths.items())[:_MAX_PATHS])
