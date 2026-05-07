@@ -305,6 +305,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Findings management router not available: %s", e)
 
+# Security Findings Engine router — unified findings aggregator (SAST/DAST/SIEM/etc.)
+security_findings_router: Optional[APIRouter] = None
+try:
+    from apps.api.security_findings_router import router as security_findings_router
+    logging.getLogger(__name__).info("Loaded Security Findings Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Security Findings Engine router not available: %s", e)
+
 # Risk Register — enterprise risk lifecycle (CRUD, scoring, KRI, heat map, board report)
 risk_register_router: Optional[APIRouter] = None
 try:
@@ -3135,6 +3143,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted Findings management router")
+
+    # Security Findings Engine — unified findings aggregator
+    if security_findings_router:
+        app.include_router(
+            security_findings_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Security Findings Engine router")
 
     # Risk Register — enterprise risk lifecycle (CRUD, scoring, KRI, heat map, board report)
     if risk_register_router:
