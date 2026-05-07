@@ -1,5 +1,17 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 12:22] frontend-craftsman — Multica #4154 DONE
+- **What**: Added "Sign in with SSO" quick-action button to LoginPage.tsx credentials tab. Reads VITE_SAML_DEFAULT_IDP env or prompts for IdP name. POSTs /api/v1/auth/saml/{idp}/initiate, follows redirect_url. Error handling via inline feedback. Styled to match credentials form (oklch palette). ~20 LOC handler + ~17 LOC UI. Zero TS errors. Wires to backend SAML endpoint (Multica #4145 SHA 8c27bddb).
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/auth/LoginPage.tsx (~37 added LOC)
+- **Outcome**: SUCCESS — pushed, SHA c9ff64a2
+- **Pillar(s) served**: V1 (auth), V6 (enterprise demo)
+
+### [2026-05-08] backend-hardener — Multica #4147 DONE
+- **What**: GDPR right-to-portability export. POST /api/v1/orgs/{org_id}/export builds a ZIP at /tmp/aldeci-export-{org_id}-{timestamp}.zip containing org.json (metadata), users.csv, findings.csv (all SecurityFindingsEngine findings), incidents.csv (all IncidentResponseEngine incidents), audit_events.csv (last 365d from AuditLogger). Returns {download_url, zip_path, file_size_bytes, contents{counts}}. Optional ?email= param triggers slack_notifier with download link. org_id sanitised against path traversal (alphanumeric + dash/underscore only). All engine calls wrapped in try/except so partial data still produces a valid ZIP. 4/4 smoke tests pass (happy path, blank org_id 400, path traversal sanitised, unauthenticated 401). 755/756 beast mode green (1 pre-existing perf flake unrelated). SHA 215df427.
+- **Files touched**: suite-api/apps/api/org_export_router.py (new, ~230 LOC), suite-api/apps/api/app.py (import + include_router mount), tests/test_org_export_gdpr.py (new, 4 smoke tests)
+- **Outcome**: SUCCESS — pushed, Multica #4147 → done
+- **Pillar(s) served**: V1 (compliance/GDPR), V6 (enterprise demo)
+
 ### [2026-05-08] backend-hardener — Multica #4145 DONE
 - **What**: SAML 2.0 SSO for Enterprise tier. POST /api/v1/auth/saml/{idp_name}/initiate returns SAMLRequest redirect URL (deflate+base64, raw AuthnRequest XML). GET /api/v1/auth/saml/{idp_name}/callback validates SAMLResponse (XML parse, status check, NameID email extraction, optional XML-DSig via cryptography+signxml, graceful dev-mode skip when no cert). Auto-provisions user on first login. Returns standard JWT pair (access 2h + refresh 7d). IdP config via FIXOPS_SAML_IDP_{NAME}_{ENTITY_ID,SSO_URL,X509_CERT}. Stdlib-only (xml.etree + zlib + base64). 2/2 smoke tests pass, 26/26 phase4 pass. SHA 8c27bddb.
 - **Files touched**: suite-api/apps/api/auth_router.py (~280 LOC added), tests/test_saml_sso.py (new, 2 smoke tests)

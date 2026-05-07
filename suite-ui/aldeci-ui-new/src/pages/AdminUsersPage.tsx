@@ -20,6 +20,7 @@ import {
   Eye,
   Code2,
   Shield,
+  Download,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -165,6 +166,9 @@ export default function AdminUsersPage() {
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  // Export state
+  const [exporting, setExporting] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -227,6 +231,25 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      toast("Generating ZIP...", "ok");
+      const r = await fetch(`/api/v1/orgs/${ORG_ID}/export`, { method: "POST" });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ detail: r.statusText }));
+        throw new Error(err.detail ?? r.statusText);
+      }
+      const data = await r.json();
+      window.location.href = data.download_url;
+      toast("Export started", "ok");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Export failed", "err");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-50 p-6">
       {/* Toast stack */}
@@ -264,6 +287,15 @@ export default function AdminUsersPage() {
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Refresh
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm transition-colors disabled:opacity-50"
+            title="Export org data as ZIP (GDPR)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export Data
           </button>
           <button
             onClick={() => setShowInvite((v) => !v)}

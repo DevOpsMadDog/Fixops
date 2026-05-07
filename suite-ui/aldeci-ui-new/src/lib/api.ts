@@ -363,6 +363,8 @@ export const evidenceApi = {
   verify: (id: string) => api.get(`/api/v1/evidence/bundles/${id}/verify`),
   export: (data: unknown) => api.post("/api/v1/evidence/export", data),
   complianceStatus: () => api.get("/api/v1/evidence/compliance-status"),
+  exportFramework: (framework: string) =>
+    api.post("/api/v1/audit-evidence/export", { framework }, { responseType: "blob" }),
 };
 
 export const complianceEvidenceApi = {
@@ -1739,4 +1741,6 @@ export const orgsApi = {
     api.get<OrgListResponse>("/api/v1/orgs", {
       params: { include_discovered: includeDiscovered },
     }),
+  export: (orgId: string) =>
+    api.post<{ download_url: string }>(`/api/v1/orgs/${orgId}/export`, {}),
 };
