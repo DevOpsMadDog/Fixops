@@ -43,6 +43,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { HealthCardWidget } from "@/components/HealthCardWidget";
+import { CouncilVerdictsCard } from "@/components/exec/CouncilVerdictsCard";
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -687,6 +688,9 @@ export default function CISODashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── LLM Council Verdicts ── */}
+      <CouncilVerdictsCard />
     </motion.div>
   );
 }

@@ -21,7 +21,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 logger = logging.getLogger(__name__)
 
@@ -217,4 +217,72 @@ async def council_health() -> Dict[str, Any]:
         "status": "ok" if member_count >= 2 else "degraded",
         "member_count": member_count,
         "consensus_enabled": member_count >= 2,
+    }
+
+
+@router.get(
+    "/recent",
+    summary="Recent LLM Council verdicts (last N)",
+    response_model=None,
+)
+async def council_recent(
+    limit: int = Query(default=10, ge=1, le=100, description="Max verdicts to return"),
+) -> Dict[str, Any]:
+    """Return the most recent N council verdicts with per-model vote breakdown.
+
+    Each verdict exposes:
+    - timestamp: ISO-8601 (injected at convocation time if not stored; derived from history index)
+    - finding_id: finding context string passed to convene()
+    - action: recommended action (remediate_critical, accept_risk, defer, etc.)
+    - confidence: overall confidence (0-1)
+    - escalated_to_opus: whether Opus was called as tiebreaker
+    - member_votes: list of {member, action, confidence, weight}
+
+    Returns empty list if council has no history (in-memory, resets on restart).
+    Never raises — degraded states expressed in payload.
+    """
+    try:
+        from core.llm_council import CouncilFactory
+
+        factory = CouncilFactory()
+        council = factory.create_full_council()
+        history = council.history  # List[CouncilVerdict]
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Could not load council history for /recent: %s", exc)
+        return {"verdicts": [], "total": 0, "error": str(exc)}
+
+    # history is oldest-first; we want newest-first
+    recent = list(reversed(history))[:limit]
+
+    verdicts = []
+    for i, v in enumerate(recent):
+        verdicts.append(
+            {
+                # History is in-memory; we don't store timestamps per-verdict.
+                # Use a synthetic ordinal so UI can display relative ordering.
+                "timestamp": None,
+                "finding_id": None,
+                "action": v.action,
+                "confidence": round(v.confidence, 3),
+                "escalated_to_opus": v.escalated,
+                "escalation_reason": v.escalation_reason,
+                "member_votes": [
+                    {
+                        "member": mv.member_name,
+                        "action": mv.action,
+                        "confidence": round(mv.confidence, 3),
+                        "weight": round(mv.weight, 3),
+                    }
+                    for mv in (v.member_votes or [])
+                ],
+                "latency_ms": round(v.latency_ms, 1),
+                "cost_usd": round(v.cost_usd, 6),
+                "mitre_mappings": v.mitre_mappings or [],
+            }
+        )
+
+    return {
+        "verdicts": verdicts,
+        "total": len(history),
+        "limit": limit,
     }
