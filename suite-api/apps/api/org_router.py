@@ -12,6 +12,8 @@ Routes:
 from __future__ import annotations
 
 import logging
+import re
+import uuid
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
@@ -40,9 +42,21 @@ def _get_engine():
 # Request models
 # ---------------------------------------------------------------------------
 
+def _slugify(name: str) -> str:
+    """Convert a display name to a URL-safe slug."""
+    slug = name.lower().strip()
+    slug = re.sub(r"[^\w\s-]", "", slug)
+    slug = re.sub(r"[\s_]+", "-", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug or str(uuid.uuid4())[:8]
+
+
 class CreateOrgRequest(BaseModel):
-    org_id: str = Field(..., description="Unique org identifier (e.g. acme-corp)")
     name: str = Field(..., description="Human-readable display name")
+    industry: Optional[str] = Field(default="", description="Industry vertical")
+    slug: Optional[str] = Field(default=None, description="URL slug — auto-derived from name if absent")
+    # Legacy field kept for backwards-compat with direct API callers
+    org_id: Optional[str] = Field(default=None, description="Explicit org_id; falls back to slug")
     description: Optional[str] = Field(default="", description="Optional description")
 
 
@@ -65,15 +79,25 @@ def list_orgs(
     return _get_engine().list_orgs(include_discovered=include_discovered)
 
 
-@router.post("", dependencies=[Depends(api_key_auth)])
+@router.post("", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_org(req: CreateOrgRequest) -> Dict[str, Any]:
-    """Create a new organisation in the registry."""
+    """Create a new organisation in the registry.
+
+    Accepts onboarding wizard payload ``{name, industry}`` — slug is
+    auto-derived from name when not supplied.  Also accepts legacy callers
+    that pass ``org_id`` explicitly.
+    """
+    slug = req.slug or req.org_id or _slugify(req.name)
+    description = req.description or req.industry or ""
     try:
-        return _get_engine().create_org(
-            org_id=req.org_id,
+        result = _get_engine().create_org(
+            org_id=slug,
             name=req.name,
-            description=req.description or "",
+            description=description,
         )
+        # Normalise response to match what the onboarding wizard expects.
+        result.setdefault("slug", result.get("org_id", slug))
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
