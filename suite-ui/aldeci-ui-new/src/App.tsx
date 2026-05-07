@@ -328,6 +328,8 @@ const SecretsHub = lazy(() => import("@/pages/SecretsHub"));
 // Sales & Marketing
 const CompetitiveComparisonPage = lazy(() => import("@/pages/CompetitiveComparisonPage"));
 const LandingPage = lazy(() => import("@/pages/LandingPage"));
+// Marketing landing page — public, no auth (Multica #4143)
+const MarketingLandingPage = lazy(() => import("@/pages/marketing/LandingPage"));
 
 // Security Graph — interactive force-directed security relationship canvas
 
@@ -473,6 +475,9 @@ export default function App() {
           <Route path="/onboard" element={<OnboardingPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/landing" element={<LandingPage />} />
+          {/* Marketing landing — public, no auth (Multica #4143) */}
+          <Route path="/marketing" element={<MarketingLandingPage />} />
+          <Route path="/home" element={<MarketingLandingPage />} />
           <Route path="/status" element={<StatusPage />} />
           {/* DocsPage — public legal, install, POC docs (Multica #4118) */}
           <Route path="/docs/tos" element={<DocsPage />} />
