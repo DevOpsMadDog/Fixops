@@ -28,6 +28,12 @@
 - **What**: bcrypt password hardening audit. Confirmed auth path is already fully bcrypt: user_db.py uses bcrypt.hashpw/checkpw, auth_router signup/login call hash_password()/verify_password(), requirements.txt already pins bcrypt>=4.0.0 and passlib[bcrypt]>=1.7.4. sha256 in auth_router is HMAC for OAuth2 state (not passwords). md5 in db_security.py uses usedforsecurity=False for role-key deduplication (not passwords). Added 4 smoke tests: hash!=plaintext, unique salts, verify correct/wrong/empty, API signup+login round-trip.
 - **Files touched**: tests/test_bcrypt_password_hardening.py (new, 164 LOC)
 - **Outcome**: SUCCESS — 4/4 smoke tests pass, phase4 23/23 green, SHA d643f6d2
+
+### [2026-05-08 00:22] backend-hardener — Multica #4146 DONE
+- **What**: Audit retention for audit_log.py. Added AuditLogger.purge_old(retention_days=90) that deletes entries older than threshold via DELETE WHERE timestamp < threshold (thread-safe, acquires lock). Wired APScheduler BackgroundScheduler to app.py startup hook: daily cron job at 02:00 UTC calls purge_audit_logs(). FIXOPS_AUDIT_RETENTION_DAYS env override (default 90). Graceful shutdown hook stops scheduler. 3 smoke tests (purge removes old, keeps recent, respects env override). phase4 integration 23/23 PASS.
+- **Files touched**: suite-core/core/audit_log.py (+28 LOC purge_old), suite-api/apps/api/app.py (+49 LOC startup/shutdown hooks), tests/test_audit_retention.py (new, 3 tests)
+- **Outcome**: SUCCESS — 3/3 audit retention tests pass, phase4 23/23 green, SHA cc1894bd pushed
+- **Pillar(s) served**: V1 (compliance/audit), V7 (operational hardening)
 - **Pillar(s) served**: V1 (security hardening)
 
 ### [2026-05-08 00:10] backend-hardener — Multica #4126 DONE
@@ -6439,3 +6445,9 @@
 - **Files touched**: suite-core/core/user_db.py, tests/conftest.py
 - **Outcome**: SUCCESS — 5/5 test_forgot_password PASS, 23/23 test_phase4_integration PASS, SHA 4b4dbe43, Multica #4131 → done
 - **Pillar(s) served**: V1 (security correctness), V3 (enterprise auth)
+
+### [2026-05-08 00:22] backend-hardener — Multica #4146 DONE
+- **What**: Audit retention for audit_log.py. Added AuditLogger.purge_old(retention_days=90) that deletes entries older than threshold via DELETE WHERE timestamp < threshold (thread-safe, acquires lock). Wired APScheduler BackgroundScheduler to app.py startup hook: daily cron job at 02:00 UTC calls purge_audit_logs(). FIXOPS_AUDIT_RETENTION_DAYS env override (default 90). Graceful shutdown hook stops scheduler. 3 smoke tests (purge removes old, keeps recent, respects env override). phase4 integration 23/23 PASS.
+- **Files touched**: suite-core/core/audit_log.py (+28 LOC purge_old), suite-api/apps/api/app.py (+49 LOC startup/shutdown hooks), tests/test_audit_retention.py (new, 3 tests)
+- **Outcome**: SUCCESS — 3/3 audit retention tests pass, phase4 23/23 green, SHA cc1894bd pushed
+- **Pillar(s) served**: V1 (compliance/audit), V7 (operational hardening)
