@@ -5321,6 +5321,59 @@ def create_app() -> FastAPI:
             _logger.info("ConnectorScheduler stopped")
 
     # -----------------------------------------------------------------------
+    # Audit Log Retention — daily purge via APScheduler
+    # -----------------------------------------------------------------------
+
+    @app.on_event("startup")
+    def _start_audit_retention_scheduler():
+        """Schedule daily audit log retention purge (deletes entries > retention_days)."""
+        try:
+            from apscheduler.schedulers.background import BackgroundScheduler
+
+            from core.audit_log import AuditLogger
+
+            retention_days = int(os.environ.get("FIXOPS_AUDIT_RETENTION_DAYS", "90"))
+
+            scheduler = BackgroundScheduler()
+
+            def purge_audit_logs():
+                """Purge old audit log entries."""
+                logger = AuditLogger.get_instance()
+                deleted = logger.purge_old(retention_days=retention_days)
+                _logger.info(
+                    "Audit retention: purged %d entries (retention=%d days)",
+                    deleted,
+                    retention_days,
+                )
+
+            # Schedule to run daily at 02:00 UTC
+            scheduler.add_job(
+                purge_audit_logs,
+                "cron",
+                hour=2,
+                minute=0,
+                id="audit_retention_purge",
+            )
+            scheduler.start()
+            app.state.audit_scheduler = scheduler
+            _logger.info(
+                "Audit retention scheduler started (retention=%d days, daily at 02:00 UTC)",
+                retention_days,
+            )
+        except ImportError:
+            _logger.info("APScheduler unavailable — audit retention disabled")
+        except Exception as exc:
+            _logger.warning("Audit retention scheduler startup failed: %s", exc)
+
+    @app.on_event("shutdown")
+    def _stop_audit_retention_scheduler():
+        """Gracefully stop the audit retention scheduler."""
+        scheduler = getattr(app.state, "audit_scheduler", None)
+        if scheduler is not None:
+            scheduler.shutdown()
+            _logger.info("Audit retention scheduler stopped")
+
+    # -----------------------------------------------------------------------
     # OpenTelemetry — OTLP exporter + custom spans for critical operations
     # -----------------------------------------------------------------------
     # FastAPIInstrumentor is already applied above (auto-spans for all HTTP

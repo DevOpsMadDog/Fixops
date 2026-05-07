@@ -1,5 +1,11 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-05 00:00] frontend-craftsman — Multica #4143 DONE
+- **What**: Built src/pages/marketing/LandingPage.tsx (~300 LOC) — polished public marketing page wired at /marketing and /home. Sections: hero with CTA, trust strip, problem-3-bullets, solution-3-pillars, 3-step how-it-works, 3-tier pricing cards, social proof placeholder, CTA bar with email form, footer with TOS/Privacy/DPA links. Framer Motion fade-up animations, shadcn Button/Badge, dark-mode-first (slate-950).
+- **Files touched**: suite-ui/aldeci-ui-new/src/pages/marketing/LandingPage.tsx (new), suite-ui/aldeci-ui-new/src/App.tsx (lazy import + /marketing + /home routes)
+- **Outcome**: SUCCESS — zero TS errors in new file, committed 44b63df7, pushed, Multica f6ec0df0 closed (done)
+- **Pillar(s) served**: V3 (product surface), V6 (enterprise demo)
+
 ### [2026-05-08 10:15] frontend-craftsman — Multica #4141 DONE
 - **What**: Implemented public /changelog page with backend API. Backend: GET /api/v1/changelog/recent endpoint fetches last N commits via git log, parses beast-mode(scope): msg format, groups by scope. Frontend: ChangelogPage.tsx renders commits with color-coded scope badges, dark mode, responsive. Public route /changelog (no auth). Build passes (3.87s), phase2 56/56 tests pass.
 - **Files touched**: suite-api/apps/api/changelog_router.py, suite-ui/aldeci-ui-new/src/pages/ChangelogPage.tsx, suite-ui/aldeci-ui-new/src/App.tsx

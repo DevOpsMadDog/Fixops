@@ -331,6 +331,31 @@ class AuditLogger:
         """Count entries matching filters."""
         return len(self.query(filters=filters, limit=1_000_000))
 
+    # ------------------------------------------------------------------
+    # Retention & Purging
+    # ------------------------------------------------------------------
+
+    def purge_old(self, retention_days: int = 90) -> int:
+        """Delete audit entries older than retention_days.
+
+        Returns the number of rows deleted.
+        """
+        threshold = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
+        with self._lock:
+            conn = self._connect()
+            cursor = conn.execute(
+                "DELETE FROM audit_log WHERE timestamp < ?",
+                [threshold],
+            )
+            conn.commit()
+            deleted = cursor.rowcount
+        _logger.info(
+            "audit_log.purge_old: deleted %d entries older than %d days",
+            deleted,
+            retention_days,
+        )
+        return deleted
+
 
 # ---------------------------------------------------------------------------
 # Audit Middleware

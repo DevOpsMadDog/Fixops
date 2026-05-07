@@ -14,14 +14,18 @@ Routes:
   GET   /api/v1/security-findings/findings                         list_findings
   GET   /api/v1/security-findings/assets/{asset_id}/findings       get_asset_findings
   GET   /api/v1/security-findings/summary                          get_findings_summary
+  GET   /api/v1/security-findings/export                           export_findings
 """
 from __future__ import annotations
 
+import csv
+import io
 import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -191,3 +195,71 @@ def get_asset_findings(
 def get_findings_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Get findings summary: counts, severity breakdown, source breakdown, top assets."""
     return _get_engine().get_findings_summary(org_id=org_id)
+
+
+@router.get("/export", dependencies=[Depends(api_key_auth)])
+def export_findings(
+    org_id: str = Query(default="default"),
+    format: str = Query(default="csv", regex="^(csv|json)$"),
+) -> StreamingResponse:
+    """Export findings as CSV or JSON stream.
+
+    Query params:
+      - org_id: organization ID (default: "default")
+      - format: export format - "csv" or "json" (default: "csv")
+
+    Returns StreamingResponse with findings data.
+    """
+    findings = _get_engine().list_findings(org_id=org_id)
+
+    if format == "json":
+        # JSON export
+        import json
+
+        def generate_json():
+            yield "["
+            for i, finding in enumerate(findings):
+                if i > 0:
+                    yield ","
+                yield json.dumps(finding, default=str)
+            yield "]"
+
+        return StreamingResponse(
+            generate_json(),
+            media_type="application/json",
+            headers={"Content-Disposition": f"attachment; filename=findings_{org_id}.json"},
+        )
+
+    # CSV export (default)
+    def generate_csv():
+        columns = [
+            "id",
+            "severity",
+            "title",
+            "description",
+            "source_tool",
+            "asset_id",
+            "status",
+            "created_at",
+            "resolved_at",
+        ]
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        yield output.getvalue()
+        output.truncate(0)
+        output.seek(0)
+
+        for finding in findings:
+            writer.writerow(finding)
+            chunk = output.getvalue()
+            if chunk:
+                yield chunk
+                output.truncate(0)
+                output.seek(0)
+
+    return StreamingResponse(
+        generate_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=findings_{org_id}.csv"},
+    )
