@@ -200,7 +200,7 @@ def get_findings_summary(org_id: str = Query(default="default")) -> Dict[str, An
 @router.get("/export", dependencies=[Depends(api_key_auth)])
 def export_findings(
     org_id: str = Query(default="default"),
-    format: str = Query(default="csv", regex="^(csv|json)$"),
+    format: str = Query(default="csv", pattern="^(csv|json)$"),
 ) -> StreamingResponse:
     """Export findings as CSV or JSON stream.
 

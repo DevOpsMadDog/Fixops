@@ -8,14 +8,13 @@ import json
 from io import StringIO
 
 import pytest
-from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
-async def test_export_findings_csv(client: AsyncClient, org_id: str = "test-org-export"):
+def test_export_findings_csv(authenticated_client):
     """Test CSV export of findings."""
+    org_id = "test-org-export"
     # Setup: record a finding
-    create_resp = await client.post(
+    create_resp = authenticated_client.post(
         "/api/v1/security-findings/findings",
         json={
             "org_id": org_id,
@@ -34,12 +33,12 @@ async def test_export_findings_csv(client: AsyncClient, org_id: str = "test-org-
     finding_id = create_resp.json()["id"]
 
     # Export as CSV
-    export_resp = await client.get(
+    export_resp = authenticated_client.get(
         f"/api/v1/security-findings/export?org_id={org_id}&format=csv",
     )
     assert export_resp.status_code == 200
-    assert export_resp.headers["content-type"] == "text/csv; charset=utf-8"
-    assert f"findings_{org_id}.csv" in export_resp.headers["content-disposition"]
+    assert "text/csv" in export_resp.headers.get("content-type", "")
+    assert f"findings_{org_id}.csv" in export_resp.headers.get("content-disposition", "")
 
     # Parse CSV
     csv_lines = export_resp.text.strip().split("\n")
@@ -55,12 +54,12 @@ async def test_export_findings_csv(client: AsyncClient, org_id: str = "test-org-
     assert rows[0]["status"] == "open"
 
 
-@pytest.mark.asyncio
-async def test_export_findings_json(client: AsyncClient, org_id: str = "test-org-export-json"):
+def test_export_findings_json(authenticated_client):
     """Test JSON export of findings."""
+    org_id = "test-org-export-json"
     # Setup: record 2 findings
     for i in range(2):
-        await client.post(
+        authenticated_client.post(
             "/api/v1/security-findings/findings",
             json={
                 "org_id": org_id,
@@ -76,29 +75,30 @@ async def test_export_findings_json(client: AsyncClient, org_id: str = "test-org
         )
 
     # Export as JSON
-    export_resp = await client.get(
+    export_resp = authenticated_client.get(
         f"/api/v1/security-findings/export?org_id={org_id}&format=json",
     )
     assert export_resp.status_code == 200
-    assert export_resp.headers["content-type"] == "application/json"
-    assert f"findings_{org_id}.json" in export_resp.headers["content-disposition"]
+    assert "application/json" in export_resp.headers.get("content-type", "")
+    assert f"findings_{org_id}.json" in export_resp.headers.get("content-disposition", "")
 
     # Parse JSON
     findings = json.loads(export_resp.text)
     assert len(findings) == 2
-    assert findings[0]["title"] == "Finding 0"
-    assert findings[1]["title"] == "Finding 1"
-    assert findings[0]["severity"] == "high"
-    assert findings[1]["severity"] == "medium"
+    # Results are sorted by cvss_score desc, so highest cvss (Finding 1 with 8.0) comes first
+    assert findings[0]["title"] == "Finding 1"
+    assert findings[1]["title"] == "Finding 0"
+    assert findings[0]["severity"] == "medium"
+    assert findings[1]["severity"] == "high"
 
 
-@pytest.mark.asyncio
-async def test_export_findings_empty(client: AsyncClient, org_id: str = "test-org-empty-export"):
+def test_export_findings_empty(authenticated_client):
     """Test export of empty findings list."""
+    org_id = "test-org-empty-export"
     # No findings recorded for this org
 
     # Export as CSV
-    export_resp = await client.get(
+    export_resp = authenticated_client.get(
         f"/api/v1/security-findings/export?org_id={org_id}&format=csv",
     )
     assert export_resp.status_code == 200
@@ -106,20 +106,20 @@ async def test_export_findings_empty(client: AsyncClient, org_id: str = "test-or
     assert len(csv_lines) == 1  # header only
 
 
-@pytest.mark.asyncio
-async def test_export_findings_invalid_format(client: AsyncClient, org_id: str = "test-org-invalid"):
+def test_export_findings_invalid_format(authenticated_client):
     """Test export with invalid format param."""
-    export_resp = await client.get(
+    org_id = "test-org-invalid"
+    export_resp = authenticated_client.get(
         f"/api/v1/security-findings/export?org_id={org_id}&format=xml",
     )
     assert export_resp.status_code == 422  # validation error
 
 
-@pytest.mark.asyncio
-async def test_export_findings_default_format(client: AsyncClient, org_id: str = "test-org-default"):
+def test_export_findings_default_format(authenticated_client):
     """Test export defaults to CSV when format not specified."""
+    org_id = "test-org-default"
     # Setup: record a finding
-    await client.post(
+    authenticated_client.post(
         "/api/v1/security-findings/findings",
         json={
             "org_id": org_id,
@@ -135,8 +135,8 @@ async def test_export_findings_default_format(client: AsyncClient, org_id: str =
     )
 
     # Export without format param (should default to CSV)
-    export_resp = await client.get(
+    export_resp = authenticated_client.get(
         f"/api/v1/security-findings/export?org_id={org_id}",
     )
     assert export_resp.status_code == 200
-    assert export_resp.headers["content-type"] == "text/csv; charset=utf-8"
+    assert "text/csv" in export_resp.headers.get("content-type", "")

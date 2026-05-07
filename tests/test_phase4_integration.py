@@ -856,3 +856,46 @@ class TestFullPipelineIntegration:
         # Both verdicts should exist
         assert verdict1.action is not None
         assert verdict2.action is not None
+
+
+# ---------------------------------------------------------------------------
+# Outbound Webhooks smoke tests — Multica #4151
+# ---------------------------------------------------------------------------
+
+class TestOutboundWebhooksCRUD:
+    """Smoke tests for POST/GET/DELETE /api/v1/webhooks/outbound."""
+
+    def test_create_outbound_webhook_validates_topics(self):
+        """POST with invalid topic must be rejected (422)."""
+        from apps.api.outbound_webhooks_router import CreateOutboundWebhookRequest
+        import pytest
+
+        with pytest.raises(Exception):
+            CreateOutboundWebhookRequest(
+                url="https://example.com/hook",
+                topics=["not.a.real.topic"],
+            )
+
+    def test_create_outbound_webhook_requires_https(self):
+        """POST with http:// URL must be rejected by validator."""
+        from apps.api.outbound_webhooks_router import CreateOutboundWebhookRequest
+        import pytest
+
+        with pytest.raises(Exception):
+            CreateOutboundWebhookRequest(
+                url="http://example.com/hook",
+                topics=["finding.created.critical"],
+            )
+
+    def test_sign_payload_hmac_sha256(self):
+        """sign_payload returns correct HMAC-SHA256 hex digest."""
+        import hashlib
+        import hmac as _hmac
+
+        from apps.api.outbound_webhooks_router import sign_payload
+
+        secret = "test-secret-key"
+        body = b'{"topic": "finding.created.critical"}'
+        expected = _hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        assert sign_payload(secret, body) == expected
+        assert len(sign_payload(secret, body)) == 64  # SHA-256 hex = 64 chars

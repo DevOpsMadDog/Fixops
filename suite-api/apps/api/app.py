@@ -151,6 +151,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Org Management router not available: %s", e)
 
+# Org GDPR Export router (right-to-portability)
+org_export_router: Optional[APIRouter] = None
+try:
+    from apps.api.org_export_router import router as org_export_router
+    logging.getLogger(__name__).info("Loaded Org GDPR Export router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Org GDPR Export router not available: %s", e)
+
 # ServiceNow Bidirectional Sync router (SSRF-VULN-03)
 servicenow_sync_router: Optional[APIRouter] = None
 servicenow_sync_webhook_router: Optional[APIRouter] = None
@@ -3305,6 +3313,9 @@ def create_app() -> FastAPI:
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_evidence_export_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+    if org_export_router:
+        app.include_router(org_export_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Org GDPR Export router at /api/v1/orgs/{org_id}/export")
     app.include_router(support_router, dependencies=[Depends(_verify_api_key)])
     _logger.info("Mounted Support router at /api/v1/support")
     if evidence_chain_router:
@@ -6896,6 +6907,14 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Stripe webhook router at /api/v1/billing/stripe-webhook")
     except Exception as _e:
         _logger.warning("stripe_webhook_router unavailable: %s", _e)
+
+    # Outbound Webhooks — per-org subscriptions to ALdeci event topics (Multica #4151)
+    try:
+        from apps.api.outbound_webhooks_router import router as outbound_webhooks_router
+        app.include_router(outbound_webhooks_router)
+        _logger.info("Mounted Outbound Webhooks router at /api/v1/webhooks/outbound")
+    except Exception as _e:
+        _logger.warning("outbound_webhooks_router unavailable: %s", _e)
 
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
