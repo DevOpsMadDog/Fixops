@@ -1,5 +1,9 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { billingApi, type BillingTier } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { ErrorState } from "@/components/shared/ErrorState";
 
 // Route-level error boundary that resets on navigation
@@ -364,6 +368,57 @@ function NavTooltip({ label, children, disabled }: { label: string; children: Re
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
+  );
+}
+
+// ── Tier badge + upgrade button ────────────────────────────────────────────
+
+function TierBadgeButton() {
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const { data } = useQuery({
+    queryKey: ["billing-tier"],
+    queryFn: () => billingApi.tier(),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const tier = (data?.data?.tier ?? "starter") as BillingTier;
+
+  const badgeConfig: Record<BillingTier, { label: string; className: string }> = {
+    starter: {
+      label: "Starter",
+      className: "border-zinc-600/40 bg-zinc-700/40 text-zinc-300",
+    },
+    pro: {
+      label: "Pro",
+      className: "border-blue-500/30 bg-blue-500/15 text-blue-400",
+    },
+    enterprise: {
+      label: "Enterprise",
+      className: "border-amber-500/30 bg-amber-500/15 text-amber-400",
+    },
+  };
+
+  const config = badgeConfig[tier];
+
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        <Badge className={`text-[10px] font-semibold uppercase tracking-wider border ${config.className}`}>
+          {config.label}
+        </Badge>
+        {tier !== "enterprise" && (
+          <button
+            onClick={() => setUpgradeOpen(true)}
+            className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+          >
+            Upgrade
+          </button>
+        )}
+      </div>
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} currentTier={tier} />
+    </>
   );
 }
 
@@ -1062,6 +1117,8 @@ export function WorkspaceLayout() {
                     DEV MODE
                   </span>
                 )}
+                {/* Tier badge + upgrade button */}
+                <TierBadgeButton />
                 {/* Global search — also triggered by Cmd+K  */}
                 {searchOpen && (
                   <div className="contents">

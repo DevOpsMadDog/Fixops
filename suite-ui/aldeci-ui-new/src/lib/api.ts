@@ -92,13 +92,92 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ── Request interceptor for token refresh ──
+// ── JWT access token: kept in memory only (XSS-safe) ──
+const JWT_REFRESH_KEY = "aldeci.refreshToken";
+
+let _jwtAccessToken: string | null = null;
+
+export function getJwtAccessToken(): string | null {
+  return _jwtAccessToken;
+}
+
+export function setJwtAccessToken(token: string | null) {
+  _jwtAccessToken = token;
+}
+
+export function getJwtRefreshToken(): string | null {
+  return getStoredValue(JWT_REFRESH_KEY) || null;
+}
+
+export function setJwtRefreshToken(token: string | null) {
+  setStoredValue(JWT_REFRESH_KEY, token);
+}
+
+export function clearJwtTokens() {
+  _jwtAccessToken = null;
+  setStoredValue(JWT_REFRESH_KEY, null);
+}
+
+// ── Request interceptor: attach JWT Bearer if access token in memory ──
+api.interceptors.request.use((config) => {
+  const access = _jwtAccessToken;
+  if (access && getStoredAuthStrategy() === "jwt") {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${access}`;
+  }
+  return config;
+});
+
+// ── Response interceptor: 401 → try refresh → redirect to /login ──
+let _refreshPromise: Promise<void> | null = null;
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      window.location.hash = "#/login";
+  async (err) => {
+    const originalRequest = err.config as typeof err.config & { _retried?: boolean };
+    const status = err.response?.status;
+
+    if (status === 401 && !originalRequest._retried && getStoredAuthStrategy() === "jwt") {
+      originalRequest._retried = true;
+
+      // Deduplicate concurrent refresh attempts
+      if (!_refreshPromise) {
+        _refreshPromise = (async () => {
+          try {
+            const refresh = getJwtRefreshToken();
+            if (!refresh) throw new Error("no refresh token");
+            const res = await api.post("/api/v1/auth/refresh", { refresh_token: refresh });
+            const newAccess = res.data?.access_token as string | undefined;
+            if (!newAccess) throw new Error("no access_token in refresh response");
+            setJwtAccessToken(newAccess);
+            // Update legacy token store so existing request interceptor stays in sync
+            setStoredAuthToken(newAccess);
+          } finally {
+            _refreshPromise = null;
+          }
+        })();
+      }
+
+      try {
+        await _refreshPromise;
+        // Retry original request with new access token
+        return api(originalRequest);
+      } catch {
+        // Refresh failed — clear session and redirect
+        clearJwtTokens();
+        setStoredAuthToken(null);
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.assign(`/login?next=${next}`);
+        return Promise.reject(err);
+      }
     }
+
+    if (status === 401) {
+      // Non-JWT auth: redirect to login
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.assign(`/login?next=${next}`);
+    }
+
     return Promise.reject(err);
   }
 );
@@ -349,8 +428,29 @@ export const teamsApi = {
   update: (id: string, data: unknown) => api.put(`/api/v1/teams/${id}`, data),
 };
 
+// ── Auth API (JWT login + token refresh) ──
+export const authApi = {
+  login: (data: { email: string; password: string }) =>
+    api.post<{ access_token: string; refresh_token: string; token_type: string; user: AuthUser }>(
+      "/api/v1/auth/login",
+      data,
+    ),
+  refresh: (refresh_token: string) =>
+    api.post<{ access_token: string }>("/api/v1/auth/refresh", { refresh_token }),
+};
+
+// AuthUser minimal type for authApi response (avoids circular import with auth.tsx)
+interface AuthUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  department?: string;
+}
+
 export const usersApi = {
-  login: (data: { email: string; password: string }) => api.post("/api/v1/users/login", data),
+  login: (data: { email: string; password: string }) => api.post("/api/v1/auth/login", data),
   list: () => api.get("/api/v1/users"),
   get: (id: string) => api.get(`/api/v1/users/${id}`),
   create: (data: unknown) => api.post("/api/v1/users", data),
@@ -1592,4 +1692,22 @@ export const digitalForensicsApi = {
     }),
   stats: (orgId = "default") =>
     api.get("/api/v1/digital-forensics/stats", { params: { org_id: orgId } }),
+};
+
+// ── Billing API ────────────────────────────────────────────────────────────
+
+export type BillingTier = "starter" | "pro" | "enterprise";
+
+export interface BillingTierResponse {
+  tier: BillingTier;
+}
+
+export interface BillingUpgradeResponse {
+  checkout_url: string;
+}
+
+export const billingApi = {
+  tier: () => api.get<BillingTierResponse>("/api/v1/billing/tier"),
+  upgrade: (target_tier: BillingTier) =>
+    api.post<BillingUpgradeResponse>("/api/v1/billing/upgrade", { target_tier }),
 };
