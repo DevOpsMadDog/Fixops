@@ -456,6 +456,8 @@ const BoardLandingPage = lazy(() => import("@/pages/BoardLandingPage"));
 
 // DocsPage — Public documentation hub (Multica #4118)
 const DocsPage = lazy(() => import("@/pages/DocsPage"));
+// ChangelogPage — Public changelog (Multica #4141)
+const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 
 export default function App() {
   return (
@@ -478,6 +480,8 @@ export default function App() {
           <Route path="/docs/dpa" element={<DocsPage />} />
           <Route path="/docs/install" element={<DocsPage />} />
           <Route path="/docs/poc" element={<DocsPage />} />
+          {/* ChangelogPage — public changelog (Multica #4141) */}
+          <Route path="/changelog" element={<ChangelogPage />} />
           {/* Password reset — public, no auth required (Multica #4132) */}
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />

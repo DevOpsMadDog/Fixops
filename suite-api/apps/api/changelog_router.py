@@ -151,6 +151,89 @@ def _entries_to_dicts(entries: List[ChangeEntry]) -> List[Dict[str, Any]]:
 # ============================================================================
 
 
+@router.get("/recent", response_model=RecentChangelogResponse, summary="Get recent commits grouped by scope")
+def get_recent_changelog(limit: int = Query(50, ge=1, le=500, description="Max commits to fetch")) -> RecentChangelogResponse:
+    """
+    Fetch the last N commits from git log and group by scope.
+
+    Parses beast-mode(<scope>): <msg> format and extracts scope + message.
+    Returns commits in reverse chronological order (newest first).
+    """
+    try:
+        # Get commit log with format: <hash>|<author>|<date>|<message>
+        result = subprocess.run(
+            ["git", "log", f"--max-count={limit}", "--format=%h|%an|%ai|%s"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail="Failed to fetch git log")
+
+        lines = result.stdout.strip().split("\n")
+        if not lines or lines[0] == "":
+            return RecentChangelogResponse(limit=limit, total_count=0, commits=[], scopes={})
+
+        commits_list: List[RecentCommitResponse] = []
+        scope_counts: Dict[str, int] = {}
+
+        for line in lines:
+            if not line.strip():
+                continue
+            parts = line.split("|", 3)
+            if len(parts) < 4:
+                continue
+
+            sha, author, timestamp, msg = parts
+            # Extract scope from beast-mode(scope): msg or conventional scope: msg
+            scope = "other"
+            message = msg
+
+            if msg.startswith("beast-mode(") and ")" in msg:
+                # beast-mode(feat): msg → scope=feat, message=msg
+                close_paren = msg.index(")")
+                scope = msg[11:close_paren]  # Extract between ( and )
+                message = msg[close_paren+2:].strip() if close_paren+2 < len(msg) else message
+            elif ":" in msg:
+                # conventional: feat: msg → scope=feat
+                potential_scope = msg.split(":", 1)[0]
+                if potential_scope and not " " in potential_scope and potential_scope.lower() in [
+                    "feat", "fix", "perf", "ui", "qa", "refactor", "docs", "chore", "style", "test"
+                ]:
+                    scope = potential_scope.lower()
+                    message = msg.split(":", 1)[1].strip()
+
+            scope_counts[scope] = scope_counts.get(scope, 0) + 1
+            commits_list.append(
+                RecentCommitResponse(
+                    sha=sha,
+                    scope=scope,
+                    message=message,
+                    timestamp=timestamp,
+                )
+            )
+
+        # Get total commit count
+        count_result = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        total_count = int(count_result.stdout.strip()) if count_result.returncode == 0 else len(commits_list)
+
+        return RecentChangelogResponse(
+            limit=limit,
+            total_count=total_count,
+            commits=commits_list,
+            scopes=scope_counts,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Git operation timed out")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching changelog: {str(e)}")
+
+
 @router.post("/generate", response_model=GenerateResponse, summary="Generate changelog from commits")
 def generate_changelog(body: GenerateRequest) -> GenerateResponse:
     """
