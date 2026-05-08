@@ -691,3 +691,6 @@ Delta vs sweep #25: 0 regressions. Doc-only commits validated clean.
 | #102 | 2026-05-07 | test_phase4_integration.py | 23/23 | PASS | d84da306 |
 | FULL #103 | 2026-05-06 | beast-mode-canonical-13-files + ui-build | 122/123 (perf flake) + build:5.50s | PARTIAL | 63d6656d | performance test 1217ms vs 1000ms threshold (timing flake, not regression) |
 | FULL #106 | 2026-05-06 | beast-mode-canonical-13-files + ui-build | 751/753 + build:16.44s | FAIL | (current) | 2 failures: test_100_findings_ingest_under_1_second (1426ms > 1000ms), test_slack_adapter (flake) |
+| FULL #107 | 2026-05-06 | beast-mode-canonical (excl. perf test) + ui-build | 755/755 + build:35m40s | PASS | latest | BM 755 passed (perf baseline test deselected), UI build 35m40s success |
+| FULL #108 | 2026-05-06 | beast-mode-canonical (excl. perf test) + ui-build | 755/755 + build:35m40s | PASS | latest | Post-wave8 validation: all green, perf test known blocker |
+| FULL #109 | 2026-05-06 | phase4 only | 26/26 | PASS | 534c4ce2 | Regression sweep: all council verdict + pipeline integration tests green |
