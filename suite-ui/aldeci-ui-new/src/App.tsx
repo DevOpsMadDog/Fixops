@@ -461,6 +461,8 @@ const WebhooksOutboundPage = lazy(() => import("@/pages/admin/WebhooksOutboundPa
 
 // DocsPage — Public documentation hub (Multica #4118)
 const DocsPage = lazy(() => import("@/pages/DocsPage"));
+// ApiReferencePage — API reference documentation (Multica #4161)
+const ApiReferencePage = lazy(() => import("@/pages/ApiReferencePage"));
 // ChangelogPage — Public changelog (Multica #4141)
 const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 
@@ -488,6 +490,8 @@ export default function App() {
           <Route path="/docs/dpa" element={<DocsPage />} />
           <Route path="/docs/install" element={<DocsPage />} />
           <Route path="/docs/poc" element={<DocsPage />} />
+          {/* ApiReferencePage — API reference documentation (Multica #4161) */}
+          <Route path="/docs/api" element={<Suspense fallback={<PageSkeleton />}><ApiReferencePage /></Suspense>} />
           {/* ChangelogPage — public changelog (Multica #4141) */}
           <Route path="/changelog" element={<ChangelogPage />} />
           {/* Password reset — public, no auth required (Multica #4132) */}
