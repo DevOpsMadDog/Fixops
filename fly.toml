@@ -59,5 +59,7 @@ kill_timeout = "30s"
   retries = 3
 
 [deploy]
-  release_command = "python scripts/seed_demo_data.py || true"
   strategy = "rolling"
+  # Seed demo data manually after first deploy:
+  #   flyctl ssh console --app aldeci -C "python scripts/seed_demo_data.py"
+  # (scripts/ is not in the runtime image by default; mount or rebuild with COPY scripts/)
