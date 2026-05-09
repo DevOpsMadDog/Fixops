@@ -72,14 +72,22 @@ start_api_server() {
     fi
     API_PID=$!
 
-    echo -e "${CYAN}Waiting for API server to be ready...${NC}"
+    echo -e "${CYAN}Waiting for API server to be ready (up to 180s)...${NC}"
     local api_ready=false
-    for i in {1..30}; do
-        if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+    for i in {1..180}; do
+        # Try both legacy /health and v1 /api/v1/health
+        if curl -fs http://localhost:8000/api/v1/health > /dev/null 2>&1 \
+           || curl -fs http://localhost:8000/health > /dev/null 2>&1; then
             local elapsed=$(($(date +%s) - start_ts))
             echo -e "${GREEN}API server ready in ${elapsed}s${NC}"
             api_ready=true
             break
+        fi
+        # Detect early process death so we don't wait the full 180s on a crashed proc
+        if ! kill -0 "$API_PID" 2>/dev/null; then
+            echo -e "${RED}ERROR: uvicorn process exited prematurely (PID $API_PID dead after ${i}s)${NC}"
+            echo -e "${YELLOW}Check the logs above for the underlying Python traceback${NC}"
+            exit 1
         fi
         sleep 1
         echo -n "."
@@ -87,9 +95,8 @@ start_api_server() {
     echo ""
 
     if [[ "$api_ready" != "true" ]]; then
-        echo -e "${RED}ERROR: API server failed to start within 30 seconds${NC}"
-        echo -e "${YELLOW}Check the logs above for errors${NC}"
-        exit 1
+        echo -e "${YELLOW}WARN: API server didn't pass readiness probe within 180s — leaving it running${NC}"
+        echo -e "${YELLOW}Fly.io healthcheck will continue probing via the LB${NC}"
     fi
 }
 
