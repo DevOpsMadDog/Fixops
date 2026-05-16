@@ -3014,3 +3014,34 @@ async def agents_health() -> Dict[str, str]:
         "service": "aldeci-copilot-agents",
         "version": "1.0.0",
     }
+
+
+# ---------------------------------------------------------------------------
+# Short-path router at /api/v1/agents (UI probes this prefix)
+# ---------------------------------------------------------------------------
+
+agents_v1_router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
+
+
+@agents_v1_router.get("/{role}/task")
+async def get_agent_task_by_role(role: str) -> Dict[str, Any]:
+    """Get the most recent task for an agent role.
+
+    Returns empty shape when no task exists — 200 so the UI can render an
+    empty state instead of crashing on 404.
+    """
+    matching = [
+        t for t in _agent_tasks.values()
+        if t.get("agent_type", "").lower() == role.lower()
+        or t.get("role", "").lower() == role.lower()
+    ]
+    if matching:
+        latest = sorted(matching, key=lambda t: t.get("created_at", ""), reverse=True)[0]
+        return {"found": True, "role": role, "task": latest}
+    return {"found": False, "role": role, "task": None}
+
+
+@agents_v1_router.get("/health")
+async def agents_v1_health() -> Dict[str, str]:
+    """Health check alias at /api/v1/agents/health."""
+    return {"status": "healthy", "service": "aldeci-agents", "version": "1.0.0"}
