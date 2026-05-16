@@ -313,6 +313,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Security Findings Engine router not available: %s", e)
 
+# Findings Persistence router — real SQLite persistence with dedup + indexed queries
+findings_persistence_router: Optional[APIRouter] = None
+try:
+    from apps.api.findings_persistence_router import router as findings_persistence_router
+    logging.getLogger(__name__).info("Loaded Findings Persistence router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Findings Persistence router not available: %s", e)
+
 # Risk Register — enterprise risk lifecycle (CRUD, scoring, KRI, heat map, board report)
 risk_register_router: Optional[APIRouter] = None
 try:
@@ -3151,6 +3159,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted Security Findings Engine router")
+
+    # Findings Persistence — real SQLite store with dedup + indexed queries
+    if findings_persistence_router:
+        app.include_router(
+            findings_persistence_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Findings Persistence router")
 
     # Risk Register — enterprise risk lifecycle (CRUD, scoring, KRI, heat map, board report)
     if risk_register_router:
