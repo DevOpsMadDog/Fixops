@@ -374,6 +374,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Cloud Discovery router not available: %s", e)
 
+# Real LLM Council — POST /api/v1/council/convene (4-model OpenRouter consensus + Opus)
+council_router: Optional[APIRouter] = None
+try:
+    from apps.api.council_router import router as council_router
+    logging.getLogger(__name__).info("Loaded Real LLM Council router (council_router)")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Real LLM Council router not available: %s", e)
+
 # Enhanced LLM Council — calibration, feedback, recent verdicts
 council_enhanced_router: Optional[APIRouter] = None
 try:
@@ -3191,6 +3199,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted CTEM Pipeline router")
+
+    # Real LLM Council — convene endpoint (POST /api/v1/council/convene)
+    if council_router:
+        app.include_router(
+            council_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Real LLM Council router at /api/v1/council")
 
     # Enhanced LLM Council — calibration, feedback, recent verdicts
     if council_enhanced_router:
