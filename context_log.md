@@ -1,5 +1,49 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-27 07:48] backend-hardener — AI ORCHESTRATOR MOCK FABRICATION FIXED
+
+- **What**: Eliminated silent mock fabrication from `ai_orchestrator.py` `_call_llm()`. Four exact changes:
+  1. `_call_llm` default changed from `FIXOPS_LLM_BACKEND=mock` to auto-detect: if `FIXOPS_LLM_BACKEND` is unset AND an OpenRouter key is present (`OPENROUTER_API_KEY` / `MULEROUTER_API_KEY` / `FIXOPS_OPENROUTER_KEY`), route to real `_openrouter_call`. If unset AND no key, return `[LLM_UNAVAILABLE] ...` marker (never fabricated content).
+  2. Explicit `FIXOPS_LLM_BACKEND=mock` still works as an opt-in, but results are now prefixed with `[MOCK_LLM]` so callers can distinguish them from real responses.
+  3. Unknown `FIXOPS_LLM_BACKEND` values now raise `ValueError` with the bad value named — never silently fall back to mock.
+  4. `_openrouter_call` no longer returns `"[No OPENROUTER_API_KEY — mock response]"` (misleading word "mock"); now returns `[LLM_UNAVAILABLE] ...`. Model updated from stale `qwen/qwen3.6-plus:free` to `google/gemini-2.5-flash`. Added `_resolve_openrouter_key()` helper checking all 3 key env vars (matches proven council pattern).
+  5. `test_ai_orchestrator.py`: added `force_mock_backend` session-scoped autouse fixture so orchestrator-logic tests remain deterministic without making live API calls.
+  6. `test_ai_orchestrator_backends.py`: replaced 2 tests asserting old broken contract (`unknown_backend_falls_back_to_mock`, `missing_key_returns_mock`) with 14 new tests covering the honest contract + `_resolve_openrouter_key`. Added `TestResolveOpenrouterKey` class.
+  7. New `tests/test_ai_orchestrator_proof.py` (4 proof classes, 14 tests): Proof1=real call via httpx to openrouter.ai with correct auth; Proof2=no key returns `[LLM_UNAVAILABLE]` not fabricated content; Proof3=explicit mock is `[MOCK_LLM]`-labelled; Proof4=unknown backend raises `ValueError`.
+- **Real-call proof** (from /tmp/test_results.txt line 131): `httpx.post https://openrouter.ai/api/v1/chat/completions HTTP/1.1 200 OK` — real network call confirmed.
+- **No-key honest proof**: WARNING log `"ai_orchestrator: no LLM key configured and FIXOPS_LLM_BACKEND not set — returning unavailable marker (not fabricated content)."` — not ANALYSIS COMPLETE/REVIEW VERDICT.
+- **Files touched**: `suite-core/core/ai_orchestrator.py`, `tests/test_ai_orchestrator.py`, `tests/test_ai_orchestrator_backends.py`, `tests/test_ai_orchestrator_proof.py` (new)
+- **Test counts**: 111/111 PASS (proof+backends+orchestrator, 1.45s) + 86/86 regression (pipeline_api+phase3_llm_council)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (no fabrication), V3 (real decision intelligence), V6 (enterprise-grade reliability)
+
+### [2026-05-27 07:14] backend-hardener — CLOUD DISCOVERY MOCK FABRICATION REMOVED
+
+- **What**: Eliminated fabricated mock data from `CloudDiscovery.discover_aws/azure/gcp/all` production paths. All three providers previously fell back silently to `_build_*_assets()` (hardcoded EC2 IDs, ARNs, subscription IDs, project IDs) on ANY exception. Now: (1) added `CloudDiscoveryNotConfiguredError(ValueError)` with `provider` + `reason` attrs; (2) each `discover_*` method detects missing SDK or missing creds early and raises — zero assets written to DB; (3) `discover_all` skips unconfigured providers, raises only when ALL three are unconfigured; (4) mock builders remain but are gated behind `FIXOPS_CLOUD_DISCOVERY_TEST_MOCK=1` env var (explicit test opt-in only); (5) router updated to import and catch `CloudDiscoveryNotConfiguredError` → HTTP 422 with `{"configured": false, "provider": "...", "reason": "..."}` body on all four discovery endpoints.
+- **Files touched**: `suite-core/core/cloud_discovery.py`, `suite-api/apps/api/cloud_discovery_router.py`, `tests/test_cloud_discovery_honesty.py` (new, 22 tests)
+- **Outcome**: SUCCESS — 22/22 new tests pass, 756/756 Beast Mode pass
+- **Pillar(s) served**: V1 (no fabricated data), V3 (honest API contracts)
+
+### [2026-05-27 07:15] backend-hardener — AZURE DEFENDER MOCK FABRICATION REMOVED
+
+- **What**: Eliminated fabricated mock data from `AzureDefenderClient` production path. `get_alerts`/`get_secure_score`/`get_recommendations` now return honest not-configured results when Azure env vars are absent (empty list / `{"configured": false, "reason": "..."}`) instead of leaking `_MOCK_ALERTS` / `_MOCK_SECURE_SCORE` / `_MOCK_RECOMMENDATIONS`. Added `AzureNotConfiguredError(ValueError)` exception class. Added `allow_mock=True` constructor kwarg — the ONLY way to reach mock data, explicitly opt-in for unit tests. Updated router docstrings and status message. Added `configured` field to `ImportResponse` / `ImportSummaryResponse` Pydantic models. Added `TestAzureDefenderHonestNotConfigured` test class (11 tests) that positively asserts no mock IDs/values leak on the default path.
+- **Files touched**: `suite-core/core/azure_defender.py`, `suite-api/apps/api/azure_defender_router.py`, `tests/test_azure_defender.py`
+- **Outcome**: SUCCESS — 77/77 tests pass (was 66 old tests, now 77 with 11 new honesty-floor tests)
+- **Pillar(s) served**: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
+
+### [2026-05-27 07:05] backend-hardener — E2E REAL VERTICAL SLICE TEST WRITTEN + 13/13 PASS
+
+- **What**: Created `tests/test_e2e_real_vertical_slice.py` — no-mocks end-to-end proof that ALdeci's CTEM vertical composes correctly with real data across all 5 stages. Zero stubs, zero mocks, zero fabricated data.
+  - **Stage 1 (SCAN)**: checkov 3.2.521 ran against `tests/fixtures/checkov_target/main.tf` — **passed=8, failed=14, score=36.4** (real IaC results persisted to benchmark DB with individual check_result rows).
+  - **Stage 2 (FINDINGS)**: 3 real findings recorded (critical SAST SQL injection on srv-prod-api, critical secret exposure on srv-prod-api, critical SCA log4shell on sca-dep-registry) — `list_findings()` returns all 3.
+  - **Stage 3 (CORRELATE)**: TrustGraph DB has **entities=8, relationships=6**; `get_findings_by_asset_graph("srv-prod-api")` returns `graph_relationship_count=2, correlated_findings=2`; OTHER_ASSET findings are isolated (disjoint IDs).
+  - **Stage 4 (SCORE)**: `generate_scorecard()` wired to injected findings engine — **score=85.0/B** across 3 assessed categories (patching, application, information_leak); 5 categories correctly not_assessed (network, dns, endpoint, ip_reputation, social_engineering); resolving SAST finding raises score to **92.5/A (+7.5 delta)**.
+  - **Stage 5 (COUNCIL)**: Real 5-member OpenRouter council ran against the critical SQL injection finding — **method=council_verdict, decision=remediate_critical, providers_responded=4, cost_usd=0.001754, latency=37.5s**. Gemini 2.5 Flash hit a JSON parse error (1 of 5); 4 real votes still above quorum=2.
+- **Files touched**: `tests/test_e2e_real_vertical_slice.py` (new, 310 LOC)
+- **Regression**: `test_pipeline_api.py` + `test_trustgraph.py` = **81/81 PASS** (unaffected)
+- **Outcome**: SUCCESS — 13/13 PASS in 67.5s
+- **Pillar(s) served**: V1 (real data, no fabrication), V2 (TrustGraph correlation moat), V3 (Decision Intelligence), V6 (enterprise-grade reliability)
+
 ### [2026-05-27 02:15] CTO/ralph — MOAT COMPLETE: PRD 4/4 stories done, architect-APPROVED
 
 - **What**: Ralph PRD "real product, no stubs — finish the moat" — all 4 stories verified + architect-approved.
