@@ -129,26 +129,88 @@ ROLE_TEMPLATES: Dict[AgentRole, str] = {
 
 
 # ---------------------------------------------------------------------------
-# Mock LLM backend (mock-safe — swappable via FIXOPS_LLM_BACKEND env var)
+# LLM backend resolution
 # ---------------------------------------------------------------------------
 
+# Sentinel prefix that callers can test for to detect non-real responses.
+_UNAVAILABLE_PREFIX = "[LLM_UNAVAILABLE]"
+_MOCK_PREFIX = "[MOCK_LLM]"
+
+
+def _resolve_openrouter_key() -> str:
+    """Return the first present OpenRouter-compatible API key, or empty string."""
+    for env_var in ("OPENROUTER_API_KEY", "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY"):
+        key = os.environ.get(env_var, "").strip()
+        if key:
+            return key
+    return ""
+
+
 def _call_llm(role: AgentRole, rendered_prompt: str) -> str:
-    """Call the configured LLM backend. Falls back to mock if no backend set."""
-    backend = os.environ.get("FIXOPS_LLM_BACKEND", "mock")
+    """Call the configured LLM backend.
 
-    if backend == "mock":
-        return _mock_llm_response(role, rendered_prompt)
+    Selection logic (in priority order):
+    1. If ``FIXOPS_LLM_BACKEND`` is explicitly set, honour it exactly.
+       - ``"mock"``        → explicit opt-in to mock (airgapped CI only); result is
+                             prefixed with ``[MOCK_LLM]`` so callers can detect it.
+       - ``"openrouter"``  → call OpenRouter API directly.
+       - anything else     → raise ``ValueError`` (never silently fall back to mock).
+    2. If ``FIXOPS_LLM_BACKEND`` is NOT set:
+       - If an OpenRouter key is present → use ``"openrouter"`` automatically.
+       - Otherwise → return an ``[LLM_UNAVAILABLE]``-prefixed honest failure string
+         (NOT fabricated mock content).
 
-    if backend == "openrouter":
+    Returns:
+        str — real LLM response, or a string starting with ``_UNAVAILABLE_PREFIX``
+        when no key is configured, or ``_MOCK_PREFIX`` when mock is explicitly
+        requested. Callers that need to distinguish real vs non-real can test
+        ``result.startswith(("[LLM_UNAVAILABLE]", "[MOCK_LLM]"))``.
+    """
+    explicit_backend = os.environ.get("FIXOPS_LLM_BACKEND", "").strip()
+
+    # ── Explicit override path ────────────────────────────────────────────────
+    if explicit_backend:
+        if explicit_backend == "mock":
+            # Explicit opt-in: return mock but clearly label it.
+            raw = _mock_llm_response(role, rendered_prompt)
+            return f"{_MOCK_PREFIX} {raw}"
+
+        if explicit_backend == "openrouter":
+            return _openrouter_call(rendered_prompt)
+
+        # Unknown backend — honest failure, never silent mock.
+        msg = (
+            f"Unknown FIXOPS_LLM_BACKEND={explicit_backend!r}. "
+            "Set to 'openrouter', 'mock', or unset to auto-detect."
+        )
+        logger.error(msg)
+        raise ValueError(msg)
+
+    # ── Auto-detect path (FIXOPS_LLM_BACKEND not set) ────────────────────────
+    if _resolve_openrouter_key():
         return _openrouter_call(rendered_prompt)
 
-    # Unknown backend — fall back to mock
-    logger.warning("Unknown FIXOPS_LLM_BACKEND=%r, using mock", backend)
-    return _mock_llm_response(role, rendered_prompt)
+    # No key configured — honest unavailability, never fabricated content.
+    msg = (
+        f"{_UNAVAILABLE_PREFIX} No LLM backend configured for role={role.value}. "
+        "Set OPENROUTER_API_KEY (or MULEROUTER_API_KEY) for real inference, "
+        "or set FIXOPS_LLM_BACKEND=mock for airgapped/CI use."
+    )
+    logger.warning(
+        "ai_orchestrator: no LLM key configured and FIXOPS_LLM_BACKEND not set — "
+        "returning unavailable marker (not fabricated content)."
+    )
+    return msg
 
 
-def _mock_llm_response(role: AgentRole, prompt: str) -> str:
-    """Deterministic mock response for testing and airgapped environments."""
+def _mock_llm_response(role: AgentRole, prompt: str) -> str:  # noqa: ARG001
+    """Deterministic canned response for explicit mock opt-in (airgapped / CI).
+
+    IMPORTANT: This function must ONLY be called when FIXOPS_LLM_BACKEND=mock
+    is explicitly set.  It must NEVER be the silent default.  Callers receive
+    the output prefixed with ``[MOCK_LLM]`` so it is distinguishable from real
+    LLM output.
+    """
     role_responses = {
         AgentRole.ANALYST: (
             "ANALYSIS COMPLETE. Severity: HIGH. Root cause identified in authentication layer. "
@@ -176,22 +238,34 @@ def _mock_llm_response(role: AgentRole, prompt: str) -> str:
             "Hunting query: EventID=4624 AND LogonType=3. Detection: enable Sysmon event 3."
         ),
     }
-    return role_responses.get(role, f"[Mock response for {role.value}]: Task processed successfully.")
+    return role_responses.get(role, f"Task processed for role={role.value}.")
 
 
 def _openrouter_call(prompt: str) -> str:
-    """Call OpenRouter API for real LLM inference."""
+    """Call OpenRouter API for real LLM inference.
+
+    Uses the first available key from OPENROUTER_API_KEY / MULEROUTER_API_KEY /
+    FIXOPS_OPENROUTER_KEY.  Model defaults to ``google/gemini-2.5-flash`` (fast,
+    low-cost, verified working) but is overridable via ``FIXOPS_LLM_MODEL``.
+
+    Returns:
+        str — real model output on success, or ``[LLM_UNAVAILABLE] ...`` /
+        ``[LLM error: ...]`` strings on failure (never raises).
+    """
     try:
         import httpx  # type: ignore
     except ImportError:
-        logger.warning("httpx not available — falling back to mock")
-        return "[OpenRouter unavailable — mock response]"
+        logger.warning("httpx not available — cannot call OpenRouter")
+        return f"{_UNAVAILABLE_PREFIX} httpx not installed; cannot reach OpenRouter."
 
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
-    model = os.environ.get("FIXOPS_LLM_MODEL", "qwen/qwen3.6-plus:free")
-
+    api_key = _resolve_openrouter_key()
     if not api_key:
-        return "[No OPENROUTER_API_KEY — mock response]"
+        return (
+            f"{_UNAVAILABLE_PREFIX} No OpenRouter API key found. "
+            "Set OPENROUTER_API_KEY or MULEROUTER_API_KEY."
+        )
+
+    model = os.environ.get("FIXOPS_LLM_MODEL", "google/gemini-2.5-flash")
 
     try:
         resp = httpx.post(
@@ -657,4 +731,7 @@ __all__ = [
     "AIOrchestrator",
     "get_orchestrator",
     "ROLE_TEMPLATES",
+    "_UNAVAILABLE_PREFIX",
+    "_MOCK_PREFIX",
+    "_resolve_openrouter_key",
 ]

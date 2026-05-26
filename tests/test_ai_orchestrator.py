@@ -64,6 +64,29 @@ from core.ai_orchestrator import (
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True, scope="session")
+def force_mock_backend():
+    """Force FIXOPS_LLM_BACKEND=mock for the entire test module.
+
+    This file tests AIOrchestrator logic (task lifecycle, consensus aggregation,
+    pipeline chaining, REST endpoints) — NOT LLM backend selection.  The mock
+    backend is the correct explicit opt-in for deterministic, fast, network-free
+    unit tests.  Backend selection behaviour is covered in
+    test_ai_orchestrator_backends.py and test_ai_orchestrator_proof.py.
+
+    With the honest contract, mock results are prefixed with [MOCK_LLM] — all
+    assertions here only check that result is a non-empty string, so they pass.
+    """
+    import os
+    original = os.environ.get("FIXOPS_LLM_BACKEND")
+    os.environ["FIXOPS_LLM_BACKEND"] = "mock"
+    yield
+    if original is None:
+        os.environ.pop("FIXOPS_LLM_BACKEND", None)
+    else:
+        os.environ["FIXOPS_LLM_BACKEND"] = original
+
+
 @pytest.fixture
 def tmp_db(tmp_path):
     """Fresh SQLite DB for each test."""

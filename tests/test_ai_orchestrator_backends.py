@@ -1,11 +1,15 @@
 """Tests for AI Orchestrator — LLM backend paths and 503 degradation.
 
-Covers gaps not in test_ai_orchestrator.py:
+Covers:
+- _call_llm auto-detects OpenRouter key when FIXOPS_LLM_BACKEND not set
+- _call_llm explicit mock returns [MOCK_LLM]-prefixed string (not fabricated real)
+- _call_llm unknown backend raises ValueError (never silent mock fallback)
+- _call_llm no key + no backend returns [LLM_UNAVAILABLE] marker (not fabricated content)
 - _call_llm with backend=openrouter (success)
 - _call_llm with backend=openrouter (HTTP error)
-- _call_llm with unknown backend falls back to mock
-- _openrouter_call with missing API key returns stub
-- _openrouter_call with missing httpx returns stub
+- _openrouter_call with missing API key returns [LLM_UNAVAILABLE] stub
+- _openrouter_call with missing httpx returns [LLM_UNAVAILABLE] stub
+- _resolve_openrouter_key checks all three env vars
 - REST 503 when _ORCHESTRATOR_AVAILABLE=False
 - list /tasks returns 200 with empty tasks when orchestrator unavailable
 
@@ -45,6 +49,9 @@ from core.ai_orchestrator import (
     _call_llm,
     _mock_llm_response,
     _openrouter_call,
+    _resolve_openrouter_key,
+    _UNAVAILABLE_PREFIX,
+    _MOCK_PREFIX,
 )
 
 
@@ -67,19 +74,116 @@ def orch(tmp_db):
 # ---------------------------------------------------------------------------
 
 class TestCallLlmBackend:
-    def test_mock_backend_returns_non_empty(self):
+    # ── Explicit mock opt-in ──────────────────────────────────────────────────
+
+    def test_explicit_mock_returns_mock_prefix(self):
+        """FIXOPS_LLM_BACKEND=mock must return [MOCK_LLM]-prefixed string."""
         with patch.dict(os.environ, {"FIXOPS_LLM_BACKEND": "mock"}):
             result = _call_llm(AgentRole.ANALYST, "test prompt")
         assert isinstance(result, str)
-        assert len(result) > 0
+        assert result.startswith(_MOCK_PREFIX), (
+            f"Expected {_MOCK_PREFIX!r} prefix, got: {result[:60]!r}"
+        )
 
-    def test_unknown_backend_falls_back_to_mock(self):
-        """An unknown FIXOPS_LLM_BACKEND must not raise — it silently falls back."""
+    def test_explicit_mock_all_roles(self):
+        """All 6 roles return mock-prefixed strings under explicit mock backend."""
+        with patch.dict(os.environ, {"FIXOPS_LLM_BACKEND": "mock"}):
+            for role in AgentRole:
+                result = _call_llm(role, f"prompt for {role.value}")
+                assert result.startswith(_MOCK_PREFIX), (
+                    f"Role {role.value} did not get {_MOCK_PREFIX!r} prefix"
+                )
+
+    # ── Unknown backend → honest error, never silent mock ────────────────────
+
+    def test_unknown_backend_raises_value_error(self):
+        """An unknown FIXOPS_LLM_BACKEND must raise ValueError, never silently mock."""
         with patch.dict(os.environ, {"FIXOPS_LLM_BACKEND": "nonexistent_backend_xyz"}):
-            result = _call_llm(AgentRole.REVIEWER, "test prompt")
-        # The fallback mock returns a deterministic string
-        assert isinstance(result, str)
-        assert len(result) > 0
+            with pytest.raises(ValueError, match="Unknown FIXOPS_LLM_BACKEND"):
+                _call_llm(AgentRole.REVIEWER, "test prompt")
+
+    def test_unknown_backend_error_message_names_the_backend(self):
+        """ValueError message must include the bad backend name for debuggability."""
+        with patch.dict(os.environ, {"FIXOPS_LLM_BACKEND": "bad_backend"}):
+            with pytest.raises(ValueError, match="bad_backend"):
+                _call_llm(AgentRole.ANALYST, "prompt")
+
+    # ── Auto-detect: no backend set, no key → honest unavailable ─────────────
+
+    def test_no_backend_no_key_returns_unavailable_marker(self):
+        """No FIXOPS_LLM_BACKEND + no key must return [LLM_UNAVAILABLE] marker,
+        not fabricated mock content."""
+        env_patch = {k: "" for k in (
+            "FIXOPS_LLM_BACKEND", "OPENROUTER_API_KEY",
+            "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY",
+        )}
+        with patch.dict(os.environ, env_patch):
+            result = _call_llm(AgentRole.ANALYST, "test")
+        assert result.startswith(_UNAVAILABLE_PREFIX), (
+            f"Expected {_UNAVAILABLE_PREFIX!r} prefix, got: {result[:80]!r}"
+        )
+        # Must NOT look like canned mock content
+        assert "ANALYSIS COMPLETE" not in result
+        assert "REVIEW VERDICT" not in result
+
+    def test_no_backend_no_key_result_is_not_fabricated(self):
+        """The unavailable marker must not pretend to be a real LLM answer."""
+        env_patch = {k: "" for k in (
+            "FIXOPS_LLM_BACKEND", "OPENROUTER_API_KEY",
+            "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY",
+        )}
+        with patch.dict(os.environ, env_patch):
+            for role in AgentRole:
+                result = _call_llm(role, "test")
+                assert result.startswith(_UNAVAILABLE_PREFIX), (
+                    f"Role {role.value}: expected unavailable marker, got: {result[:60]!r}"
+                )
+
+    # ── Auto-detect: no backend set, key present → routes to openrouter ──────
+
+    def test_no_backend_with_key_calls_openrouter(self):
+        """When FIXOPS_LLM_BACKEND is unset but a key is present, auto-route to openrouter."""
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.json.return_value = {
+            "choices": [{"message": {"content": "Auto-detected OpenRouter result"}}]
+        }
+        mock_httpx = MagicMock()
+        mock_httpx.post.return_value = mock_resp
+
+        env_patch = {
+            "OPENROUTER_API_KEY": "sk-auto-key",
+            "FIXOPS_LLM_BACKEND": "",  # unset
+        }
+        with patch.dict(os.environ, env_patch), \
+             patch.dict("sys.modules", {"httpx": mock_httpx}):
+            result = _call_llm(AgentRole.ANALYST, "Auto-detect test")
+
+        assert result == "Auto-detected OpenRouter result"
+        mock_httpx.post.assert_called_once()
+
+    def test_mulerouter_key_also_auto_detected(self):
+        """MULEROUTER_API_KEY is also accepted for auto-detection."""
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.json.return_value = {
+            "choices": [{"message": {"content": "MuleRouter result"}}]
+        }
+        mock_httpx = MagicMock()
+        mock_httpx.post.return_value = mock_resp
+
+        env_patch = {
+            "OPENROUTER_API_KEY": "",
+            "MULEROUTER_API_KEY": "sk-mule-key",
+            "FIXOPS_LLM_BACKEND": "",
+        }
+        with patch.dict(os.environ, env_patch), \
+             patch.dict("sys.modules", {"httpx": mock_httpx}):
+            result = _call_llm(AgentRole.REVIEWER, "Mule key test")
+
+        assert result == "MuleRouter result"
+
+    # ── Explicit openrouter backend ───────────────────────────────────────────
 
     def test_openrouter_backend_success(self):
         """openrouter backend with a valid API key calls httpx and returns content."""
@@ -88,7 +192,6 @@ class TestCallLlmBackend:
         mock_resp.json.return_value = {
             "choices": [{"message": {"content": "OpenRouter analysis result"}}]
         }
-
         mock_httpx = MagicMock()
         mock_httpx.post.return_value = mock_resp
 
@@ -104,7 +207,6 @@ class TestCallLlmBackend:
         """HTTP error from OpenRouter returns an error stub, not an exception."""
         mock_resp = MagicMock()
         mock_resp.raise_for_status.side_effect = Exception("HTTP 502 Bad Gateway")
-
         mock_httpx = MagicMock()
         mock_httpx.post.return_value = mock_resp
 
@@ -123,33 +225,43 @@ class TestCallLlmBackend:
 # ---------------------------------------------------------------------------
 
 class TestOpenrouterCall:
-    def test_missing_api_key_returns_stub(self):
-        """No OPENROUTER_API_KEY must return a stub, not raise."""
-        with patch.dict(os.environ, {}, clear=False):
-            # Ensure key is absent
-            os.environ.pop("OPENROUTER_API_KEY", None)
+    def test_missing_api_key_returns_unavailable_prefix(self):
+        """No key at all must return [LLM_UNAVAILABLE] prefix, never [MOCK_LLM]."""
+        env_clear = {k: "" for k in (
+            "OPENROUTER_API_KEY", "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY"
+        )}
+        with patch.dict(os.environ, env_clear):
             result = _openrouter_call("some prompt")
         assert isinstance(result, str)
-        assert "mock" in result.lower() or "no" in result.lower() or "[" in result
+        assert result.startswith(_UNAVAILABLE_PREFIX), (
+            f"Expected {_UNAVAILABLE_PREFIX!r}, got: {result[:80]!r}"
+        )
+        # Must not contain [MOCK_LLM] — these are distinct failure modes
+        assert _MOCK_PREFIX not in result
 
-    def test_httpx_import_error_returns_stub(self):
-        """If httpx is not installed, returns a graceful stub."""
-        with patch.dict("sys.modules", {"httpx": None}):
-            # Force re-evaluation of the import inside _openrouter_call
-            import importlib
-            import core.ai_orchestrator as _mod
-            original = _mod._openrouter_call
-
-            # Monkeypatch to simulate ImportError
-            def _patched(prompt: str) -> str:
-                try:
-                    import httpx  # noqa: F401
-                    raise ImportError("forced")
-                except (ImportError, TypeError):
-                    return "[OpenRouter unavailable — mock response]"
-
-            result = _patched("test prompt")
-        assert "mock" in result.lower() or "unavailable" in result.lower()
+    def test_httpx_unavailable_returns_unavailable_prefix(self):
+        """If httpx is not installed, return [LLM_UNAVAILABLE] prefix."""
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-abc"}), \
+             patch("builtins.__import__", side_effect=lambda name, *a, **kw: (
+                 (_ for _ in ()).throw(ImportError("no httpx")) if name == "httpx"
+                 else __import__(name, *a, **kw)
+             )):
+            # Can't easily intercept the import inside _openrouter_call cleanly
+            # without module reload; test via the actual function with a None module.
+            pass
+        # Verify the code path by patching sys.modules["httpx"] = None
+        import sys
+        original = sys.modules.get("httpx")
+        sys.modules["httpx"] = None  # type: ignore[assignment]
+        try:
+            result = _openrouter_call("test prompt")
+        finally:
+            if original is None:
+                sys.modules.pop("httpx", None)
+            else:
+                sys.modules["httpx"] = original
+        assert isinstance(result, str)
+        assert result.startswith(_UNAVAILABLE_PREFIX) or "[LLM" in result
 
     def test_openrouter_call_sets_auth_header(self):
         """Ensure Authorization header carries the API key."""
@@ -158,7 +270,6 @@ class TestOpenrouterCall:
         mock_resp.json.return_value = {
             "choices": [{"message": {"content": "ok"}}]
         }
-
         mock_httpx = MagicMock()
         mock_httpx.post.return_value = mock_resp
 
@@ -169,6 +280,67 @@ class TestOpenrouterCall:
         call_kwargs = mock_httpx.post.call_args
         headers = call_kwargs[1]["headers"] if call_kwargs[1] else call_kwargs[0][1]
         assert "sk-abc" in headers.get("Authorization", "")
+
+    def test_openrouter_call_uses_mulerouter_key_as_fallback(self):
+        """MULEROUTER_API_KEY is accepted when OPENROUTER_API_KEY is absent."""
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.json.return_value = {
+            "choices": [{"message": {"content": "mule result"}}]
+        }
+        mock_httpx = MagicMock()
+        mock_httpx.post.return_value = mock_resp
+
+        env_patch = {
+            "OPENROUTER_API_KEY": "",
+            "MULEROUTER_API_KEY": "sk-mule-xyz",
+        }
+        with patch.dict(os.environ, env_patch), \
+             patch.dict("sys.modules", {"httpx": mock_httpx}):
+            result = _openrouter_call("mule test")
+
+        assert result == "mule result"
+        call_kwargs = mock_httpx.post.call_args
+        headers = call_kwargs[1]["headers"]
+        assert "sk-mule-xyz" in headers.get("Authorization", "")
+
+
+# ---------------------------------------------------------------------------
+# 3. _resolve_openrouter_key
+# ---------------------------------------------------------------------------
+
+class TestResolveOpenrouterKey:
+    def test_openrouter_key_first(self):
+        with patch.dict(os.environ, {
+            "OPENROUTER_API_KEY": "sk-primary",
+            "MULEROUTER_API_KEY": "sk-secondary",
+            "FIXOPS_OPENROUTER_KEY": "sk-tertiary",
+        }):
+            assert _resolve_openrouter_key() == "sk-primary"
+
+    def test_mulerouter_key_fallback(self):
+        with patch.dict(os.environ, {
+            "OPENROUTER_API_KEY": "",
+            "MULEROUTER_API_KEY": "sk-mule",
+            "FIXOPS_OPENROUTER_KEY": "",
+        }):
+            assert _resolve_openrouter_key() == "sk-mule"
+
+    def test_fixops_key_tertiary(self):
+        with patch.dict(os.environ, {
+            "OPENROUTER_API_KEY": "",
+            "MULEROUTER_API_KEY": "",
+            "FIXOPS_OPENROUTER_KEY": "sk-fixops",
+        }):
+            assert _resolve_openrouter_key() == "sk-fixops"
+
+    def test_no_key_returns_empty(self):
+        with patch.dict(os.environ, {
+            "OPENROUTER_API_KEY": "",
+            "MULEROUTER_API_KEY": "",
+            "FIXOPS_OPENROUTER_KEY": "",
+        }):
+            assert _resolve_openrouter_key() == ""
 
 
 # ---------------------------------------------------------------------------
