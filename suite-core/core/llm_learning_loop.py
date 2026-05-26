@@ -369,6 +369,24 @@ class LLMLearningLoop:
                 self._run_pipeline_blocking, finding, org_id
             )
 
+            # Honesty guard: ONLY verdicts from a real LLM call (cost_usd > 0) may
+            # enter the learning signal. A $0 verdict means a deterministic /
+            # placeholder fallback produced it — persisting it would poison DPO
+            # training with fabricated data (this is exactly what created the
+            # 5,196 fake "confidence 0.5 / $0" rows). Drop it, don't learn from it.
+            _raw = verdict.get("raw_verdict", {}) or {}
+            try:
+                _cost = float(_raw.get("cost_usd", 0) or 0)
+            except (TypeError, ValueError):
+                _cost = 0.0
+            if _cost <= 0:
+                logger.warning(
+                    "llm_learning_loop: skipping non-real verdict (cost_usd=%.6f) for "
+                    "finding %s — not a genuine LLM call, excluded from learning signal",
+                    _cost, finding.get("finding_id"),
+                )
+                return
+
             verdict_id, dpo_pair_id = await asyncio.to_thread(
                 self._persist_blocking,
                 finding["finding_id"],
