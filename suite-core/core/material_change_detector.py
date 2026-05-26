@@ -995,15 +995,66 @@ class PushEventAnalyzer:
             council_result = adapter.analyse(
                 prompt=prompt, context={"source": "material_change_detector"}
             )
-            raw = getattr(council_result, "reasoning", "") or str(council_result)
-            match = re.search(r'\{[^}]*"is_material"[^}]*\}', raw, re.DOTALL)
-            if match:
-                return _json.loads(match.group())
-            decision = getattr(council_result, "final_decision", "") or ""
+            # adapter.analyse() returns a plain dict — never an object.
+            # Keys: decision, confidence, reasoning, analyzed, method, ...
+            # Handle "skipped / not-configured" shapes honestly: when the
+            # council did not actually run (analyzed==0 or decision is None /
+            # "no_api_key"), do NOT fabricate a materiality verdict — return
+            # None so the caller falls back to the deterministic heuristic.
+            if not isinstance(council_result, dict):
+                # Unexpected return type — log and bail out gracefully.
+                logger.warning(
+                    "material_change.council_unexpected_type: %s",
+                    type(council_result).__name__,
+                )
+                return None
+
+            analyzed = council_result.get("analyzed", 0)
+            method = council_result.get("method", "")
+            decision = council_result.get("decision")  # str | None
+
+            # Council did not run (no critical findings, no API key, error).
+            if analyzed == 0 or method in ("skipped", "no_api_key", "llm_unavailable", "council_low_trust"):
+                logger.debug(
+                    "material_change.council_skipped method=%s analyzed=%d",
+                    method,
+                    analyzed,
+                )
+                return None
+
+            # Real verdict — read dict values directly (no getattr on a dict).
+            reasoning = council_result.get("reasoning", "") or ""
+            confidence = council_result.get("confidence", 0.5)
+            if not isinstance(confidence, (int, float)):
+                confidence = 0.5
+
+            # The adapter asks for a structured JSON reply in its prompt.
+            # If the reasoning text itself contains a JSON block with
+            # "is_material", honour it (legacy path).
+            json_match = re.search(r'\{[^}]*"is_material"[^}]*\}', reasoning, re.DOTALL)
+            if json_match:
+                try:
+                    parsed = _json.loads(json_match.group())
+                    # Merge in real confidence from adapter if the JSON didn't carry one.
+                    parsed.setdefault("confidence", confidence)
+                    return parsed
+                except _json.JSONDecodeError:
+                    pass  # fall through to decision-key path
+
+            # Standard path: use the adapter's `decision` key.
+            # "block" / "remediate" → material; anything else → not material.
+            is_material = bool(
+                decision and (
+                    "block" in str(decision).lower()
+                    or "remediate" in str(decision).lower()
+                )
+            )
             return {
-                "is_material": "block" in decision or "remediate" in decision,
-                "confidence": getattr(council_result, "confidence", 0.5),
-                "reasoning": raw[:500],
+                "is_material": is_material,
+                "confidence": confidence,
+                "reasoning": reasoning[:500],
+                "decision": decision,
+                "method": method,
             }
         except Exception as exc:  # noqa: BLE001
             logger.debug("material_change.council_unavailable: %s", exc)
