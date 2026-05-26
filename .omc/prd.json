@@ -1,69 +1,60 @@
 {
-  "title": "Fix 23 failing API endpoints — target 95%+ persona pass rate",
-  "created": "2026-04-16",
+  "task": "Real product, no stubs — finish the moat (real consensus in the pipeline + TrustGraph correlation + honest learning loop) on branch chore/ui-prune-plan-2026-05-24",
+  "created": "2026-05-27",
+  "rules": [
+    "NEVER fake/stub/simulate data — honest error/501 over fabrication",
+    "Verify agent work independently (cost_usd>0 / real edges / real rows) — do not trust self-reports",
+    "Beast Mode 13-file suite must stay 756/756; engines+routers compile",
+    "commit each verified story: beast-mode(scope): desc + Co-Authored-By: Claude Opus 4.7",
+    "push blocked — commit locally only"
+  ],
   "stories": [
     {
       "id": "US-001",
-      "title": "Fix HTTP 500s in remediation router",
+      "title": "Brain Pipeline runs the REAL multi-LLM council (not the deterministic placeholder)",
       "priority": 1,
       "passes": true,
       "acceptanceCriteria": [
-        "GET /api/v1/remediation/metrics/test returns HTTP 200 with valid JSON",
-        "GET /api/v1/remediation/tasks returns HTTP 200 with valid JSON"
+        "create_consensus_engine_replacement().analyse(...) makes real OpenRouter calls: cost_usd > 0",
+        "member votes have distinct confidences (NOT all 0.5) with real prose reasoning",
+        "DeterministicLLMProvider is never a silent production fallback when OPENROUTER_API_KEY is set",
+        "tests/test_phase3_llm_council.py + tests/test_llm_council_real.py green",
+        "llm_providers.py, llm_council.py, council_pipeline_adapter.py compile"
       ]
     },
     {
       "id": "US-002",
-      "title": "Fix HTTP 500s in attack-paths and knowledge-graph routers",
+      "title": "TrustGraph correlates REAL findings (pillar 2 — currently 0 relationships)",
       "priority": 2,
       "passes": true,
       "acceptanceCriteria": [
-        "GET /api/v1/attack-paths/stats?org_id=test returns HTTP 200",
-        "GET /api/v1/graph/stats returns HTTP 200",
-        "GET /api/v1/arch-review/reviews?org_id=test returns HTTP 200",
-        "GET /api/v1/dependency-mapping/summary returns HTTP 200"
+        "Recording a real finding creates KnowledgeStore entities (finding + asset) AND >=1 relationship (finding AFFECTS asset)",
+        "A query returns the finding->asset correlation from real data",
+        "A real test proves relationships count > 0 after ingesting real findings (no hand-seeded graph)",
+        "Beast Mode 13-file suite 756/756; touched files compile"
       ]
     },
     {
       "id": "US-003",
-      "title": "Fix HTTP 500s in supply-chain and compliance-engine routers",
+      "title": "Honest learning loop — purge fabricated verdicts, persist only real ones",
       "priority": 3,
       "passes": true,
       "acceptanceCriteria": [
-        "GET /api/v1/supply-chain-monitoring/suppliers?org_id=test returns HTTP 200",
-        "GET /api/v1/supply-chain-attacks/packages?org_id=test returns HTTP 200",
-        "GET /api/v1/compliance/status returns HTTP 200"
+        "The 5,207 placeholder rows (cost_usd=0.0, confidence=0.5, 'inconclusive') in data/learning_signals.db::council_verdicts are removed/quarantined",
+        "A real council verdict (cost_usd>0) persists to the DPO/verdict store with real data",
+        "No code path writes $0/confidence-0.5 placeholder verdicts as if real",
+        "test proves a real verdict row persisted and the placeholder set is gone"
       ]
     },
     {
       "id": "US-004",
-      "title": "Fix autofix, predictions, cspm, compliance-engine, developer-profiles 404s",
+      "title": "Remaining stub engines stay HONEST (no fabrication) pending creds",
       "priority": 4,
       "passes": true,
       "acceptanceCriteria": [
-        "All 11 previously-404 endpoints now return 200 via corrected paths in persona_walkthrough.py",
-        "persona_walkthrough.py uses correct paths matching actual router prefixes"
-      ]
-    },
-    {
-      "id": "US-005",
-      "title": "Fix threat-model prefix and graph/attack-paths query params",
-      "priority": 5,
-      "passes": true,
-      "acceptanceCriteria": [
-        "GET /api/v1/threat-model-gen/test/models returns HTTP 200",
-        "GET /api/v1/mitre/techniques returns HTTP 200"
-      ]
-    },
-    {
-      "id": "US-006",
-      "title": "Full validation — server restart + persona walkthrough >= 95%",
-      "priority": 6,
-      "passes": true,
-      "acceptanceCriteria": [
-        "Server restarts cleanly loading all 1008 routers",
-        "persona_walkthrough.py reports 150/150 (100%) pass rate",
-        "709/709 Beast Mode unit tests still pass (zero regressions)"
+        "ioc_enrichment, cloud_drift, vendor_scorecard, openclaw each either make real calls (proof) OR raise honest error -> 422/501 with ZERO fabricated data",
+        "flag test (test_simulated_engines_flagged_v2) consistent with their real status",
+        "Beast Mode 13-file suite 756/756"
       ]
     }
   ]

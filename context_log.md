@@ -1,5 +1,51 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-27 02:15] CTO/ralph — MOAT COMPLETE: PRD 4/4 stories done, architect-APPROVED
+
+- **What**: Ralph PRD "real product, no stubs — finish the moat" — all 4 stories verified + architect-approved.
+  - US-001 (commits d14ea30d, 93034e26): Brain Pipeline runs the REAL 5-vendor council by default when a key is present; CouncilNotConfiguredError surfaces honestly (no deterministic fabrication); fallback votes excluded from consensus + providers_responded; quorum=2. Live: analyse() → 5 providers, cost_usd>0, real MITRE/PCI.
+  - US-002 (a4e3df3c): TrustGraph correlates real findings (entities + FINDING_AFFECTS_ASSET edges + query).
+  - US-003 (048b8d11): 5,207 fabricated $0 verdicts quarantined; honesty guard drops cost<=0 verdicts from learning.
+  - US-004 (8192184c): ioc_enrichment (abuse.ch feed) + vendor_scorecard (live TLS+HTTP) made REAL; cloud_drift/openclaw stay honest (creds-gated).
+  - Bonus (6c5df6e7): material_change_detector now consumes the real verdict (was getattr-on-dict → 0.5).
+- **Verification**: architect review APPROVED all 4 (after 1 reject+fix cycle on US-001); Beast Mode 756/756 throughout; live council 33.9s real; flag test 22/22.
+- **Known**: two-council divergence (llm_council_real vs llm_council) = tech debt (consolidation candidate). Push still blocked (local commits only). Full detail: memory project_moat_audit_2026-05-27.md.
+- **Pillar(s)**: V1 (no fabrication), V3 (real decision intelligence), V6 (enterprise-grade).
+
+### [2026-05-27 02:05] backend-hardener — VENDOR SCORECARD auto_assess() MADE REAL
+
+- **What**: Replaced `auto_assess()` NotImplementedError stub with real live probes against vendor domain. Three signal categories: (1) TLS cert inspection via Python stdlib ssl/socket — expiry days, protocol version (TLS<1.2 penalised), default-context hostname verification; (2) HTTP security headers via HTTPS GET (urllib) — HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy; (3) DNS TXT for SPF/DMARC/DKIM via subprocess dig — marked unavailable (-1.0 sentinel) when port 53 blocked, excluded from score denominator (coverage-aware). Added `VendorAssessError(ValueError)` → router HTTP 422 for unreachable/no-domain cases. Replaced `_SIMULATION_WARNING`/`is_simulated=True` with truthful `_DATA_SOURCE` block (`is_simulated=False`, `source="live TLS + HTTP header probe"`). No API key, no third-party service required.
+- **Real probe output** (github.com): TLSv1.3, cert expires in 68 days, all 5 security headers present (HSTS/CSP/X-Frame-Options/X-Content-Type-Options/Referrer-Policy), DNS unavailable (port 53 blocked on this box — correctly excluded from score, not fabricated). Score: 100.0/A/minimal.
+- **Files touched**: `suite-core/core/vendor_scorecard.py`, `suite-api/apps/api/vendor_scorecard_router.py`, `tests/test_vendor_scorecard.py`
+- **Outcome**: SUCCESS — 67/67 tests pass (13.79s). Integration tests ran live against github.com and cloudflare.com (not skipped).
+- **Pillar(s) served**: V3 (Decision Intelligence), V9 (Air-Gapped — stdlib only, no external API required)
+
+### [2026-05-27 02:00] backend-hardener — IOC ENRICHMENT MADE REAL (abuse.ch Feodo Tracker)
+
+- **What**: Replaced `enrich_ioc()` NotImplementedError stub with real abuse.ch Feodo Tracker C2 IP blocklist lookup. No API key required. In-memory cache (15 min TTL). IP IOCs: verdict=malicious if listed, verdict=unknown if not. Non-IP types: honest verdict=unknown. Feed unreachable raises `IocEnrichmentError(ValueError)` -> router HTTP 422. Removed `_SIMULATION_WARNING`/`is_simulated=True` from router, replaced with truthful `_DATA_SOURCE` block. Removed all hash-derived fake enrichment code.
+- **Files touched**: `suite-core/core/ioc_enrichment_engine.py`, `suite-api/apps/api/ioc_enrichment_router.py`, `tests/test_ioc_enrichment_engine.py`
+- **Outcome**: SUCCESS — 34/34 tests pass (1.02s). 3 live integration tests RAN (not skipped): `162.243.103.246` (Emotet C2) -> verdict=malicious; `8.8.8.8` -> verdict=unknown; membership diff confirmed. Feed: https://feodotracker.abuse.ch/downloads/ipblocklist.json (5 real C2 entries at test time).
+- **Pillar(s) served**: V1 (real data), V3 (threat intel), V6 (no mocks)
+
+### [2026-05-27 02:15] backend-hardener — BRAIN PIPELINE COUNCIL FABRICATION FIXED
+
+- **What**: Eliminated fabricated LLM verdicts from Brain Pipeline. Four exact gaps closed:
+  1. `brain_pipeline.py`: Step-9 selection now uses `_select_llm_step()` — triggers `_step_llm_council` whenever any real API key (OPENROUTER/MULEROUTER/OPENAI/ANTHROPIC) is present, regardless of FIXOPS_USE_COUNCIL. FIXOPS_USE_COUNCIL=0/false/no still forces legacy path; =1/true/yes forces council.
+  2. `brain_pipeline.py:_step_llm_council`: Removed both fallbacks to `_step_llm_consensus`. `CouncilNotConfiguredError(RuntimeError)` now caught explicitly and returns `{"method":"llm_not_configured","decision":null}`. All other exceptions return `{"method":"llm_unavailable","decision":null}`. No fabricated verdict on any error path.
+  3. `brain_pipeline.py:_deterministic_consensus`: Relabeled from `method="deterministic"` to `method="deterministic_unverified"`. Added explicit `note` field. `skipped=True` preserved. Cannot masquerade as an authoritative LLM verdict.
+  4. `council_pipeline_adapter.py`: `providers_responded` now counts only real votes (metadata mode not in {fallback,deterministic,no_key,unknown}). Quorum=2 enforced — below quorum returns `{"method":"council_low_trust","decision":null}`. General except block no longer emits `"decision":"review"` (now `method="llm_unavailable",decision=null`).
+- **Files touched**: `suite-core/core/brain_pipeline.py`, `suite-core/core/council_pipeline_adapter.py`, `tests/test_pipeline_council_real_wiring.py` (new, 15 tests)
+- **Verification**: 13/13 unit tests PASS (2 live-network tests correctly skipped — no key in CI env). py_compile clean on all 3 files. Beast Mode **756/756 PASS** (zero regressions).
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (real data, no fabrication), V3 (decision intelligence), V6 (enterprise-grade reliability)
+
+### [2026-05-27 01:38] backend-hardener — TRUSTGRAPH CORRELATION WIRED
+
+- **What**: Fixed 0-relationship bug in TrustGraph. Root cause: `SecurityFindingsEngine.record_finding()` imported `get_event_bus` but never called it — the emit trigger was missing. Added `_emit_finding_to_trustgraph()` helper that synchronously calls `UniversalFindingIndexer.index()` directly (no async flakiness). Threaded `tg_db_path` param through `SecurityFindingsEngine.__init__()` for test isolation. Added `get_findings_by_asset_graph()` query method that traverses FINDING_AFFECTS_ASSET edges to return correlated findings. Fixed UUID hyphen→underscore round-trip in the lookup path. Added `tests/test_trustgraph_finding_correlation.py` (10 tests).
+- **Files touched**: `suite-core/core/security_findings_engine.py`, `tests/test_trustgraph_finding_correlation.py`
+- **Outcome**: SUCCESS — Entities=8, Relationships=6 for 3 findings across 2 assets. Shared asset has 2 correlated findings via graph. 10/10 new tests PASS. 107/107 existing trustgraph+integration tests PASS.
+- **Pillar(s) served**: V2 (TrustGraph correlation moat), V1 (real findings → real graph)
+
 ### [2026-05-26 21:17] backend-hardener — REAL ENGINE: ccm_engine.run_test() now runs real conftest/OPA
 
 - **What**: Replaced `run_test()` NotImplementedError stub with real `conftest test <input> --policy <policy> -o json --no-color` subprocess execution (list args, no shell=True, 120s timeout). Defined `CCMError(ValueError)` for honest degradation. Router updated: `_SIMULATION_WARNING` replaced with `_DATA_SOURCE` (is_simulated=False, source="conftest/OPA"), new `RunTestRequest` model with `input_path`+`policy_path`, `CCMError` → 422. Removed `import random` and the env-guard `CCM_CONNECTOR_URL` check.

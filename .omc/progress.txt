@@ -1,14 +1,36 @@
-# Ralph Progress — Fix 23 Failing Endpoints
+RALPH PROGRESS — "real product, no stubs" moat completion (2026-05-27)
+branch chore/ui-prune-plan-2026-05-24
 
-## Iteration 1 — Investigation Phase
-- Launched 2 investigation agents (500s + 404s)
-- PRD created with 6 stories
-- Target: 95%+ pass rate (143+/150)
-- Current: 84.7% (127/150)
+US-001 DONE (commit d14ea30d) — pipeline now runs REAL multi-LLM consensus.
+  Root cause: LLMCouncilEngine members used direct-vendor providers (no keys) ->
+  silent DeterministicLLMProvider fallback -> fabricated $0/0.5 verdicts.
+  Fix: OpenRouterChatProvider added (llm_providers.py); create_default_council()
+  builds 5-vendor OpenRouter panel; cost telemetry propagated
+  (response.metadata.cost_usd -> MemberAnalysis.metadata -> _calculate_total_cost).
+  PROOF: analyse() -> providers_responded=5, confidence=0.88, cost_usd=$0.0019,
+  real MITRE T1190 + PCI-DSS. No deterministic fallback.
 
-## Learnings
-- Server must use PYTHONPATH with all suite dirs
-- Rate limit: 100 RPM token bucket, 50ms delay between calls
-- SPA fallback must be registered LAST in create_app()
-- Recursion limit raised to 5000 for 453+ router lifespan chains
-- API token: read from env FIXOPS_API_TOKEN
+US-002 DONE (commit a4e3df3c) — TrustGraph correlates real findings.
+  Root cause: record_finding() imported the event bus but NEVER emitted -> 0 rels.
+  Fix: record_finding() synchronously indexes finding+asset entities +
+  FINDING_AFFECTS_ASSET edge; get_findings_by_asset_graph() query.
+  PROOF: real findings -> relationships>0, shared-asset correlation returns both.
+  test_trustgraph_finding_correlation 10/10.
+
+US-003 DONE (commit 048b8d11) — honest DPO learning loop.
+  Quarantined all 5,207 fabricated rows (all cost_usd=0.0) ->
+  council_verdicts_quarantine_fake; live cleared. Guard in LLMLearningLoop._on_event:
+  cost_usd<=0 verdict dropped, never a learning signal.
+  test_llm_learning_loop_honesty_guard 2/2.
+
+US-004 DONE (no code change) — ioc_enrichment / cloud_drift / vendor_scorecard /
+  openclaw verified to raise honest errors (NotImplementedError -> 422/501), ZERO
+  fabrication. Gated on creds/tools. 241 engine+flag tests pass.
+
+LEARNINGS:
+- Two councils: llm_council_real.LLMCouncil (simple, /council/convene) vs
+  llm_council.LLMCouncilEngine (rich multi-role, used by the pipeline adapter).
+- OpenRouter :free variants hard-429 regardless of balance; use PAID model IDs.
+- Beast Mode 13-file stayed 756/756 throughout. Push blocked (local commits only).
+- test_llm_council_real::TestCouncilRouter 503/422 fail only WITH phase3 (env-leak
+  pollution); pass in isolation — pre-existing, not a regression.
