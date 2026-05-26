@@ -8,8 +8,22 @@ Features:
 - Multi-tenant (per org_id) playbook library
 - 5 built-in playbooks: Ransomware, Phishing, Credential Stuffing,
   Data Exfiltration, Privilege Escalation
-- Step simulation (no real external calls)
 - Full execution history with per-step outcomes
+
+Execution mode:
+  ALL playbook runs are currently SIMULATED (execution_mode="simulated").
+  No real external calls are made — connectors/integrations are not invoked.
+  Every run result and step output carries ``"simulated": True`` and
+  ``"execution_mode": "simulated"`` so callers can never mistake a simulated
+  run for real remediation.
+
+  To add real dispatch: implement _dispatch_step() with connector logic and
+  set EXECUTION_MODE = "real" once integrations are configured.  The
+  execute_playbook() method already contains a gated dispatch hook
+  (see _dispatch_step stub).
+
+_DATA_SOURCE: "simulated" — no real connectors wired; deterministic outcomes
+              from step.params["simulate_success"] (default True).
 
 Compliance: NIST SP 800-61 (Computer Security Incident Handling),
             SOC2 CC7.3 (Incident response actions).
@@ -36,6 +50,14 @@ except ImportError:
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "playbooks.db")
+
+# ---------------------------------------------------------------------------
+# Execution mode sentinel
+# ---------------------------------------------------------------------------
+# Until a real connector-dispatch layer is implemented this engine runs in
+# simulated mode.  Change to "real" only once _dispatch_step() routes to
+# live integrations.
+EXECUTION_MODE: str = "simulated"
 
 VALID_TRIGGER_TYPES = {"manual", "auto_alert", "scheduled"}
 
@@ -387,10 +409,19 @@ class SecurityPlaybookEngine:
         self, playbook_id: str, org_id: str, context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Execute a playbook sequentially, simulating each step.
+        Execute a playbook sequentially.
+
+        Currently ALWAYS runs in simulated mode (EXECUTION_MODE="simulated").
+        No real connector calls are made.  The returned dict carries
+        ``"simulated": True`` and ``"execution_mode": "simulated"`` so the
+        caller can never mistake this for real remediation.
 
         Returns:
-            {execution_id, status, steps_completed, steps_failed, duration_ms, output}
+            {execution_id, status, steps_completed, steps_failed, duration_ms,
+             simulated, execution_mode, output}
+
+            ``output.steps`` — list of per-step results, each also carrying
+            ``"execution_mode": "simulated"``.
         """
         playbook = self.get_playbook(playbook_id, org_id)
         if playbook is None:
@@ -414,11 +445,10 @@ class SecurityPlaybookEngine:
             if step is None:
                 break
 
-            success = bool(step.get("params", {}).get("simulate_success", True))
-            step_result = self._simulate_step(step, context, success)
+            step_result = self._dispatch_step(step, context)
             step_outputs.append(step_result)
 
-            if success:
+            if step_result.get("status") == "completed":
                 steps_completed += 1
                 current_step_id = step.get("on_success")
             else:
@@ -435,6 +465,7 @@ class SecurityPlaybookEngine:
         output = {
             "steps": step_outputs,
             "context_keys": list(context.keys()),
+            "execution_mode": EXECUTION_MODE,
         }
 
         with self._lock:
@@ -475,20 +506,54 @@ class SecurityPlaybookEngine:
             "steps_completed": steps_completed,
             "steps_failed": steps_failed,
             "duration_ms": duration_ms,
+            "simulated": EXECUTION_MODE == "simulated",
+            "execution_mode": EXECUTION_MODE,
             "output": output,
         }
+
+    def _dispatch_step(
+        self, step: Dict[str, Any], context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Route a single step to the appropriate execution path.
+
+        Currently EXECUTION_MODE is always "simulated" — no real connector
+        integrations are wired.  When a real-dispatch layer is added:
+          1. Check whether the step's action_type maps to a configured
+             connector (e.g. JIRA, PagerDuty, EDR).
+          2. If configured → call the connector and return the real result
+             with ``"execution_mode": "real"``.
+          3. If not configured → fall through to _simulate_step and label
+             the step ``"execution_mode": "simulated"``.
+        """
+        # --- future real-dispatch gate (not yet implemented) ---------------
+        # if EXECUTION_MODE == "real":
+        #     connector = self._get_connector(step.get("action_type"))
+        #     if connector:
+        #         return connector.execute(step, context)
+        # --- end gate -------------------------------------------------------
+
+        # Simulation fallback — always taken until real dispatch is wired.
+        success = bool(step.get("params", {}).get("simulate_success", True))
+        return self._simulate_step(step, context, success)
 
     @staticmethod
     def _simulate_step(
         step: Dict[str, Any], context: Dict[str, Any], success: bool
     ) -> Dict[str, Any]:
-        """Produce a simulated step result dict."""
+        """
+        Produce a simulated step result dict.
+
+        Every result carries ``"execution_mode": "simulated"`` so it is
+        never indistinguishable from a real connector response.
+        """
         action_type = step.get("action_type", "unknown")
         base: Dict[str, Any] = {
             "step_id": step.get("step_id"),
             "name": step.get("name"),
             "action_type": action_type,
             "status": "completed" if success else "failed",
+            "execution_mode": "simulated",
         }
         if action_type == "block_ip":
             base["result"] = {"blocked": success, "ip": context.get("ip", "unknown")}

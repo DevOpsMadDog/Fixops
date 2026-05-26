@@ -110,7 +110,11 @@ def execute_playbook(
     body: ExecuteRequest,
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
-    """Execute a playbook sequentially, simulating each step."""
+    """Execute a playbook sequentially (currently simulated — no real connector calls).
+
+    The response always carries ``"simulated": true`` and
+    ``"execution_mode": "simulated"`` when no real dispatch layer is wired.
+    """
     try:
         return _get_engine().execute_playbook(playbook_id, org_id, body.context)
     except ValueError as exc:
