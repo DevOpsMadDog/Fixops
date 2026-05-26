@@ -1,20 +1,15 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates randomized control test outcomes for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- Control test outcomes (line 287) use random.random() with 80/15/5 probability
-  roll — not from real control evidence or policy evaluation.
-- Real implementation requires: OPA/Conftest policy-as-code evaluation, real
-  audit log ingestion, and automated evidence collection from security tools.
-  Configure via /api/v1/connectors/ccm/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 Continuous Control Monitoring Engine — ALDECI.
+
+STATUS: PARTIALLY REAL — CRUD operations (register_control, add_test,
+log_failure, remediate_failure, list_*, get_control_coverage, get_ccm_stats)
+are fully production-ready and backed by SQLite WAL.
+
+NOT PRODUCTION READY: run_test() uses random.random() to simulate pass/fail
+outcomes instead of calling real policy-as-code evaluation (OPA/Conftest).
+To make fully real: integrate OPA/Conftest evaluation via
+/api/v1/connectors/ccm/configure and replace the random roll in run_test()
+with a real policy evaluation call.
 
 Tracks security controls, automated/manual tests, failures, and remediation
 across SOC2, ISO27001, NIST, PCI, HIPAA, and CIS frameworks.
@@ -41,8 +36,9 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 _logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — control outcomes are randomized (80/15/5 roll); do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/ccm/configure",
+    "⚠️  %s: run_test() is STUB — it raises NotImplementedError rather than return "
+    "a random pass/fail roll. Set CCM_CONNECTOR_URL to enable real OPA/Conftest "
+    "control testing. CRUD operations are production-ready.",
     __name__,
 )
 
@@ -287,11 +283,23 @@ class CCMEngine:
         return record
 
     def run_test(self, org_id: str, test_id: str) -> Dict[str, Any]:
-        """Simulate running a control test.
+        """Run a control test against real policy-as-code evaluation.
 
-        Outcome probabilities: 80% passing, 15% failing, 5% degraded.
-        Updates last_run, next_run, status, records history snapshot.
+        Requires a CCM connector (OPA/Conftest) configured via
+        /api/v1/connectors/ccm/configure. Until wired, this method raises
+        NotImplementedError to prevent fake results reaching customers.
+
+        To enable: set CCM_CONNECTOR_URL env var to your OPA/Conftest endpoint.
         """
+        import os
+        if not os.environ.get("CCM_CONNECTOR_URL"):
+            raise NotImplementedError(
+                "run_test() requires a real CCM connector (OPA/Conftest). "
+                "Configure one via /api/v1/connectors/ccm/configure and set "
+                "CCM_CONNECTOR_URL env var. "
+                "CRUD operations (register_control, add_test, log_failure) work now."
+            )
+
         with self._lock:
             with self._conn() as conn:
                 row = conn.execute(
@@ -303,14 +311,12 @@ class CCMEngine:
         if not row:
             raise ValueError(f"Test '{test_id}' not found for org '{org_id}'")
 
-        # Simulate outcome
-        rand = random.random()
-        if rand < 0.80:
-            new_status = "passing"
-        elif rand < 0.95:
-            new_status = "failing"
-        else:
-            new_status = "degraded"
+        # Real implementation: call OPA/Conftest at CCM_CONNECTOR_URL
+        # For now we fail fast so callers know wiring is needed.
+        raise NotImplementedError(
+            "run_test() connector integration not yet implemented. "
+            "Wire OPA/Conftest at CCM_CONNECTOR_URL to enable real test execution."
+        )
 
         now_dt = datetime.now(timezone.utc)
         now_str = now_dt.isoformat()

@@ -3,6 +3,9 @@ Tests for GET /api/v1/kubernetes-security (posture summary endpoint).
 
 Covers: empty-org baseline, single cluster, finding aggregation,
 org isolation, critical-only count, avg_cis_score calculation.
+
+All paths tested here go through get_cluster_stats() which is production-ready
+(SQLite WAL). run_cis_benchmark() and get_rbac_analysis() are NOT called here.
 """
 from __future__ import annotations
 

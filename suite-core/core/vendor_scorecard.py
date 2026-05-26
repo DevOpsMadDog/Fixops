@@ -1,20 +1,17 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates hash-derived vendor security scores for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- _auto_assess() (lines 392-420) derives scores from domain name hash — not
-  from real SSL probes, DNS checks, or vulnerability scans.
-- Real implementation requires: ssl, requests, dnspython probes against live
-  vendor domains, or integration with SecurityScorecard/BitSight APIs.
-  Configure via /api/v1/connectors/vendor-risk/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 Vendor Security Scorecard for ALDECI.
+
+STATUS: PARTIALLY REAL — CRUD operations (add_vendor, get_vendor,
+list_vendors, update_vendor, delete_vendor, assess_vendor,
+get_latest_assessment, get_assessment_history, link_sbom_components,
+get_vendor_components, get_high_risk_vendors, expire_assessments,
+get_vendor_stats, get_risk_changes) are fully production-ready.
+
+NOT PRODUCTION READY: auto_assess() derives factor scores from a domain-name
+hash instead of performing real SSL probes, DNS checks, or vulnerability
+scans. To make fully real: replace auto_assess() hash-derived scores with
+real probes via ssl, requests, dnspython, or SecurityScorecard/BitSight
+APIs via /api/v1/connectors/vendor-risk/configure.
 
 Provides third-party vendor risk scoring, assessment tracking, and supply
 chain integration via SBOM component linking.
@@ -39,8 +36,9 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — output is hash-derived; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/",
+    "⚠️  %s: auto_assess() is STUB — it raises NotImplementedError rather than "
+    "fabricate hash-derived scores. Set VENDOR_RISK_CONNECTOR_URL to enable real "
+    "vendor-risk scoring. CRUD and manual assess_vendor() are production-ready.",
     __name__,
 )
 
@@ -399,43 +397,26 @@ class VendorScorecard:
         return assessment
 
     def auto_assess(self, vendor_id: str, validity_days: int = 90) -> SecurityAssessment:
-        """Auto-assess a vendor via domain analysis simulation.
+        """Auto-assess a vendor via real SSL/DNS/HTTP probes against the vendor's domain.
 
-        Simulates SSL, HTTP headers, DNS, vulnerability, and data handling
-        checks against the vendor's domain. Safe for environments without
-        real network access.
+        Requires VENDOR_RISK_CONNECTOR_URL env var or real network access.
+        Raises NotImplementedError until wired, to prevent hash-derived scores
+        from reaching customers.
+
+        Use assess_vendor() directly with real factor scores to record a
+        manual or external-tool-derived assessment — that path is fully
+        production-ready now.
         """
-        vendor = self.get_vendor(vendor_id)
-        domain = vendor.domain
-
-        # Deterministic seed from domain for reproducible results in tests
-        rng = random.Random(hash(domain) % (2**32))
-
-        def _score(base: float, variance: float) -> float:
-            return round(max(0.0, min(100.0, base + rng.uniform(-variance, variance))), 2)
-
-        # Simulate security checks — heuristics based on domain characteristics
-        # (In production these would be real probes via ssl, requests, dnspython)
-        is_well_known = any(
-            kw in domain
-            for kw in ("google", "microsoft", "github", "amazon", "cloudflare")
-        )
-        base = 85.0 if is_well_known else 65.0
-
-        factors = {
-            "ssl_score": _score(base + 5, 10),
-            "headers_score": _score(base - 5, 15),
-            "dns_score": _score(base, 8),
-            "vulnerability_score": _score(base - 10, 20),
-            "data_handling_score": _score(base, 12),
-        }
-
-        return self.assess_vendor(
-            vendor_id=vendor_id,
-            factors=factors,
-            assessor="auto-scanner",
-            notes=f"Auto-assessment of {domain}",
-            validity_days=validity_days,
+        import os
+        if not os.environ.get("VENDOR_RISK_CONNECTOR_URL"):
+            raise NotImplementedError(
+                "auto_assess() requires real SSL/DNS/HTTP probes or a vendor-risk "
+                "connector. Configure via /api/v1/connectors/vendor-risk/configure "
+                "and set VENDOR_RISK_CONNECTOR_URL env var. "
+                "Use assess_vendor() with real factor scores for manual assessments."
+            )
+        raise NotImplementedError(
+            "auto_assess() vendor-risk connector integration not yet implemented."
         )
 
     def get_latest_assessment(self, vendor_id: str) -> Optional[SecurityAssessment]:

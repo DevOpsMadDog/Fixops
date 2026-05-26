@@ -1,6 +1,19 @@
-"""Tests for ConfigBenchmarkEngine — 27 tests covering all methods and org isolation."""
+"""Tests for ConfigBenchmarkEngine — covering all methods and org isolation.
+
+Migration note (honest-stub pass): run_assessment() now raises NotImplementedError.
+TestAssessments tests that previously expected a result dict are rewritten to
+assert pytest.raises(NotImplementedError).  Tests that exercise downstream read
+paths (get_assessment, list_assessments, get_failed_checks, stats) seed rows
+directly via the engine's SQLite connection — the same persistence layer used
+by the engine — so every assertion exercises real production code without any
+mocking or faking of run_assessment().
+"""
 
 from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import List
 
 import pytest
 
@@ -45,6 +58,95 @@ def _add_checks(engine, org_id, profile_id, count=5):
             title=f"Check {i+1}",
             severity=["critical", "high", "medium", "low", "info"][i % 5],
         ))
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _seed_assessment_result(
+    engine: ConfigBenchmarkEngine,
+    org_id: str,
+    profile_id: str,
+    target_name: str,
+    check_ids: List[str],
+    *,
+    pass_rate: float = 0.6,
+) -> dict:
+    """Insert a completed assessment_result + check_results directly into SQLite.
+
+    Returns a dict that mirrors what run_assessment() used to return.
+    No mocking — only real DB writes via engine._conn().
+
+    pass_rate controls how many check_results get status='pass' vs 'fail'.
+    At least one 'fail' result is always inserted when len(check_ids) >= 1 so
+    that get_failed_checks() tests have data to work with.
+    """
+    result_id = str(uuid.uuid4())
+    now = _now()
+    total = len(check_ids)
+
+    n_pass = max(0, int(total * pass_rate))
+    n_fail = total - n_pass
+    # Ensure at least 1 fail so downstream assertions about failures are not vacuous
+    if n_fail == 0 and total > 0:
+        n_pass -= 1
+        n_fail = 1
+
+    n_warn = 0
+    n_na = 0
+    score = round((n_pass / total) * 100, 2) if total > 0 else 0.0
+
+    if score >= 80:
+        status = "pass"
+    elif score >= 50:
+        status = "partial"
+    else:
+        status = "fail"
+
+    with engine._lock:
+        with engine._conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO assessment_results
+                    (result_id, org_id, profile_id, target_name, assessed_at,
+                     passed, failed, warnings, not_applicable, score, status)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (result_id, org_id, profile_id, target_name, now,
+                 n_pass, n_fail, n_warn, n_na, score, status),
+            )
+
+            for i, check_id in enumerate(check_ids):
+                cr_status = "pass" if i < n_pass else "fail"
+                conn.execute(
+                    """
+                    INSERT INTO check_results
+                        (cr_id, org_id, result_id, check_id, actual_value, status, notes)
+                    VALUES (?,?,?,?,?,?,?)
+                    """,
+                    (
+                        str(uuid.uuid4()), org_id, result_id, check_id,
+                        "enabled" if cr_status == "pass" else "disabled",
+                        cr_status,
+                        f"Auto-seeded check result {i+1}",
+                    ),
+                )
+
+    return {
+        "result_id": result_id,
+        "org_id": org_id,
+        "profile_id": profile_id,
+        "target_name": target_name,
+        "assessed_at": now,
+        "passed": n_pass,
+        "failed": n_fail,
+        "warnings": n_warn,
+        "not_applicable": n_na,
+        "total_checks": total,
+        "score": score,
+        "status": status,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -147,42 +249,41 @@ class TestChecks:
 
 
 # ---------------------------------------------------------------------------
-# Assessments
+# Assessments — run_assessment() raises NotImplementedError; downstream read
+# paths are exercised via _seed_assessment_result().
 # ---------------------------------------------------------------------------
 
 
 class TestAssessments:
-    def test_run_assessment_no_checks_returns_error(self, engine):
-        profile = engine.create_profile(ORG_A, _profile())
-        result = engine.run_assessment(ORG_A, profile["profile_id"], "server-01")
-        assert "error" in result
+    # --- run_assessment() raise contract ---
 
-    def test_run_assessment_returns_result(self, engine):
+    def test_run_assessment_raises_not_implemented(self, engine):
+        """run_assessment() must raise NotImplementedError until CONFIG_BENCHMARK_CONNECTOR_URL is set."""
         profile = engine.create_profile(ORG_A, _profile())
-        _add_checks(engine, ORG_A, profile["profile_id"], count=10)
-        result = engine.run_assessment(ORG_A, profile["profile_id"], "server-01")
-        assert "result_id" in result
-        assert result["total_checks"] == 10
-        assert result["score"] >= 0.0
-        assert result["score"] <= 100.0
+        _add_checks(engine, ORG_A, profile["profile_id"], count=5)
+        with pytest.raises(NotImplementedError):
+            engine.run_assessment(ORG_A, profile["profile_id"], "server-01")
 
-    def test_run_assessment_status_values(self, engine):
+    def test_run_assessment_raises_even_with_no_checks(self, engine):
+        """No-checks case still raises NotImplementedError (env-gate fires first)."""
         profile = engine.create_profile(ORG_A, _profile())
-        _add_checks(engine, ORG_A, profile["profile_id"], count=20)
-        result = engine.run_assessment(ORG_A, profile["profile_id"], "server-02")
-        assert result["status"] in ("pass", "fail", "partial")
+        with pytest.raises(NotImplementedError):
+            engine.run_assessment(ORG_A, profile["profile_id"], "server-no-checks")
 
-    def test_run_assessment_counts_add_up(self, engine):
+    def test_run_assessment_raises_not_implemented_message_mentions_connector(self, engine):
+        """Error message should guide callers to configure a real connector."""
         profile = engine.create_profile(ORG_A, _profile())
-        _add_checks(engine, ORG_A, profile["profile_id"], count=15)
-        result = engine.run_assessment(ORG_A, profile["profile_id"], "server-03")
-        total = result["passed"] + result["failed"] + result["warnings"] + result["not_applicable"]
-        assert total == 15
+        _add_checks(engine, ORG_A, profile["profile_id"], count=3)
+        with pytest.raises(NotImplementedError, match="CONFIG_BENCHMARK_CONNECTOR_URL"):
+            engine.run_assessment(ORG_A, profile["profile_id"], "server-msg")
+
+    # --- downstream read paths exercised via direct seeding ---
 
     def test_get_assessment_with_check_results(self, engine):
         profile = engine.create_profile(ORG_A, _profile())
         _add_checks(engine, ORG_A, profile["profile_id"], count=5)
-        run = engine.run_assessment(ORG_A, profile["profile_id"], "server-04")
+        check_ids = [c["check_id"] for c in engine.list_checks(ORG_A, profile["profile_id"])]
+        run = _seed_assessment_result(engine, ORG_A, profile["profile_id"], "server-04", check_ids)
         detail = engine.get_assessment(ORG_A, run["result_id"])
         assert "check_results" in detail
         assert len(detail["check_results"]) == 5
@@ -194,8 +295,9 @@ class TestAssessments:
     def test_list_assessments_all(self, engine):
         profile = engine.create_profile(ORG_A, _profile())
         _add_checks(engine, ORG_A, profile["profile_id"], count=5)
-        engine.run_assessment(ORG_A, profile["profile_id"], "s1")
-        engine.run_assessment(ORG_A, profile["profile_id"], "s2")
+        check_ids = [c["check_id"] for c in engine.list_checks(ORG_A, profile["profile_id"])]
+        _seed_assessment_result(engine, ORG_A, profile["profile_id"], "s1", check_ids)
+        _seed_assessment_result(engine, ORG_A, profile["profile_id"], "s2", check_ids)
         results = engine.list_assessments(ORG_A)
         assert len(results) == 2
 
@@ -204,8 +306,10 @@ class TestAssessments:
         p2 = engine.create_profile(ORG_A, _profile(name="P2"))
         _add_checks(engine, ORG_A, p1["profile_id"], count=3)
         _add_checks(engine, ORG_A, p2["profile_id"], count=3)
-        engine.run_assessment(ORG_A, p1["profile_id"], "s1")
-        engine.run_assessment(ORG_A, p2["profile_id"], "s2")
+        ids1 = [c["check_id"] for c in engine.list_checks(ORG_A, p1["profile_id"])]
+        ids2 = [c["check_id"] for c in engine.list_checks(ORG_A, p2["profile_id"])]
+        _seed_assessment_result(engine, ORG_A, p1["profile_id"], "s1", ids1)
+        _seed_assessment_result(engine, ORG_A, p2["profile_id"], "s2", ids2)
         p1_results = engine.list_assessments(ORG_A, profile_id=p1["profile_id"])
         assert len(p1_results) == 1
         assert p1_results[0]["profile_id"] == p1["profile_id"]
@@ -213,11 +317,13 @@ class TestAssessments:
     def test_get_failed_checks(self, engine):
         profile = engine.create_profile(ORG_A, _profile())
         _add_checks(engine, ORG_A, profile["profile_id"], count=20)
-        run = engine.run_assessment(ORG_A, profile["profile_id"], "server-05")
+        check_ids = [c["check_id"] for c in engine.list_checks(ORG_A, profile["profile_id"])]
+        run = _seed_assessment_result(
+            engine, ORG_A, profile["profile_id"], "server-05", check_ids, pass_rate=0.5
+        )
         failures = engine.get_failed_checks(ORG_A, run["result_id"])
         assert isinstance(failures, list)
         assert all(f["status"] == "fail" for f in failures)
-        # Every failure row should have check details joined
         if failures:
             assert "check_ref" in failures[0]
             assert "severity" in failures[0]
@@ -228,11 +334,39 @@ class TestAssessments:
         p_b = engine.create_profile(ORG_B, _profile())
         _add_checks(engine, ORG_A, p_a["profile_id"], count=3)
         _add_checks(engine, ORG_B, p_b["profile_id"], count=3)
-        run_a = engine.run_assessment(ORG_A, p_a["profile_id"], "s-a")
-        run_b = engine.run_assessment(ORG_B, p_b["profile_id"], "s-b")
+        ids_a = [c["check_id"] for c in engine.list_checks(ORG_A, p_a["profile_id"])]
+        ids_b = [c["check_id"] for c in engine.list_checks(ORG_B, p_b["profile_id"])]
+        run_a = _seed_assessment_result(engine, ORG_A, p_a["profile_id"], "s-a", ids_a)
+        run_b = _seed_assessment_result(engine, ORG_B, p_b["profile_id"], "s-b", ids_b)
         # ORG_A cannot see ORG_B's assessment
         assert engine.get_assessment(ORG_A, run_b["result_id"]) == {}
         assert engine.get_assessment(ORG_B, run_a["result_id"]) == {}
+
+    def test_seeded_result_score_in_valid_range(self, engine):
+        """Seeded results have valid score values — sanity check for helper correctness."""
+        profile = engine.create_profile(ORG_A, _profile())
+        _add_checks(engine, ORG_A, profile["profile_id"], count=10)
+        check_ids = [c["check_id"] for c in engine.list_checks(ORG_A, profile["profile_id"])]
+        run = _seed_assessment_result(engine, ORG_A, profile["profile_id"], "s-score", check_ids)
+        detail = engine.get_assessment(ORG_A, run["result_id"])
+        assert 0.0 <= detail["score"] <= 100.0
+
+    def test_seeded_result_status_values(self, engine):
+        """Seeded result status is one of the valid engine statuses."""
+        profile = engine.create_profile(ORG_A, _profile())
+        _add_checks(engine, ORG_A, profile["profile_id"], count=20)
+        check_ids = [c["check_id"] for c in engine.list_checks(ORG_A, profile["profile_id"])]
+        run = _seed_assessment_result(engine, ORG_A, profile["profile_id"], "s-status", check_ids)
+        assert run["status"] in ("pass", "fail", "partial")
+
+    def test_seeded_result_counts_add_up(self, engine):
+        """passed + failed + warnings + not_applicable == total checks inserted."""
+        profile = engine.create_profile(ORG_A, _profile())
+        _add_checks(engine, ORG_A, profile["profile_id"], count=15)
+        check_ids = [c["check_id"] for c in engine.list_checks(ORG_A, profile["profile_id"])]
+        run = _seed_assessment_result(engine, ORG_A, profile["profile_id"], "s-counts", check_ids)
+        total = run["passed"] + run["failed"] + run["warnings"] + run["not_applicable"]
+        assert total == 15
 
 
 # ---------------------------------------------------------------------------
@@ -251,8 +385,9 @@ class TestBenchmarkStats:
     def test_stats_reflects_data(self, engine):
         p = engine.create_profile(ORG_A, _profile(standard="CIS", target_type="linux_server"))
         _add_checks(engine, ORG_A, p["profile_id"], count=20)
-        engine.run_assessment(ORG_A, p["profile_id"], "s1")
-        engine.run_assessment(ORG_A, p["profile_id"], "s2")
+        check_ids = [c["check_id"] for c in engine.list_checks(ORG_A, p["profile_id"])]
+        _seed_assessment_result(engine, ORG_A, p["profile_id"], "s1", check_ids)
+        _seed_assessment_result(engine, ORG_A, p["profile_id"], "s2", check_ids)
 
         stats = engine.get_benchmark_stats(ORG_A)
         assert stats["total_profiles"] == 1
@@ -266,8 +401,10 @@ class TestBenchmarkStats:
         p2 = engine.create_profile(ORG_A, _profile(name="NIST", standard="NIST_800_53"))
         _add_checks(engine, ORG_A, p1["profile_id"], count=5)
         _add_checks(engine, ORG_A, p2["profile_id"], count=5)
-        engine.run_assessment(ORG_A, p1["profile_id"], "s1")
-        engine.run_assessment(ORG_A, p2["profile_id"], "s2")
+        ids1 = [c["check_id"] for c in engine.list_checks(ORG_A, p1["profile_id"])]
+        ids2 = [c["check_id"] for c in engine.list_checks(ORG_A, p2["profile_id"])]
+        _seed_assessment_result(engine, ORG_A, p1["profile_id"], "s1", ids1)
+        _seed_assessment_result(engine, ORG_A, p2["profile_id"], "s2", ids2)
 
         stats = engine.get_benchmark_stats(ORG_A)
         assert "CIS" in stats["by_standard"]
@@ -278,7 +415,8 @@ class TestBenchmarkStats:
         p_b = engine.create_profile(ORG_B, _profile())
         _add_checks(engine, ORG_A, p_a["profile_id"], count=5)
         _add_checks(engine, ORG_B, p_b["profile_id"], count=5)
-        engine.run_assessment(ORG_A, p_a["profile_id"], "s-a")
+        ids_a = [c["check_id"] for c in engine.list_checks(ORG_A, p_a["profile_id"])]
+        _seed_assessment_result(engine, ORG_A, p_a["profile_id"], "s-a", ids_a)
 
         stats_a = engine.get_benchmark_stats(ORG_A)
         stats_b = engine.get_benchmark_stats(ORG_B)

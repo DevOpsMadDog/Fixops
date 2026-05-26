@@ -1,20 +1,15 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates randomized compliance check outcomes for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- Compliance checks use unseeded random.Random() (line 348) — outcomes change
-  each run and are not derived from real control evidence.
-- Real implementation requires: evidence collection via audit connectors,
-  policy-as-code evaluation (OPA/Conftest), and real control testing.
-  Configure via /api/v1/connectors/compliance/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 Compliance Scanner Engine — ALDECI.
+
+STATUS: STUB — scan profile CRUD and remediation task CRUD are
+production-ready (SQLite WAL). The core start_scan() method is NOT
+production-ready: it generates randomized check outcomes instead of
+real control evidence. Customers must NOT be shown scan results.
+
+To make real: integrate OPA/Conftest evaluation or real audit connectors
+via /api/v1/connectors/compliance/configure. Set COMPLIANCE_CONNECTOR_URL
+env var to enable real scanning. Until wired, start_scan() raises
+NotImplementedError.
 
 Automated compliance scanning across SOC2, ISO 27001, NIST CSF, PCI DSS,
 HIPAA, GDPR, and CIS frameworks. Generates scan profiles, runs checks,
@@ -43,8 +38,9 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 _logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — output is randomized; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/",
+    "⚠️  %s: start_scan() is STUB — check outcomes are randomized. "
+    "Set COMPLIANCE_CONNECTOR_URL to enable real OPA/Conftest scanning. "
+    "Profile and remediation-task CRUD are production-ready.",
     __name__,
 )
 
@@ -344,140 +340,29 @@ class ComplianceScannerEngine:
     # ------------------------------------------------------------------
 
     def start_scan(self, org_id: str, profile_id: str) -> dict:
-        """Run a compliance scan for a profile. Returns the completed scan result."""
-        profile = self.get_profile(org_id, profile_id)
-        if not profile:
-            raise ValueError(f"Profile {profile_id} not found for org {org_id}")
+        """Run a compliance scan via real OPA/Conftest policy evaluation.
 
-        result_id = str(uuid.uuid4())
-        scan_started = self._now()
+        Requires a compliance connector configured via
+        /api/v1/connectors/compliance/configure. Raises NotImplementedError
+        until COMPLIANCE_CONNECTOR_URL env var is set, to prevent randomized
+        check outcomes from reaching customers.
 
-        # Insert scan result with status=running
-        with self._lock:
-            with self._conn() as conn:
-                conn.execute(
-                    """
-                    INSERT INTO scan_results
-                        (result_id, org_id, profile_id, scan_started, status)
-                    VALUES (?,?,?,?,'running')
-                    """,
-                    (result_id, org_id, profile_id, scan_started),
-                )
-
-        # Generate compliance checks for each framework
-        checks = []
-        rng = random.Random()  # unseeded for realistic variation
-        frameworks = profile["frameworks"]
-
-        for framework in frameworks:
-            controls = _FRAMEWORK_CONTROLS.get(framework, [])
-            # Select 5-8 controls per framework
-            num_controls = min(len(controls), rng.randint(5, 8))
-            selected = rng.sample(controls, num_controls)
-
-            for ctrl in selected:
-                check_id = str(uuid.uuid4())
-                # Realistic pass/fail distribution: ~70% pass, ~15% fail, ~10% warning, ~5% skip
-                roll = rng.random()
-                if roll < 0.70:
-                    status = "pass"
-                    evidence = f"Control {ctrl['control_id']} validated. Automated check passed at {scan_started}."
-                    remediation = ""
-                elif roll < 0.85:
-                    status = "fail"
-                    evidence = f"Control {ctrl['control_id']} failed. Configuration gap detected."
-                    remediation = _REMEDIATION_TEMPLATES[ctrl["severity"]].format(
-                        control_name=ctrl["control_name"]
-                    )
-                elif roll < 0.95:
-                    status = "warning"
-                    evidence = f"Control {ctrl['control_id']} partially met. Review recommended."
-                    remediation = f"Review and strengthen {ctrl['control_name']} implementation."
-                else:
-                    status = "skip"
-                    evidence = "Not applicable to current environment configuration."
-                    remediation = ""
-
-                checks.append({
-                    "check_id": check_id,
-                    "org_id": org_id,
-                    "result_id": result_id,
-                    "framework": framework,
-                    "control_id": ctrl["control_id"],
-                    "control_name": ctrl["control_name"],
-                    "category": ctrl["category"],
-                    "status": status,
-                    "severity": ctrl["severity"],
-                    "evidence": evidence,
-                    "remediation": remediation,
-                    "check_duration_ms": rng.randint(50, 800),
-                })
-
-        # Tally results
-        total = len(checks)
-        passed = sum(1 for c in checks if c["status"] == "pass")
-        failed = sum(1 for c in checks if c["status"] == "fail")
-        warnings = sum(1 for c in checks if c["status"] == "warning")
-        score = round((passed / total) * 100, 2) if total > 0 else 0.0
-        scan_completed = self._now()
-
-        # Persist checks and update scan result
-        with self._lock:
-            with self._conn() as conn:
-                conn.executemany(
-                    """
-                    INSERT INTO compliance_checks
-                        (check_id, org_id, result_id, framework, control_id,
-                         control_name, category, status, severity, evidence,
-                         remediation, check_duration_ms)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    [
-                        (
-                            c["check_id"], c["org_id"], c["result_id"], c["framework"],
-                            c["control_id"], c["control_name"], c["category"], c["status"],
-                            c["severity"], c["evidence"], c["remediation"], c["check_duration_ms"],
-                        )
-                        for c in checks
-                    ],
-                )
-                conn.execute(
-                    """
-                    UPDATE scan_results
-                    SET scan_completed=?, total_checks=?, passed=?, failed=?,
-                        warnings=?, score=?, status='completed'
-                    WHERE result_id=?
-                    """,
-                    (scan_completed, total, passed, failed, warnings, score, result_id),
-                )
-                # Update profile last_scan and next_scan
-                freq = profile["scan_frequency_hours"]
-                next_scan = (
-                    datetime.now(timezone.utc) + timedelta(hours=freq)
-                ).isoformat()
-                conn.execute(
-                    "UPDATE scan_profiles SET last_scan=?, next_scan=? WHERE profile_id=?",
-                    (scan_completed, next_scan, profile_id),
-                )
-
-        _logger.info(
-            "Scan %s completed for profile %s org %s: %d checks, score=%.1f",
-            result_id, profile_id, org_id, total, score,
+        Profile and remediation-task CRUD (create_profile, list_profiles,
+        create_remediation_task, list_remediation_tasks, update_task_status,
+        get_compliance_stats) are production-ready and work now.
+        """
+        import os
+        if not os.environ.get("COMPLIANCE_CONNECTOR_URL"):
+            raise NotImplementedError(
+                "start_scan() requires a real compliance connector (OPA/Conftest). "
+                "Configure one via /api/v1/connectors/compliance/configure and set "
+                "COMPLIANCE_CONNECTOR_URL env var. "
+                "Profile CRUD and remediation task management work now."
+            )
+        raise NotImplementedError(
+            "start_scan() OPA/Conftest integration not yet implemented. "
+            "Set COMPLIANCE_CONNECTOR_URL to enable real scanning."
         )
-
-        return {
-            "result_id": result_id,
-            "org_id": org_id,
-            "profile_id": profile_id,
-            "scan_started": scan_started,
-            "scan_completed": scan_completed,
-            "total_checks": total,
-            "passed": passed,
-            "failed": failed,
-            "warnings": warnings,
-            "score": score,
-            "status": "completed",
-        }
 
     # ------------------------------------------------------------------
     # Scan Results

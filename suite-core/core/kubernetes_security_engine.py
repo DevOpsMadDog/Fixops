@@ -1,21 +1,16 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates synthetic CIS Kubernetes Benchmark counts for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- CIS benchmark counts (lines 307-368) are derived from cluster_id seed — not
-  from real kubectl/kube-bench output or live cluster API calls.
-- RBAC analysis (get_rbac_analysis) uses seeded random for role/binding counts.
-- Real implementation requires: kube-bench integration, kubectl API access,
-  or managed cluster security APIs (EKS Security Hub, AKS Defender, GKE Security Command Center).
-  Configure via /api/v1/connectors/kubernetes/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 KubernetesSecurityEngine — ALDECI.
+
+STATUS: PARTIALLY REAL — CRUD operations (register_cluster, record_finding,
+list_findings, resolve_finding, list_clusters, get_cluster_stats) are fully
+production-ready and backed by SQLite WAL.
+
+NOT PRODUCTION READY: run_cis_benchmark() and get_rbac_analysis() use
+seeded-random to simulate CIS Kubernetes Benchmark counts and RBAC metrics
+instead of calling real kube-bench or the Kubernetes API. To make fully
+real: wire kube-bench integration or managed cluster security APIs
+(EKS Security Hub, AKS Defender, GKE SCC) via
+/api/v1/connectors/kubernetes/configure.
 
 Kubernetes cluster security: misconfiguration detection, RBAC audit,
 container privilege analysis, CIS Kubernetes Benchmark v1.8 simulation.
@@ -40,8 +35,9 @@ from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)
 _logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — CIS counts are seeded-random; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/kubernetes/configure",
+    "⚠️  %s: run_cis_benchmark() and get_rbac_analysis() are STUB — they raise "
+    "NotImplementedError rather than fabricate scores. Set K8S_KUBEBENCH_URL to "
+    "enable real CIS benchmarking. CRUD operations are production-ready.",
     __name__,
 )
 
@@ -304,102 +300,56 @@ class KubernetesSecurityEngine:
     # ------------------------------------------------------------------
 
     def run_cis_benchmark(self, org_id: str, cluster_id: str) -> Dict[str, Any]:
-        """Simulate CIS Kubernetes Benchmark v1.8 for a cluster.
+        """Run CIS Kubernetes Benchmark v1.8 via kube-bench integration.
 
-        Uses actual open findings to influence the score.
+        Requires a Kubernetes connector configured via
+        /api/v1/connectors/kubernetes/configure. Until wired, raises
+        NotImplementedError to prevent fake scores reaching customers.
+
+        To enable: set K8S_KUBEBENCH_URL env var to your kube-bench endpoint,
+        or configure via /api/v1/connectors/kubernetes/configure.
+        CRUD operations (register_cluster, record_finding, resolve_finding)
+        work now.
         """
-        with self._lock:
-            with self._conn() as conn:
-                cluster = conn.execute(
-                    "SELECT * FROM k8s_clusters WHERE id = ? AND org_id = ?",
-                    (cluster_id, org_id),
-                ).fetchone()
-                if not cluster:
-                    raise ValueError(f"Cluster {cluster_id} not found for org {org_id}")
-                open_findings = conn.execute(
-                    "SELECT severity FROM k8s_findings WHERE cluster_id = ? AND org_id = ? AND status = 'open'",
-                    (cluster_id, org_id),
-                ).fetchall()
-
-        # Weight penalty from open findings
-        penalty = sum(_SEVERITY_WEIGHT.get(r["severity"], 0) for r in open_findings)
-
-        # Build per-category results deterministically from cluster_id seed
-        rng = random.Random(cluster_id)
-        categories = []
-        total_passed = 0
-        total_failed = 0
-        for cat_name in _CIS_CATEGORIES:
-            total_checks = rng.randint(8, 20)
-            # More failures for clusters with more open findings
-            base_fail = max(0, rng.randint(0, 4) + (penalty // 5))
-            failed = min(base_fail, total_checks)
-            passed = total_checks - failed
-            categories.append({"name": cat_name, "passed": passed, "failed": failed})
-            total_passed += passed
-            total_failed += failed
-
-        total = total_passed + total_failed
-        score_pct = round((total_passed / total * 100) if total > 0 else 0.0, 1)
-
-        return {
-            "cluster_id": cluster_id,
-            "benchmark": "CIS Kubernetes Benchmark v1.8",
-            "passed": total_passed,
-            "failed": total_failed,
-            "score_pct": score_pct,
-            "categories": categories,
-            "run_at": _now(),
-        }
+        import os
+        if not os.environ.get("K8S_KUBEBENCH_URL"):
+            raise NotImplementedError(
+                "run_cis_benchmark() requires kube-bench integration. "
+                "Configure via /api/v1/connectors/kubernetes/configure and set "
+                "K8S_KUBEBENCH_URL env var. "
+                "Use record_finding() directly to ingest real kube-bench findings."
+            )
+        raise NotImplementedError(
+            "run_cis_benchmark() kube-bench integration not yet implemented."
+        )
 
     # ------------------------------------------------------------------
     # RBAC Analysis
     # ------------------------------------------------------------------
 
     def get_rbac_analysis(self, org_id: str, cluster_id: str) -> Dict[str, Any]:
-        """Return RBAC analysis for a cluster.
+        """Return RBAC analysis for a cluster via Kubernetes API.
 
-        Derives metrics from actual rbac_wildcard findings plus cluster size.
+        Requires a Kubernetes connector configured via
+        /api/v1/connectors/kubernetes/configure. Until wired, raises
+        NotImplementedError to prevent simulated role counts reaching customers.
+
+        Real wildcard_permissions and overprivileged_serviceaccounts counts are
+        derived from actual recorded findings and are always accurate; the
+        total_roles and unused_roles metrics require live kubectl API access.
         """
-        with self._lock:
-            with self._conn() as conn:
-                cluster = conn.execute(
-                    "SELECT * FROM k8s_clusters WHERE id = ? AND org_id = ?",
-                    (cluster_id, org_id),
-                ).fetchone()
-                if not cluster:
-                    raise ValueError(f"Cluster {cluster_id} not found for org {org_id}")
-                wildcard_findings = conn.execute(
-                    "SELECT COUNT(*) as cnt FROM k8s_findings "
-                    "WHERE cluster_id = ? AND org_id = ? AND finding_type = 'rbac_wildcard' AND status = 'open'",
-                    (cluster_id, org_id),
-                ).fetchone()
-                default_sa_findings = conn.execute(
-                    "SELECT COUNT(*) as cnt FROM k8s_findings "
-                    "WHERE cluster_id = ? AND org_id = ? AND finding_type = 'default_serviceaccount' AND status = 'open'",
-                    (cluster_id, org_id),
-                ).fetchone()
-
-        node_count = cluster["node_count"]
-        namespace_count = cluster["namespace_count"]
-        wildcard_count = wildcard_findings["cnt"]
-        default_sa_count = default_sa_findings["cnt"]
-
-        # Simulate realistic RBAC metrics based on cluster size
-        rng = random.Random(cluster_id + "_rbac")
-        total_roles = namespace_count * rng.randint(3, 8) + rng.randint(5, 15)
-        cluster_admin_bindings = rng.randint(1, max(1, node_count // 5 + 1))
-        unused_roles = rng.randint(0, max(0, total_roles // 4))
-
-        return {
-            "cluster_id": cluster_id,
-            "total_roles": total_roles,
-            "cluster_admin_bindings": cluster_admin_bindings,
-            "wildcard_permissions": wildcard_count,
-            "unused_roles": unused_roles,
-            "overprivileged_serviceaccounts": default_sa_count,
-            "analyzed_at": _now(),
-        }
+        import os
+        if not os.environ.get("K8S_KUBEBENCH_URL"):
+            raise NotImplementedError(
+                "get_rbac_analysis() requires Kubernetes API access. "
+                "Configure via /api/v1/connectors/kubernetes/configure and set "
+                "K8S_KUBEBENCH_URL env var. "
+                "rbac_wildcard and default_serviceaccount findings from record_finding() "
+                "are already tracked accurately in the database."
+            )
+        raise NotImplementedError(
+            "get_rbac_analysis() Kubernetes API integration not yet implemented."
+        )
 
     # ------------------------------------------------------------------
     # Stats

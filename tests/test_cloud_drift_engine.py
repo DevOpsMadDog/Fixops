@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sqlite3
+
 import pytest
 from core.cloud_drift_engine import CloudDriftDetectionEngine
 
@@ -30,6 +32,31 @@ def _drift(resource_id="res-001", drift_type="config_changed", severity="medium"
         "expected_value": '{"monitoring": true}',
         "actual_value": '{"monitoring": false}',
     }
+
+
+def _seed_scan_row(engine, org_id: str, environment: str = "prod") -> None:
+    """Insert a drift_scans row directly via SQLite (bypasses run_drift_scan stub)."""
+    import uuid
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc).isoformat()
+    scan_id = str(uuid.uuid4())
+    with engine._lock:
+        with engine._conn() as conn:
+            conn.execute(
+                """INSERT INTO drift_scans VALUES
+                   (:scan_id,:org_id,:environment,:scanned,:drifts_found,
+                    :resolved_drifts,:scanned_at)""",
+                {
+                    "scan_id": scan_id,
+                    "org_id": org_id,
+                    "environment": environment,
+                    "scanned": 1,
+                    "drifts_found": 0,
+                    "resolved_drifts": 0,
+                    "scanned_at": now,
+                },
+            )
 
 
 # ------------------------------------------------------------------
@@ -217,40 +244,38 @@ def test_remediate_drift_invalid_method_defaults(engine):
 
 
 # ------------------------------------------------------------------
-# run_drift_scan
+# run_drift_scan — now raises NotImplementedError (no CSPM connector)
 # ------------------------------------------------------------------
 
 def test_run_drift_scan_no_baselines(engine):
-    result = engine.run_drift_scan("org1")
-    assert result["scanned"] == 0
-    assert result["drifts_found"] == 0
-    assert result["new_drifts"] == []
+    """run_drift_scan() raises NotImplementedError until CSPM connector is wired."""
+    with pytest.raises(NotImplementedError):
+        engine.run_drift_scan("org1")
 
 
 def test_run_drift_scan_returns_required_keys(engine):
+    """run_drift_scan() raises NotImplementedError regardless of registered baselines."""
     engine.register_baseline("org1", _baseline("r1"))
     engine.register_baseline("org1", _baseline("r2"))
-    result = engine.run_drift_scan("org1")
-    assert "scan_id" in result
-    assert "scanned" in result
-    assert "drifts_found" in result
-    assert "new_drifts" in result
-    assert "resolved_drifts" in result
+    with pytest.raises(NotImplementedError):
+        engine.run_drift_scan("org1")
 
 
 def test_run_drift_scan_scanned_count_matches_baselines(engine):
+    """run_drift_scan() raises NotImplementedError regardless of baseline count."""
     engine.register_baseline("org1", _baseline("r1"))
     engine.register_baseline("org1", _baseline("r2"))
     engine.register_baseline("org1", _baseline("r3"))
-    result = engine.run_drift_scan("org1")
-    assert result["scanned"] == 3
+    with pytest.raises(NotImplementedError):
+        engine.run_drift_scan("org1")
 
 
 def test_run_drift_scan_filters_by_environment(engine):
+    """run_drift_scan() raises NotImplementedError regardless of environment filter."""
     engine.register_baseline("org1", _baseline("r1", environment="prod"))
     engine.register_baseline("org1", _baseline("r2", environment="staging"))
-    result = engine.run_drift_scan("org1", environment="prod")
-    assert result["scanned"] == 1
+    with pytest.raises(NotImplementedError):
+        engine.run_drift_scan("org1", environment="prod")
 
 
 # ------------------------------------------------------------------
@@ -307,8 +332,9 @@ def test_get_drift_stats_by_severity(engine):
 
 
 def test_get_drift_stats_scans_last_7d(engine):
+    """Seed a scan row directly (run_drift_scan is a stub) and verify stats counts it."""
     engine.register_baseline("org1", _baseline())
-    engine.run_drift_scan("org1")
+    _seed_scan_row(engine, "org1")
     stats = engine.get_drift_stats("org1")
     assert stats["scans_last_7d"] >= 1
 

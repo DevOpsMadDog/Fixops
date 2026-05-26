@@ -6,9 +6,14 @@ from __future__ import annotations
 
 import os
 import tempfile
+from datetime import datetime, timezone
 import pytest
 
 from core.ccm_engine import CCMEngine
+
+
+def _now_str() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 @pytest.fixture
@@ -147,43 +152,61 @@ class TestTests:
         with pytest.raises(ValueError, match="Invalid test_type"):
             engine.add_test(ORG_A, ctrl["control_id"], _make_test(test_type="magic"))
 
-    def test_run_test_returns_status(self, engine):
+    def test_run_test_raises_not_implemented(self, engine):
+        """run_test() must raise NotImplementedError until CCM_CONNECTOR_URL is set."""
         ctrl = engine.register_control(ORG_A, _make_control())
         t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        result = engine.run_test(ORG_A, t["test_id"])
-        assert result["status"] in {"passing", "failing", "degraded"}
-        assert result["last_run"]
-        assert result["next_run"]
+        with pytest.raises(NotImplementedError):
+            engine.run_test(ORG_A, t["test_id"])
 
-    def test_run_test_wrong_org_raises(self, engine):
+    def test_run_test_error_message_mentions_connector(self, engine):
+        """Error message must guide caller to configure OPA/Conftest connector."""
         ctrl = engine.register_control(ORG_A, _make_control())
         t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(NotImplementedError, match="CCM_CONNECTOR_URL|OPA|Conftest|connector"):
+            engine.run_test(ORG_A, t["test_id"])
+
+    def test_run_test_wrong_org_raises_not_implemented(self, engine):
+        """run_test() raises NotImplementedError regardless of org mismatch —
+        the env-guard fires before the org lookup."""
+        ctrl = engine.register_control(ORG_A, _make_control())
+        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
+        with pytest.raises(NotImplementedError):
             engine.run_test(ORG_B, t["test_id"])
 
-    def test_run_test_updates_status(self, engine):
+    def test_run_test_does_not_update_status(self, engine):
+        """run_test() must not mutate the test row when it raises."""
         ctrl = engine.register_control(ORG_A, _make_control())
         t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        engine.run_test(ORG_A, t["test_id"])
+        try:
+            engine.run_test(ORG_A, t["test_id"])
+        except NotImplementedError:
+            pass
         tests = engine.list_tests(ORG_A, control_id=ctrl["control_id"])
-        assert tests[0]["status"] != "not_tested"
+        assert tests[0]["status"] == "not_tested"
 
     def test_list_tests_by_status(self, engine):
+        """list_tests() filters by status — coverage unaffected by run_test stub."""
         ctrl = engine.register_control(ORG_A, _make_control())
-        t1 = engine.add_test(ORG_A, ctrl["control_id"], _make_test("T1"))
-        t2 = engine.add_test(ORG_A, ctrl["control_id"], _make_test("T2"))
+        engine.add_test(ORG_A, ctrl["control_id"], _make_test("T1"))
+        engine.add_test(ORG_A, ctrl["control_id"], _make_test("T2"))
         not_tested = engine.list_tests(ORG_A, status="not_tested")
         assert len(not_tested) == 2
 
-    def test_run_test_records_history(self, engine):
-        """Running a test should create a history entry."""
+    def test_run_test_does_not_create_history(self, engine):
+        """run_test() must not insert a history row when it raises."""
+        import sqlite3 as _sqlite3
         ctrl = engine.register_control(ORG_A, _make_control())
         t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        result = engine.run_test(ORG_A, t["test_id"])
-        assert result["evidence_snapshot"]
-        import json
-        snap = json.loads(result["evidence_snapshot"])
-        assert snap["status"] in {"passing", "failing", "degraded"}
+        try:
+            engine.run_test(ORG_A, t["test_id"])
+        except NotImplementedError:
+            pass
+        with _sqlite3.connect(engine.db_path) as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM control_history WHERE org_id = ?", (ORG_A,)
+            ).fetchone()
+        assert row[0] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -264,9 +287,17 @@ class TestCoverageAndStats:
         assert cov["critical_failures"] == 0
 
     def test_get_control_coverage_with_data(self, engine):
+        """Coverage query reads controls + test statuses from DB directly.
+        Seed a 'passing' test status via direct UPDATE (run_test() is NotImplementedError)."""
+        import sqlite3 as _sqlite3
         ctrl = engine.register_control(ORG_A, _make_control(framework="SOC2"))
         t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        engine.run_test(ORG_A, t["test_id"])
+        # Seed the test status directly — run_test() requires a real connector
+        with _sqlite3.connect(engine.db_path) as conn:
+            conn.execute(
+                "UPDATE control_tests SET status = 'passing', last_run = ? WHERE test_id = ?",
+                (_now_str(), t["test_id"]),
+            )
         cov = engine.get_control_coverage(ORG_A)
         assert cov["total_controls"] == 1
         assert "SOC2" in cov["by_framework"]
@@ -277,9 +308,17 @@ class TestCoverageAndStats:
         assert stats["coverage_pct"] == 0.0
 
     def test_get_ccm_stats_with_controls(self, engine):
+        """Stats query reads controls/tests/failures from DB directly.
+        Seed a 'passing' test status via direct UPDATE (run_test() is NotImplementedError)."""
+        import sqlite3 as _sqlite3
         ctrl = engine.register_control(ORG_A, _make_control())
         t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        engine.run_test(ORG_A, t["test_id"])
+        # Seed test status directly — bypasses the NotImplementedError guard
+        with _sqlite3.connect(engine.db_path) as conn:
+            conn.execute(
+                "UPDATE control_tests SET status = 'passing', last_run = ? WHERE test_id = ?",
+                (_now_str(), t["test_id"]),
+            )
         engine.log_failure(ORG_A, _make_failure(ctrl["control_id"], severity="critical"))
         stats = engine.get_ccm_stats(ORG_A)
         assert stats["total_controls"] == 1

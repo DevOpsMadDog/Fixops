@@ -1,19 +1,16 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates randomized/hash-derived scores for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- Org-wide security scoring: requires aggregation of real scanner findings via
-  /api/v1/connectors/{sast,dast,secrets,container,cspm}/configure
-- Category scores (_simulate_score lines 188-220) are seeded from org_id+category
-  hash — not from real platform data.
-
-Until real data pipelines are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 Security Scorecard for ALDECI — SecurityScorecard-style self-hosted scoring.
+
+STATUS: STUB — the entire scoring pipeline is NOT production-ready.
+All 8 category scores are derived from a hash of org_id + category name,
+not from real scanner findings, connector data, or threat intel.
+Customers must NOT be shown any scorecard results from this engine.
+
+To make real: wire all scanner connectors (SAST, DAST, secrets, container,
+CSPM) via /api/v1/connectors/*/configure and replace _simulate_score()
+with real aggregation queries against SecurityFindingsEngine,
+ContainerScannerEngine, CSPMEngine, etc. Until wired, generate_scorecard()
+raises NotImplementedError.
 
 Provides organization-wide security grades computed from all platform data:
 findings, connectors, scanner results, compliance posture, threat intel.
@@ -42,8 +39,8 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — output is randomized/hash-derived; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/",
+    "⚠️  %s: generate_scorecard() is STUB — all scores are org_id+category hash-derived, "
+    "not from real scanner data. Wire scanner connectors to enable real scoring.",
     __name__,
 )
 
@@ -295,62 +292,32 @@ class SecurityScorecard:
     # ------------------------------------------------------------------
 
     def generate_scorecard(self, org_id: str, validity_days: int = 30) -> SecurityScore:
-        """Compute a full security scorecard for the given org.
+        """Compute a real security scorecard aggregated from platform scanner data.
 
-        Scores all 8 categories, computes the weighted overall score,
-        assigns a grade, and persists the result.  Returns the new scorecard.
+        Requires all scanner connectors (SAST, DAST, secrets, container, CSPM)
+        to be configured. Raises NotImplementedError until
+        SCORECARD_DATA_SOURCE env var is set, to prevent hash-derived
+        fake scores from reaching customers.
+
+        get_scorecard(), get_score_history(), get_category_breakdown(),
+        get_improvement_plan(), compare_orgs(), and get_public_score()
+        work against previously stored real scorecards.
         """
-        categories: Dict[str, float] = {}
-        all_factors: List[Dict[str, Any]] = []
-
-        for cat in ScoreCategory:
-            cat_score, cat_factors = self._simulate_score(org_id, cat.value)
-            categories[cat.value] = cat_score
-            all_factors.extend(cat_factors)
-
-        # Weighted overall score
-        overall = sum(
-            categories[cat.value] * weight
-            for cat, weight in CATEGORY_WEIGHTS.items()
-        )
-        overall = round(max(0.0, min(100.0, overall)), 2)
-        grade = self._score_to_grade(overall)
-
-        now = datetime.now(timezone.utc)
-        scorecard = SecurityScore(
-            id=str(uuid.uuid4()),
-            org_id=org_id,
-            overall_score=overall,
-            grade=grade,
-            categories=categories,
-            factors=all_factors,
-            generated_at=now.isoformat(),
-            valid_until=(now + timedelta(days=validity_days)).isoformat(),
-        )
-
-        with self._get_conn() as conn:
-            conn.execute(
-                """INSERT INTO scorecards
-                   (id, org_id, overall_score, grade, categories, factors,
-                    generated_at, valid_until)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    scorecard.id,
-                    scorecard.org_id,
-                    scorecard.overall_score,
-                    scorecard.grade,
-                    json.dumps(scorecard.categories),
-                    json.dumps(scorecard.factors),
-                    scorecard.generated_at,
-                    scorecard.valid_until,
-                ),
+        import os
+        if not os.environ.get("SCORECARD_DATA_SOURCE"):
+            raise NotImplementedError(
+                "generate_scorecard() requires all scanner connectors to be wired "
+                "(SAST, DAST, secrets, container, CSPM). "
+                "Configure via /api/v1/connectors/*/configure and set "
+                "SCORECARD_DATA_SOURCE env var. "
+                "Read operations (get_scorecard, get_score_history, "
+                "get_category_breakdown, get_improvement_plan) work against "
+                "previously stored real scorecards."
             )
-
-        logger.info(
-            "Scorecard generated for org %s: score=%.1f grade=%s",
-            org_id, overall, grade,
+        raise NotImplementedError(
+            "generate_scorecard() real data aggregation not yet implemented. "
+            "Wire scanner connectors and set SCORECARD_DATA_SOURCE to enable."
         )
-        return scorecard
 
     def get_scorecard(self, org_id: str) -> Optional[SecurityScore]:
         """Return the most recent scorecard for the given org, or None."""

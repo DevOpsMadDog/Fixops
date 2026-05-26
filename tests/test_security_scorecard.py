@@ -4,7 +4,7 @@ Tests for SecurityScorecard module and API router.
 Covers:
 - ScoreCategory enum values
 - SecurityScore and PublicScore Pydantic models
-- SecurityScorecard.generate_scorecard()
+- SecurityScorecard.generate_scorecard() — now raises NotImplementedError (honest-stub policy)
 - SecurityScorecard.get_scorecard()
 - SecurityScorecard.get_score_history()
 - SecurityScorecard.get_category_breakdown()
@@ -13,7 +13,6 @@ Covers:
 - SecurityScorecard.get_public_score()
 - Grade mapping (A–F)
 - CATEGORY_WEIGHTS sum to 1.0
-- Deterministic scoring (same org → same score)
 - Router endpoints (TestClient with dev-mode auth bypass)
 - Public endpoint (no auth required)
 
@@ -23,9 +22,11 @@ Run with:
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -45,6 +46,61 @@ from core.security_scorecard import (
     SecurityScore,
     SecurityScorecard,
 )
+
+
+# ============================================================================
+# Seed helper — bypasses generate_scorecard (NotImplementedError) and INSERTs
+# a real row directly into the SQLite DB so read-path tests have real data.
+# ============================================================================
+
+def _seed_scorecard(
+    sc: SecurityScorecard,
+    org_id: str,
+    overall_score: float = 75.0,
+    generated_at: str | None = None,
+    validity_days: int = 30,
+) -> SecurityScore:
+    """Insert a real SecurityScore row into sc's DB and return the model."""
+    now = datetime.now(timezone.utc) if generated_at is None else datetime.fromisoformat(generated_at)
+    gen_str = now.isoformat()
+    until_str = (now + timedelta(days=validity_days)).isoformat()
+    grade = sc._score_to_grade(overall_score)
+    row_id = str(uuid.uuid4())
+
+    # Build a minimal but complete categories dict (one score per category)
+    categories: Dict[str, float] = {cat.value: overall_score for cat in ScoreCategory}
+    factors = [
+        {"name": f"{cat.value}_factor", "score": overall_score, "weight": 0.125, "category": cat.value}
+        for cat in ScoreCategory
+    ]
+
+    with sc._get_conn() as conn:
+        conn.execute(
+            """INSERT INTO scorecards
+               (id, org_id, overall_score, grade, categories, factors, generated_at, valid_until)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                row_id,
+                org_id,
+                overall_score,
+                grade,
+                json.dumps(categories),
+                json.dumps(factors),
+                gen_str,
+                until_str,
+            ),
+        )
+
+    return SecurityScore(
+        id=row_id,
+        org_id=org_id,
+        overall_score=overall_score,
+        grade=grade,
+        categories=categories,
+        factors=factors,
+        generated_at=gen_str,
+        valid_until=until_str,
+    )
 
 
 # ============================================================================
@@ -69,8 +125,8 @@ def org_id():
 
 @pytest.fixture
 def scored_sc(sc, org_id):
-    """Scorecard fixture with one generated scorecard."""
-    sc.generate_scorecard(org_id)
+    """Scorecard fixture with one seeded scorecard (via direct DB insert — no generate)."""
+    _seed_scorecard(sc, org_id)
     return sc, org_id
 
 
@@ -204,88 +260,45 @@ def test_public_score_model():
 
 
 # ============================================================================
-# generate_scorecard
+# generate_scorecard — must raise NotImplementedError (honest-stub policy)
 # ============================================================================
 
 
-def test_generate_scorecard_returns_security_score(sc, org_id):
-    result = sc.generate_scorecard(org_id)
-    assert isinstance(result, SecurityScore)
+def test_generate_scorecard_raises_not_implemented(sc, org_id):
+    """generate_scorecard() raises NotImplementedError until scanner connectors are wired."""
+    with pytest.raises(NotImplementedError):
+        sc.generate_scorecard(org_id)
 
 
-def test_generate_scorecard_overall_score_in_range(sc, org_id):
-    result = sc.generate_scorecard(org_id)
-    assert 0.0 <= result.overall_score <= 100.0
+def test_generate_scorecard_raises_without_env(sc, org_id):
+    """Confirm the raise happens regardless of SCORECARD_DATA_SOURCE being absent."""
+    env_backup = os.environ.pop("SCORECARD_DATA_SOURCE", None)
+    try:
+        with pytest.raises(NotImplementedError):
+            sc.generate_scorecard(org_id)
+    finally:
+        if env_backup is not None:
+            os.environ["SCORECARD_DATA_SOURCE"] = env_backup
 
 
-def test_generate_scorecard_grade_set(sc, org_id):
-    result = sc.generate_scorecard(org_id)
-    assert result.grade in ("A", "B", "C", "D", "F")
+def test_generate_scorecard_raises_even_with_env_set(sc, org_id):
+    """Even with SCORECARD_DATA_SOURCE set, real aggregation is not yet implemented."""
+    os.environ["SCORECARD_DATA_SOURCE"] = "real"
+    try:
+        with pytest.raises(NotImplementedError):
+            sc.generate_scorecard(org_id)
+    finally:
+        del os.environ["SCORECARD_DATA_SOURCE"]
 
 
-def test_generate_scorecard_has_all_categories(sc, org_id):
-    result = sc.generate_scorecard(org_id)
-    for cat in ScoreCategory:
-        assert cat.value in result.categories, f"Missing category {cat.value}"
-
-
-def test_generate_scorecard_category_scores_in_range(sc, org_id):
-    result = sc.generate_scorecard(org_id)
-    for cat_name, score in result.categories.items():
-        assert 0.0 <= score <= 100.0, f"Category {cat_name} score {score} out of range"
-
-
-def test_generate_scorecard_has_factors(sc, org_id):
-    result = sc.generate_scorecard(org_id)
-    assert len(result.factors) > 0
-
-
-def test_generate_scorecard_factors_have_required_fields(sc, org_id):
-    result = sc.generate_scorecard(org_id)
-    for factor in result.factors:
-        assert "name" in factor
-        assert "score" in factor
-        assert "weight" in factor
-        assert "category" in factor
-
-
-def test_generate_scorecard_persists(sc, org_id):
-    sc.generate_scorecard(org_id)
-    retrieved = sc.get_scorecard(org_id)
-    assert retrieved is not None
-
-
-def test_generate_scorecard_deterministic_for_same_org(db_path, org_id):
-    """Same org always gets the same score (deterministic RNG)."""
-    sc1 = SecurityScorecard(db_path=db_path)
-    sc2 = SecurityScorecard(db_path=db_path)
-    r1 = sc1.generate_scorecard(org_id)
-    r2 = sc2.generate_scorecard(org_id)
-    assert r1.overall_score == r2.overall_score
-
-
-def test_generate_scorecard_different_orgs_different_scores(sc):
-    org_a = "org-alpha-fixed-1"
-    org_b = "org-beta-fixed-2"
-    ra = sc.generate_scorecard(org_a)
-    rb = sc.generate_scorecard(org_b)
-    # Different orgs should almost certainly produce different scores
-    # (not a strict requirement but validates the hashing differs)
-    assert isinstance(ra.overall_score, float)
-    assert isinstance(rb.overall_score, float)
-
-
-def test_generate_scorecard_validity_days(sc, org_id):
-    from datetime import datetime, timezone
-    result = sc.generate_scorecard(org_id, validity_days=7)
-    gen = datetime.fromisoformat(result.generated_at)
-    until = datetime.fromisoformat(result.valid_until)
-    delta = (until - gen).days
-    assert delta == 7
+def test_generate_scorecard_message_mentions_connectors(sc, org_id):
+    """NotImplementedError message references connector configuration."""
+    with pytest.raises(NotImplementedError, match="connector"):
+        sc.generate_scorecard(org_id)
 
 
 # ============================================================================
-# get_scorecard
+# get_scorecard — read path tested via real seeded rows
 # ============================================================================
 
 
@@ -294,23 +307,27 @@ def test_get_scorecard_none_if_no_scorecard(sc, org_id):
 
 
 def test_get_scorecard_returns_latest(sc, org_id):
-    sc.generate_scorecard(org_id)
-    sc.generate_scorecard(org_id)
+    # Seed two rows; get_scorecard should return the most recent
+    t1 = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    t2 = datetime.now(timezone.utc).isoformat()
+    _seed_scorecard(sc, org_id, overall_score=60.0, generated_at=t1)
+    _seed_scorecard(sc, org_id, overall_score=80.0, generated_at=t2)
     result = sc.get_scorecard(org_id)
     assert result is not None
-    # Should be the most recent one
     assert isinstance(result, SecurityScore)
+    # Most recent row has score 80.0
+    assert abs(result.overall_score - 80.0) < 0.01
 
 
 def test_get_scorecard_org_isolation(sc):
     org_a = f"org-{uuid.uuid4().hex[:8]}"
     org_b = f"org-{uuid.uuid4().hex[:8]}"
-    sc.generate_scorecard(org_a)
+    _seed_scorecard(sc, org_a, overall_score=70.0)
     assert sc.get_scorecard(org_b) is None
 
 
 # ============================================================================
-# get_score_history
+# get_score_history — read path tested via real seeded rows
 # ============================================================================
 
 
@@ -320,8 +337,10 @@ def test_get_score_history_empty_for_new_org(sc, org_id):
 
 
 def test_get_score_history_returns_entries(sc, org_id):
-    sc.generate_scorecard(org_id)
-    sc.generate_scorecard(org_id)
+    t1 = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    t2 = datetime.now(timezone.utc).isoformat()
+    _seed_scorecard(sc, org_id, overall_score=65.0, generated_at=t1)
+    _seed_scorecard(sc, org_id, overall_score=75.0, generated_at=t2)
     history = sc.get_score_history(org_id, days=90)
     assert len(history) == 2
 
@@ -337,15 +356,17 @@ def test_get_score_history_entry_fields(scored_sc):
 
 
 def test_get_score_history_chronological_order(sc, org_id):
-    sc.generate_scorecard(org_id)
-    sc.generate_scorecard(org_id)
+    t1 = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    t2 = datetime.now(timezone.utc).isoformat()
+    _seed_scorecard(sc, org_id, overall_score=60.0, generated_at=t1)
+    _seed_scorecard(sc, org_id, overall_score=80.0, generated_at=t2)
     history = sc.get_score_history(org_id, days=90)
     assert len(history) == 2
     assert history[0]["generated_at"] <= history[1]["generated_at"]
 
 
 # ============================================================================
-# get_category_breakdown
+# get_category_breakdown — read path tested via real seeded rows
 # ============================================================================
 
 
@@ -389,15 +410,17 @@ def test_get_category_breakdown_trend_new_on_first(scored_sc):
 
 
 def test_get_category_breakdown_trend_after_two_scorecards(sc, org_id):
-    sc.generate_scorecard(org_id)
-    sc.generate_scorecard(org_id)
+    t1 = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    t2 = datetime.now(timezone.utc).isoformat()
+    _seed_scorecard(sc, org_id, overall_score=65.0, generated_at=t1)
+    _seed_scorecard(sc, org_id, overall_score=75.0, generated_at=t2)
     result = sc.get_category_breakdown(org_id)
     for cat_name, data in result["categories"].items():
         assert data["trend"] in ("improving", "degrading", "stable")
 
 
 # ============================================================================
-# get_improvement_plan
+# get_improvement_plan — read path tested via real seeded rows
 # ============================================================================
 
 
@@ -450,15 +473,15 @@ def test_get_improvement_plan_gap_correct(scored_sc):
 
 
 # ============================================================================
-# compare_orgs
+# compare_orgs — seeded via direct DB inserts
 # ============================================================================
 
 
 def test_compare_orgs_returns_all_orgs(sc):
     org_a = f"org-{uuid.uuid4().hex[:8]}"
     org_b = f"org-{uuid.uuid4().hex[:8]}"
-    sc.generate_scorecard(org_a)
-    sc.generate_scorecard(org_b)
+    _seed_scorecard(sc, org_a, overall_score=80.0)
+    _seed_scorecard(sc, org_b, overall_score=70.0)
     result = sc.compare_orgs([org_a, org_b])
     returned_ids = {o["org_id"] for o in result["orgs"]}
     assert org_a in returned_ids
@@ -468,7 +491,7 @@ def test_compare_orgs_returns_all_orgs(sc):
 def test_compare_orgs_total_count(sc):
     orgs = [f"org-{uuid.uuid4().hex[:8]}" for _ in range(3)]
     for o in orgs:
-        sc.generate_scorecard(o)
+        _seed_scorecard(sc, o, overall_score=75.0)
     result = sc.compare_orgs(orgs)
     assert result["total"] == 3
 
@@ -476,8 +499,8 @@ def test_compare_orgs_total_count(sc):
 def test_compare_orgs_rank_assigned(sc):
     org_a = f"org-{uuid.uuid4().hex[:8]}"
     org_b = f"org-{uuid.uuid4().hex[:8]}"
-    sc.generate_scorecard(org_a)
-    sc.generate_scorecard(org_b)
+    _seed_scorecard(sc, org_a, overall_score=85.0)
+    _seed_scorecard(sc, org_b, overall_score=65.0)
     result = sc.compare_orgs([org_a, org_b])
     scored = [o for o in result["orgs"] if o.get("rank") is not None]
     ranks = sorted(o["rank"] for o in scored)
@@ -487,7 +510,7 @@ def test_compare_orgs_rank_assigned(sc):
 def test_compare_orgs_unscored_org_has_no_rank(sc):
     org_a = f"org-{uuid.uuid4().hex[:8]}"
     org_b = f"org-{uuid.uuid4().hex[:8]}"  # no scorecard
-    sc.generate_scorecard(org_a)
+    _seed_scorecard(sc, org_a, overall_score=80.0)
     result = sc.compare_orgs([org_a, org_b])
     unscored = [o for o in result["orgs"] if o["org_id"] == org_b]
     assert len(unscored) == 1
@@ -497,8 +520,8 @@ def test_compare_orgs_unscored_org_has_no_rank(sc):
 def test_compare_orgs_category_rankings_present(sc):
     org_a = f"org-{uuid.uuid4().hex[:8]}"
     org_b = f"org-{uuid.uuid4().hex[:8]}"
-    sc.generate_scorecard(org_a)
-    sc.generate_scorecard(org_b)
+    _seed_scorecard(sc, org_a, overall_score=80.0)
+    _seed_scorecard(sc, org_b, overall_score=70.0)
     result = sc.compare_orgs([org_a, org_b])
     assert "category_rankings" in result
     for cat in ScoreCategory:
@@ -506,7 +529,7 @@ def test_compare_orgs_category_rankings_present(sc):
 
 
 # ============================================================================
-# get_public_score
+# get_public_score — read path tested via real seeded rows
 # ============================================================================
 
 
@@ -551,10 +574,12 @@ def test_get_public_score_no_raw_category_scores(scored_sc):
 
 @pytest.fixture(scope="module")
 def client(tmp_path_factory):
-    """TestClient with isolated DB and auth bypassed via dependency override."""
+    """TestClient with isolated DB, auth bypassed, and raise_server_exceptions=False
+    so the global NotImplementedError → 501 handler fires for generate calls."""
     tmp = tmp_path_factory.mktemp("router_db")
 
     from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
     from fastapi.testclient import TestClient
     from apps.api.security_scorecard_router import public_router, router
     from apps.api.auth_deps import api_key_auth
@@ -564,6 +589,15 @@ def client(tmp_path_factory):
     _mod._scorecard = SecurityScorecard(db_path=str(tmp / "router_test.db"))
 
     app = FastAPI()
+
+    # Wire the same NotImplementedError → 501 handler that app.py registers
+    @app.exception_handler(NotImplementedError)
+    async def _not_implemented_handler(request, exc):
+        return JSONResponse(
+            status_code=501,
+            content={"status": "not_implemented", "error_category": "not_implemented", "message": str(exc)},
+        )
+
     app.include_router(router)
     app.include_router(public_router)
 
@@ -572,14 +606,16 @@ def client(tmp_path_factory):
         return None
 
     app.dependency_overrides[api_key_auth] = _no_auth
-    return TestClient(app, raise_server_exceptions=True)
+    # raise_server_exceptions=False so 501 handler fires instead of propagating
+    return TestClient(app, raise_server_exceptions=False)
 
 
 @pytest.fixture(scope="module")
 def router_org_id(client):
+    """Seed a scorecard directly into the router's singleton DB."""
+    import apps.api.security_scorecard_router as _mod
     org = f"router-org-{uuid.uuid4().hex[:8]}"
-    resp = client.post(f"/api/v1/scorecard/{org}/generate", json={})
-    assert resp.status_code == 201
+    _seed_scorecard(_mod._scorecard, org, overall_score=78.0)
     return org
 
 
@@ -591,21 +627,21 @@ def test_router_list_categories(client):
     assert data["total"] == 8
 
 
-def test_router_generate_scorecard(client):
+def test_router_generate_scorecard_returns_501(client):
+    """generate_scorecard is not yet wired to real scanner data — must return 501."""
     org = f"gen-org-{uuid.uuid4().hex[:8]}"
     resp = client.post(f"/api/v1/scorecard/{org}/generate", json={"validity_days": 14})
-    assert resp.status_code == 201
+    assert resp.status_code == 501
     data = resp.json()
-    assert "overall_score" in data
-    assert "grade" in data
-    assert "categories" in data
+    assert data["status"] == "not_implemented"
+    assert data["error_category"] == "not_implemented"
 
 
 def test_router_get_scorecard(client, router_org_id):
     resp = client.get(f"/api/v1/scorecard/{router_org_id}")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["org_id"] == router_org_id
+    assert data["data"]["org_id"] == router_org_id
 
 
 def test_router_get_scorecard_404(client):
@@ -648,10 +684,13 @@ def test_router_get_improvement_plan_404(client):
 
 
 def test_router_compare_orgs(client):
+    """compare_orgs works with seeded data — generate calls return 501 (expected)."""
+    import apps.api.security_scorecard_router as _mod
     org_a = f"cmp-a-{uuid.uuid4().hex[:8]}"
     org_b = f"cmp-b-{uuid.uuid4().hex[:8]}"
-    client.post(f"/api/v1/scorecard/{org_a}/generate", json={})
-    client.post(f"/api/v1/scorecard/{org_b}/generate", json={})
+    # Seed both orgs directly — no generate_scorecard call
+    _seed_scorecard(_mod._scorecard, org_a, overall_score=82.0)
+    _seed_scorecard(_mod._scorecard, org_b, overall_score=68.0)
     resp = client.post("/api/v1/scorecard/compare", json={"org_ids": [org_a, org_b]})
     assert resp.status_code == 200
     data = resp.json()

@@ -2595,6 +2595,43 @@ def create_app() -> FastAPI:
             return "validation", "check request body and parameter types"
         return "internal", "retry in 30s; if persistent contact admin with correlation_id"
 
+    @app.exception_handler(NotImplementedError)
+    async def _not_implemented_exception_handler(request, exc):
+        """Honest-stub engines raise NotImplementedError → 501 (not a 500).
+
+        Several engines (security_scorecard, vendor_scorecard, ccm, cloud_drift,
+        compliance_scanner, config_benchmark, ioc_enrichment, kubernetes_security,
+        openclaw) refuse to fabricate hash-derived scores; their generate/scan
+        methods raise NotImplementedError until wired to real scanner/connector
+        data. Surface that as a clean 501 so the UI can render a "not configured"
+        state instead of a generic crash.
+        """
+        correlation_id = getattr(request.state, "correlation_id", "unknown")
+        trace_id = getattr(request.state, "trace_id", None)
+        logger.warning(
+            "not_implemented",
+            extra={
+                "path": request.url.path,
+                "correlation_id": correlation_id,
+                "trace_id": trace_id,
+                "detail": str(exc),
+            },
+        )
+        content: Dict[str, Any] = {
+            "detail": str(exc) or "This capability is not yet implemented.",
+            "error_category": "not_implemented",
+            "status": "not_implemented",
+            "suggested_action": (
+                "this engine returns real data only — wire the required scanner/"
+                "connector via /api/v1/connectors/ to enable it"
+            ),
+            "docs_link": f"{_DOCS_BASE}/errors#not_implemented",
+            "correlation_id": correlation_id,
+        }
+        if trace_id:
+            content["trace_id"] = trace_id
+        return JSONResponse(status_code=501, content=content)
+
     @app.exception_handler(Exception)
     async def _global_exception_handler(request, exc):
         """Catch unhandled exceptions — never leak internal details."""

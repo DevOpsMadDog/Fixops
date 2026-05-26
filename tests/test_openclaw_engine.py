@@ -1,15 +1,28 @@
-"""Tests for OpenClaw Autonomous Pentest Swarm Engine — 30+ tests.
+"""Tests for OpenClaw Autonomous Pentest Swarm Engine — 48 tests.
 
-Covers: campaign CRUD, authorization requirement, start_campaign creates tasks
-and findings, phase advance, pause/resume/complete lifecycle, finding status
-updates, multi-tenant isolation, stats.
+Migration note (2026-05-26):
+  start_campaign() and advance_phase() now raise NotImplementedError unless
+  PENTEST_CONNECTOR_URL is set (honest-stub policy).  Tests that previously
+  called those methods expecting a result dict have been rewritten:
+
+  * Calls that tested start_campaign / advance_phase behaviour → wrapped in
+    pytest.raises(NotImplementedError).
+  * Tests whose real goal was pause / resume / complete / findings / stats
+    (read-paths that ARE production-ready) now seed the required row state
+    directly via the engine's SQLite DB so the CRUD paths remain covered.
+  * No mock makes start_campaign / advance_phase return fake data.
+
+Covers: campaign CRUD, authorization requirement, NotImplementedError for
+start/advance, pause/resume/complete lifecycle (real), finding status updates
+(real), multi-tenant isolation, stats.
 """
 
 from __future__ import annotations
 
-import os
-import tempfile
+import json
+import sqlite3
 import uuid
+
 import pytest
 
 from core.openclaw_engine import OpenClawEngine, PHASE_TASKS, FINDING_TEMPLATES
@@ -53,6 +66,86 @@ def _make_campaign_data(**kwargs):
     }
     defaults.update(kwargs)
     return defaults
+
+
+def _seed_campaign_status(engine: OpenClawEngine, org_id: str, campaign_id: str, status: str) -> None:
+    """Directly update a campaign's status in SQLite (bypasses start_campaign)."""
+    conn = sqlite3.connect(engine.db_path)
+    try:
+        now = engine._now()
+        conn.execute(
+            "UPDATE swarm_campaigns SET status=?, updated_at=? WHERE id=? AND org_id=?",
+            (status, now, campaign_id, org_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _seed_finding(
+    engine: OpenClawEngine,
+    org_id: str,
+    campaign_id: str,
+    *,
+    severity: str = "high",
+    technique_id: str = "T1190",
+) -> str:
+    """Insert a finding row directly so read-path tests can work without start_campaign."""
+    finding_id = str(uuid.uuid4())
+    now = engine._now()
+    conn = sqlite3.connect(engine.db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO swarm_findings
+                (id, org_id, campaign_id, task_id, title, severity, category,
+                 technique_id, technique_name, target, evidence_preview,
+                 remediation, cvss_score, status, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                finding_id, org_id, campaign_id, "",
+                f"Seeded finding {severity}", severity, "initial_access",
+                technique_id, "Seeded Technique", "test-target",
+                "evidence", "remediate this", 7.5, "open", now,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return finding_id
+
+
+def _seed_task(
+    engine: OpenClawEngine,
+    org_id: str,
+    campaign_id: str,
+    *,
+    technique_id: str = "T1595",
+    task_type: str = "recon",
+    status: str = "succeeded",
+) -> str:
+    """Insert a task row directly so stats read-path tests work without start_campaign."""
+    task_id = str(uuid.uuid4())
+    conn = sqlite3.connect(engine.db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO campaign_tasks
+                (id, org_id, campaign_id, task_type, target, technique_id,
+                 technique_name, status, operator_id, result_data, risk_level)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                task_id, org_id, campaign_id, task_type,
+                "192.168.1.1", technique_id, "Active Scanning",
+                status, 1, "{}", "low",
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return task_id
 
 
 # ---------------------------------------------------------------------------
@@ -195,171 +288,149 @@ def test_get_campaign_includes_tasks_and_operators(tmp_engine):
 
 
 # ---------------------------------------------------------------------------
-# start_campaign
+# start_campaign — raises NotImplementedError (honest-stub policy)
 # ---------------------------------------------------------------------------
 
 
-def test_start_campaign_transitions_to_running(tmp_engine):
+def test_start_campaign_raises_not_implemented(tmp_engine):
+    """start_campaign() raises NotImplementedError until PENTEST_CONNECTOR_URL is set."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    result = tmp_engine.start_campaign("test_org", camp["id"])
-    assert result["status"] == "running"
-    assert result["phase"] == "recon"
-
-
-def test_start_campaign_creates_tasks(tmp_engine):
-    camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    result = tmp_engine.start_campaign("test_org", camp["id"])
-    assert result["tasks_queued"] > 0
-    tasks = tmp_engine.list_tasks("test_org", camp["id"])
-    assert len(tasks) == result["tasks_queued"]
-
-
-def test_start_campaign_tasks_are_executed(tmp_engine):
-    camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
-    tasks = tmp_engine.list_tasks("test_org", camp["id"])
-    for task in tasks:
-        assert task["status"] in ("succeeded", "failed"), f"Task still in queued: {task}"
-
-
-def test_start_campaign_may_generate_findings(tmp_engine):
-    """Start multiple campaigns to ensure probabilistic finding generation works."""
-    found_at_least_one = False
-    for _ in range(5):
-        camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-        tmp_engine.start_campaign("test_org", camp["id"])
-        findings = tmp_engine.list_findings("test_org", campaign_id=camp["id"])
-        if len(findings) > 0:
-            found_at_least_one = True
-            break
-    # At 55% success rate on exploit tasks we expect findings in 5 attempts
-    assert found_at_least_one, "Expected at least one finding across 5 campaigns"
-
-
-def test_start_campaign_not_staged_fails(tmp_engine):
-    camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
-    with pytest.raises(ValueError, match="staged"):
+    with pytest.raises(NotImplementedError):
         tmp_engine.start_campaign("test_org", camp["id"])
 
 
-def test_start_campaign_nonexistent_fails(tmp_engine):
-    with pytest.raises(ValueError):
+def test_start_campaign_error_message_mentions_connector(tmp_engine):
+    """Error message must reference the connector configuration path."""
+    camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
+    with pytest.raises(NotImplementedError, match="PENTEST_CONNECTOR_URL"):
+        tmp_engine.start_campaign("test_org", camp["id"])
+
+
+def test_start_campaign_raises_even_for_nonexistent_campaign(tmp_engine):
+    """NotImplementedError fires before existence check — env gate is first."""
+    with pytest.raises(NotImplementedError):
         tmp_engine.start_campaign("test_org", str(uuid.uuid4()))
 
 
-def test_start_campaign_has_estimated_duration(tmp_engine):
+def test_start_campaign_raises_even_when_already_running(tmp_engine):
+    """NotImplementedError fires regardless of current status."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    result = tmp_engine.start_campaign("test_org", camp["id"])
-    assert "estimated_duration_minutes" in result
-    assert result["estimated_duration_minutes"] > 0
+    # Seed running status directly so we can verify the env-gate still fires
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
+    with pytest.raises(NotImplementedError):
+        tmp_engine.start_campaign("test_org", camp["id"])
 
 
 # ---------------------------------------------------------------------------
-# Phase advance
+# advance_phase — raises NotImplementedError (honest-stub policy)
 # ---------------------------------------------------------------------------
 
 
-def test_advance_phase_changes_phase(tmp_engine):
+def test_advance_phase_raises_not_implemented(tmp_engine):
+    """advance_phase() raises NotImplementedError until PENTEST_CONNECTOR_URL is set."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
-    result = tmp_engine.advance_phase("test_org", camp["id"])
-    assert result["previous_phase"] == "recon"
-    assert result["current_phase"] == "initial_access"
+    with pytest.raises(NotImplementedError):
+        tmp_engine.advance_phase("test_org", camp["id"])
 
 
-def test_advance_phase_queues_new_tasks(tmp_engine):
+def test_advance_phase_error_message_mentions_connector(tmp_engine):
+    """Error message must reference the connector configuration path."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
-    tasks_before = len(tmp_engine.list_tasks("test_org", camp["id"]))
-    tmp_engine.advance_phase("test_org", camp["id"])
-    tasks_after = len(tmp_engine.list_tasks("test_org", camp["id"]))
-    assert tasks_after > tasks_before
+    with pytest.raises(NotImplementedError, match="PENTEST_CONNECTOR_URL"):
+        tmp_engine.advance_phase("test_org", camp["id"])
 
 
-def test_advance_phase_from_paused(tmp_engine):
+def test_advance_phase_raises_on_running_campaign(tmp_engine):
+    """advance_phase() raises NotImplementedError even if campaign is running."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
-    tmp_engine.pause_campaign("test_org", camp["id"])
-    result = tmp_engine.advance_phase("test_org", camp["id"])
-    assert result["current_phase"] is not None
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
+    with pytest.raises(NotImplementedError):
+        tmp_engine.advance_phase("test_org", camp["id"])
 
 
-def test_advance_phase_staged_fails(tmp_engine):
+def test_advance_phase_raises_on_staged_campaign(tmp_engine):
+    """advance_phase() raises NotImplementedError on a staged campaign too."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    with pytest.raises(ValueError):
+    with pytest.raises(NotImplementedError):
         tmp_engine.advance_phase("test_org", camp["id"])
 
 
 # ---------------------------------------------------------------------------
-# Pause / resume
+# Pause / resume — real production paths; seeded via direct DB write
 # ---------------------------------------------------------------------------
 
 
 def test_pause_running_campaign(tmp_engine):
+    """Pause works on a running campaign (status seeded directly)."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
     result = tmp_engine.pause_campaign("test_org", camp["id"])
     assert result["status"] == "paused"
 
 
 def test_resume_paused_campaign(tmp_engine):
+    """Resume works on a paused campaign (status seeded directly)."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
-    tmp_engine.pause_campaign("test_org", camp["id"])
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "paused")
     result = tmp_engine.resume_campaign("test_org", camp["id"])
     assert result["status"] == "running"
 
 
 def test_pause_non_running_fails(tmp_engine):
+    """Pausing a staged campaign raises ValueError."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
     with pytest.raises(ValueError):
         tmp_engine.pause_campaign("test_org", camp["id"])
 
 
 def test_resume_non_paused_fails(tmp_engine):
+    """Resuming a staged (not paused) campaign raises ValueError."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
+    # Campaign is staged — resume should raise ValueError (not paused)
     with pytest.raises(ValueError):
         tmp_engine.resume_campaign("test_org", camp["id"])
 
 
 # ---------------------------------------------------------------------------
-# Complete
+# Complete — real production path; seeded via direct DB write
 # ---------------------------------------------------------------------------
 
 
 def test_complete_running_campaign(tmp_engine):
+    """Complete works on a running campaign (status seeded directly)."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
     result = tmp_engine.complete_campaign("test_org", camp["id"])
     assert result["status"] == "completed"
     assert "risk_score" in result
 
 
 def test_complete_staged_campaign_fails(tmp_engine):
+    """Completing a staged campaign raises ValueError."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
     with pytest.raises(ValueError):
         tmp_engine.complete_campaign("test_org", camp["id"])
 
 
 def test_complete_sets_end_time(tmp_engine):
+    """Complete writes end_time into the DB (real persistence check)."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
     tmp_engine.complete_campaign("test_org", camp["id"])
     fetched = tmp_engine.get_campaign("test_org", camp["id"])
     assert fetched["end_time"] is not None
 
 
 def test_complete_risk_score_nonnegative(tmp_engine):
+    """Risk score after complete is >= 0.0."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
     result = tmp_engine.complete_campaign("test_org", camp["id"])
     assert result["risk_score"] >= 0.0
 
 
 # ---------------------------------------------------------------------------
-# Findings
+# Findings — real production paths; findings seeded via direct DB write
 # ---------------------------------------------------------------------------
 
 
@@ -368,22 +439,14 @@ def test_list_findings_empty(tmp_engine):
 
 
 def test_update_finding_status_valid(tmp_engine):
-    """Run campaigns until we get a finding to update."""
-    finding = None
-    for _ in range(10):
-        camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-        tmp_engine.start_campaign("test_org", camp["id"])
-        findings = tmp_engine.list_findings("test_org", campaign_id=camp["id"])
-        if findings:
-            finding = findings[0]
-            break
-    if finding is None:
-        pytest.skip("No findings generated (probabilistic) — increase campaign count")
+    """update_finding_status works on a real seeded finding."""
+    camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
+    finding_id = _seed_finding(tmp_engine, "test_org", camp["id"], severity="high")
 
-    result = tmp_engine.update_finding_status("test_org", finding["id"], "accepted")
+    result = tmp_engine.update_finding_status("test_org", finding_id, "accepted")
     assert result["status"] == "accepted"
 
-    result2 = tmp_engine.update_finding_status("test_org", finding["id"], "remediated")
+    result2 = tmp_engine.update_finding_status("test_org", finding_id, "remediated")
     assert result2["status"] == "remediated"
 
 
@@ -398,19 +461,21 @@ def test_update_finding_not_found(tmp_engine):
 
 
 def test_list_findings_filter_by_severity(tmp_engine):
-    """Findings are always either severity from templates; we just verify filter works."""
-    # Run campaigns to generate findings
-    for _ in range(5):
-        camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-        tmp_engine.start_campaign("test_org", camp["id"])
+    """Severity filter on list_findings works with seeded finding rows."""
+    camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
+    _seed_finding(tmp_engine, "test_org", camp["id"], severity="critical")
+    _seed_finding(tmp_engine, "test_org", camp["id"], severity="high")
 
     all_findings = tmp_engine.list_findings("test_org")
-    if not all_findings:
-        return  # probabilistic — skip if no findings
+    assert len(all_findings) == 2
 
-    first_severity = all_findings[0]["severity"]
-    filtered = tmp_engine.list_findings("test_org", severity=first_severity)
-    assert all(f["severity"] == first_severity for f in filtered)
+    critical = tmp_engine.list_findings("test_org", severity="critical")
+    assert len(critical) == 1
+    assert critical[0]["severity"] == "critical"
+
+    high = tmp_engine.list_findings("test_org", severity="high")
+    assert len(high) == 1
+    assert high[0]["severity"] == "high"
 
 
 # ---------------------------------------------------------------------------
@@ -436,22 +501,24 @@ def test_multitenant_campaigns_isolated(tmp_path):
 
 
 def test_multitenant_findings_isolated(tmp_path):
+    """Findings seeded for org_x must not appear when querying org_z."""
     db = str(tmp_path / "shared.db")
     eng = OpenClawEngine(org_id="org_x", db_path=db)
 
     camp1 = eng.create_campaign("org_x", _make_campaign_data())
-    camp2_data = _make_campaign_data()
+    # Seed a finding for org_x directly (no start_campaign needed)
+    _seed_finding(eng, "org_x", camp1["id"], severity="high")
 
-    # Run org_x's campaign — findings should only appear for org_x
-    eng.start_campaign("org_x", camp1["id"])
+    # Verify org_x sees its finding
+    assert len(eng.list_findings("org_x")) == 1
 
-    # No findings bleed between orgs
+    # org_z must see nothing — isolation intact
     findings_other = eng.list_findings("org_z")
     assert findings_other == []
 
 
 # ---------------------------------------------------------------------------
-# Stats
+# Stats — real production paths; seeded via direct DB writes
 # ---------------------------------------------------------------------------
 
 
@@ -472,8 +539,9 @@ def test_stats_reflect_campaigns(tmp_engine):
 
 
 def test_stats_active_campaigns(tmp_engine):
+    """active_campaigns count reflects campaigns seeded as status=running."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
     stats = tmp_engine.get_stats("test_org")
     assert stats["active_campaigns"] == 1
 
@@ -484,10 +552,13 @@ def test_stats_operators_deployed(tmp_engine):
     assert stats["operators_deployed"] == 3
 
 
-def test_stats_techniques_used_after_start(tmp_engine):
+def test_stats_techniques_used_after_task_seed(tmp_engine):
+    """techniques_used reflects succeeded tasks seeded directly in the DB."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    tmp_engine.start_campaign("test_org", camp["id"])
+    _seed_task(tmp_engine, "test_org", camp["id"], technique_id="T1595", status="succeeded")
+    _seed_task(tmp_engine, "test_org", camp["id"], technique_id="T1592", status="succeeded")
     stats = tmp_engine.get_stats("test_org")
-    # techniques_used lists top-5 succeeded technique IDs — may be empty if all tasks failed
     assert isinstance(stats["techniques_used"], list)
+    assert "T1595" in stats["techniques_used"]
+    assert "T1592" in stats["techniques_used"]
     assert len(stats["techniques_used"]) <= 5

@@ -275,48 +275,54 @@ class TestManualAssessment:
 
 
 # ============================================================================
-# Auto assessment
+# Auto assessment — raises NotImplementedError until vendor-risk connector wired
 # ============================================================================
 
 class TestAutoAssessment:
-    def test_auto_assess_returns_assessment(self, scorecard):
+    def test_auto_assess_raises_not_implemented(self, scorecard):
+        """auto_assess() must raise NotImplementedError until the vendor-risk
+        connector (VENDOR_RISK_CONNECTOR_URL) is configured."""
         vendor = scorecard.add_vendor(_make_vendor(domain="example.com"))
-        assessment = scorecard.auto_assess(vendor.id)
-        assert isinstance(assessment, SecurityAssessment)
-        assert 0 <= assessment.score <= 100
-        assert assessment.assessor == "auto-scanner"
-        assert "example.com" in assessment.notes
+        with pytest.raises(NotImplementedError):
+            scorecard.auto_assess(vendor.id)
 
-    def test_auto_assess_has_all_factors(self, scorecard):
+    def test_auto_assess_error_message_mentions_connector(self, scorecard):
+        """Error message should guide the caller to configure a real connector."""
         vendor = scorecard.add_vendor(_make_vendor(domain="example.com"))
-        assessment = scorecard.auto_assess(vendor.id)
-        expected_factors = {
-            "ssl_score", "headers_score", "dns_score",
-            "vulnerability_score", "data_handling_score",
-        }
-        assert expected_factors == set(assessment.factors.keys())
+        with pytest.raises(NotImplementedError, match="connector|VENDOR_RISK_CONNECTOR_URL|assess_vendor"):
+            scorecard.auto_assess(vendor.id)
 
-    def test_auto_assess_deterministic(self, scorecard, db_path):
-        """Same domain should produce same score across two scorecard instances."""
-        sc2 = VendorScorecard(db_path=db_path)
-        v1 = scorecard.add_vendor(_make_vendor(domain="stable-domain.com"))
-        a1 = scorecard.auto_assess(v1.id)
-
-        v2 = sc2.add_vendor(_make_vendor(domain="stable-domain.com"))
-        a2 = sc2.auto_assess(v2.id)
-        assert a1.score == a2.score
-
-    def test_auto_assess_not_found(self, scorecard):
-        with pytest.raises(KeyError):
+    def test_auto_assess_not_found_still_raises_not_implemented(self, scorecard):
+        """Even for a nonexistent vendor, NotImplementedError is raised before
+        any lookup because the env-guard fires first."""
+        with pytest.raises(NotImplementedError):
             scorecard.auto_assess("nonexistent")
 
-    def test_auto_assess_well_known_domain_higher(self, scorecard):
-        """Well-known domains should score higher than unknown ones."""
-        v_known = scorecard.add_vendor(_make_vendor(domain="google.com", name="Google"))
-        v_unknown = scorecard.add_vendor(_make_vendor(domain="obscure-xyz-999.io", name="Unknown"))
-        a_known = scorecard.auto_assess(v_known.id)
-        a_unknown = scorecard.auto_assess(v_unknown.id)
-        assert a_known.score > a_unknown.score
+    def test_auto_assess_does_not_persist_assessment(self, scorecard):
+        """auto_assess() must not write any assessment row when it raises."""
+        vendor = scorecard.add_vendor(_make_vendor(domain="example.com"))
+        try:
+            scorecard.auto_assess(vendor.id)
+        except NotImplementedError:
+            pass
+        # No assessment should have been recorded
+        assert scorecard.get_latest_assessment(vendor.id) is None
+
+    def test_auto_assess_real_path_still_works_via_assess_vendor(self, scorecard):
+        """assess_vendor() (the production-ready path) is unaffected by the
+        auto_assess stub — callers with real scores can still record assessments."""
+        vendor = scorecard.add_vendor(_make_vendor(domain="real.example.com"))
+        factors = {
+            "ssl_score": 88.0,
+            "headers_score": 72.0,
+            "dns_score": 91.0,
+            "vulnerability_score": 65.0,
+            "data_handling_score": 80.0,
+        }
+        assessment = scorecard.assess_vendor(vendor.id, factors, assessor="real-probe")
+        assert isinstance(assessment, SecurityAssessment)
+        assert 0 <= assessment.score <= 100
+        assert assessment.assessor == "real-probe"
 
 
 # ============================================================================

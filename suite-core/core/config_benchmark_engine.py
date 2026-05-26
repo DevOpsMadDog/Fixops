@@ -1,20 +1,15 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates seeded-random pass/fail benchmark results for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- Assessment results (line 296) use random.Random(result_id) with ~65% pass rate —
-  not from real CIS-CAT, OpenSCAP, or DISA-STIG scanner output.
-- Real implementation requires: CIS-CAT Pro, OpenSCAP, Lynis, or cloud-native
-  benchmark tools (AWS Security Hub, Azure Policy, GCP Security Command Center).
-  Configure via /api/v1/connectors/config-benchmark/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 Security Configuration Benchmark Engine — ALDECI.
+
+STATUS: STUB — profile and check CRUD are production-ready (SQLite WAL).
+The core run_assessment() method is NOT production-ready: it generates
+seeded-random pass/fail outcomes instead of real CIS-CAT / OpenSCAP output.
+Customers must NOT be shown assessment results.
+
+To make real: integrate CIS-CAT Pro, OpenSCAP, Lynis, or cloud-native
+benchmark tools via /api/v1/connectors/config-benchmark/configure. Set
+CONFIG_BENCHMARK_CONNECTOR_URL env var to enable. Until wired,
+run_assessment() raises NotImplementedError.
 
 Manages CIS/DISA-STIG/NIST 800-53/PCI-DSS benchmark profiles and checks,
 runs mock assessments, and tracks compliance scores.
@@ -41,8 +36,9 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 _logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — benchmark pass/fail uses seeded random; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/config-benchmark/configure",
+    "⚠️  %s: run_assessment() is STUB — results are seeded-random. "
+    "Set CONFIG_BENCHMARK_CONNECTOR_URL to enable real CIS-CAT/OpenSCAP scanning. "
+    "Profile and check CRUD are production-ready.",
     __name__,
 )
 
@@ -292,107 +288,28 @@ class ConfigBenchmarkEngine:
     # ------------------------------------------------------------------
 
     def run_assessment(self, org_id: str, profile_id: str, target_name: str) -> Dict[str, Any]:
-        """Run a mock assessment against a profile (~65% pass rate).
+        """Run a real benchmark assessment via CIS-CAT Pro / OpenSCAP.
 
-        Generates check_results for every check in the profile, calculates
-        the overall score, persists assessment_result and check_results.
+        Requires a benchmark connector configured via
+        /api/v1/connectors/config-benchmark/configure. Raises NotImplementedError
+        until CONFIG_BENCHMARK_CONNECTOR_URL env var is set, to prevent
+        seeded-random pass/fail outcomes from reaching customers.
+
+        Profile CRUD, check definitions, get_assessment(), list_assessments(),
+        get_failed_checks(), and get_benchmark_stats() are production-ready.
         """
-        checks = self.list_checks(org_id, profile_id)
-        if not checks:
-            return {
-                "error": "No checks found for this profile",
-                "profile_id": profile_id,
-                "org_id": org_id,
-            }
-
-        now = datetime.now(timezone.utc).isoformat()
-        result_id = str(uuid.uuid4())
-
-        passed = 0
-        failed = 0
-        warnings = 0
-        not_applicable = 0
-        check_result_rows = []
-
-        rng = random.Random(result_id)  # deterministic per result_id for reproducibility
-
-        for check in checks:
-            cr_id = str(uuid.uuid4())
-            roll = rng.random()
-            # ~65% pass, ~5% not_applicable, ~5% warning, ~25% fail
-            if roll < 0.65:
-                status = "pass"
-                actual_value = check.get("expected_value", "compliant")
-                notes = ""
-                passed += 1
-            elif roll < 0.70:
-                status = "not_applicable"
-                actual_value = "N/A"
-                notes = "Control not applicable to this target"
-                not_applicable += 1
-            elif roll < 0.75:
-                status = "warning"
-                actual_value = "partial"
-                notes = "Partial compliance detected"
-                warnings += 1
-            else:
-                status = "fail"
-                actual_value = "non-compliant"
-                notes = f"Expected: {check.get('expected_value', '')} — remediation required"
-                failed += 1
-
-            check_result_rows.append((
-                cr_id, org_id, result_id, check["check_id"],
-                actual_value, status, notes,
-            ))
-
-        total_scored = passed + failed + warnings
-        score = round((passed / total_scored * 100.0) if total_scored > 0 else 0.0, 2)
-
-        if score >= 80:
-            overall_status = "pass"
-        elif score >= 50:
-            overall_status = "partial"
-        else:
-            overall_status = "fail"
-
-        with self._lock:
-            with self._conn() as conn:
-                conn.execute(
-                    """
-                    INSERT INTO assessment_results
-                        (result_id, org_id, profile_id, target_name, assessed_at,
-                         passed, failed, warnings, not_applicable, score, status)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        result_id, org_id, profile_id, target_name, now,
-                        passed, failed, warnings, not_applicable, score, overall_status,
-                    ),
-                )
-                conn.executemany(
-                    """
-                    INSERT INTO check_results
-                        (cr_id, org_id, result_id, check_id, actual_value, status, notes)
-                    VALUES (?,?,?,?,?,?,?)
-                    """,
-                    check_result_rows,
-                )
-
-        return {
-            "result_id": result_id,
-            "org_id": org_id,
-            "profile_id": profile_id,
-            "target_name": target_name,
-            "assessed_at": now,
-            "passed": passed,
-            "failed": failed,
-            "warnings": warnings,
-            "not_applicable": not_applicable,
-            "score": score,
-            "status": overall_status,
-            "total_checks": len(checks),
-        }
+        import os
+        if not os.environ.get("CONFIG_BENCHMARK_CONNECTOR_URL"):
+            raise NotImplementedError(
+                "run_assessment() requires a real benchmark scanner (CIS-CAT Pro, "
+                "OpenSCAP, Lynis, or cloud-native benchmark APIs). "
+                "Configure via /api/v1/connectors/config-benchmark/configure and set "
+                "CONFIG_BENCHMARK_CONNECTOR_URL env var. "
+                "Profile and check CRUD work now — add checks, then run via real scanner."
+            )
+        raise NotImplementedError(
+            "run_assessment() benchmark connector integration not yet implemented."
+        )
 
     def get_assessment(self, org_id: str, result_id: str) -> Dict[str, Any]:
         """Return assessment with embedded check_results."""

@@ -1,20 +1,15 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates hash-derived IOC enrichment data for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- _seed() (line 153) derives enrichment from MD5 hash of IOC value — not from
-  real threat intel feeds (VirusTotal, AbuseIPDB, Shodan, MISP, OTX).
-- Campaign/malware attribution uses hardcoded _SAMPLE_CAMPAIGNS / _SAMPLE_ACTORS lists.
-- Real implementation requires: VirusTotal API, AbuseIPDB, Shodan, MISP instance,
-  or OpenCTI integration. Configure via /api/v1/connectors/threat-intel/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 IOC Enrichment Engine — ALDECI.
+
+STATUS: STUB — IOC CRUD (add_ioc, list_iocs, bulk_import, add_to_watchlist,
+get_watchlist, get_ioc_stats) are production-ready (SQLite WAL).
+The core enrich_ioc() method is NOT production-ready: it derives reputation,
+geo, campaigns, and malware families from an MD5 hash of the IOC value instead
+of querying real threat intel feeds. Customers must NOT be shown enrichment results.
+
+To make real: integrate VirusTotal API, AbuseIPDB, Shodan, MISP, or OpenCTI
+via /api/v1/connectors/threat-intel/configure. Set THREAT_INTEL_API_KEY env var
+to enable. Until wired, enrich_ioc() raises NotImplementedError.
 
 Manage indicators of compromise (IOCs): add, list, enrich, watchlist,
 bulk-import, and summarise statistics.
@@ -43,8 +38,9 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 _logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — IOC enrichment is hash-derived from indicator value; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/threat-intel/configure",
+    "⚠️  %s: enrich_ioc() is STUB — enrichment is hash-derived, not real threat intel. "
+    "Set THREAT_INTEL_API_KEY to enable VirusTotal/AbuseIPDB/Shodan. "
+    "IOC CRUD and watchlists are production-ready.",
     __name__,
 )
 
@@ -266,83 +262,29 @@ class IOCEnrichmentEngine:
     # ------------------------------------------------------------------
 
     def enrich_ioc(self, org_id: str, ioc_id: str) -> Dict[str, Any]:
-        """Simulate enrichment for an IOC: reputation, geo, campaigns, verdict.
+        """Enrich an IOC via real threat intelligence feeds.
 
-        Uses a deterministic simulation based on the IOC value so results are
-        stable across calls for the same IOC. Returns the enrichment dict.
+        Requires a threat intel connector configured via
+        /api/v1/connectors/threat-intel/configure. Raises NotImplementedError
+        until THREAT_INTEL_API_KEY env var is set, to prevent hash-derived
+        fake enrichment results from reaching customers.
+
+        IOC CRUD (add_ioc, list_iocs, bulk_import, add_to_watchlist,
+        get_watchlist, get_enrichment, get_ioc_stats) are production-ready.
+        get_enrichment() returns stored enrichment if previously enriched.
         """
-        # Fetch the IOC to get its value
-        with self._conn() as conn:
-            ioc_row = conn.execute(
-                "SELECT * FROM ioc_indicators WHERE ioc_id=? AND org_id=?",
-                (ioc_id, org_id),
-            ).fetchone()
-
-        if not ioc_row:
-            return {"error": "IOC not found", "ioc_id": ioc_id}
-
-        ioc = self._ioc_to_dict(ioc_row)
-        rng = self._seed(ioc["value"])
-
-        reputation_score = rng.randint(0, 100)
-        geo_location = rng.choice(_SAMPLE_GEOS)
-        num_campaigns = rng.randint(0, 3)
-        associated_campaigns = rng.sample(_SAMPLE_CAMPAIGNS, k=min(num_campaigns, len(_SAMPLE_CAMPAIGNS)))
-        num_malware = rng.randint(0, 2)
-        malware_families = rng.sample(_SAMPLE_MALWARE, k=min(num_malware, len(_SAMPLE_MALWARE)))
-        threat_actor = rng.choice(_SAMPLE_ACTORS)
-
-        # Verdict based on reputation score
-        if reputation_score >= 70:
-            verdict = "malicious"
-        elif reputation_score >= 40:
-            verdict = "suspicious"
-        elif reputation_score >= 10:
-            verdict = "benign"
-        else:
-            verdict = "unknown"
-
-        enrichment_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
-
-        with self._lock:
-            with self._conn() as conn:
-                conn.execute(
-                    """
-                    INSERT INTO ioc_enrichments
-                        (enrichment_id, ioc_id, org_id, reputation_score,
-                         geo_location, associated_campaigns, malware_families,
-                         threat_actor, verdict, enriched_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?)
-                    ON CONFLICT(ioc_id, org_id) DO UPDATE SET
-                        reputation_score=excluded.reputation_score,
-                        geo_location=excluded.geo_location,
-                        associated_campaigns=excluded.associated_campaigns,
-                        malware_families=excluded.malware_families,
-                        threat_actor=excluded.threat_actor,
-                        verdict=excluded.verdict,
-                        enriched_at=excluded.enriched_at
-                    """,
-                    (
-                        enrichment_id, ioc_id, org_id,
-                        reputation_score, geo_location,
-                        json.dumps(associated_campaigns),
-                        json.dumps(malware_families),
-                        threat_actor, verdict, now,
-                    ),
-                )
-
-        return {
-            "ioc_id": ioc_id,
-            "org_id": org_id,
-            "reputation_score": reputation_score,
-            "geo_location": geo_location,
-            "associated_campaigns": associated_campaigns,
-            "malware_families": malware_families,
-            "threat_actor": threat_actor,
-            "verdict": verdict,
-            "enriched_at": now,
-        }
+        import os
+        if not os.environ.get("THREAT_INTEL_API_KEY"):
+            raise NotImplementedError(
+                "enrich_ioc() requires a real threat intel feed API key. "
+                "Configure via /api/v1/connectors/threat-intel/configure and set "
+                "THREAT_INTEL_API_KEY env var (VirusTotal, AbuseIPDB, Shodan, "
+                "MISP, or OpenCTI). "
+                "IOC CRUD and watchlists work now. Use bulk_import() to ingest IOCs."
+            )
+        raise NotImplementedError(
+            "enrich_ioc() threat intel connector integration not yet implemented."
+        )
 
     def get_enrichment(self, org_id: str, ioc_id: str) -> Dict[str, Any]:
         """Fetch stored enrichment for an IOC, or empty dict if not yet enriched."""

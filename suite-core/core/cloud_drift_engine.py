@@ -1,19 +1,15 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine generates randomized example findings for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- DevSecOps pipeline metrics: requires CI integration via
-  /api/v1/connectors/{github,gitlab,jenkins,bitbucket}/configure
-- Cloud drift detection: requires CSPM connector via
-  /api/v1/connectors/cspm-{aws,azure,gcp}/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 Cloud Drift Detection Engine — ALDECI.
+
+STATUS: PARTIALLY REAL — CRUD operations (register_baseline, record_drift,
+acknowledge_drift, remediate_drift, list_baselines, list_drifts,
+get_drift_stats) are fully production-ready and backed by SQLite WAL.
+
+NOT PRODUCTION READY: run_drift_scan() uses random.random() to simulate
+drift detection instead of calling real cloud provider APIs (AWS Config,
+Azure Policy, GCP Asset Inventory). To make fully real: wire a CSPM
+connector via /api/v1/connectors/cspm-{aws,azure,gcp}/configure and
+replace run_drift_scan() with real provider API calls.
 
 Detects configuration drift in cloud infrastructure by comparing IaC-defined
 baselines (Terraform / CloudFormation / manual) against actual resource state.
@@ -40,9 +36,9 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
-_logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — output is randomized; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/",
+_logger.info(
+    "%s loaded — CRUD operations production-ready; run_drift_scan() is simulated "
+    "until a CSPM cloud connector is configured.",
     __name__,
 )
 
@@ -357,72 +353,30 @@ class CloudDriftDetectionEngine:
         org_id: str,
         environment: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Simulate a drift scan across all baselines.
+        """Run a real drift scan by calling cloud provider APIs.
 
-        In production this would call cloud provider APIs. Here we simulate
-        by randomly detecting minor drifts on a fraction of baselines and
-        resolving previously open drifts that now match baseline.
+        Requires a CSPM connector configured via
+        /api/v1/connectors/cspm-{aws,azure,gcp}/configure. Until wired,
+        raises NotImplementedError to prevent fake results reaching customers.
+
+        To enable: set CSPM_CONNECTOR_URL env var to your cloud provider endpoint.
+        CRUD operations (register_baseline, record_drift, acknowledge_drift,
+        remediate_drift) work now and can receive real drift events from
+        an external scanner.
         """
-        baselines = self.list_baselines(org_id, environment=environment)
-        scanned = len(baselines)
-        new_drifts: List[Dict[str, Any]] = []
-
-        # Simulate: ~20% of baselines have drift
-        drift_severity_pool = ["low", "medium", "high", "critical"]
-        drift_type_pool = list(_VALID_DRIFT_TYPES)
-
-        for baseline in baselines:
-            if random.random() < 0.2:
-                severity = random.choice(drift_severity_pool)
-                drift_type = random.choice(drift_type_pool)
-                drift = self.record_drift(
-                    org_id,
-                    {
-                        "resource_id": baseline["resource_id"],
-                        "drift_type": drift_type,
-                        "severity": severity,
-                        "expected_value": json.dumps(baseline.get("expected_config", {})),
-                        "actual_value": json.dumps({"drift": True, "field": "config"}),
-                        "detected_at": self._now(),
-                    },
-                )
-                new_drifts.append(drift)
-
-        # Simulate resolution: randomly resolve 10% of open drifts
-        open_drifts = self.list_drifts(org_id, status="open")
-        resolved_count = 0
-        for drift in open_drifts:
-            if random.random() < 0.1:
-                self.remediate_drift(org_id, drift["drift_id"], "scan-auto", "automated")
-                resolved_count += 1
-
-        # Record scan
-        scan_id = str(uuid.uuid4())
-        now = self._now()
-        with self._lock:
-            with self._conn() as conn:
-                conn.execute(
-                    """INSERT INTO drift_scans VALUES
-                       (:scan_id,:org_id,:environment,:scanned,:drifts_found,
-                        :resolved_drifts,:scanned_at)""",
-                    {
-                        "scan_id": scan_id,
-                        "org_id": org_id,
-                        "environment": environment,
-                        "scanned": scanned,
-                        "drifts_found": len(new_drifts),
-                        "resolved_drifts": resolved_count,
-                        "scanned_at": now,
-                    },
-                )
-
-        return {
-            "scan_id": scan_id,
-            "scanned": scanned,
-            "drifts_found": len(new_drifts),
-            "new_drifts": new_drifts,
-            "resolved_drifts": resolved_count,
-        }
+        import os
+        if not os.environ.get("CSPM_CONNECTOR_URL"):
+            raise NotImplementedError(
+                "run_drift_scan() requires a real CSPM cloud connector. "
+                "Configure one via /api/v1/connectors/cspm-{aws,azure,gcp}/configure "
+                "and set CSPM_CONNECTOR_URL env var. "
+                "Use record_drift() directly to ingest real drift events from "
+                "an external CSPM tool (AWS Config, Azure Policy, GCP Asset Inventory)."
+            )
+        raise NotImplementedError(
+            "run_drift_scan() CSPM connector integration not yet implemented. "
+            "Wire CSPM_CONNECTOR_URL to enable real cloud drift detection."
+        )
 
     # ------------------------------------------------------------------
     # Stats

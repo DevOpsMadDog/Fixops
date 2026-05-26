@@ -1,5 +1,10 @@
 """
-Tests for KubernetesSecurityEngine — 30+ tests covering init, CRUD, org isolation, stats.
+Tests for KubernetesSecurityEngine — 56 tests covering init, CRUD, org isolation, stats.
+
+NotImplementedError migration:
+  - run_cis_benchmark() → raises NotImplementedError (unless K8S_KUBEBENCH_URL set)
+  - get_rbac_analysis()  → raises NotImplementedError (unless K8S_KUBEBENCH_URL set)
+  All other methods remain production-ready.
 """
 import pytest
 from core.kubernetes_security_engine import KubernetesSecurityEngine
@@ -257,73 +262,108 @@ class TestResolveFinding:
 
 
 # ---------------------------------------------------------------------------
-# CIS Benchmark
+# CIS Benchmark — run_cis_benchmark() raises NotImplementedError
+# (requires K8S_KUBEBENCH_URL env var; unset in test environment)
 # ---------------------------------------------------------------------------
 
 class TestCISBenchmark:
-    def test_run_returns_dict(self, engine, cluster):
-        result = engine.run_cis_benchmark("org1", cluster["id"])
-        assert isinstance(result, dict)
+    def test_run_raises_not_implemented(self, engine, cluster):
+        """run_cis_benchmark() must raise NotImplementedError when kube-bench not configured."""
+        with pytest.raises(NotImplementedError):
+            engine.run_cis_benchmark("org1", cluster["id"])
 
-    def test_run_has_score(self, engine, cluster):
-        result = engine.run_cis_benchmark("org1", cluster["id"])
-        assert "score_pct" in result
-        assert 0.0 <= result["score_pct"] <= 100.0
+    def test_run_error_message_mentions_kubebench(self, engine, cluster):
+        """NotImplementedError message must reference kube-bench / K8S_KUBEBENCH_URL."""
+        with pytest.raises(NotImplementedError) as exc_info:
+            engine.run_cis_benchmark("org1", cluster["id"])
+        assert "kube-bench" in str(exc_info.value).lower() or "K8S_KUBEBENCH_URL" in str(exc_info.value)
 
-    def test_run_has_categories(self, engine, cluster):
-        result = engine.run_cis_benchmark("org1", cluster["id"])
-        assert "categories" in result
-        assert len(result["categories"]) == 5
-
-    def test_run_has_passed_failed(self, engine, cluster):
-        result = engine.run_cis_benchmark("org1", cluster["id"])
-        assert "passed" in result
-        assert "failed" in result
-        assert result["passed"] + result["failed"] > 0
-
-    def test_run_wrong_cluster_raises(self, engine):
-        with pytest.raises(ValueError):
+    def test_run_raises_for_unknown_cluster(self, engine):
+        """run_cis_benchmark() on unknown cluster_id still raises NotImplementedError."""
+        with pytest.raises(NotImplementedError):
             engine.run_cis_benchmark("org1", "no-such-cluster")
 
-    def test_run_wrong_org_raises(self, engine, cluster):
-        with pytest.raises(ValueError):
+    def test_run_raises_for_wrong_org(self, engine, cluster):
+        """run_cis_benchmark() with wrong org raises NotImplementedError (env check fires first)."""
+        with pytest.raises(NotImplementedError):
             engine.run_cis_benchmark("org-other", cluster["id"])
 
-    def test_run_benchmark_name(self, engine, cluster):
-        result = engine.run_cis_benchmark("org1", cluster["id"])
-        assert "CIS Kubernetes Benchmark" in result["benchmark"]
+    def test_run_raises_not_value_error(self, engine, cluster):
+        """run_cis_benchmark() must raise NotImplementedError, not ValueError or RuntimeError."""
+        try:
+            engine.run_cis_benchmark("org1", cluster["id"])
+            pytest.fail("Expected NotImplementedError")
+        except NotImplementedError:
+            pass
+        except Exception as exc:
+            pytest.fail(f"Expected NotImplementedError, got {type(exc).__name__}: {exc}")
+
+    def test_run_does_not_return_score(self, engine, cluster):
+        """run_cis_benchmark() must not silently return a fake score."""
+        raised = False
+        try:
+            engine.run_cis_benchmark("org1", cluster["id"])
+        except NotImplementedError:
+            raised = True
+        assert raised, "Expected NotImplementedError to be raised"
+
+    def test_run_does_not_modify_db(self, engine, cluster):
+        """run_cis_benchmark() raising NotImplementedError must not write findings to DB."""
+        before = engine.list_findings("org1")
+        try:
+            engine.run_cis_benchmark("org1", cluster["id"])
+        except NotImplementedError:
+            pass
+        after = engine.list_findings("org1")
+        assert len(after) == len(before)
 
 
 # ---------------------------------------------------------------------------
-# RBAC Analysis
+# RBAC Analysis — get_rbac_analysis() raises NotImplementedError
+# (requires K8S_KUBEBENCH_URL env var; unset in test environment)
 # ---------------------------------------------------------------------------
 
 class TestRBACAnalysis:
-    def test_returns_dict(self, engine, cluster):
-        result = engine.get_rbac_analysis("org1", cluster["id"])
-        assert isinstance(result, dict)
+    def test_raises_not_implemented(self, engine, cluster):
+        """get_rbac_analysis() must raise NotImplementedError when K8s API not configured."""
+        with pytest.raises(NotImplementedError):
+            engine.get_rbac_analysis("org1", cluster["id"])
 
-    def test_has_total_roles(self, engine, cluster):
-        result = engine.get_rbac_analysis("org1", cluster["id"])
-        assert "total_roles" in result
-        assert result["total_roles"] > 0
+    def test_error_message_mentions_connector(self, engine, cluster):
+        """NotImplementedError message must reference the connector config path."""
+        with pytest.raises(NotImplementedError) as exc_info:
+            engine.get_rbac_analysis("org1", cluster["id"])
+        msg = str(exc_info.value)
+        assert "K8S_KUBEBENCH_URL" in msg or "kubernetes" in msg.lower()
 
-    def test_has_cluster_admin_bindings(self, engine, cluster):
-        result = engine.get_rbac_analysis("org1", cluster["id"])
-        assert "cluster_admin_bindings" in result
+    def test_raises_for_wrong_org(self, engine, cluster):
+        """get_rbac_analysis() with wrong org still raises NotImplementedError."""
+        with pytest.raises(NotImplementedError):
+            engine.get_rbac_analysis("org-other", cluster["id"])
 
-    def test_wildcard_permissions_reflects_findings(self, engine, cluster):
+    def test_raises_for_unknown_cluster(self, engine):
+        """get_rbac_analysis() on unknown cluster_id raises NotImplementedError."""
+        with pytest.raises(NotImplementedError):
+            engine.get_rbac_analysis("org1", "no-such-cluster")
+
+    def test_rbac_wildcard_findings_still_tracked_in_db(self, engine, cluster):
+        """record_finding() with rbac_wildcard type is real — findings persist in DB.
+
+        The RBAC wildcard count is derivable from list_findings() even though
+        get_rbac_analysis() is not yet available. Preserve this real read path.
+        """
         engine.record_finding("org1", {
             "cluster_id": cluster["id"],
             "finding_type": "rbac_wildcard",
             "severity": "high",
         })
-        result = engine.get_rbac_analysis("org1", cluster["id"])
-        assert result["wildcard_permissions"] == 1
-
-    def test_wrong_org_raises(self, engine, cluster):
-        with pytest.raises(ValueError):
-            engine.get_rbac_analysis("org-other", cluster["id"])
+        # get_rbac_analysis raises, but real data is still queryable via list_findings
+        with pytest.raises(NotImplementedError):
+            engine.get_rbac_analysis("org1", cluster["id"])
+        # Confirm the finding is stored and queryable via the real read path
+        wildcard_findings = engine.list_findings("org1", finding_type="rbac_wildcard")
+        assert len(wildcard_findings) == 1
+        assert wildcard_findings[0]["finding_type"] == "rbac_wildcard"
 
 
 # ---------------------------------------------------------------------------

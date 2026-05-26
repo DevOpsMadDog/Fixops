@@ -1,21 +1,20 @@
 """
-⚠️  SIMULATED DATA — NOT FOR PRODUCTION OR DEMO USE  ⚠️
-
-This engine simulates autonomous pentest campaigns for development/testing.
-DO NOT use the output in customer-facing screens or pitches.
-
-Real implementation tracking:
-- Task execution (line 896) uses random.random() < success_prob to decide
-  exploit success — no real network probes or exploit payloads are executed.
-- Operator "swarm" consists of virtual state machine agents, not real tools.
-- Real implementation requires: Metasploit RPC, Nuclei, custom exploit runners,
-  or integration with PentestGPT/Pentera/Cymulate.
-  Configure via /api/v1/connectors/pentest/configure
-
-Until real integrations are wired, these endpoints return a structured
-warning header so callers can detect simulation mode.
-
 OpenClaw Autonomous Pentest Swarm Engine — ALDECI.
+
+STATUS: STUB — campaign and finding CRUD (create_campaign, list_campaigns,
+get_campaign, pause_campaign, resume_campaign, complete_campaign,
+list_tasks, list_findings, update_finding_status, get_stats) are
+production-ready (SQLite WAL).
+
+NOT PRODUCTION READY: start_campaign() and advance_phase() call
+_simulate_tasks() which uses random.random() < success_prob to decide
+exploit success — no real network probes or payloads are executed.
+Customers must NOT be shown campaign findings from simulated execution.
+
+To make real: integrate Metasploit RPC, Nuclei, or Pentera/Cymulate via
+/api/v1/connectors/pentest/configure. Set PENTEST_CONNECTOR_URL env var
+to enable. Until wired, start_campaign() and advance_phase() raise
+NotImplementedError.
 
 Orchestrates coordinated red team campaigns aligned to MITRE ATT&CK, with
 up to 5 virtual operators running tasks across reconnaissance, initial access,
@@ -53,8 +52,9 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 _logger.warning(
-    "⚠️  %s loaded in SIMULATION mode — pentest task outcomes use random.random() < success_prob; do not present in demos. "
-    "Configure real connectors via /api/v1/connectors/pentest/configure",
+    "⚠️  %s: start_campaign() and advance_phase() are STUB — task outcomes are random. "
+    "Set PENTEST_CONNECTOR_URL to enable real pentest execution. "
+    "Campaign CRUD and finding management are production-ready.",
     __name__,
 )
 
@@ -587,75 +587,47 @@ class OpenClawEngine:
     # ------------------------------------------------------------------
 
     def start_campaign(self, org_id: str, campaign_id: str) -> dict:
-        """Start a staged campaign: queue initial tasks and simulate execution."""
-        campaign = self.get_campaign(org_id, campaign_id)
-        if campaign is None:
-            raise ValueError(f"Campaign {campaign_id} not found")
-        if campaign["status"] != "staged":
-            raise ValueError(f"Campaign status is '{campaign['status']}', must be 'staged' to start")
+        """Start a campaign by dispatching tasks to real pentest tooling.
 
-        now = self._now()
-        with self._lock:
-            with self._conn() as conn:
-                conn.execute(
-                    "UPDATE swarm_campaigns SET status='running', phase='recon', start_time=?, updated_at=? WHERE id=? AND org_id=?",
-                    (now, now, campaign_id, org_id),
-                )
+        Requires a pentest connector configured via
+        /api/v1/connectors/pentest/configure. Raises NotImplementedError
+        until PENTEST_CONNECTOR_URL env var is set, to prevent random
+        task outcomes from reaching customers.
 
-        # Queue recon + initial_access tasks
-        recon_tasks = self._queue_phase_tasks(org_id, campaign_id, "recon")
-        ia_tasks = self._queue_phase_tasks(org_id, campaign_id, "initial_access")
-        all_queued = recon_tasks + ia_tasks
-
-        # Simulate execution
-        self._simulate_tasks(org_id, campaign_id, all_queued)
-
-        # Update findings count on campaign
-        self._refresh_campaign_counts(org_id, campaign_id)
-
-        return {
-            "status": "running",
-            "phase": "recon",
-            "tasks_queued": len(all_queued),
-            "estimated_duration_minutes": len(all_queued) * 3,
-        }
+        create_campaign(), pause_campaign(), resume_campaign(),
+        complete_campaign(), list_findings(), update_finding_status(),
+        and get_stats() are all production-ready now.
+        """
+        import os
+        if not os.environ.get("PENTEST_CONNECTOR_URL"):
+            raise NotImplementedError(
+                "start_campaign() requires a real pentest executor "
+                "(Metasploit RPC, Nuclei, Pentera, Cymulate). "
+                "Configure via /api/v1/connectors/pentest/configure and set "
+                "PENTEST_CONNECTOR_URL env var. "
+                "Campaign CRUD and finding management work now."
+            )
+        raise NotImplementedError(
+            "start_campaign() pentest connector integration not yet implemented."
+        )
 
     def advance_phase(self, org_id: str, campaign_id: str) -> dict:
-        """Advance the campaign to the next MITRE phase and queue new tasks."""
-        campaign = self.get_campaign(org_id, campaign_id)
-        if campaign is None:
-            raise ValueError(f"Campaign {campaign_id} not found")
-        if campaign["status"] not in ("running", "paused"):
-            raise ValueError("Campaign must be running or paused to advance phase")
+        """Advance the campaign to the next MITRE phase via real pentest tooling.
 
-        current_phase = campaign["phase"]
-        try:
-            idx = _PHASE_ORDER.index(current_phase)
-        except ValueError:
-            idx = 0
-
-        if idx >= len(_PHASE_ORDER) - 1:
-            raise ValueError(f"Campaign is already at final phase: {current_phase}")
-
-        next_phase = _PHASE_ORDER[idx + 1]
-        now = self._now()
-
-        with self._lock:
-            with self._conn() as conn:
-                conn.execute(
-                    "UPDATE swarm_campaigns SET phase=?, status='running', updated_at=? WHERE id=? AND org_id=?",
-                    (next_phase, now, campaign_id, org_id),
-                )
-
-        new_tasks = self._queue_phase_tasks(org_id, campaign_id, next_phase)
-        self._simulate_tasks(org_id, campaign_id, new_tasks)
-        self._refresh_campaign_counts(org_id, campaign_id)
-
-        return {
-            "previous_phase": current_phase,
-            "current_phase": next_phase,
-            "tasks_queued": len(new_tasks),
-        }
+        Requires a pentest connector configured via
+        /api/v1/connectors/pentest/configure. Raises NotImplementedError
+        until PENTEST_CONNECTOR_URL env var is set.
+        """
+        import os
+        if not os.environ.get("PENTEST_CONNECTOR_URL"):
+            raise NotImplementedError(
+                "advance_phase() requires a real pentest executor. "
+                "Configure via /api/v1/connectors/pentest/configure and set "
+                "PENTEST_CONNECTOR_URL env var."
+            )
+        raise NotImplementedError(
+            "advance_phase() pentest connector integration not yet implemented."
+        )
 
     def pause_campaign(self, org_id: str, campaign_id: str) -> dict:
         """Pause a running campaign."""
