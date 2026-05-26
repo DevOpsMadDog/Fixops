@@ -32,6 +32,72 @@ except Exception:  # pragma: no cover
 
 _logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# TrustGraph correlation helper — called synchronously from record_finding()
+# ---------------------------------------------------------------------------
+
+def _emit_finding_to_trustgraph(
+    record: Dict[str, Any],
+    tg_db_path: Optional[str] = None,
+) -> None:
+    """Synchronously index a finding into TrustGraph via UniversalFindingIndexer.
+
+    This is the bridge that makes findings produce graph relationships.
+    Called directly (not through the async event bus) so the graph is
+    updated before record_finding() returns — tests never flake.
+
+    The payload is mapped from SecurityFindingsEngine field names to the
+    FindingInput schema expected by UniversalFindingIndexer:
+      source_tool  → engine
+      asset_id     → asset_id (direct)
+      asset_type   → asset_type (direct)
+      finding_type → metadata["finding_type"]
+
+    Args:
+        record: The full finding record dict as returned by record_finding().
+        tg_db_path: Optional TrustGraph DB path override. Used by tests to
+                    write into an isolated temp DB instead of the system default.
+    """
+    try:
+        from core.trustgraph_integrations import UniversalFindingIndexer
+
+        # Map SecurityFindingsEngine record fields → FindingInput fields.
+        # source_tool (SAST, DAST, …) becomes the engine discriminator.
+        engine = (record.get("source_tool") or "scanner").lower()
+        payload: Dict[str, Any] = {
+            "id": record.get("id"),
+            "engine": engine,
+            "title": record.get("title"),
+            "description": record.get("description"),
+            "severity": record.get("severity", "unknown"),
+            "cvss": record.get("cvss_score") or None,
+            "asset_id": record.get("asset_id") or None,
+            "asset_type": record.get("asset_type") or None,
+            "status": record.get("status", "open"),
+            "metadata": {
+                "finding_type": record.get("finding_type"),
+                "org_id": record.get("org_id"),
+                "correlation_key": record.get("correlation_key"),
+            },
+        }
+        # Remove None values so FindingInput validators don't trip on them.
+        payload = {k: v for k, v in payload.items() if v is not None}
+
+        indexer = UniversalFindingIndexer(
+            org_id=record.get("org_id", "default"),
+            db_path=tg_db_path,  # None → system default; non-None → test isolation
+        )
+        indexer.index(payload)
+        _logger.debug(
+            "TrustGraph: indexed finding %s (engine=%s, asset=%s)",
+            record.get("id"),
+            engine,
+            record.get("asset_id"),
+        )
+    except Exception as exc:  # noqa: BLE001 — never break record_finding
+        _logger.debug("TrustGraph: finding index skipped: %s", exc)
+
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "security_findings_engine.db"
 )
@@ -62,8 +128,15 @@ class SecurityFindingsEngine:
     DB path: .fixops_data/security_findings_engine.db
     """
 
-    def __init__(self, db_path: str = _DEFAULT_DB) -> None:
+    def __init__(
+        self,
+        db_path: str = _DEFAULT_DB,
+        tg_db_path: Optional[str] = None,
+    ) -> None:
         self.db_path = db_path
+        # Optional TrustGraph DB path override — used in tests for isolation.
+        # In production this is None, so UniversalFindingIndexer uses its own default.
+        self._tg_db_path = tg_db_path
         self._lock = threading.RLock()
         self._init_db()
 
@@ -327,7 +400,11 @@ class SecurityFindingsEngine:
                         "SELECT * FROM security_findings WHERE id = ?",
                         (existing["id"],),
                     ).fetchone()
-                    return self._row(updated)
+                    updated_row = self._row(updated)
+                    # Re-index into TrustGraph so the relationship is refreshed
+                    # (idempotent — backbone uses INSERT OR REPLACE semantics).
+                    _emit_finding_to_trustgraph(updated_row, tg_db_path=self._tg_db_path)
+                    return updated_row
 
                 # New finding
                 record: Dict[str, Any] = {
@@ -375,6 +452,9 @@ class SecurityFindingsEngine:
                         text=f"New critical finding recorded by {source_tool}",
                         finding=record,
                     )
+                # Wire into TrustGraph — creates Finding entity, Asset entity,
+                # and FINDING_AFFECTS_ASSET relationship synchronously.
+                _emit_finding_to_trustgraph(record, tg_db_path=self._tg_db_path)
                 return record
 
     def update_status(
@@ -545,6 +625,106 @@ class SecurityFindingsEngine:
                 (org_id, asset_id),
             ).fetchall()
         return [self._row(r) for r in rows]
+
+    def get_findings_by_asset_graph(
+        self,
+        org_id: str,
+        asset_id: str,
+    ) -> Dict[str, Any]:
+        """Query TrustGraph for all findings correlated to an asset via graph edges.
+
+        This is the real graph query path: uses FINDING_AFFECTS_ASSET edges in
+        TrustGraph to enumerate finding entity IDs, then fetches their full
+        records from the findings SQLite DB.
+
+        Returns a dict with:
+          - asset_entity_id: the TrustGraph entity ID for the asset
+          - correlated_findings: list of full finding records from this DB
+          - graph_relationship_count: number of FINDING_AFFECTS_ASSET edges found
+          - available: False if TrustGraph store is not reachable
+        """
+        # Build the TrustGraph entity ID the same way UniversalFindingIndexer does.
+        from core.trustgraph_integrations import _entity_id as _tg_entity_id
+        asset_entity_id = (
+            asset_id
+            if asset_id.startswith("asset_")
+            else _tg_entity_id("asset", asset_id)
+        )
+
+        try:
+            from core.trustgraph_backbone import TrustGraphBackbone
+
+            backbone = TrustGraphBackbone(db_path=self._tg_db_path, org_id=org_id)
+            if not backbone._available or backbone._store is None:
+                return {
+                    "available": False,
+                    "asset_entity_id": asset_entity_id,
+                    "correlated_findings": [],
+                    "graph_relationship_count": 0,
+                }
+
+            store = backbone._store
+            rels = store.get_relationships(entity_id=asset_entity_id)
+
+            # Collect finding entity IDs that have FINDING_AFFECTS_ASSET edges
+            # pointing TO this asset.
+            finding_entity_ids = [
+                r.source_id
+                for r in rels
+                if r.rel_type == "FINDING_AFFECTS_ASSET" and r.target_id == asset_entity_id
+            ]
+
+            # Map graph finding entity IDs back to DB records.
+            #
+            # entity_id format: "finding_<normalized_uuid>" where _entity_id()
+            # converts hyphens → underscores, so the DB UUID must be recovered
+            # by converting underscores back to hyphens.
+            #
+            # Resolution order per finding entity ID:
+            #   1. raw_id with underscores→hyphens (standard UUID, most common)
+            #   2. raw_id as-is (underscored form, in case DB stored it that way)
+            #   3. full entity_id as-is (legacy callers that store entity_id as pk)
+            correlated: List[Dict[str, Any]] = []
+            for feid in finding_entity_ids:
+                raw_id = feid[len("finding_"):] if feid.startswith("finding_") else feid
+                # Attempt 1: restore hyphens (UUID canonical form)
+                uuid_form = raw_id.replace("_", "-")
+                row = None
+                with self._conn() as conn:
+                    row = conn.execute(
+                        "SELECT * FROM security_findings WHERE id = ? AND org_id = ?",
+                        (uuid_form, org_id),
+                    ).fetchone()
+                    if row is None:
+                        # Attempt 2: underscored form (raw_id unchanged)
+                        row = conn.execute(
+                            "SELECT * FROM security_findings WHERE id = ? AND org_id = ?",
+                            (raw_id, org_id),
+                        ).fetchone()
+                    if row is None:
+                        # Attempt 3: full entity_id as stored pk
+                        row = conn.execute(
+                            "SELECT * FROM security_findings WHERE id = ? AND org_id = ?",
+                            (feid, org_id),
+                        ).fetchone()
+                if row is not None:
+                    correlated.append(self._row(row))
+
+            return {
+                "available": True,
+                "asset_entity_id": asset_entity_id,
+                "correlated_findings": correlated,
+                "graph_relationship_count": len(finding_entity_ids),
+            }
+        except Exception as exc:  # noqa: BLE001 — degrade gracefully
+            _logger.debug("get_findings_by_asset_graph failed: %s", exc)
+            return {
+                "available": False,
+                "asset_entity_id": asset_entity_id,
+                "correlated_findings": [],
+                "graph_relationship_count": 0,
+                "error": str(exc),
+            }
 
     def get_findings_summary(self, org_id: str) -> Dict[str, Any]:
         """Summary: counts, severity breakdown, source breakdown, avg cvss, top assets."""
