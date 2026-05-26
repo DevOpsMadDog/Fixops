@@ -89,9 +89,11 @@ def _import_fresh(module_name: str) -> tuple[types.ModuleType, _WarningCapture]:
 # longer a stub.
 # core.ccm_engine is REMOVED — it now runs real conftest/OPA policy evaluation
 # and is no longer a stub (is_simulated=False, source="conftest/OPA").
+# core.vendor_scorecard is REMOVED — auto_assess() now performs real TLS + HTTP
+# header probes (is_simulated=False), no longer a stub.
+# core.ioc_enrichment_engine is REMOVED — enrich_ioc() now queries the real
+# abuse.ch Feodo Tracker threat feed (is_simulated=False), no longer a stub.
 ENGINES = [
-    ("core.vendor_scorecard", "vendor_scorecard"),
-    ("core.ioc_enrichment_engine", "ioc_enrichment_engine"),
     ("core.openclaw_engine", "openclaw_engine"),
 ]
 
@@ -122,12 +124,14 @@ def test_engine_logs_simulation_warning_at_import(module_name: str, label: str):
 # results and real RBAC analysis with _DATA_SOURCE (is_simulated=False).
 # apps.api.compliance_scanner_router is REMOVED — it serves real checkov results
 # with a truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
+# apps.api.vendor_scorecard_router is REMOVED — real TLS + HTTP probe, _DATA_SOURCE
+# (is_simulated=False), not a _SIMULATION_WARNING stub.
+# apps.api.ioc_enrichment_router is REMOVED — real abuse.ch feed, _DATA_SOURCE
+# (is_simulated=False), not a _SIMULATION_WARNING stub.
 ROUTERS = [
-    "apps.api.vendor_scorecard_router",
     "apps.api.iam_sso_router",
     # apps.api.ccm_router is REMOVED — it serves real conftest/OPA results with
     # a truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
-    "apps.api.ioc_enrichment_router",
     "apps.api.openclaw_router",
 ]
 

@@ -34,11 +34,17 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-_SIMULATION_WARNING = {
-    "is_simulated": True,
+_DATA_SOURCE = {
+    "is_simulated": False,
     "engine": "vendor_scorecard",
-    "real_integration_required": "/api/v1/connectors/vendor-risk/configure",
-    "do_not_use_in_demo": True,
+    "source": "live TLS + HTTP header probe",
+    "signals": [
+        "tls_cert_expiry",
+        "tls_protocol_version",
+        "http_security_headers",
+        "dns_spf_dmarc_dkim",
+    ],
+    "dns_note": "DNS checks marked unavailable (not fabricated) when port 53 is blocked",
 }
 
 router = APIRouter(
@@ -252,13 +258,25 @@ async def manual_assess(vendor_id: str, req: ManualAssessRequest) -> Dict[str, A
 
 
 @router.post("/{vendor_id}/auto-assess", summary="Auto assessment")
-async def auto_assess(vendor_id: str) -> Dict[str, Any]:
-    """Automatically assess a vendor via domain security analysis."""
+async def auto_assess(vendor_id: str, validity_days: int = 90) -> Dict[str, Any]:
+    """Automatically assess a vendor via live TLS + HTTP header probes.
+
+    Performs real external probes against the vendor's domain:
+    - TLS certificate inspection (expiry, protocol version)
+    - HTTP security headers (HSTS, CSP, X-Frame-Options, etc.)
+    - DNS TXT records for SPF/DMARC/DKIM (marked unavailable if DNS blocked)
+
+    No API key required. Score reflects only measured signals.
+    Returns 422 if the vendor host is unreachable or has no domain set.
+    """
+    from core.vendor_scorecard import VendorAssessError
     try:
-        assessment = _get_scorecard().auto_assess(vendor_id)
+        assessment = _get_scorecard().auto_assess(vendor_id, validity_days=validity_days)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    return {"data": assessment.model_dump(), "_simulation_warning": _SIMULATION_WARNING}
+    except VendorAssessError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"data": assessment.model_dump(), "_data_source": _DATA_SOURCE}
 
 
 @router.get("/{vendor_id}/history", summary="Assessment history")

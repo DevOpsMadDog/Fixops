@@ -21,8 +21,9 @@ from __future__ import annotations
 
 import json
 import os
+import socket
+import ssl
 import sys
-import tempfile
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -41,9 +42,33 @@ from core.vendor_scorecard import (
     AssessmentStatus,
     SecurityAssessment,
     Vendor,
+    VendorAssessError,
     VendorRiskTier,
     VendorScorecard,
+    _UNAVAILABLE,
+    _probe_dns_txt,
+    _probe_http_headers,
+    _probe_tls,
 )
+
+
+# ---------------------------------------------------------------------------
+# Network availability guards
+# ---------------------------------------------------------------------------
+
+def _tls_reachable(host: str, timeout: int = 10) -> bool:
+    """Return True if a TLS handshake to host:443 completes."""
+    try:
+        ctx = ssl.create_default_context()
+        with socket.create_connection((host, 443), timeout=timeout) as s:
+            with ctx.wrap_socket(s, server_hostname=host):
+                return True
+    except Exception:
+        return False
+
+
+_GITHUB_REACHABLE = _tls_reachable("github.com")
+_CF_REACHABLE = _tls_reachable("cloudflare.com")
 
 
 # ============================================================================
@@ -275,42 +300,44 @@ class TestManualAssessment:
 
 
 # ============================================================================
-# Auto assessment — raises NotImplementedError until vendor-risk connector wired
+# Auto assessment — real live probes (TLS + HTTP headers + DNS)
 # ============================================================================
 
 class TestAutoAssessment:
-    def test_auto_assess_raises_not_implemented(self, scorecard):
-        """auto_assess() must raise NotImplementedError until the vendor-risk
-        connector (VENDOR_RISK_CONNECTOR_URL) is configured."""
-        vendor = scorecard.add_vendor(_make_vendor(domain="example.com"))
-        with pytest.raises(NotImplementedError):
+    # ------------------------------------------------------------------
+    # Unit: error-path tests (no network required)
+    # ------------------------------------------------------------------
+
+    def test_auto_assess_no_domain_raises_vendor_assess_error(self, scorecard):
+        """Vendor with empty domain raises VendorAssessError, not a fabricated score."""
+        vendor = scorecard.add_vendor(_make_vendor(domain=""))
+        with pytest.raises(VendorAssessError, match="no domain"):
             scorecard.auto_assess(vendor.id)
 
-    def test_auto_assess_error_message_mentions_connector(self, scorecard):
-        """Error message should guide the caller to configure a real connector."""
-        vendor = scorecard.add_vendor(_make_vendor(domain="example.com"))
-        with pytest.raises(NotImplementedError, match="connector|VENDOR_RISK_CONNECTOR_URL|assess_vendor"):
+    def test_auto_assess_vendor_not_found_raises_key_error(self, scorecard):
+        """Missing vendor_id raises KeyError (not VendorAssessError)."""
+        with pytest.raises(KeyError):
+            scorecard.auto_assess("nonexistent-id-xyz")
+
+    def test_auto_assess_unreachable_host_raises_vendor_assess_error(self, scorecard):
+        """Unreachable host raises VendorAssessError (not a fabricated score)."""
+        vendor = scorecard.add_vendor(
+            _make_vendor(domain="this-host-does-not-exist-aldeci-probe.invalid")
+        )
+        with pytest.raises(VendorAssessError):
             scorecard.auto_assess(vendor.id)
 
-    def test_auto_assess_not_found_still_raises_not_implemented(self, scorecard):
-        """Even for a nonexistent vendor, NotImplementedError is raised before
-        any lookup because the env-guard fires first."""
-        with pytest.raises(NotImplementedError):
-            scorecard.auto_assess("nonexistent")
-
-    def test_auto_assess_does_not_persist_assessment(self, scorecard):
-        """auto_assess() must not write any assessment row when it raises."""
-        vendor = scorecard.add_vendor(_make_vendor(domain="example.com"))
+    def test_auto_assess_does_not_persist_on_error(self, scorecard):
+        """No assessment row written when auto_assess raises."""
+        vendor = scorecard.add_vendor(_make_vendor(domain=""))
         try:
             scorecard.auto_assess(vendor.id)
-        except NotImplementedError:
+        except VendorAssessError:
             pass
-        # No assessment should have been recorded
         assert scorecard.get_latest_assessment(vendor.id) is None
 
-    def test_auto_assess_real_path_still_works_via_assess_vendor(self, scorecard):
-        """assess_vendor() (the production-ready path) is unaffected by the
-        auto_assess stub — callers with real scores can still record assessments."""
+    def test_assess_vendor_manual_path_unaffected(self, scorecard):
+        """assess_vendor() (manual path) still works regardless of auto_assess."""
         vendor = scorecard.add_vendor(_make_vendor(domain="real.example.com"))
         factors = {
             "ssl_score": 88.0,
@@ -319,10 +346,131 @@ class TestAutoAssessment:
             "vulnerability_score": 65.0,
             "data_handling_score": 80.0,
         }
-        assessment = scorecard.assess_vendor(vendor.id, factors, assessor="real-probe")
+        assessment = scorecard.assess_vendor(vendor.id, factors, assessor="analyst")
         assert isinstance(assessment, SecurityAssessment)
         assert 0 <= assessment.score <= 100
-        assert assessment.assessor == "real-probe"
+        assert assessment.assessor == "analyst"
+
+    # ------------------------------------------------------------------
+    # Unit: probe helpers (no network — smoke-test imports and sentinel)
+    # ------------------------------------------------------------------
+
+    def test_unavailable_sentinel_is_negative(self):
+        """_UNAVAILABLE sentinel must be negative so callers can detect it."""
+        assert _UNAVAILABLE < 0
+
+    def test_probe_dns_txt_returns_unavailable_on_bad_host(self):
+        """_probe_dns_txt never raises; marks unavailable for a garbage host."""
+        result = _probe_dns_txt("not-a-real-tld-aldeci.invalid")
+        # Either available=False (dig failed/blocked) or available=True with results
+        assert "available" in result
+        assert "spf_present" in result
+        assert "dmarc_present" in result
+        assert "dkim_present" in result
+
+    # ------------------------------------------------------------------
+    # Integration: real network probes (skipped when network is down)
+    # ------------------------------------------------------------------
+
+    @pytest.mark.skipif(not _GITHUB_REACHABLE, reason="github.com TLS not reachable")
+    def test_auto_assess_github_real_score(self, scorecard):
+        """Integration: auto_assess against github.com returns a real score."""
+        vendor = scorecard.add_vendor(_make_vendor(domain="github.com", name="GitHub"))
+        assessment = scorecard.auto_assess(vendor.id, validity_days=30)
+
+        # Score is in valid range
+        assert 0.0 <= assessment.score <= 100.0, f"Score out of range: {assessment.score}"
+        assert assessment.grade in ("A", "B", "C", "D", "F")
+        assert assessment.assessor == "auto-probe"
+        assert assessment.status == AssessmentStatus.COMPLETED
+
+        # TLS cert was actually read — expiry must be a positive number for github.com
+        assert "tls_days_to_expiry" in assessment.factors
+        days_left = assessment.factors["tls_days_to_expiry"]
+        assert days_left > 0, f"GitHub cert should not be expired, got {days_left} days"
+
+        # SSL score derived from real cert
+        assert "ssl_score" in assessment.factors
+        assert 0.0 <= assessment.factors["ssl_score"] <= 100.0
+
+        # Headers check ran — at least one of the fields must be present
+        assert "headers_score" in assessment.factors
+        assert 0.0 <= assessment.factors["headers_score"] <= 100.0
+        assert "headers_present_count" in assessment.factors
+        # GitHub serves at least HSTS; present_count should be > 0
+        assert assessment.factors["headers_present_count"] >= 1.0
+
+        # DNS checks are either measured or marked unavailable (never fabricated)
+        dns_available = assessment.factors.get("dns_available", 0.0)
+        if dns_available == 1.0:
+            # DNS was reachable — we got real values
+            assert "dns_score" in assessment.factors
+            assert 0.0 <= assessment.factors["dns_score"] <= 100.0
+        else:
+            # DNS unavailable — sentinel values recorded, not in score denominator
+            assert assessment.factors.get("spf_score") == _UNAVAILABLE
+            assert assessment.factors.get("dmarc_score") == _UNAVAILABLE
+            assert assessment.factors.get("dkim_score") == _UNAVAILABLE
+
+        # Assessment was persisted
+        latest = scorecard.get_latest_assessment(vendor.id)
+        assert latest is not None
+        assert latest.id == assessment.id
+
+        # Vendor tier was updated
+        updated_vendor = scorecard.get_vendor(vendor.id)
+        assert updated_vendor.tier in list(VendorRiskTier)
+
+        # Notes mention TLS and headers
+        assert "TLS" in assessment.notes or "tls" in assessment.notes.lower()
+        assert "Headers" in assessment.notes or "headers" in assessment.notes.lower()
+
+    @pytest.mark.skipif(not _GITHUB_REACHABLE, reason="github.com TLS not reachable")
+    def test_auto_assess_tls_probe_directly(self):
+        """Integration: _probe_tls returns real cert data for github.com."""
+        result = _probe_tls("github.com")
+        assert result["error"] is None
+        assert result["version"] in ("TLSv1.2", "TLSv1.3")
+        assert result["cert_valid"] is True
+        assert result["is_weak_protocol"] is False
+        # GitHub cert should have >30 days remaining
+        assert result["days_to_expiry"] > 30, (
+            f"Unexpected cert expiry: {result['days_to_expiry']} days"
+        )
+
+    @pytest.mark.skipif(not _GITHUB_REACHABLE, reason="github.com TLS not reachable")
+    def test_auto_assess_http_headers_probe_directly(self):
+        """Integration: _probe_http_headers returns real header presence for github.com."""
+        result = _probe_http_headers("github.com")
+        assert result["error"] is None
+        # GitHub serves HSTS at minimum
+        assert "strict-transport-security" in result["present"], (
+            f"Expected HSTS on github.com, present={result['present']}"
+        )
+        # present + missing = all 5 headers
+        assert len(result["present"]) + len(result["missing"]) == 5
+
+    @pytest.mark.skipif(not _CF_REACHABLE, reason="cloudflare.com TLS not reachable")
+    def test_auto_assess_cloudflare_real_score(self, scorecard):
+        """Integration: cloudflare.com should score well (strong TLS + headers)."""
+        vendor = scorecard.add_vendor(_make_vendor(domain="cloudflare.com", name="Cloudflare"))
+        assessment = scorecard.auto_assess(vendor.id)
+        assert assessment.score >= 50.0, (
+            f"Cloudflare should score >=50, got {assessment.score}"
+        )
+        assert assessment.factors["ssl_score"] > 0.0
+        assert assessment.factors["headers_present_count"] >= 2.0
+
+    def test_auto_assess_scheme_stripped_from_domain(self, scorecard):
+        """Domain stored as 'https://github.com/org' has scheme+path stripped before probe."""
+        if not _GITHUB_REACHABLE:
+            pytest.skip("github.com not reachable")
+        vendor = scorecard.add_vendor(
+            _make_vendor(domain="https://github.com/someorg", name="GitHub-URL")
+        )
+        # Should not raise VendorAssessError for scheme-prefixed domain
+        assessment = scorecard.auto_assess(vendor.id)
+        assert 0.0 <= assessment.score <= 100.0
 
 
 # ============================================================================

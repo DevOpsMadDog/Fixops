@@ -1,20 +1,36 @@
 """
 Vendor Security Scorecard for ALDECI.
 
-STATUS: PARTIALLY REAL — CRUD operations (add_vendor, get_vendor,
-list_vendors, update_vendor, delete_vendor, assess_vendor,
-get_latest_assessment, get_assessment_history, link_sbom_components,
-get_vendor_components, get_high_risk_vendors, expire_assessments,
-get_vendor_stats, get_risk_changes) are fully production-ready.
+STATUS: PRODUCTION-READY — all operations including auto_assess() are real.
 
-NOT PRODUCTION READY: auto_assess() derives factor scores from a domain-name
-hash instead of performing real SSL probes, DNS checks, or vulnerability
-scans. To make fully real: replace auto_assess() hash-derived scores with
-real probes via ssl, requests, dnspython, or SecurityScorecard/BitSight
-APIs via /api/v1/connectors/vendor-risk/configure.
+auto_assess() performs live external probes against the vendor's domain:
+  - TLS certificate inspection via Python stdlib ssl/socket (no API key needed):
+      cert expiry (days remaining), protocol version (TLS < 1.2 flagged),
+      self-signed / hostname mismatch detection.
+  - HTTP security headers via HTTPS GET (urllib, no API key needed):
+      HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options,
+      Referrer-Policy.
+  - DNS TXT records for SPF/DMARC/DKIM via subprocess dig:
+      attempted; marked "unavailable" (not fabricated) if dig fails or port 53
+      is blocked — unavailable DNS checks are excluded from the score denominator
+      (coverage-aware scoring, like the scorecard's own approach).
 
-Provides third-party vendor risk scoring, assessment tracking, and supply
-chain integration via SBOM component linking.
+Score is computed only from signals that were actually measured. Unavailable
+signals are transparently recorded in assessment factors as -1.0 (sentinel).
+
+Honest degradation:
+  - Vendor has no domain / domain is empty → VendorAssessError (router → 422)
+  - Host unreachable or TLS handshake fails → VendorAssessError (router → 422)
+  - DNS unavailable → excluded from score (not a pass, not fabricated)
+
+Data source: live TLS + HTTP header probe (no third-party API required).
+Air-gap compatible for hosts reachable from the ALDECI deployment.
+
+CRUD operations (add_vendor, get_vendor, list_vendors, update_vendor,
+delete_vendor, assess_vendor, get_latest_assessment, get_assessment_history,
+link_sbom_components, get_vendor_components, get_high_risk_vendors,
+expire_assessments, get_vendor_stats, get_risk_changes) remain unchanged and
+fully production-ready.
 
 Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 License: Proprietary (ALdeci).
@@ -24,23 +40,268 @@ from __future__ import annotations
 
 import json
 import logging
-import random
+import socket
+import ssl
 import sqlite3
+import subprocess
+import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
-logger.warning(
-    "⚠️  %s: auto_assess() is STUB — it raises NotImplementedError rather than "
-    "fabricate hash-derived scores. Set VENDOR_RISK_CONNECTOR_URL to enable real "
-    "vendor-risk scoring. CRUD and manual assess_vendor() are production-ready.",
+logger.info(
+    "%s loaded — auto_assess() performs real TLS + HTTP header probes "
+    "(no API key required). DNS TXT marked unavailable if port 53 blocked.",
     __name__,
 )
+
+
+# ---------------------------------------------------------------------------
+# Exceptions
+# ---------------------------------------------------------------------------
+
+class VendorAssessError(ValueError):
+    """Raised when auto_assess() cannot obtain real probe data.
+
+    Common causes:
+    - Vendor has no domain field set
+    - Host is unreachable or TLS handshake fails
+
+    The router surfaces this as HTTP 422 with the error message.
+    Never raised to conceal fabricated scores — only to report genuine
+    probe failures.
+    """
+
+
+# ---------------------------------------------------------------------------
+# Probe helpers — TLS, HTTP headers, DNS
+# ---------------------------------------------------------------------------
+
+# Sentinel value stored in factors for signals that could not be measured.
+# Excluded from the score denominator (coverage-aware scoring).
+_UNAVAILABLE: float = -1.0
+
+# TLS connection / HTTP request timeout in seconds
+_PROBE_TIMEOUT: int = 15
+
+# Security headers we check (lowercase)
+_SECURITY_HEADERS: Tuple[str, ...] = (
+    "strict-transport-security",
+    "content-security-policy",
+    "x-frame-options",
+    "x-content-type-options",
+    "referrer-policy",
+)
+
+
+def _probe_tls(hostname: str) -> Dict[str, Any]:
+    """Connect to hostname:443 and return raw TLS signal data.
+
+    Returns a dict with keys:
+      - version: TLS version string (e.g. "TLSv1.3")
+      - days_to_expiry: int (negative = already expired)
+      - is_weak_protocol: bool (True if < TLS 1.2)
+      - cert_valid: bool (cert hostname matched and not self-signed)
+      - error: None or str
+
+    Raises VendorAssessError on connection failure.
+    """
+    ctx = ssl.create_default_context()
+    try:
+        with socket.create_connection((hostname, 443), timeout=_PROBE_TIMEOUT) as raw:
+            with ctx.wrap_socket(raw, server_hostname=hostname) as ssock:
+                version = ssock.version() or "unknown"
+                cert = ssock.getpeercert()
+    except ssl.SSLCertVerificationError as exc:
+        raise VendorAssessError(
+            f"TLS certificate verification failed for {hostname!r}: {exc}"
+        ) from exc
+    except (socket.timeout, ConnectionRefusedError, OSError) as exc:
+        raise VendorAssessError(
+            f"Cannot reach {hostname}:443 — {exc}"
+        ) from exc
+
+    # Parse notAfter → days remaining
+    not_after_str = cert.get("notAfter", "")
+    days_to_expiry: int = 0
+    if not_after_str:
+        try:
+            not_after_dt = datetime.strptime(not_after_str, "%b %d %H:%M:%S %Y %Z")
+            not_after_dt = not_after_dt.replace(tzinfo=timezone.utc)
+            delta = not_after_dt - datetime.now(timezone.utc)
+            days_to_expiry = delta.days
+        except ValueError:
+            days_to_expiry = 0
+
+    # TLS 1.0 / 1.1 are weak; 1.2 is acceptable; 1.3 is best
+    weak_versions = {"TLSv1", "TLSv1.0", "TLSv1.1", "SSLv2", "SSLv3"}
+    is_weak = version in weak_versions
+
+    return {
+        "version": version,
+        "days_to_expiry": days_to_expiry,
+        "is_weak_protocol": is_weak,
+        "cert_valid": True,   # ssl.create_default_context() verifies by default
+        "error": None,
+    }
+
+
+def _probe_http_headers(hostname: str) -> Dict[str, Any]:
+    """Perform an HTTPS GET to https://{hostname} and inspect security headers.
+
+    Returns a dict with keys:
+      - present: list of header names that were found (lowercase)
+      - missing: list of header names that were absent (lowercase)
+      - error: None or str
+
+    On network failure raises VendorAssessError.
+    """
+    url = f"https://{hostname}"
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "ALdeci-VendorProbe/1.0"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_PROBE_TIMEOUT) as resp:
+            response_headers = {k.lower() for k in dict(resp.headers)}
+    except (urllib.error.URLError, socket.timeout, OSError) as exc:
+        raise VendorAssessError(
+            f"HTTPS GET failed for {hostname!r}: {exc}"
+        ) from exc
+
+    present = [h for h in _SECURITY_HEADERS if h in response_headers]
+    missing = [h for h in _SECURITY_HEADERS if h not in response_headers]
+    return {"present": present, "missing": missing, "error": None}
+
+
+def _probe_dns_txt(hostname: str) -> Dict[str, Any]:
+    """Attempt DNS TXT lookups for SPF, DMARC, and DKIM via subprocess dig.
+
+    Returns a dict with keys:
+      - spf_present: bool or None (None = unavailable)
+      - dmarc_present: bool or None
+      - dkim_present: bool or None
+      - available: bool  (False when dig is absent or port 53 is blocked)
+
+    Never raises — DNS unavailability is honest degradation, not an error.
+    """
+    def _dig_txt(name: str) -> Optional[str]:
+        """Run `dig +short TXT <name>` and return stdout, or None on failure."""
+        try:
+            result = subprocess.run(
+                ["dig", "+short", "+time=3", "+tries=1", "TXT", name],
+                capture_output=True, text=True, timeout=8,
+            )
+            return result.stdout.strip() if result.returncode == 0 else None
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            return None
+
+    # SPF lives on the apex domain
+    spf_raw = _dig_txt(hostname)
+    if spf_raw is None:
+        # dig unavailable or timed out
+        return {"spf_present": None, "dmarc_present": None, "dkim_present": None, "available": False}
+
+    spf_present = "v=spf1" in spf_raw.lower()
+
+    dmarc_raw = _dig_txt(f"_dmarc.{hostname}") or ""
+    dmarc_present = "v=dmarc1" in dmarc_raw.lower()
+
+    # DKIM selector varies; check common selectors: google, default, k1
+    dkim_present = False
+    for selector in ("google", "default", "k1", "mail"):
+        dkim_raw = _dig_txt(f"{selector}._domainkey.{hostname}") or ""
+        if "v=dkim1" in dkim_raw.lower():
+            dkim_present = True
+            break
+
+    return {
+        "spf_present": spf_present,
+        "dmarc_present": dmarc_present,
+        "dkim_present": dkim_present,
+        "available": True,
+    }
+
+
+def _compute_auto_assess_score(
+    tls: Dict[str, Any],
+    headers: Dict[str, Any],
+    dns: Dict[str, Any],
+) -> Tuple[float, Dict[str, float]]:
+    """Compute a coverage-aware score from real probe signals.
+
+    Only measured signals contribute to the denominator. Unavailable signals
+    are stored as _UNAVAILABLE (-1.0) in factors for transparency.
+
+    Returns (score_0_to_100, factors_dict).
+    """
+    measured_scores: List[Tuple[str, float, float]] = []  # (name, score, weight)
+    factors: Dict[str, float] = {}
+
+    # --- TLS score (weight 0.35) ---
+    tls_score = 100.0
+    days = tls["days_to_expiry"]
+    if days <= 0:
+        tls_score -= 40.0   # already expired
+    elif days <= 14:
+        tls_score -= 25.0   # expiring within 2 weeks
+    elif days <= 30:
+        tls_score -= 15.0   # expiring within 30 days
+    elif days <= 60:
+        tls_score -= 5.0    # expiring within 60 days
+
+    if tls["is_weak_protocol"]:
+        tls_score -= 30.0   # TLS < 1.2
+
+    tls_score = max(0.0, tls_score)
+    factors["ssl_score"] = round(tls_score, 2)
+    factors["tls_days_to_expiry"] = float(days)
+    factors["tls_version"] = float(0)  # store as 0 placeholder; version string in notes
+    measured_scores.append(("ssl_score", tls_score, 0.35))
+
+    # --- HTTP headers score (weight 0.30) ---
+    total_headers = len(_SECURITY_HEADERS)
+    present_count = len(headers["present"])
+    header_score = round((present_count / total_headers) * 100.0, 2)
+    factors["headers_score"] = header_score
+    factors["headers_present_count"] = float(present_count)
+    factors["headers_total_count"] = float(total_headers)
+    measured_scores.append(("headers_score", header_score, 0.30))
+
+    # --- DNS score (weight 0.20) — excluded from denominator if unavailable ---
+    if not dns["available"]:
+        factors["spf_score"] = _UNAVAILABLE
+        factors["dmarc_score"] = _UNAVAILABLE
+        factors["dkim_score"] = _UNAVAILABLE
+        factors["dns_available"] = 0.0
+        # dns_score intentionally excluded from measured_scores
+    else:
+        dns_checks = [dns["spf_present"], dns["dmarc_present"], dns["dkim_present"]]
+        dns_passed = sum(1 for c in dns_checks if c is True)
+        dns_total = len(dns_checks)
+        dns_score = round((dns_passed / dns_total) * 100.0, 2)
+        factors["dns_score"] = dns_score
+        factors["spf_score"] = 100.0 if dns["spf_present"] else 0.0
+        factors["dmarc_score"] = 100.0 if dns["dmarc_present"] else 0.0
+        factors["dkim_score"] = 100.0 if dns["dkim_present"] else 0.0
+        factors["dns_available"] = 1.0
+        measured_scores.append(("dns_score", dns_score, 0.20))
+
+    # --- Coverage-aware weighted average ---
+    total_weight = sum(w for _, _, w in measured_scores)
+    if total_weight == 0.0:
+        final_score = 0.0
+    else:
+        weighted_sum = sum(s * w for _, s, w in measured_scores)
+        final_score = round(weighted_sum / total_weight, 2)
+
+    final_score = max(0.0, min(100.0, final_score))
+    return final_score, factors
 
 
 # ---------------------------------------------------------------------------
@@ -397,27 +658,135 @@ class VendorScorecard:
         return assessment
 
     def auto_assess(self, vendor_id: str, validity_days: int = 90) -> SecurityAssessment:
-        """Auto-assess a vendor via real SSL/DNS/HTTP probes against the vendor's domain.
+        """Auto-assess a vendor via real live probes against the vendor's domain.
 
-        Requires VENDOR_RISK_CONNECTOR_URL env var or real network access.
-        Raises NotImplementedError until wired, to prevent hash-derived scores
-        from reaching customers.
+        Performs three categories of checks — no API key or third-party service
+        required:
 
-        Use assess_vendor() directly with real factor scores to record a
-        manual or external-tool-derived assessment — that path is fully
-        production-ready now.
+        1. TLS certificate inspection (ssl/socket stdlib):
+           - Certificate expiry (days remaining; deductions for <60/30/14/0 days)
+           - Protocol version (TLS < 1.2 penalised)
+           - Default-context hostname + chain verification (raises VendorAssessError
+             on mismatch rather than silently scoring the vendor)
+
+        2. HTTP security headers (HTTPS GET via urllib):
+           - Strict-Transport-Security, Content-Security-Policy, X-Frame-Options,
+             X-Content-Type-Options, Referrer-Policy
+           - Score = present_count / 5 × 100
+
+        3. DNS TXT records for SPF / DMARC / DKIM (subprocess dig):
+           - Attempted with a 3-second timeout per query
+           - If dig is absent or port 53 is blocked → all DNS checks recorded as
+             -1.0 (unavailable) and excluded from the score denominator
+             (coverage-aware scoring — the score reflects only what was measured)
+
+        Raises:
+            KeyError: vendor_id not found in the database
+            VendorAssessError: hostname is empty, host unreachable, or TLS fails
+
+        Data source: live TLS + HTTP header probe.
         """
-        import os
-        if not os.environ.get("VENDOR_RISK_CONNECTOR_URL"):
-            raise NotImplementedError(
-                "auto_assess() requires real SSL/DNS/HTTP probes or a vendor-risk "
-                "connector. Configure via /api/v1/connectors/vendor-risk/configure "
-                "and set VENDOR_RISK_CONNECTOR_URL env var. "
-                "Use assess_vendor() with real factor scores for manual assessments."
+        vendor = self.get_vendor(vendor_id)  # raises KeyError if absent
+
+        hostname = (vendor.domain or "").strip()
+        if not hostname:
+            raise VendorAssessError(
+                f"Vendor {vendor_id!r} has no domain set — cannot probe."
             )
-        raise NotImplementedError(
-            "auto_assess() vendor-risk connector integration not yet implemented."
+
+        # Strip scheme/path if caller stored a full URL
+        if "://" in hostname:
+            hostname = hostname.split("://", 1)[1]
+        hostname = hostname.split("/")[0].split(":")[0].strip()
+        if not hostname:
+            raise VendorAssessError(
+                f"Vendor {vendor_id!r} domain {vendor.domain!r} is not a valid hostname."
+            )
+
+        logger.info("auto_assess: probing vendor=%s domain=%s", vendor_id, hostname)
+
+        # --- Run probes ---
+        tls_data = _probe_tls(hostname)       # raises VendorAssessError on failure
+        headers_data = _probe_http_headers(hostname)  # raises VendorAssessError on failure
+        dns_data = _probe_dns_txt(hostname)   # never raises; marks unavailable
+
+        # --- Score ---
+        score, factors = _compute_auto_assess_score(tls_data, headers_data, dns_data)
+
+        # Store TLS version string in notes for transparency
+        tls_version = tls_data["version"]
+        days_left = tls_data["days_to_expiry"]
+        header_present = ", ".join(headers_data["present"]) or "none"
+        header_missing = ", ".join(headers_data["missing"]) or "none"
+        dns_note = (
+            "DNS: unavailable (port 53 blocked or dig absent)"
+            if not dns_data["available"]
+            else (
+                f"DNS: SPF={'yes' if dns_data['spf_present'] else 'no'} "
+                f"DMARC={'yes' if dns_data['dmarc_present'] else 'no'} "
+                f"DKIM={'yes' if dns_data['dkim_present'] else 'no'}"
+            )
         )
+        notes = (
+            f"Auto-assessed via live probe. "
+            f"TLS {tls_version}, cert expires in {days_left} days. "
+            f"Headers present: {header_present}. "
+            f"Headers missing: {header_missing}. "
+            f"{dns_note}."
+        )
+
+        grade = self._calculate_grade(score)
+        tier = self._calculate_tier(score)
+        now = datetime.now(timezone.utc)
+
+        assessment = SecurityAssessment(
+            id=str(uuid.uuid4()),
+            vendor_id=vendor_id,
+            score=score,
+            grade=grade,
+            factors=factors,
+            assessed_at=now.isoformat(),
+            expires_at=(now + timedelta(days=validity_days)).isoformat(),
+            status=AssessmentStatus.COMPLETED,
+            assessor="auto-probe",
+            notes=notes,
+        )
+
+        with self._get_conn() as conn:
+            conn.execute(
+                """INSERT INTO assessments
+                   (id, vendor_id, score, grade, factors, assessed_at, expires_at,
+                    status, assessor, notes)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    assessment.id,
+                    assessment.vendor_id,
+                    assessment.score,
+                    assessment.grade,
+                    json.dumps(assessment.factors),
+                    assessment.assessed_at,
+                    assessment.expires_at,
+                    assessment.status.value,
+                    assessment.assessor,
+                    assessment.notes,
+                ),
+            )
+
+        with self._get_conn() as conn:
+            conn.execute(
+                "UPDATE vendors SET tier = ? WHERE id = ?",
+                (tier.value, vendor_id),
+            )
+
+        logger.info(
+            "auto_assess: vendor=%s domain=%s score=%.1f grade=%s tier=%s "
+            "tls=%s days_left=%d headers_present=%d/%d dns_available=%s",
+            vendor_id, hostname, score, grade, tier.value,
+            tls_version, days_left,
+            len(headers_data["present"]), len(_SECURITY_HEADERS),
+            dns_data["available"],
+        )
+        return assessment
 
     def get_latest_assessment(self, vendor_id: str) -> Optional[SecurityAssessment]:
         """Return the most recent assessment for a vendor."""

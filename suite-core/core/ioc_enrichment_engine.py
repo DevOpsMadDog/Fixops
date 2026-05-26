@@ -1,30 +1,34 @@
 """
 IOC Enrichment Engine — ALDECI.
 
-STATUS: STUB — IOC CRUD (add_ioc, list_iocs, bulk_import, add_to_watchlist,
-get_watchlist, get_ioc_stats) are production-ready (SQLite WAL).
-The core enrich_ioc() method is NOT production-ready: it derives reputation,
-geo, campaigns, and malware families from an MD5 hash of the IOC value instead
-of querying real threat intel feeds. Customers must NOT be shown enrichment results.
+DATA SOURCE: abuse.ch Feodo Tracker botnet C2 IP blocklist
+  https://feodotracker.abuse.ch/downloads/ipblocklist.json
+  No API key required. Cached in-memory for 15 minutes per process.
 
-To make real: integrate VirusTotal API, AbuseIPDB, Shodan, MISP, or OpenCTI
-via /api/v1/connectors/threat-intel/configure. Set THREAT_INTEL_API_KEY env var
-to enable. Until wired, enrich_ioc() raises NotImplementedError.
-
-Manage indicators of compromise (IOCs): add, list, enrich, watchlist,
-bulk-import, and summarise statistics.
+STATUS: REAL (as of 2026-05-27)
+  - enrich_ioc() queries the abuse.ch Feodo Tracker blocklist for IP IOCs.
+    Verdict is derived from actual blocklist membership — not hashes, not
+    random numbers, not simulation.
+  - IP IOCs: verdict "malicious" if the IP appears in the live C2 blocklist,
+    "unknown" if not listed (may be clean or just not in this feed).
+  - Non-IP IOC types (domain, hash, url, email): verdict "unknown" — the
+    Feodo Tracker only covers IPs; fabricating enrichment for other types
+    would be dishonest.
+  - Feed unreachable: raises IocEnrichmentError (caught by router → HTTP 422).
+  - IOC CRUD (add_ioc, list_iocs, bulk_import, add_to_watchlist, get_watchlist,
+    get_enrichment, get_ioc_stats) are production-ready (SQLite WAL).
 
 Multi-tenant via org_id. SQLite WAL-backed. Thread-safe via RLock.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import random
 import sqlite3
 import threading
+import time
+import urllib.request
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,12 +41,6 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
-_logger.warning(
-    "⚠️  %s: enrich_ioc() is STUB — enrichment is hash-derived, not real threat intel. "
-    "Set THREAT_INTEL_API_KEY to enable VirusTotal/AbuseIPDB/Shodan. "
-    "IOC CRUD and watchlists are production-ready.",
-    __name__,
-)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "ioc_enrichment.db"
@@ -52,28 +50,96 @@ _VALID_IOC_TYPES = {"ip", "domain", "hash", "url", "email"}
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
 _VALID_VERDICTS = {"malicious", "suspicious", "benign", "unknown"}
 
-# Simulated campaign/malware data for enrichment
-_SAMPLE_CAMPAIGNS = [
-    "APT29-Cozy Bear", "Lazarus Group", "FIN7", "Emotet Campaign",
-    "RedLine Stealer", "Cobalt Strike C2", "BlackCat Ransomware",
-]
-_SAMPLE_MALWARE = [
-    "Emotet", "TrickBot", "QakBot", "RedLine", "Raccoon", "AgentTesla",
-    "AsyncRAT", "NjRAT", "Formbook", "SnakeKeylogger",
-]
-_SAMPLE_ACTORS = [
-    "APT28", "APT29", "APT41", "Lazarus", "FIN7", "FIN11", "TA505",
-    "Sandworm", "Cozy Bear", "Unknown",
-]
-_SAMPLE_GEOS = [
-    "RU", "CN", "KP", "IR", "US", "UA", "DE", "NL", "BR", "Unknown",
-]
+# ---------------------------------------------------------------------------
+# Feodo Tracker in-memory cache
+# ---------------------------------------------------------------------------
 
+_FEODO_URL = "https://feodotracker.abuse.ch/downloads/ipblocklist.json"
+_FEODO_CACHE_TTL = 900  # 15 minutes
+
+# Cache state — guarded by _FEODO_LOCK
+_feodo_blocklist: Optional[Dict[str, Dict[str, Any]]] = None  # ip -> entry dict
+_feodo_fetched_at: float = 0.0
+_FEODO_LOCK = threading.Lock()
+
+
+class IocEnrichmentError(ValueError):
+    """Raised when real enrichment cannot be performed (feed unreachable, IOC not found, etc.)."""
+
+
+def _fetch_feodo_blocklist() -> Dict[str, Dict[str, Any]]:
+    """Fetch the abuse.ch Feodo Tracker blocklist and return a dict keyed by IP address.
+
+    Raises IocEnrichmentError if the feed cannot be reached or parsed.
+    """
+    req = urllib.request.Request(
+        _FEODO_URL,
+        headers={"User-Agent": "ALdeci-CTEM/1.0 (ioc-enrichment; abuse.ch Feodo Tracker)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read()
+    except Exception as exc:
+        raise IocEnrichmentError(
+            f"abuse.ch Feodo Tracker feed unreachable: {exc}"
+        ) from exc
+
+    try:
+        entries: List[Dict[str, Any]] = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise IocEnrichmentError(
+            f"abuse.ch Feodo Tracker feed returned unparseable JSON: {exc}"
+        ) from exc
+
+    if not isinstance(entries, list):
+        raise IocEnrichmentError(
+            "abuse.ch Feodo Tracker feed: unexpected top-level type "
+            f"(expected list, got {type(entries).__name__})"
+        )
+
+    blocklist: Dict[str, Dict[str, Any]] = {}
+    for entry in entries:
+        ip = entry.get("ip_address")
+        if ip and isinstance(ip, str):
+            blocklist[ip.strip()] = entry
+
+    _logger.info(
+        "ioc_enrichment: loaded %d C2 IPs from abuse.ch Feodo Tracker",
+        len(blocklist),
+    )
+    return blocklist
+
+
+def _get_feodo_blocklist() -> Dict[str, Dict[str, Any]]:
+    """Return the cached Feodo Tracker blocklist, refreshing if stale.
+
+    Thread-safe. TTL is _FEODO_CACHE_TTL seconds. Raises IocEnrichmentError
+    if the feed cannot be fetched and no cache is available.
+    """
+    global _feodo_blocklist, _feodo_fetched_at
+
+    now = time.monotonic()
+    with _FEODO_LOCK:
+        if _feodo_blocklist is not None and (now - _feodo_fetched_at) < _FEODO_CACHE_TTL:
+            return _feodo_blocklist
+        # Cache miss or expired — fetch fresh
+        fresh = _fetch_feodo_blocklist()  # may raise IocEnrichmentError
+        _feodo_blocklist = fresh
+        _feodo_fetched_at = now
+        return _feodo_blocklist
+
+
+# ---------------------------------------------------------------------------
+# Engine
+# ---------------------------------------------------------------------------
 
 class IOCEnrichmentEngine:
     """SQLite WAL-backed IOC management and enrichment engine.
 
     Thread-safe via RLock. Multi-tenant via org_id.
+
+    enrich_ioc() uses the abuse.ch Feodo Tracker C2 IP blocklist (no API key).
+    Non-IP IOC types return verdict "unknown" — no fabrication.
     """
 
     def __init__(self, db_path: str = _DEFAULT_DB) -> None:
@@ -167,11 +233,6 @@ class IOCEnrichmentEngine:
         d["malware_families"] = json.loads(d.get("malware_families") or "[]")
         return d
 
-    def _seed(self, value: str) -> random.Random:
-        """Deterministic RNG seeded from IOC value for consistent simulation."""
-        seed = int(hashlib.md5(value.encode(), usedforsecurity=False).hexdigest(), 16) % (2 ** 32)
-        return random.Random(seed)
-
     # ------------------------------------------------------------------
     # IOC CRUD
     # ------------------------------------------------------------------
@@ -216,7 +277,14 @@ class IOCEnrichmentEngine:
             try:
                 _bus = _get_tg_bus()
                 if _bus:
-                    _bus.emit("ENTITY_UPDATED", {"entity_type": "ioc_enrichment", "org_id": org_id, "source_engine": "ioc_enrichment"})
+                    _bus.emit(
+                        "ENTITY_UPDATED",
+                        {
+                            "entity_type": "ioc_enrichment",
+                            "org_id": org_id,
+                            "source_engine": "ioc_enrichment",
+                        },
+                    )
             except Exception:
                 pass
 
@@ -262,29 +330,152 @@ class IOCEnrichmentEngine:
     # ------------------------------------------------------------------
 
     def enrich_ioc(self, org_id: str, ioc_id: str) -> Dict[str, Any]:
-        """Enrich an IOC via real threat intelligence feeds.
+        """Enrich an IOC using the abuse.ch Feodo Tracker C2 IP blocklist.
 
-        Requires a threat intel connector configured via
-        /api/v1/connectors/threat-intel/configure. Raises NotImplementedError
-        until THREAT_INTEL_API_KEY env var is set, to prevent hash-derived
-        fake enrichment results from reaching customers.
+        For IP IOCs: fetches the live Feodo Tracker blocklist (cached 15 min),
+        checks if the IP appears, and stores a real verdict (malicious/unknown)
+        with metadata from the blocklist entry (malware family, country, ASN).
 
-        IOC CRUD (add_ioc, list_iocs, bulk_import, add_to_watchlist,
-        get_watchlist, get_enrichment, get_ioc_stats) are production-ready.
-        get_enrichment() returns stored enrichment if previously enriched.
+        For non-IP IOC types (domain, hash, url, email): stores verdict
+        "unknown" with a note that no no-auth feed covers this type — no
+        fabrication.
+
+        Raises:
+            IocEnrichmentError: if the IOC does not exist, or if the feed is
+                unreachable (for IP IOCs). Router maps this to HTTP 422.
         """
-        import os
-        if not os.environ.get("THREAT_INTEL_API_KEY"):
-            raise NotImplementedError(
-                "enrich_ioc() requires a real threat intel feed API key. "
-                "Configure via /api/v1/connectors/threat-intel/configure and set "
-                "THREAT_INTEL_API_KEY env var (VirusTotal, AbuseIPDB, Shodan, "
-                "MISP, or OpenCTI). "
-                "IOC CRUD and watchlists work now. Use bulk_import() to ingest IOCs."
+        # Fetch the IOC record from DB
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM ioc_indicators WHERE ioc_id=? AND org_id=?",
+                (ioc_id, org_id),
+            ).fetchone()
+
+        if not row:
+            raise IocEnrichmentError(
+                f"IOC {ioc_id!r} not found for org {org_id!r}"
             )
-        raise NotImplementedError(
-            "enrich_ioc() threat intel connector integration not yet implemented."
+
+        ioc = self._ioc_to_dict(row)
+        ioc_type = ioc.get("ioc_type", "ip")
+        ioc_value = ioc.get("value", "").strip()
+        now = datetime.now(timezone.utc).isoformat()
+
+        if ioc_type == "ip":
+            # Real enrichment: query the Feodo Tracker blocklist
+            blocklist = _get_feodo_blocklist()  # raises IocEnrichmentError if unreachable
+            entry = blocklist.get(ioc_value)
+
+            if entry:
+                # IP is a known Feodo Tracker C2 server
+                malware = entry.get("malware") or ""
+                country = entry.get("country") or ""
+                as_name = entry.get("as_name") or ""
+                port = entry.get("port")
+                status = entry.get("status") or "unknown"
+                first_seen_feed = entry.get("first_seen") or ""
+
+                verdict = "malicious"
+                reputation_score = 95
+                geo_location = country
+                malware_families = [malware] if malware else []
+                associated_campaigns = []
+                if malware:
+                    associated_campaigns = [f"{malware} C2 Campaign"]
+                threat_actor = "Unknown"
+                source_note = (
+                    f"abuse.ch Feodo Tracker (C2 botnet; malware={malware}; "
+                    f"status={status}; port={port}; asn={as_name}; "
+                    f"feed_first_seen={first_seen_feed})"
+                )
+            else:
+                # IP not on the C2 blocklist — unknown (may be clean)
+                verdict = "unknown"
+                reputation_score = 0
+                geo_location = ""
+                malware_families = []
+                associated_campaigns = []
+                threat_actor = ""
+                source_note = (
+                    "abuse.ch Feodo Tracker: IP not in C2 blocklist "
+                    "(may be clean or not tracked by this feed)"
+                )
+
+        else:
+            # Non-IP types: no no-auth feed available — honest unknown
+            verdict = "unknown"
+            reputation_score = 0
+            geo_location = ""
+            malware_families = []
+            associated_campaigns = []
+            threat_actor = ""
+            source_note = (
+                f"No no-auth public feed available for ioc_type={ioc_type!r}. "
+                "Configure a threat intel connector for domain/hash/url/email enrichment."
+            )
+
+        # Persist enrichment
+        enrichment_id = str(uuid.uuid4())
+        enrichment = {
+            "enrichment_id": enrichment_id,
+            "ioc_id": ioc_id,
+            "org_id": org_id,
+            "reputation_score": reputation_score,
+            "geo_location": geo_location,
+            "associated_campaigns": associated_campaigns,
+            "malware_families": malware_families,
+            "threat_actor": threat_actor,
+            "verdict": verdict,
+            "enriched_at": now,
+            "source": source_note,
+        }
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO ioc_enrichments
+                        (enrichment_id, ioc_id, org_id, reputation_score,
+                         geo_location, associated_campaigns, malware_families,
+                         threat_actor, verdict, enriched_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        enrichment_id, ioc_id, org_id,
+                        reputation_score,
+                        geo_location,
+                        json.dumps(associated_campaigns),
+                        json.dumps(malware_families),
+                        threat_actor,
+                        verdict,
+                        now,
+                    ),
+                )
+
+        _logger.info(
+            "ioc_enrichment: enriched ioc_id=%s type=%s value=%s verdict=%s source=%s",
+            ioc_id, ioc_type, ioc_value if ioc_type == "ip" else "<redacted>",
+            verdict, "abuse.ch Feodo Tracker" if ioc_type == "ip" else "none",
         )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "ENTITY_UPDATED",
+                        {
+                            "entity_type": "ioc_enrichment",
+                            "org_id": org_id,
+                            "ioc_id": ioc_id,
+                            "verdict": verdict,
+                            "source_engine": "ioc_enrichment",
+                        },
+                    )
+            except Exception:
+                pass
+
+        return enrichment
 
     def get_enrichment(self, org_id: str, ioc_id: str) -> Dict[str, Any]:
         """Fetch stored enrichment for an IOC, or empty dict if not yet enriched."""

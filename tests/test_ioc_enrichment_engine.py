@@ -1,11 +1,16 @@
-"""Tests for IOCEnrichmentEngine — 30 tests covering all public methods.
+"""Tests for IOCEnrichmentEngine — covering all public methods.
 
-NotImplementedError migration:
-  - enrich_ioc() now raises NotImplementedError (requires THREAT_INTEL_API_KEY env var).
-  - Tests that previously called enrich_ioc() to seed enrichment data now insert
-    rows directly into ioc_enrichments via SQLite to preserve read-path coverage.
-  - All other methods (add_ioc, list_iocs, get_enrichment, watchlist, bulk_import,
-    get_ioc_stats) remain production-ready and are tested unchanged.
+enrich_ioc() is now REAL: it queries the abuse.ch Feodo Tracker C2 IP
+blocklist (https://feodotracker.abuse.ch/downloads/ipblocklist.json).
+
+Test strategy:
+  - Integration tests (skipif feed unreachable): fetch the live blocklist,
+    pick a known-malicious IP from it, assert verdict=malicious + source
+    contains "abuse.ch". Also test a known-clean IP (8.8.8.8).
+  - Error-path: monkeypatch _fetch_feodo_blocklist to raise -> IocEnrichmentError.
+  - Non-IP types: assert verdict=unknown, no fabrication.
+  - All existing CRUD/read tests preserved unchanged.
+  - _seed_enrichment() helper retained for read-path tests that bypass enrich_ioc().
 """
 
 from __future__ import annotations
@@ -15,10 +20,15 @@ import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 import pytest
 
-from core.ioc_enrichment_engine import IOCEnrichmentEngine
+from core.ioc_enrichment_engine import (
+    IocEnrichmentError,
+    IOCEnrichmentEngine,
+    _fetch_feodo_blocklist,
+)
 
 
 @pytest.fixture
@@ -32,15 +42,14 @@ ORG_B = "org-beta"
 
 
 # ---------------------------------------------------------------------------
-# Helper: seed an enrichment row directly into SQLite (bypasses enrich_ioc stub)
+# Helper: seed an enrichment row directly into SQLite (bypasses enrich_ioc)
+# Used by read-path tests that don't need to hit the live feed.
 # ---------------------------------------------------------------------------
 
 def _seed_enrichment(engine: IOCEnrichmentEngine, org_id: str, ioc_id: str, **kwargs) -> dict:
     """Insert a real enrichment row into ioc_enrichments.
 
-    This is the canonical seeding path now that enrich_ioc() raises
-    NotImplementedError. The row matches the exact schema used by get_enrichment()
-    and get_ioc_stats(). Returns the row dict.
+    Returns the row dict (with lists decoded from JSON).
     """
     enrichment_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -72,6 +81,26 @@ def _seed_enrichment(engine: IOCEnrichmentEngine, org_id: str, ioc_id: str, **kw
     row["associated_campaigns"] = json.loads(row["associated_campaigns"])
     row["malware_families"] = json.loads(row["malware_families"])
     return row
+
+
+# ---------------------------------------------------------------------------
+# Feed reachability probe — used by skipif markers
+# ---------------------------------------------------------------------------
+
+def _feed_reachable() -> bool:
+    """Return True if the abuse.ch Feodo Tracker feed is reachable right now."""
+    try:
+        blocklist = _fetch_feodo_blocklist()
+        return len(blocklist) > 0
+    except Exception:
+        return False
+
+
+_FEED_UP = _feed_reachable()
+_skip_if_feed_down = pytest.mark.skipif(
+    not _FEED_UP,
+    reason="abuse.ch Feodo Tracker feed unreachable from this host",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -163,39 +192,154 @@ def test_list_iocs_filter_severity(engine):
 
 
 # ---------------------------------------------------------------------------
-# 4. enrich_ioc — raises NotImplementedError (THREAT_INTEL_API_KEY not set)
+# 4. enrich_ioc — REAL integration tests (abuse.ch Feodo Tracker)
 # ---------------------------------------------------------------------------
 
-def test_enrich_ioc_raises_not_implemented(engine):
-    """enrich_ioc() must raise NotImplementedError when THREAT_INTEL_API_KEY is unset."""
-    ioc = engine.add_ioc(ORG_A, {"value": "5.6.7.8", "ioc_type": "ip"})
-    with pytest.raises(NotImplementedError):
-        engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+@_skip_if_feed_down
+def test_enrich_ioc_malicious_ip_real(engine):
+    """A known C2 IP from the live Feodo Tracker blocklist is verdict=malicious.
+
+    We fetch the live blocklist, pick the first listed IP, seed it as an IOC,
+    then call enrich_ioc() and assert the real feed produced verdict=malicious.
+    This proves the data is live — not hash-derived or fabricated.
+    """
+    blocklist = _fetch_feodo_blocklist()
+    assert blocklist, "Feodo Tracker returned empty blocklist — test precondition failed"
+
+    known_malicious_ip = next(iter(blocklist))  # first listed C2 IP
+    ioc = engine.add_ioc(ORG_A, {"value": known_malicious_ip, "ioc_type": "ip"})
+
+    result = engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+
+    assert result["verdict"] == "malicious", (
+        f"Expected verdict=malicious for known C2 IP {known_malicious_ip!r}, "
+        f"got {result['verdict']!r}"
+    )
+    assert result["reputation_score"] > 0
+    assert "abuse.ch" in result.get("source", "").lower(), (
+        f"Expected source to mention abuse.ch, got {result.get('source')!r}"
+    )
+    # Malware family must come from real feed data, not be fabricated
+    assert isinstance(result["malware_families"], list)
+
+    # Enrichment must be persisted — get_enrichment() should return it
+    stored = engine.get_enrichment(ORG_A, ioc["ioc_id"])
+    assert stored["ioc_id"] == ioc["ioc_id"]
+    assert stored["verdict"] == "malicious"
 
 
-def test_enrich_ioc_raises_for_nonexistent_ioc(engine):
-    """enrich_ioc() raises NotImplementedError even for a nonexistent IOC ID
-    (env-key guard fires before the DB lookup)."""
-    with pytest.raises(NotImplementedError):
-        engine.enrich_ioc(ORG_A, "nonexistent-id")
+@_skip_if_feed_down
+def test_enrich_ioc_clean_ip_not_malicious(engine):
+    """Google DNS (8.8.8.8) is not a Feodo Tracker C2 server — verdict must NOT be malicious.
+
+    This proves the blocklist check is real: a well-known clean IP must not
+    be flagged. verdict=unknown is the correct honest result for an unlisted IP.
+    """
+    ioc = engine.add_ioc(ORG_A, {"value": "8.8.8.8", "ioc_type": "ip"})
+    result = engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+
+    assert result["verdict"] != "malicious", (
+        "8.8.8.8 (Google DNS) should not be verdict=malicious on Feodo Tracker"
+    )
+    assert result["verdict"] == "unknown"
+    assert "abuse.ch" in result.get("source", "").lower()
 
 
-def test_enrich_ioc_raises_consistently(engine):
-    """enrich_ioc() must raise NotImplementedError on every call (no intermittent behaviour)."""
-    ioc = engine.add_ioc(ORG_A, {"value": "8.8.8.8"})
-    with pytest.raises(NotImplementedError):
-        engine.enrich_ioc(ORG_A, ioc["ioc_id"])
-    with pytest.raises(NotImplementedError):
-        engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+@_skip_if_feed_down
+def test_enrich_ioc_result_reflects_blocklist_membership(engine):
+    """Proves real data: listed IP is malicious; unlisted IP is not.
+
+    Fetches the live blocklist, checks a listed IP gets malicious verdict and
+    an unlisted IP gets unknown. The verdicts are determined by actual
+    blocklist membership — not any hash or RNG.
+    """
+    blocklist = _fetch_feodo_blocklist()
+    listed_ip = next(iter(blocklist))
+
+    ioc_listed = engine.add_ioc(ORG_A, {"value": listed_ip, "ioc_type": "ip"})
+    ioc_clean = engine.add_ioc(ORG_A, {"value": "192.0.2.1", "ioc_type": "ip"})
+
+    r_listed = engine.enrich_ioc(ORG_A, ioc_listed["ioc_id"])
+    r_clean = engine.enrich_ioc(ORG_A, ioc_clean["ioc_id"])
+
+    assert r_listed["verdict"] == "malicious"
+    assert r_clean["verdict"] == "unknown"
+    # Malware family populated from real feed for the malicious IP
+    assert len(r_listed["malware_families"]) > 0
 
 
-def test_enrich_ioc_error_message_references_api_key(engine):
-    """NotImplementedError message must mention THREAT_INTEL_API_KEY or a real feed."""
-    ioc = engine.add_ioc(ORG_A, {"value": "malware.example.com", "ioc_type": "domain"})
-    with pytest.raises(NotImplementedError) as exc_info:
-        engine.enrich_ioc(ORG_A, ioc["ioc_id"])
-    msg = str(exc_info.value)
-    assert "THREAT_INTEL_API_KEY" in msg or "threat intel" in msg.lower()
+def test_enrich_ioc_nonexistent_ioc_raises(engine):
+    """enrich_ioc() raises IocEnrichmentError for a nonexistent IOC ID."""
+    with pytest.raises(IocEnrichmentError, match="not found"):
+        engine.enrich_ioc(ORG_A, "nonexistent-ioc-id")
+
+
+def test_enrich_ioc_feed_unreachable_raises(engine):
+    """When the feed fetch raises, enrich_ioc() propagates IocEnrichmentError.
+
+    The monkeypatch simulates a network outage. No fabricated enrichment
+    must be returned — the error must bubble up.
+    """
+    ioc = engine.add_ioc(ORG_A, {"value": "10.0.0.1", "ioc_type": "ip"})
+
+    with patch(
+        "core.ioc_enrichment_engine._fetch_feodo_blocklist",
+        side_effect=IocEnrichmentError("abuse.ch Feodo Tracker feed unreachable: timeout"),
+    ):
+        # Also reset the module-level cache so _get_feodo_blocklist calls _fetch
+        import core.ioc_enrichment_engine as _mod
+        _mod._feodo_blocklist = None
+        _mod._feodo_fetched_at = 0.0
+
+        with pytest.raises(IocEnrichmentError, match="unreachable"):
+            engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+
+
+def test_enrich_ioc_non_ip_type_returns_unknown(engine):
+    """Non-IP IOC types get verdict=unknown — no fabrication from this feed."""
+    for ioc_type in ("domain", "hash", "url", "email"):
+        ioc = engine.add_ioc(ORG_A, {"value": f"test-{ioc_type}", "ioc_type": ioc_type})
+        # Use a stub blocklist so we don't hit the network
+        with patch(
+            "core.ioc_enrichment_engine._get_feodo_blocklist",
+            return_value={},
+        ):
+            result = engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+        assert result["verdict"] == "unknown", (
+            f"Expected verdict=unknown for ioc_type={ioc_type!r}, got {result['verdict']!r}"
+        )
+        assert result["reputation_score"] == 0
+
+
+def test_enrich_ioc_persists_result(engine):
+    """enrich_ioc() stores the enrichment so get_enrichment() returns it immediately."""
+    ioc = engine.add_ioc(ORG_A, {"value": "1.2.3.4", "ioc_type": "ip"})
+
+    fake_blocklist = {"1.2.3.4": {"ip_address": "1.2.3.4", "malware": "Emotet", "country": "RU",
+                                   "as_name": "TestASN", "port": 8080, "status": "online",
+                                   "first_seen": "2025-01-01 00:00:00"}}
+    with patch("core.ioc_enrichment_engine._get_feodo_blocklist", return_value=fake_blocklist):
+        result = engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+
+    assert result["verdict"] == "malicious"
+    stored = engine.get_enrichment(ORG_A, ioc["ioc_id"])
+    assert stored["verdict"] == "malicious"
+    assert stored["ioc_id"] == ioc["ioc_id"]
+
+
+def test_enrich_ioc_malware_family_from_feed(engine):
+    """malware_families is populated from the real feed entry — not hardcoded."""
+    ioc = engine.add_ioc(ORG_A, {"value": "5.5.5.5", "ioc_type": "ip"})
+
+    fake_blocklist = {"5.5.5.5": {"ip_address": "5.5.5.5", "malware": "QakBot",
+                                   "country": "DE", "as_name": "TestASN",
+                                   "port": 443, "status": "online",
+                                   "first_seen": "2025-06-01 00:00:00"}}
+    with patch("core.ioc_enrichment_engine._get_feodo_blocklist", return_value=fake_blocklist):
+        result = engine.enrich_ioc(ORG_A, ioc["ioc_id"])
+
+    assert "QakBot" in result["malware_families"]
+    assert result["geo_location"] == "DE"
 
 
 # ---------------------------------------------------------------------------
@@ -211,8 +355,7 @@ def test_get_enrichment_not_enriched(engine):
 def test_get_enrichment_after_direct_seed(engine):
     """get_enrichment() returns stored enrichment seeded via direct SQLite INSERT.
 
-    Read-path preserved: enrich_ioc() is stubbed, but get_enrichment() reads
-    ioc_enrichments table directly — real production path.
+    Read-path preserved: get_enrichment() reads ioc_enrichments table directly.
     """
     ioc = engine.add_ioc(ORG_A, {"value": "enriched.com"})
     _seed_enrichment(engine, ORG_A, ioc["ioc_id"], verdict="malicious", reputation_score=90)
@@ -294,15 +437,10 @@ def test_get_ioc_stats_empty(engine):
 
 
 def test_get_ioc_stats_counts(engine):
-    """get_ioc_stats() accurately counts enriched IOCs from ioc_enrichments.
-
-    Read-path preserved: enrich_ioc() is stubbed, so we seed the enrichment
-    row directly via SQLite INSERT (same table get_ioc_stats reads from).
-    """
+    """get_ioc_stats() accurately counts enriched IOCs from ioc_enrichments."""
     ioc1 = engine.add_ioc(ORG_A, {"ioc_type": "ip", "severity": "critical"})
     ioc2 = engine.add_ioc(ORG_A, {"ioc_type": "domain", "severity": "high"})
 
-    # Seed enrichment for ioc1 directly (bypasses stubbed enrich_ioc)
     _seed_enrichment(engine, ORG_A, ioc1["ioc_id"])
     engine.add_to_watchlist(ORG_A, "watch", ioc2["ioc_id"])
 
@@ -328,15 +466,10 @@ def test_org_isolation_iocs(engine):
 
 
 def test_org_isolation_enrichment(engine):
-    """Enrichment seeded for ORG_A must not appear in ORG_B's stats.
-
-    Read-path preserved: seed ORG_A enrichment via direct SQLite INSERT,
-    then verify get_ioc_stats for ORG_B shows enriched_count == 0.
-    """
+    """Enrichment seeded for ORG_A must not appear in ORG_B's stats."""
     ioc_a = engine.add_ioc(ORG_A, {"value": "a-ioc.com"})
     _seed_enrichment(engine, ORG_A, ioc_a["ioc_id"])
 
-    # ORG_B must see zero enrichments (org isolation)
     stats_b = engine.get_ioc_stats(ORG_B)
     assert stats_b["enriched_count"] == 0
 
@@ -344,6 +477,5 @@ def test_org_isolation_enrichment(engine):
 def test_org_isolation_watchlist(engine):
     ioc_a = engine.add_ioc(ORG_A, {"value": "a-watch.com"})
     engine.add_to_watchlist(ORG_A, "shared-name", ioc_a["ioc_id"])
-    # ORG_B watchlist with same name should be empty
     items = engine.get_watchlist(ORG_B, "shared-name")
     assert items == []

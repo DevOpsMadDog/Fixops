@@ -2,6 +2,9 @@
 
 Endpoints for the IOC Enrichment engine.
 
+DATA SOURCE: abuse.ch Feodo Tracker botnet C2 IP blocklist (no API key required).
+  https://feodotracker.abuse.ch/downloads/ipblocklist.json
+
 Prefix: /api/v1/ioc-enrichment
 Auth: api_key_auth dependency
 
@@ -27,11 +30,11 @@ from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
-_SIMULATION_WARNING = {
-    "is_simulated": True,
-    "engine": "ioc_enrichment_engine",
-    "real_integration_required": "/api/v1/connectors/threat-intel/configure",
-    "do_not_use_in_demo": True,
+_DATA_SOURCE = {
+    "is_simulated": False,
+    "source": "abuse.ch Feodo Tracker",
+    "feed_url": "https://feodotracker.abuse.ch/downloads/ipblocklist.json",
+    "coverage": "IP IOCs only (botnet C2 servers); non-IP types return verdict=unknown",
 }
 
 router = APIRouter(
@@ -112,11 +115,18 @@ def add_ioc(body: IOCCreate, org_id: str = Query(default="default")):
     status_code=201,
 )
 def enrich_ioc(ioc_id: str, org_id: str = Query(default="default")):
-    """Trigger enrichment for an IOC (reputation, geo, campaigns, verdict)."""
-    result = _get_engine().enrich_ioc(org_id, ioc_id)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
+    """Trigger enrichment for an IOC against the abuse.ch Feodo Tracker C2 blocklist.
+
+    Returns real verdict (malicious/unknown) and feed metadata for IP IOCs.
+    Non-IP types return verdict=unknown (no no-auth feed available).
+    Returns HTTP 422 if the feed is unreachable or the IOC does not exist.
+    """
+    from core.ioc_enrichment_engine import IocEnrichmentError
+    try:
+        result = _get_engine().enrich_ioc(org_id, ioc_id)
+    except IocEnrichmentError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"data": result, "_data_source": _DATA_SOURCE}
 
 
 @router.get("/iocs/{ioc_id}/enrichment", dependencies=[Depends(api_key_auth)])
