@@ -49,11 +49,18 @@ _OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions"
 _ANTHROPIC_BASE  = "https://api.anthropic.com/v1/messages"
 
 # The 4 free models to poll in parallel.
+# Diverse, currently-available OpenRouter free models (refreshed 2026-05-27).
+# Deliberately spans distinct vendors (Google / OpenAI / Zhipu / DeepSeek / Alibaba)
+# so the consensus reflects genuine cross-model diversity, not one family N times.
+# Free tier is rate-limited (429s); _aggregate excludes errored models so transient
+# rate-limits shrink the panel rather than biasing the verdict. Override per-deploy
+# with FIXOPS_COUNCIL_MODELS (comma-separated) — e.g. paid models for reliability.
 _FREE_MODELS: list[str] = [
-    "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen-2.5-72b-instruct:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "google/gemma-4-31b-it:free",
+    "openai/gpt-oss-120b:free",
+    "z-ai/glm-4.5-air:free",
+    "deepseek/deepseek-v4-flash:free",
+    "qwen/qwen3-next-80b-a3b-instruct:free",
 ]
 
 _OPUS_MODEL = "claude-opus-4-5"          # escalation target
@@ -211,7 +218,20 @@ class LLMCouncil:
             )
         self._or_key      = key
         self._anth_key    = anthropic_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        self._models      = models or _FREE_MODELS
+        # Provider-agnostic: any OpenAI-compatible endpoint can be swapped in via
+        # env without code change, so the council can never be single-provider-killed.
+        self._base_url    = (
+            os.environ.get("FIXOPS_LLM_BASE_URL")
+            or os.environ.get("OPENROUTER_BASE_URL")
+            or _OPENROUTER_BASE
+        )
+        env_models        = os.environ.get("FIXOPS_COUNCIL_MODELS", "").strip()
+        if models:
+            self._models = models
+        elif env_models:
+            self._models = [m.strip() for m in env_models.split(",") if m.strip()]
+        else:
+            self._models = _FREE_MODELS
         self._dpo_db      = dpo_db_path or _get_dpo_db_path()
 
         _ensure_dpo_db(self._dpo_db)
@@ -255,12 +275,15 @@ class LLMCouncil:
         # Fan out to all 4 models in parallel
         individual_votes = await self._fan_out(user_msg)
 
-        # Aggregate
-        vote_counts, avg_confidence, majority = _aggregate(individual_votes)
+        # Aggregate (errored models excluded — see _aggregate)
+        vote_counts, avg_confidence, majority, valid_count = _aggregate(individual_votes)
 
-        # Decide whether to escalate
+        # Decide whether to escalate. Quorum: a verdict needs >=2 real votes —
+        # never accept a "consensus" of one surviving model.
+        _QUORUM = 2
         need_escalate = (
-            majority is None
+            valid_count < _QUORUM
+            or majority is None
             or avg_confidence < threshold
         )
 
@@ -364,18 +387,30 @@ class LLMCouncil:
             "HTTP-Referer":   "https://aldeci.ai",
             "X-Title":        "ALdeci LLM Council",
         }
-        try:
-            resp = await client.post(_OPENROUTER_BASE, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            raw  = data["choices"][0]["message"]["content"]
-            parsed = _parse_vote(raw)
-        except httpx.HTTPStatusError as exc:
-            logger.warning("Model %s HTTP %d: %s", model, exc.response.status_code, exc)
-            return _error_vote(model, f"HTTP {exc.response.status_code}")
-        except (KeyError, IndexError, json.JSONDecodeError) as exc:
-            logger.warning("Model %s parse error: %s", model, exc)
-            return _error_vote(model, f"parse error: {exc}")
+        parsed: dict[str, Any] | None = None
+        # One retry with backoff on 429 — free-tier pools rate-limit under burst.
+        for attempt in range(2):
+            try:
+                resp = await client.post(self._base_url, json=payload, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                raw  = data["choices"][0]["message"]["content"]
+                if not raw or not str(raw).strip():
+                    return _error_vote(model, "empty response")
+                parsed = _parse_vote(raw)
+                break
+            except httpx.HTTPStatusError as exc:
+                code = exc.response.status_code
+                if code == 429 and attempt == 0:
+                    await asyncio.sleep(2.0)
+                    continue
+                logger.warning("Model %s HTTP %d: %s", model, code, exc)
+                return _error_vote(model, f"HTTP {code}")
+            except (KeyError, IndexError, json.JSONDecodeError, AttributeError, TypeError) as exc:
+                logger.warning("Model %s parse error: %s", model, exc)
+                return _error_vote(model, f"parse error: {exc}")
+        if parsed is None:
+            return _error_vote(model, "HTTP 429 (rate limited after retry)")
 
         latency_ms = int((time.perf_counter() - t0) * 1000)
         return {
@@ -465,6 +500,7 @@ class LLMCouncil:
 
 def _parse_vote(raw: str) -> dict[str, Any]:
     """Parse JSON vote from LLM response. Normalise vote label. Never raises."""
+    raw = raw or ""  # some models return content=null
     try:
         data = json.loads(raw.strip())
     except json.JSONDecodeError:
@@ -515,31 +551,35 @@ def _aggregate(
 ) -> tuple[dict[str, int], float, str | None]:
     """Return (vote_counts, avg_confidence, majority_or_None).
 
-    majority is None when no single label has > 50% of valid votes.
-    Error votes (confidence=0, vote=escalate due to error) are counted but
-    their confidence does not inflate the average.
+    majority is None when no single label has > 50% of VALID (non-errored) votes.
+    Errored models (404/429/timeout) do NOT vote at all — they shrink the panel
+    rather than biasing the verdict toward 'escalate'. valid_count lets the caller
+    enforce a quorum (don't trust a "consensus" of one).
     """
     counts: dict[str, int] = {"approve": 0, "reject": 0, "escalate": 0}
     valid_confidences: list[float] = []
+    valid_count = 0
 
     for v in votes:
+        if v.get("error"):
+            continue  # rate-limited / unavailable model casts no vote
+        valid_count += 1
         label = v.get("vote", "escalate")
         if label not in counts:
             label = "escalate"
         counts[label] += 1
-        if not v.get("error"):
-            valid_confidences.append(v.get("confidence", 0.5))
+        valid_confidences.append(v.get("confidence", 0.5))
 
     avg_conf = sum(valid_confidences) / len(valid_confidences) if valid_confidences else 0.0
 
-    total = sum(counts.values())
     majority: str | None = None
-    for label, cnt in counts.items():
-        if cnt / total > 0.5:
-            majority = label
-            break
+    if valid_count > 0:
+        for label, cnt in counts.items():
+            if cnt / valid_count > 0.5:
+                majority = label
+                break
 
-    return counts, avg_conf, majority
+    return counts, avg_conf, majority, valid_count
 
 
 def _synthesize_reasoning(

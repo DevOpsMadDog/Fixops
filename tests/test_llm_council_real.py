@@ -183,10 +183,11 @@ class TestAggregate:
             {"vote": "approve", "confidence": 0.85},
             {"vote": "reject",  "confidence": 0.6},
         ]
-        counts, avg_conf, majority = m._aggregate(votes)
+        counts, avg_conf, majority, valid_count = m._aggregate(votes)
         assert majority == "approve"
         assert counts["approve"] == 3
         assert counts["reject"] == 1
+        assert valid_count == 4
         assert abs(avg_conf - (0.9 + 0.8 + 0.85 + 0.6) / 4) < 0.01
 
     def test_no_majority_two_two(self, env_with_key):
@@ -197,8 +198,9 @@ class TestAggregate:
             {"vote": "reject",  "confidence": 0.9},
             {"vote": "reject",  "confidence": 0.8},
         ]
-        counts, avg_conf, majority = m._aggregate(votes)
+        counts, avg_conf, majority, valid_count = m._aggregate(votes)
         assert majority is None
+        assert valid_count == 4
 
     def test_error_votes_dont_inflate_confidence(self, env_with_key):
         m = self._mod()
@@ -206,9 +208,12 @@ class TestAggregate:
             {"vote": "approve", "confidence": 0.9},
             {"vote": "escalate", "confidence": 0.0, "error": "timeout"},
         ]
-        counts, avg_conf, majority = m._aggregate(votes)
-        # Only the non-error vote contributes to avg
+        counts, avg_conf, majority, valid_count = m._aggregate(votes)
+        # Errored model casts NO vote: excluded from counts and from the panel.
         assert abs(avg_conf - 0.9) < 0.01
+        assert valid_count == 1
+        assert counts["escalate"] == 0  # the timed-out model did not vote 'escalate'
+        assert majority == "approve"
 
     def test_all_error_votes_avg_zero(self, env_with_key):
         m = self._mod()
@@ -216,8 +221,10 @@ class TestAggregate:
             {"vote": "escalate", "confidence": 0.0, "error": "http 500"},
             {"vote": "escalate", "confidence": 0.0, "error": "timeout"},
         ]
-        counts, avg_conf, majority = m._aggregate(votes)
+        counts, avg_conf, majority, valid_count = m._aggregate(votes)
         assert avg_conf == 0.0
+        assert valid_count == 0      # no model voted → quorum fails → caller escalates
+        assert majority is None
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +268,8 @@ class TestConveneHappyPath:
             instance.post = AsyncMock(side_effect=fake_post)
             MockClient.return_value = instance
 
-            council = mod.LLMCouncil()
+            # Explicit 4-model panel — decoupled from the production _FREE_MODELS list
+            council = mod.LLMCouncil(models=["t/a:free", "t/b:free", "t/c:free", "t/d:free"])
             result = await council.convene("Is this CVE exploitable?", {"severity": "high"})
 
         assert call_count == 4
@@ -321,7 +329,7 @@ class TestConveneEscalation:
             instance.post = AsyncMock(side_effect=fake_post)
             MockClient.return_value = instance
 
-            council = mod.LLMCouncil()
+            council = mod.LLMCouncil(models=["t/a:free", "t/b:free", "t/c:free", "t/d:free"])
             result = await council.convene("Allow root access?", {})
 
         assert result["escalated"] is True
@@ -372,7 +380,7 @@ class TestConveneEscalation:
             instance.post = AsyncMock(side_effect=fake_post)
             MockClient.return_value = instance
 
-            council = mod.LLMCouncil()
+            council = mod.LLMCouncil(models=["t/a:free", "t/b:free", "t/c:free", "t/d:free"])
             result = await council.convene("High-stakes decision?", {})
 
         assert result["escalated"] is True
@@ -401,7 +409,7 @@ class TestConveneEscalation:
             instance.post = AsyncMock(side_effect=fake_post)
             MockClient.return_value = instance
 
-            council = mod.LLMCouncil(dpo_db_path=tmp_dpo_db)
+            council = mod.LLMCouncil(dpo_db_path=tmp_dpo_db, models=["t/a:free", "t/b:free", "t/c:free", "t/d:free"])
             await council.convene("Merge this?", {})
 
         conn = sqlite3.connect(tmp_dpo_db)
