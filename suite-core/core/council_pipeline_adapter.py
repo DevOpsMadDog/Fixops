@@ -516,9 +516,50 @@ class CouncilPipelineAdapter:
             # Get council verdict
             verdict = council.convene(batch_finding, council_context)
 
+            # --- Real-vote counting (Finding 4 fix) ---
+            # Modes that indicate a vote did NOT come from a real LLM call.
+            # These must be excluded from providers_responded and consensus tally.
+            _FAKE_MODES = frozenset({"fallback", "deterministic", "no_key", "unknown"})
+
+            # raw_analyses holds all MemberAnalysis objects (stage1 + stage2).
+            # Stage-2 analyses (peer review) are the ones that map 1:1 to member_votes.
+            # We count them by looking at stage-2 analyses in raw_analyses.
+            stage2_analyses = [
+                a for a in (verdict.raw_analyses or [])
+                if getattr(a, "stage", "") == "2_peer_review"
+            ]
+            # Fallback: if stage2 is empty (e.g. chairman fallback path), use all analyses.
+            if not stage2_analyses:
+                stage2_analyses = verdict.raw_analyses or []
+
+            real_vote_count = sum(
+                1 for a in stage2_analyses
+                if (a.metadata or {}).get("mode", "unknown") not in _FAKE_MODES
+            )
+            # If no stage2 analyses available (old code path), conservatively count
+            # member_votes that don't have an obviously fake mode recorded on them.
+            if not stage2_analyses:
+                real_vote_count = len(verdict.member_votes)
+
+            logger.debug(
+                "Council votes: total=%d real=%d fake=%d",
+                len(verdict.member_votes),
+                real_vote_count,
+                len(verdict.member_votes) - real_vote_count,
+            )
+
+            # Quorum check: require at least 2 real LLM votes for a trusted verdict.
+            QUORUM = 2
+            below_quorum = real_vote_count < QUORUM
+
             # Check for escalation need
             escalation_reason = None
-            if verdict.confidence < 0.7:
+            if below_quorum:
+                escalation_reason = (
+                    f"Below quorum: only {real_vote_count} real LLM vote(s) "
+                    f"(need {QUORUM}); verdict is low-trust"
+                )
+            elif verdict.confidence < 0.7:
                 escalation_reason = f"Low confidence: {verdict.confidence:.2f}"
             elif len([v for v in verdict.member_votes if v.action != verdict.action]) > 2:
                 escalation_reason = "High disagreement among council members"
@@ -528,7 +569,8 @@ class CouncilPipelineAdapter:
                 council_reasoning = (
                     f"Council verdict: {verdict.action} "
                     f"(confidence={verdict.confidence:.2f})\n"
-                    f"Member votes: {len(verdict.member_votes)} "
+                    f"Member votes: {len(verdict.member_votes)} total, "
+                    f"{real_vote_count} real LLM "
                     f"(agreements: {sum(1 for v in verdict.member_votes if v.action == verdict.action)})\n"
                     f"Reasoning: {verdict.reasoning}"
                 )
@@ -539,8 +581,28 @@ class CouncilPipelineAdapter:
                     council_reasoning,
                     escalation_reason,
                 )
+            elif below_quorum and not self._escalation.can_escalate():
+                # Below quorum AND cannot escalate — return honest low-trust result.
+                logger.warning(
+                    "Council below quorum (%d real votes) and escalation budget exhausted — "
+                    "returning low-trust result (no fabricated verdict)",
+                    real_vote_count,
+                )
+                return {
+                    "analyzed": len(critical),
+                    "decision": None,
+                    "method": "council_low_trust",
+                    "confidence": verdict.confidence,
+                    "providers_responded": real_vote_count,
+                    "cost_usd": verdict.cost_usd,
+                    "note": (
+                        f"Quorum not met ({real_vote_count}/{QUORUM} real votes). "
+                        "Verdict withheld — not enough real LLM responses."
+                    ),
+                    "session_id": session_id,
+                }
             else:
-                # Use council verdict as-is
+                # Use council verdict as-is — real quorum met
                 result = ConsensusResult(
                     final_decision=verdict.action,
                     method="council_verdict",
@@ -548,7 +610,8 @@ class CouncilPipelineAdapter:
                     reasoning=verdict.reasoning,
                     council_session_id=session_id,
                     providers_queried=len(verdict.member_votes),
-                    providers_responded=len(verdict.member_votes),
+                    # Only count REAL (non-fallback) votes in providers_responded.
+                    providers_responded=real_vote_count,
                     consensus_pct=1.0,
                     mitre_techniques=verdict.mitre_mappings,
                     compliance_concerns=[
@@ -642,12 +705,20 @@ class CouncilPipelineAdapter:
                     "reason": str(e),
                     "session_id": session_id,
                 }
-            logger.error("Council analysis failed: %s; using fallback", type(e).__name__)
+            # Any other error — return honest unavailable result; NEVER fabricate a verdict.
+            logger.error(
+                "Council analysis failed (%s): %s — returning llm_unavailable, no fabricated verdict",
+                type(e).__name__,
+                e,
+            )
             return {
-                "analyzed": len(critical) if "critical" in dir() else 0,
-                "decision": "review",
-                "method": "fallback",
+                "analyzed": 0,
+                "decision": None,
+                "method": "llm_unavailable",
+                "confidence": 0.0,
+                "cost_usd": 0.0,
                 "reason": f"Council error: {type(e).__name__}",
+                "note": "No security verdict produced. Do not treat this as an authoritative decision.",
                 "session_id": session_id,
             }
 

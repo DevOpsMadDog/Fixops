@@ -417,8 +417,10 @@ class BrainPipeline:
             self._step_enrich_threats,
             self._step_score_risk,
             self._step_apply_policy,
-            # Switch to council if enabled, otherwise use legacy consensus
-            self._step_llm_council if os.environ.get("FIXOPS_USE_COUNCIL", "").lower() in ("1", "true", "yes") else self._step_llm_consensus,
+            # Use real LLM council whenever an API key is present (default trigger).
+            # FIXOPS_USE_COUNCIL can override: "0"/"false"/"no" forces legacy path,
+            # "1"/"true"/"yes" forces council regardless of key detection.
+            self._select_llm_step(),
             self._step_micro_pentest,
             self._step_run_playbooks,
             self._step_generate_evidence,
@@ -3560,6 +3562,42 @@ class BrainPipeline:
         }
 
     # ------------------------------------------------------------------
+    # Step 9: LLM step selector
+    # ------------------------------------------------------------------
+
+    # Modes that indicate a vote did NOT come from a real LLM call.
+    _FAKE_VOTE_MODES: frozenset = frozenset({"fallback", "deterministic", "no_key", "unknown"})
+
+    def _select_llm_step(self):
+        """Return the correct LLM step callable for this run.
+
+        Selection priority (highest wins):
+        1. FIXOPS_USE_COUNCIL=0/false/no  → force legacy _step_llm_consensus
+        2. FIXOPS_USE_COUNCIL=1/true/yes  → force _step_llm_council
+        3. OPENROUTER_API_KEY or MULEROUTER_API_KEY present → _step_llm_council
+        4. Fallback                        → _step_llm_consensus (legacy/deterministic)
+        """
+        override = os.environ.get("FIXOPS_USE_COUNCIL", "").strip().lower()
+        if override in ("0", "false", "no"):
+            logger.debug("LLM step: _step_llm_consensus (FIXOPS_USE_COUNCIL=off)")
+            return self._step_llm_consensus
+        if override in ("1", "true", "yes"):
+            logger.debug("LLM step: _step_llm_council (FIXOPS_USE_COUNCIL=on)")
+            return self._step_llm_council
+        # Key-present detection: use real council whenever any real key is configured.
+        has_key = bool(
+            os.environ.get("OPENROUTER_API_KEY")
+            or os.environ.get("MULEROUTER_API_KEY")
+            or os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("ANTHROPIC_API_KEY")
+        )
+        if has_key:
+            logger.info("LLM step: _step_llm_council (API key detected)")
+            return self._step_llm_council
+        logger.info("LLM step: _step_llm_consensus (no API key — legacy path)")
+        return self._step_llm_consensus
+
+    # ------------------------------------------------------------------
     # Step 9: Multi-LLM consensus
     # ------------------------------------------------------------------
     # Batch size for LLM consensus calls
@@ -3756,9 +3794,12 @@ class BrainPipeline:
     def _deterministic_consensus(
         self, critical: List[Dict[str, Any]], ctx: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Fallback consensus when LLM is unavailable.
+        """Non-authoritative rule-based fallback when NO LLM is available.
 
-        Uses risk score distribution to determine overall decision.
+        IMPORTANT: This is NOT an LLM verdict. It is a deterministic heuristic
+        based solely on risk-score distribution and must NEVER be presented as
+        an authoritative security decision. method="deterministic_unverified"
+        signals to callers that no real LLM analysis was performed.
         """
         if not critical:
             return {"analyzed": 0, "skipped": True, "reason": "no findings"}
@@ -3777,16 +3818,23 @@ class BrainPipeline:
 
         result = {
             "final_decision": decision,
-            "method": "deterministic",
+            # Explicitly NOT "deterministic" to prevent confusion with LLM verdicts.
+            "method": "deterministic_unverified",
             "avg_risk": round(avg_risk, 4),
             "high_risk_pct": round(high_pct, 4),
+            "note": (
+                "Non-authoritative heuristic — no LLM analysis performed. "
+                "Configure OPENROUTER_API_KEY or MULEROUTER_API_KEY for real verdicts."
+            ),
         }
         ctx["llm_results"] = [result]
         return {
             "analyzed": len(critical),
             "decision": decision,
+            "method": "deterministic_unverified",
             "skipped": True,
-            "reason": "deterministic fallback",
+            "reason": "no LLM configured — deterministic heuristic only",
+            "note": result["note"],
         }
 
     # ------------------------------------------------------------------
@@ -3869,16 +3917,63 @@ class BrainPipeline:
 
             return result
 
-        except (ImportError, TimeoutError) as e:
-            logger.warning(
-                "LLM Council unavailable (%s), falling back to consensus: %s",
-                type(e).__name__,
-                e,
-            )
-            return self._step_llm_consensus(ctx, inp)
-        except (OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
-            logger.warning("LLM Council failed: %s", type(e).__name__)
-            return self._step_llm_consensus(ctx, inp)
+        except ImportError as e:
+            # Council module not installed — honest skip, no fabrication.
+            logger.warning("LLM Council module unavailable: %s", e)
+            return {
+                "analyzed": 0,
+                "decision": None,
+                "method": "llm_not_configured",
+                "cost_usd": 0.0,
+                "note": f"Council module not importable: {e}. Install required packages.",
+            }
+        except TimeoutError as e:
+            logger.warning("LLM Council timed out: %s", e)
+            return {
+                "analyzed": 0,
+                "decision": None,
+                "method": "llm_unavailable",
+                "cost_usd": 0.0,
+                "note": f"Council timed out ({e}). No verdict produced.",
+            }
+        except RuntimeError as e:
+            # CouncilNotConfiguredError(RuntimeError) must NOT fall through to
+            # _step_llm_consensus. Return an honest not-configured result.
+            from core.llm_providers import CouncilNotConfiguredError  # noqa: PLC0415
+            if isinstance(e, CouncilNotConfiguredError):
+                logger.error(
+                    "LLM Council not configured (no API key): %s", e
+                )
+                return {
+                    "analyzed": 0,
+                    "decision": None,
+                    "method": "llm_not_configured",
+                    "cost_usd": 0.0,
+                    "note": (
+                        "No LLM API key configured. "
+                        "Set OPENROUTER_API_KEY or MULEROUTER_API_KEY. "
+                        "No security verdict was produced."
+                    ),
+                }
+            # Generic RuntimeError — council failed, but do not fabricate.
+            logger.error("LLM Council runtime error: %s", e)
+            return {
+                "analyzed": 0,
+                "decision": None,
+                "method": "llm_unavailable",
+                "cost_usd": 0.0,
+                "note": f"Council runtime error ({type(e).__name__}). No verdict produced.",
+            }
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            # Genuine infrastructure / serialization failures — do NOT fabricate.
+            logger.error("LLM Council failed (%s): %s", type(e).__name__, e)
+            return {
+                "analyzed": 0,
+                "decision": None,
+                "method": "llm_unavailable",
+                "cost_usd": 0.0,
+                "note": f"Council failed ({type(e).__name__}). No verdict produced.",
+            }
 
     # ------------------------------------------------------------------
     # Step 10: MicroPenTest proves reality
