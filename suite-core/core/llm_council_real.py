@@ -49,18 +49,19 @@ _OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions"
 _ANTHROPIC_BASE  = "https://api.anthropic.com/v1/messages"
 
 # The 4 free models to poll in parallel.
-# Diverse, currently-available OpenRouter free models (refreshed 2026-05-27).
-# Deliberately spans distinct vendors (Google / OpenAI / Zhipu / DeepSeek / Alibaba)
-# so the consensus reflects genuine cross-model diversity, not one family N times.
-# Free tier is rate-limited (429s); _aggregate excludes errored models so transient
-# rate-limits shrink the panel rather than biasing the verdict. Override per-deploy
-# with FIXOPS_COUNCIL_MODELS (comma-separated) — e.g. paid models for reliability.
-_FREE_MODELS: list[str] = [
-    "google/gemma-4-31b-it:free",
-    "openai/gpt-oss-120b:free",
-    "z-ai/glm-4.5-air:free",
-    "deepseek/deepseek-v4-flash:free",
-    "qwen/qwen3-next-80b-a3b-instruct:free",
+# Default council panel — paid OpenRouter models across FIVE distinct vendors
+# (Google / DeepSeek / Alibaba / Meta / Anthropic) so the consensus reflects
+# genuine cross-vendor diversity, not one family N times. Paid (not :free)
+# because the free pool hard-rate-limits concurrent fan-out (429s) regardless of
+# credit balance; paid is reliable and costs a fraction of a cent per verdict.
+# All five verified 2026-05-27 to return clean JSON via response_format.
+# Override per-deploy with FIXOPS_COUNCIL_MODELS (comma-separated).
+_DEFAULT_MODELS: list[str] = [
+    "google/gemini-2.5-flash",
+    "deepseek/deepseek-chat-v3.1",
+    "qwen/qwen3-next-80b-a3b-instruct",
+    "meta-llama/llama-3.3-70b-instruct",
+    "anthropic/claude-3.5-haiku",
 ]
 
 _OPUS_MODEL = "claude-opus-4-5"          # escalation target
@@ -231,7 +232,7 @@ class LLMCouncil:
         elif env_models:
             self._models = [m.strip() for m in env_models.split(",") if m.strip()]
         else:
-            self._models = _FREE_MODELS
+            self._models = _DEFAULT_MODELS
         self._dpo_db      = dpo_db_path or _get_dpo_db_path()
 
         _ensure_dpo_db(self._dpo_db)
