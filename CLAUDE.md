@@ -131,11 +131,12 @@ ALDECI is an **ASPM + CTEM + CSPM platform** — a unified, self-hosted, AI-nati
 
 ---
 
-## TESTING STRATEGY
+## TESTING STRATEGY (corrected 2026-05-27 — see TEST_MATRIX.md)
 
-There are ~327 test files. **Only run Beast Mode tests** for day-to-day work:
+**Repo truth:** ~1,426 test files / **~45,294 tests** (NOT the "327/709" previously claimed here — that was stale). The 13-file "Beast Mode" set below is a **fast smoke (~756 tests, ~1.7% of the suite)** — useful as a quick signal, **NOT a sufficient regression gate by itself.** Use the tiered gate:
 
-### Beast Mode Tests (run these — 709 tests passing):
+### T1 — CHANGE GATE (run for every change): real-behaviour tests + smoke
+The tests that actually guard real engine behaviour (made real this session) are the gate. See `TEST_MATRIX.md` for the full feature→test map and the exact command. Plus the smoke set:
 ```bash
 python -m pytest \
   tests/test_phase2_connectors.py tests/test_phase3_llm_council.py \
@@ -143,17 +144,19 @@ python -m pytest \
   tests/test_phase7_analytics.py tests/test_phase8_mcp.py tests/test_phase9_playbooks.py \
   tests/test_phase10_e2e.py tests/test_connector_framework.py tests/test_trustgraph.py \
   tests/test_pipeline_api.py tests/test_persona_workflows.py \
-  -x --tb=short --timeout=10 -q -o "addopts="
+  --tb=short --timeout=15 -q -o "addopts="
 ```
 
-### Legacy Tests (~190 files — DO NOT run routinely):
-These test older modules (CLI, evidence, compliance, scanners, risk scoring, etc.).
-Only run if you're modifying legacy code. They may have outdated assumptions.
-
-### Full Suite (only for release validation):
+### T2 — COLLECTION HEALTH (must always pass): suite collects with 0 errors
 ```bash
-python -m pytest tests/ --timeout=10 -x -q
+python -m pytest tests/ --collect-only -q -o "addopts="   # must report 0 collection errors
 ```
+
+### T3 — BROAD REGRESSION (periodic / pre-release): the full collectable suite
+```bash
+python -m pytest tests/ --timeout=15 -q -o "addopts="     # triage real-regression vs legacy-outdated
+```
+Legacy tests may carry outdated assumptions; triage failures, don't blanket-trust green-or-red.
 
 ---
 
@@ -173,7 +176,7 @@ python -m pytest tests/ --timeout=10 -x -q
 ├── suite-ui/
 │   ├── aldeci/         # Legacy React UI (FROZEN — do NOT modify)
 │   └── aldeci-ui-new/  # Active UI (React 19 + Vite 6 + Tailwind v4)
-├── tests/              # 327 test files (137 Beast Mode + 190 legacy)
+├── tests/              # ~1,426 test files / ~45,294 tests (13-file smoke + broad suite — see TEST_MATRIX.md)
 ├── docker/             # Docker + Kubernetes configs
 ├── docs/               # ALDECI_REARCHITECTURE_v2.md (source of truth)
 ├── sitecustomize.py    # Auto-injects suite paths into sys.path
