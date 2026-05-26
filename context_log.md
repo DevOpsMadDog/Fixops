@@ -1,5 +1,14 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-26 21:20] backend-hardener — REAL ENGINE #4: compliance_scanner runs real checkov IaC compliance
+
+- **What**: `start_scan(org_id, profile_id, target_path)` now runs real `checkov --framework terraform,dockerfile,kubernetes` against target IaC path. Parses both single-framework (dict) and multi-framework (list) JSON output. Persists one `scan_result` row + one `compliance_check` row per checkov check. Control family derived entirely from real checkov metadata (`check_id` prefix: CKV_AWS→terraform/aws, CKV_K8S→kubernetes, CKV_DOCKER→dockerfile; `check_class` module path as fallback). No SOC2/PCI/HIPAA control numbers fabricated. Honest degradation: checkov absent→`ComplianceScanError`→HTTP 422; missing/empty target→422.
+- **Real checkov counts**: 8 passed + 14 failed = 22 total checks on `tests/fixtures/checkov_target/main.tf`. Score = 36.36%.
+- **Control family mapping**: `check_id` prefix lookup (CKV_AWS/CKV2_AWS→`terraform/aws`, CKV_K8S→`kubernetes`, CKV_DOCKER→`dockerfile`, etc.) with `check_class` module-path fallback. All 22 checks mapped to `terraform/aws` on this fixture (all S3 checks).
+- **Files touched**: `suite-core/core/compliance_scanner_engine.py`, `suite-api/apps/api/compliance_scanner_router.py`, `tests/test_compliance_scanner_engine.py`, `tests/test_simulated_engines_flagged_v2.py`
+- **Outcome**: SUCCESS — 70/70 tests pass, 13 integration tests RAN (not skipped), all downstream seeded tests preserved
+- **Pillar(s) served**: V1 (real security data), V3 (enterprise-grade reliability), V7 (compliance automation)
+
 ### [2026-05-26 21:10] CTO — REAL ENGINE #3: kubernetes_security runs real checkov K8s + static RBAC analysis
 
 - **What**: `run_cis_benchmark(org_id, cluster_id, manifest_path)` now runs real `checkov --framework kubernetes` against K8s YAML manifests, persists failed checks as real k8s_findings, returns real CIS summary (passed/failed/score). `get_rbac_analysis(org_id, cluster_id, manifest_path)` parses real Role/ClusterRole/RoleBinding/ClusterRoleBinding YAML with PyYAML and computes real metrics (total_roles, cluster_admin_bindings, wildcard_permissions). No random/fabricated data. CRUD untouched.

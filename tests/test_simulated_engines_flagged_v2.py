@@ -84,8 +84,10 @@ def _import_fresh(module_name: str) -> tuple[types.ModuleType, _WarningCapture]:
 # benchmarks (frameworks: terraform, dockerfile, kubernetes) and is no longer a stub.
 # core.kubernetes_security_engine is REMOVED — it now runs real checkov kubernetes
 # CIS benchmarks and real static RBAC analysis and is no longer a stub.
+# core.compliance_scanner_engine is REMOVED — it now runs real checkov IaC/config
+# compliance checks (frameworks: terraform, dockerfile, kubernetes) and is no
+# longer a stub.
 ENGINES = [
-    ("core.compliance_scanner_engine", "compliance_scanner_engine"),
     ("core.vendor_scorecard", "vendor_scorecard"),
     ("core.ccm_engine", "ccm_engine"),
     ("core.ioc_enrichment_engine", "ioc_enrichment_engine"),
@@ -117,8 +119,9 @@ def test_engine_logs_simulation_warning_at_import(module_name: str, label: str):
 # a truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
 # kubernetes_security_router is REMOVED — it serves real checkov CIS benchmark
 # results and real RBAC analysis with _DATA_SOURCE (is_simulated=False).
+# apps.api.compliance_scanner_router is REMOVED — it serves real checkov results
+# with a truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
 ROUTERS = [
-    "apps.api.compliance_scanner_router",
     "apps.api.vendor_scorecard_router",
     "apps.api.iam_sso_router",
     "apps.api.ccm_router",

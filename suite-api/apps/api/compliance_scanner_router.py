@@ -1,7 +1,7 @@
 """Compliance Scanner Router — ALDECI.
 
-REST API for automated compliance scanning across SOC2, ISO 27001, NIST CSF,
-PCI DSS, HIPAA, GDPR, and CIS frameworks.
+REST API for automated compliance scanning using real checkov IaC analysis.
+Frameworks: terraform, dockerfile, kubernetes.
 
 Prefix: /api/v1/compliance-scanner
 """
@@ -12,17 +12,18 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
-from core.compliance_scanner_engine import ComplianceScannerEngine
+from core.compliance_scanner_engine import ComplianceScannerEngine, ComplianceScanError
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
-_SIMULATION_WARNING = {
-    "is_simulated": True,
+_DATA_SOURCE = {
+    "is_simulated": False,
     "engine": "compliance_scanner_engine",
-    "real_integration_required": "/api/v1/connectors/compliance/configure",
-    "do_not_use_in_demo": True,
+    "scanner": "checkov",
+    "frameworks": "terraform,dockerfile,kubernetes",
+    "source": "checkov",
 }
 
 router = APIRouter(
@@ -50,6 +51,10 @@ class CreateProfileRequest(BaseModel):
     name: str
     frameworks: List[str] = Field(default_factory=lambda: ["SOC2"])
     scan_frequency_hours: int = 24
+
+
+class StartScanRequest(BaseModel):
+    target_path: str = Field(..., description="Filesystem path to the IaC directory or file to scan")
 
 
 class CreateTaskRequest(BaseModel):
@@ -112,13 +117,16 @@ def get_profile(org_id: str, profile_id: str) -> dict:
 
 
 @router.post("/profiles/{profile_id}/scan")
-def start_scan(org_id: str, profile_id: str) -> dict:
-    """Trigger a compliance scan for a profile."""
+def start_scan(org_id: str, profile_id: str, req: StartScanRequest) -> dict:
+    """Trigger a real checkov compliance scan against target_path."""
     try:
-        result = _get_engine().start_scan(org_id, profile_id)
-        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        result = _get_engine().start_scan(org_id, profile_id, target_path=req.target_path)
+        return {"data": result, "_data_source": _DATA_SOURCE}
+    except ComplianceScanError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        _logger.exception("compliance_scanner start_scan failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get("/results")

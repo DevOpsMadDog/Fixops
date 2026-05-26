@@ -1,29 +1,37 @@
 """
 Compliance Scanner Engine — ALDECI.
 
-STATUS: STUB — scan profile CRUD and remediation task CRUD are
-production-ready (SQLite WAL). The core start_scan() method is NOT
-production-ready: it generates randomized check outcomes instead of
-real control evidence. Customers must NOT be shown scan results.
+REAL IMPLEMENTATION: start_scan() executes the real ``checkov`` binary
+against a target directory (or file) of IaC/configuration files and persists
+actual pass/fail check results.  There are NO randomised or fabricated results.
 
-To make real: integrate OPA/Conftest evaluation or real audit connectors
-via /api/v1/connectors/compliance/configure. Set COMPLIANCE_CONNECTOR_URL
-env var to enable real scanning. Until wired, start_scan() raises
-NotImplementedError.
+Honest degradation:
+- checkov not on PATH → ComplianceScanError (router surfaces as HTTP 422)
+- target path missing/empty → ComplianceScanError (router surfaces as HTTP 422)
+- checkov non-zero exit (checks failed) → normal; results still parsed
 
-Automated compliance scanning across SOC2, ISO 27001, NIST CSF, PCI DSS,
-HIPAA, GDPR, and CIS frameworks. Generates scan profiles, runs checks,
-tracks remediation tasks, and provides aggregate compliance statistics.
+Supported frameworks: terraform, dockerfile, kubernetes (skips the ``secrets``
+framework which has a broken detect-secrets dependency on this installation).
 
-Multi-tenant (org_id), SQLite WAL-backed, thread-safe via RLock.
+Control-family mapping is derived entirely from real checkov metadata:
+  * check_class module path  (e.g. ``checkov.terraform.checks.resource.aws.S3…``)
+  * check_id prefix          (CKV_AWS → terraform/aws, CKV_K8S → kubernetes,
+                               CKV_DOCKER → dockerfile, etc.)
+No SOC2/PCI/HIPAA control numbers are invented — if checkov provides none,
+the control_family is set to the real check_class module prefix.
+
+Profile/remediation-task CRUD, get_scan_result(), list_scan_results(),
+list_checks(), get_compliance_stats() are all production-ready SQLite-backed
+methods.  Thread-safe via RLock.  Multi-tenant via org_id.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import random
+import shutil
 import sqlite3
+import subprocess
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -37,12 +45,28 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
-_logger.warning(
-    "⚠️  %s: start_scan() is STUB — check outcomes are randomized. "
-    "Set COMPLIANCE_CONNECTOR_URL to enable real OPA/Conftest scanning. "
-    "Profile and remediation-task CRUD are production-ready.",
+_logger.info(
+    "%s loaded — start_scan() runs real checkov IaC/config compliance checks "
+    "(frameworks: terraform, dockerfile, kubernetes). No simulated data.",
     __name__,
 )
+
+# Frameworks we scan with — excludes 'secrets' which crashes on this install
+# due to a broken detect-secrets/checkov integration (AttributeError: JSON).
+_CHECKOV_FRAMEWORKS = "terraform,dockerfile,kubernetes"
+
+# Checkov process timeout in seconds
+_CHECKOV_TIMEOUT = 120
+
+
+class ComplianceScanError(ValueError):
+    """Raised when a real checkov compliance scan cannot be performed.
+
+    Surfaced by the router as HTTP 422 — never as fabricated results.
+    Common causes:
+    - checkov binary not on PATH
+    - target path does not exist or contains no scannable files
+    """
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "compliance_scanner.db"
@@ -339,29 +363,339 @@ class ComplianceScannerEngine:
     # Scan Execution
     # ------------------------------------------------------------------
 
-    def start_scan(self, org_id: str, profile_id: str) -> dict:
-        """Run a compliance scan via real OPA/Conftest policy evaluation.
+    # ------------------------------------------------------------------
+    # Internal checkov helpers
+    # ------------------------------------------------------------------
 
-        Requires a compliance connector configured via
-        /api/v1/connectors/compliance/configure. Raises NotImplementedError
-        until COMPLIANCE_CONNECTOR_URL env var is set, to prevent randomized
-        check outcomes from reaching customers.
-
-        Profile and remediation-task CRUD (create_profile, list_profiles,
-        create_remediation_task, list_remediation_tasks, update_task_status,
-        get_compliance_stats) are production-ready and work now.
-        """
-        import os
-        if not os.environ.get("COMPLIANCE_CONNECTOR_URL"):
-            raise NotImplementedError(
-                "start_scan() requires a real compliance connector (OPA/Conftest). "
-                "Configure one via /api/v1/connectors/compliance/configure and set "
-                "COMPLIANCE_CONNECTOR_URL env var. "
-                "Profile CRUD and remediation task management work now."
+    @staticmethod
+    def _find_checkov() -> str:
+        """Return the path to the checkov binary, or raise ComplianceScanError."""
+        path = shutil.which("checkov")
+        if path is None:
+            raise ComplianceScanError(
+                "checkov not installed — install it to run real compliance scans "
+                "(pip install checkov or brew install checkov)"
             )
-        raise NotImplementedError(
-            "start_scan() OPA/Conftest integration not yet implemented. "
-            "Set COMPLIANCE_CONNECTOR_URL to enable real scanning."
+        return path
+
+    @staticmethod
+    def _control_family_from_check(check_id: str, check_class: str) -> str:
+        """Derive the control family from REAL checkov metadata — no fabrication.
+
+        Strategy (in order):
+        1. check_id prefix  → maps to the IaC domain the check covers
+           CKV_AWS / CKV2_AWS  → terraform/aws
+           CKV_AZURE / CKV2_AZURE → terraform/azure
+           CKV_GCP / CKV2_GCP  → terraform/gcp
+           CKV_K8S             → kubernetes
+           CKV_DOCKER          → dockerfile
+           CKV_LIN             → terraform/linux
+           everything else     → terraform (generic)
+        2. Fallback: first two segments of check_class module path
+           e.g. "checkov.terraform.checks.resource.aws.S3…" → "terraform/aws"
+        """
+        cid = (check_id or "").upper()
+        if cid.startswith(("CKV_AWS", "CKV2_AWS", "BC_AWS")):
+            return "terraform/aws"
+        if cid.startswith(("CKV_AZURE", "CKV2_AZURE", "BC_AZURE")):
+            return "terraform/azure"
+        if cid.startswith(("CKV_GCP", "CKV2_GCP", "BC_GCP")):
+            return "terraform/gcp"
+        if cid.startswith("CKV_K8S"):
+            return "kubernetes"
+        if cid.startswith("CKV_DOCKER"):
+            return "dockerfile"
+        if cid.startswith("CKV_LIN"):
+            return "terraform/linux"
+
+        # Fall back to check_class module path
+        if check_class:
+            parts = check_class.split(".")
+            # e.g. ["checkov","terraform","checks","resource","aws","S3…"]
+            # skip "checkov" prefix; take next 2 meaningful segments
+            filtered = [p for p in parts if p not in ("checkov", "checks", "resource", "graph", "common")]
+            if len(filtered) >= 2:
+                return f"{filtered[0]}/{filtered[1]}"
+            if filtered:
+                return filtered[0]
+
+        return "terraform"
+
+    @staticmethod
+    def _parse_checkov_output(raw_json: str) -> tuple:
+        """Parse checkov JSON output into (passed_count, failed_count, check_rows).
+
+        Handles both single-framework output (dict) and multi-framework output
+        (list of dicts).  Each item in check_rows is a dict with keys:
+          check_id, check_class, check_name, file_path, resource,
+          severity, guideline, status.
+        """
+        data = json.loads(raw_json)
+        items: list = data if isinstance(data, list) else [data]
+
+        passed_count = 0
+        failed_count = 0
+        check_rows: list = []
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            results = item.get("results", {})
+            passed_checks = results.get("passed_checks", [])
+            failed_checks = results.get("failed_checks", [])
+
+            passed_count += len(passed_checks)
+            failed_count += len(failed_checks)
+
+            for chk in passed_checks:
+                check_rows.append({
+                    "check_id": chk.get("check_id", ""),
+                    "check_class": chk.get("check_class", ""),
+                    "check_name": chk.get("check_name", ""),
+                    "file_path": chk.get("file_path", ""),
+                    "resource": chk.get("resource", ""),
+                    "severity": chk.get("severity") or "unknown",
+                    "guideline": chk.get("guideline", ""),
+                    "status": "pass",
+                })
+            for chk in failed_checks:
+                check_rows.append({
+                    "check_id": chk.get("check_id", ""),
+                    "check_class": chk.get("check_class", ""),
+                    "check_name": chk.get("check_name", ""),
+                    "file_path": chk.get("file_path", ""),
+                    "resource": chk.get("resource", ""),
+                    "severity": chk.get("severity") or "unknown",
+                    "guideline": chk.get("guideline", ""),
+                    "status": "fail",
+                })
+
+        return passed_count, failed_count, check_rows
+
+    def _persist_scan(
+        self,
+        org_id: str,
+        profile_id: str,
+        target_path: str,
+        passed_count: int,
+        failed_count: int,
+        check_rows: list,
+    ) -> dict:
+        """Persist real checkov scan result + one compliance_check row per check.
+
+        The framework column on each compliance_check row is set to the real
+        control family derived from checkov metadata (check_id prefix +
+        check_class module path).  No SOC2/PCI/HIPAA control numbers are
+        invented.
+
+        Returns a summary dict.
+        """
+        result_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        total = passed_count + failed_count
+        score = round((passed_count / total) * 100, 2) if total > 0 else 0.0
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO scan_results
+                        (result_id, org_id, profile_id, scan_started,
+                         scan_completed, total_checks, passed, failed,
+                         warnings, score, status)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,'completed')
+                    """,
+                    (result_id, org_id, profile_id, now, now,
+                     total, passed_count, failed_count, 0, score),
+                )
+
+                for row in check_rows:
+                    control_family = self._control_family_from_check(
+                        row["check_id"], row["check_class"]
+                    )
+                    raw_sev = (row.get("severity") or "unknown").lower()
+                    severity = raw_sev if raw_sev in _SEVERITIES else "medium"
+                    conn.execute(
+                        """
+                        INSERT INTO compliance_checks
+                            (check_id, org_id, result_id, framework,
+                             control_id, control_name, category, status,
+                             severity, evidence, remediation, check_duration_ms)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            str(uuid.uuid4()),
+                            org_id,
+                            result_id,
+                            control_family,
+                            row["check_id"],
+                            row["check_name"],
+                            row["check_class"].split(".")[-1] if row["check_class"] else "",
+                            row["status"],
+                            severity,
+                            f"{row['file_path']} | {row['resource']}",
+                            row.get("guideline", ""),
+                            0,
+                        ),
+                    )
+
+                # Update profile last_scan
+                conn.execute(
+                    "UPDATE scan_profiles SET last_scan=? WHERE profile_id=? AND org_id=?",
+                    (now, profile_id, org_id),
+                )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("COMPLIANCE_SCAN_COMPLETE", {
+                        "entity_type": "compliance_scanner",
+                        "org_id": org_id,
+                        "source_engine": "compliance_scanner",
+                        "passed": passed_count,
+                        "failed": failed_count,
+                        "score": score,
+                    })
+            except Exception:
+                pass
+
+        return {
+            "result_id": result_id,
+            "org_id": org_id,
+            "profile_id": profile_id,
+            "target_path": target_path,
+            "scan_started": now,
+            "scan_completed": now,
+            "total_checks": total,
+            "passed": passed_count,
+            "failed": failed_count,
+            "warnings": 0,
+            "score": score,
+            "status": "completed",
+            "scanner": "checkov",
+            "frameworks": _CHECKOV_FRAMEWORKS,
+        }
+
+    def start_scan(
+        self,
+        org_id: str,
+        profile_id: str,
+        target_path: Optional[str] = None,
+    ) -> dict:
+        """Run a real checkov compliance scan against ``target_path``.
+
+        Parameters
+        ----------
+        org_id:
+            Organisation identifier for multi-tenant isolation.
+        profile_id:
+            Scan profile to associate the results with.
+        target_path:
+            Filesystem path to the directory (or single file) to scan.
+            Raises ComplianceScanError if not provided or not found.
+
+        Returns
+        -------
+        dict
+            Scan summary with ``result_id``, ``passed``, ``failed``,
+            ``score``, ``status``, ``total_checks``.
+
+        Raises
+        ------
+        ComplianceScanError
+            If checkov is not installed, or the target path is missing/empty.
+        """
+        # --- Guard: checkov must be installed
+        checkov_bin = self._find_checkov()
+
+        # --- Guard: target_path must exist and have scannable content
+        if not target_path:
+            raise ComplianceScanError(
+                "target_path is required — provide the directory or file to scan"
+            )
+        tp = Path(target_path)
+        if not tp.exists():
+            raise ComplianceScanError(
+                f"target path not found: {target_path}"
+            )
+        if tp.is_dir():
+            scannable = [f for f in tp.rglob("*") if f.is_file()]
+            if not scannable:
+                raise ComplianceScanError(
+                    f"target path contains no scannable files: {target_path}"
+                )
+
+        # --- Build checkov command
+        scan_flag = ["-d", str(tp)] if tp.is_dir() else ["-f", str(tp)]
+        cmd = [
+            checkov_bin,
+            *scan_flag,
+            "--framework", _CHECKOV_FRAMEWORKS,
+            "-o", "json",
+            "--compact",
+        ]
+
+        _logger.info(
+            "compliance_scanner: running checkov on %s (org=%s, profile=%s)",
+            target_path, org_id, profile_id,
+        )
+
+        # --- Execute checkov (exit code 1 = checks failed; that's normal)
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=_CHECKOV_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            raise ComplianceScanError(
+                f"checkov timed out after {_CHECKOV_TIMEOUT}s scanning {target_path}"
+            )
+        except OSError as exc:
+            raise ComplianceScanError(f"checkov execution failed: {exc}") from exc
+
+        # checkov exits 0 (all pass), 1 (some fail), 2 (internal error)
+        if proc.returncode == 2:
+            stderr_snippet = (proc.stderr or "")[:500]
+            raise ComplianceScanError(
+                f"checkov exited with error (code 2). stderr: {stderr_snippet}"
+            )
+
+        raw_output = proc.stdout.strip()
+        if not raw_output:
+            raise ComplianceScanError(
+                f"checkov produced no output for {target_path} — "
+                "no scannable IaC/config files found in the target"
+            )
+
+        # --- Parse JSON output
+        try:
+            passed_count, failed_count, check_rows = self._parse_checkov_output(raw_output)
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise ComplianceScanError(
+                f"failed to parse checkov JSON output: {exc}"
+            ) from exc
+
+        if passed_count == 0 and failed_count == 0:
+            raise ComplianceScanError(
+                f"checkov ran but found 0 checks in {target_path} — "
+                "no IaC/config files matched the supported frameworks"
+            )
+
+        _logger.info(
+            "compliance_scanner: checkov complete — passed=%d failed=%d (org=%s)",
+            passed_count, failed_count, org_id,
+        )
+
+        return self._persist_scan(
+            org_id=org_id,
+            profile_id=profile_id,
+            target_path=str(tp),
+            passed_count=passed_count,
+            failed_count=failed_count,
+            check_rows=check_rows,
         )
 
     # ------------------------------------------------------------------
