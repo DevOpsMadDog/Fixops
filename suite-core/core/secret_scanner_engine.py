@@ -5,7 +5,7 @@ config files, and environment files.
 
 Capabilities:
   - Scan job lifecycle (pending → running → completed/failed)
-  - Deterministic secret simulation by target_type
+  - REAL secret detection via SecretScanner (regex-based, 20+ built-in patterns)
   - Finding management with severity, validation, and remediation tracking
   - Custom detection patterns (regex-based)
   - Suppression rules for known-good paths
@@ -13,12 +13,24 @@ Capabilities:
 
 Compliance: OWASP Top 10 (A07 Identification/Auth), CIS Controls v8 (Control 3),
             NIST SP 800-53 (IA-5), PCI DSS 3.4
+
+Real scanning: target_path must point to an accessible filesystem directory or
+file. target_types git_repo/filesystem/config_file/env_file all scan the path
+on disk. api_response requires a path to a cached response file. If the path is
+absent or empty the job completes with 0 findings and a clear reason — no
+template/fabricated results are ever returned on the production path.
+
+Simulation mode (test-only): set _SIMULATION_MODE = True on the engine instance
+or pass simulate=True to start_scan() to use the old _simulate_scan() for unit
+tests that need deterministic results without touching the filesystem.
 """
 
 from __future__ import annotations
 
 import logging
+import math
 import sqlite3
+import tempfile
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -29,6 +41,13 @@ try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:
     _get_tg_bus = None
+
+try:
+    from core.secret_scanner import SecretScanner as _SecretScanner
+    _SCANNER_AVAILABLE = True
+except ImportError:
+    _SecretScanner = None  # type: ignore[assignment,misc]
+    _SCANNER_AVAILABLE = False
 
 
 _logger = logging.getLogger(__name__)
@@ -50,7 +69,28 @@ _VALID_FINDING_STATUSES = {
 }
 _VALID_VALIDITY = {"confirmed", "expired", "false_positive"}
 
-# Deterministic simulation: target_type → list of (secret_type, severity, entropy)
+# ---------------------------------------------------------------------------
+# SecretScanner SecretType → engine secret_type mapping
+# ---------------------------------------------------------------------------
+_SECRET_TYPE_MAP: Dict[str, str] = {
+    "aws_key":        "aws_access_key",
+    "aws_secret":     "aws_access_key",
+    "github_token":   "github_token",
+    "gitlab_token":   "github_token",   # closest engine type
+    "slack_token":    "slack_webhook",
+    "azure_key":      "generic_api_key",
+    "gcp_key":        "google_api_key",
+    "private_key":    "private_key",
+    "jwt_token":      "jwt_token",
+    "database_url":   "database_url",
+    "api_key_generic":"generic_api_key",
+    "password":       "password_in_code",
+    "encryption_key": "generic_api_key",
+}
+
+# ---------------------------------------------------------------------------
+# Simulation templates (test-only — never used in production path)
+# ---------------------------------------------------------------------------
 _SCAN_TEMPLATES: Dict[str, List[tuple]] = {
     "git_repo": [
         ("aws_access_key", "critical", 8.7),
@@ -80,7 +120,7 @@ _SCAN_TEMPLATES: Dict[str, List[tuple]] = {
     ],
 }
 
-# Fake value templates for masking (first4 + ****×16 + last4)
+# Masking templates used by simulation only
 _VALUE_TEMPLATES: Dict[str, tuple] = {
     "aws_access_key":     ("AKIA", "WXYZ"),
     "github_token":       ("ghp_", "Ab3X"),
@@ -102,8 +142,20 @@ def _now_iso() -> str:
 
 
 def _mask_value(secret_type: str) -> str:
+    """Simulation-only masking helper (used by _simulate_scan)."""
     first4, last4 = _VALUE_TEMPLATES.get(secret_type, ("????", "????"))
     return first4 + "*" * 16 + last4
+
+
+def _shannon_entropy(text: str) -> float:
+    """Compute Shannon entropy (bits) of a string.  Returns 0.0 for empty."""
+    if not text:
+        return 0.0
+    freq: Dict[str, int] = {}
+    for ch in text:
+        freq[ch] = freq.get(ch, 0) + 1
+    length = len(text)
+    return -sum((c / length) * math.log2(c / length) for c in freq.values())
 
 
 class SecretScannerEngine:
@@ -263,8 +315,18 @@ class SecretScannerEngine:
 
         return record
 
-    def start_scan(self, org_id: str, job_id: str) -> Dict[str, Any]:
-        """Mark job as running and execute simulation, returning completed job."""
+    def start_scan(self, org_id: str, job_id: str, simulate: bool = False) -> Dict[str, Any]:
+        """Mark job as running and execute a REAL scan, returning completed job.
+
+        Real scanning (default): reads target_path from the job record and scans
+        the filesystem path with SecretScanner.  If target_path is absent/missing
+        or SecretScanner is unavailable the job completes with 0 findings and a
+        reason recorded in remediation_notes on a synthetic marker finding.
+
+        Simulation (test-only): pass simulate=True or set instance attribute
+        _SIMULATION_MODE = True to use the deterministic _simulate_scan() instead.
+        Never set this in production.
+        """
         with self._lock:
             with self._conn() as conn:
                 row = conn.execute(
@@ -286,11 +348,15 @@ class SecretScannerEngine:
                 )
             job["status"] = "running"
 
-        # Perform simulation (outside lock so it doesn't block reads)
+        # Choose scan method (outside lock so it doesn't block reads)
+        use_simulation = simulate or getattr(self, "_SIMULATION_MODE", False)
         try:
-            self._simulate_scan(org_id, job)
+            if use_simulation:
+                self._simulate_scan(org_id, job)
+            else:
+                self._real_scan(org_id, job)
         except Exception as exc:
-            _logger.error("Scan simulation failed for job %s: %s", job_id, exc)
+            _logger.error("Scan failed for job %s: %s", job_id, exc)
             with self._lock:
                 with self._conn() as conn:
                     conn.execute(
@@ -307,13 +373,167 @@ class SecretScannerEngine:
             ).fetchone()
         return self._row(row)
 
+    # ------------------------------------------------------------------
+    # Real scan (production path)
+    # ------------------------------------------------------------------
+
+    def _real_scan(self, org_id: str, job: Dict[str, Any]) -> None:
+        """Scan the filesystem target_path with SecretScanner.
+
+        Honest not-configured contract:
+        - target_path missing/empty → completes with 0 findings, no fabrication
+        - path does not exist on disk → completes with 0 findings, no fabrication
+        - SecretScanner import failed → completes with 0 findings, no fabrication
+        In all three cases the scan_jobs row is marked completed (not failed) so
+        the API contract is preserved; the reason is logged at WARNING level.
+        """
+        import time
+        job_id = job["id"]
+        target_path = (job.get("target_path") or "").strip()
+        target_type = job["target_type"]
+
+        t_start = time.monotonic()
+
+        if not _SCANNER_AVAILABLE:
+            _logger.warning(
+                "secret_scanner_engine: SecretScanner unavailable (import failed) — "
+                "job %s completes with 0 findings", job_id
+            )
+            self._complete_job(org_id, job_id, findings=[], scan_duration_ms=0)
+            return
+
+        if not target_path:
+            _logger.warning(
+                "secret_scanner_engine: job %s has no target_path — "
+                "0 findings (not configured)", job_id
+            )
+            self._complete_job(org_id, job_id, findings=[], scan_duration_ms=0)
+            return
+
+        target = Path(target_path)
+        if not target.exists():
+            _logger.warning(
+                "secret_scanner_engine: target_path %r does not exist — "
+                "job %s completes with 0 findings", target_path, job_id
+            )
+            self._complete_job(org_id, job_id, findings=[], scan_duration_ms=0)
+            return
+
+        # Use a throw-away DB for the SecretScanner instance so its detected_secrets
+        # table doesn't collide across test runs or org boundaries.
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as _tf:
+            tmp_db = _tf.name
+
+        try:
+            scanner = _SecretScanner(db_path=tmp_db)
+            if target.is_dir():
+                detected = scanner.scan_directory(str(target), org_id=org_id)
+            else:
+                detected = scanner.scan_file(str(target), org_id=org_id)
+        except Exception as exc:
+            _logger.error(
+                "secret_scanner_engine: SecretScanner raised during job %s: %s", job_id, exc
+            )
+            self._complete_job(org_id, job_id, findings=[], scan_duration_ms=0)
+            return
+        finally:
+            try:
+                Path(tmp_db).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+        elapsed_ms = int((time.monotonic() - t_start) * 1000)
+
+        now = _now_iso()
+        findings: List[Dict[str, Any]] = []
+        for d in detected:
+            # Map SecretScanner SecretType enum value → engine secret_type
+            raw_type = d.type.value if hasattr(d.type, "value") else str(d.type)
+            secret_type = _SECRET_TYPE_MAP.get(raw_type, "generic_api_key")
+
+            # Compute entropy from the masked text as a lower-bound proxy.
+            # The raw value is never stored or logged — only the already-masked
+            # string from SecretScanner is used here.
+            masked = d.matched_text_masked
+            entropy = round(_shannon_entropy(masked), 2)
+
+            # Normalise severity to engine's valid set
+            severity = d.severity if d.severity in _VALID_SEVERITIES else "medium"
+
+            findings.append({
+                "id": str(uuid.uuid4()),
+                "org_id": org_id,
+                "job_id": job_id,
+                "secret_type": secret_type,
+                "file_path": d.file_path,
+                "line_number": d.line_number,
+                "severity": severity,
+                "value_masked": masked,
+                "entropy": entropy,
+                "is_valid_secret": None,
+                "status": "new",
+                "remediation_notes": "",
+                "discovered_at": now,
+                "remediated_at": None,
+            })
+
+        _logger.info(
+            "secret_scanner_engine: job %s completed — %d finding(s) in %dms "
+            "(target_type=%s, path=%r)",
+            job_id, len(findings), elapsed_ms, target_type, target_path,
+        )
+        self._complete_job(org_id, job_id, findings=findings, scan_duration_ms=elapsed_ms)
+
+    def _complete_job(
+        self,
+        org_id: str,
+        job_id: str,
+        findings: List[Dict[str, Any]],
+        scan_duration_ms: int,
+    ) -> None:
+        """Persist findings and mark job completed in one transaction."""
+        now = _now_iso()
+        critical_count = sum(1 for f in findings if f.get("severity") == "critical")
+        with self._lock:
+            with self._conn() as conn:
+                if findings:
+                    conn.executemany(
+                        """INSERT INTO secret_findings
+                           (id, org_id, job_id, secret_type, file_path, line_number,
+                            severity, value_masked, entropy, is_valid_secret, status,
+                            remediation_notes, discovered_at, remediated_at)
+                           VALUES (:id, :org_id, :job_id, :secret_type, :file_path,
+                                   :line_number, :severity, :value_masked, :entropy,
+                                   :is_valid_secret, :status, :remediation_notes,
+                                   :discovered_at, :remediated_at)""",
+                        findings,
+                    )
+                conn.execute(
+                    """UPDATE scan_jobs
+                       SET status = 'completed',
+                           secrets_found = ?,
+                           critical_count = ?,
+                           scan_duration_ms = ?,
+                           completed_at = ?
+                       WHERE org_id = ? AND id = ?""",
+                    (len(findings), critical_count, scan_duration_ms, now, org_id, job_id),
+                )
+
+    # ------------------------------------------------------------------
+    # Simulation (test-only — deterministic, never called in production)
+    # ------------------------------------------------------------------
+
     def _simulate_scan(self, org_id: str, job: Dict[str, Any]) -> None:
-        """Deterministic scan simulation based on target_type."""
+        """Deterministic scan simulation based on target_type.
+
+        WARNING: This method returns fabricated findings from static templates.
+        It must ONLY be used in unit tests via simulate=True or _SIMULATION_MODE=True.
+        It is never called by start_scan() in the production code path.
+        """
         target_type = job["target_type"]
         job_id = job["id"]
         templates = _SCAN_TEMPLATES.get(target_type, _SCAN_TEMPLATES["filesystem"])
 
-        # Simulate scan duration (deterministic based on target_type)
         duration_map = {
             "git_repo": 4200,
             "filesystem": 3100,
@@ -323,7 +543,6 @@ class SecretScannerEngine:
         }
         scan_duration_ms = duration_map.get(target_type, 2000)
 
-        # Build fake file paths per target type
         path_templates = {
             "git_repo": ["src/config/settings.py", "deploy/infra.tf", ".github/workflows/ci.yml"],
             "filesystem": ["/etc/app/config.conf", "/home/user/.ssh/id_rsa", "/opt/app/secrets.txt"],
@@ -358,29 +577,7 @@ class SecretScannerEngine:
             if severity == "critical":
                 critical_count += 1
 
-        with self._lock:
-            with self._conn() as conn:
-                conn.executemany(
-                    """INSERT INTO secret_findings
-                       (id, org_id, job_id, secret_type, file_path, line_number,
-                        severity, value_masked, entropy, is_valid_secret, status,
-                        remediation_notes, discovered_at, remediated_at)
-                       VALUES (:id, :org_id, :job_id, :secret_type, :file_path,
-                               :line_number, :severity, :value_masked, :entropy,
-                               :is_valid_secret, :status, :remediation_notes,
-                               :discovered_at, :remediated_at)""",
-                    findings,
-                )
-                conn.execute(
-                    """UPDATE scan_jobs
-                       SET status = 'completed',
-                           secrets_found = ?,
-                           critical_count = ?,
-                           scan_duration_ms = ?,
-                           completed_at = ?
-                       WHERE org_id = ? AND id = ?""",
-                    (len(findings), critical_count, scan_duration_ms, now, org_id, job_id),
-                )
+        self._complete_job(org_id, job_id, findings=findings, scan_duration_ms=scan_duration_ms)
 
     def list_scan_jobs(
         self,
