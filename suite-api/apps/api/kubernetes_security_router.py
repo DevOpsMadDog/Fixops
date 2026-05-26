@@ -3,6 +3,12 @@ Kubernetes Security Router — ALDECI.
 
 Prefix: /api/v1/kubernetes-security
 Auth:   Depends(api_key_auth)
+
+Both run_cis_benchmark and get_rbac_analysis now call real implementations:
+- run_cis_benchmark: real checkov kubernetes scan against a manifest directory
+- get_rbac_analysis: real static RBAC YAML analysis (no cluster API needed)
+
+KubernetesSecurityError → HTTP 422 (honest degradation, never fabricated results).
 """
 from __future__ import annotations
 
@@ -11,15 +17,20 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
-_SIMULATION_WARNING = {
-    "is_simulated": True,
-    "engine": "kubernetes_security_engine",
-    "real_integration_required": "/api/v1/connectors/kubernetes/configure",
-    "do_not_use_in_demo": True,
+# Truthful provenance returned with every assessment response.
+# This engine runs real checkov K8s benchmarks and real RBAC static analysis.
+_DATA_SOURCE = {
+    "is_simulated": False,
+    "source": "checkov + RBAC static analysis",
+    "methodology": (
+        "real Kubernetes manifest scanning — checkov CIS benchmark (kubernetes framework) "
+        "and PyYAML static RBAC analysis"
+    ),
+    "scanner_binary": "checkov",
 }
 
 router = APIRouter(prefix="/api/v1/kubernetes-security", tags=["kubernetes-security"])
@@ -67,6 +78,28 @@ class ResolveFindingRequest(BaseModel):
     resolution_notes: str = ""
 
 
+class CISBenchmarkRequest(BaseModel):
+    manifest_path: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Filesystem path to the directory or YAML file containing K8s manifests "
+            "to scan with checkov.  Must be accessible from the server process."
+        ),
+    )
+
+
+class RBACAnalysisRequest(BaseModel):
+    manifest_path: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Filesystem path to the directory or YAML file containing K8s RBAC "
+            "manifests (Role/ClusterRole/RoleBinding/ClusterRoleBinding) to analyse."
+        ),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Endpoints — Posture Summary (root GET /)
 # ---------------------------------------------------------------------------
@@ -94,7 +127,7 @@ def get_kubernetes_posture_summary(
             "resolved": stats["resolved_count"],
             "avg_cis_score": stats["avg_cis_score"],
             "by_severity": stats["by_severity"],
-            "_simulation_warning": _SIMULATION_WARNING,
+            "_data_source": _DATA_SOURCE,
         }
     except Exception as exc:
         _logger.exception("get_kubernetes_posture_summary failed")
@@ -135,15 +168,25 @@ def register_cluster(
 @router.post("/clusters/{cluster_id}/cis-benchmark")
 def run_cis_benchmark(
     cluster_id: str,
+    body: CISBenchmarkRequest,
     org_id: str = Query(..., description="Organisation ID"),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """Run CIS Kubernetes Benchmark v1.8 against a cluster."""
+    """Run a real checkov CIS Kubernetes Benchmark scan against manifest_path.
+
+    Returns 422 when checkov is not installed or manifest_path is
+    missing/empty — never fabricated results.
+    """
+    from core.kubernetes_security_engine import KubernetesSecurityError
     try:
-        result = _get_engine().run_cis_benchmark(org_id=org_id, cluster_id=cluster_id)
-        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        result = _get_engine().run_cis_benchmark(
+            org_id=org_id,
+            cluster_id=cluster_id,
+            manifest_path=body.manifest_path,
+        )
+        return {"data": result, "_data_source": _DATA_SOURCE}
+    except KubernetesSecurityError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
         _logger.exception("run_cis_benchmark failed")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -152,14 +195,30 @@ def run_cis_benchmark(
 @router.get("/clusters/{cluster_id}/rbac-analysis")
 def get_rbac_analysis(
     cluster_id: str,
+    manifest_path: str = Query(
+        ...,
+        description="Path to directory or YAML file containing K8s RBAC manifests",
+    ),
     org_id: str = Query(..., description="Organisation ID"),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """Get RBAC analysis for a cluster."""
+    """Perform real static RBAC analysis against K8s YAML manifests.
+
+    Parses Role/ClusterRole/RoleBinding/ClusterRoleBinding objects and returns
+    real metrics: total_roles, cluster_admin_bindings, wildcard_permissions.
+
+    Returns 422 when manifest_path is missing or contains no RBAC objects.
+    """
+    from core.kubernetes_security_engine import KubernetesSecurityError
     try:
-        return _get_engine().get_rbac_analysis(org_id=org_id, cluster_id=cluster_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        result = _get_engine().get_rbac_analysis(
+            org_id=org_id,
+            cluster_id=cluster_id,
+            manifest_path=manifest_path,
+        )
+        return {"data": result, "_data_source": _DATA_SOURCE}
+    except KubernetesSecurityError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
         _logger.exception("get_rbac_analysis failed")
         raise HTTPException(status_code=500, detail=str(exc))

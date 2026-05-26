@@ -123,8 +123,8 @@ class TestKubernetesPostureSummary:
         assert body["total_clusters"] == 0
         assert body["total_findings"] == 0
 
-    def test_simulation_warning_present(self, client):
+    def test_data_source_not_simulated(self, client):
         r = client.get("/api/v1/kubernetes-security/", params={"org_id": "org-f"})
         assert r.status_code == 200
-        warn = r.json().get("_simulation_warning", {})
-        assert warn.get("is_simulated") is True
+        ds = r.json().get("_data_source", {})
+        assert ds.get("is_simulated") is False

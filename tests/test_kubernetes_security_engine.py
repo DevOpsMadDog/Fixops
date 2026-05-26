@@ -1,14 +1,39 @@
 """
-Tests for KubernetesSecurityEngine — 56 tests covering init, CRUD, org isolation, stats.
+Tests for KubernetesSecurityEngine.
 
-NotImplementedError migration:
-  - run_cis_benchmark() → raises NotImplementedError (unless K8S_KUBEBENCH_URL set)
-  - get_rbac_analysis()  → raises NotImplementedError (unless K8S_KUBEBENCH_URL set)
-  All other methods remain production-ready.
+Coverage:
+  - Initialization, CRUD, org isolation, stats (unchanged real operations)
+  - run_cis_benchmark() — real checkov integration + error paths
+  - get_rbac_analysis() — real static RBAC YAML analysis + error paths
+  - Router layer — CIS 422/200, RBAC 422/200, posture summary
 """
-import pytest
-from core.kubernetes_security_engine import KubernetesSecurityEngine
+from __future__ import annotations
 
+import shutil
+from pathlib import Path
+
+import pytest
+
+from core.kubernetes_security_engine import (
+    KubernetesSecurityEngine,
+    KubernetesSecurityError,
+)
+
+# ---------------------------------------------------------------------------
+# Fixtures directory (real K8s manifests)
+# ---------------------------------------------------------------------------
+
+_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "k8s_manifests"
+_WORKLOAD_YAML = _FIXTURES / "workload.yaml"
+_RBAC_YAML = _FIXTURES / "rbac.yaml"
+
+# checkov must be present for integration tests — it IS present at /opt/homebrew/bin/checkov
+_CHECKOV_PRESENT = shutil.which("checkov") is not None
+
+
+# ---------------------------------------------------------------------------
+# Engine fixtures
+# ---------------------------------------------------------------------------
 
 @pytest.fixture
 def engine(tmp_path):
@@ -47,7 +72,7 @@ def finding(engine, cluster):
 class TestInit:
     def test_init_creates_db(self, tmp_path):
         db = str(tmp_path / "sub" / "k8s.db")
-        eng = KubernetesSecurityEngine(db_path=db)
+        KubernetesSecurityEngine(db_path=db)
         import os
         assert os.path.exists(db)
 
@@ -64,7 +89,6 @@ class TestInit:
     def test_init_idempotent(self, tmp_path):
         db = str(tmp_path / "k8s.db")
         KubernetesSecurityEngine(db_path=db)
-        # Second init should not raise
         KubernetesSecurityEngine(db_path=db)
 
 
@@ -262,105 +286,194 @@ class TestResolveFinding:
 
 
 # ---------------------------------------------------------------------------
-# CIS Benchmark — run_cis_benchmark() raises NotImplementedError
-# (requires K8S_KUBEBENCH_URL env var; unset in test environment)
+# CIS Benchmark — real checkov integration tests
 # ---------------------------------------------------------------------------
 
 class TestCISBenchmark:
-    def test_run_raises_not_implemented(self, engine, cluster):
-        """run_cis_benchmark() must raise NotImplementedError when kube-bench not configured."""
-        with pytest.raises(NotImplementedError):
-            engine.run_cis_benchmark("org1", cluster["id"])
+    """Integration tests — checkov IS present so these MUST run (not skip)."""
 
-    def test_run_error_message_mentions_kubebench(self, engine, cluster):
-        """NotImplementedError message must reference kube-bench / K8S_KUBEBENCH_URL."""
-        with pytest.raises(NotImplementedError) as exc_info:
-            engine.run_cis_benchmark("org1", cluster["id"])
-        assert "kube-bench" in str(exc_info.value).lower() or "K8S_KUBEBENCH_URL" in str(exc_info.value)
+    def test_checkov_absent_raises_kubernetes_security_error(self, engine, cluster, monkeypatch):
+        """When checkov is absent, KubernetesSecurityError is raised (not NotImplementedError)."""
+        monkeypatch.setattr(shutil, "which", lambda _: None)
+        with pytest.raises(KubernetesSecurityError) as exc_info:
+            engine.run_cis_benchmark("org1", cluster["id"], manifest_path=str(_FIXTURES))
+        assert "checkov" in str(exc_info.value).lower()
 
-    def test_run_raises_for_unknown_cluster(self, engine):
-        """run_cis_benchmark() on unknown cluster_id still raises NotImplementedError."""
-        with pytest.raises(NotImplementedError):
-            engine.run_cis_benchmark("org1", "no-such-cluster")
+    def test_missing_manifest_path_raises(self, engine, cluster):
+        """No manifest_path provided → KubernetesSecurityError."""
+        with pytest.raises(KubernetesSecurityError):
+            engine.run_cis_benchmark("org1", cluster["id"], manifest_path=None)
 
-    def test_run_raises_for_wrong_org(self, engine, cluster):
-        """run_cis_benchmark() with wrong org raises NotImplementedError (env check fires first)."""
-        with pytest.raises(NotImplementedError):
-            engine.run_cis_benchmark("org-other", cluster["id"])
+    def test_nonexistent_manifest_path_raises(self, engine, cluster, tmp_path):
+        """manifest_path that does not exist → KubernetesSecurityError."""
+        with pytest.raises(KubernetesSecurityError):
+            engine.run_cis_benchmark(
+                "org1", cluster["id"],
+                manifest_path=str(tmp_path / "does_not_exist"),
+            )
 
-    def test_run_raises_not_value_error(self, engine, cluster):
-        """run_cis_benchmark() must raise NotImplementedError, not ValueError or RuntimeError."""
-        try:
-            engine.run_cis_benchmark("org1", cluster["id"])
-            pytest.fail("Expected NotImplementedError")
-        except NotImplementedError:
-            pass
-        except Exception as exc:
-            pytest.fail(f"Expected NotImplementedError, got {type(exc).__name__}: {exc}")
+    def test_empty_directory_raises(self, engine, cluster, tmp_path):
+        """manifest_path with no YAML files → KubernetesSecurityError."""
+        with pytest.raises(KubernetesSecurityError):
+            engine.run_cis_benchmark("org1", cluster["id"], manifest_path=str(tmp_path))
 
-    def test_run_does_not_return_score(self, engine, cluster):
-        """run_cis_benchmark() must not silently return a fake score."""
-        raised = False
-        try:
-            engine.run_cis_benchmark("org1", cluster["id"])
-        except NotImplementedError:
-            raised = True
-        assert raised, "Expected NotImplementedError to be raised"
+    @pytest.mark.skipif(not _CHECKOV_PRESENT, reason="checkov not installed")
+    def test_real_checkov_scan_returns_counts(self, engine, cluster):
+        """Real checkov scan against the workload fixture must return passed>0 and failed>0."""
+        # Scan just the workload YAML (known misconfigured manifests)
+        result = engine.run_cis_benchmark(
+            "org1", cluster["id"],
+            manifest_path=str(_WORKLOAD_YAML),
+        )
+        print(f"\n[checkov] passed={result['passed']} failed={result['failed']} score={result['score']}")
+        assert result["passed"] >= 0
+        assert result["failed"] > 0, (
+            f"Expected failed>0 from the misconfigured fixture, got failed={result['failed']}"
+        )
+        assert result["total_checks"] == result["passed"] + result["failed"]
+        assert 0.0 <= result["score"] <= 100.0
+        assert result["scanner"] == "checkov"
+        assert result["framework"] == "kubernetes"
 
-    def test_run_does_not_modify_db(self, engine, cluster):
-        """run_cis_benchmark() raising NotImplementedError must not write findings to DB."""
-        before = engine.list_findings("org1")
-        try:
-            engine.run_cis_benchmark("org1", cluster["id"])
-        except NotImplementedError:
-            pass
-        after = engine.list_findings("org1")
-        assert len(after) == len(before)
+    @pytest.mark.skipif(not _CHECKOV_PRESENT, reason="checkov not installed")
+    def test_real_checkov_scan_persists_findings(self, engine, cluster):
+        """Failed checks must be persisted as real k8s_findings rows."""
+        before = engine.list_findings("org1", cluster_id=cluster["id"])
+        result = engine.run_cis_benchmark(
+            "org1", cluster["id"],
+            manifest_path=str(_WORKLOAD_YAML),
+        )
+        after = engine.list_findings("org1", cluster_id=cluster["id"])
+        assert len(after) > len(before), (
+            f"Expected new findings persisted; before={len(before)}, after={len(after)}, "
+            f"checkov failed={result['failed']}"
+        )
+        # Each persisted finding must have a valid finding_type and severity
+        from core.kubernetes_security_engine import _VALID_FINDING_TYPES, _VALID_SEVERITIES
+        for f in after:
+            assert f["finding_type"] in _VALID_FINDING_TYPES, f"Invalid finding_type: {f['finding_type']}"
+            assert f["severity"] in _VALID_SEVERITIES, f"Invalid severity: {f['severity']}"
+
+    @pytest.mark.skipif(not _CHECKOV_PRESENT, reason="checkov not installed")
+    def test_real_checkov_scan_full_fixture_dir(self, engine, cluster):
+        """Scan the full fixture directory — both workload.yaml and rbac.yaml."""
+        result = engine.run_cis_benchmark(
+            "org1", cluster["id"],
+            manifest_path=str(_FIXTURES),
+        )
+        print(f"\n[checkov dir] passed={result['passed']} failed={result['failed']} score={result['score']}")
+        assert result["total_checks"] > 0
+        assert result["failed"] > 0
 
 
 # ---------------------------------------------------------------------------
-# RBAC Analysis — get_rbac_analysis() raises NotImplementedError
-# (requires K8S_KUBEBENCH_URL env var; unset in test environment)
+# RBAC Analysis — real static YAML analysis
 # ---------------------------------------------------------------------------
 
 class TestRBACAnalysis:
-    def test_raises_not_implemented(self, engine, cluster):
-        """get_rbac_analysis() must raise NotImplementedError when K8s API not configured."""
-        with pytest.raises(NotImplementedError):
-            engine.get_rbac_analysis("org1", cluster["id"])
+    """Integration tests for static RBAC analysis — no cluster connectivity needed."""
 
-    def test_error_message_mentions_connector(self, engine, cluster):
-        """NotImplementedError message must reference the connector config path."""
-        with pytest.raises(NotImplementedError) as exc_info:
-            engine.get_rbac_analysis("org1", cluster["id"])
-        msg = str(exc_info.value)
-        assert "K8S_KUBEBENCH_URL" in msg or "kubernetes" in msg.lower()
+    def test_missing_manifest_path_raises(self, engine, cluster):
+        """No manifest_path → KubernetesSecurityError."""
+        with pytest.raises(KubernetesSecurityError):
+            engine.get_rbac_analysis("org1", cluster["id"], manifest_path=None)
 
-    def test_raises_for_wrong_org(self, engine, cluster):
-        """get_rbac_analysis() with wrong org still raises NotImplementedError."""
-        with pytest.raises(NotImplementedError):
-            engine.get_rbac_analysis("org-other", cluster["id"])
+    def test_nonexistent_manifest_path_raises(self, engine, cluster, tmp_path):
+        """manifest_path that does not exist → KubernetesSecurityError."""
+        with pytest.raises(KubernetesSecurityError):
+            engine.get_rbac_analysis(
+                "org1", cluster["id"],
+                manifest_path=str(tmp_path / "missing"),
+            )
 
-    def test_raises_for_unknown_cluster(self, engine):
-        """get_rbac_analysis() on unknown cluster_id raises NotImplementedError."""
-        with pytest.raises(NotImplementedError):
-            engine.get_rbac_analysis("org1", "no-such-cluster")
+    def test_no_rbac_objects_raises(self, engine, cluster, tmp_path):
+        """YAML file with no RBAC-kind objects → KubernetesSecurityError."""
+        non_rbac = tmp_path / "configmap.yaml"
+        non_rbac.write_text(
+            "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: test\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(KubernetesSecurityError) as exc_info:
+            engine.get_rbac_analysis("org1", cluster["id"], manifest_path=str(non_rbac))
+        assert "RBAC" in str(exc_info.value) or "rbac" in str(exc_info.value).lower()
+
+    def test_real_rbac_fixture_wildcard_permissions(self, engine, cluster):
+        """Real RBAC YAML with wildcard rule → wildcard_permissions > 0."""
+        result = engine.get_rbac_analysis(
+            "org1", cluster["id"],
+            manifest_path=str(_RBAC_YAML),
+        )
+        print(
+            f"\n[rbac] total_roles={result['total_roles']} "
+            f"cluster_admin_bindings={result['cluster_admin_bindings']} "
+            f"wildcard_permissions={result['wildcard_permissions']}"
+        )
+        assert result["wildcard_permissions"] > 0, (
+            f"Expected wildcard_permissions>0 from rbac.yaml fixture, got {result['wildcard_permissions']}"
+        )
+
+    def test_real_rbac_fixture_cluster_admin_bindings(self, engine, cluster):
+        """Real RBAC YAML with cluster-admin binding → cluster_admin_bindings > 0."""
+        result = engine.get_rbac_analysis(
+            "org1", cluster["id"],
+            manifest_path=str(_RBAC_YAML),
+        )
+        assert result["cluster_admin_bindings"] > 0, (
+            f"Expected cluster_admin_bindings>0 from rbac.yaml fixture, got {result['cluster_admin_bindings']}"
+        )
+
+    def test_real_rbac_fixture_total_roles(self, engine, cluster):
+        """rbac.yaml has ClusterRole(wildcard-admin) + Role(pod-reader) = 2 roles."""
+        result = engine.get_rbac_analysis(
+            "org1", cluster["id"],
+            manifest_path=str(_RBAC_YAML),
+        )
+        # wildcard-admin ClusterRole + pod-reader Role = 2
+        assert result["total_roles"] == 2, (
+            f"Expected 2 roles (ClusterRole+Role) from fixture, got {result['total_roles']}"
+        )
+
+    def test_real_rbac_fixture_offenders_present(self, engine, cluster):
+        """Offenders list must be non-empty for the rbac.yaml fixture."""
+        result = engine.get_rbac_analysis(
+            "org1", cluster["id"],
+            manifest_path=str(_RBAC_YAML),
+        )
+        assert len(result["offenders"]) > 0
+
+    def test_real_rbac_fixture_full_dir(self, engine, cluster):
+        """Scan the full fixture directory (workload.yaml + rbac.yaml) for RBAC objects."""
+        result = engine.get_rbac_analysis(
+            "org1", cluster["id"],
+            manifest_path=str(_FIXTURES),
+        )
+        assert result["rbac_objects_found"] >= 4  # ClusterRole + Role + ClusterRoleBinding + RoleBinding
+
+    def test_rbac_zero_counts_is_valid_not_error(self, engine, cluster, tmp_path):
+        """A tightly-scoped Role with no wildcards and no cluster-admin binding → real zero counts."""
+        clean_rbac = tmp_path / "clean.yaml"
+        clean_rbac.write_text(
+            "apiVersion: rbac.authorization.k8s.io/v1\n"
+            "kind: Role\n"
+            "metadata:\n  name: narrow\n  namespace: default\n"
+            "rules:\n"
+            "  - apiGroups: [\"\"]\n"
+            "    resources: [\"pods\"]\n"
+            "    verbs: [\"get\"]\n",
+            encoding="utf-8",
+        )
+        result = engine.get_rbac_analysis("org1", cluster["id"], manifest_path=str(clean_rbac))
+        assert result["wildcard_permissions"] == 0
+        assert result["cluster_admin_bindings"] == 0
+        assert result["total_roles"] == 1
 
     def test_rbac_wildcard_findings_still_tracked_in_db(self, engine, cluster):
-        """record_finding() with rbac_wildcard type is real — findings persist in DB.
-
-        The RBAC wildcard count is derivable from list_findings() even though
-        get_rbac_analysis() is not yet available. Preserve this real read path.
-        """
+        """record_finding() with rbac_wildcard type still works independently of get_rbac_analysis()."""
         engine.record_finding("org1", {
             "cluster_id": cluster["id"],
             "finding_type": "rbac_wildcard",
             "severity": "high",
         })
-        # get_rbac_analysis raises, but real data is still queryable via list_findings
-        with pytest.raises(NotImplementedError):
-            engine.get_rbac_analysis("org1", cluster["id"])
-        # Confirm the finding is stored and queryable via the real read path
         wildcard_findings = engine.list_findings("org1", finding_type="rbac_wildcard")
         assert len(wildcard_findings) == 1
         assert wildcard_findings[0]["finding_type"] == "rbac_wildcard"
@@ -388,7 +501,6 @@ class TestClusterStats:
         assert result["total_findings"] >= 1
 
     def test_critical_count(self, engine, cluster, finding):
-        # fixture finding has severity=critical
         result = engine.get_cluster_stats("org1")
         assert result["critical_count"] >= 1
 
@@ -408,3 +520,89 @@ class TestClusterStats:
         engine.register_cluster("org1", {"cluster_name": "c"})
         result = engine.get_cluster_stats("org2")
         assert result["total_clusters"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Router layer tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def client(tmp_path, monkeypatch):
+    """TestClient with a fresh in-process engine backed by tmp_path."""
+    fresh_engine = KubernetesSecurityEngine(db_path=str(tmp_path / "k8s_test.db"))
+
+    import apps.api.kubernetes_security_router as router_mod
+    monkeypatch.setattr(router_mod, "_engine", fresh_engine)
+
+    from fastapi import FastAPI
+    from apps.api.kubernetes_security_router import router
+    from apps.api.auth_deps import api_key_auth
+    from fastapi.testclient import TestClient
+
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[api_key_auth] = lambda: True
+    return TestClient(app)
+
+
+class TestRouterCISBenchmark:
+    def test_missing_manifest_path_returns_422(self, client, tmp_path):
+        """Non-existent manifest_path → 422."""
+        engine_obj = client.app.state if hasattr(client.app, "state") else None
+        r = client.post(
+            "/api/v1/kubernetes-security/clusters/fake-cluster/cis-benchmark",
+            params={"org_id": "org1"},
+            json={"manifest_path": str(tmp_path / "does_not_exist")},
+        )
+        assert r.status_code == 422
+
+    @pytest.mark.skipif(not _CHECKOV_PRESENT, reason="checkov not installed")
+    def test_real_scan_returns_200(self, client, tmp_path, monkeypatch):
+        """Real scan against fixture → 200 with data._data_source.is_simulated=False."""
+        import apps.api.kubernetes_security_router as router_mod
+        # Register a cluster first so we have a real cluster_id
+        fresh_engine = KubernetesSecurityEngine(db_path=str(tmp_path / "k8s_router.db"))
+        monkeypatch.setattr(router_mod, "_engine", fresh_engine)
+        cluster = fresh_engine.register_cluster("org1", {"cluster_name": "ci-cluster"})
+
+        from fastapi import FastAPI
+        from apps.api.kubernetes_security_router import router
+        from apps.api.auth_deps import api_key_auth
+        from fastapi.testclient import TestClient
+        app = FastAPI()
+        app.include_router(router)
+        app.dependency_overrides[api_key_auth] = lambda: True
+        c = TestClient(app)
+
+        r = c.post(
+            f"/api/v1/kubernetes-security/clusters/{cluster['id']}/cis-benchmark",
+            params={"org_id": "org1"},
+            json={"manifest_path": str(_WORKLOAD_YAML)},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert "_data_source" in body
+        assert body["_data_source"]["is_simulated"] is False
+        assert body["data"]["failed"] > 0
+
+
+class TestRouterRBACAnalysis:
+    def test_missing_manifest_path_returns_422(self, client):
+        """Non-existent manifest_path → 422."""
+        r = client.get(
+            "/api/v1/kubernetes-security/clusters/fake-cluster/rbac-analysis",
+            params={"org_id": "org1", "manifest_path": "/tmp/does_not_exist_xyz"},
+        )
+        assert r.status_code == 422
+
+    def test_real_rbac_returns_200(self, client):
+        """Real RBAC YAML fixture → 200 with real metrics."""
+        r = client.get(
+            "/api/v1/kubernetes-security/clusters/fake-cluster/rbac-analysis",
+            params={"org_id": "org1", "manifest_path": str(_RBAC_YAML)},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["_data_source"]["is_simulated"] is False
+        assert body["data"]["wildcard_permissions"] > 0
+        assert body["data"]["cluster_admin_bindings"] > 0

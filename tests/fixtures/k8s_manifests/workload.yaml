@@ -1,0 +1,44 @@
+---
+# Deployment with known misconfigurations so checkov fails some checks:
+#   - privileged: true                 (CKV_K8S_16)
+#   - runAsNonRoot absent              (CKV_K8S_30, CKV_K8S_6)
+#   - no resource limits               (CKV_K8S_11, CKV_K8S_12)
+#   - allowPrivilegeEscalation absent  (CKV_K8S_20)
+#   - readOnlyRootFilesystem absent    (CKV_K8S_22)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      containers:
+        - name: demo-container
+          image: nginx:latest
+          securityContext:
+            privileged: true
+          # No resources block — missing limits/requests
+          # No runAsNonRoot
+          # No allowPrivilegeEscalation: false
+          # No readOnlyRootFilesystem: true
+---
+# Pod with privileged init-container — additional failures
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+  namespace: default
+spec:
+  containers:
+    - name: main
+      image: busybox:latest
+      securityContext:
+        privileged: true

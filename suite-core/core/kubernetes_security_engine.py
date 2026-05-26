@@ -1,43 +1,51 @@
 """
 KubernetesSecurityEngine — ALDECI.
 
-STATUS: PARTIALLY REAL — CRUD operations (register_cluster, record_finding,
-list_findings, resolve_finding, list_clusters, get_cluster_stats) are fully
-production-ready and backed by SQLite WAL.
+REAL IMPLEMENTATION: run_cis_benchmark() executes the real ``checkov`` binary
+against a directory of Kubernetes YAML manifests and persists actual pass/fail
+check results.  get_rbac_analysis() parses real RBAC manifests (Role /
+ClusterRole / RoleBinding / ClusterRoleBinding) using PyYAML and computes real
+static metrics.  There is NO seeded-random or fabricated data.
 
-NOT PRODUCTION READY: run_cis_benchmark() and get_rbac_analysis() use
-seeded-random to simulate CIS Kubernetes Benchmark counts and RBAC metrics
-instead of calling real kube-bench or the Kubernetes API. To make fully
-real: wire kube-bench integration or managed cluster security APIs
-(EKS Security Hub, AKS Defender, GKE SCC) via
-/api/v1/connectors/kubernetes/configure.
+Honest degradation:
+- checkov not on PATH → KubernetesSecurityError (router surfaces as HTTP 422)
+- manifest_path missing/empty/no YAML → KubernetesSecurityError (422)
+- RBAC manifests present but zero wildcards/admin-bindings → real zero counts
+  (valid result, not an error)
+- No RBAC objects found at all in manifest_path → KubernetesSecurityError (422)
 
-Kubernetes cluster security: misconfiguration detection, RBAC audit,
-container privilege analysis, CIS Kubernetes Benchmark v1.8 simulation.
+CRUD operations (register_cluster, record_finding, list_findings,
+resolve_finding, list_clusters, get_cluster_stats) are fully production-ready
+and backed by SQLite WAL.  They are unchanged from the prior revision.
 
 Multi-tenant via org_id.  Thread-safe via RLock.  SQLite WAL for concurrency.
 """
 from __future__ import annotations
 
+import json
 import logging
-import random
+import shutil
 import sqlite3
+import subprocess
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:
     _get_tg_bus = None
+
 import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import yaml  # PyYAML — always available in this env
+
 _logger = logging.getLogger(__name__)
-_logger.warning(
-    "⚠️  %s: run_cis_benchmark() and get_rbac_analysis() are STUB — they raise "
-    "NotImplementedError rather than fabricate scores. Set K8S_KUBEBENCH_URL to "
-    "enable real CIS benchmarking. CRUD operations are production-ready.",
+_logger.info(
+    "%s loaded — run_cis_benchmark() runs real checkov Kubernetes checks; "
+    "get_rbac_analysis() performs real static RBAC analysis from YAML manifests. "
+    "No simulated data.  CRUD is production-ready.",
     __name__,
 )
 
@@ -58,17 +66,25 @@ _VALID_FINDING_TYPES = {
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
 _VALID_STATUSES = {"open", "resolved", "suppressed"}
 
-# CIS Kubernetes Benchmark v1.8 categories (simulated)
-_CIS_CATEGORIES = [
-    "Control Plane Components",
-    "Control Plane Configuration",
-    "Worker Nodes",
-    "Policies",
-    "Managed Services",
-]
-
 # Severity weight for risk scoring
 _SEVERITY_WEIGHT = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+
+# Checkov process timeout in seconds
+_CHECKOV_TIMEOUT = 120
+
+# RBAC object kinds we care about
+_RBAC_KINDS = {"Role", "ClusterRole", "RoleBinding", "ClusterRoleBinding"}
+
+
+class KubernetesSecurityError(ValueError):
+    """Raised when a real K8s security operation cannot be performed.
+
+    Surfaced by the router as HTTP 422 with the error message — never as
+    fabricated results.  Common causes:
+    - checkov binary not on PATH
+    - manifest_path does not exist or contains no Kubernetes YAML
+    - manifest_path contains no RBAC objects (for get_rbac_analysis)
+    """
 
 
 def _now() -> str:
@@ -78,7 +94,7 @@ def _now() -> str:
 class KubernetesSecurityEngine:
     """SQLite WAL-backed Kubernetes security engine.
 
-    Thread-safe via RLock. Multi-tenant via org_id.
+    Thread-safe via RLock.  Multi-tenant via org_id.
     Tables: k8s_clusters, k8s_findings.
     """
 
@@ -296,60 +312,390 @@ class KubernetesSecurityEngine:
         return dict(updated)
 
     # ------------------------------------------------------------------
-    # CIS Benchmark
+    # CIS Benchmark — real checkov execution
     # ------------------------------------------------------------------
 
-    def run_cis_benchmark(self, org_id: str, cluster_id: str) -> Dict[str, Any]:
-        """Run CIS Kubernetes Benchmark v1.8 via kube-bench integration.
-
-        Requires a Kubernetes connector configured via
-        /api/v1/connectors/kubernetes/configure. Until wired, raises
-        NotImplementedError to prevent fake scores reaching customers.
-
-        To enable: set K8S_KUBEBENCH_URL env var to your kube-bench endpoint,
-        or configure via /api/v1/connectors/kubernetes/configure.
-        CRUD operations (register_cluster, record_finding, resolve_finding)
-        work now.
-        """
-        import os
-        if not os.environ.get("K8S_KUBEBENCH_URL"):
-            raise NotImplementedError(
-                "run_cis_benchmark() requires kube-bench integration. "
-                "Configure via /api/v1/connectors/kubernetes/configure and set "
-                "K8S_KUBEBENCH_URL env var. "
-                "Use record_finding() directly to ingest real kube-bench findings."
+    @staticmethod
+    def _find_checkov() -> str:
+        """Return the path to the checkov binary, or raise KubernetesSecurityError."""
+        path = shutil.which("checkov")
+        if path is None:
+            raise KubernetesSecurityError(
+                "checkov not installed — install it to run real Kubernetes CIS benchmarks "
+                "(pip install checkov or brew install checkov)"
             )
-        raise NotImplementedError(
-            "run_cis_benchmark() kube-bench integration not yet implemented."
-        )
+        return path
 
-    # ------------------------------------------------------------------
-    # RBAC Analysis
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_checkov_output(raw_json: str) -> tuple[int, int, list]:
+        """Parse checkov JSON output into (passed_count, failed_count, check_rows).
 
-    def get_rbac_analysis(self, org_id: str, cluster_id: str) -> Dict[str, Any]:
-        """Return RBAC analysis for a cluster via Kubernetes API.
-
-        Requires a Kubernetes connector configured via
-        /api/v1/connectors/kubernetes/configure. Until wired, raises
-        NotImplementedError to prevent simulated role counts reaching customers.
-
-        Real wildcard_permissions and overprivileged_serviceaccounts counts are
-        derived from actual recorded findings and are always accurate; the
-        total_roles and unused_roles metrics require live kubectl API access.
+        Handles both single-framework output (dict) and multi-framework output
+        (list of dicts).  Each item in check_rows is a dict with keys:
+          check_id, check_name, file_path, resource, severity, guideline, status.
         """
-        import os
-        if not os.environ.get("K8S_KUBEBENCH_URL"):
-            raise NotImplementedError(
-                "get_rbac_analysis() requires Kubernetes API access. "
-                "Configure via /api/v1/connectors/kubernetes/configure and set "
-                "K8S_KUBEBENCH_URL env var. "
-                "rbac_wildcard and default_serviceaccount findings from record_finding() "
-                "are already tracked accurately in the database."
+        data = json.loads(raw_json)
+        items: list = data if isinstance(data, list) else [data]
+
+        passed_count = 0
+        failed_count = 0
+        check_rows: list = []
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            results = item.get("results", {})
+            passed_checks = results.get("passed_checks", [])
+            failed_checks = results.get("failed_checks", [])
+
+            passed_count += len(passed_checks)
+            failed_count += len(failed_checks)
+
+            for chk in passed_checks:
+                check_rows.append({
+                    "check_id": chk.get("check_id", ""),
+                    "check_name": chk.get("check_name", ""),
+                    "file_path": chk.get("file_path", ""),
+                    "resource": chk.get("resource", ""),
+                    "severity": chk.get("severity") or "unknown",
+                    "guideline": chk.get("guideline", ""),
+                    "status": "pass",
+                })
+            for chk in failed_checks:
+                check_rows.append({
+                    "check_id": chk.get("check_id", ""),
+                    "check_name": chk.get("check_name", ""),
+                    "file_path": chk.get("file_path", ""),
+                    "resource": chk.get("resource", ""),
+                    "severity": chk.get("severity") or "unknown",
+                    "guideline": chk.get("guideline", ""),
+                    "status": "fail",
+                })
+
+        return passed_count, failed_count, check_rows
+
+    def _checkov_severity_to_k8s(self, raw: str) -> str:
+        """Map checkov severity string to the engine's valid severity set."""
+        mapping = {
+            "critical": "critical",
+            "high": "high",
+            "medium": "medium",
+            "low": "low",
+            "info": "low",
+            "none": "low",
+            "unknown": "medium",
+        }
+        return mapping.get((raw or "").lower(), "medium")
+
+    def _checkov_finding_type(self, check_id: str, check_name: str) -> str:
+        """Map a checkov check to the engine's finding_type vocabulary.
+
+        Falls back to 'no_resource_limits' (the most neutral valid type)
+        when no specific mapping applies.
+        """
+        cid = (check_id or "").upper()
+        cname = (check_name or "").lower()
+        if "privileged" in cname or cid in ("CKV_K8S_16", "CKV_K8S_6"):
+            return "privileged_container"
+        if "host" in cname and "network" in cname:
+            return "host_network"
+        if "resource" in cname and ("limit" in cname or "request" in cname):
+            return "no_resource_limits"
+        if "serviceaccount" in cname or "service account" in cname:
+            return "default_serviceaccount"
+        if "secret" in cname:
+            return "unencrypted_secrets"
+        if "rbac" in cname or "wildcard" in cname:
+            return "rbac_wildcard"
+        return "no_resource_limits"
+
+    def run_cis_benchmark(
+        self,
+        org_id: str,
+        cluster_id: str,
+        manifest_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Run a real checkov CIS Kubernetes benchmark against ``manifest_path``.
+
+        Parameters
+        ----------
+        org_id:
+            Organisation identifier for multi-tenant isolation.
+        cluster_id:
+            Cluster to associate the benchmark results with.
+        manifest_path:
+            Filesystem path to the directory (or single file) containing K8s
+            YAML manifests to scan.  Required — raises KubernetesSecurityError
+            if not provided or not found.
+
+        Returns
+        -------
+        dict
+            CIS benchmark summary: passed, failed, score, per-severity counts,
+            scanner, manifest_path.
+
+        Raises
+        ------
+        KubernetesSecurityError
+            If checkov is not installed, or the manifest_path is missing/empty.
+        """
+        # --- Guard: checkov must be installed
+        checkov_bin = self._find_checkov()
+
+        # --- Guard: manifest_path must exist and have content
+        if not manifest_path:
+            raise KubernetesSecurityError(
+                "manifest_path is required — provide a directory or YAML file of K8s manifests"
             )
-        raise NotImplementedError(
-            "get_rbac_analysis() Kubernetes API integration not yet implemented."
+        mp = Path(manifest_path)
+        if not mp.exists():
+            raise KubernetesSecurityError(
+                f"manifest_path not found: {manifest_path}"
+            )
+        if mp.is_dir():
+            yaml_files = list(mp.rglob("*.yaml")) + list(mp.rglob("*.yml"))
+            if not yaml_files:
+                raise KubernetesSecurityError(
+                    f"manifest_path contains no YAML files: {manifest_path}"
+                )
+
+        # --- Build checkov command (kubernetes framework only, JSON output)
+        if mp.is_dir():
+            scan_flag = ["-d", str(mp)]
+        else:
+            scan_flag = ["-f", str(mp)]
+
+        cmd = [
+            checkov_bin,
+            *scan_flag,
+            "--framework", "kubernetes",
+            "-o", "json",
+            "--compact",
+        ]
+
+        _logger.info("Running checkov kubernetes scan: %s", " ".join(cmd))
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=_CHECKOV_TIMEOUT,
         )
+        # checkov exits non-zero when checks fail — that is NORMAL and expected.
+        # Only treat it as an error if we get no parseable JSON at all.
+        raw_output = proc.stdout.strip()
+        if not raw_output:
+            _logger.warning("checkov produced no stdout (stderr=%s)", proc.stderr[:500])
+            raise KubernetesSecurityError(
+                f"checkov produced no output for {manifest_path} — "
+                f"stderr: {proc.stderr[:300]}"
+            )
+
+        try:
+            passed_count, failed_count, check_rows = self._parse_checkov_output(raw_output)
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise KubernetesSecurityError(
+                f"Failed to parse checkov output: {exc}"
+            ) from exc
+
+        # --- Persist each failed check as a real k8s finding
+        now = _now()
+        severity_counts: Dict[str, int] = {}
+        for row in check_rows:
+            if row["status"] != "fail":
+                continue
+            sev = self._checkov_severity_to_k8s(row["severity"])
+            ftype = self._checkov_finding_type(row["check_id"], row["check_name"])
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+            self.record_finding(org_id, {
+                "cluster_id": cluster_id,
+                "finding_type": ftype,
+                "severity": sev,
+                "namespace": "default",
+                "resource_name": row.get("resource") or "",
+                "resource_type": row.get("check_id") or "",
+                "description": row.get("check_name") or "",
+                "remediation": row.get("guideline") or "",
+            })
+
+        total = passed_count + failed_count
+        score = round((passed_count / total) * 100, 2) if total > 0 else 0.0
+
+        result = {
+            "org_id": org_id,
+            "cluster_id": cluster_id,
+            "manifest_path": str(mp),
+            "scanner": "checkov",
+            "framework": "kubernetes",
+            "assessed_at": now,
+            "passed": passed_count,
+            "failed": failed_count,
+            "total_checks": total,
+            "score": score,
+            "by_severity": severity_counts,
+        }
+
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("CONTROL_ASSESSED", {
+                    "entity_type": "k8s_cis_benchmark",
+                    "org_id": org_id,
+                    "cluster_id": cluster_id,
+                    "source_engine": "kubernetes_security",
+                    "passed": passed_count,
+                    "failed": failed_count,
+                    "score": score,
+                })
+            except Exception:
+                pass
+
+        _logger.info(
+            "checkov kubernetes scan complete: passed=%d failed=%d score=%.1f%%",
+            passed_count, failed_count, score,
+        )
+        return result
+
+    # ------------------------------------------------------------------
+    # RBAC Analysis — real static analysis from YAML manifests
+    # ------------------------------------------------------------------
+
+    def get_rbac_analysis(
+        self,
+        org_id: str,
+        cluster_id: str,
+        manifest_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Perform real static RBAC analysis against K8s YAML manifests.
+
+        Parses Role / ClusterRole / RoleBinding / ClusterRoleBinding objects
+        from ``manifest_path`` using PyYAML.  Computes:
+        - total_roles: count of Role + ClusterRole objects
+        - cluster_admin_bindings: bindings whose roleRef.name == "cluster-admin"
+        - wildcard_permissions: rules containing "*" in verbs, resources, or
+          apiGroups (across both Role and ClusterRole objects)
+        - offenders: list of {kind, name, reason} for flagged objects
+
+        No cluster connectivity required — pure static analysis.
+
+        Parameters
+        ----------
+        manifest_path:
+            Filesystem path to a directory or single YAML file containing K8s
+            RBAC manifests.  Required.
+
+        Returns
+        -------
+        dict
+            RBAC analysis summary.
+
+        Raises
+        ------
+        KubernetesSecurityError
+            If manifest_path is missing, contains no YAML, or contains no
+            RBAC-kind objects at all (distinguishes from a real zero result).
+        """
+        if not manifest_path:
+            raise KubernetesSecurityError(
+                "manifest_path is required for RBAC analysis"
+            )
+        mp = Path(manifest_path)
+        if not mp.exists():
+            raise KubernetesSecurityError(
+                f"manifest_path not found: {manifest_path}"
+            )
+
+        # Collect all YAML files
+        if mp.is_dir():
+            yaml_files = sorted(list(mp.rglob("*.yaml")) + list(mp.rglob("*.yml")))
+        else:
+            yaml_files = [mp]
+
+        if not yaml_files:
+            raise KubernetesSecurityError(
+                f"manifest_path contains no YAML files: {manifest_path}"
+            )
+
+        # Parse all documents from all YAML files
+        all_docs: List[Dict[str, Any]] = []
+        for yf in yaml_files:
+            try:
+                with open(yf, "r", encoding="utf-8") as fh:
+                    for doc in yaml.safe_load_all(fh):
+                        if isinstance(doc, dict) and doc.get("kind"):
+                            all_docs.append(doc)
+            except (yaml.YAMLError, OSError) as exc:
+                _logger.warning("Skipping %s due to parse error: %s", yf, exc)
+
+        # Filter to RBAC objects
+        rbac_docs = [d for d in all_docs if d.get("kind") in _RBAC_KINDS]
+        if not rbac_docs:
+            raise KubernetesSecurityError(
+                f"No RBAC objects (Role/ClusterRole/RoleBinding/ClusterRoleBinding) "
+                f"found in {manifest_path}"
+            )
+
+        # --- Compute metrics
+        roles: List[Dict] = [
+            d for d in rbac_docs if d.get("kind") in ("Role", "ClusterRole")
+        ]
+        bindings: List[Dict] = [
+            d for d in rbac_docs if d.get("kind") in ("RoleBinding", "ClusterRoleBinding")
+        ]
+
+        total_roles = len(roles)
+
+        # cluster-admin bindings
+        cluster_admin_bindings = 0
+        offenders: List[Dict[str, Any]] = []
+        for b in bindings:
+            role_ref = b.get("roleRef") or {}
+            if role_ref.get("name") == "cluster-admin":
+                cluster_admin_bindings += 1
+                name = (b.get("metadata") or {}).get("name", "<unnamed>")
+                offenders.append({
+                    "kind": b.get("kind"),
+                    "name": name,
+                    "reason": "binds to cluster-admin ClusterRole",
+                    "subjects": b.get("subjects", []),
+                })
+
+        # wildcard permissions — any rule with "*" in verbs, resources, or apiGroups
+        wildcard_permissions = 0
+        for role in roles:
+            rules = role.get("rules") or []
+            for rule in rules:
+                verbs = rule.get("verbs") or []
+                resources = rule.get("resources") or []
+                api_groups = rule.get("apiGroups") or []
+                if "*" in verbs or "*" in resources or "*" in api_groups:
+                    wildcard_permissions += 1
+                    name = (role.get("metadata") or {}).get("name", "<unnamed>")
+                    offenders.append({
+                        "kind": role.get("kind"),
+                        "name": name,
+                        "reason": "rule contains wildcard (*) in verbs/resources/apiGroups",
+                        "rule": rule,
+                    })
+                    break  # one offender entry per role, not per rule
+
+        result = {
+            "org_id": org_id,
+            "cluster_id": cluster_id,
+            "manifest_path": str(mp),
+            "analysed_at": _now(),
+            "total_roles": total_roles,
+            "cluster_admin_bindings": cluster_admin_bindings,
+            "wildcard_permissions": wildcard_permissions,
+            "offenders": offenders,
+            "rbac_objects_found": len(rbac_docs),
+            "source": "static_yaml_analysis",
+        }
+
+        _logger.info(
+            "RBAC analysis complete: total_roles=%d cluster_admin_bindings=%d "
+            "wildcard_permissions=%d",
+            total_roles, cluster_admin_bindings, wildcard_permissions,
+        )
+        return result
 
     # ------------------------------------------------------------------
     # Stats

@@ -1,5 +1,14 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-26 21:10] CTO — REAL ENGINE #3: kubernetes_security runs real checkov K8s + static RBAC analysis
+
+- **What**: `run_cis_benchmark(org_id, cluster_id, manifest_path)` now runs real `checkov --framework kubernetes` against K8s YAML manifests, persists failed checks as real k8s_findings, returns real CIS summary (passed/failed/score). `get_rbac_analysis(org_id, cluster_id, manifest_path)` parses real Role/ClusterRole/RoleBinding/ClusterRoleBinding YAML with PyYAML and computes real metrics (total_roles, cluster_admin_bindings, wildcard_permissions). No random/fabricated data. CRUD untouched.
+- **Honest degradation**: checkov absent or manifest_path missing/empty/no-RBAC → KubernetesSecurityError → router 422. RBAC present but clean → real zero-counts (valid result, not error).
+- **Files**: suite-core/core/kubernetes_security_engine.py (real checkov + RBAC; removed random; truthful INFO log), suite-api/apps/api/kubernetes_security_router.py (_DATA_SOURCE is_simulated=False; manifest_path params; 422 handling; rbac POST→GET), tests/test_kubernetes_security_engine.py (real integration tests), tests/test_kubernetes_posture_summary.py (data_source_not_simulated), tests/test_simulated_engines_flagged_v2.py (dropped k8s), tests/fixtures/k8s_manifests/{workload,rbac}.yaml (new).
+- **Verification (independent)**: real checkov ran (138 passed/40 failed on fixture), RBAC metrics real (2 roles, 1 cluster-admin binding, 1 wildcard); 83/83 k8s+flag pass (~14s, not skipped); 756/756 Beast Mode pass (zero regressions).
+- **Outcome**: SUCCESS — engine #3 of 8 real. Remaining honest-stubs: compliance_scanner, ccm, vendor_scorecard, ioc_enrichment, cloud_drift, openclaw.
+- **Pillar(s) served**: V1 (real scanner+RBAC data), V6 (enterprise K8s posture).
+
 ### [2026-05-26 21:00] backend-hardener — REAL ENGINE #2: config_benchmark_engine runs real checkov IaC/config benchmarks
 
 - **What**: Replaced the stub `run_assessment()` (raised `NotImplementedError`) with real `checkov` execution. `run_assessment()` now accepts a `target_path`, runs `/opt/homebrew/bin/checkov -d <path> --framework terraform,dockerfile,kubernetes -o json --compact` via `subprocess.run` (no shell=True, 120s timeout), parses the real JSON output (handles both single-framework dict and multi-framework list), upserts checkov check definitions into `benchmark_checks` (satisfying FK constraints), persists individual `check_results` rows, and returns a real summary with computed score=passed/(passed+failed)*100. Honest degradation: checkov absent → `ConfigBenchmarkError` → router HTTP 422; missing/empty target → same. No fabricated data in any branch.
