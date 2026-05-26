@@ -159,13 +159,110 @@ class TestAzureDefenderClientConfiguration:
         assert client._client_secret == "secret-abc"
 
 
+class TestAzureDefenderHonestNotConfigured:
+    """Default (production) path: no creds, no allow_mock — must NOT return mock data."""
+
+    MOCK_ALERT_IDS = {
+        "mock-alert-001", "mock-alert-002", "mock-alert-003", "mock-alert-004"
+    }
+    MOCK_REC_IDS = {"mock-rec-001", "mock-rec-002", "mock-rec-003"}
+
+    def _prod_unconfigured(self):
+        from core.azure_defender import AzureDefenderClient
+        # Default constructor — no allow_mock, no Azure env vars
+        return AzureDefenderClient(
+            subscription_id="", tenant_id="", client_id="", client_secret=""
+        )
+
+    def test_get_alerts_returns_empty_list_when_unconfigured(self):
+        client = self._prod_unconfigured()
+        result = client.get_alerts()
+        assert result == [], f"Expected [], got {result!r}"
+
+    def test_get_alerts_no_mock_ids_leak(self):
+        client = self._prod_unconfigured()
+        result = client.get_alerts()
+        names = {a.get("name") for a in result}
+        assert names.isdisjoint(self.MOCK_ALERT_IDS), (
+            f"Mock alert IDs leaked into production path: {names & self.MOCK_ALERT_IDS}"
+        )
+
+    def test_get_alerts_severity_filter_returns_empty_when_unconfigured(self):
+        client = self._prod_unconfigured()
+        result = client.get_alerts(severity_filter="High")
+        assert result == []
+
+    def test_get_secure_score_returns_not_configured_dict(self):
+        client = self._prod_unconfigured()
+        result = client.get_secure_score()
+        assert isinstance(result, dict)
+        assert result.get("configured") is False
+        assert "reason" in result
+
+    def test_get_secure_score_no_mock_score_leaks(self):
+        client = self._prod_unconfigured()
+        result = client.get_secure_score()
+        # Mock score has is_mock=True and a current value of 73.5
+        assert result.get("is_mock") is not True
+        props = result.get("properties", {})
+        assert props == {}, f"Mock properties leaked: {props}"
+
+    def test_get_recommendations_returns_empty_list_when_unconfigured(self):
+        client = self._prod_unconfigured()
+        result = client.get_recommendations()
+        assert result == [], f"Expected [], got {result!r}"
+
+    def test_get_recommendations_no_mock_ids_leak(self):
+        client = self._prod_unconfigured()
+        result = client.get_recommendations()
+        names = {r.get("name") for r in result}
+        assert names.isdisjoint(self.MOCK_REC_IDS), (
+            f"Mock recommendation IDs leaked into production path: {names & self.MOCK_REC_IDS}"
+        )
+
+    def test_get_recommendations_category_filter_returns_empty_when_unconfigured(self):
+        client = self._prod_unconfigured()
+        result = client.get_recommendations(category="IdentityAndAccess")
+        assert result == []
+
+    def test_import_findings_returns_zero_findings_when_unconfigured(self):
+        from unittest.mock import MagicMock
+        client = self._prod_unconfigured()
+        client._try_ingest_to_pipeline = MagicMock()
+        result = client.import_findings(org_id="honest-test-org")
+        assert result["findings_count"] == 0
+        assert result["findings"] == []
+        assert result["configured"] is False
+        assert result["is_mock"] is False
+
+    def test_import_findings_is_mock_false_when_unconfigured(self):
+        from unittest.mock import MagicMock
+        client = self._prod_unconfigured()
+        client._try_ingest_to_pipeline = MagicMock()
+        result = client.import_findings(org_id="mock-flag-test")
+        assert result["is_mock"] is False
+
+    def test_import_findings_no_mock_alert_content(self):
+        from unittest.mock import MagicMock
+        client = self._prod_unconfigured()
+        client._try_ingest_to_pipeline = MagicMock()
+        result = client.import_findings(org_id="no-leak-test")
+        source_ids = {f.get("source_id", "") for f in result["findings"]}
+        for mock_id in self.MOCK_ALERT_IDS:
+            assert not any(mock_id in sid for sid in source_ids), (
+                f"Mock alert content leaked via source_id: {source_ids}"
+            )
+
+
 class TestAzureDefenderClientMockFallback:
-    """Mock data returned when no credentials are configured."""
+    """Mock data returned when allow_mock=True (unit-test opt-in only)."""
 
     def _unconfigured(self):
         from core.azure_defender import AzureDefenderClient
+        # allow_mock=True — ONLY for test use
         return AzureDefenderClient(
-            subscription_id="", tenant_id="", client_id="", client_secret=""
+            subscription_id="", tenant_id="", client_id="", client_secret="",
+            allow_mock=True,
         )
 
     def test_get_alerts_returns_mock_when_unconfigured(self):
@@ -359,6 +456,13 @@ class TestAzureDefenderNormalize:
 class TestAzureDefenderImportHistory:
     """Tests for import history tracking."""
 
+    def _mock_client(self):
+        from core.azure_defender import AzureDefenderClient
+        return AzureDefenderClient(
+            subscription_id="", tenant_id="", client_id="", client_secret="",
+            allow_mock=True,
+        )
+
     def test_import_history_empty_for_new_org(self):
         from core.azure_defender import AzureDefenderClient
         client = AzureDefenderClient(
@@ -368,10 +472,7 @@ class TestAzureDefenderImportHistory:
         assert history == []
 
     def test_import_history_recorded_after_import(self):
-        from core.azure_defender import AzureDefenderClient
-        client = AzureDefenderClient(
-            subscription_id="", tenant_id="", client_id="", client_secret=""
-        )
+        client = self._mock_client()
         client._try_ingest_to_pipeline = MagicMock()
         org_id = "history-test-org-" + str(uuid.uuid4())
         client.import_findings(org_id=org_id)
@@ -380,10 +481,7 @@ class TestAzureDefenderImportHistory:
         assert history[0]["org_id"] == org_id
 
     def test_import_history_excludes_findings(self):
-        from core.azure_defender import AzureDefenderClient
-        client = AzureDefenderClient(
-            subscription_id="", tenant_id="", client_id="", client_secret=""
-        )
+        client = self._mock_client()
         client._try_ingest_to_pipeline = MagicMock()
         org_id = "no-findings-in-history-" + str(uuid.uuid4())
         client.import_findings(org_id=org_id)
@@ -391,10 +489,7 @@ class TestAzureDefenderImportHistory:
         assert "findings" not in history[0]
 
     def test_import_history_most_recent_first(self):
-        from core.azure_defender import AzureDefenderClient
-        client = AzureDefenderClient(
-            subscription_id="", tenant_id="", client_id="", client_secret=""
-        )
+        client = self._mock_client()
         client._try_ingest_to_pipeline = MagicMock()
         org_id = "order-test-org-" + str(uuid.uuid4())
         client.import_findings(org_id=org_id)
@@ -443,10 +538,14 @@ class TestAzureDefenderRouterStatus:
         data = resp.json()
         assert "subscription_id" in data
 
-    def test_status_message_mentions_mock_mode(self, test_client):
+    def test_status_message_mentions_not_configured(self, test_client):
+        """Status message must NOT claim mock-data mode — honest not-configured wording."""
         resp = test_client.get("/api/v1/scan/azure-defender/status")
         data = resp.json()
-        assert "mock" in data["message"].lower()
+        msg = data["message"].lower()
+        assert "not configured" in msg or "credentials" in msg
+        # Must NOT claim mock mode
+        assert "mock data mode" not in msg
 
 
 class TestAzureDefenderRouterAlerts:
@@ -454,26 +553,23 @@ class TestAzureDefenderRouterAlerts:
         resp = test_client.get("/api/v1/scan/azure-defender/alerts")
         assert resp.status_code == 200
 
-    def test_get_alerts_returns_list(self, test_client):
+    def test_get_alerts_returns_empty_list_when_unconfigured(self, test_client):
+        """Honest not-configured: returns [] not fabricated alerts."""
         resp = test_client.get("/api/v1/scan/azure-defender/alerts")
-        assert isinstance(resp.json(), list)
-        assert len(resp.json()) > 0
+        assert resp.json() == []
 
-    def test_get_alerts_with_severity_filter(self, test_client):
+    def test_get_alerts_no_mock_ids_in_response(self, test_client):
+        resp = test_client.get("/api/v1/scan/azure-defender/alerts")
+        names = {a.get("name") for a in resp.json()}
+        mock_ids = {"mock-alert-001", "mock-alert-002", "mock-alert-003", "mock-alert-004"}
+        assert names.isdisjoint(mock_ids)
+
+    def test_get_alerts_with_severity_filter_returns_empty_when_unconfigured(self, test_client):
         resp = test_client.get(
             "/api/v1/scan/azure-defender/alerts", params={"severity": "High"}
         )
         assert resp.status_code == 200
-        alerts = resp.json()
-        assert isinstance(alerts, list)
-        for a in alerts:
-            assert a["properties"]["severity"] == "High"
-
-    def test_get_alerts_mock_has_properties(self, test_client):
-        resp = test_client.get("/api/v1/scan/azure-defender/alerts")
-        alerts = resp.json()
-        assert "properties" in alerts[0]
-        assert "alertDisplayName" in alerts[0]["properties"]
+        assert resp.json() == []
 
 
 class TestAzureDefenderRouterSecureScore:
@@ -481,15 +577,23 @@ class TestAzureDefenderRouterSecureScore:
         resp = test_client.get("/api/v1/scan/azure-defender/secure-score")
         assert resp.status_code == 200
 
-    def test_get_secure_score_has_properties(self, test_client):
+    def test_get_secure_score_not_configured_flag(self, test_client):
+        """Honest not-configured: configured=False, no mock score data."""
         resp = test_client.get("/api/v1/scan/azure-defender/secure-score")
         data = resp.json()
-        assert "properties" in data
+        assert data.get("configured") is False
 
-    def test_get_secure_score_is_mock_flag(self, test_client):
+    def test_get_secure_score_has_reason(self, test_client):
         resp = test_client.get("/api/v1/scan/azure-defender/secure-score")
         data = resp.json()
-        assert data.get("is_mock") is True
+        assert "reason" in data
+
+    def test_get_secure_score_no_mock_score_value(self, test_client):
+        """Mock score has current=73.5 — must not appear in honest response."""
+        resp = test_client.get("/api/v1/scan/azure-defender/secure-score")
+        data = resp.json()
+        assert "properties" not in data
+        assert data.get("is_mock") is not True
 
 
 class TestAzureDefenderRouterRecommendations:
@@ -497,24 +601,24 @@ class TestAzureDefenderRouterRecommendations:
         resp = test_client.get("/api/v1/scan/azure-defender/recommendations")
         assert resp.status_code == 200
 
-    def test_get_recommendations_returns_list(self, test_client):
+    def test_get_recommendations_returns_empty_list_when_unconfigured(self, test_client):
+        """Honest not-configured: returns [] not fabricated recommendations."""
         resp = test_client.get("/api/v1/scan/azure-defender/recommendations")
-        assert isinstance(resp.json(), list)
-        assert len(resp.json()) > 0
+        assert resp.json() == []
 
-    def test_get_recommendations_with_category_filter(self, test_client):
+    def test_get_recommendations_no_mock_ids_in_response(self, test_client):
+        resp = test_client.get("/api/v1/scan/azure-defender/recommendations")
+        names = {r.get("name") for r in resp.json()}
+        mock_ids = {"mock-rec-001", "mock-rec-002", "mock-rec-003"}
+        assert names.isdisjoint(mock_ids)
+
+    def test_get_recommendations_with_category_filter_empty_when_unconfigured(self, test_client):
         resp = test_client.get(
             "/api/v1/scan/azure-defender/recommendations",
             params={"category": "IdentityAndAccess"},
         )
         assert resp.status_code == 200
-        recs = resp.json()
-        assert isinstance(recs, list)
-
-    def test_get_recommendations_mock_has_display_name(self, test_client):
-        resp = test_client.get("/api/v1/scan/azure-defender/recommendations")
-        recs = resp.json()
-        assert "displayName" in recs[0]["properties"]
+        assert resp.json() == []
 
 
 class TestAzureDefenderRouterImport:
@@ -531,19 +635,29 @@ class TestAzureDefenderRouterImport:
         data = resp.json()
         assert data["status"] == "completed"
 
-    def test_import_is_mock_true_when_unconfigured(self, test_client):
+    def test_import_is_mock_false_when_unconfigured(self, test_client):
+        """Honest not-configured: is_mock must be False (no fabrication)."""
         resp = test_client.post(
             "/api/v1/scan/azure-defender/import", json={"org_id": "test-org"}
         )
         data = resp.json()
-        assert data["is_mock"] is True
+        assert data["is_mock"] is False
 
-    def test_import_has_findings_count(self, test_client):
+    def test_import_configured_false_when_unconfigured(self, test_client):
         resp = test_client.post(
             "/api/v1/scan/azure-defender/import", json={"org_id": "test-org"}
         )
         data = resp.json()
-        assert data["findings_count"] > 0
+        assert data["configured"] is False
+
+    def test_import_returns_zero_findings_when_unconfigured(self, test_client):
+        """Honest not-configured: no fabricated findings."""
+        resp = test_client.post(
+            "/api/v1/scan/azure-defender/import", json={"org_id": "test-org"}
+        )
+        data = resp.json()
+        assert data["findings_count"] == 0
+        assert data["findings"] == []
 
     def test_import_has_severity_breakdown(self, test_client):
         resp = test_client.post(
@@ -561,13 +675,13 @@ class TestAzureDefenderRouterImport:
         data = resp.json()
         assert data["org_id"] == "default"
 
-    def test_import_findings_list_has_source_tool(self, test_client):
+    def test_import_findings_list_empty_when_unconfigured(self, test_client):
+        """No source_tool entries should exist when there are no real findings."""
         resp = test_client.post(
             "/api/v1/scan/azure-defender/import", json={"org_id": "tool-check"}
         )
         data = resp.json()
-        for f in data["findings"]:
-            assert f["source_tool"] == "azure_defender"
+        assert data["findings"] == []
 
 
 class TestAzureDefenderRouterHistory:

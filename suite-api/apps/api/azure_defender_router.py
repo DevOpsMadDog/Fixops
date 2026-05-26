@@ -2,7 +2,9 @@
 ALdeci Azure Defender / Microsoft Defender for Cloud API Router.
 
 Exposes Azure Defender integration via ALdeci REST endpoints.
-Falls back to mock data when Azure credentials are not configured.
+When Azure credentials are not configured, data endpoints return honest
+not-configured responses (empty data + configured=False flag) — never
+fabricated mock data.
 
 Endpoints:
   GET  /api/v1/scan/azure-defender/status          — check Azure configuration
@@ -78,6 +80,7 @@ class ImportResponse(BaseModel):
     started_at: str
     completed_at: str
     status: str
+    configured: bool = False
     is_mock: bool
     findings_count: int
     severity_breakdown: Dict[str, int]
@@ -93,6 +96,7 @@ class ImportSummaryResponse(BaseModel):
     started_at: str
     completed_at: str
     status: str
+    configured: bool = False
     is_mock: bool
     findings_count: int
     severity_breakdown: Dict[str, int]
@@ -113,8 +117,8 @@ def azure_defender_status():
     """
     Return whether Azure credentials are configured.
 
-    When unconfigured all endpoints return mock data so the pipeline
-    can be exercised without real Azure credentials.
+    When unconfigured, data endpoints return honest not-configured results
+    (empty data + configured=False) — never fabricated mock data.
     """
     client = _get_client()
     configured = client.is_configured()
@@ -126,9 +130,9 @@ def azure_defender_status():
             f"Azure credentials configured — real Defender data active "
             f"(subscription: {sub_id})"
             if configured
-            else "Azure credentials not set — mock data mode. "
+            else "Azure credentials not configured — data endpoints return empty results. "
             "Set AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID, AZURE_CLIENT_ID, "
-            "AZURE_CLIENT_SECRET environment variables."
+            "AZURE_CLIENT_SECRET environment variables for real Defender data."
         ),
     }
 
@@ -148,7 +152,7 @@ def get_alerts(
     Pull security alerts from Microsoft Defender for Cloud.
 
     Supports optional filtering by severity.
-    Returns mock data when Azure credentials are not configured.
+    Returns empty list when Azure credentials are not configured.
     """
     client = _get_client()
     try:
@@ -167,7 +171,7 @@ def get_secure_score():
     """
     Retrieve the Azure Secure Score for the configured subscription.
 
-    Returns mock data when Azure credentials are not configured.
+    Returns {"configured": false, "reason": "..."} when Azure credentials are not configured.
     """
     client = _get_client()
     try:
@@ -192,7 +196,7 @@ def get_recommendations(
     Retrieve security recommendations from Microsoft Defender for Cloud.
 
     Supports optional filtering by category.
-    Returns mock data when Azure credentials are not configured.
+    Returns empty list when Azure credentials are not configured.
     """
     client = _get_client()
     try:
@@ -212,7 +216,7 @@ def import_findings(body: ImportRequest):
     Pull alerts from Microsoft Defender for Cloud, normalize to UnifiedFinding
     format, store in history, and ingest into the Brain Pipeline.
 
-    Returns mock data when Azure credentials are not configured.
+    Returns findings_count=0 and configured=False when Azure credentials are not configured.
     """
     client = _get_client()
     try:

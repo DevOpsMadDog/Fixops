@@ -2,13 +2,18 @@
 ALdeci Azure Defender / Microsoft Defender for Cloud Integration.
 
 Pulls security alerts, secure score, and recommendations from Microsoft Defender
-for Cloud via a mocked azure-mgmt-security interface. Normalizes findings to
-UnifiedFinding format and stores them for ingestion into the Brain Pipeline.
+for Cloud via azure-mgmt-security. Normalizes findings to UnifiedFinding format
+and stores them for ingestion into the Brain Pipeline.
 
 Usage:
     client = AzureDefenderClient(subscription_id="00000000-0000-0000-0000-000000000000")
     if client.is_configured():
         result = client.import_findings(org_id="acme")
+
+When Azure credentials are NOT configured the public methods return honest
+not-configured results (empty data + ``configured=False`` flag) — they never
+return fabricated mock data on the production path.  Mock data is available
+exclusively for unit tests via ``AzureDefenderClient(allow_mock=True)``.
 
 Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 """
@@ -22,6 +27,26 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Not-configured sentinel
+# ---------------------------------------------------------------------------
+_NOT_CONFIGURED_REASON = (
+    "Azure credentials not configured — set AZURE_SUBSCRIPTION_ID, "
+    "AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET environment "
+    "variables for real Defender data."
+)
+
+
+class AzureNotConfiguredError(ValueError):
+    """Raised when an Azure operation is attempted without credentials.
+
+    Inherits from ValueError so FastAPI surfaces it as HTTP 422 if wired
+    via an exception handler.  The router currently uses the honest-return
+    pattern (empty data + configured=False) rather than raising, but
+    callers that prefer exception semantics may catch this type.
+    """
+
 
 # ---------------------------------------------------------------------------
 # In-memory import history store (keyed by org_id)
@@ -313,6 +338,8 @@ class AzureDefenderClient:
         tenant_id: Optional[str] = None,
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
+        *,
+        allow_mock: bool = False,
     ) -> None:
         self._subscription_id: str = (
             subscription_id
@@ -334,6 +361,8 @@ class AzureDefenderClient:
             or os.environ.get("AZURE_CLIENT_SECRET", "")
             or ""
         ).strip()
+        # allow_mock=True is ONLY for unit tests — never set in production code.
+        self._allow_mock: bool = allow_mock
 
     # ------------------------------------------------------------------
     # Configuration check
@@ -360,22 +389,22 @@ class AzureDefenderClient:
             severity_filter: Optional severity to filter by (High, Medium, Low, Critical).
 
         Returns:
-            List of raw alert dicts. Returns mock data when unconfigured.
+            List of raw alert dicts.
+            When unconfigured (no Azure credentials) returns ``[]`` unless
+            ``allow_mock=True`` was passed to the constructor (tests only).
         """
         if not self.is_configured():
-            logger.warning(
-                "Azure credentials not configured — returning mock Defender alerts. "
-                "Set AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID, AZURE_CLIENT_ID, "
-                "AZURE_CLIENT_SECRET for real data."
-            )
-            alerts = list(_MOCK_ALERTS)
-            if severity_filter:
-                alerts = [
-                    a for a in alerts
-                    if a.get("properties", {}).get("severity", "").lower()
-                    == severity_filter.lower()
-                ]
-            return alerts
+            if self._allow_mock:
+                alerts = list(_MOCK_ALERTS)
+                if severity_filter:
+                    alerts = [
+                        a for a in alerts
+                        if a.get("properties", {}).get("severity", "").lower()
+                        == severity_filter.lower()
+                    ]
+                return alerts
+            logger.warning("Azure credentials not configured — get_alerts returning empty. %s", _NOT_CONFIGURED_REASON)
+            return []
 
         try:
             client = self._make_security_client()
@@ -398,13 +427,15 @@ class AzureDefenderClient:
         Retrieve the Azure Secure Score for the subscription.
 
         Returns:
-            Dict with score details. Returns mock data when unconfigured.
+            Dict with score details.
+            When unconfigured returns ``{"configured": False, "reason": ...}``
+            unless ``allow_mock=True`` was passed to the constructor (tests only).
         """
         if not self.is_configured():
-            logger.warning(
-                "Azure credentials not configured — returning mock secure score."
-            )
-            return dict(_MOCK_SECURE_SCORE)
+            if self._allow_mock:
+                return dict(_MOCK_SECURE_SCORE)
+            logger.warning("Azure credentials not configured — get_secure_score returning not-configured. %s", _NOT_CONFIGURED_REASON)
+            return {"configured": False, "reason": _NOT_CONFIGURED_REASON}
 
         try:
             client = self._make_security_client()
@@ -424,20 +455,22 @@ class AzureDefenderClient:
             category: Optional category filter (e.g. IdentityAndAccess, Compute, Data).
 
         Returns:
-            List of recommendation dicts. Returns mock data when unconfigured.
+            List of recommendation dicts.
+            When unconfigured returns ``[]`` unless ``allow_mock=True`` was
+            passed to the constructor (tests only).
         """
         if not self.is_configured():
-            logger.warning(
-                "Azure credentials not configured — returning mock recommendations."
-            )
-            recs = list(_MOCK_RECOMMENDATIONS)
-            if category:
-                recs = [
-                    r for r in recs
-                    if r.get("properties", {}).get("category", "").lower()
-                    == category.lower()
-                ]
-            return recs
+            if self._allow_mock:
+                recs = list(_MOCK_RECOMMENDATIONS)
+                if category:
+                    recs = [
+                        r for r in recs
+                        if r.get("properties", {}).get("category", "").lower()
+                        == category.lower()
+                    ]
+                return recs
+            logger.warning("Azure credentials not configured — get_recommendations returning empty. %s", _NOT_CONFIGURED_REASON)
+            return []
 
         try:
             client = self._make_security_client()
@@ -468,7 +501,10 @@ class AzureDefenderClient:
         """
         import_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
-        is_mock = not self.is_configured()
+        configured = self.is_configured()
+        # is_mock is True only when allow_mock mode is active (tests); it is
+        # never True on the default production path when unconfigured.
+        is_mock = self._allow_mock and not configured
 
         try:
             raw_alerts = self.get_alerts()
@@ -481,6 +517,7 @@ class AzureDefenderClient:
                 "started_at": started_at,
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "completed",
+                "configured": configured,
                 "is_mock": is_mock,
                 "findings_count": len(findings),
                 "severity_breakdown": sev_counts,
@@ -526,6 +563,7 @@ class AzureDefenderClient:
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "failed",
                 "error": str(exc),
+                "configured": configured,
                 "is_mock": is_mock,
                 "findings_count": 0,
                 "severity_breakdown": {},
