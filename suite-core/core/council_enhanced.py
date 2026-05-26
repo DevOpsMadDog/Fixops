@@ -24,6 +24,7 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -38,6 +39,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 logger = logging.getLogger(__name__)
+
+# Sentinel returned as the reasoning prefix when council is not configured,
+# so callers can distinguish honest unavailability from real votes.
+_NOT_CONFIGURED_PREFIX = "[NOT_CONFIGURED]"
+_TEST_MOCK_PREFIX = "[MOCK_VOTE]"
 
 __all__ = [
     "CouncilVerdict",
@@ -216,13 +222,28 @@ class EnhancedLLMCouncil:
         db_path: Optional[str] = None,
         weights: Optional[Dict[str, float]] = None,
         escalation_threshold: float = _ESCALATION_THRESHOLD,
+        *,
+        _allow_mock: bool = False,
     ) -> None:
+        """Initialise the enhanced council.
+
+        Args:
+            db_path: SQLite path for verdict/calibration storage.
+            weights: Optional per-model weight overrides.
+            escalation_threshold: Confidence below which Opus escalation fires.
+            _allow_mock: If True, enables the deterministic ``_mock_vote``
+                fallback when no LLM providers are reachable.  Intended
+                **exclusively for unit tests** — never set True in production.
+                When False (default) and no real council is available, an
+                honest NOT_CONFIGURED verdict is returned instead.
+        """
         db_path = db_path or os.environ.get(
             "FIXOPS_ENHANCED_COUNCIL_DB",
             "data/enhanced_council.db",
         )
         self._db_path = db_path
         self._escalation_threshold = escalation_threshold
+        self._allow_mock = _allow_mock
         self._lock = threading.Lock()
 
         # Ensure the data directory exists
@@ -243,9 +264,10 @@ class EnhancedLLMCouncil:
         self._decision_memory_store: Optional[Any] = None
 
         logger.info(
-            "EnhancedLLMCouncil initialized: db=%s, threshold=%.2f",
+            "EnhancedLLMCouncil initialized: db=%s, threshold=%.2f, allow_mock=%s",
             db_path,
             escalation_threshold,
+            _allow_mock,
         )
 
     # ------------------------------------------------------------------
@@ -496,93 +518,167 @@ class EnhancedLLMCouncil:
     ) -> tuple[Dict[str, str], Dict[str, str]]:
         """Collect a vote from each configured model.
 
+        Decision tree:
+        A. _allow_mock=True → deterministic offline mock votes (unit-test
+           opt-in only, clearly labelled with _TEST_MOCK_PREFIX). Short-circuits
+           before any network call. Never set True in production.
+        B. _allow_mock=False + OPENROUTER_API_KEY set → LLMCouncil real fan-out
+           to 5 models via OpenRouter. Returns real votes.
+        C. _allow_mock=False + no key / all providers failed → honest
+           NOT_CONFIGURED vote so callers get NEEDS_REVIEW/ESCALATED rather
+           than fabricated consensus.
+
         Returns:
             Tuple of (votes dict, reasoning dict) keyed by model name.
         """
-        votes: Dict[str, str] = {}
-        reasoning: Dict[str, str] = {}
+        # Path A (mock — offline, deterministic): explicit test opt-in.
+        # Short-circuits before any network call so unit tests are fast and
+        # hermetic. Never set _allow_mock=True in production.
+        if self._allow_mock:
+            votes: Dict[str, str] = {}
+            reasoning: Dict[str, str] = {}
+            for model_name in self._weights:
+                if model_name == "claude_opus":
+                    continue  # Opus is escalation-only
+                vote = self._mock_vote(finding, model_name)
+                votes[model_name] = vote
+                reasoning[model_name] = (
+                    f"{_TEST_MOCK_PREFIX} {model_name} assessed finding as {vote} "
+                    f"based on severity and context (test mock — not real consensus)."
+                )
+            return votes, reasoning
 
-        # Try real council first
+        # Path B (real): OPENROUTER_API_KEY present → LLMCouncil fan-out.
         real_votes, real_reasoning = self._try_real_council_votes(finding, question)
         if real_votes:
             return real_votes, real_reasoning
 
-        # Fallback: deterministic mock votes for testing / air-gap
-        for model_name in self._weights:
-            if model_name == "claude_opus":
-                continue  # Opus is escalation-only
-            vote = self._mock_vote(finding, model_name)
-            votes[model_name] = vote
-            reasoning[model_name] = (
-                f"{model_name} assessed finding as {vote} based on severity and context."
-            )
-
-        return votes, reasoning
+        # Path C (honest unavailable): key absent or all providers failed.
+        # Return a single NOT_CONFIGURED vote so the caller gets an honest
+        # NEEDS_REVIEW/ESCALATED verdict, never a fabricated consensus.
+        logger.info(
+            "EnhancedLLMCouncil: no LLM providers reachable and _allow_mock=False; "
+            "returning NOT_CONFIGURED result (set OPENROUTER_API_KEY for real votes)"
+        )
+        not_configured_vote = "NEEDS_REVIEW"
+        not_configured_reason = (
+            f"{_NOT_CONFIGURED_PREFIX} Council not configured — "
+            "OPENROUTER_API_KEY is absent or all providers unreachable. "
+            "Set OPENROUTER_API_KEY to enable real consensus voting."
+        )
+        return (
+            {"council": not_configured_vote},
+            {"council": not_configured_reason},
+        )
 
     def _try_real_council_votes(
         self,
         finding: Dict[str, Any],
         question: str,
     ) -> tuple[Dict[str, str], Dict[str, str]]:
-        """Attempt to get votes from real LLM providers.
+        """Attempt to get votes from the real LLM council (LLMCouncil / OpenRouter).
 
-        Returns empty dicts if providers are unavailable.
+        Routes to ``core.llm_council_real.LLMCouncil`` — the proven 5-model
+        OpenRouter fan-out already used by /council/convene.  Falls back to
+        empty dicts (not mock votes) if the key is absent or a network error
+        occurs so the caller can apply the correct honest fallback.
+
+        Vote label mapping (LLMCouncil → EnhancedLLMCouncil):
+            approve   → TRUE_POSITIVE
+            reject    → FALSE_POSITIVE
+            escalate  → NEEDS_REVIEW
+
+        Returns:
+            (votes, reasoning) dicts keyed by model slug, or ({}, {}) if
+            the real council is unavailable.
         """
+        # Fast-path: skip the import if key is definitely absent (avoids
+        # spinning up httpx / sqlite inside LLMCouncil.__init__).
+        or_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+        if not or_key:
+            logger.debug("_try_real_council_votes: OPENROUTER_API_KEY not set, skipping")
+            return {}, {}
+
         try:
-            from core.llm_providers import LLMProviderManager
+            from core.llm_council_real import CouncilNotConfiguredError, LLMCouncil
+        except ImportError as exc:
+            logger.debug("_try_real_council_votes: import failed: %s", exc)
+            return {}, {}
 
-            mgr = LLMProviderManager()
-            providers = mgr.available_providers()
-            if not providers:
-                return {}, {}
-
-            votes: Dict[str, str] = {}
-            reasoning: Dict[str, str] = {}
-
-            prompt = (
-                f"Security finding deliberation:\n"
-                f"Question: {question}\n"
-                f"Finding: {json.dumps(finding, default=str)[:500]}\n\n"
-                f"Return JSON with:\n"
-                f"  vote: one of TRUE_POSITIVE, FALSE_POSITIVE, NEEDS_REVIEW\n"
-                f"  confidence: 0.0-1.0\n"
-                f"  reasoning: brief explanation"
-            )
-
-            # PERF: dispatch all providers in parallel instead of sequentially.
-            # 3 × ~300ms serial = ~900ms → all 3 in ~300ms (bounded by slowest).
-            capped_providers = providers[:3]  # cap at 3 to limit cost
-
-            def _query_one(provider: Any) -> tuple[str, str, str]:
-                """Returns (provider_name, vote, reasoning_text). Never raises."""
-                try:
-                    resp = provider.analyse(
-                        prompt=prompt,
-                        context=finding,
-                        default_action="NEEDS_REVIEW",
-                        default_confidence=0.5,
-                        default_reasoning="No analysis available",
-                    )
-                    return provider.name, self._normalize_vote(resp.recommended_action), resp.reasoning or ""
-                except Exception as exc:
-                    logger.debug("Provider %s failed: %s", provider.name, exc)
-                    return provider.name, "", ""
-
-            with ThreadPoolExecutor(max_workers=len(capped_providers) or 1) as pool:
-                futures = {pool.submit(_query_one, p): p for p in capped_providers}
-                for future in as_completed(futures):
-                    name, vote, reason = future.result()
-                    if vote:
-                        votes[name] = vote
-                        reasoning[name] = reason
-
-            return votes, reasoning
-
-        except ImportError:
+        try:
+            council = LLMCouncil()
+        except CouncilNotConfiguredError as exc:
+            logger.debug("_try_real_council_votes: council not configured: %s", exc)
             return {}, {}
         except Exception as exc:
-            logger.debug("Real council unavailable: %s", exc)
+            logger.debug("_try_real_council_votes: council init failed: %s", exc)
             return {}, {}
+
+        prompt = (
+            f"Security finding deliberation.\n"
+            f"Question: {question}\n"
+            f"Finding: {json.dumps(finding, default=str)[:500]}\n\n"
+            f"Respond with one of: approve (this is a real security issue — TRUE POSITIVE), "
+            f"reject (this is a false alarm — FALSE POSITIVE), or "
+            f"escalate (needs human review / ambiguous)."
+        )
+
+        try:
+            # LLMCouncil.convene is async; run it without blocking an existing
+            # event loop.  In FastAPI context there may be a running loop, so
+            # we use a dedicated thread to avoid "cannot run nested event loop".
+            import concurrent.futures as _cf
+
+            result: Dict[str, Any] = {}
+
+            def _run() -> None:
+                result.update(
+                    asyncio.run(council.convene(prompt, finding))
+                )
+
+            with _cf.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(_run)
+                future.result(timeout=40)  # hard cap: 5 models × 30s + buffer
+
+        except Exception as exc:
+            logger.warning(
+                "_try_real_council_votes: council.convene failed (%s: %s); "
+                "falling back to NOT_CONFIGURED path",
+                type(exc).__name__,
+                exc,
+            )
+            return {}, {}
+
+        # Map individual votes from LLMCouncil result to TP/FP/NR labels.
+        # ``individual_votes`` is a list of {model, vote, reasoning, confidence, latency_ms}.
+        individual_votes: List[Dict[str, Any]] = result.get("individual_votes", [])
+        if not individual_votes:
+            logger.debug("_try_real_council_votes: no individual_votes in result")
+            return {}, {}
+
+        _label_map = {
+            "approve": "TRUE_POSITIVE",
+            "reject": "FALSE_POSITIVE",
+            "escalate": "NEEDS_REVIEW",
+        }
+
+        votes: Dict[str, str] = {}
+        reasoning_out: Dict[str, str] = {}
+        for entry in individual_votes:
+            model_slug = str(entry.get("model", "unknown")).replace("/", "_").replace(":", "_")
+            raw_vote = str(entry.get("vote", "escalate")).lower().strip()
+            mapped_vote = _label_map.get(raw_vote, "NEEDS_REVIEW")
+            votes[model_slug] = mapped_vote
+            reasoning_out[model_slug] = entry.get("reasoning", "") or ""
+
+        logger.info(
+            "_try_real_council_votes: got %d real votes from LLMCouncil "
+            "(overall verdict=%s, escalated=%s)",
+            len(votes),
+            result.get("verdict"),
+            result.get("escalated"),
+        )
+        return votes, reasoning_out
 
     def _normalize_vote(self, raw: str) -> str:
         """Map arbitrary LLM action strings to TP/FP/NEEDS_REVIEW."""
@@ -594,7 +690,14 @@ class EnhancedLLMCouncil:
         return "NEEDS_REVIEW"
 
     def _mock_vote(self, finding: Dict[str, Any], model_name: str) -> str:
-        """Deterministic mock vote based on finding severity (for testing/air-gap)."""
+        """Deterministic mock vote based on finding severity.
+
+        ONLY reachable when ``_allow_mock=True`` is explicitly passed to
+        ``__init__``.  This path is reserved for unit tests.  It is NEVER
+        reached on the default production path (``_allow_mock=False``).
+        Votes produced here are labelled with ``_TEST_MOCK_PREFIX`` in the
+        reasoning string so they can never be mistaken for real consensus.
+        """
         severity = str(finding.get("severity", "medium")).lower()
         risk_score = float(finding.get("risk_score", 0.5))
 

@@ -1,7 +1,17 @@
 """Tests for EnhancedLLMCouncil — confidence scoring, dissent tracking, calibration.
 
 Run with:
-    python -m pytest tests/test_council_enhanced.py --timeout=10 -q -o "addopts="
+    python -m pytest tests/test_council_enhanced.py --timeout=120 -q -o "addopts="
+
+Test organisation:
+- The ``council`` fixture uses ``_allow_mock=True`` — deterministic, offline,
+  fast.  All unit tests that test scoring/calibration/dissent logic use this
+  fixture so they never hit the network.
+- ``TestRealCouncilPath`` uses the real LLMCouncil and is gated on
+  OPENROUTER_API_KEY being present.  It proves the real path fires and that
+  votes come from real models, not _mock_vote.
+- ``TestHonestUnavailable`` monkeypatches the key away and proves the
+  NOT_CONFIGURED honest path fires instead of fabricated mock votes.
 """
 
 from __future__ import annotations
@@ -15,12 +25,19 @@ from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
+from dotenv import load_dotenv
+
+# Load .env so OPENROUTER_API_KEY is visible when skipif conditions evaluate.
+# This is safe for tests — load_dotenv() is a no-op if .env is absent.
+load_dotenv()
 
 from core.council_enhanced import (
     CalibrationReport,
     CouncilVerdict,
     EnhancedLLMCouncil,
     ModelCalibration,
+    _NOT_CONFIGURED_PREFIX,
+    _TEST_MOCK_PREFIX,
 )
 
 
@@ -37,8 +54,20 @@ def tmp_db(tmp_path: Path) -> str:
 
 @pytest.fixture
 def council(tmp_db: str) -> EnhancedLLMCouncil:
-    """Fresh EnhancedLLMCouncil backed by temp DB."""
-    return EnhancedLLMCouncil(db_path=tmp_db)
+    """Fresh EnhancedLLMCouncil backed by temp DB with mock votes enabled.
+
+    Uses ``_allow_mock=True`` so all unit tests that test scoring/calibration/
+    dissent logic run offline and deterministically without hitting OpenRouter.
+    """
+    return EnhancedLLMCouncil(db_path=tmp_db, _allow_mock=True)
+
+
+@pytest.fixture
+def council_nokey(tmp_db: str, monkeypatch: pytest.MonkeyPatch) -> EnhancedLLMCouncil:
+    """Council with OPENROUTER_API_KEY stripped — exercises honest NOT_CONFIGURED path."""
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("FIXOPS_OPENROUTER_KEY", raising=False)
+    return EnhancedLLMCouncil(db_path=tmp_db, _allow_mock=False)
 
 
 @pytest.fixture
@@ -415,3 +444,161 @@ class TestRecentVerdicts:
             council.deliberate({"title": f"finding-{i}", "severity": "high", "risk_score": 0.8}, "?")
         results = council.get_recent_verdicts(limit=3)
         assert len(results) == 3
+
+
+# ---------------------------------------------------------------------------
+# 9. Real council path — requires OPENROUTER_API_KEY
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(
+    not os.environ.get("OPENROUTER_API_KEY", "").strip(),
+    reason="OPENROUTER_API_KEY not set — skipping real council network test",
+)
+class TestRealCouncilPath:
+    """Prove that when OPENROUTER_API_KEY is present the enhanced council uses
+    the real LLMCouncil fan-out, not _mock_vote.
+
+    These tests hit the network (~5-15s) and are gated on the key being set.
+    """
+
+    def test_real_votes_not_mock(self, tmp_db: str):
+        """Votes come from real models — reasoning must NOT contain _TEST_MOCK_PREFIX."""
+        council = EnhancedLLMCouncil(db_path=tmp_db, _allow_mock=False)
+        finding = {
+            "id": "real-test-001",
+            "title": "SQL Injection in login endpoint",
+            "severity": "critical",
+            "risk_score": 0.95,
+            "cve_id": "CVE-2024-9999",
+        }
+        verdict = council.deliberate(finding, "Is this a true positive security vulnerability?")
+
+        # Verify the verdict is structurally valid
+        assert isinstance(verdict, CouncilVerdict)
+        assert verdict.verdict in ("TRUE_POSITIVE", "FALSE_POSITIVE", "NEEDS_REVIEW", "ESCALATED")
+        assert 0.0 <= verdict.confidence <= 1.0
+        assert verdict.processing_time_ms > 0
+
+        # Prove votes did NOT come from _mock_vote — reasoning must not have mock prefix
+        for model_name, reason in (verdict.votes or {}).items():
+            # Check reasoning dict from the stored verdict (not directly accessible,
+            # but _TEST_MOCK_PREFIX must not appear in the final reasoning string)
+            pass
+        assert _TEST_MOCK_PREFIX not in verdict.reasoning, (
+            f"Reasoning contains mock prefix — real council was NOT used: {verdict.reasoning[:200]}"
+        )
+        assert _NOT_CONFIGURED_PREFIX not in verdict.reasoning, (
+            f"Reasoning contains NOT_CONFIGURED prefix — key was present but council failed: "
+            f"{verdict.reasoning[:200]}"
+        )
+
+    def test_real_votes_come_from_multiple_models(self, tmp_db: str):
+        """At least 2 model slugs appear in the votes dict (fan-out confirmed)."""
+        council = EnhancedLLMCouncil(db_path=tmp_db, _allow_mock=False)
+        finding = {
+            "id": "real-test-002",
+            "title": "Hardcoded AWS secret key in source",
+            "severity": "high",
+            "risk_score": 0.88,
+        }
+        verdict = council.deliberate(finding, "Should this be remediated immediately?")
+
+        assert len(verdict.votes) >= 2, (
+            f"Expected votes from at least 2 real models, got: {list(verdict.votes.keys())}"
+        )
+        # Model slugs must look like OpenRouter model paths (contain underscore or slash
+        # from the slug mapping), not the internal mock names like 'qwen_qwq'/'kimi_k2'/'gemma4'
+        mock_only_names = {"qwen_qwq", "kimi_k2", "gemma4", "deepseek_r1"}
+        real_model_names = set(verdict.votes.keys()) - mock_only_names
+        assert len(real_model_names) >= 1, (
+            f"All vote keys look like internal mock names — real fan-out not confirmed. "
+            f"Vote keys: {list(verdict.votes.keys())}"
+        )
+
+    def test_verdict_persisted_with_real_votes(self, tmp_db: str):
+        """A verdict from real council is persisted to SQLite and retrievable."""
+        council = EnhancedLLMCouncil(db_path=tmp_db, _allow_mock=False)
+        finding = {"id": "real-test-003", "title": "Open redirect", "severity": "medium", "risk_score": 0.55}
+        verdict = council.deliberate(finding, "Is this exploitable?")
+
+        recent = council.get_recent_verdicts(limit=5)
+        ids = [r["verdict_id"] for r in recent]
+        assert verdict.verdict_id in ids
+
+
+# ---------------------------------------------------------------------------
+# 10. Honest unavailable path — no key → NOT_CONFIGURED, not mock votes
+# ---------------------------------------------------------------------------
+
+
+class TestHonestUnavailable:
+    """When OPENROUTER_API_KEY is absent and _allow_mock=False (the default),
+    the council must return an honest NOT_CONFIGURED verdict, never fabricated
+    mock votes presented as real consensus.
+    """
+
+    def test_no_key_returns_not_configured_reasoning(self, council_nokey: EnhancedLLMCouncil):
+        """Reasoning must contain NOT_CONFIGURED prefix — never a mock verdict."""
+        finding = {
+            "id": "nokey-test-001",
+            "title": "Prototype pollution",
+            "severity": "high",
+            "risk_score": 0.82,
+        }
+        verdict = council_nokey.deliberate(finding, "Is this exploitable?")
+
+        assert isinstance(verdict, CouncilVerdict)
+        # The honest path returns a single 'council' vote of NEEDS_REVIEW with low confidence,
+        # triggering escalation (which also fails gracefully), so the final verdict is ESCALATED
+        # or NEEDS_REVIEW — never a high-confidence fabricated TRUE_POSITIVE.
+        assert verdict.verdict in ("NEEDS_REVIEW", "ESCALATED"), (
+            f"Expected NEEDS_REVIEW/ESCALATED for not-configured council, got {verdict.verdict}"
+        )
+        # Reasoning must contain the honest NOT_CONFIGURED marker OR the escalation fallback —
+        # it must NOT contain the mock prefix (which would mean _mock_vote fired).
+        assert _TEST_MOCK_PREFIX not in verdict.reasoning, (
+            f"Mock prefix found in reasoning — _mock_vote fired on default path: {verdict.reasoning[:300]}"
+        )
+
+    def test_no_key_mock_false_never_calls_mock_vote(
+        self, tmp_db: str, monkeypatch: pytest.MonkeyPatch
+    ):
+        """_mock_vote must not be called when _allow_mock=False and no key."""
+        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        monkeypatch.delenv("FIXOPS_OPENROUTER_KEY", raising=False)
+
+        council = EnhancedLLMCouncil(db_path=tmp_db, _allow_mock=False)
+
+        mock_vote_calls: list = []
+        original_mock_vote = council._mock_vote
+
+        def patched_mock_vote(finding, model_name):
+            mock_vote_calls.append((finding, model_name))
+            return original_mock_vote(finding, model_name)
+
+        council._mock_vote = patched_mock_vote  # type: ignore[method-assign]
+
+        council.deliberate(
+            {"title": "test", "severity": "critical", "risk_score": 0.95},
+            "TP?",
+        )
+
+        assert mock_vote_calls == [], (
+            f"_mock_vote was called {len(mock_vote_calls)} time(s) on the default path "
+            f"(no key, _allow_mock=False) — fabricated consensus detected!"
+        )
+
+    def test_mock_opt_in_still_works_for_tests(self, tmp_db: str, monkeypatch: pytest.MonkeyPatch):
+        """When _allow_mock=True is explicitly set, mock votes still work for tests."""
+        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+        council = EnhancedLLMCouncil(db_path=tmp_db, _allow_mock=True)
+        verdict = council.deliberate(
+            {"title": "test", "severity": "critical", "risk_score": 0.95},
+            "TP?",
+        )
+        # Mock opt-in: should get a verdict from _mock_vote (TRUE_POSITIVE for critical)
+        assert verdict.verdict in ("TRUE_POSITIVE", "ESCALATED")
+        # Reasoning should contain the test mock prefix
+        assert _TEST_MOCK_PREFIX in verdict.reasoning or verdict.escalated_to_opus
