@@ -78,8 +78,9 @@ def _import_fresh(module_name: str) -> tuple[types.ModuleType, _WarningCapture]:
 # 1. Engine import warning tests
 # ---------------------------------------------------------------------------
 
+# core.security_scorecard is REMOVED — it now computes real scores from
+# SecurityFindingsEngine findings (coverage-aware) and is no longer a stub.
 ENGINES = [
-    ("core.security_scorecard", "security_scorecard"),
     ("core.compliance_scanner_engine", "compliance_scanner_engine"),
     ("core.vendor_scorecard", "vendor_scorecard"),
     ("core.kubernetes_security_engine", "kubernetes_security_engine"),
@@ -108,8 +109,9 @@ def test_engine_logs_simulation_warning_at_import(module_name: str, label: str):
 # 2. Router _SIMULATION_WARNING constant presence tests
 # ---------------------------------------------------------------------------
 
+# security_scorecard_router is REMOVED — it serves real data and exposes a
+# truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
 ROUTERS = [
-    "apps.api.security_scorecard_router",
     "apps.api.compliance_scanner_router",
     "apps.api.vendor_scorecard_router",
     "apps.api.kubernetes_security_router",

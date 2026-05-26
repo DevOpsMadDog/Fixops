@@ -27,11 +27,14 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-_SIMULATION_WARNING = {
-    "is_simulated": True,
+# Truthful provenance returned with every scorecard response. This engine
+# computes scores from REAL findings (SecurityFindingsEngine), so is_simulated
+# is False — not a flagged-simulation stub.
+_DATA_SOURCE = {
+    "is_simulated": False,
     "engine": "security_scorecard",
-    "real_integration_required": "/api/v1/connectors/{sast,dast,secrets,container,cspm}/configure",
-    "do_not_use_in_demo": True,
+    "source": "SecurityFindingsEngine (real findings)",
+    "methodology": "severity-weighted deductions, coverage-aware (assessed categories only)",
 }
 
 # ---------------------------------------------------------------------------
@@ -105,9 +108,18 @@ async def list_categories() -> Dict[str, Any]:
 async def generate_scorecard(
     org_id: str, req: GenerateScorecardRequest = GenerateScorecardRequest()
 ) -> Dict[str, Any]:
-    """Compute and store a new security scorecard for the organisation."""
-    sc = _get_scorecard().generate_scorecard(org_id, validity_days=req.validity_days)
-    return {"data": sc.model_dump(), "_simulation_warning": _SIMULATION_WARNING}
+    """Compute and store a new security scorecard for the organisation.
+
+    Returns 422 with an onboarding hint when the org has no findings yet —
+    a scorecard is never fabricated from absent data.
+    """
+    from core.security_scorecard import ScorecardDataError
+
+    try:
+        sc = _get_scorecard().generate_scorecard(org_id, validity_days=req.validity_days)
+    except ScorecardDataError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"data": sc.model_dump(), "_data_source": _DATA_SOURCE}
 
 
 @router.get("/{org_id}", summary="Latest scorecard")
@@ -119,7 +131,7 @@ async def get_scorecard(org_id: str) -> Dict[str, Any]:
             status_code=404,
             detail=f"No scorecard found for org '{org_id}'. Call POST /{org_id}/generate first.",
         )
-    return {"data": sc.model_dump(), "_simulation_warning": _SIMULATION_WARNING}
+    return {"data": sc.model_dump(), "_data_source": _DATA_SOURCE}
 
 
 @router.get("/{org_id}/history", summary="Score history")

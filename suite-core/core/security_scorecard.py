@@ -1,19 +1,17 @@
 """
 Security Scorecard for ALDECI — SecurityScorecard-style self-hosted scoring.
 
-STATUS: STUB — the entire scoring pipeline is NOT production-ready.
-All 8 category scores are derived from a hash of org_id + category name,
-not from real scanner findings, connector data, or threat intel.
-Customers must NOT be shown any scorecard results from this engine.
+REAL IMPLEMENTATION: category scores are computed from the organisation's
+actual security findings (SecurityFindingsEngine), severity-weighted. There
+are no hash-derived or simulated values. A category is only scored when the
+org has real findings evidence covering it; categories with no scanner
+coverage are reported as "not_assessed" (never a fabricated 100 or 0), and the
+overall score is the weight-renormalised average over assessed categories only.
 
-To make real: wire all scanner connectors (SAST, DAST, secrets, container,
-CSPM) via /api/v1/connectors/*/configure and replace _simulate_score()
-with real aggregation queries against SecurityFindingsEngine,
-ContainerScannerEngine, CSPMEngine, etc. Until wired, generate_scorecard()
-raises NotImplementedError.
-
-Provides organization-wide security grades computed from all platform data:
-findings, connectors, scanner results, compliance posture, threat intel.
+Findings flow in from the connector/scanner framework (GitHub connector,
+SAST/SCA/secrets/container scanners) via SecurityFindingsEngine.record_finding().
+To raise a score: remediate open findings. To add coverage for an unassessed
+category: onboard the relevant scanner via /api/v1/connectors/.
 
 Categories mirror SecurityScorecard's methodology:
   NETWORK, APPLICATION, PATCHING, DNS, ENDPOINT,
@@ -27,22 +25,27 @@ from __future__ import annotations
 
 import json
 import logging
-import random
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
-logger.warning(
-    "⚠️  %s: generate_scorecard() is STUB — all scores are org_id+category hash-derived, "
-    "not from real scanner data. Wire scanner connectors to enable real scoring.",
+logger.info(
+    "%s loaded — scores computed from real SecurityFindingsEngine findings "
+    "(severity-weighted, coverage-aware). No simulated data.",
     __name__,
 )
+
+
+class ScorecardDataError(ValueError):
+    """Raised when a scorecard cannot be computed because the org has no
+    security findings to score. Surfaced by the router as HTTP 422 with an
+    onboarding hint — never as a fabricated grade."""
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +121,62 @@ CATEGORY_WEIGHTS: Dict[ScoreCategory, float] = {
 }
 
 
+# Severity → penalty points deducted from a category's 100 baseline per OPEN
+# finding. Tuned so a single critical drops a category roughly one grade band.
+SEVERITY_PENALTY: Dict[str, float] = {
+    "critical": 15.0,
+    "high": 8.0,
+    "medium": 3.0,
+    "low": 1.0,
+    "info": 0.25,
+    "informational": 0.25,
+}
+
+# Ordered finding → category classification. Each tuple lists substrings matched
+# against the finding's finding_type/source_tool/title/asset_type (lowercased).
+# Order matters: the FIRST category whose keywords match wins, so the most
+# specific categories are listed first (secrets before generic "code", etc.).
+_CATEGORY_MATCHERS: List[Tuple[ScoreCategory, Tuple[str, ...]]] = [
+    (ScoreCategory.INFORMATION_LEAK, (
+        "secret", "credential", "leak", "exposed_key", "api_key", "apikey",
+        "password", "pii", "gitleaks", "trufflehog", "detect-secrets", "ggshield",
+    )),
+    (ScoreCategory.ENDPOINT, (
+        "container", "image", "docker", "cis", "benchmark", "iac",
+        "kubernetes", "k8s", "misconfiguration", "misconfig", "trivy-image",
+        "dockle", "kube-bench", "checkov", "kics", "tfsec", "kubescape", "host",
+    )),
+    (ScoreCategory.PATCHING, (
+        "sca", "dependency", "dependencies", "package", "library", "outdated",
+        "eol", "cve-", "grype", "dependabot", "osv", "npm-audit", "pip-audit",
+        "safety", "vulnerable_dependency", "transitive",
+    )),
+    (ScoreCategory.IP_REPUTATION, (
+        "ip_reputation", "malicious_ip", "blocklist", "botnet", "c2", "ioc",
+        "abuseipdb", "greynoise", "threatfox",
+    )),
+    (ScoreCategory.DNS, (
+        "dns", "spf", "dkim", "dmarc", "dnssec", "subdomain", "dnsrecon", "dnstwist",
+    )),
+    (ScoreCategory.NETWORK, (
+        "network", "open_port", "port", "tls", "ssl", "certificate", "firewall",
+        "exposed_service", "nmap", "masscan", "sslyze", "testssl",
+    )),
+    (ScoreCategory.SOCIAL_ENGINEERING, (
+        "phishing", "social_engineering", "awareness", "breach",
+        "haveibeenpwned", "hibp", "gophish",
+    )),
+    (ScoreCategory.APPLICATION, (
+        "sast", "code", "xss", "sql", "injection", "csrf", "ssrf", "deserial",
+        "xxe", "owasp", "dast", "web", "semgrep", "bandit", "codeql", "sonar",
+        "zap", "burp", "application",
+    )),
+]
+# Generic findings with no specific signal fall back to APPLICATION (the
+# broadest software-security category) so they are still counted, never dropped.
+_DEFAULT_CATEGORY = ScoreCategory.APPLICATION
+
+
 # ---------------------------------------------------------------------------
 # SecurityScorecard
 # ---------------------------------------------------------------------------
@@ -126,17 +185,29 @@ CATEGORY_WEIGHTS: Dict[ScoreCategory, float] = {
 class SecurityScorecard:
     """SQLite-backed security scorecard engine.
 
-    Computes organization-wide security grades from all available platform
-    data.  In a real deployment, each _score_* method would query live
-    findings, connector data, scanner results, and threat intel feeds.
-    The simulation approach used here produces deterministic, reproducible
-    scores based on org_id — safe for testing without external dependencies.
+    Computes organization-wide security grades from the org's real security
+    findings (SecurityFindingsEngine). Each category starts at 100 and loses
+    severity-weighted points per open finding mapped to it. Only categories
+    with real findings evidence are scored; the overall is the renormalised
+    weighted average over those assessed categories.
     """
 
-    def __init__(self, db_path: str = "data/security_scorecard.db"):
+    def __init__(self, db_path: str = "data/security_scorecard.db", findings_engine: Any = None):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_tables()
+        self._injected_findings_engine = findings_engine
+
+    def _findings_engine(self) -> Any:
+        """Return the SecurityFindingsEngine used to source real findings.
+
+        Lazily imported (no hard import-time dependency) and injectable for
+        tests via the ``findings_engine`` constructor arg.
+        """
+        if self._injected_findings_engine is None:
+            from core.security_findings_engine import SecurityFindingsEngine
+            self._injected_findings_engine = SecurityFindingsEngine()
+        return self._injected_findings_engine
 
     # ------------------------------------------------------------------
     # DB helpers
@@ -198,126 +269,121 @@ class SecurityScorecard:
         return "F"
 
     # ------------------------------------------------------------------
-    # Category scoring simulation
+    # Finding classification (real data)
     # ------------------------------------------------------------------
 
-    def _make_rng(self, org_id: str, category: str) -> random.Random:
-        """Deterministic RNG seeded from org_id + category for reproducibility."""
-        seed = hash(f"{org_id}:{category}") % (2**32)
-        return random.Random(seed)
+    @staticmethod
+    def _categorize_finding(finding: Dict[str, Any]) -> ScoreCategory:
+        """Map a real finding to a scorecard category by its type/tool keywords.
 
-    def _simulate_score(self, org_id: str, category: str) -> tuple[float, List[Dict[str, Any]]]:
-        """Simulate a category score with sub-factors.
-
-        Returns (score 0-100, list of factor dicts).
-        In production this would query real platform data.
+        Matches finding_type/source_tool/title/asset_type (lowercased) against
+        the ordered ``_CATEGORY_MATCHERS``; falls back to APPLICATION so no
+        finding is silently dropped from scoring.
         """
-        rng = self._make_rng(org_id, category)
-
-        def _s(base: float, var: float) -> float:
-            return round(max(0.0, min(100.0, base + rng.uniform(-var, var))), 2)
-
-        # Base score heuristic: mix of org_id hash and category
-        base = 55.0 + (hash(org_id) % 30)
-
-        if category == ScoreCategory.NETWORK:
-            factors = [
-                {"name": "open_ports", "score": _s(base, 15), "weight": 0.30, "detail": "Exposed network services"},
-                {"name": "firewall_config", "score": _s(base + 5, 10), "weight": 0.35, "detail": "Firewall rule hygiene"},
-                {"name": "network_segmentation", "score": _s(base - 5, 12), "weight": 0.20, "detail": "Network segmentation posture"},
-                {"name": "tls_config", "score": _s(base + 10, 8), "weight": 0.15, "detail": "TLS/SSL configuration quality"},
-            ]
-        elif category == ScoreCategory.APPLICATION:
-            factors = [
-                {"name": "vuln_density", "score": _s(base - 5, 18), "weight": 0.35, "detail": "Vulnerability density per KLOC"},
-                {"name": "sast_findings", "score": _s(base, 12), "weight": 0.25, "detail": "Static analysis finding rate"},
-                {"name": "dependency_risk", "score": _s(base - 10, 15), "weight": 0.25, "detail": "Risky dependency exposure"},
-                {"name": "api_security", "score": _s(base + 5, 10), "weight": 0.15, "detail": "API authentication and rate limiting"},
-            ]
-        elif category == ScoreCategory.PATCHING:
-            factors = [
-                {"name": "critical_patch_lag", "score": _s(base - 10, 20), "weight": 0.40, "detail": "Days to patch critical CVEs"},
-                {"name": "high_patch_lag", "score": _s(base - 5, 15), "weight": 0.30, "detail": "Days to patch high CVEs"},
-                {"name": "os_currency", "score": _s(base + 5, 12), "weight": 0.20, "detail": "OS version currency"},
-                {"name": "eol_software", "score": _s(base, 10), "weight": 0.10, "detail": "End-of-life software ratio"},
-            ]
-        elif category == ScoreCategory.DNS:
-            factors = [
-                {"name": "dnssec", "score": _s(base + 10, 15), "weight": 0.30, "detail": "DNSSEC implementation"},
-                {"name": "spf_record", "score": _s(base + 5, 10), "weight": 0.25, "detail": "SPF record validity"},
-                {"name": "dmarc_policy", "score": _s(base, 12), "weight": 0.25, "detail": "DMARC policy enforcement"},
-                {"name": "dkim_config", "score": _s(base - 5, 8), "weight": 0.20, "detail": "DKIM signing configuration"},
-            ]
-        elif category == ScoreCategory.ENDPOINT:
-            factors = [
-                {"name": "edr_coverage", "score": _s(base + 5, 15), "weight": 0.35, "detail": "EDR agent deployment coverage"},
-                {"name": "patch_compliance", "score": _s(base, 12), "weight": 0.30, "detail": "Endpoint patch compliance rate"},
-                {"name": "encryption_coverage", "score": _s(base + 10, 10), "weight": 0.20, "detail": "Disk encryption coverage"},
-                {"name": "mfa_enforcement", "score": _s(base - 5, 18), "weight": 0.15, "detail": "MFA enforcement rate"},
-            ]
-        elif category == ScoreCategory.IP_REPUTATION:
-            factors = [
-                {"name": "blocklist_appearances", "score": _s(base + 5, 20), "weight": 0.40, "detail": "IP blocklist presence"},
-                {"name": "botnet_activity", "score": _s(base + 10, 12), "weight": 0.30, "detail": "Known botnet C2 activity"},
-                {"name": "spam_score", "score": _s(base + 5, 10), "weight": 0.20, "detail": "Email spam reputation"},
-                {"name": "tor_exit_node", "score": _s(base + 15, 8), "weight": 0.10, "detail": "Tor exit node presence"},
-            ]
-        elif category == ScoreCategory.SOCIAL_ENGINEERING:
-            factors = [
-                {"name": "phishing_susceptibility", "score": _s(base - 5, 15), "weight": 0.40, "detail": "Phishing simulation failure rate"},
-                {"name": "security_awareness", "score": _s(base, 12), "weight": 0.35, "detail": "Security awareness training completion"},
-                {"name": "credential_exposure", "score": _s(base - 10, 18), "weight": 0.25, "detail": "Credential exposure in breaches"},
-            ]
-        else:  # INFORMATION_LEAK
-            factors = [
-                {"name": "data_exposure", "score": _s(base - 5, 15), "weight": 0.35, "detail": "Public data exposure incidents"},
-                {"name": "secret_leaks", "score": _s(base - 10, 20), "weight": 0.35, "detail": "Code repository secret leaks"},
-                {"name": "dark_web_mentions", "score": _s(base, 12), "weight": 0.30, "detail": "Dark web mention frequency"},
-            ]
-
-        # Weighted average
-        total_weight = sum(f["weight"] for f in factors)
-        weighted_sum = sum(f["score"] * f["weight"] for f in factors)
-        score = round(weighted_sum / total_weight, 2) if total_weight > 0 else 50.0
-        score = max(0.0, min(100.0, score))
-
-        # Tag each factor with its category
-        for f in factors:
-            f["category"] = category
-
-        return score, factors
+        haystack = " ".join(
+            str(finding.get(k, "")).lower()
+            for k in ("finding_type", "source_tool", "title", "asset_type")
+        )
+        for category, keywords in _CATEGORY_MATCHERS:
+            if any(kw in haystack for kw in keywords):
+                return category
+        return _DEFAULT_CATEGORY
 
     # ------------------------------------------------------------------
     # Core public API
     # ------------------------------------------------------------------
 
     def generate_scorecard(self, org_id: str, validity_days: int = 30) -> SecurityScore:
-        """Compute a real security scorecard aggregated from platform scanner data.
+        """Compute a real scorecard from the org's actual security findings.
 
-        Requires all scanner connectors (SAST, DAST, secrets, container, CSPM)
-        to be configured. Raises NotImplementedError until
-        SCORECARD_DATA_SOURCE env var is set, to prevent hash-derived
-        fake scores from reaching customers.
+        Pulls findings from SecurityFindingsEngine, maps each to a category,
+        and deducts severity-weighted penalty points from each assessed
+        category's 100 baseline (only OPEN findings deduct; resolved/suppressed
+        findings still prove coverage). The overall score is the
+        weight-renormalised average over assessed categories only — categories
+        with no findings evidence are reported as not_assessed, never faked.
 
-        get_scorecard(), get_score_history(), get_category_breakdown(),
-        get_improvement_plan(), compare_orgs(), and get_public_score()
-        work against previously stored real scorecards.
+        Raises ScorecardDataError when the org has no findings at all, so a
+        scorecard is never fabricated from thin air.
         """
-        import os
-        if not os.environ.get("SCORECARD_DATA_SOURCE"):
-            raise NotImplementedError(
-                "generate_scorecard() requires all scanner connectors to be wired "
-                "(SAST, DAST, secrets, container, CSPM). "
-                "Configure via /api/v1/connectors/*/configure and set "
-                "SCORECARD_DATA_SOURCE env var. "
-                "Read operations (get_scorecard, get_score_history, "
-                "get_category_breakdown, get_improvement_plan) work against "
-                "previously stored real scorecards."
+        findings = self._findings_engine().list_findings(org_id)
+        if not findings:
+            raise ScorecardDataError(
+                f"No security findings for org '{org_id}'. Onboard a scanner "
+                "(SAST, SCA, secrets, or container) via /api/v1/connectors/ and "
+                "run a scan before generating a scorecard."
             )
-        raise NotImplementedError(
-            "generate_scorecard() real data aggregation not yet implemented. "
-            "Wire scanner connectors and set SCORECARD_DATA_SOURCE to enable."
+
+        # Bucket findings by category. Presence of ANY finding (any status)
+        # marks a category 'assessed' — proof a scanner covered it.
+        buckets: Dict[str, List[Dict[str, Any]]] = {}
+        for f in findings:
+            buckets.setdefault(self._categorize_finding(f).value, []).append(f)
+
+        categories: Dict[str, float] = {}
+        all_factors: List[Dict[str, Any]] = []
+        for cat_value, cat_findings in buckets.items():
+            open_findings = [
+                f for f in cat_findings if (f.get("status") or "open") == "open"
+            ]
+            penalty = 0.0
+            sev_counts: Dict[str, int] = {}
+            for f in open_findings:
+                sev = str(f.get("severity", "medium")).lower()
+                penalty += SEVERITY_PENALTY.get(sev, SEVERITY_PENALTY["medium"])
+                sev_counts[sev] = sev_counts.get(sev, 0) + 1
+            score = round(max(0.0, min(100.0, 100.0 - penalty)), 2)
+            categories[cat_value] = score
+            all_factors.append({
+                "category": cat_value,
+                "score": score,
+                "open_findings": len(open_findings),
+                "total_findings": len(cat_findings),
+                "severity_breakdown": sev_counts,
+                "penalty_points": round(penalty, 2),
+                "detail": (
+                    f"{len(open_findings)} open of {len(cat_findings)} finding(s) "
+                    "from real scanner data"
+                ),
+            })
+
+        # Overall = renormalised weighted average over ASSESSED categories only.
+        assessed_weight = sum(CATEGORY_WEIGHTS[ScoreCategory(c)] for c in categories) or 1.0
+        overall = sum(
+            categories[c] * CATEGORY_WEIGHTS[ScoreCategory(c)] for c in categories
+        ) / assessed_weight
+        overall = round(max(0.0, min(100.0, overall)), 2)
+        grade = self._score_to_grade(overall)
+
+        now = datetime.now(timezone.utc)
+        scorecard = SecurityScore(
+            id=str(uuid.uuid4()),
+            org_id=org_id,
+            overall_score=overall,
+            grade=grade,
+            categories=categories,
+            factors=all_factors,
+            generated_at=now.isoformat(),
+            valid_until=(now + timedelta(days=validity_days)).isoformat(),
         )
+        with self._get_conn() as conn:
+            conn.execute(
+                """INSERT INTO scorecards
+                   (id, org_id, overall_score, grade, categories, factors,
+                    generated_at, valid_until)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    scorecard.id, scorecard.org_id, scorecard.overall_score,
+                    scorecard.grade, json.dumps(scorecard.categories),
+                    json.dumps(scorecard.factors), scorecard.generated_at,
+                    scorecard.valid_until,
+                ),
+            )
+        logger.info(
+            "Generated scorecard for org %s: %.1f (%s) across %d assessed categories",
+            org_id, overall, grade, len(categories),
+        )
+        return scorecard
 
     def get_scorecard(self, org_id: str) -> Optional[SecurityScore]:
         """Return the most recent scorecard for the given org, or None."""
@@ -377,7 +443,20 @@ class SecurityScorecard:
 
         breakdown: Dict[str, Any] = {}
         for cat in ScoreCategory:
-            score = latest.categories.get(cat.value, 0.0)
+            # A category absent from the latest scorecard has no scanner
+            # coverage — report it honestly as not_assessed, never 0/F.
+            if cat.value not in latest.categories:
+                breakdown[cat.value] = {
+                    "score": None,
+                    "grade": "N/A",
+                    "weight": CATEGORY_WEIGHTS[cat],
+                    "trend": "not_assessed",
+                    "delta": None,
+                    "assessed": False,
+                }
+                continue
+
+            score = latest.categories[cat.value]
             prev_score = prev_categories.get(cat.value)
             if prev_score is not None:
                 delta = round(score - prev_score, 2)
@@ -392,6 +471,7 @@ class SecurityScorecard:
                 "weight": CATEGORY_WEIGHTS[cat],
                 "trend": trend,
                 "delta": delta,
+                "assessed": True,
             }
 
         return {
@@ -413,9 +493,29 @@ class SecurityScorecard:
 
         actions: List[Dict[str, Any]] = []
         for cat in ScoreCategory:
-            score = latest.categories.get(cat.value, 0.0)
-            gap = 100.0 - score
             weight = CATEGORY_WEIGHTS[cat]
+
+            # Not assessed → the highest-value action is gaining visibility.
+            if cat.value not in latest.categories:
+                actions.append({
+                    "category": cat.value,
+                    "type": "coverage",
+                    "current_score": None,
+                    "current_grade": "N/A",
+                    "gap": None,
+                    "weight": weight,
+                    "estimated_impact": None,
+                    "priority": "medium",
+                    "recommendation": (
+                        f"No {cat.value} coverage — onboard the relevant scanner via "
+                        "/api/v1/connectors/. This category is excluded from your score "
+                        "until real findings evidence exists."
+                    ),
+                })
+                continue
+
+            score = latest.categories[cat.value]
+            gap = 100.0 - score
             impact = round(gap * weight, 2)  # points gained if this cat reaches 100
 
             if gap < 5:
@@ -431,6 +531,7 @@ class SecurityScorecard:
             actions.append(
                 {
                     "category": cat.value,
+                    "type": "remediation",
                     "current_score": score,
                     "current_grade": self._score_to_grade(score),
                     "gap": round(gap, 2),
@@ -441,8 +542,11 @@ class SecurityScorecard:
                 }
             )
 
-        # Sort by estimated_impact descending
-        actions.sort(key=lambda a: a["estimated_impact"], reverse=True)
+        # Sort by estimated_impact desc; coverage actions (None impact) sink last.
+        actions.sort(
+            key=lambda a: a["estimated_impact"] if a["estimated_impact"] is not None else -1.0,
+            reverse=True,
+        )
 
         return {
             "org_id": org_id,

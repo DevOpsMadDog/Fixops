@@ -43,6 +43,7 @@ from core.security_scorecard import (
     CATEGORY_WEIGHTS,
     PublicScore,
     ScoreCategory,
+    ScorecardDataError,
     SecurityScore,
     SecurityScorecard,
 )
@@ -264,37 +265,76 @@ def test_public_score_model():
 # ============================================================================
 
 
-def test_generate_scorecard_raises_not_implemented(sc, org_id):
-    """generate_scorecard() raises NotImplementedError until scanner connectors are wired."""
-    with pytest.raises(NotImplementedError):
-        sc.generate_scorecard(org_id)
+@pytest.fixture
+def findings_engine(tmp_path):
+    """Isolated, seedable SecurityFindingsEngine on a temp DB."""
+    from core.security_findings_engine import SecurityFindingsEngine
+    return SecurityFindingsEngine(db_path=str(tmp_path / "findings.db"))
 
 
-def test_generate_scorecard_raises_without_env(sc, org_id):
-    """Confirm the raise happens regardless of SCORECARD_DATA_SOURCE being absent."""
-    env_backup = os.environ.pop("SCORECARD_DATA_SOURCE", None)
-    try:
-        with pytest.raises(NotImplementedError):
-            sc.generate_scorecard(org_id)
-    finally:
-        if env_backup is not None:
-            os.environ["SCORECARD_DATA_SOURCE"] = env_backup
+@pytest.fixture
+def sc_fe(db_path, findings_engine):
+    """Scorecard engine wired to an isolated findings engine (real data source)."""
+    return SecurityScorecard(db_path=db_path, findings_engine=findings_engine)
 
 
-def test_generate_scorecard_raises_even_with_env_set(sc, org_id):
-    """Even with SCORECARD_DATA_SOURCE set, real aggregation is not yet implemented."""
-    os.environ["SCORECARD_DATA_SOURCE"] = "real"
-    try:
-        with pytest.raises(NotImplementedError):
-            sc.generate_scorecard(org_id)
-    finally:
-        del os.environ["SCORECARD_DATA_SOURCE"]
+def _seed_finding(
+    fe, org_id, *, title, finding_type, source_tool, severity, cvss_score,
+    asset_type="code", asset_id="repo1",
+):
+    fe.record_finding(
+        org_id=org_id, title=title, finding_type=finding_type, source_tool=source_tool,
+        severity=severity, cvss_score=cvss_score, asset_id=asset_id,
+        asset_type=asset_type, description="d", remediation="r",
+    )
 
 
-def test_generate_scorecard_message_mentions_connectors(sc, org_id):
-    """NotImplementedError message references connector configuration."""
-    with pytest.raises(NotImplementedError, match="connector"):
-        sc.generate_scorecard(org_id)
+def test_generate_scorecard_no_findings_raises(sc_fe, org_id):
+    """No findings → ScorecardDataError; a scorecard is never fabricated from absent data."""
+    with pytest.raises(ScorecardDataError):
+        sc_fe.generate_scorecard(org_id)
+
+
+def test_generate_scorecard_no_findings_message_mentions_connector(sc_fe, org_id):
+    """The no-data error guides the user to onboard a scanner connector."""
+    with pytest.raises(ScorecardDataError, match="connectors"):
+        sc_fe.generate_scorecard(org_id)
+
+
+def test_generate_scorecard_from_real_findings(sc_fe, findings_engine, org_id):
+    """Real findings produce a real, severity-weighted, persisted scorecard."""
+    _seed_finding(findings_engine, org_id, title="SQLi", finding_type="sast",
+                  source_tool="semgrep", severity="critical", cvss_score=9.1)
+    _seed_finding(findings_engine, org_id, title="Hardcoded key", finding_type="secret",
+                  source_tool="gitleaks", severity="high", cvss_score=8.0)
+    card = sc_fe.generate_scorecard(org_id)
+    assert 0.0 <= card.overall_score <= 100.0
+    assert card.grade in {"A", "B", "C", "D", "F"}
+    # SAST critical → application (100 - 15 = 85); gitleaks secret high → information_leak (100 - 8 = 92)
+    assert card.categories["application"] == 85.0
+    assert card.categories["information_leak"] == 92.0
+    # real persistence: retrievable afterwards
+    assert sc_fe.get_scorecard(org_id).id == card.id
+
+
+def test_generate_scorecard_only_scores_covered_categories(sc_fe, findings_engine, org_id):
+    """Categories with no findings evidence are absent — never fabricated to 0 or 100."""
+    _seed_finding(findings_engine, org_id, title="XSS", finding_type="sast",
+                  source_tool="semgrep", severity="medium", cvss_score=5.0)
+    card = sc_fe.generate_scorecard(org_id)
+    assert set(card.categories.keys()) == {"application"}
+    assert "network" not in card.categories
+    assert "dns" not in card.categories
+
+
+def test_generate_scorecard_resolved_findings_score_clean(sc_fe, findings_engine, org_id):
+    """Resolved findings prove coverage but don't penalise → assessed category scores 100."""
+    _seed_finding(findings_engine, org_id, title="Old SQLi", finding_type="sast",
+                  source_tool="semgrep", severity="critical", cvss_score=9.0)
+    fid = findings_engine.list_findings(org_id)[0]["id"]
+    findings_engine.update_status(fid, org_id, "resolved")
+    card = sc_fe.generate_scorecard(org_id)
+    assert card.categories["application"] == 100.0
 
 
 # ============================================================================
@@ -584,9 +624,13 @@ def client(tmp_path_factory):
     from apps.api.security_scorecard_router import public_router, router
     from apps.api.auth_deps import api_key_auth
 
-    # Patch singleton to use temp DB
+    # Patch singleton to use temp DBs, wired to an isolated real findings engine
     import apps.api.security_scorecard_router as _mod
-    _mod._scorecard = SecurityScorecard(db_path=str(tmp / "router_test.db"))
+    from core.security_findings_engine import SecurityFindingsEngine
+    _fe = SecurityFindingsEngine(db_path=str(tmp / "router_findings.db"))
+    _mod._scorecard = SecurityScorecard(
+        db_path=str(tmp / "router_test.db"), findings_engine=_fe
+    )
 
     app = FastAPI()
 
@@ -627,14 +671,30 @@ def test_router_list_categories(client):
     assert data["total"] == 8
 
 
-def test_router_generate_scorecard_returns_501(client):
-    """generate_scorecard is not yet wired to real scanner data — must return 501."""
-    org = f"gen-org-{uuid.uuid4().hex[:8]}"
+def test_router_generate_scorecard_no_findings_422(client):
+    """No findings for the org → 422 with an onboarding hint, never a fabricated grade."""
+    org = f"gen-empty-{uuid.uuid4().hex[:8]}"
     resp = client.post(f"/api/v1/scorecard/{org}/generate", json={"validity_days": 14})
-    assert resp.status_code == 501
+    assert resp.status_code == 422
+    assert "connectors" in resp.json()["detail"]
+
+
+def test_router_generate_scorecard_from_real_findings(client):
+    """With real findings seeded, generate returns 201 + a real scorecard (is_simulated=False)."""
+    import apps.api.security_scorecard_router as _mod
+    fe = _mod._scorecard._findings_engine()
+    org = f"gen-real-{uuid.uuid4().hex[:8]}"
+    fe.record_finding(
+        org_id=org, title="SQLi", finding_type="sast", source_tool="semgrep",
+        severity="high", cvss_score=7.5, asset_id="r1", asset_type="code",
+        description="d", remediation="r",
+    )
+    resp = client.post(f"/api/v1/scorecard/{org}/generate", json={"validity_days": 14})
+    assert resp.status_code == 201
     data = resp.json()
-    assert data["status"] == "not_implemented"
-    assert data["error_category"] == "not_implemented"
+    assert data["data"]["org_id"] == org
+    assert data["_data_source"]["is_simulated"] is False
+    assert "application" in data["data"]["categories"]
 
 
 def test_router_get_scorecard(client, router_org_id):
