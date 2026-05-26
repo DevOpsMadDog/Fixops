@@ -1,26 +1,40 @@
 """Tests for ConfigBenchmarkEngine — covering all methods and org isolation.
 
-Migration note (honest-stub pass): run_assessment() now raises NotImplementedError.
-TestAssessments tests that previously expected a result dict are rewritten to
-assert pytest.raises(NotImplementedError).  Tests that exercise downstream read
-paths (get_assessment, list_assessments, get_failed_checks, stats) seed rows
-directly via the engine's SQLite connection — the same persistence layer used
-by the engine — so every assertion exercises real production code without any
-mocking or faking of run_assessment().
+Integration note: run_assessment() now runs REAL checkov against the fixture
+at tests/fixtures/checkov_target/.  The integration test is decorated with
+@pytest.mark.skipif(shutil.which("checkov") is None, ...) so it is skipped
+only when checkov is genuinely absent.
+
+Read-path tests (get_assessment, list_assessments, get_failed_checks, stats)
+seed rows directly via the engine's SQLite connection — no mocking, no faking
+of run_assessment().
+
+Error-path tests monkeypatch shutil.which to simulate missing checkov and
+cover the ConfigBenchmarkError guard.
 """
 
 from __future__ import annotations
 
+import shutil
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List
 
 import pytest
 
-from core.config_benchmark_engine import ConfigBenchmarkEngine
+from core.config_benchmark_engine import ConfigBenchmarkEngine, ConfigBenchmarkError
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Fixture path — a real IaC directory with both pass and fail checkov results
+# ---------------------------------------------------------------------------
+
+_FIXTURE_DIR = str(
+    Path(__file__).resolve().parent / "fixtures" / "checkov_target"
+)
+
+# ---------------------------------------------------------------------------
+# pytest fixtures
 # ---------------------------------------------------------------------------
 
 
@@ -75,7 +89,7 @@ def _seed_assessment_result(
 ) -> dict:
     """Insert a completed assessment_result + check_results directly into SQLite.
 
-    Returns a dict that mirrors what run_assessment() used to return.
+    Returns a dict that mirrors what run_assessment() returns.
     No mocking — only real DB writes via engine._conn().
 
     pass_rate controls how many check_results get status='pass' vs 'fail'.
@@ -249,36 +263,172 @@ class TestChecks:
 
 
 # ---------------------------------------------------------------------------
-# Assessments — run_assessment() raises NotImplementedError; downstream read
-# paths are exercised via _seed_assessment_result().
+# Assessments — run_assessment() real checkov integration
 # ---------------------------------------------------------------------------
 
 
-class TestAssessments:
-    # --- run_assessment() raise contract ---
+class TestRunAssessmentRealCheckov:
+    """Integration tests that run actual checkov against the fixture directory.
 
-    def test_run_assessment_raises_not_implemented(self, engine):
-        """run_assessment() must raise NotImplementedError until CONFIG_BENCHMARK_CONNECTOR_URL is set."""
+    Skipped automatically when checkov is not on PATH.
+    """
+
+    @pytest.mark.skipif(
+        shutil.which("checkov") is None,
+        reason="checkov not installed — skipping real integration test",
+    )
+    def test_run_assessment_real_checkov_produces_results(self, engine):
+        """run_assessment() must produce real check results persisted in SQLite."""
+        profile = engine.create_profile(ORG_A, _profile(standard="CIS", target_type="aws"))
+        result = engine.run_assessment(
+            ORG_A,
+            profile["profile_id"],
+            "test-fixture-scan",
+            target_path=_FIXTURE_DIR,
+        )
+
+        # Basic shape
+        assert "result_id" in result
+        assert result["org_id"] == ORG_A
+        assert result["scanner"] == "checkov"
+        assert result["total_checks"] > 0
+
+        # Both pass AND fail must exist (fixture is intentionally mixed)
+        assert result["passed"] > 0, f"Expected passed > 0, got {result}"
+        assert result["failed"] > 0, f"Expected failed > 0, got {result}"
+
+        # Score must be computed from real counts
+        expected_score = round(result["passed"] / result["total_checks"] * 100, 2)
+        assert abs(result["score"] - expected_score) < 0.1
+
+        # Score must be in valid range
+        assert 0.0 <= result["score"] <= 100.0
+
+        # Status must be a valid value
+        assert result["status"] in ("pass", "partial", "fail")
+
+    @pytest.mark.skipif(
+        shutil.which("checkov") is None,
+        reason="checkov not installed — skipping real integration test",
+    )
+    def test_run_assessment_persists_check_results_to_db(self, engine):
+        """All check_results must be readable back via get_assessment()."""
+        profile = engine.create_profile(ORG_A, _profile(standard="CIS", target_type="aws"))
+        result = engine.run_assessment(
+            ORG_A,
+            profile["profile_id"],
+            "test-fixture-persist",
+            target_path=_FIXTURE_DIR,
+        )
+        result_id = result["result_id"]
+
+        # get_assessment() must return the persisted row with check_results
+        detail = engine.get_assessment(ORG_A, result_id)
+        assert detail, "get_assessment() returned empty — nothing persisted"
+        assert "check_results" in detail
+        assert len(detail["check_results"]) == result["total_checks"], (
+            f"Expected {result['total_checks']} check_results, got {len(detail['check_results'])}"
+        )
+
+        # get_failed_checks() must return only fail rows
+        failures = engine.get_failed_checks(ORG_A, result_id)
+        assert len(failures) == result["failed"], (
+            f"Expected {result['failed']} failures, got {len(failures)}"
+        )
+        assert all(f["status"] == "fail" for f in failures)
+        # Each failure must have check metadata (from the joined benchmark_checks row)
+        if failures:
+            assert "check_ref" in failures[0]
+            assert "severity" in failures[0]
+
+    @pytest.mark.skipif(
+        shutil.which("checkov") is None,
+        reason="checkov not installed — skipping real integration test",
+    )
+    def test_run_assessment_shows_in_list_assessments(self, engine):
+        """list_assessments() must return the assessment after run_assessment()."""
         profile = engine.create_profile(ORG_A, _profile())
-        _add_checks(engine, ORG_A, profile["profile_id"], count=5)
-        with pytest.raises(NotImplementedError):
-            engine.run_assessment(ORG_A, profile["profile_id"], "server-01")
+        result = engine.run_assessment(
+            ORG_A,
+            profile["profile_id"],
+            "test-fixture-list",
+            target_path=_FIXTURE_DIR,
+        )
+        assessments = engine.list_assessments(ORG_A)
+        ids = [a["result_id"] for a in assessments]
+        assert result["result_id"] in ids
 
-    def test_run_assessment_raises_even_with_no_checks(self, engine):
-        """No-checks case still raises NotImplementedError (env-gate fires first)."""
+    @pytest.mark.skipif(
+        shutil.which("checkov") is None,
+        reason="checkov not installed — skipping real integration test",
+    )
+    def test_run_assessment_stats_updated(self, engine):
+        """get_benchmark_stats() must reflect the real assessment."""
+        profile = engine.create_profile(ORG_A, _profile(standard="CIS", target_type="aws"))
+        engine.run_assessment(
+            ORG_A,
+            profile["profile_id"],
+            "test-fixture-stats",
+            target_path=_FIXTURE_DIR,
+        )
+        stats = engine.get_benchmark_stats(ORG_A)
+        assert stats["total_assessments"] >= 1
+        assert 0.0 <= stats["avg_score"] <= 100.0
+
+
+# ---------------------------------------------------------------------------
+# Assessments — error path (guard tests — do NOT require real checkov)
+# ---------------------------------------------------------------------------
+
+
+class TestRunAssessmentErrors:
+    def test_checkov_absent_raises_config_benchmark_error(self, engine, monkeypatch):
+        """When checkov is not on PATH, raise ConfigBenchmarkError (not NotImplementedError)."""
+        monkeypatch.setattr("shutil.which", lambda _name: None)
         profile = engine.create_profile(ORG_A, _profile())
-        with pytest.raises(NotImplementedError):
-            engine.run_assessment(ORG_A, profile["profile_id"], "server-no-checks")
+        with pytest.raises(ConfigBenchmarkError, match="checkov not installed"):
+            engine.run_assessment(ORG_A, profile["profile_id"], "server-01", target_path="/tmp")
 
-    def test_run_assessment_raises_not_implemented_message_mentions_connector(self, engine):
-        """Error message should guide callers to configure a real connector."""
+    def test_missing_target_path_raises_config_benchmark_error(self, engine):
+        """No target_path → ConfigBenchmarkError."""
         profile = engine.create_profile(ORG_A, _profile())
-        _add_checks(engine, ORG_A, profile["profile_id"], count=3)
-        with pytest.raises(NotImplementedError, match="CONFIG_BENCHMARK_CONNECTOR_URL"):
-            engine.run_assessment(ORG_A, profile["profile_id"], "server-msg")
+        with pytest.raises(ConfigBenchmarkError):
+            engine.run_assessment(ORG_A, profile["profile_id"], "server-01", target_path=None)
 
-    # --- downstream read paths exercised via direct seeding ---
+    def test_nonexistent_target_path_raises_config_benchmark_error(self, engine):
+        """Non-existent path → ConfigBenchmarkError."""
+        profile = engine.create_profile(ORG_A, _profile())
+        with pytest.raises(ConfigBenchmarkError, match="target path not found"):
+            engine.run_assessment(
+                ORG_A, profile["profile_id"], "server-01",
+                target_path="/nonexistent/path/12345",
+            )
 
+    def test_empty_directory_raises_config_benchmark_error(self, engine, tmp_path):
+        """Empty target directory → ConfigBenchmarkError."""
+        empty_dir = tmp_path / "empty_scan_target"
+        empty_dir.mkdir()
+        profile = engine.create_profile(ORG_A, _profile())
+        with pytest.raises(ConfigBenchmarkError, match="no scannable files"):
+            engine.run_assessment(
+                ORG_A, profile["profile_id"], "empty-server",
+                target_path=str(empty_dir),
+            )
+
+    def test_config_benchmark_error_is_value_error_subclass(self):
+        """ConfigBenchmarkError is a ValueError subclass for consistent exception hierarchy."""
+        exc = ConfigBenchmarkError("test message")
+        assert isinstance(exc, ValueError)
+        assert "test message" in str(exc)
+
+
+# ---------------------------------------------------------------------------
+# Assessments — downstream read paths exercised via direct seeding
+# (no dependency on real checkov; these tests stay fast)
+# ---------------------------------------------------------------------------
+
+
+class TestAssessmentsSeeded:
     def test_get_assessment_with_check_results(self, engine):
         profile = engine.create_profile(ORG_A, _profile())
         _add_checks(engine, ORG_A, profile["profile_id"], count=5)
@@ -422,3 +572,92 @@ class TestBenchmarkStats:
         stats_b = engine.get_benchmark_stats(ORG_B)
         assert stats_a["total_assessments"] == 1
         assert stats_b["total_assessments"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Router tests
+# ---------------------------------------------------------------------------
+
+
+class TestConfigBenchmarkRouter:
+    """Tests for the FastAPI router layer — 422 on ConfigBenchmarkError,
+    201 on real run (skipped if checkov absent)."""
+
+    @pytest.fixture()
+    def client(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from apps.api import config_benchmark_router as cbr
+
+        # Inject a fresh engine backed by a tmp DB
+        fresh_engine = ConfigBenchmarkEngine(db_path=str(tmp_path / "router_test.db"))
+        cbr._engine = fresh_engine
+
+        app = FastAPI()
+        app.include_router(cbr.router)
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_router_422_when_checkov_absent(self, client, monkeypatch):
+        """POST /assess must return 422 when checkov is not on PATH."""
+        monkeypatch.setattr("shutil.which", lambda _: None)
+        # Create a profile first
+        r = client.post(
+            "/api/v1/config-benchmark/profiles",
+            json={"name": "Test Profile", "standard": "CIS", "target_type": "linux_server"},
+            headers={"X-API-Key": "test"},
+        )
+        assert r.status_code == 200
+        profile_id = r.json()["profile_id"]
+
+        r2 = client.post(
+            f"/api/v1/config-benchmark/profiles/{profile_id}/assess",
+            json={"target_name": "server-01", "target_path": "/tmp"},
+            headers={"X-API-Key": "test"},
+        )
+        assert r2.status_code == 422
+        assert "checkov" in r2.json().get("detail", "").lower()
+
+    def test_router_422_when_target_missing(self, client):
+        """POST /assess must return 422 when target_path does not exist."""
+        r = client.post(
+            "/api/v1/config-benchmark/profiles",
+            json={"name": "Test Profile", "standard": "CIS", "target_type": "linux_server"},
+            headers={"X-API-Key": "test"},
+        )
+        profile_id = r.json()["profile_id"]
+
+        r2 = client.post(
+            f"/api/v1/config-benchmark/profiles/{profile_id}/assess",
+            json={"target_name": "server-01", "target_path": "/nonexistent/path/xyz999"},
+            headers={"X-API-Key": "test"},
+        )
+        assert r2.status_code == 422
+
+    @pytest.mark.skipif(
+        shutil.which("checkov") is None,
+        reason="checkov not installed — skipping real router integration test",
+    )
+    def test_router_201_on_real_run(self, client):
+        """POST /assess returns 200 with real data when checkov is present."""
+        r = client.post(
+            "/api/v1/config-benchmark/profiles",
+            json={"name": "Real Profile", "standard": "CIS", "target_type": "aws"},
+            headers={"X-API-Key": "test"},
+        )
+        assert r.status_code == 200
+        profile_id = r.json()["profile_id"]
+
+        r2 = client.post(
+            f"/api/v1/config-benchmark/profiles/{profile_id}/assess",
+            json={"target_name": "fixture-scan", "target_path": _FIXTURE_DIR},
+            headers={"X-API-Key": "test"},
+        )
+        assert r2.status_code == 200
+        body = r2.json()
+        assert "data" in body
+        data = body["data"]
+        assert data["passed"] > 0
+        assert data["failed"] > 0
+        assert "_data_source" in body
+        assert body["_data_source"]["is_simulated"] is False
+        assert body["_data_source"]["source"] == "checkov"

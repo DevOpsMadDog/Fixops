@@ -20,17 +20,19 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from core.config_benchmark_engine import ConfigBenchmarkEngine
+from core.config_benchmark_engine import ConfigBenchmarkEngine, ConfigBenchmarkError
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-_SIMULATION_WARNING = {
-    "is_simulated": True,
-    "engine": "config_benchmark_engine",
-    "real_integration_required": "/api/v1/connectors/config-benchmark/configure",
-    "do_not_use_in_demo": True,
+# Truthful provenance returned with every assessment response.  This engine
+# runs real checkov IaC/config benchmarks — is_simulated is False.
+_DATA_SOURCE = {
+    "is_simulated": False,
+    "source": "checkov",
+    "methodology": "real IaC/config benchmark — terraform, dockerfile, kubernetes frameworks",
+    "scanner_binary": "checkov",
 }
 
 router = APIRouter(prefix="/api/v1/config-benchmark", tags=["config-benchmark"])
@@ -72,6 +74,14 @@ class CheckRequest(BaseModel):
 
 class AssessRequest(BaseModel):
     target_name: str = Field(..., min_length=1)
+    target_path: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Filesystem path to the directory or file to benchmark with checkov. "
+            "Must be accessible from the server process."
+        ),
+    )
 
 
 # ============================================================================
@@ -127,10 +137,21 @@ async def run_assessment(
     body: AssessRequest,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    result = _get_engine().run_assessment(org_id, profile_id, body.target_name)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
+    """Run a real checkov assessment against the supplied target path.
+
+    Returns 422 when checkov is not installed or the target path is
+    missing/empty — never fabricated results.
+    """
+    try:
+        result = _get_engine().run_assessment(
+            org_id,
+            profile_id,
+            body.target_name,
+            target_path=body.target_path,
+        )
+    except ConfigBenchmarkError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"data": result, "_data_source": _DATA_SOURCE}
 
 
 @router.get("/assessments", summary="List assessments")

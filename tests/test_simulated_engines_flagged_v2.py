@@ -80,12 +80,13 @@ def _import_fresh(module_name: str) -> tuple[types.ModuleType, _WarningCapture]:
 
 # core.security_scorecard is REMOVED — it now computes real scores from
 # SecurityFindingsEngine findings (coverage-aware) and is no longer a stub.
+# core.config_benchmark_engine is REMOVED — it now runs real checkov IaC/config
+# benchmarks (frameworks: terraform, dockerfile, kubernetes) and is no longer a stub.
 ENGINES = [
     ("core.compliance_scanner_engine", "compliance_scanner_engine"),
     ("core.vendor_scorecard", "vendor_scorecard"),
     ("core.kubernetes_security_engine", "kubernetes_security_engine"),
     ("core.ccm_engine", "ccm_engine"),
-    ("core.config_benchmark_engine", "config_benchmark_engine"),
     ("core.ioc_enrichment_engine", "ioc_enrichment_engine"),
     ("core.openclaw_engine", "openclaw_engine"),
 ]
@@ -111,13 +112,14 @@ def test_engine_logs_simulation_warning_at_import(module_name: str, label: str):
 
 # security_scorecard_router is REMOVED — it serves real data and exposes a
 # truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
+# config_benchmark_router is REMOVED — it serves real checkov results and exposes
+# a truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
 ROUTERS = [
     "apps.api.compliance_scanner_router",
     "apps.api.vendor_scorecard_router",
     "apps.api.kubernetes_security_router",
     "apps.api.iam_sso_router",
     "apps.api.ccm_router",
-    "apps.api.config_benchmark_router",
     "apps.api.ioc_enrichment_router",
     "apps.api.openclaw_router",
 ]
