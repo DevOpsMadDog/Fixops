@@ -1,15 +1,21 @@
 """
 Continuous Control Monitoring Engine — ALDECI.
 
-STATUS: PARTIALLY REAL — CRUD operations (register_control, add_test,
-log_failure, remediate_failure, list_*, get_control_coverage, get_ccm_stats)
-are fully production-ready and backed by SQLite WAL.
+REAL IMPLEMENTATION: run_test() executes the real ``conftest`` binary
+(OPA/Rego policy evaluation) against a supplied input file and policy
+directory and persists actual pass/fail results.  There are NO random
+rolls, no seeded outcomes, and no fabricated data.
 
-NOT PRODUCTION READY: run_test() uses random.random() to simulate pass/fail
-outcomes instead of calling real policy-as-code evaluation (OPA/Conftest).
-To make fully real: integrate OPA/Conftest evaluation via
-/api/v1/connectors/ccm/configure and replace the random roll in run_test()
-with a real policy evaluation call.
+Honest degradation:
+- conftest not on PATH  → CCMError (router surfaces as HTTP 422)
+- input_path missing    → CCMError (router surfaces as HTTP 422)
+- policy_path missing / no .rego files → CCMError (router surfaces as HTTP 422)
+- conftest non-zero exit (policy failures) → normal; results are parsed and
+  persisted.
+
+CRUD operations (register_control, add_test, log_failure, remediate_failure,
+list_*, get_control_coverage, get_ccm_stats) are fully production-ready and
+backed by SQLite WAL.
 
 Tracks security controls, automated/manual tests, failures, and remediation
 across SOC2, ISO27001, NIST, PCI, HIPAA, and CIS frameworks.
@@ -20,8 +26,9 @@ from __future__ import annotations
 
 import json
 import logging
-import random
+import shutil
 import sqlite3
+import subprocess
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -35,10 +42,9 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
-_logger.warning(
-    "⚠️  %s: run_test() is STUB — it raises NotImplementedError rather than return "
-    "a random pass/fail roll. Set CCM_CONNECTOR_URL to enable real OPA/Conftest "
-    "control testing. CRUD operations are production-ready.",
+_logger.info(
+    "%s loaded — run_test() runs real conftest/OPA policy evaluation. "
+    "No simulated data. CRUD operations are production-ready.",
     __name__,
 )
 
@@ -63,9 +69,23 @@ _FREQUENCY_DELTA: Dict[str, timedelta] = {
     "quarterly": timedelta(days=90),
 }
 
+# conftest process timeout in seconds
+_CONFTEST_TIMEOUT = 120
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+class CCMError(ValueError):
+    """Raised when a real conftest/OPA evaluation cannot be performed.
+
+    Surfaced by the router as HTTP 422 with the error message — never as
+    fabricated results.  Common causes:
+    - conftest binary not on PATH
+    - input_path does not exist
+    - policy_path missing or contains no .rego files
+    """
 
 
 class CCMEngine:
@@ -282,24 +302,111 @@ class CCMEngine:
                 )
         return record
 
-    def run_test(self, org_id: str, test_id: str) -> Dict[str, Any]:
-        """Run a control test against real policy-as-code evaluation.
+    # ------------------------------------------------------------------
+    # run_test — real conftest/OPA execution
+    # ------------------------------------------------------------------
 
-        Requires a CCM connector (OPA/Conftest) configured via
-        /api/v1/connectors/ccm/configure. Until wired, this method raises
-        NotImplementedError to prevent fake results reaching customers.
-
-        To enable: set CCM_CONNECTOR_URL env var to your OPA/Conftest endpoint.
-        """
-        import os
-        if not os.environ.get("CCM_CONNECTOR_URL"):
-            raise NotImplementedError(
-                "run_test() requires a real CCM connector (OPA/Conftest). "
-                "Configure one via /api/v1/connectors/ccm/configure and set "
-                "CCM_CONNECTOR_URL env var. "
-                "CRUD operations (register_control, add_test, log_failure) work now."
+    @staticmethod
+    def _find_conftest() -> str:
+        """Return the path to the conftest binary, or raise CCMError."""
+        path = shutil.which("conftest")
+        if path is None:
+            raise CCMError(
+                "conftest/OPA not installed — install conftest to run real OPA/Rego "
+                "policy evaluation (brew install conftest or download from "
+                "https://www.conftest.dev/)"
             )
+        return path
 
+    @staticmethod
+    def _parse_conftest_output(raw_json: str) -> tuple[int, int, List[str]]:
+        """Parse conftest JSON output into (successes, failure_count, failure_msgs).
+
+        conftest -o json returns a list of result objects:
+          [{"filename": "...", "namespace": "main", "successes": N,
+            "failures": [{"msg": "..."}], "warnings": [...], "exceptions": [...]}]
+
+        A control passes if there are 0 failures across ALL files.
+        """
+        data = json.loads(raw_json)
+        if not isinstance(data, list):
+            data = [data]
+
+        total_successes = 0
+        failure_msgs: List[str] = []
+
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            total_successes += item.get("successes", 0)
+            for f in item.get("failures", []):
+                msg = f.get("msg", str(f))
+                failure_msgs.append(msg)
+            # Exceptions are hard errors in the policy itself — surface them
+            for e in item.get("exceptions", []):
+                msg = e.get("msg", str(e)) if isinstance(e, dict) else str(e)
+                failure_msgs.append(f"policy exception: {msg}")
+
+        return total_successes, len(failure_msgs), failure_msgs
+
+    def run_test(
+        self,
+        org_id: str,
+        test_id: str,
+        input_path: Optional[str] = None,
+        policy_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Run a control test via real conftest/OPA policy evaluation.
+
+        Parameters
+        ----------
+        org_id:
+            Organisation identifier for multi-tenant isolation.
+        test_id:
+            The control test to run (must exist and belong to org_id).
+        input_path:
+            Filesystem path to the input file to evaluate (JSON or YAML).
+        policy_path:
+            Filesystem path to the directory containing .rego policy files.
+
+        Returns
+        -------
+        dict
+            Real result: {test_id, status: "passing"|"failing", failures: [...],
+            successes: N, evaluated_at}.
+
+        Raises
+        ------
+        CCMError
+            conftest absent, input_path missing, policy_path missing/no .rego.
+        ValueError
+            test_id not found for org_id.
+        """
+        # --- Guard: conftest must be installed
+        conftest_bin = self._find_conftest()
+
+        # --- Guard: input_path must be supplied and exist
+        if not input_path:
+            raise CCMError(
+                "input_path is required — provide the file to evaluate against the policy"
+            )
+        ip = Path(input_path)
+        if not ip.exists() or not ip.is_file():
+            raise CCMError(f"input_path not found: {input_path}")
+
+        # --- Guard: policy_path must exist and contain at least one .rego file
+        if not policy_path:
+            raise CCMError(
+                "policy_path is required — provide the directory containing .rego policy files"
+            )
+        pp = Path(policy_path)
+        if not pp.exists():
+            raise CCMError(f"no Rego policies found in policy_path: {policy_path}")
+        rego_files = list(pp.rglob("*.rego"))
+        if not rego_files:
+            raise CCMError(f"no Rego policies found in policy_path: {policy_path}")
+
+        # --- Verify test belongs to org
         with self._lock:
             with self._conn() as conn:
                 row = conn.execute(
@@ -311,12 +418,61 @@ class CCMEngine:
         if not row:
             raise ValueError(f"Test '{test_id}' not found for org '{org_id}'")
 
-        # Real implementation: call OPA/Conftest at CCM_CONNECTOR_URL
-        # For now we fail fast so callers know wiring is needed.
-        raise NotImplementedError(
-            "run_test() connector integration not yet implemented. "
-            "Wire OPA/Conftest at CCM_CONNECTOR_URL to enable real test execution."
+        # --- Build conftest command
+        cmd = [
+            conftest_bin,
+            "test",
+            str(ip),
+            "--policy", str(pp),
+            "-o", "json",
+            "--no-color",
+        ]
+
+        _logger.info(
+            "ccm: running conftest on %s with policy %s (org=%s, test_id=%s)",
+            input_path, policy_path, org_id, test_id,
         )
+
+        # --- Execute conftest
+        # exit 0 = all pass, exit 1 = policy failures (normal), exit 2+ = error
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=_CONFTEST_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            raise CCMError(
+                f"conftest timed out after {_CONFTEST_TIMEOUT}s evaluating {input_path}"
+            )
+        except OSError as exc:
+            raise CCMError(f"conftest execution failed: {exc}") from exc
+
+        # exit code 2+ means a hard error (e.g. policy parse failure)
+        if proc.returncode not in (0, 1):
+            stderr_snippet = (proc.stderr or "")[:500]
+            raise CCMError(
+                f"conftest exited with error (code {proc.returncode}). "
+                f"stderr: {stderr_snippet}"
+            )
+
+        raw_output = proc.stdout.strip()
+        if not raw_output:
+            raise CCMError(
+                f"conftest produced no output for {input_path} — "
+                "check that the policy directory contains valid .rego files"
+            )
+
+        # --- Parse JSON output
+        try:
+            successes, failure_count, failure_msgs = self._parse_conftest_output(raw_output)
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise CCMError(
+                f"failed to parse conftest JSON output: {exc}"
+            ) from exc
+
+        new_status = "passing" if failure_count == 0 else "failing"
 
         now_dt = datetime.now(timezone.utc)
         now_str = now_dt.isoformat()
@@ -329,6 +485,12 @@ class CCMEngine:
             "status": new_status,
             "run_at": now_str,
             "expected_result": row["expected_result"],
+            "input_path": str(ip),
+            "policy_path": str(pp),
+            "successes": successes,
+            "failure_count": failure_count,
+            "failures": failure_msgs,
+            "conftest_exit_code": proc.returncode,
         })
 
         with self._lock:
@@ -339,20 +501,47 @@ class CCMEngine:
                        WHERE test_id = ? AND org_id = ?""",
                     (new_status, now_str, next_run_str, test_id, org_id),
                 )
-                # Record history
                 conn.execute(
                     """INSERT INTO control_history
                        (history_id, org_id, control_id, recorded_at, status, evidence_snapshot)
                        VALUES (?, ?, ?, ?, ?, ?)""",
-                    (str(uuid.uuid4()), org_id, row["control_id"],
-                     now_str, new_status, evidence_snapshot),
+                    (
+                        str(uuid.uuid4()),
+                        org_id,
+                        row["control_id"],
+                        now_str,
+                        new_status,
+                        evidence_snapshot,
+                    ),
                 )
+
+        _logger.info(
+            "ccm: test %s → %s (successes=%d failures=%d, org=%s)",
+            test_id, new_status, successes, failure_count, org_id,
+        )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_TESTED", {
+                        "entity_type": "ccm",
+                        "org_id": org_id,
+                        "test_id": test_id,
+                        "status": new_status,
+                        "source_engine": "ccm",
+                    })
+            except Exception:
+                pass
 
         return {
             "test_id": test_id,
             "org_id": org_id,
             "control_id": row["control_id"],
             "status": new_status,
+            "failures": failure_msgs,
+            "successes": successes,
+            "evaluated_at": now_str,
             "last_run": now_str,
             "next_run": next_run_str,
             "evidence_snapshot": evidence_snapshot,

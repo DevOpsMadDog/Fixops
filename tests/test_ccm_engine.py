@@ -1,19 +1,43 @@
 """
 Tests for CCMEngine (Continuous Control Monitoring).
-25+ tests covering all methods with org isolation.
+
+Covers:
+- All CRUD methods with org isolation (kept from original)
+- Real conftest/OPA integration tests (new — replaces NotImplementedError tests)
+- Error-path tests: conftest absent, missing input, empty policy dir
+- Router 422 / 200 behaviour
+- get_control_coverage / get_ccm_stats reflect real run_test results
 """
 from __future__ import annotations
 
-import os
+import importlib
+import shutil
+import sqlite3
+import sys
 import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 
-from core.ccm_engine import CCMEngine
+from core.ccm_engine import CCMEngine, CCMError
 
 
 def _now_str() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures" / "ccm"
+POLICY_DIR = FIXTURES_DIR / "policy"
+BAD_INPUT = FIXTURES_DIR / "bad_input.json"
+GOOD_INPUT = FIXTURES_DIR / "good_input.json"
+
+CONFTEST_PRESENT = shutil.which("conftest") is not None
 
 
 @pytest.fixture
@@ -61,6 +85,12 @@ def _make_failure(control_id, **kwargs):
         "description": "MFA not enforced for service accounts",
         **kwargs,
     }
+
+
+def _seed_test_and_control(engine, org=ORG_A):
+    ctrl = engine.register_control(org, _make_control())
+    t = engine.add_test(org, ctrl["control_id"], _make_test())
+    return ctrl, t
 
 
 # ---------------------------------------------------------------------------
@@ -131,10 +161,10 @@ class TestListControls:
 
 
 # ---------------------------------------------------------------------------
-# add_test & run_test
+# add_test
 # ---------------------------------------------------------------------------
 
-class TestTests:
+class TestAddTest:
     def test_add_test_returns_record(self, engine):
         ctrl = engine.register_control(ORG_A, _make_control())
         t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
@@ -152,61 +182,374 @@ class TestTests:
         with pytest.raises(ValueError, match="Invalid test_type"):
             engine.add_test(ORG_A, ctrl["control_id"], _make_test(test_type="magic"))
 
-    def test_run_test_raises_not_implemented(self, engine):
-        """run_test() must raise NotImplementedError until CCM_CONNECTOR_URL is set."""
-        ctrl = engine.register_control(ORG_A, _make_control())
-        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        with pytest.raises(NotImplementedError):
-            engine.run_test(ORG_A, t["test_id"])
-
-    def test_run_test_error_message_mentions_connector(self, engine):
-        """Error message must guide caller to configure OPA/Conftest connector."""
-        ctrl = engine.register_control(ORG_A, _make_control())
-        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        with pytest.raises(NotImplementedError, match="CCM_CONNECTOR_URL|OPA|Conftest|connector"):
-            engine.run_test(ORG_A, t["test_id"])
-
-    def test_run_test_wrong_org_raises_not_implemented(self, engine):
-        """run_test() raises NotImplementedError regardless of org mismatch —
-        the env-guard fires before the org lookup."""
-        ctrl = engine.register_control(ORG_A, _make_control())
-        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        with pytest.raises(NotImplementedError):
-            engine.run_test(ORG_B, t["test_id"])
-
-    def test_run_test_does_not_update_status(self, engine):
-        """run_test() must not mutate the test row when it raises."""
-        ctrl = engine.register_control(ORG_A, _make_control())
-        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        try:
-            engine.run_test(ORG_A, t["test_id"])
-        except NotImplementedError:
-            pass
-        tests = engine.list_tests(ORG_A, control_id=ctrl["control_id"])
-        assert tests[0]["status"] == "not_tested"
-
     def test_list_tests_by_status(self, engine):
-        """list_tests() filters by status — coverage unaffected by run_test stub."""
         ctrl = engine.register_control(ORG_A, _make_control())
         engine.add_test(ORG_A, ctrl["control_id"], _make_test("T1"))
         engine.add_test(ORG_A, ctrl["control_id"], _make_test("T2"))
         not_tested = engine.list_tests(ORG_A, status="not_tested")
         assert len(not_tested) == 2
 
-    def test_run_test_does_not_create_history(self, engine):
-        """run_test() must not insert a history row when it raises."""
-        import sqlite3 as _sqlite3
-        ctrl = engine.register_control(ORG_A, _make_control())
-        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
+
+# ---------------------------------------------------------------------------
+# run_test — error-path tests (no conftest needed)
+# ---------------------------------------------------------------------------
+
+class TestRunTestErrorPaths:
+    def test_conftest_absent_raises_ccm_error(self, engine):
+        """When conftest is not on PATH, CCMError is raised immediately."""
+        ctrl, t = _seed_test_and_control(engine)
+        with patch("shutil.which", return_value=None):
+            with pytest.raises(CCMError, match="conftest"):
+                engine.run_test(ORG_A, t["test_id"],
+                                input_path=str(BAD_INPUT),
+                                policy_path=str(POLICY_DIR))
+
+    def test_missing_input_path_raises_ccm_error(self, engine):
+        ctrl, t = _seed_test_and_control(engine)
+        with pytest.raises(CCMError, match="input_path"):
+            engine.run_test(ORG_A, t["test_id"],
+                            input_path=None,
+                            policy_path=str(POLICY_DIR))
+
+    def test_nonexistent_input_file_raises_ccm_error(self, engine, tmp_path):
+        ctrl, t = _seed_test_and_control(engine)
+        with pytest.raises(CCMError, match="input_path not found"):
+            engine.run_test(ORG_A, t["test_id"],
+                            input_path=str(tmp_path / "does_not_exist.json"),
+                            policy_path=str(POLICY_DIR))
+
+    def test_missing_policy_path_raises_ccm_error(self, engine):
+        ctrl, t = _seed_test_and_control(engine)
+        with pytest.raises(CCMError, match="policy_path"):
+            engine.run_test(ORG_A, t["test_id"],
+                            input_path=str(BAD_INPUT),
+                            policy_path=None)
+
+    def test_empty_policy_dir_raises_ccm_error(self, engine, tmp_path):
+        """A directory with no .rego files raises CCMError."""
+        ctrl, t = _seed_test_and_control(engine)
+        empty_policy = tmp_path / "policies"
+        empty_policy.mkdir()
+        with pytest.raises(CCMError, match="no Rego policies found"):
+            engine.run_test(ORG_A, t["test_id"],
+                            input_path=str(BAD_INPUT),
+                            policy_path=str(empty_policy))
+
+    def test_nonexistent_policy_path_raises_ccm_error(self, engine, tmp_path):
+        ctrl, t = _seed_test_and_control(engine)
+        with pytest.raises(CCMError, match="no Rego policies found"):
+            engine.run_test(ORG_A, t["test_id"],
+                            input_path=str(BAD_INPUT),
+                            policy_path=str(tmp_path / "no_such_dir"))
+
+    def test_test_not_found_raises_value_error(self, engine):
+        """Nonexistent test_id raises ValueError, not CCMError."""
+        with pytest.raises(ValueError, match="not found"):
+            engine.run_test(ORG_A, "nonexistent-test-id",
+                            input_path=str(BAD_INPUT),
+                            policy_path=str(POLICY_DIR))
+
+    def test_error_does_not_update_status(self, engine, tmp_path):
+        """run_test() must not mutate the test row when it raises."""
+        ctrl, t = _seed_test_and_control(engine)
+        empty_policy = tmp_path / "pol"
+        empty_policy.mkdir()
         try:
-            engine.run_test(ORG_A, t["test_id"])
-        except NotImplementedError:
+            engine.run_test(ORG_A, t["test_id"],
+                            input_path=str(BAD_INPUT),
+                            policy_path=str(empty_policy))
+        except CCMError:
             pass
-        with _sqlite3.connect(engine.db_path) as conn:
+        tests = engine.list_tests(ORG_A, control_id=ctrl["control_id"])
+        assert tests[0]["status"] == "not_tested"
+
+    def test_error_does_not_create_history(self, engine, tmp_path):
+        """run_test() must not insert a history row when it raises."""
+        ctrl, t = _seed_test_and_control(engine)
+        empty_policy = tmp_path / "pol"
+        empty_policy.mkdir()
+        try:
+            engine.run_test(ORG_A, t["test_id"],
+                            input_path=str(BAD_INPUT),
+                            policy_path=str(empty_policy))
+        except CCMError:
+            pass
+        with sqlite3.connect(engine.db_path) as conn:
             row = conn.execute(
                 "SELECT COUNT(*) FROM control_history WHERE org_id = ?", (ORG_A,)
             ).fetchone()
         assert row[0] == 0
+
+
+# ---------------------------------------------------------------------------
+# run_test — real conftest integration tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not CONFTEST_PRESENT, reason="conftest not installed")
+class TestRunTestRealConftest:
+    def test_failing_input_returns_failing_status(self, engine):
+        """BAD input (privileged=true) → status='failing' with real failure messages."""
+        ctrl, t = _seed_test_and_control(engine)
+        result = engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(BAD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        assert result["status"] == "failing"
+        assert len(result["failures"]) > 0
+        assert any("privileged" in msg.lower() for msg in result["failures"])
+        assert result["test_id"] == t["test_id"]
+        assert result["org_id"] == ORG_A
+        assert "evaluated_at" in result
+
+    def test_failing_input_persists_history_row(self, engine):
+        """A real failure must write a control_history row."""
+        ctrl, t = _seed_test_and_control(engine)
+        engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(BAD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        with sqlite3.connect(engine.db_path) as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM control_history WHERE org_id = ? AND status = 'failing'",
+                (ORG_A,),
+            ).fetchone()
+        assert row[0] == 1
+
+    def test_failing_input_updates_test_status(self, engine):
+        """After a real failure, control_tests.status must be 'failing'."""
+        ctrl, t = _seed_test_and_control(engine)
+        engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(BAD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        tests = engine.list_tests(ORG_A, control_id=ctrl["control_id"])
+        assert tests[0]["status"] == "failing"
+
+    def test_passing_input_returns_passing_status(self, engine):
+        """GOOD input (privileged=false) → status='passing' with 0 failures."""
+        ctrl, t = _seed_test_and_control(engine)
+        result = engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(GOOD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        assert result["status"] == "passing"
+        assert result["failures"] == []
+        assert result["successes"] >= 1
+
+    def test_passing_input_persists_history_row(self, engine):
+        ctrl, t = _seed_test_and_control(engine)
+        engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(GOOD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        with sqlite3.connect(engine.db_path) as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM control_history WHERE org_id = ? AND status = 'passing'",
+                (ORG_A,),
+            ).fetchone()
+        assert row[0] == 1
+
+    def test_passing_input_updates_test_status(self, engine):
+        ctrl, t = _seed_test_and_control(engine)
+        engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(GOOD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        tests = engine.list_tests(ORG_A, control_id=ctrl["control_id"])
+        assert tests[0]["status"] == "passing"
+
+    def test_stats_reflect_real_run(self, engine):
+        """get_ccm_stats reflects the real passing test written by run_test."""
+        ctrl, t = _seed_test_and_control(engine)
+        engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(GOOD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        stats = engine.get_ccm_stats(ORG_A)
+        assert stats["passing_tests"] == 1
+        assert stats["failing_tests"] == 0
+
+    def test_coverage_reflects_real_run(self, engine):
+        """get_control_coverage reflects the real passing test."""
+        ctrl, t = _seed_test_and_control(engine)
+        engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(GOOD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        cov = engine.get_control_coverage(ORG_A)
+        assert cov["total_controls"] == 1
+        assert cov["overall_pass_rate"] == 100.0
+
+    def test_result_has_evidence_snapshot_with_real_data(self, engine):
+        """evidence_snapshot must contain real conftest data (no fabricated counts)."""
+        import json as _json
+        ctrl, t = _seed_test_and_control(engine)
+        result = engine.run_test(
+            ORG_A, t["test_id"],
+            input_path=str(BAD_INPUT),
+            policy_path=str(POLICY_DIR),
+        )
+        snap = _json.loads(result["evidence_snapshot"])
+        assert snap["status"] == "failing"
+        assert snap["failure_count"] >= 1
+        assert len(snap["failures"]) >= 1
+        assert snap["conftest_exit_code"] == 1  # real conftest exits 1 on failure
+
+
+# ---------------------------------------------------------------------------
+# Router tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not CONFTEST_PRESENT, reason="conftest not installed")
+class TestCCMRouter:
+    def _get_client(self, engine_instance):
+        """Return a FastAPI TestClient wired to a fresh engine instance."""
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        import core.ccm_engine as _eng_mod
+
+        app = FastAPI()
+
+        # Re-import router pointing at our test engine
+        for key in list(sys.modules.keys()):
+            if "ccm_router" in key:
+                del sys.modules[key]
+
+        original_get_engine = _eng_mod.get_engine
+        _eng_mod._engine = engine_instance
+
+        import apps.api.ccm_router as _router_mod
+        app.include_router(_router_mod.router)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        yield client
+
+        _eng_mod._engine = None
+        _eng_mod.get_engine = original_get_engine
+
+    def test_router_run_test_200_on_valid_run(self, engine):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        import core.ccm_engine as _eng_mod
+
+        # Wire test engine
+        _eng_mod._engine = engine
+
+        for key in list(sys.modules.keys()):
+            if "ccm_router" in key:
+                del sys.modules[key]
+
+        import apps.api.ccm_router as _router_mod
+        app = FastAPI()
+        app.include_router(_router_mod.router)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        # Register control + test
+        ctrl = engine.register_control(ORG_A, _make_control())
+        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
+
+        resp = client.post(
+            f"/api/v1/ccm/orgs/{ORG_A}/tests/{t['test_id']}/run",
+            json={"input_path": str(GOOD_INPUT), "policy_path": str(POLICY_DIR)},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["status"] == "passing"
+        assert body["_data_source"]["is_simulated"] is False
+
+        _eng_mod._engine = None
+
+    def test_router_422_on_missing_input(self, engine):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        import core.ccm_engine as _eng_mod
+
+        _eng_mod._engine = engine
+
+        for key in list(sys.modules.keys()):
+            if "ccm_router" in key:
+                del sys.modules[key]
+
+        import apps.api.ccm_router as _router_mod
+        app = FastAPI()
+        app.include_router(_router_mod.router)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        ctrl = engine.register_control(ORG_A, _make_control())
+        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
+
+        resp = client.post(
+            f"/api/v1/ccm/orgs/{ORG_A}/tests/{t['test_id']}/run",
+            json={"input_path": "/nonexistent/path.json", "policy_path": str(POLICY_DIR)},
+        )
+        assert resp.status_code == 422
+
+        _eng_mod._engine = None
+
+
+# ---------------------------------------------------------------------------
+# Coverage & Stats (seeded via direct sqlite UPDATE — kept from original)
+# ---------------------------------------------------------------------------
+
+class TestCoverageAndStats:
+    def test_get_control_coverage_empty(self, engine):
+        cov = engine.get_control_coverage(ORG_A)
+        assert cov["total_controls"] == 0
+        assert cov["overall_pass_rate"] == 0.0
+        assert cov["critical_failures"] == 0
+
+    def test_get_control_coverage_with_data(self, engine):
+        """Coverage query reads controls + test statuses from DB directly.
+        Seed a 'passing' test status via direct UPDATE."""
+        ctrl = engine.register_control(ORG_A, _make_control(framework="SOC2"))
+        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
+        with sqlite3.connect(engine.db_path) as conn:
+            conn.execute(
+                "UPDATE control_tests SET status = 'passing', last_run = ? WHERE test_id = ?",
+                (_now_str(), t["test_id"]),
+            )
+        cov = engine.get_control_coverage(ORG_A)
+        assert cov["total_controls"] == 1
+        assert "SOC2" in cov["by_framework"]
+
+    def test_get_ccm_stats_empty(self, engine):
+        stats = engine.get_ccm_stats(ORG_A)
+        assert stats["total_controls"] == 0
+        assert stats["coverage_pct"] == 0.0
+
+    def test_get_ccm_stats_with_controls(self, engine):
+        """Stats query reads controls/tests/failures from DB directly.
+        Seed a 'passing' test status via direct UPDATE."""
+        ctrl = engine.register_control(ORG_A, _make_control())
+        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
+        with sqlite3.connect(engine.db_path) as conn:
+            conn.execute(
+                "UPDATE control_tests SET status = 'passing', last_run = ? WHERE test_id = ?",
+                (_now_str(), t["test_id"]),
+            )
+        engine.log_failure(ORG_A, _make_failure(ctrl["control_id"], severity="critical"))
+        stats = engine.get_ccm_stats(ORG_A)
+        assert stats["total_controls"] == 1
+        assert stats["total_tests"] == 1
+        assert stats["open_failures"] == 1
+        assert stats["critical_failures"] == 1
+
+    def test_coverage_org_isolation(self, engine):
+        engine.register_control(ORG_A, _make_control())
+        engine.register_control(ORG_B, _make_control())
+        engine.register_control(ORG_B, _make_control("Control B2"))
+        cov_a = engine.get_control_coverage(ORG_A)
+        cov_b = engine.get_control_coverage(ORG_B)
+        assert cov_a["total_controls"] == 1
+        assert cov_b["total_controls"] == 2
 
 
 # ---------------------------------------------------------------------------
@@ -273,64 +616,3 @@ class TestFailures:
         engine.log_failure(ORG_B, _make_failure(ctrl_b["control_id"]))
         assert len(engine.list_failures(ORG_A)) == 1
         assert len(engine.list_failures(ORG_B)) == 1
-
-
-# ---------------------------------------------------------------------------
-# Coverage & Stats
-# ---------------------------------------------------------------------------
-
-class TestCoverageAndStats:
-    def test_get_control_coverage_empty(self, engine):
-        cov = engine.get_control_coverage(ORG_A)
-        assert cov["total_controls"] == 0
-        assert cov["overall_pass_rate"] == 0.0
-        assert cov["critical_failures"] == 0
-
-    def test_get_control_coverage_with_data(self, engine):
-        """Coverage query reads controls + test statuses from DB directly.
-        Seed a 'passing' test status via direct UPDATE (run_test() is NotImplementedError)."""
-        import sqlite3 as _sqlite3
-        ctrl = engine.register_control(ORG_A, _make_control(framework="SOC2"))
-        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        # Seed the test status directly — run_test() requires a real connector
-        with _sqlite3.connect(engine.db_path) as conn:
-            conn.execute(
-                "UPDATE control_tests SET status = 'passing', last_run = ? WHERE test_id = ?",
-                (_now_str(), t["test_id"]),
-            )
-        cov = engine.get_control_coverage(ORG_A)
-        assert cov["total_controls"] == 1
-        assert "SOC2" in cov["by_framework"]
-
-    def test_get_ccm_stats_empty(self, engine):
-        stats = engine.get_ccm_stats(ORG_A)
-        assert stats["total_controls"] == 0
-        assert stats["coverage_pct"] == 0.0
-
-    def test_get_ccm_stats_with_controls(self, engine):
-        """Stats query reads controls/tests/failures from DB directly.
-        Seed a 'passing' test status via direct UPDATE (run_test() is NotImplementedError)."""
-        import sqlite3 as _sqlite3
-        ctrl = engine.register_control(ORG_A, _make_control())
-        t = engine.add_test(ORG_A, ctrl["control_id"], _make_test())
-        # Seed test status directly — bypasses the NotImplementedError guard
-        with _sqlite3.connect(engine.db_path) as conn:
-            conn.execute(
-                "UPDATE control_tests SET status = 'passing', last_run = ? WHERE test_id = ?",
-                (_now_str(), t["test_id"]),
-            )
-        engine.log_failure(ORG_A, _make_failure(ctrl["control_id"], severity="critical"))
-        stats = engine.get_ccm_stats(ORG_A)
-        assert stats["total_controls"] == 1
-        assert stats["total_tests"] == 1
-        assert stats["open_failures"] == 1
-        assert stats["critical_failures"] == 1
-
-    def test_coverage_org_isolation(self, engine):
-        engine.register_control(ORG_A, _make_control())
-        engine.register_control(ORG_B, _make_control())
-        engine.register_control(ORG_B, _make_control("Control B2"))
-        cov_a = engine.get_control_coverage(ORG_A)
-        cov_b = engine.get_control_coverage(ORG_B)
-        assert cov_a["total_controls"] == 1
-        assert cov_b["total_controls"] == 2

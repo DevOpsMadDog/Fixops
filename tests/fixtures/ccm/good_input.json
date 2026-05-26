@@ -1,0 +1,13 @@
+{
+  "spec": {
+    "containers": [
+      {
+        "name": "myapp",
+        "image": "nginx",
+        "securityContext": {
+          "privileged": false
+        }
+      }
+    ]
+  }
+}

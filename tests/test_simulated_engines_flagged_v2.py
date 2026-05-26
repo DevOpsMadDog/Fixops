@@ -87,9 +87,10 @@ def _import_fresh(module_name: str) -> tuple[types.ModuleType, _WarningCapture]:
 # core.compliance_scanner_engine is REMOVED — it now runs real checkov IaC/config
 # compliance checks (frameworks: terraform, dockerfile, kubernetes) and is no
 # longer a stub.
+# core.ccm_engine is REMOVED — it now runs real conftest/OPA policy evaluation
+# and is no longer a stub (is_simulated=False, source="conftest/OPA").
 ENGINES = [
     ("core.vendor_scorecard", "vendor_scorecard"),
-    ("core.ccm_engine", "ccm_engine"),
     ("core.ioc_enrichment_engine", "ioc_enrichment_engine"),
     ("core.openclaw_engine", "openclaw_engine"),
 ]
@@ -124,7 +125,8 @@ def test_engine_logs_simulation_warning_at_import(module_name: str, label: str):
 ROUTERS = [
     "apps.api.vendor_scorecard_router",
     "apps.api.iam_sso_router",
-    "apps.api.ccm_router",
+    # apps.api.ccm_router is REMOVED — it serves real conftest/OPA results with
+    # a truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
     "apps.api.ioc_enrichment_router",
     "apps.api.openclaw_router",
 ]

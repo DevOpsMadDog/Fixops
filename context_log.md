@@ -1,5 +1,15 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-26 21:17] backend-hardener — REAL ENGINE: ccm_engine.run_test() now runs real conftest/OPA
+
+- **What**: Replaced `run_test()` NotImplementedError stub with real `conftest test <input> --policy <policy> -o json --no-color` subprocess execution (list args, no shell=True, 120s timeout). Defined `CCMError(ValueError)` for honest degradation. Router updated: `_SIMULATION_WARNING` replaced with `_DATA_SOURCE` (is_simulated=False, source="conftest/OPA"), new `RunTestRequest` model with `input_path`+`policy_path`, `CCMError` → 422. Removed `import random` and the env-guard `CCM_CONNECTOR_URL` check.
+- **Files touched**: `suite-core/core/ccm_engine.py`, `suite-api/apps/api/ccm_router.py`, `tests/test_ccm_engine.py`, `tests/test_simulated_engines_flagged_v2.py`, `tests/fixtures/ccm/policy/deny_privileged.rego`, `tests/fixtures/ccm/bad_input.json`, `tests/fixtures/ccm/good_input.json`
+- **Real conftest output verified**:
+  - BAD input (privileged=true): `[{"filename":"...","namespace":"main","successes":0,"failures":[{"msg":"Container must not run as privileged"}]}]` exit=1
+  - GOOD input (privileged=false): `[{"filename":"...","namespace":"main","successes":1}]` exit=0
+- **Outcome**: SUCCESS — 55/55 PASS. Integration tests ran (not skipped). conftest=present, OPA 1.15.2.
+- **Pillar(s) served**: V4 (real policy evaluation), V6 (no fabricated data)
+
 ### [2026-05-26 21:20] backend-hardener — REAL ENGINE #4: compliance_scanner runs real checkov IaC compliance
 
 - **What**: `start_scan(org_id, profile_id, target_path)` now runs real `checkov --framework terraform,dockerfile,kubernetes` against target IaC path. Parses both single-framework (dict) and multi-framework (list) JSON output. Persists one `scan_result` row + one `compliance_check` row per checkov check. Control family derived entirely from real checkov metadata (`check_id` prefix: CKV_AWS→terraform/aws, CKV_K8S→kubernetes, CKV_DOCKER→dockerfile; `check_class` module path as fallback). No SOC2/PCI/HIPAA control numbers fabricated. Honest degradation: checkov absent→`ComplianceScanError`→HTTP 422; missing/empty target→422.

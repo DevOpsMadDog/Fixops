@@ -3,23 +3,27 @@ Continuous Control Monitoring (CCM) Router — ALDECI.
 
 Prefix: /api/v1/ccm
 Auth:   X-API-Key header (injected via Depends(_verify_api_key) in app.py)
+
+DATA SOURCE: real conftest/OPA policy evaluation (is_simulated=False).
+run_test() executes the conftest binary against a real input file and
+Rego policy directory.  No fabricated results.
 """
 from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional
 
-from core.ccm_engine import get_engine
+from core.ccm_engine import CCMError, get_engine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
 
-_SIMULATION_WARNING = {
-    "is_simulated": True,
+_DATA_SOURCE = {
+    "is_simulated": False,
     "engine": "ccm_engine",
-    "real_integration_required": "/api/v1/connectors/ccm/configure",
-    "do_not_use_in_demo": True,
+    "source": "conftest/OPA",
+    "notes": "run_test() executes real conftest binary for OPA/Rego policy evaluation",
 }
 
 router = APIRouter(prefix="/api/v1/ccm", tags=["ccm"])
@@ -46,6 +50,11 @@ class AddTestRequest(BaseModel):
     test_type: str = "automated"
     expected_result: str = ""
     evidence: str = ""
+
+
+class RunTestRequest(BaseModel):
+    input_path: str
+    policy_path: str
 
 
 class LogFailureRequest(BaseModel):
@@ -106,11 +115,17 @@ def add_test(org_id: str, control_id: str, req: AddTestRequest) -> Dict[str, Any
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/orgs/{org_id}/tests/{test_id}/run", summary="Run a control test")
-def run_test(org_id: str, test_id: str) -> Dict[str, Any]:
+@router.post("/orgs/{org_id}/tests/{test_id}/run", summary="Run a control test via conftest/OPA")
+def run_test(org_id: str, test_id: str, req: RunTestRequest) -> Dict[str, Any]:
     try:
-        result = get_engine().run_test(org_id, test_id)
-        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
+        result = get_engine().run_test(
+            org_id, test_id,
+            input_path=req.input_path,
+            policy_path=req.policy_path,
+        )
+        return {"data": result, "_data_source": _DATA_SOURCE}
+    except CCMError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
