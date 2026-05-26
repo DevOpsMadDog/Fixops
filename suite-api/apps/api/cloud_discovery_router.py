@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from core.cloud_discovery import (
     CloudDiscovery,
+    CloudDiscoveryNotConfiguredError,
     get_cloud_discovery,
 )
 from fastapi import APIRouter, HTTPException, Query
@@ -76,9 +77,17 @@ def _discovery() -> CloudDiscovery:
 
 @router.post("/discover/aws", response_model=DiscoverResponse, summary="Discover AWS assets")
 def discover_aws(body: DiscoverRequest) -> DiscoverResponse:
-    """Enumerate AWS resources and store them in the inventory."""
+    """Enumerate real AWS resources and store them in the inventory.
+
+    Returns 422 when AWS credentials are not configured.
+    """
     try:
         assets = _discovery().discover_aws(body.org_id)
+    except CloudDiscoveryNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"configured": False, "provider": "aws", "reason": exc.reason},
+        ) from exc
     except Exception as exc:
         logger.exception("cloud_discovery.discover_aws.error")
         raise HTTPException(status_code=500, detail=f"AWS discovery failed: {exc}") from exc
@@ -92,9 +101,17 @@ def discover_aws(body: DiscoverRequest) -> DiscoverResponse:
 
 @router.post("/discover/azure", response_model=DiscoverResponse, summary="Discover Azure assets")
 def discover_azure(body: DiscoverRequest) -> DiscoverResponse:
-    """Enumerate Azure resources and store them in the inventory."""
+    """Enumerate real Azure resources and store them in the inventory.
+
+    Returns 422 when Azure credentials are not configured.
+    """
     try:
         assets = _discovery().discover_azure(body.org_id)
+    except CloudDiscoveryNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"configured": False, "provider": "azure", "reason": exc.reason},
+        ) from exc
     except Exception as exc:
         logger.exception("cloud_discovery.discover_azure.error")
         raise HTTPException(status_code=500, detail=f"Azure discovery failed: {exc}") from exc
@@ -108,9 +125,17 @@ def discover_azure(body: DiscoverRequest) -> DiscoverResponse:
 
 @router.post("/discover/gcp", response_model=DiscoverResponse, summary="Discover GCP assets")
 def discover_gcp(body: DiscoverRequest) -> DiscoverResponse:
-    """Enumerate GCP resources and store them in the inventory."""
+    """Enumerate real GCP resources and store them in the inventory.
+
+    Returns 422 when GCP credentials are not configured.
+    """
     try:
         assets = _discovery().discover_gcp(body.org_id)
+    except CloudDiscoveryNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"configured": False, "provider": "gcp", "reason": exc.reason},
+        ) from exc
     except Exception as exc:
         logger.exception("cloud_discovery.discover_gcp.error")
         raise HTTPException(status_code=500, detail=f"GCP discovery failed: {exc}") from exc
@@ -124,9 +149,18 @@ def discover_gcp(body: DiscoverRequest) -> DiscoverResponse:
 
 @router.post("/discover/all", summary="Discover assets across all cloud providers")
 def discover_all(body: DiscoverRequest) -> Dict[str, Any]:
-    """Trigger discovery across AWS, Azure, and GCP simultaneously."""
+    """Trigger discovery across all configured cloud providers.
+
+    Unconfigured providers are skipped and listed in ``skipped_providers``.
+    Returns 422 only when ALL providers are unconfigured.
+    """
     try:
         assets = _discovery().discover_all(body.org_id)
+    except CloudDiscoveryNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"configured": False, "provider": "all", "reason": exc.reason},
+        ) from exc
     except Exception as exc:
         logger.exception("cloud_discovery.discover_all.error")
         raise HTTPException(status_code=500, detail=f"Multi-cloud discovery failed: {exc}") from exc

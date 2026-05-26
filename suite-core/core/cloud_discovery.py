@@ -1,7 +1,15 @@
 """Multi-Cloud Asset Discovery — AWS, Azure, GCP inventory.
 
-Discovers and inventories assets across major cloud providers with realistic
-mock data for environments where live credentials are unavailable.
+Discovers and inventories assets across major cloud providers.
+
+When cloud credentials are absent or unreachable the discovery methods raise
+``CloudDiscoveryNotConfiguredError`` (a ValueError subclass) and return zero
+assets — they do NOT fabricate synthetic data.  The router converts this to
+an HTTP 422 with a human-readable reason.
+
+To use the synthetic data builders in tests, set the environment variable
+``FIXOPS_CLOUD_DISCOVERY_TEST_MOCK=1`` before calling discover_aws /
+discover_azure / discover_gcp.  This opt-in must NEVER be set in production.
 
 Usage:
     from core.cloud_discovery import CloudDiscovery, get_cloud_discovery
@@ -47,6 +55,29 @@ class CloudAssetType(str, Enum):
     API_GATEWAY = "api_gateway"
     QUEUE = "queue"
     CACHE = "cache"
+
+
+# ---------------------------------------------------------------------------
+# Exceptions
+# ---------------------------------------------------------------------------
+
+
+class CloudDiscoveryNotConfiguredError(ValueError):
+    """Raised when cloud credentials are absent or the provider SDK is not
+    reachable.  Callers (router) should convert this to HTTP 422.
+
+    Attributes:
+        provider: 'aws' | 'azure' | 'gcp'
+        reason:   Human-readable explanation of what is missing.
+    """
+
+    def __init__(self, provider: str, reason: str) -> None:
+        self.provider = provider
+        self.reason = reason
+        super().__init__(
+            f"{provider.upper()} discovery not configured: {reason}. "
+            f"Set the required credentials to enable real discovery."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -644,52 +675,233 @@ class CloudDiscovery:
     # ------------------------------------------------------------------
 
     def discover_aws(self, org_id: str) -> List[CloudAsset]:
-        """Enumerate AWS resources. Uses mock data when no credentials available."""
+        """Enumerate real AWS resources via boto3.
+
+        Raises:
+            CloudDiscoveryNotConfiguredError: when AWS credentials are absent
+                or boto3 is not installed.  No fabricated assets are returned.
+        """
         logger.info("cloud_discovery.discover_aws", org_id=org_id)
+
+        # Test-only escape hatch — must NEVER be set in production.
+        if os.getenv("FIXOPS_CLOUD_DISCOVERY_TEST_MOCK") == "1":
+            logger.warning(
+                "cloud_discovery.discover_aws.test_mock_enabled",
+                org_id=org_id,
+                warning="FIXOPS_CLOUD_DISCOVERY_TEST_MOCK is set — returning synthetic data",
+            )
+            assets = _build_aws_assets(org_id)
+            self._db.upsert_many(assets)
+            return assets
+
+        # Check for boto3 availability and credential presence before attempting.
+        try:
+            import boto3  # noqa: F401 — availability check only
+        except ImportError:
+            raise CloudDiscoveryNotConfiguredError(
+                "aws",
+                "boto3 is not installed — run: pip install boto3",
+            )
+
+        # Detect missing credentials early via botocore so we can surface a
+        # clear reason rather than a generic SDK exception.
+        try:
+            import boto3 as _boto3
+            session = _boto3.Session()
+            credentials = session.get_credentials()
+            if credentials is None:
+                raise CloudDiscoveryNotConfiguredError(
+                    "aws",
+                    "no AWS credentials found — set AWS_ACCESS_KEY_ID / "
+                    "AWS_SECRET_ACCESS_KEY or configure an IAM role / "
+                    "~/.aws/credentials",
+                )
+        except CloudDiscoveryNotConfiguredError:
+            raise
+        except Exception as exc:
+            raise CloudDiscoveryNotConfiguredError(
+                "aws",
+                f"credential resolution failed: {exc}",
+            ) from exc
+
         try:
             assets = self._live_discover_aws(org_id)
-        except Exception:
-            logger.info("cloud_discovery.discover_aws.mock_fallback", org_id=org_id)
-            assets = _build_aws_assets(org_id)
+        except CloudDiscoveryNotConfiguredError:
+            raise
+        except Exception as exc:
+            logger.warning(
+                "cloud_discovery.discover_aws.live_error",
+                org_id=org_id,
+                error=str(exc),
+            )
+            raise CloudDiscoveryNotConfiguredError(
+                "aws",
+                f"live discovery failed: {exc}",
+            ) from exc
 
         self._db.upsert_many(assets)
         logger.info("cloud_discovery.discover_aws.complete", org_id=org_id, count=len(assets))
         return assets
 
     def discover_azure(self, org_id: str) -> List[CloudAsset]:
-        """Enumerate Azure resources. Uses mock data when no credentials available."""
+        """Enumerate real Azure resources via azure-mgmt-compute.
+
+        Raises:
+            CloudDiscoveryNotConfiguredError: when Azure credentials or
+                subscription ID are absent.  No fabricated assets are returned.
+        """
         logger.info("cloud_discovery.discover_azure", org_id=org_id)
+
+        # Test-only escape hatch — must NEVER be set in production.
+        if os.getenv("FIXOPS_CLOUD_DISCOVERY_TEST_MOCK") == "1":
+            logger.warning(
+                "cloud_discovery.discover_azure.test_mock_enabled",
+                org_id=org_id,
+                warning="FIXOPS_CLOUD_DISCOVERY_TEST_MOCK is set — returning synthetic data",
+            )
+            assets = _build_azure_assets(org_id)
+            self._db.upsert_many(assets)
+            return assets
+
+        # Check SDK availability.
+        try:
+            from azure.identity import DefaultAzureCredential  # noqa: F401
+            from azure.mgmt.compute import ComputeManagementClient  # noqa: F401
+        except ImportError as exc:
+            raise CloudDiscoveryNotConfiguredError(
+                "azure",
+                f"Azure SDK not installed ({exc}) — run: "
+                "pip install azure-identity azure-mgmt-compute",
+            ) from exc
+
+        # Check required environment variable.
+        subscription_id = os.environ.get("AZURE_SUBSCRIPTION_ID")
+        if not subscription_id:
+            raise CloudDiscoveryNotConfiguredError(
+                "azure",
+                "AZURE_SUBSCRIPTION_ID environment variable is not set",
+            )
+
         try:
             assets = self._live_discover_azure(org_id)
-        except Exception:
-            logger.info("cloud_discovery.discover_azure.mock_fallback", org_id=org_id)
-            assets = _build_azure_assets(org_id)
+        except CloudDiscoveryNotConfiguredError:
+            raise
+        except Exception as exc:
+            logger.warning(
+                "cloud_discovery.discover_azure.live_error",
+                org_id=org_id,
+                error=str(exc),
+            )
+            raise CloudDiscoveryNotConfiguredError(
+                "azure",
+                f"live discovery failed: {exc}",
+            ) from exc
 
         self._db.upsert_many(assets)
         logger.info("cloud_discovery.discover_azure.complete", org_id=org_id, count=len(assets))
         return assets
 
     def discover_gcp(self, org_id: str) -> List[CloudAsset]:
-        """Enumerate GCP resources. Uses mock data when no credentials available."""
+        """Enumerate real GCP resources via google-cloud-compute.
+
+        Raises:
+            CloudDiscoveryNotConfiguredError: when GCP credentials or project
+                ID are absent.  No fabricated assets are returned.
+        """
         logger.info("cloud_discovery.discover_gcp", org_id=org_id)
+
+        # Test-only escape hatch — must NEVER be set in production.
+        if os.getenv("FIXOPS_CLOUD_DISCOVERY_TEST_MOCK") == "1":
+            logger.warning(
+                "cloud_discovery.discover_gcp.test_mock_enabled",
+                org_id=org_id,
+                warning="FIXOPS_CLOUD_DISCOVERY_TEST_MOCK is set — returning synthetic data",
+            )
+            assets = _build_gcp_assets(org_id)
+            self._db.upsert_many(assets)
+            return assets
+
+        # Check SDK availability.
+        try:
+            from google.cloud import compute_v1  # noqa: F401
+        except ImportError as exc:
+            raise CloudDiscoveryNotConfiguredError(
+                "gcp",
+                f"GCP SDK not installed ({exc}) — run: "
+                "pip install google-cloud-compute",
+            ) from exc
+
+        # Check required environment variable.
+        project_id = os.environ.get("GCP_PROJECT_ID")
+        if not project_id:
+            raise CloudDiscoveryNotConfiguredError(
+                "gcp",
+                "GCP_PROJECT_ID environment variable is not set",
+            )
+
         try:
             assets = self._live_discover_gcp(org_id)
-        except Exception:
-            logger.info("cloud_discovery.discover_gcp.mock_fallback", org_id=org_id)
-            assets = _build_gcp_assets(org_id)
+        except CloudDiscoveryNotConfiguredError:
+            raise
+        except Exception as exc:
+            logger.warning(
+                "cloud_discovery.discover_gcp.live_error",
+                org_id=org_id,
+                error=str(exc),
+            )
+            raise CloudDiscoveryNotConfiguredError(
+                "gcp",
+                f"live discovery failed: {exc}",
+            ) from exc
 
         self._db.upsert_many(assets)
         logger.info("cloud_discovery.discover_gcp.complete", org_id=org_id, count=len(assets))
         return assets
 
     def discover_all(self, org_id: str) -> List[CloudAsset]:
-        """Discover assets across all three cloud providers."""
+        """Discover assets across all configured cloud providers.
+
+        Providers that are not configured (missing credentials) are skipped
+        and logged — they do NOT contribute fabricated assets.  If ALL three
+        providers are unconfigured, raises CloudDiscoveryNotConfiguredError
+        so the caller can surface a clear error rather than silently returning
+        an empty list.
+        """
         logger.info("cloud_discovery.discover_all", org_id=org_id)
-        aws = self.discover_aws(org_id)
-        azure = self.discover_azure(org_id)
-        gcp = self.discover_gcp(org_id)
-        all_assets = aws + azure + gcp
-        logger.info("cloud_discovery.discover_all.complete", org_id=org_id, total=len(all_assets))
+        all_assets: List[CloudAsset] = []
+        not_configured: List[str] = []
+
+        for provider_name, discover_fn in (
+            ("aws", self.discover_aws),
+            ("azure", self.discover_azure),
+            ("gcp", self.discover_gcp),
+        ):
+            try:
+                assets = discover_fn(org_id)
+                all_assets.extend(assets)
+            except CloudDiscoveryNotConfiguredError as exc:
+                logger.info(
+                    "cloud_discovery.discover_all.provider_skipped",
+                    org_id=org_id,
+                    provider=provider_name,
+                    reason=exc.reason,
+                )
+                not_configured.append(provider_name)
+
+        if not_configured and not all_assets:
+            # Every provider was unconfigured — surface an honest error.
+            raise CloudDiscoveryNotConfiguredError(
+                "all",
+                f"no cloud providers are configured "
+                f"(unconfigured: {', '.join(not_configured)})",
+            )
+
+        logger.info(
+            "cloud_discovery.discover_all.complete",
+            org_id=org_id,
+            total=len(all_assets),
+            skipped_providers=not_configured,
+        )
         return all_assets
 
     # ------------------------------------------------------------------
