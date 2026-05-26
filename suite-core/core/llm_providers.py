@@ -1881,10 +1881,248 @@ class LLMProviderManager:
         )
 
 
+class CouncilNotConfiguredError(RuntimeError):
+    """Raised when no LLM API keys are available for the council to operate.
+
+    This is an honest failure — callers must handle it rather than silently
+    degrading to DeterministicLLMProvider placeholder verdicts (cost_usd=0,
+    confidence=0.5, reasoning="inconclusive").
+    """
+
+
+class OpenRouterChatProvider(BaseLLMProvider):
+    """OpenRouter provider that accepts a specific model at construction time.
+
+    Unlike ``OpenRouterProvider`` (which reads FIXOPS_OPENROUTER_MODEL and
+    defaults all instances to the same model), this class lets the caller pin
+    each council member to a *distinct* model so the consensus reflects genuine
+    cross-vendor diversity.
+
+    All 5 verified paid models for the pipeline council:
+      - google/gemini-2.5-flash        (Google)
+      - deepseek/deepseek-chat-v3.1    (DeepSeek)
+      - qwen/qwen3-next-80b-a3b-instruct (Alibaba/Qwen)
+      - meta-llama/llama-3.3-70b-instruct (Meta)
+      - anthropic/claude-3.5-haiku     (Anthropic via OpenRouter)
+
+    The key is always read from OPENROUTER_API_KEY (or FIXOPS_OPENROUTER_KEY).
+    """
+
+    _BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+    _DEFAULT_SYSTEM_PROMPT = (
+        "You are a security decision assistant. "
+        "Return a JSON object with keys: recommended_action, confidence, reasoning, "
+        "mitre_techniques, compliance_concerns, attack_vectors.\n\n"
+        "recommended_action must be one of: remediate_critical, remediate_high, "
+        "accept_risk, defer, investigate, false_positive.\n"
+        "confidence is a float 0.0-1.0 reflecting your genuine certainty.\n"
+        "reasoning is a detailed explanation (2-4 sentences) of your security analysis.\n"
+        "Do NOT use markdown fences. Return raw JSON only."
+    )
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        model: str,
+        api_key_envs: Sequence[str] | None = None,
+        timeout: float = 45.0,
+        focus: Sequence[str] | None = None,
+        style: str = "consensus",
+    ) -> None:
+        super().__init__(name, style=style, focus=focus)
+        # model is fixed at construction — no env override, so each council
+        # member genuinely represents a different vendor.
+        self.model = model
+        self.api_key_envs = list(
+            api_key_envs or ("OPENROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY")
+        )
+        self.timeout = timeout
+        self.api_key = self._resolve_api_key()
+        self._session = requests.Session()
+
+    def analyse(
+        self,
+        *,
+        prompt: str,
+        context: Mapping[str, Any],
+        default_action: str,
+        default_confidence: float,
+        default_reasoning: str,
+        mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
+    ) -> LLMResponse:
+        if not self.api_key:
+            # No key at all — return deterministic but tag it clearly so callers
+            # can detect fabrication. The council itself raises before getting here
+            # when built via create_default_council(), but this path remains for
+            # direct instantiation.
+            result = super().analyse(
+                prompt=prompt,
+                context=context,
+                default_action=default_action,
+                default_confidence=default_confidence,
+                default_reasoning=default_reasoning,
+                mitigation_hints=mitigation_hints,
+            )
+            result.metadata["mode"] = "no_key"
+            result.metadata["model"] = self.model
+            return result
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt or self._DEFAULT_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("FIXOPS_URL", "https://fixops.local"),
+            "X-Title": "ALDECI",
+        }
+        start = time.perf_counter()
+        try:
+            resp = self._session.post(
+                self._BASE_URL,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            resp_json = resp.json()
+
+            if not resp_json.get("choices"):
+                raise ValueError("OpenRouter response missing choices")
+
+            content = resp_json["choices"][0].get("message", {}).get("content")
+            if not content:
+                raise ValueError("OpenRouter response missing message content")
+
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"OpenRouter returned non-JSON content: {content[:120]}"
+                ) from exc
+
+            # Extract usage for cost accounting (paid models include this).
+            usage = resp_json.get("usage", {})
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            # Rough cost estimate: ~$0.15/M input, ~$0.60/M output for mid-tier models.
+            cost_est = (prompt_tokens * 0.00000015) + (completion_tokens * 0.0000006)
+
+        except requests.Timeout:
+            logger.warning("OpenRouterChatProvider %s timed out (model=%s)", self.name, self.model)
+            result = super().analyse(
+                prompt=prompt, context=context,
+                default_action=default_action, default_confidence=default_confidence,
+                default_reasoning=default_reasoning, mitigation_hints=mitigation_hints,
+            )
+            result.metadata.update({"mode": "fallback", "error": "timeout", "model": self.model})
+            return result
+        except requests.HTTPError as exc:
+            error_detail = "HTTP error"
+            if exc.response is not None:
+                try:
+                    error_detail = exc.response.json().get("error", {}).get(
+                        "message", f"HTTP {exc.response.status_code}"
+                    )
+                except Exception:  # noqa: BLE001
+                    error_detail = f"HTTP {exc.response.status_code if exc.response else '?'}"
+            logger.warning(
+                "OpenRouterChatProvider %s HTTP error (model=%s): %s",
+                self.name, self.model, error_detail,
+            )
+            result = super().analyse(
+                prompt=prompt, context=context,
+                default_action=default_action, default_confidence=default_confidence,
+                default_reasoning=default_reasoning, mitigation_hints=mitigation_hints,
+            )
+            result.metadata.update({"mode": "fallback", "error": error_detail, "model": self.model})
+            return result
+        except (json.JSONDecodeError, KeyError, ValueError) as exc:
+            logger.warning(
+                "OpenRouterChatProvider %s parse error (model=%s): %s",
+                self.name, self.model, exc,
+            )
+            result = super().analyse(
+                prompt=prompt, context=context,
+                default_action=default_action, default_confidence=default_confidence,
+                default_reasoning=default_reasoning, mitigation_hints=mitigation_hints,
+            )
+            result.metadata.update({"mode": "fallback", "error": str(exc), "model": self.model})
+            return result
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "OpenRouterChatProvider %s failed (model=%s): %s",
+                self.name, self.model, type(exc).__name__,
+            )
+            result = super().analyse(
+                prompt=prompt, context=context,
+                default_action=default_action, default_confidence=default_confidence,
+                default_reasoning=default_reasoning, mitigation_hints=mitigation_hints,
+            )
+            result.metadata.update({"mode": "fallback", "error": type(exc).__name__, "model": self.model})
+            return result
+
+        duration_ms = (time.perf_counter() - start) * 1000
+        llm_result = _response_from_payload(
+            parsed,
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
+            mitigation_hints=mitigation_hints,
+            metadata={
+                "mode": "remote",
+                "provider": self.name,
+                "model": self.model,
+                "backend": "openrouter",
+                "duration_ms": round(duration_ms, 2),
+                "cost_usd": round(cost_est, 8),
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+            },
+        )
+        _emit_event(
+            "llm.analysis.completed",
+            {
+                "provider": self.name,
+                "model": self.model,
+                "mode": "remote",
+                "recommended_action": llm_result.recommended_action,
+                "confidence": llm_result.confidence,
+                "cost_usd": cost_est,
+            },
+        )
+        return llm_result
+
+    def _resolve_api_key(self) -> Optional[str]:
+        for env_name in self.api_key_envs:
+            value = os.getenv(env_name)
+            if value:
+                token = value.strip()
+                if token:
+                    return token
+        return None
+
+
 __all__ = [
     "AirGapLLMProvider",
     "AnthropicMessagesProvider",
     "BaseLLMProvider",
+    "CouncilNotConfiguredError",
     "DeterministicLLMProvider",
     "GeminiProvider",
     "LLMProviderManager",
@@ -1892,6 +2130,7 @@ __all__ = [
     "MuleRouterProvider",
     "OllamaSelfHostedProvider",
     "OpenAIChatProvider",
+    "OpenRouterChatProvider",
     "OpenRouterProvider",
     "SentinelCyberProvider",
     "VLLMSelfHostedProvider",

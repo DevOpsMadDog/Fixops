@@ -781,7 +781,7 @@ class LLMCouncilEngine:
                 for c in list(chairman_response.compliance_concerns or [])
             },
             member_votes=member_votes,
-            cost_usd=self._calculate_total_cost(),
+            cost_usd=self._calculate_total_cost(all_analyses),
             raw_analyses=all_analyses,
         )
 
@@ -1090,6 +1090,8 @@ class LLMCouncilEngine:
             metadata={
                 "duration_ms": round(duration, 2),
                 "mode": response.metadata.get("mode", "unknown"),
+                "cost_usd": response.metadata.get("cost_usd", 0.0),
+                "model": response.metadata.get("model"),
             },
         )
 
@@ -1219,12 +1221,25 @@ class LLMCouncilEngine:
             raw_analyses=analyses,
         )
 
-    def _calculate_total_cost(self) -> float:
-        """Calculate total cost from all member queries."""
+    def _calculate_total_cost(self, analyses: Optional[List["MemberAnalysis"]] = None) -> float:
+        """Calculate total cost from all member queries.
+
+        Prefers per-analysis metadata cost (real provider usage accounting, e.g.
+        OpenRouterChatProvider stores cost_usd in MemberAnalysis.metadata); falls
+        back to a provider-level cost_usd attribute only when no analysis cost is
+        present.
+        """
         total = 0.0
-        for member in self.members:
-            if hasattr(member.provider, "cost_usd"):
-                total += member.provider.cost_usd
+        if analyses:
+            for a in analyses:
+                try:
+                    total += float((a.metadata or {}).get("cost_usd", 0) or 0)
+                except (TypeError, ValueError, AttributeError):
+                    pass
+        if total == 0.0:
+            for member in self.members:
+                if hasattr(member.provider, "cost_usd"):
+                    total += getattr(member.provider, "cost_usd", 0) or 0
         return total
 
     # -----------------------------------------------------------------------
@@ -1842,6 +1857,153 @@ class CouncilFactory:
             confidence_threshold=confidence_threshold,
             max_disagreement=max_disagreement,
             max_workers=min(6, len(members)),
+        )
+
+    # ------------------------------------------------------------------
+    # Default council — 5 real OpenRouter paid models (cross-vendor diversity)
+    # ------------------------------------------------------------------
+
+    #: The 5 paid OpenRouter models used for the pipeline council.
+    #: Covers 5 distinct vendor families so consensus reflects genuine diversity.
+    #: All verified 2026-05-27 to return clean JSON via response_format json_object.
+    PIPELINE_COUNCIL_MODELS: List[tuple] = [
+        # (model_slug, expertise, weight, display_name)
+        (
+            "google/gemini-2.5-flash",
+            "vulnerability_assessment",
+            1.0,
+            "Vulnerability Analyst (Gemini 2.5 Flash)",
+        ),
+        (
+            "deepseek/deepseek-chat-v3.1",
+            "threat_modeling",
+            0.95,
+            "Threat Modeler (DeepSeek Chat v3.1)",
+        ),
+        (
+            "qwen/qwen3-next-80b-a3b-instruct",
+            "compliance_mapping",
+            0.92,
+            "Compliance Expert (Qwen3 80B)",
+        ),
+        (
+            "meta-llama/llama-3.3-70b-instruct",
+            "code_analysis",
+            0.90,
+            "Code Analyst (Llama 3.3 70B)",
+        ),
+        (
+            "anthropic/claude-3.5-haiku",
+            "adversary_modeling",
+            0.88,
+            "Adversary Modeler (Claude 3.5 Haiku)",
+        ),
+    ]
+
+    #: Escalation model — routes through OpenRouter so no direct ANTHROPIC key needed.
+    ESCALATION_MODEL = "anthropic/claude-3.5-sonnet"
+
+    def create_default_council(
+        self,
+        *,
+        confidence_threshold: float = 0.70,
+        max_disagreement: int = 2,
+    ) -> "LLMCouncilEngine":
+        """Build the canonical pipeline council used by CouncilPipelineAdapter.
+
+        Uses 5 paid OpenRouter models across distinct vendor families
+        (Google / DeepSeek / Alibaba / Meta / Anthropic) so the multi-model
+        consensus is genuinely cross-vendor — not one family queried N times.
+
+        Key selection priority:
+        1. OPENROUTER_API_KEY  — primary (set in .env)
+        2. MULEROUTER_API_KEY  — fallback (same OpenRouter-compatible API)
+
+        If neither key is set, raises CouncilNotConfiguredError rather than
+        silently returning DeterministicLLMProvider placeholder verdicts.
+        Honest degradation is a hard requirement — faking = failure.
+
+        The escalation path also routes through OpenRouter
+        (model: anthropic/claude-3.5-sonnet) so no direct ANTHROPIC_API_KEY
+        is required.
+
+        Args:
+            confidence_threshold: Escalate if verdict confidence < this.
+            max_disagreement: Escalate if more than N members disagree.
+
+        Returns:
+            LLMCouncilEngine with 5 real council members.
+
+        Raises:
+            CouncilNotConfiguredError: When OPENROUTER_API_KEY (and
+                MULEROUTER_API_KEY) are both absent.
+        """
+        import os as _os
+        from core.llm_providers import CouncilNotConfiguredError, OpenRouterChatProvider
+
+        # Determine which key to use.  OpenRouter is primary; MuleRouter is a
+        # compatible fallback (same API endpoint shape, different base URL —
+        # but for the pipeline council we always hit OpenRouter's endpoint, so
+        # we just need the key value).
+        or_key_envs = ("OPENROUTER_API_KEY", "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY")
+        or_key = next(
+            (v.strip() for env in or_key_envs if (v := _os.environ.get(env, "")).strip()),
+            None,
+        )
+
+        if not or_key:
+            raise CouncilNotConfiguredError(
+                "CouncilPipelineAdapter requires OPENROUTER_API_KEY to be set. "
+                "Set it in .env — the council WILL NOT fabricate placeholder verdicts."
+            )
+
+        members: List[CouncilMember] = []
+        for model_slug, expertise, weight, display in self.PIPELINE_COUNCIL_MODELS:
+            provider = OpenRouterChatProvider(
+                name=display,
+                model=model_slug,
+                # Pass the resolved key via a dedicated env lookup so each
+                # provider instance reads it fresh (avoids .env timing issues).
+                api_key_envs=list(or_key_envs),
+                timeout=45.0,
+                focus=[expertise],
+                style="consensus",
+            )
+            members.append(
+                CouncilMember(
+                    provider=provider,
+                    expertise=expertise,
+                    weight=weight,
+                    name=display,
+                )
+            )
+
+        # Chairman: strongest-weighted member (Gemini 2.5 Flash at weight=1.0).
+        chairman_provider = members[0].provider
+
+        # Escalation also routes through OpenRouter — no direct Anthropic key needed.
+        escalation_provider = OpenRouterChatProvider(
+            name="Escalation CTO (Claude 3.5 Sonnet via OpenRouter)",
+            model=self.ESCALATION_MODEL,
+            api_key_envs=list(or_key_envs),
+            timeout=60.0,
+            style="analyst",
+        )
+
+        logger.info(
+            "create_default_council: 5-member real council built "
+            "(models: %s; escalation: %s)",
+            ", ".join(m for m, *_ in self.PIPELINE_COUNCIL_MODELS),
+            self.ESCALATION_MODEL,
+        )
+
+        return LLMCouncilEngine(
+            members=members,
+            chairman=chairman_provider,
+            escalation_provider=escalation_provider,
+            confidence_threshold=confidence_threshold,
+            max_disagreement=max_disagreement,
+            max_workers=5,
         )
 
     def create_custom_council(

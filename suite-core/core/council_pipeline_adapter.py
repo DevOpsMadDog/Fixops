@@ -185,21 +185,65 @@ class OpusCTOEscalation:
             )
 
         try:
-            from core.llm_providers import AnthropicMessagesProvider
+            from core.llm_providers import AnthropicMessagesProvider, OpenRouterChatProvider
 
-            # Create Opus provider with explicit model override
-            opus_provider = AnthropicMessagesProvider(
-                name="opus-cto",
-                model="claude-opus-4-6-20250514"  # Use latest Opus
-            )
+            # Prefer direct Anthropic API if key is available; fall back to OpenRouter
+            # which can route anthropic/claude-3.5-sonnet without an Anthropic key.
+            # This ensures escalation is NEVER silently skipped just because
+            # ANTHROPIC_API_KEY is absent — which it is on this deployment.
+            anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+            if anthropic_key:
+                opus_provider = AnthropicMessagesProvider(
+                    name="opus-cto",
+                    model="claude-opus-4-1-20250805",
+                )
+            else:
+                # No direct Anthropic key — route through OpenRouter instead.
+                # anthropic/claude-3.5-sonnet is the best available escalation
+                # model on OpenRouter that doesn't require a direct vendor key.
+                or_key = next(
+                    (
+                        v.strip()
+                        for env in ("OPENROUTER_API_KEY", "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY")
+                        if (v := os.environ.get(env, "")).strip()
+                    ),
+                    None,
+                )
+                if not or_key:
+                    logger.warning(
+                        "No ANTHROPIC_API_KEY or OPENROUTER_API_KEY for escalation; "
+                        "returning conservative fallback (NOT fabricating a verdict)"
+                    )
+                    return ConsensusResult(
+                        final_decision="review",
+                        method="no_api_key",
+                        confidence=0.5,
+                        reasoning=(
+                            "Council escalation required but no API key is configured "
+                            "(neither ANTHROPIC_API_KEY nor OPENROUTER_API_KEY). "
+                            "Set OPENROUTER_API_KEY to enable real escalation."
+                        ),
+                        council_session_id=council_session_id,
+                        escalated=False,
+                        escalation_reason="no_api_key",
+                    )
+                opus_provider = OpenRouterChatProvider(
+                    name="escalation-cto",
+                    model="anthropic/claude-3.5-sonnet",
+                    api_key_envs=("OPENROUTER_API_KEY", "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY"),
+                    timeout=60.0,
+                    style="analyst",
+                )
+                logger.info("Escalation via OpenRouter (anthropic/claude-3.5-sonnet)")
 
-            if not opus_provider.api_key:
-                logger.warning("Anthropic API key not configured; skipping Opus escalation")
+            # Verify key is available (redundant for OR path but guards direct Anthropic)
+            if not getattr(opus_provider, "api_key", None):
+                logger.warning("Escalation provider has no API key; conservative fallback")
                 return ConsensusResult(
                     final_decision="review",
-                    method="deterministic",
-                    confidence=0.6,
-                    reasoning="Anthropic API unavailable; conservative fallback",
+                    method="no_api_key",
+                    confidence=0.5,
+                    reasoning="Escalation provider API key not resolved; conservative fallback.",
                     council_session_id=council_session_id,
                     escalated=False
                 )
@@ -334,16 +378,29 @@ class CouncilPipelineAdapter:
         logger.info("CouncilPipelineAdapter initialized")
 
     def _ensure_council(self) -> Any:
-        """Lazy-init LLMCouncilEngine if needed."""
+        """Lazy-init LLMCouncilEngine if needed.
+
+        Uses CouncilFactory.create_default_council() which builds a real
+        5-member council via OpenRouter paid models.
+
+        Raises:
+            CouncilNotConfiguredError: When no API keys are available.
+                Callers must handle this — never silently fall through to
+                DeterministicLLMProvider placeholder verdicts.
+        """
         if self._council is None:
+            from core.llm_council import CouncilFactory
+            from core.llm_providers import CouncilNotConfiguredError
             try:
-                from core.llm_council import CouncilFactory, LLMCouncilEngine
-                # Use factory to get a pre-configured council
                 factory = CouncilFactory()
                 self._council = factory.create_default_council()
-                logger.info("LLMCouncilEngine initialized (lazy)")
-            except ImportError as e:
-                logger.error("Failed to import LLMCouncilEngine: %s", e)
+                logger.info("LLMCouncilEngine initialized (lazy, 5-member real OpenRouter council)")
+            except CouncilNotConfiguredError:
+                # Re-raise honestly — callers will return method="no_api_key" rather
+                # than fabricating a verdict with confidence=0.5.
+                raise
+            except Exception as exc:
+                logger.error("Failed to initialize LLMCouncilEngine: %s", exc)
                 raise
         return self._council
 
@@ -569,10 +626,25 @@ class CouncilPipelineAdapter:
                 "compliance_concerns": result.compliance_concerns,
             }
 
-        except (ExternalServiceError, RuntimeError, ValueError, KeyError, TypeError) as e:
+        except Exception as e:  # noqa: BLE001
+            from core.llm_providers import CouncilNotConfiguredError
+            if isinstance(e, CouncilNotConfiguredError):
+                # Honest surfacing — callers should treat this as a configuration
+                # problem, not as a "review" verdict.  Never fabricate.
+                logger.error(
+                    "Council not configured (no API keys): %s", e
+                )
+                return {
+                    "analyzed": 0,
+                    "decision": "no_api_key",
+                    "method": "no_api_key",
+                    "confidence": 0.0,
+                    "reason": str(e),
+                    "session_id": session_id,
+                }
             logger.error("Council analysis failed: %s; using fallback", type(e).__name__)
             return {
-                "analyzed": len(critical) if critical else 0,
+                "analyzed": len(critical) if "critical" in dir() else 0,
                 "decision": "review",
                 "method": "fallback",
                 "reason": f"Council error: {type(e).__name__}",
