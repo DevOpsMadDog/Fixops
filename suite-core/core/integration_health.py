@@ -6,13 +6,16 @@ integrations. SQLite-backed with automatic disable after consecutive failures.
 
 from __future__ import annotations
 
+import socket
 import sqlite3
 import time
+import urllib.error
+import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -225,7 +228,7 @@ class IntegrationHealthMonitor:
     # ------------------------------------------------------------------
 
     def check_health(self, integration_id: str) -> HealthCheckResult:
-        """Simulate a health check for the integration and record the result."""
+        """Run a real reachability probe against the integration endpoint and record the result."""
         info = self.get_integration(integration_id)
 
         if info.auto_disabled or info.status == ServiceStatus.DISABLED:
@@ -237,9 +240,7 @@ class IntegrationHealthMonitor:
             )
             return result
 
-        # Simulate latency and outcome based on endpoint reachability heuristic.
-        time.monotonic()
-        response_ms, status, error = _simulate_check(info.endpoint_url)
+        response_ms, status, error = _real_probe(info.endpoint_url)
 
         result = HealthCheckResult(
             integration_id=integration_id,
@@ -532,15 +533,152 @@ class IntegrationHealthMonitor:
 
 
 # ---------------------------------------------------------------------------
-# Simulation helper
+# Real reachability probe
+# ---------------------------------------------------------------------------
+
+_PROBE_TIMEOUT_S: float = 5.0
+_PROBE_TCP_PORT_FALLBACK: int = 80  # used when URL has no recognisable scheme
+
+
+def _real_probe(
+    endpoint_url: str,
+    timeout: float = _PROBE_TIMEOUT_S,
+) -> Tuple[float, ServiceStatus, Optional[str]]:
+    """Perform a real network reachability probe against *endpoint_url*.
+
+    Strategy:
+    - Empty / whitespace URL  → UNKNOWN ("not configured")
+    - http:// or https://     → HTTP HEAD (fallback GET) with urllib; measure
+                                wall-clock latency.
+                                  2xx/3xx → HEALTHY
+                                  4xx/5xx → DEGRADED  (server answered, but unhappy)
+                                  timeout/connection error → DOWN
+    - Any other scheme or
+      bare host:port           → TCP connect probe on extracted host:port.
+                                  success → HEALTHY
+                                  failure → DOWN
+
+    Returns (response_ms, ServiceStatus, error_str_or_None).
+    """
+    url = (endpoint_url or "").strip()
+    if not url:
+        return 0.0, ServiceStatus.UNKNOWN, "Endpoint URL not configured"
+
+    lower = url.lower()
+
+    if lower.startswith("http://") or lower.startswith("https://"):
+        return _http_probe(url, timeout)
+
+    # Non-HTTP URL or bare host:port — fall back to TCP probe
+    return _tcp_probe(url, timeout)
+
+
+def _http_probe(
+    url: str,
+    timeout: float,
+) -> Tuple[float, ServiceStatus, Optional[str]]:
+    """Attempt HEAD (then GET on 405) against *url*; return (ms, status, error)."""
+    t0 = time.perf_counter()
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        req.add_header("User-Agent", "ALdeci-HealthProbe/1.0")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+            http_code = resp.status
+            if http_code < 400:
+                return elapsed_ms, ServiceStatus.HEALTHY, None
+            # 4xx/5xx treated as degraded — server is reachable but unhappy
+            return elapsed_ms, ServiceStatus.DEGRADED, f"HTTP {http_code}"
+    except urllib.error.HTTPError as exc:
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        code = exc.code
+        if code == 405:
+            # HEAD not allowed — retry with GET
+            return _http_get_probe(url, timeout, elapsed_ms)
+        if code < 500:
+            # 4xx — reachable but auth/not-found; mark degraded not down
+            return elapsed_ms, ServiceStatus.DEGRADED, f"HTTP {code}"
+        return elapsed_ms, ServiceStatus.DEGRADED, f"HTTP {code} server error"
+    except urllib.error.URLError as exc:
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        reason = str(exc.reason)
+        if "timed out" in reason.lower() or "timeout" in reason.lower():
+            return elapsed_ms, ServiceStatus.DOWN, f"Connection timed out: {reason}"
+        return elapsed_ms, ServiceStatus.DOWN, f"Connection error: {reason}"
+    except OSError as exc:
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        return elapsed_ms, ServiceStatus.DOWN, f"Network error: {exc}"
+
+
+def _http_get_probe(
+    url: str,
+    timeout: float,
+    head_elapsed_ms: float,
+) -> Tuple[float, ServiceStatus, Optional[str]]:
+    """Fallback GET probe when HEAD returns 405."""
+    t0 = time.perf_counter()
+    try:
+        req = urllib.request.Request(url, method="GET")
+        req.add_header("User-Agent", "ALdeci-HealthProbe/1.0")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+            http_code = resp.status
+            if http_code < 400:
+                return elapsed_ms, ServiceStatus.HEALTHY, None
+            return elapsed_ms, ServiceStatus.DEGRADED, f"HTTP {http_code}"
+    except urllib.error.HTTPError as exc:
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        return elapsed_ms, ServiceStatus.DEGRADED, f"HTTP {exc.code}"
+    except (urllib.error.URLError, OSError) as exc:
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        return elapsed_ms, ServiceStatus.DOWN, f"Connection error: {exc}"
+
+
+def _tcp_probe(
+    url: str,
+    timeout: float,
+) -> Tuple[float, ServiceStatus, Optional[str]]:
+    """TCP connect probe for non-HTTP URLs or bare host:port strings."""
+    # Try to extract host and port from the URL
+    try:
+        # urllib can parse most scheme://host:port patterns
+        parsed = urllib.request.urlparse if hasattr(urllib.request, "urlparse") else None  # type: ignore[attr-defined]
+        from urllib.parse import urlparse
+
+        parts = urlparse(url)
+        host = parts.hostname or url.split(":")[0]
+        port = parts.port or _PROBE_TCP_PORT_FALLBACK
+    except Exception:
+        host = url
+        port = _PROBE_TCP_PORT_FALLBACK
+
+    if not host:
+        return 0.0, ServiceStatus.UNKNOWN, "Cannot parse host from endpoint URL"
+
+    t0 = time.perf_counter()
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+            return elapsed_ms, ServiceStatus.HEALTHY, None
+    except (socket.timeout, TimeoutError):
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        return elapsed_ms, ServiceStatus.DOWN, f"TCP connect timed out to {host}:{port}"
+    except OSError as exc:
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        return elapsed_ms, ServiceStatus.DOWN, f"TCP connect failed to {host}:{port}: {exc}"
+
+
+# ---------------------------------------------------------------------------
+# Legacy simulation helper — KEPT FOR TESTS ONLY
+# Do NOT call from production paths. Use _real_probe() instead.
 # ---------------------------------------------------------------------------
 
 
-def _simulate_check(endpoint_url: str) -> tuple[float, ServiceStatus, Optional[str]]:
-    """Simulate a connectivity check to the endpoint.
+def _simulate_check(endpoint_url: str) -> Tuple[float, ServiceStatus, Optional[str]]:
+    """Deterministic fake check — test-only.  NOT used by check_health().
 
-    Uses deterministic seed derived from URL so behaviour is reproducible
-    in tests while remaining varied across different endpoints.
+    Uses a URL-hash seed so results are reproducible across test runs.
+    Production code must call _real_probe() instead.
     """
     seed = sum(ord(c) for c in endpoint_url) % 100
 

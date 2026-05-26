@@ -5,13 +5,16 @@ Tests for IntegrationHealthMonitor (core logic) and integration_health_router
 (API layer). All tests use temporary SQLite databases to avoid side effects.
 
 Run with:
-    python -m pytest tests/test_integration_health.py -x --tb=short --timeout=10 -q
+    python -m pytest tests/test_integration_health.py -x --tb=short --timeout=30 -q
 """
 
 from __future__ import annotations
 
+import http.server
+import socket
 import sys
-import tempfile
+import threading
+import time
 from pathlib import Path
 from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
@@ -26,8 +29,49 @@ from core.integration_health import (
     IntegrationHealthMonitor,
     IntegrationInfo,
     ServiceStatus,
+    _real_probe,
     _simulate_check,
 )
+
+
+# ---------------------------------------------------------------------------
+# Helpers — local HTTP server fixture
+# ---------------------------------------------------------------------------
+
+
+def _free_port() -> int:
+    """Return a free TCP port on localhost."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+class _SilentHandler(http.server.BaseHTTPRequestHandler):
+    """Minimal HTTP handler that always returns 200 OK."""
+
+    def do_HEAD(self):  # noqa: N802
+        self.send_response(200)
+        self.end_headers()
+
+    def do_GET(self):  # noqa: N802
+        self.send_response(200)
+        self.send_header("Content-Length", "2")
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, *args):  # silence server logs during tests
+        pass
+
+
+@pytest.fixture(scope="module")
+def local_http_server():
+    """Start a real local HTTP server for the duration of the test module."""
+    port = _free_port()
+    server = http.server.HTTPServer(("127.0.0.1", port), _SilentHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{port}"
+    server.shutdown()
 
 
 # ---------------------------------------------------------------------------
@@ -427,7 +471,7 @@ def test_get_health_stats_counts(tmp_db, org_id):
 
 
 # ---------------------------------------------------------------------------
-# _simulate_check helper
+# _simulate_check helper — kept test-only, NOT used by check_health()
 # ---------------------------------------------------------------------------
 
 
@@ -444,16 +488,131 @@ def test_simulate_check_deterministic():
 
 
 def test_simulate_check_down_has_zero_ms():
-    # Find a URL that results in DOWN (seed >= 85)
-    # seed = sum(ord) % 100. We need seed >= 85.
-    # Craft a URL where sum of ord values mod 100 >= 85
-    # 'https://z' -> just brute force by trying known seeds
-    # Instead, patch and test directly
     response_ms, status, error = _simulate_check("https://jira.example.com")
-    # Just assert return types — determinism is tested above
     assert response_ms >= 0
     if status == ServiceStatus.DOWN:
         assert response_ms == 0.0
         assert error is not None
     elif status == ServiceStatus.HEALTHY:
         assert error is None
+
+
+# ---------------------------------------------------------------------------
+# _real_probe — unit tests (no network for unreachable / missing URL)
+# ---------------------------------------------------------------------------
+
+
+def test_real_probe_empty_url_returns_unknown():
+    """Empty endpoint URL must yield UNKNOWN — not fabricated healthy/down."""
+    ms, status, error = _real_probe("")
+    assert status == ServiceStatus.UNKNOWN
+    assert ms == 0.0
+    assert error is not None and "not configured" in error.lower()
+
+
+def test_real_probe_whitespace_url_returns_unknown():
+    ms, status, error = _real_probe("   ")
+    assert status == ServiceStatus.UNKNOWN
+
+
+def test_real_probe_unreachable_host_returns_down():
+    """Connecting to a closed port must yield DOWN with a real error string."""
+    # Port 1 on loopback is virtually always closed / permission-denied
+    ms, status, error = _real_probe("http://127.0.0.1:1", timeout=3.0)
+    assert status == ServiceStatus.DOWN
+    assert error is not None
+    assert len(error) > 0
+    # Must NOT be fabricated — real latency, not the old heuristic magic values
+    # (heuristic would have returned 50-222.5 ms for healthy, or exactly 0.0
+    # for down with "Connection refused or timeout")
+    # We only assert the string differs from the old literal fabricated message
+    assert error != "Connection refused or timeout"  # old simulation string
+
+
+def test_real_probe_invalid_hostname_returns_down():
+    """An unresolvable hostname must yield DOWN."""
+    ms, status, error = _real_probe("http://this-host-does-not-exist.invalid", timeout=3.0)
+    assert status == ServiceStatus.DOWN
+    assert error is not None
+
+
+# ---------------------------------------------------------------------------
+# _real_probe — integration test against a real local HTTP server
+# ---------------------------------------------------------------------------
+
+
+def test_real_probe_reachable_server_healthy(local_http_server):
+    """A real HTTP server must return HEALTHY with latency > 0."""
+    ms, status, error = _real_probe(local_http_server, timeout=5.0)
+    assert status == ServiceStatus.HEALTHY
+    assert ms > 0, f"Expected real latency > 0, got {ms}"
+    assert error is None
+
+
+def test_real_probe_latency_is_measured(local_http_server):
+    """Latency must be a positive float measured by perf_counter, not a heuristic."""
+    ms, status, error = _real_probe(local_http_server, timeout=5.0)
+    assert isinstance(ms, float)
+    # Real network call on loopback — should be sub-second but > 0
+    assert 0 < ms < 5000, f"Suspiciously out-of-range latency: {ms} ms"
+
+
+# ---------------------------------------------------------------------------
+# check_health() integration — ensure it uses _real_probe, not _simulate_check
+# ---------------------------------------------------------------------------
+
+
+def test_check_health_uses_real_probe_not_simulate(tmp_db, org_id, local_http_server):
+    """check_health() must produce results consistent with real probing.
+
+    The old _simulate_check was deterministic from URL hash.  We verify that
+    check_health() against our local server always returns HEALTHY (which
+    _simulate_check might not, depending on hash), proving it's a real probe.
+    """
+    info = tmp_db.register_integration(
+        name="LocalServer",
+        type="test",
+        endpoint_url=local_http_server,
+        org_id=org_id,
+    )
+    result = tmp_db.check_health(info.id)
+    assert isinstance(result, HealthCheckResult)
+    assert result.status == ServiceStatus.HEALTHY
+    assert result.response_ms > 0
+    assert result.error is None
+
+
+def test_check_health_unreachable_endpoint_returns_down(tmp_db, org_id):
+    """check_health() against a dead port must record DOWN — no fabricated healthy."""
+    info = tmp_db.register_integration(
+        name="DeadEndpoint",
+        type="test",
+        endpoint_url="http://127.0.0.1:1",
+        org_id=org_id,
+    )
+    result = tmp_db.check_health(info.id)
+    assert result.status == ServiceStatus.DOWN
+    assert result.error is not None
+    # Must not be the old heuristic's fabricated string
+    assert result.error != "Connection refused or timeout"
+
+
+def test_check_health_empty_url_records_unknown(tmp_db, org_id):
+    """An integration with no endpoint_url should record UNKNOWN, not a fake status."""
+    # Register with a placeholder, then forcibly clear the URL via raw DB write
+    info = tmp_db.register_integration(
+        name="NoURL",
+        type="test",
+        endpoint_url="placeholder",
+        org_id=org_id,
+    )
+    # Patch the stored URL to empty so _real_probe sees it
+    import sqlite3 as _sqlite3
+    conn = _sqlite3.connect(str(tmp_db.db_path))
+    conn.execute("UPDATE integrations SET endpoint_url = '' WHERE id = ?", (info.id,))
+    conn.commit()
+    conn.close()
+
+    result = tmp_db.check_health(info.id)
+    assert result.status == ServiceStatus.UNKNOWN
+    assert result.response_ms == 0.0
