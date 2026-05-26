@@ -7,12 +7,31 @@ and test_abuseipdb_summary_endpoint.py), so no real API token is needed.
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "suite-api"))
+# Ensure suite-api is on sys.path before any apps.* import.
+_SUITE_API = os.path.join(os.path.dirname(__file__), "..", "suite-api")
+if _SUITE_API not in sys.path:
+    sys.path.insert(0, _SUITE_API)
+
+# ---------------------------------------------------------------------------
+# Guard against sys.modules pollution from other test files that inject a
+# minimal stub for apps.api.auth_deps (e.g. test_nvd_summary_endpoint.py).
+# Those stubs lack verify_api_key, causing "(unknown location)" ImportError
+# when this module is collected after them in the full suite.
+# Solution: if the cached module is a stub (missing verify_api_key), evict it
+# so the real module is loaded from suite-api on the next import.
+# ---------------------------------------------------------------------------
+_cached = sys.modules.get("apps.api.auth_deps")
+if _cached is not None and not hasattr(_cached, "verify_api_key"):
+    # Stale stub — evict it and let Python re-import from the real path.
+    for _key in list(sys.modules):
+        if _key == "apps.api.auth_deps" or _key.startswith("apps.api.auth_deps."):
+            del sys.modules[_key]
 
 from fastapi.testclient import TestClient
 

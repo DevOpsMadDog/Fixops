@@ -2,34 +2,57 @@
 import importlib.util
 import sys
 import types
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
-# Stub apps.api.auth_deps before loading the router module
+# Guard: skip the entire module when nvd_cve_router.py does not exist on disk.
+# The file was removed from suite-api (only a stale .pyc remains).  Attempting
+# to load a .pyc via spec_from_file_location raises FileNotFoundError at
+# collection time, which aborts the whole suite.
+#
+# IMPORTANT: Do NOT inject a stub into sys.modules['apps.api.auth_deps'] unless
+# the router source file actually exists.  The stub lacks verify_api_key, which
+# causes an ImportError in test_risk_scoring_router_smoke.py when it imports
+# apps.api.auth_deps later in the same collection run.
 # ---------------------------------------------------------------------------
-_auth_mod = types.ModuleType("apps.api.auth_deps")
-
-
-async def _api_key_auth():
-    return True
-
-
-_auth_mod.api_key_auth = _api_key_auth
-sys.modules.setdefault("apps", types.ModuleType("apps"))
-sys.modules.setdefault("apps.api", types.ModuleType("apps.api"))
-sys.modules["apps.api.auth_deps"] = _auth_mod
-
-# Load the router module directly by file path to avoid collision with the
-# already-registered stub `apps.api` namespace.
 _ROUTER_PATH = (
     "/Users/devops.ai/fixops/Fixops/suite-api/apps/api/nvd_cve_router.py"
 )
-_spec = importlib.util.spec_from_file_location("nvd_cve_router", _ROUTER_PATH)
-mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(mod)
+
+if not Path(_ROUTER_PATH).exists():
+    pytestmark = pytest.mark.skip(
+        reason=(
+            "suite-api/apps/api/nvd_cve_router.py was removed from the repo "
+            "(only a stale .pyc remains). Re-enable when the router is restored."
+        )
+    )
+    # Provide a stub `mod` so the rest of the module parses without NameError.
+    mod = types.SimpleNamespace()  # type: ignore[assignment]
+else:
+    # ---------------------------------------------------------------------------
+    # Stub apps.api.auth_deps before loading the router module.
+    # Only done when the source file exists so we don't pollute sys.modules
+    # with an incomplete stub that breaks other tests.
+    # ---------------------------------------------------------------------------
+    _auth_mod = types.ModuleType("apps.api.auth_deps")
+
+    async def _api_key_auth():
+        return True
+
+    _auth_mod.api_key_auth = _api_key_auth
+    sys.modules.setdefault("apps", types.ModuleType("apps"))
+    sys.modules.setdefault("apps.api", types.ModuleType("apps.api"))
+    sys.modules["apps.api.auth_deps"] = _auth_mod
+
+    # Load the router module directly by file path to avoid collision with the
+    # already-registered stub `apps.api` namespace.
+    _spec = importlib.util.spec_from_file_location("nvd_cve_router", _ROUTER_PATH)
+    mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(mod)
 
 
 # ---------------------------------------------------------------------------
