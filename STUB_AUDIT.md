@@ -276,6 +276,63 @@ No candidates remained unresolvable after reading caller + gate.
 
 ---
 
+## ENGINE SWEEP 4 — SCORING/VERDICT (2026-05-27)
+
+**Scope**: All engines whose primary function emits customer-facing scores, verdicts, risk numbers, confidence values, or priorities. Target pattern: `*_scorecard`, `*_score*`, `risk_*`, `*_risk_*`, `*_prioritization`, `*_quantif`, `severity_*`, `*_rating`, `exploit*`, `epss*`, `kev*`, `cvss*`, `*_confidence`, `*_verdict`, `decision_*`, `consensus*`, `*_grade`.
+**Method**: Deep-read (not grep). Every primary scoring/verdict method traced end-to-end — each input variable walked back to its source (SQLite DB query, live HTTP API call, caller-supplied parameter, or hardcoded constant). Monte Carlo stochasticity confirmed legitimate where used.
+**Engines deeply read**: 22
+**Skip list honoured**: security_scorecard, vendor_scorecard, vuln_prioritization_engine, ioc_enrichment_engine, material_change_detector, llm_council_real, council_pipeline_adapter, council_enhanced, brain_pipeline, executive_reports, executive_dashboard, supply_chain_analyzer, anomaly_detector, autofix_confidence, regression_predictor, llm_learning_loop, self_learning, mcp_gateway, security_health_engine, password_policy_engine, config_benchmark_engine, ccm_engine.
+
+---
+
+### Prioritized Ledger
+
+| Sev | File:line | Engine.method | Score/Verdict emitted | Derived from real data? | Fix if fabricated |
+|-----|-----------|---------------|-----------------------|------------------------|-------------------|
+| **MEDIUM** | `suite-core/core/security_scorecard_engine.py:511` | `SecurityScorecardEngine.generate_scorecard` | `percentile_rank` (0–100) | **BORDERLINE** — hardcoded `50` default; no distinguishing flag in API response. `compare_to_benchmark()` does real interpolation when called, but `generate_scorecard()` never invokes it automatically. API consumers cannot distinguish this default from a real percentile. | Emit `"percentile_rank_source": "uncalibrated_default"` alongside any un-computed `percentile_rank = 50`, or omit the field until `compare_to_benchmark()` has been called for the org. |
+| — | `suite-core/core/composite_risk_scorer.py:451` | `CompositeRiskScorer._compute` | Composite risk score (0–100) | **REAL** — `0.25*cvss + 0.20*epss + 0.20*kev + 0.15*asset_criticality + 0.10*sla + 0.10*lateral`; each term read from enriched_vulns / asset_inventory / sla_tracking / posture_snapshots SQLite. Fallbacks (CVSS→50, EPSS→10, KEV→0) documented in code. | — |
+| — | `suite-core/core/asset_risk_calculator.py:230` | `AssetRiskCalculator.calculate_risk` | Asset risk score (0–100) | **REAL** — `vuln*0.35 + threat*0.25 + exposure*0.20 + compliance*0.20` over caller-supplied dimension scores; criticality multiplier applied. | — |
+| — | `suite-core/core/asset_criticality_scorer.py:111` | `AssetCriticalityScorer._compute_score` | Asset criticality score | **REAL** — `base[asset_type] * dc_mult + internet_bonus + reg_bonus + dep_bonus`; all terms from registered asset profile. | — |
+| — | `suite-core/core/exposure_scorer.py:205` | `ExposureScorer.calculate_org_exposure` | Org exposure score (0–100) | **REAL** — `0.70 * weighted_avg + 0.30 * (100 - velocity_score)`; critical findings weighted 2×; reads live `finding_scores` SQLite. Returns 0.0 honestly when no findings. | — |
+| — | `suite-core/core/posture_score_engine.py:267` | `PostureScoreEngine.compute_posture_score` | Security posture score (0–100) | **REAL** — 8-component weighted sum; `_derive_vuln_mgmt_score()` reads open findings from `security_findings_engine.db` with `_SEVERITY_PENALTY` (critical=4.0, high=1.5, medium=0.4, low=0.05). Baseline 50 used only when no manual value AND findings DB unavailable (labeled). | — |
+| — | `suite-core/core/threat_score_engine.py:190` | `ThreatScoreEngine.calculate_score` | Composite threat score (0–100) | **REAL** — `sum(signal_value * signal_weight) / sum(signal_weight)` over last 30 ingested signals from SQLite. Returns 0.0 honestly when no signals. | — |
+| — | `suite-core/core/risk_quantification_engine.py:278` | `RiskQuantificationEngine.run_monte_carlo` | ALE / financial risk range | **REAL** — unseeded `random.Random()` Monte Carlo over user-supplied `(min_loss, max_loss, likelihood_pct)`. ALE = `(likelihood_pct/100) * (min+max)/2`. Legitimate stochastic financial simulation. | — |
+| — | `suite-core/core/risk_quantification_engine_v2.py:221` | `RiskQuantificationEngineV2.create_scenario` | SLE / ALE / residual_ALE / BU risk | **REAL** — SLE=`asset_value*exposure_factor`; ALE=`SLE*ARO`; BU risk uses `_SEVERITY_PROFILE` × real findings × BU criticality multiplier. p95 via log-normal approximation (σ=0.4). Default BUs seeded idempotently on first call — legitimate bootstrap, not fabrication. | — |
+| — | `suite-core/core/risk_prioritizer.py:378` | `RiskPrioritizer.score_finding` | Finding priority score (0–100) | **REAL** — `100 * (0.40*(cvss/10) + 0.25*epss + 0.20*kev + 0.15*asset_crit)`; EPSS from live `api.first.org` with 24h SQLite cache; KEV from CISA KEV URL with 6h in-memory refresh. Returns 0.0 for both on unavailability (honest, labeled). | — |
+| — | `suite-core/core/threat_intelligence_confidence_engine.py:187` | `TIConfidenceEngine.score_ioc` / `_recompute_ioc_confidence` | IOC confidence (0–1) | **REAL** — initial: `source_confidence * reliability`; on corroboration update: `sum(confidence * reliability) / sum(reliability)`. Source reliability updated via real confirm/FP feedback. | — |
+| — | `suite-core/core/exploit_signals.py:101` | `ExploitSignal.evaluate` | Exploit signal boolean/score | **REAL** — config-driven threshold/boolean evaluation over real CVE records; `ExploitFeedRefresher` fetches live CISA KEV + EPSS feeds and annotates records. | — |
+| — | `suite-core/core/risk_aggregator_engine.py:292` | `RiskAggregatorEngine.calculate_org_risk_score` | Org risk score (0–100) | **REAL** — mean of latest per-entity scores; brain-graph sync uses non-linear CVSS→risk amplification (`≥9.0→95, ≥7.0→70+, ≥4.0→30+`) × `_SEV_MULT` × exposure_mult; integrates real VulnerabilityScoringEngine records. | — |
+| — | `suite-core/core/awareness_score_engine.py:315` | `AwarenessScoreEngine.calculate_score` | Security awareness score (0–100) | **REAL** — `training_score = (passed/total*70) + (avg_score/100*30)`; `phishing_resistance = 100 - (clicked/total*100)`; `overall = training_score*0.6 + phishing_resistance*0.4`. All inputs from real SQLite training/phishing tables. | — |
+| — | `suite-core/core/security_scoreboard_engine.py:256` | `SecurityScoreboardEngine.submit_score` | Gamification score (integer) | **REAL** — integer accumulator of challenge points; wins/losses from `points_earned >= max_points/2`. Gamification is the product function. | — |
+| — | `suite-core/core/security_scorecard_engine.py:147` | `SecurityScorecardEngine.create_scorecard` — `overall_score` | Overall scorecard score | **REAL** — `weighted_sum / total_weight` across caller-supplied dimension scores. | — |
+| — | `suite-core/core/llm_consensus.py:151` | `LLMConsensus.analyse` / `_vote` | LLM consensus verdict + confidence | **REAL** — calls real LLM providers in parallel; weighted majority voting; confidence = weighted average of real provider confidences. Fallback only when ALL providers fail, labeled `[ALL providers failed]`. | — |
+| — | `suite-core/core/risk_register_engine.py:136` | `RiskRegisterEngine.create_risk` | Risk score (1–25) | **REAL** — standard OWASP/ISO 31000 matrix: `_LIKELIHOOD_VALUES[likelihood] * _IMPACT_VALUES[impact]` (1–5 × 1–5). Inputs are operator-supplied enums. | — |
+| — | `suite-core/core/supply_chain_risk_engine.py` | *(data store)* | severity / risk_tier | **REAL** (data store) — severity/risk_tier are caller-supplied; no auto-score computation in primary paths. | — |
+| — | `suite-core/core/vulnerability_scoring_engine.py:221` | `VulnerabilityScoringEngine.score_vulnerability` | Vuln score (0–100) | **REAL** — `(cvss_norm*cw + epss_norm*ew + kev_val + exp_norm*exposure_w) * criticality_mult * 100`; configurable weights per org from DB; `factor_blast_radius()` adds `blast_radius*0.15` with 1.25 crown-jewel multiplier. | — |
+| — | `suite-core/core/security_health_scorecard_engine.py:234` | `SecurityHealthScorecardEngine.take_snapshot` | Health snapshot score (0–100) | **REAL** — `sum(score/max_score * weight) / sum(weights) * 100` over real domain rows; status auto-computed from ratio (green≥80%, amber≥60%, red<60%). | — |
+| — | `suite-core/core/identity_risk_engine.py` | `IdentityRiskEngine` | Identity risk score | **REAL** — stores caller-supplied risk_score; `_risk_level_from_score()` maps to tier; `record_risk_factor()` stores caller-supplied score_impact (0–50 capped). Caller must explicitly invoke `update_risk_score()` to aggregate factors. | — |
+| 🟢 | `suite-core/core/openclaw_engine.py:604` | `OpenClawEngine.start_campaign` | *(raises NotImplementedError)* | **HONEST stub** — module docstring explicitly marks engine NOT PRODUCTION READY; `start_campaign()` raises `NotImplementedError`; `_simulate_tasks` is unreachable in production. Module emits WARNING log on import. | — |
+
+---
+
+### Summary
+
+| Category | Count |
+|----------|-------|
+| Engines deeply read | 22 |
+| Hard fabrications (score from constant/hash, no real input) | **0** |
+| Borderline (real formula but one sub-field defaults to constant without API disclosure) | **1** |
+| Legitimate / REAL | 20 |
+| Legitimate honest stubs (NotImplementedError + warning) | 1 |
+
+**Single finding requiring action**:
+
+- **MEDIUM — `suite-core/core/security_scorecard_engine.py:511`** — `generate_scorecard()` sets `percentile_rank = 50` unconditionally and returns it in the API response with no distinguishing flag. API consumers cannot distinguish this default from a real percentile. Fix: emit `"percentile_rank_source": "uncalibrated_default"` alongside any `percentile_rank` that was not computed by `compare_to_benchmark()`, or suppress the field entirely until benchmark data is available for the org.
+
+**Convergence status after 4 sweeps**: The mathematical scoring layer is clean. All composite formulas, weighted averages, and CVSS/EPSS/KEV integrations trace to real inputs. Remaining fabrication risk is concentrated in integration connectors (Sweeps 2–3, still unresolved), SOAR execution (#9029), and ML synthetic baselines (Sweep 2) — not in the scoring/verdict layer. Sweep 4 closes with a single medium-severity disclosure gap, zero hard fabrications.
+
+---
+
 ## ROUTER AUDIT (2026-05-27)
 
 **Scope:** 798 router files in `suite-api/apps/api/` (`*_router.py` + `*_routes.py`).
