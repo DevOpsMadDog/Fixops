@@ -1,5 +1,64 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-27 12:00] backend-hardener — FABRICATION AUDIT WAVE 2
+
+- **What**: Swept all 845 `suite-core/core/*.py` engine files for fabrication signatures (random imports, _simulate/_mock defs, _MOCK_/_SAMPLE_ constants, hash-derived scores, hardcoded identifiers in getters). Read method bodies and caller gates for every hit. Produced triaged, prioritised candidate list. No code edited.
+- **Findings**: 8 ❌ fabrications (production default path returns fake data), 15 🟢 legitimate simulations, 0 ⚠️ unsure.
+- **❌ list** (file:line): gcp_scc:361/395/424, github_security:309/322/335, pagerduty_integration:332/399/458/530/556/593/629/655/682/705, semgrep_integration:154-160, trivy_integration:123/139 + trivy_scan_engine:191/207, supply_chain_intel:321-324, executive_dashboard_router:60, soar_engine:372/401-420.
+- **Files touched**: `STUB_AUDIT.md` (Wave 2 section appended)
+- **Multica issues created**: #9022 (supply_chain_intel), #9023 (gcp_scc), #9024 (github_security), #9025 (pagerduty), #9026 (semgrep), #9027 (trivy x2), #9028 (executive_dashboard_router), #9029 (soar_engine) — all child of EPIC #9014
+- **Outcome**: SUCCESS — audit complete, no code changes
+- **Pillar(s) served**: V1 (no fabrication), V6 (honest audit trail)
+
+### [2026-05-27 08:18] backend-hardener — SOAR SIMULATION FABRICATION FIXED (security_playbook_engine.py)
+
+- **What**: `execute_playbook()` called `_simulate_step()` unconditionally for every step, presenting deterministic fabricated outcomes as real playbook execution. No real action-dispatch path existed. Fix: added `EXECUTION_MODE = "simulated"` constant; introduced `_dispatch_step()` as the sole dispatch entry-point (with a clearly-commented real-dispatch gate for future connectors); every run result now carries `"simulated": True` + `"execution_mode": "simulated"` at the top level, inside `output`, and on every per-step dict. Router endpoint docstring updated to reflect honest mode. Module docstring rewritten with `_DATA_SOURCE: "simulated"` pattern.
+- **Files touched**: `suite-core/core/security_playbook_engine.py`, `suite-api/apps/api/security_playbook_router.py`, `tests/test_security_playbook_honest_labelling.py` (new, 17 tests)
+- **Outcome**: SUCCESS — 139/139 PASS (17 new honest-labelling + 34 test_playbook_engine + 34 test_security_playbook_engine + 54 test_phase9_playbooks), 0 regressions
+- **Pillar(s) served**: V1 (no fabrication), V3 (SOAR integrity), V6 (honest audit trail)
+
+### [2026-05-27 08:12] backend-hardener — COUNCIL_ENHANCED MOCK FABRICATION FIXED
+
+- **What**: Eliminated silent mock fabrication from `council_enhanced.py` `_collect_votes()`. Root cause: `_try_real_council_votes()` called `LLMProviderManager.available_providers()` which does not exist — the method raised `AttributeError`, was swallowed by `except Exception`, and silently fell through to `_mock_vote()`. Mock votes were returned as real consensus on the default production path.
+- **Fix applied**:
+  1. `_collect_votes` now has 3 explicit paths: A (mock, test opt-in only), B (real LLMCouncil via OpenRouter), C (honest NOT_CONFIGURED).
+  2. `_try_real_council_votes` now routes directly to `core.llm_council_real.LLMCouncil` — the proven 5-model OpenRouter fan-out — instead of the broken `LLMProviderManager.available_providers()` path. Uses a dedicated `ThreadPoolExecutor` thread to run `asyncio.run(council.convene(...))` safely.
+  3. `_mock_vote` is now ONLY reachable when `_allow_mock=True` is explicitly passed to `__init__` (new kwarg). Default is `False`. When False and no key, returns honest `[NOT_CONFIGURED]` NEEDS_REVIEW vote.
+  4. Vote label mapping: LLMCouncil `approve→TRUE_POSITIVE`, `reject→FALSE_POSITIVE`, `escalate→NEEDS_REVIEW`.
+- **Tests added** (`tests/test_council_enhanced.py`):
+  - `TestRealCouncilPath` (3 tests, gated on `OPENROUTER_API_KEY`): proves 5 real HTTP calls fire, `_TEST_MOCK_PREFIX` absent from reasoning, ≥2 real model slugs in votes dict.
+  - `TestHonestUnavailable` (3 tests, monkeypatches key away): proves `_mock_vote` never called when `_allow_mock=False`, reasoning contains `[NOT_CONFIGURED]`, explicit `_allow_mock=True` opt-in still works for unit tests.
+  - `council` fixture updated to `_allow_mock=True` (offline, deterministic, sub-ms). New `council_nokey` fixture for honest-path tests.
+  - `load_dotenv()` added at test module top so `skipif` condition sees key at collection time.
+- **Files touched**: `suite-core/core/council_enhanced.py`, `tests/test_council_enhanced.py`
+- **Test counts**: 39/39 council_enhanced PASS (13.9s incl. 3 real network tests); 50/50 phase3 regression PASS (0.44s)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (no fabricated security intelligence), V4 (honest AI consensus)
+
+### [2026-05-27 08:05] backend-hardener — SECRET SCANNER ENGINE FABRICATION REMOVED
+
+- **What**: Eliminated silent mock fabrication from `secret_scanner_engine.py` `_simulate_scan()`. Four key changes:
+  1. `start_scan()` now has a `simulate: bool = False` parameter. Default (production) path calls new `_real_scan()` which delegates to `SecretScanner` from `secret_scanner.py` (20+ built-in patterns: AWS AKIA, RSA/EC/OPENSSH private keys, GitHub ghp_/gho_, GitLab glpat-, Slack xox*, Azure, GCP AIza, JWT, DB URLs, generic API keys, Stripe sk_live_, SendGrid, Twilio, passwords).
+  2. `_real_scan()` scans the job's `target_path` on disk (`scan_directory` for dirs, `scan_file` for files). Uses a per-job throw-away SQLite DB for SecretScanner to avoid state cross-contamination. Maps `SecretScanner.SecretType` enum values to engine's `secret_type` vocabulary via `_SECRET_TYPE_MAP`. Computes Shannon entropy from the already-masked text. NEVER logs or persists the raw secret value.
+  3. Honest not-configured: empty `target_path`, path not on disk, or `SecretScanner` import failure all produce `secrets_found=0`, `status=completed`, WARNING log — zero fabricated findings.
+  4. `_simulate_scan()` preserved but demoted to test-only, callable only via `simulate=True` or `_SIMULATION_MODE=True`. Module-level docstring, `_SCAN_TEMPLATES`, `_VALUE_TEMPLATES` all kept for backward compat but clearly marked test-only.
+- **Existing scanner reused**: YES — `suite-core/core/secret_scanner.py` (775 LOC, 20+ patterns, `SecretScanner.scan_directory` / `scan_file` / `scan_text`).
+- **Real findings observed on fixture**: 3 findings — `aws_access_key` (AKIAX1234567890ABCDE in config.py), `private_key` (RSA header in id_rsa), `github_token` (ghp_ in deploy.sh). All masked (first4+***+last4). Template fake paths (src/config/settings.py etc.) absent from real findings.
+- **Test counts**: 51/51 PASS (was 32; +7 TestRealScan + 3 TestHonestNotConfigured = 10 new tests; 7 TestSimulateScan updated to use simulate=True; all other lifecycle/management/stats/isolation updated).
+- **Files touched**: `suite-core/core/secret_scanner_engine.py`, `tests/test_secret_scanner_engine.py`
+- **Regression**: `test_pipeline_api.py` 36/36 PASS (unaffected)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (no fabrication), V3 (real decision intelligence), V6 (enterprise-grade reliability)
+
+### [2026-05-27 10:15] backend-hardener — INTEGRATION HEALTH REAL PROBE (NO FABRICATION)
+
+- **What**: Replaced `_simulate_check()` fabrication in `IntegrationHealthMonitor.check_health()` with a real network reachability probe (`_real_probe()`). The old code derived latency/status from a URL-hash heuristic (seed = sum(ord(c)) % 100) — a health monitor that never touched the network. Now: (1) `_real_probe()` performs a real HTTP HEAD/GET (urllib stdlib, no new deps) for http/https URLs with 5s timeout, measuring wall-clock latency via `perf_counter`; (2) status mapping: 2xx/3xx → HEALTHY, 4xx/5xx → DEGRADED, connection error/timeout → DOWN; (3) 405 HEAD → automatic GET fallback; (4) non-HTTP URLs fall back to TCP `socket.create_connection` probe; (5) empty/whitespace endpoint_url → UNKNOWN ("not configured") — honest, never fabricated; (6) `check_health()` docstring updated from "Simulate" to "Run a real reachability probe"; (7) `_simulate_check()` kept but clearly labelled "test-only / NOT used by check_health()" with a "do not call from production" docstring.
+- **Tests**: 9 new tests added to `tests/test_integration_health.py` — real local `http.server` fixture proves latency > 0 + HEALTHY; unreachable port 1 proves DOWN with non-fabricated error string; invalid hostname proves DOWN; empty/whitespace URL proves UNKNOWN; `test_check_health_uses_real_probe_not_simulate` starts local server and asserts HEALTHY (which URL-hash heuristic might not return); `test_check_health_unreachable_endpoint_returns_down` asserts error string differs from old heuristic literal "Connection refused or timeout". All 39 pre-existing tests preserved and passing.
+- **Files touched**: `suite-core/core/integration_health.py`, `tests/test_integration_health.py`
+- **Test counts**: 48/48 PASS (integration_health, 1.12s) + 36/36 PASS (pipeline_api regression)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V1 (no fabrication), V3 (real operational intelligence), V6 (enterprise-grade reliability)
+
 ### [2026-05-27 07:48] backend-hardener — AI ORCHESTRATOR MOCK FABRICATION FIXED
 
 - **What**: Eliminated silent mock fabrication from `ai_orchestrator.py` `_call_llm()`. Four exact changes:
