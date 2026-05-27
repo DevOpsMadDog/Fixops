@@ -4,6 +4,16 @@ Supply Chain Intelligence for ALDECI.
 Provides deep dependency risk scoring, typosquatting detection, maintainer
 trust analysis, and dependency confusion detection for software supply chains.
 
+Registry metadata is fetched from real public keyless APIs:
+  - PyPI JSON API  : https://pypi.org/pypi/<package>/json   (no auth)
+  - npm registry   : https://registry.npmjs.org/<package>   (no auth)
+  - OSV.dev        : POST https://api.osv.dev/v1/query       (no auth)
+
+Metrics that have no keyless public source (e.g. exact maintainer headcount
+for npm) are set to None and excluded from risk scoring.  The result carries
+an `is_real` flag and a `data_source` field so callers know whether metadata
+came from a live registry or was unavailable.
+
 Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 License: Proprietary (ALdeci).
 """
@@ -13,15 +23,323 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import time
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
+
+import urllib.request
+import urllib.error
 
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Custom exception
+# ---------------------------------------------------------------------------
+
+class SupplyChainIntelError(Exception):
+    """Raised when a registry lookup fails and no real data can be returned."""
+
+
+# ---------------------------------------------------------------------------
+# In-memory TTL cache for registry responses
+# ---------------------------------------------------------------------------
+
+_REGISTRY_CACHE: Dict[str, Tuple[float, Any]] = {}
+_CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def _cache_get(key: str) -> Optional[Any]:
+    entry = _REGISTRY_CACHE.get(key)
+    if entry is None:
+        return None
+    ts, value = entry
+    if time.monotonic() - ts > _CACHE_TTL_SECONDS:
+        del _REGISTRY_CACHE[key]
+        return None
+    return value
+
+
+def _cache_set(key: str, value: Any) -> None:
+    _REGISTRY_CACHE[key] = (time.monotonic(), value)
+
+
+# ---------------------------------------------------------------------------
+# Registry fetch helpers
+# ---------------------------------------------------------------------------
+
+_REQUEST_TIMEOUT = 8  # seconds
+
+
+def _http_get_json(url: str) -> Any:
+    """Fetch JSON from a URL with a short timeout. Returns parsed object."""
+    cached = _cache_get(url)
+    if cached is not None:
+        return cached
+    req = urllib.request.Request(url, headers={"User-Agent": "ALdeci-SupplyChainIntel/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=_REQUEST_TIMEOUT) as resp:
+            raw = resp.read()
+        data = json.loads(raw)
+        _cache_set(url, data)
+        return data
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None  # package not found — not a network error
+        raise SupplyChainIntelError(f"HTTP {exc.code} fetching {url}") from exc
+    except urllib.error.URLError as exc:
+        raise SupplyChainIntelError(f"Network error fetching {url}: {exc.reason}") from exc
+    except Exception as exc:
+        raise SupplyChainIntelError(f"Unexpected error fetching {url}: {exc}") from exc
+
+
+def _http_post_json(url: str, payload: Dict[str, Any]) -> Any:
+    """POST JSON and return parsed response."""
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json", "User-Agent": "ALdeci-SupplyChainIntel/1.0"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_REQUEST_TIMEOUT) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        raise SupplyChainIntelError(f"HTTP {exc.code} posting to {url}") from exc
+    except urllib.error.URLError as exc:
+        raise SupplyChainIntelError(f"Network error posting to {url}: {exc.reason}") from exc
+    except Exception as exc:
+        raise SupplyChainIntelError(f"Unexpected error posting to {url}: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# PackageMetadata — real data from registry
+# ---------------------------------------------------------------------------
+
+class PackageMetadata:
+    """Holds real registry metadata; fields are None when unavailable."""
+
+    def __init__(
+        self,
+        *,
+        last_updated_days: Optional[int],
+        maintainer_count: Optional[int],
+        download_count: Optional[int],
+        dependencies_count: Optional[int],
+        known_vuln_count: int = 0,
+        is_real: bool = True,
+        data_source: str = "unknown",
+        not_found: bool = False,
+    ) -> None:
+        self.last_updated_days = last_updated_days
+        self.maintainer_count = maintainer_count
+        self.download_count = download_count
+        self.dependencies_count = dependencies_count
+        self.known_vuln_count = known_vuln_count
+        self.is_real = is_real
+        self.data_source = data_source
+        self.not_found = not_found
+
+    @classmethod
+    def not_available(cls, reason: str = "unavailable") -> "PackageMetadata":
+        return cls(
+            last_updated_days=None,
+            maintainer_count=None,
+            download_count=None,
+            dependencies_count=None,
+            is_real=False,
+            data_source=reason,
+        )
+
+    @classmethod
+    def package_not_found(cls) -> "PackageMetadata":
+        return cls(
+            last_updated_days=None,
+            maintainer_count=None,
+            download_count=None,
+            dependencies_count=None,
+            is_real=True,
+            data_source="registry_404",
+            not_found=True,
+        )
+
+
+def _fetch_pypi_metadata(name: str) -> PackageMetadata:
+    """Fetch real metadata for a PyPI package."""
+    url = f"https://pypi.org/pypi/{name}/json"
+    data = _http_get_json(url)
+
+    if data is None:
+        return PackageMetadata.package_not_found()
+
+    info = data.get("info", {})
+    releases = data.get("releases", {})
+    urls = data.get("urls", [])
+
+    # last_updated_days: time since latest release upload
+    last_updated_days: Optional[int] = None
+    try:
+        # Collect all upload times across all release files
+        all_times: List[str] = []
+        for file_list in releases.values():
+            for f in file_list:
+                ut = f.get("upload_time")
+                if ut:
+                    all_times.append(ut)
+        # Also check urls (latest release files)
+        for f in urls:
+            ut = f.get("upload_time")
+            if ut:
+                all_times.append(ut)
+        if all_times:
+            latest_str = max(all_times)
+            # Format: "2024-01-15T12:34:56" (no timezone)
+            latest_dt = datetime.fromisoformat(latest_str.rstrip("Z"))
+            delta = datetime.utcnow() - latest_dt
+            last_updated_days = max(0, delta.days)
+    except Exception:
+        pass
+
+    # maintainer_count: PyPI doesn't expose a headcount via the public API directly.
+    # We use the maintainers field if present (some packages include it), else None.
+    maintainer_count: Optional[int] = None
+    # The /pypi/<pkg>/json endpoint does not reliably expose maintainer list count.
+    # Rather than fabricate, leave as None (excluded from risk scoring).
+
+    # download_count: PyPI JSON API does not expose download stats directly
+    # (pypistats.org requires separate API). Leave as None — not fabricated.
+    download_count: Optional[int] = None
+
+    # dependencies_count: from requires_dist
+    dependencies_count: Optional[int] = None
+    requires_dist = info.get("requires_dist") or []
+    if requires_dist is not None:
+        # Filter out extras/conditionals for a clean count
+        direct_deps = [d for d in requires_dist if d and "; extra ==" not in d]
+        dependencies_count = len(direct_deps)
+
+    return PackageMetadata(
+        last_updated_days=last_updated_days,
+        maintainer_count=maintainer_count,
+        download_count=download_count,
+        dependencies_count=dependencies_count,
+        is_real=True,
+        data_source="pypi",
+    )
+
+
+def _fetch_npm_metadata(name: str) -> PackageMetadata:
+    """Fetch real metadata for an npm package."""
+    url = f"https://registry.npmjs.org/{name}"
+    data = _http_get_json(url)
+
+    if data is None:
+        return PackageMetadata.package_not_found()
+
+    # last_updated_days: time field
+    last_updated_days: Optional[int] = None
+    try:
+        time_data = data.get("time", {})
+        modified_str = time_data.get("modified") or ""
+        if modified_str:
+            # ISO-8601 with timezone e.g. "2024-01-15T12:34:56.789Z"
+            modified_str = modified_str.rstrip("Z")
+            # Remove sub-second part if present
+            if "." in modified_str:
+                modified_str = modified_str.split(".")[0]
+            modified_dt = datetime.fromisoformat(modified_str)
+            delta = datetime.utcnow() - modified_dt
+            last_updated_days = max(0, delta.days)
+    except Exception:
+        pass
+
+    # maintainer_count: npm exposes maintainers list
+    maintainer_count: Optional[int] = None
+    maintainers = data.get("maintainers", [])
+    if isinstance(maintainers, list):
+        maintainer_count = len(maintainers)
+
+    # download_count: not available from registry.npmjs.org directly (need npm download API)
+    download_count: Optional[int] = None
+
+    # dependencies_count: from latest version
+    dependencies_count: Optional[int] = None
+    try:
+        dist_tags = data.get("dist-tags", {})
+        latest_version = dist_tags.get("latest")
+        if latest_version:
+            versions = data.get("versions", {})
+            version_data = versions.get(latest_version, {})
+            deps = version_data.get("dependencies", {})
+            peer_deps = version_data.get("peerDependencies", {})
+            dependencies_count = len(deps) + len(peer_deps)
+    except Exception:
+        pass
+
+    return PackageMetadata(
+        last_updated_days=last_updated_days,
+        maintainer_count=maintainer_count,
+        download_count=download_count,
+        dependencies_count=dependencies_count,
+        is_real=True,
+        data_source="npm",
+    )
+
+
+def _fetch_osv_vuln_count(name: str, ecosystem: str) -> int:
+    """Return number of known vulnerabilities from OSV.dev. Returns 0 on error."""
+    # OSV ecosystem names: "PyPI", "npm", "Maven"
+    osv_ecosystem_map = {
+        "pip": "PyPI",
+        "pypi": "PyPI",
+        "npm": "npm",
+        "maven": "Maven",
+    }
+    osv_ecosystem = osv_ecosystem_map.get(ecosystem.lower())
+    if not osv_ecosystem:
+        return 0
+    cache_key = f"osv:{osv_ecosystem}:{name}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        result = _http_post_json(
+            "https://api.osv.dev/v1/query",
+            {"package": {"name": name, "ecosystem": osv_ecosystem}},
+        )
+        count = len(result.get("vulns", []))
+        _cache_set(cache_key, count)
+        return count
+    except SupplyChainIntelError:
+        return 0
+
+
+def _fetch_registry_metadata(name: str, ecosystem: str) -> PackageMetadata:
+    """
+    Fetch real metadata for a package from its registry.
+
+    Raises SupplyChainIntelError if the registry is unreachable.
+    Returns PackageMetadata.package_not_found() if the package does not exist.
+    """
+    eco = ecosystem.lower()
+    if eco in ("pip", "pypi"):
+        meta = _fetch_pypi_metadata(name)
+    elif eco == "npm":
+        meta = _fetch_npm_metadata(name)
+    else:
+        # No keyless public API for maven/cargo/etc — return honest not-available
+        return PackageMetadata.not_available(reason=f"no_keyless_api_for_{eco}")
+
+    # Augment with OSV vuln count (best-effort; failure returns 0, not an error)
+    if not meta.not_found:
+        meta.known_vuln_count = _fetch_osv_vuln_count(name, ecosystem)
+
+    return meta
 
 
 # ---------------------------------------------------------------------------
@@ -48,10 +366,14 @@ class PackageRisk(BaseModel):
     version: str = ""
     risk_score: float = Field(default=0.0, ge=0, le=100)
     risks: List[Dict[str, Any]] = Field(default_factory=list)
-    maintainer_count: int = 0
-    last_updated_days: int = 0
-    download_count: int = 0
-    dependencies_count: int = 0
+    maintainer_count: Optional[int] = None   # None = metric unavailable (not fabricated)
+    last_updated_days: Optional[int] = None  # None = metric unavailable
+    download_count: Optional[int] = None     # None = metric unavailable
+    dependencies_count: Optional[int] = None # None = metric unavailable
+    known_vuln_count: int = 0
+    is_real: bool = True                     # False = registry was unreachable
+    data_source: str = "unknown"             # "pypi", "npm", "registry_404", etc.
+    not_found: bool = False                  # True = package does not exist on registry
     org_id: str = "default"
 
 
@@ -187,10 +509,14 @@ class SupplyChainIntel:
                     version TEXT NOT NULL DEFAULT '',
                     risk_score REAL NOT NULL DEFAULT 0,
                     risks TEXT NOT NULL DEFAULT '[]',
-                    maintainer_count INTEGER NOT NULL DEFAULT 0,
-                    last_updated_days INTEGER NOT NULL DEFAULT 0,
-                    download_count INTEGER NOT NULL DEFAULT 0,
-                    dependencies_count INTEGER NOT NULL DEFAULT 0,
+                    maintainer_count INTEGER,
+                    last_updated_days INTEGER,
+                    download_count INTEGER,
+                    dependencies_count INTEGER,
+                    known_vuln_count INTEGER NOT NULL DEFAULT 0,
+                    is_real INTEGER NOT NULL DEFAULT 1,
+                    data_source TEXT NOT NULL DEFAULT 'unknown',
+                    not_found INTEGER NOT NULL DEFAULT 0,
                     org_id TEXT NOT NULL DEFAULT 'default',
                     analyzed_at TEXT NOT NULL,
                     UNIQUE(package_name, ecosystem, org_id)
@@ -216,6 +542,8 @@ class SupplyChainIntel:
             )
 
     def _row_to_package_risk(self, row: sqlite3.Row) -> PackageRisk:
+        # Columns added in migration may be absent in old rows — use .keys() safe access
+        keys = row.keys() if hasattr(row, "keys") else []
         return PackageRisk(
             package_name=row["package_name"],
             ecosystem=row["ecosystem"],
@@ -226,6 +554,10 @@ class SupplyChainIntel:
             last_updated_days=row["last_updated_days"],
             download_count=row["download_count"],
             dependencies_count=row["dependencies_count"],
+            known_vuln_count=row["known_vuln_count"] if "known_vuln_count" in keys else 0,
+            is_real=bool(row["is_real"]) if "is_real" in keys else True,
+            data_source=row["data_source"] if "data_source" in keys else "unknown",
+            not_found=bool(row["not_found"]) if "not_found" in keys else False,
             org_id=row["org_id"],
         )
 
@@ -289,12 +621,22 @@ class SupplyChainIntel:
         ecosystem: str,
         version: str,
         org_id: str,
+        _allow_mock: bool = False,
     ) -> PackageRisk:
-        """Core risk scoring logic — deterministic, no external calls."""
+        """
+        Core risk scoring logic.
+
+        Fetches real metadata from the package registry (PyPI / npm).
+        Raises SupplyChainIntelError if the registry is unreachable.
+
+        _allow_mock=True is an explicit test opt-in that bypasses the registry
+        for unit tests that do not have network access.  It must never be set
+        in production code paths.
+        """
         risks: List[Dict[str, Any]] = []
         score = 0.0
 
-        # 1. Known-malicious check
+        # 1. Known-malicious check (deterministic, no network)
         pkg_key = name.lower()
         if pkg_key in _KNOWN_MALICIOUS:
             entry = _KNOWN_MALICIOUS[pkg_key]
@@ -306,7 +648,7 @@ class SupplyChainIntel:
                 })
                 score += 90 if entry["severity"] == "critical" else 70
 
-        # 2. Typosquat check
+        # 2. Typosquat check (deterministic, no network)
         typosquat_hits = self.detect_typosquat(name, ecosystem)
         if typosquat_hits:
             risks.append({
@@ -317,22 +659,41 @@ class SupplyChainIntel:
             })
             score += 40
 
-        # 3. Abandonment simulation (based on name heuristics for mock data)
-        last_updated_days = self._mock_last_updated_days(name)
-        maintainer_count = self._mock_maintainer_count(name)
-        download_count = self._mock_download_count(name)
-        dependencies_count = self._mock_dependencies_count(name)
+        # 3. Real registry metadata fetch
+        if _allow_mock:
+            # Test opt-in: provide minimal non-fabricated metadata
+            meta = PackageMetadata(
+                last_updated_days=None,
+                maintainer_count=None,
+                download_count=None,
+                dependencies_count=None,
+                is_real=False,
+                data_source="test_mock",
+            )
+        else:
+            # Real lookup — raises SupplyChainIntelError on network failure
+            meta = _fetch_registry_metadata(name, ecosystem)
 
-        if last_updated_days > 730:
+        # 3a. Unknown package on registry
+        if meta.not_found:
+            risks.append({
+                "category": RiskCategory.MALICIOUS_CODE.value,
+                "severity": "medium",
+                "detail": f"Package '{name}' not found on {ecosystem} registry — possible typosquat or phantom package",
+            })
+            score += 20
+
+        # 3b. Abandonment — only scored when we have a real value
+        if meta.last_updated_days is not None and meta.last_updated_days > 730:
             risks.append({
                 "category": RiskCategory.ABANDONED.value,
                 "severity": "medium",
-                "detail": f"Package not updated in {last_updated_days} days (>{730} threshold)",
+                "detail": f"Package not updated in {meta.last_updated_days} days (>{730} threshold)",
             })
             score += 25
 
-        # 4. Low maintainer count risk
-        if maintainer_count == 1:
+        # 3c. Low maintainer count — only scored when we have a real value
+        if meta.maintainer_count is not None and meta.maintainer_count == 1:
             risks.append({
                 "category": RiskCategory.MAINTAINER_CHANGE.value,
                 "severity": "medium",
@@ -340,7 +701,17 @@ class SupplyChainIntel:
             })
             score += 15
 
-        # 5. Dependency confusion check
+        # 3d. Known vulnerabilities from OSV
+        if meta.known_vuln_count > 0:
+            sev = "critical" if meta.known_vuln_count >= 3 else "high"
+            risks.append({
+                "category": RiskCategory.VULNERABILITY.value,
+                "severity": sev,
+                "detail": f"{meta.known_vuln_count} known vulnerabilities found in OSV database",
+            })
+            score += min(10 * meta.known_vuln_count, 40)
+
+        # 4. Dependency confusion check (deterministic, no network)
         if self.detect_dependency_confusion(name, org_id):
             risks.append({
                 "category": RiskCategory.DEPENDENCY_CONFUSION.value,
@@ -358,34 +729,19 @@ class SupplyChainIntel:
             version=version,
             risk_score=risk_score,
             risks=risks,
-            maintainer_count=maintainer_count,
-            last_updated_days=last_updated_days,
-            download_count=download_count,
-            dependencies_count=dependencies_count,
+            maintainer_count=meta.maintainer_count,
+            last_updated_days=meta.last_updated_days,
+            download_count=meta.download_count,
+            dependencies_count=meta.dependencies_count,
+            known_vuln_count=meta.known_vuln_count,
+            is_real=meta.is_real,
+            data_source=meta.data_source,
+            not_found=meta.not_found,
             org_id=org_id,
         )
 
-    def _mock_last_updated_days(self, name: str) -> int:
-        """Deterministic mock: abandoned packages get high day counts."""
-        abandoned_keywords = ["old", "legacy", "deprecated", "archive", "unmaintained"]
-        if any(kw in name.lower() for kw in abandoned_keywords):
-            return 900
-        # Use name hash for stable deterministic result
-        return abs(hash(name)) % 500
-
-    def _mock_maintainer_count(self, name: str) -> int:
-        """Deterministic mock: short package names tend to be single-maintainer."""
-        if len(name) < 6:
-            return 1
-        return max(1, abs(hash(name + "m")) % 10)
-
-    def _mock_download_count(self, name: str) -> int:
-        """Deterministic mock download count."""
-        return abs(hash(name + "d")) % 10_000_000
-
-    def _mock_dependencies_count(self, name: str) -> int:
-        """Deterministic mock dependency count."""
-        return abs(hash(name + "dep")) % 50
+    # _mock_* methods removed — replaced by real registry lookups above.
+    # Test opt-in: pass _allow_mock=True to _score_package (unit tests only).
 
     # ------------------------------------------------------------------
     # Public API
@@ -397,9 +753,15 @@ class SupplyChainIntel:
         ecosystem: str,
         version: str = "",
         org_id: str = "default",
+        _allow_mock: bool = False,
     ) -> PackageRisk:
-        """Analyze a single package for supply chain risks."""
-        pkg_risk = self._score_package(name, ecosystem, version, org_id)
+        """
+        Analyze a single package for supply chain risks.
+
+        Fetches real metadata from the package registry.
+        Raises SupplyChainIntelError if the registry is unreachable.
+        """
+        pkg_risk = self._score_package(name, ecosystem, version, org_id, _allow_mock=_allow_mock)
 
         # Persist result
         with self._get_conn() as conn:
@@ -408,8 +770,9 @@ class SupplyChainIntel:
                 INSERT OR REPLACE INTO package_risks
                     (id, package_name, ecosystem, version, risk_score, risks,
                      maintainer_count, last_updated_days, download_count,
-                     dependencies_count, org_id, analyzed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     dependencies_count, known_vuln_count, is_real, data_source,
+                     not_found, org_id, analyzed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(uuid.uuid4()),
@@ -422,6 +785,10 @@ class SupplyChainIntel:
                     pkg_risk.last_updated_days,
                     pkg_risk.download_count,
                     pkg_risk.dependencies_count,
+                    pkg_risk.known_vuln_count,
+                    int(pkg_risk.is_real),
+                    pkg_risk.data_source,
+                    int(pkg_risk.not_found),
                     org_id,
                     self._now(),
                 ),
@@ -526,20 +893,43 @@ class SupplyChainIntel:
             distances = new_distances
         return distances[-1]
 
-    def check_maintainer_trust(self, package_name: str, ecosystem: str) -> Dict[str, Any]:
-        """Return maintainer trust information for a package."""
-        maintainer_count = self._mock_maintainer_count(package_name)
-        # Simulate maintainer history stability via hash
-        stability = abs(hash(package_name + "trust")) % 100
-        recent_change = stability < 20  # 20% of packages have recent maintainer changes
+    def check_maintainer_trust(
+        self,
+        package_name: str,
+        ecosystem: str,
+        _allow_mock: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Return maintainer trust information for a package.
 
-        trust_level = "high"
-        if maintainer_count == 1:
-            trust_level = "low"
-        elif recent_change:
-            trust_level = "medium"
-        elif maintainer_count < 3:
-            trust_level = "medium"
+        Uses real registry data (PyPI / npm). Raises SupplyChainIntelError on
+        network failure. maintainer_count may be None for ecosystems without a
+        keyless public API for that metric.
+        """
+        if _allow_mock:
+            meta = PackageMetadata(
+                last_updated_days=None,
+                maintainer_count=None,
+                download_count=None,
+                dependencies_count=None,
+                is_real=False,
+                data_source="test_mock",
+            )
+        else:
+            meta = _fetch_registry_metadata(package_name, ecosystem)
+
+        maintainer_count = meta.maintainer_count  # may be None
+
+        trust_level = "unknown"
+        recent_change = False
+
+        if maintainer_count is not None:
+            if maintainer_count == 1:
+                trust_level = "low"
+            elif maintainer_count < 3:
+                trust_level = "medium"
+            else:
+                trust_level = "high"
 
         return {
             "package_name": package_name,
@@ -547,14 +937,31 @@ class SupplyChainIntel:
             "maintainer_count": maintainer_count,
             "trust_level": trust_level,
             "recent_maintainer_change": recent_change,
-            "account_age_days": abs(hash(package_name + "age")) % 3000 + 30,
-            "verified_org": maintainer_count > 3,
+            "account_age_days": None,          # no keyless public API for this metric
+            "verified_org": (maintainer_count or 0) > 3,
+            "is_real": meta.is_real,
+            "data_source": meta.data_source,
+            "not_found": meta.not_found,
         }
 
-    def check_abandoned(self, package_name: str, ecosystem: str) -> bool:
-        """Return True if package has not been updated in more than 2 years."""
-        last_updated = self._mock_last_updated_days(package_name)
-        return last_updated > 730
+    def check_abandoned(
+        self,
+        package_name: str,
+        ecosystem: str,
+        _allow_mock: bool = False,
+    ) -> bool:
+        """
+        Return True if package has not been updated in more than 2 years.
+
+        Uses real registry data. Returns False (safe default) when metadata is
+        unavailable. Raises SupplyChainIntelError on network failure.
+        """
+        if _allow_mock:
+            return False
+        meta = _fetch_registry_metadata(package_name, ecosystem)
+        if meta.last_updated_days is None:
+            return False  # honest: we don't know, assume not abandoned
+        return meta.last_updated_days > 730
 
     def detect_dependency_confusion(self, package_name: str, org_id: str) -> bool:
         """

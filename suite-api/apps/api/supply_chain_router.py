@@ -60,8 +60,11 @@ router = APIRouter(
     dependencies=_AUTH_DEP,
 )
 
-# Shared engine singleton (SQLite-backed)
+# Shared engine singleton (SQLite-backed) — SupplyChainEngine (SBOM/provenance)
 _engine: Optional[SupplyChainEngine] = None
+
+# Shared intel singleton — SupplyChainIntel (package risk / alerts)
+_intel = None  # type: Optional[Any]
 
 
 def _get_engine() -> SupplyChainEngine:
@@ -69,6 +72,14 @@ def _get_engine() -> SupplyChainEngine:
     if _engine is None:
         _engine = SupplyChainEngine()
     return _engine
+
+
+def _get_intel():
+    global _intel
+    if _intel is None:
+        from core.supply_chain_intel import SupplyChainIntel
+        _intel = SupplyChainIntel()
+    return _intel
 
 
 # ============================================================================
@@ -583,6 +594,173 @@ def license_audit(
     except Exception as exc:
         _logger.exception("license_audit failed path=%s", manifest_path)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ============================================================================
+# SupplyChainIntel endpoints — package risk scoring, alerts, typosquat, etc.
+# ============================================================================
+
+
+class AnalyzePackageRequest(BaseModel):
+    package_name: str
+    ecosystem: str = "pip"
+    version: str = ""
+    org_id: str = "default"
+
+
+class AnalyzeSBOMRequest(BaseModel):
+    sbom_id: str
+    org_id: str = "default"
+    db_path: str = "data/sbom.db"
+
+
+class TyposquatRequest(BaseModel):
+    package_name: str
+    ecosystem: str = "pip"
+
+
+class MaintainerTrustRequest(BaseModel):
+    package_name: str
+    ecosystem: str = "pip"
+
+
+def _risk_level(score: float) -> str:
+    if score >= 90:
+        return "critical"
+    if score >= 70:
+        return "high"
+    if score >= 40:
+        return "medium"
+    if score > 0:
+        return "low"
+    return "safe"
+
+
+@router.post("/analyze", summary="Analyze a single package for supply chain risks")
+def analyze_package(body: AnalyzePackageRequest) -> Dict[str, Any]:
+    """
+    Fetch real registry metadata (PyPI / npm) and score a package for:
+    known malicious code, typosquatting, abandonment, low maintainer count,
+    known CVEs (OSV.dev), and dependency confusion.
+    """
+    from core.supply_chain_intel import SupplyChainIntelError
+    intel = _get_intel()
+    try:
+        result = intel.analyze_package(
+            name=body.package_name,
+            ecosystem=body.ecosystem,
+            version=body.version,
+            org_id=body.org_id,
+        )
+    except SupplyChainIntelError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        _logger.exception("analyze_package failed name=%s", body.package_name)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    data = result.model_dump()
+    data["risk_level"] = _risk_level(result.risk_score)
+    return data
+
+
+@router.post("/analyze-sbom", summary="Analyze all packages in an SBOM by sbom_id")
+def analyze_sbom_intel(body: AnalyzeSBOMRequest) -> Dict[str, Any]:
+    """Analyze every component from a stored SBOM and return aggregated risk."""
+    from core.supply_chain_intel import SupplyChainIntelError
+    intel = _get_intel()
+    try:
+        results = intel.analyze_sbom(
+            sbom_id=body.sbom_id,
+            org_id=body.org_id,
+            db_path=body.db_path,
+        )
+    except SupplyChainIntelError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        _logger.exception("analyze_sbom failed sbom_id=%s", body.sbom_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {
+        "sbom_id": body.sbom_id,
+        "org_id": body.org_id,
+        "total_components": len(results),
+        "results": [r.model_dump() for r in results],
+    }
+
+
+@router.get("/alerts", summary="List supply chain alerts")
+def get_intel_alerts(org_id: str = Query("default")) -> Dict[str, Any]:
+    intel = _get_intel()
+    alerts = intel.get_alerts(org_id=org_id)
+    return {"alerts": [a.model_dump() for a in alerts], "total": len(alerts)}
+
+
+@router.post("/alerts/{alert_id}/resolve", summary="Resolve a supply chain alert")
+def resolve_intel_alert(alert_id: str) -> Dict[str, Any]:
+    intel = _get_intel()
+    resolved = intel.resolve_alert(alert_id)
+    if not resolved:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id!r} not found")
+    return {"alert_id": alert_id, "resolved": True}
+
+
+@router.get("/high-risk", summary="List high-risk packages above a score threshold")
+def get_high_risk_packages(
+    org_id: str = Query("default"),
+    threshold: float = Query(70.0, ge=0.0, le=100.0),
+) -> Dict[str, Any]:
+    intel = _get_intel()
+    packages = intel.get_high_risk_packages(org_id=org_id, threshold=threshold)
+    return {
+        "packages": [p.model_dump() for p in packages],
+        "threshold": threshold,
+        "total": len(packages),
+    }
+
+
+@router.get("/stats", summary="Supply chain intelligence aggregate statistics")
+def get_intel_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+    intel = _get_intel()
+    return intel.get_supply_chain_stats(org_id=org_id)
+
+
+@router.post("/typosquat", summary="Check if a package name is a typosquat")
+def check_typosquat(body: TyposquatRequest) -> Dict[str, Any]:
+    intel = _get_intel()
+    hits = intel.detect_typosquat(body.package_name, body.ecosystem)
+    return {
+        "package_name": body.package_name,
+        "ecosystem": body.ecosystem,
+        "is_typosquat": len(hits) > 0,
+        "similar_packages": hits,
+    }
+
+
+@router.post("/maintainer-trust", summary="Maintainer trust analysis for a package")
+def check_maintainer_trust(body: MaintainerTrustRequest) -> Dict[str, Any]:
+    from core.supply_chain_intel import SupplyChainIntelError
+    intel = _get_intel()
+    try:
+        return intel.check_maintainer_trust(body.package_name, body.ecosystem)
+    except SupplyChainIntelError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/malicious-db", summary="List known-malicious package database")
+def get_malicious_db(
+    ecosystem: Optional[str] = Query(None, description="Filter by ecosystem: pip, npm, maven"),
+) -> Dict[str, Any]:
+    from core.supply_chain_intel import _KNOWN_MALICIOUS
+    entries = [
+        {"package": pkg, **info}
+        for pkg, info in _KNOWN_MALICIOUS.items()
+        if ecosystem is None or info.get("ecosystem") == ecosystem
+    ]
+    return {"total": len(entries), "entries": entries}
+
+
+@router.get("/risk-summary", summary="Risk summary grouped by ecosystem, category, severity")
+def get_risk_summary(org_id: str = Query("default")) -> Dict[str, Any]:
+    intel = _get_intel()
+    return intel.get_risk_summary(org_id=org_id)
 
 
 # ============================================================================

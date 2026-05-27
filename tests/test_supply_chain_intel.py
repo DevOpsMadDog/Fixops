@@ -57,6 +57,31 @@ def tmp_intel(tmp_path):
     return SupplyChainIntel(db_path=str(tmp_path / "supply_chain_test.db"))
 
 
+@pytest.fixture(autouse=True)
+def _no_real_registry(monkeypatch):
+    """
+    Prevent all unit tests from hitting live registries.
+    Patches _fetch_registry_metadata to return minimal honest metadata.
+    Tests that want specific values should override via _allow_mock=True or
+    a narrower monkeypatch.
+    """
+    from core import supply_chain_intel as sci
+    from core.supply_chain_intel import PackageMetadata
+
+    def _fake_fetch(name: str, ecosystem: str) -> PackageMetadata:
+        return PackageMetadata(
+            last_updated_days=None,
+            maintainer_count=None,
+            download_count=None,
+            dependencies_count=None,
+            is_real=False,
+            data_source="test_mock",
+        )
+
+    monkeypatch.setattr(sci, "_fetch_registry_metadata", _fake_fetch)
+    yield
+
+
 @pytest.fixture
 def org_id():
     return f"test-org-{uuid.uuid4().hex[:8]}"
@@ -218,14 +243,36 @@ class TestMaintainerTrust:
         assert "trust_level" in result
         assert "recent_maintainer_change" in result
         assert "verified_org" in result
+        assert "is_real" in result
+        assert "data_source" in result
 
-    def test_trust_level_valid(self, tmp_intel):
+    def test_trust_level_valid_when_count_available(self, tmp_intel, monkeypatch):
+        # Inject a real maintainer count so trust_level is deterministic
+        from core import supply_chain_intel as sci
+        from core.supply_chain_intel import PackageMetadata
+
+        monkeypatch.setattr(sci, "_fetch_registry_metadata", lambda name, eco: PackageMetadata(
+            last_updated_days=None,
+            maintainer_count=5,
+            download_count=None,
+            dependencies_count=None,
+            is_real=True,
+            data_source="test_injected",
+        ))
         result = tmp_intel.check_maintainer_trust("numpy", "pip")
         assert result["trust_level"] in ("high", "medium", "low")
+        assert result["maintainer_count"] == 5
 
-    def test_account_age_positive(self, tmp_intel):
+    def test_trust_level_unknown_when_count_unavailable(self, tmp_intel):
+        # The autouse fixture returns maintainer_count=None → trust_level="unknown"
         result = tmp_intel.check_maintainer_trust("django", "pip")
-        assert result["account_age_days"] > 0
+        assert result["trust_level"] == "unknown"
+        assert result["maintainer_count"] is None
+
+    def test_account_age_is_none(self, tmp_intel):
+        # No keyless public API exposes account age — must be None, not fabricated
+        result = tmp_intel.check_maintainer_trust("django", "pip")
+        assert result["account_age_days"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -233,22 +280,62 @@ class TestMaintainerTrust:
 # ---------------------------------------------------------------------------
 
 class TestCheckAbandoned:
-    def test_abandoned_package(self, tmp_intel):
-        # "old-legacy-deprecated" should trigger abandonment
+    def test_abandoned_package(self, tmp_intel, monkeypatch):
+        # Simulate registry returning 900 days since last update
+        from core import supply_chain_intel as sci
+        from core.supply_chain_intel import PackageMetadata
+
+        monkeypatch.setattr(sci, "_fetch_registry_metadata", lambda name, eco: PackageMetadata(
+            last_updated_days=900,
+            maintainer_count=None,
+            download_count=None,
+            dependencies_count=None,
+            is_real=True,
+            data_source="test_injected",
+        ))
         result = tmp_intel.check_abandoned("old-legacy-deprecated", "pip")
         assert result is True
 
-    def test_active_package(self, tmp_intel):
-        # "requests" has a low hash-based day count
-        result = tmp_intel.check_abandoned("requests", "pip")
-        # Just verify it returns a bool
-        assert isinstance(result, bool)
+    def test_active_package(self, tmp_intel, monkeypatch):
+        # Simulate registry returning 30 days since last update (active)
+        from core import supply_chain_intel as sci
+        from core.supply_chain_intel import PackageMetadata
 
-    def test_abandoned_threshold_is_730_days(self, tmp_intel):
-        from core.supply_chain_intel import SupplyChainIntel
-        intel = tmp_intel
-        # Package that gets 900 days (abandoned) due to keyword
-        assert intel._mock_last_updated_days("old-unmaintained-pkg") > 730
+        monkeypatch.setattr(sci, "_fetch_registry_metadata", lambda name, eco: PackageMetadata(
+            last_updated_days=30,
+            maintainer_count=None,
+            download_count=None,
+            dependencies_count=None,
+            is_real=True,
+            data_source="test_injected",
+        ))
+        result = tmp_intel.check_abandoned("requests", "pip")
+        assert result is False
+
+    def test_abandoned_threshold_is_730_days(self, tmp_intel, monkeypatch):
+        # Verify that exactly 731 days triggers abandonment and 729 does not
+        from core import supply_chain_intel as sci
+        from core.supply_chain_intel import PackageMetadata
+
+        monkeypatch.setattr(sci, "_fetch_registry_metadata", lambda name, eco: PackageMetadata(
+            last_updated_days=731,
+            maintainer_count=None,
+            download_count=None,
+            dependencies_count=None,
+            is_real=True,
+            data_source="test_injected",
+        ))
+        assert tmp_intel.check_abandoned("any-pkg", "pip") is True
+
+        monkeypatch.setattr(sci, "_fetch_registry_metadata", lambda name, eco: PackageMetadata(
+            last_updated_days=729,
+            maintainer_count=None,
+            download_count=None,
+            dependencies_count=None,
+            is_real=True,
+            data_source="test_injected",
+        ))
+        assert tmp_intel.check_abandoned("any-pkg", "pip") is False
 
 
 # ---------------------------------------------------------------------------
