@@ -64,39 +64,41 @@ interface Integration {
   project?: string;
 }
 
+// Catalogue of supported ticket/notification integration types.
+// These are NOT shown as "configured" unless the API actually returns them.
+const SUPPORTED_TYPES = [
+  { type: "jira",        name: "Jira",           description: "Track findings as Jira issues"          },
+  { type: "servicenow",  name: "ServiceNow",      description: "ITSM incident management"               },
+  { type: "github",      name: "GitHub Issues",   description: "Track findings in GitHub"               },
+  { type: "gitlab",      name: "GitLab Issues",   description: "Track findings in GitLab"               },
+  { type: "pagerduty",   name: "PagerDuty",       description: "Incident alerting and on-call"          },
+  { type: "slack",       name: "Slack",           description: "Finding notifications to channels"      },
+];
+
 const INTEGRATION_ICONS: Record<string, string> = {
-  jira: "J",
+  jira:       "J",
   servicenow: "SN",
-  github: "GH",
-  gitlab: "GL",
-  pagerduty: "PD",
-  slack: "SL",
+  github:     "GH",
+  gitlab:     "GL",
+  pagerduty:  "PD",
+  slack:      "SL",
 };
 
 const INTEGRATION_COLORS: Record<string, string> = {
-  jira: "#0052CC",
+  jira:       "#0052CC",
   servicenow: "#62D84E",
-  github: "#333",
-  gitlab: "#E24329",
-  pagerduty: "#06AC38",
-  slack: "#4A154B",
+  github:     "#333",
+  gitlab:     "#E24329",
+  pagerduty:  "#06AC38",
+  slack:      "#4A154B",
 };
 
 const STATUS_CONFIG = {
-  connected: { label: "Connected", color: "#22c55e", icon: <CheckCircle className="h-3.5 w-3.5" /> },
+  connected:    { label: "Connected",    color: "#22c55e", icon: <CheckCircle className="h-3.5 w-3.5" /> },
   disconnected: { label: "Disconnected", color: "#6b7280", icon: <XCircle className="h-3.5 w-3.5" /> },
-  error: { label: "Error", color: "#ef4444", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-  syncing: { label: "Syncing", color: "#3b82f6", icon: <Loader2 className="h-3.5 w-3.5 animate-spin" /> },
+  error:        { label: "Error",        color: "#ef4444", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+  syncing:      { label: "Syncing",      color: "#3b82f6", icon: <Loader2 className="h-3.5 w-3.5 animate-spin" /> },
 };
-
-const AVAILABLE_INTEGRATIONS = [
-  { type: "jira", name: "Jira", description: "Track findings as Jira issues" },
-  { type: "servicenow", name: "ServiceNow", description: "ITSM incident management" },
-  { type: "github", name: "GitHub Issues", description: "Track findings in GitHub" },
-  { type: "gitlab", name: "GitLab Issues", description: "Track findings in GitLab" },
-  { type: "pagerduty", name: "PagerDuty", description: "Incident alerting and on-call" },
-  { type: "slack", name: "Slack", description: "Finding notifications to channels" },
-];
 
 function IntegrationStatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.disconnected;
@@ -122,7 +124,7 @@ function IntegrationCard({
   onTestConnection: (id: string) => void;
 }) {
   const color = INTEGRATION_COLORS[integration.type] ?? "#6b7280";
-  const icon = INTEGRATION_ICONS[integration.type] ?? integration.type.slice(0, 2).toUpperCase();
+  const icon  = INTEGRATION_ICONS[integration.type]  ?? integration.type.slice(0, 2).toUpperCase();
 
   return (
     <Card className={cn("transition-all", integration.status === "disconnected" && "opacity-60")}>
@@ -223,10 +225,10 @@ function ConfigureDialog({
   onClose: () => void;
   onSave: (config: Record<string, string>) => void;
 }) {
-  const [url, setUrl] = useState(integration?.url ?? "");
-  const [token, setToken] = useState("");
-  const [project, setProject] = useState(integration?.project ?? "");
-  const [syncInterval, setSyncInterval] = useState("15");
+  const [url, setUrl]                     = useState(integration?.url ?? "");
+  const [token, setToken]                 = useState("");
+  const [project, setProject]             = useState(integration?.project ?? "");
+  const [syncInterval, setSyncInterval]   = useState("15");
 
   if (!integration) return null;
   const color = INTEGRATION_COLORS[integration.type] ?? "#6b7280";
@@ -307,8 +309,8 @@ export default function TicketIntegration() {
   const integrationsQuery = useIntegrations();
 
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<Integration>>>({});
-  const [configTarget, setConfigTarget] = useState<Integration | null>(null);
-  const [configOpen, setConfigOpen] = useState(false);
+  const [configTarget, setConfigTarget]     = useState<Integration | null>(null);
+  const [configOpen, setConfigOpen]         = useState(false);
 
   const refetch = useCallback(() => integrationsQuery.refetch(), [integrationsQuery]);
 
@@ -316,43 +318,43 @@ export default function TicketIntegration() {
   if (integrationsQuery.isError)
     return <ErrorState message="Failed to load integrations" onRetry={refetch} />;
 
-  const apiIntegrations: Record<string, unknown>[] =
-    toArray(integrationsQuery.data);
+  const apiIntegrations: Record<string, unknown>[] = toArray(integrationsQuery.data);
 
-  // Map API data to Integration shape, fill in defaults
+  // Map API data to Integration shape — only what the API actually returns.
+  // No synthetic "configured" entries injected here.
   const integrations: Integration[] = apiIntegrations.map((int, idx) => ({
-    id: (int.id as string) ?? `integration-${idx}`,
-    name: (int.name as string) ?? (int.type as string) ?? "Unknown",
-    type: (int.type as string) as Integration["type"],
-    status: ((int.status as string) ?? "disconnected") as Integration["status"],
-    last_sync: (int.last_sync as string) ?? (int.last_synced as string),
+    id:           (int.id as string)           ?? `integration-${idx}`,
+    name:         (int.name as string)         ?? (int.type as string) ?? "Unknown",
+    type:         (int.type as string)         as Integration["type"],
+    status:       ((int.status as string)      ?? "disconnected") as Integration["status"],
+    last_sync:    (int.last_sync as string)    ?? (int.last_synced as string),
     items_synced: (int.items_synced as number) ?? (int.synced_count as number),
-    sync_errors: (int.sync_errors as number) ?? (int.error_count as number),
-    bidirectional: (int.bidirectional as boolean) ?? false,
-    url: (int.url as string) ?? (int.instance_url as string),
-    project: (int.project as string) ?? (int.project_key as string),
+    sync_errors:  (int.sync_errors as number)  ?? (int.error_count as number),
+    bidirectional:(int.bidirectional as boolean) ?? false,
+    url:          (int.url as string)          ?? (int.instance_url as string),
+    project:      (int.project as string)      ?? (int.project_key as string),
     ...localOverrides[(int.id as string) ?? ""],
   }));
 
-  const connected = integrations.filter((i) => i.status === "connected").length;
-  const totalItems = integrations.reduce((acc, i) => acc + (i.items_synced ?? 0), 0);
+  const connected   = integrations.filter((i) => i.status === "connected").length;
+  const totalItems  = integrations.reduce((acc, i) => acc + (i.items_synced ?? 0), 0);
   const totalErrors = integrations.reduce((acc, i) => acc + (i.sync_errors ?? 0), 0);
 
-  // Derive recent sync activity from all integrations
+  // Derive recent sync activity from all integrations that have a last_sync timestamp
   const syncActivity = integrations
     .filter((i) => i.last_sync)
     .map((i) => ({
-      service: i.name,
-      type: i.type,
+      service:   i.name,
+      type:      i.type,
       timestamp: i.last_sync!,
-      items: i.items_synced ?? 0,
-      errors: i.sync_errors ?? 0,
-      status: i.status,
+      items:     i.items_synced ?? 0,
+      errors:    i.sync_errors  ?? 0,
+      status:    i.status,
     }))
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-  const syncMutation = useSyncIntegration();
-  const testMutation = useTestIntegration();
+  const syncMutation      = useSyncIntegration();
+  const testMutation      = useTestIntegration();
   const configureMutation = useConfigureIntegration();
 
   const handleSync = (id: string) => {
@@ -364,10 +366,7 @@ export default function TicketIntegration() {
   };
 
   const handleToggleBidirectional = (id: string, val: boolean) => {
-    setLocalOverrides((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], bidirectional: val },
-    }));
+    setLocalOverrides((prev) => ({ ...prev, [id]: { ...prev[id], bidirectional: val } }));
     configureMutation.mutate({ id, data: { bidirectional: val } });
   };
 
@@ -436,13 +435,14 @@ export default function TicketIntegration() {
           <TabsTrigger value="available">Available Integrations</TabsTrigger>
         </TabsList>
 
+        {/* Tab: Connected Services — only real API data */}
         <TabsContent value="services">
           {integrations.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <Puzzle className="h-8 w-8 mb-3 opacity-30" />
-                <p className="text-sm">No integrations configured</p>
-                <p className="text-xs mt-1">Add an integration to start syncing findings</p>
+                <p className="text-sm font-medium">No integrations configured</p>
+                <p className="text-xs mt-1">Add an integration via the "Available Integrations" tab to start syncing findings</p>
               </CardContent>
             </Card>
           ) : (
@@ -451,10 +451,7 @@ export default function TicketIntegration() {
                 <IntegrationCard
                   key={int.id}
                   integration={int}
-                  onConfigure={(i) => {
-                    setConfigTarget(i);
-                    setConfigOpen(true);
-                  }}
+                  onConfigure={(i) => { setConfigTarget(i); setConfigOpen(true); }}
                   onSync={handleSync}
                   onToggleBidirectional={handleToggleBidirectional}
                   onTestConnection={handleTest}
@@ -464,6 +461,7 @@ export default function TicketIntegration() {
           )}
         </TabsContent>
 
+        {/* Tab: Sync Activity — derived from real integration data */}
         <TabsContent value="activity">
           <Card>
             <CardHeader>
@@ -471,70 +469,73 @@ export default function TicketIntegration() {
                 <Clock className="h-4 w-4" />
                 Recent Sync Activity
               </CardTitle>
+              <CardDescription className="text-xs">
+                Derived from last_sync timestamps of configured integrations
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Items Synced</TableHead>
-                    <TableHead>Errors</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {syncActivity.length === 0 ? (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No sync activity recorded
-                      </TableCell>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Items Synced</TableHead>
+                      <TableHead>Errors</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ) : (
-                    syncActivity.map((act, i) => {
-                      const color = INTEGRATION_COLORS[act.type] ?? "#6b7280";
-                      return (
-                        <TableRow key={i}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="h-5 w-5 rounded text-white text-[9px] font-bold flex items-center justify-center"
-                                style={{ background: color }}
-                              >
-                                {INTEGRATION_ICONS[act.type] ?? act.service.slice(0, 2)}
+                  </TableHeader>
+                  <TableBody>
+                    {syncActivity.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No sync activity recorded
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      syncActivity.map((act, i) => {
+                        const color = INTEGRATION_COLORS[act.type] ?? "#6b7280";
+                        return (
+                          <TableRow key={i}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="h-5 w-5 rounded text-white text-[9px] font-bold flex items-center justify-center"
+                                  style={{ background: color }}
+                                >
+                                  {INTEGRATION_ICONS[act.type] ?? act.service.slice(0, 2)}
+                                </div>
+                                <span className="text-sm">{act.service}</span>
                               </div>
-                              <span className="text-sm">{act.service}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {act.timestamp}
-                          </TableCell>
-                          <TableCell className="text-sm font-medium">
-                            {act.items}
-                          </TableCell>
-                          <TableCell>
-                            <span className={cn("text-sm", act.errors > 0 ? "text-destructive font-medium" : "text-muted-foreground")}>
-                              {act.errors}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <IntegrationStatusBadge status={act.status} />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{act.timestamp}</TableCell>
+                            <TableCell className="text-sm font-medium">{act.items}</TableCell>
+                            <TableCell>
+                              <span className={cn("text-sm", act.errors > 0 ? "text-destructive font-medium" : "text-muted-foreground")}>
+                                {act.errors}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <IntegrationStatusBadge status={act.status} />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Tab: Available Integrations
+            Shows the full catalogue. "Configured" badge only appears if the API
+            actually returned that integration type — never implied from the static list. */}
         <TabsContent value="available">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {AVAILABLE_INTEGRATIONS.map((avail) => {
+            {SUPPORTED_TYPES.map((avail) => {
+              // isConfigured is driven purely by real API data
               const isConfigured = integrations.some((i) => i.type === avail.type);
               const color = INTEGRATION_COLORS[avail.type] ?? "#6b7280";
               return (
@@ -550,15 +551,13 @@ export default function TicketIntegration() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold text-sm">{avail.name}</h3>
-                          {isConfigured && (
-                            <Badge variant="secondary" className="text-[10px]">
-                              Configured
-                            </Badge>
+                          {isConfigured ? (
+                            <Badge variant="secondary" className="text-[10px]">Configured</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">Not configured</Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {avail.description}
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{avail.description}</p>
                       </div>
                     </div>
                     <Button
@@ -566,13 +565,14 @@ export default function TicketIntegration() {
                       size="sm"
                       className="w-full mt-3"
                       onClick={() => {
-                        const mockInt: Integration = {
-                          id: `new_${avail.type}`,
-                          name: avail.name,
-                          type: avail.type as Integration["type"],
+                        // Open configure dialog with a disconnected stub for new connections
+                        const stub: Integration = {
+                          id:     `new_${avail.type}`,
+                          name:   avail.name,
+                          type:   avail.type as Integration["type"],
                           status: "disconnected",
                         };
-                        setConfigTarget(mockInt);
+                        setConfigTarget(stub);
                         setConfigOpen(true);
                       }}
                     >

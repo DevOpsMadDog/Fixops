@@ -3,26 +3,34 @@
  *
  * Coverage management, claims, and security assessment for cyber insurance.
  *   1. KPIs: Total Coverage, Active Policies, Open Claims, Annual Premium
- *   2. Policy cards (3)
+ *   2. Policy cards (from API)
  *   3. Risk assessment score bars + overall gauge
- *   4. Claims table (6 rows)
- *   5. Coverage gap analysis (3 recommendation cards)
+ *   4. Claims table
+ *   5. Coverage gap analysis
  *
- * API stubs: GET /api/v1/cyber-insurance/policies, /api/v1/cyber-insurance/claims
+ * API: GET /api/v1/cyber-insurance/policies
+ *      GET /api/v1/cyber-insurance/claims
+ *      GET /api/v1/cyber-insurance/stats
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, FileText, AlertTriangle, DollarSign, RefreshCw, PlusCircle, BarChart3 } from "lucide-react";
+import { Shield, FileText, AlertTriangle, DollarSign, RefreshCw, BarChart3 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
-const ORG_ID = "aldeci-demo";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+  import.meta.env.VITE_API_KEY ||
+  "demo-key";
+
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+  });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,87 +39,58 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────
 
-const POLICIES = [
-  {
-    carrier: "CyberShield Underwriters",
-    policyNum: "CSU-****-8821",
-    limit: "$2,000,000",
-    deductible: "$50,000",
-    premium: "$22,400/yr",
-    events: ["Ransomware", "Data Breach", "BEC"],
-    effective: "2026-01-01",
-    expiry: "2026-12-31",
-    status: "active",
-  },
-  {
-    carrier: "Nexus Cyber Re",
-    policyNum: "NCR-****-4410",
-    limit: "$2,000,000",
-    deductible: "$100,000",
-    premium: "$18,600/yr",
-    events: ["DDoS", "Business Interruption", "Extortion"],
-    effective: "2026-01-01",
-    expiry: "2026-12-31",
-    status: "active",
-  },
-  {
-    carrier: "GlobalSec Assurance",
-    policyNum: "GSA-****-0073",
-    limit: "$1,000,000",
-    deductible: "$25,000",
-    premium: "$6,000/yr",
-    events: ["Privacy Liability", "Regulatory Fines"],
-    effective: "2025-07-01",
-    expiry: "2026-06-30",
-    status: "renewing",
-  },
-];
+interface Policy {
+  policy_id: string;
+  carrier: string;
+  policy_number: string;
+  coverage_type: string;
+  coverage_limit: number;
+  deductible: number;
+  premium_annual: number;
+  effective_date: string;
+  expiry_date: string;
+  status: string;
+  covered_events: string[];
+}
 
-const RISK_SCORES = [
-  { label: "Multi-Factor Authentication",   pct: 91, color: "bg-green-500"  },
-  { label: "Backup & Recovery",             pct: 78, color: "bg-green-500"  },
-  { label: "Incident Response Plan",        pct: 65, color: "bg-yellow-500" },
-  { label: "Patch Management",              pct: 54, color: "bg-yellow-500" },
-  { label: "Security Awareness Training",   pct: 42, color: "bg-red-500"    },
-];
+interface Claim {
+  claim_id: string;
+  policy_id: string;
+  incident_type: string;
+  incident_date: string;
+  estimated_loss: number;
+  status: string;
+  adjuster: string | null;
+  settlement_amount: number | null;
+}
 
-const OVERALL_SCORE = 66;
-
-const CLAIMS = [
-  { id: "CLM-2024-001", type: "ransomware",             date: "2024-09-14", loss: "$420,000",  settlement: "$380,000", status: "settled",      adjuster: "Marsh & McLennan" },
-  { id: "CLM-2025-002", type: "data_breach",            date: "2025-02-28", loss: "$85,000",   settlement: "$72,000",  status: "settled",      adjuster: "Aon Cyber" },
-  { id: "CLM-2025-003", type: "business_interruption",  date: "2025-06-10", loss: "$210,000",  settlement: "—",        status: "approved",     adjuster: "Marsh & McLennan" },
-  { id: "CLM-2025-004", type: "data_breach",            date: "2025-11-01", loss: "$47,000",   settlement: "—",        status: "under_review", adjuster: "Willis Towers" },
-  { id: "CLM-2026-005", type: "ransomware",             date: "2026-01-18", loss: "$650,000",  settlement: "—",        status: "filed",        adjuster: "Aon Cyber" },
-  { id: "CLM-2026-006", type: "business_interruption",  date: "2026-03-05", loss: "$95,000",   settlement: "—",        status: "under_review", adjuster: "Willis Towers" },
-];
-
-const GAPS = [
-  {
-    title: "Social Engineering / BEC",
-    desc: "No coverage for business email compromise or social engineering fraud. Average BEC loss: $125K.",
-    urgency: "high",
-  },
-  {
-    title: "Physical Asset Damage",
-    desc: "Hardware destruction from cyber incidents (e.g., wiper malware) is excluded from current policies.",
-    urgency: "medium",
-  },
-  {
-    title: "Insider Threat / Malicious Employee",
-    desc: "Intentional data exfiltration by employees is not covered. Recommend adding crime rider.",
-    urgency: "medium",
-  },
-];
+interface InsuranceStats {
+  total_coverage: number;
+  active_policies: number;
+  open_claims: number;
+  total_settled: number;
+  avg_premium: number;
+  coverage_gap_analysis?: {
+    adequately_covered: boolean;
+    gap: number;
+  };
+}
 
 // ── Helpers ────────────────────────────────────────────────────
+
+function fmt(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n}`;
+}
 
 function PolicyStatusBadge({ status }: { status: string }) {
   const cls =
     status === "active"   ? "border-green-500/30 text-green-400 bg-green-500/10" :
-    status === "renewing" ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" :
+    status === "pending"  ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" :
+    status === "expired"  ? "border-red-500/30 text-red-400 bg-red-500/10" :
                             "border-border text-muted-foreground";
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{status}</Badge>;
 }
@@ -119,10 +98,10 @@ function PolicyStatusBadge({ status }: { status: string }) {
 function IncidentBadge({ type }: { type: string }) {
   const label = type.replace(/_/g, " ");
   const cls =
-    type === "ransomware"             ? "border-red-500/30 text-red-400 bg-red-500/10" :
-    type === "data_breach"            ? "border-amber-500/30 text-amber-400 bg-amber-500/10" :
-    type === "business_interruption"  ? "border-blue-500/30 text-blue-400 bg-blue-500/10" :
-                                        "border-border text-muted-foreground";
+    type === "ransomware"            ? "border-red-500/30 text-red-400 bg-red-500/10" :
+    type === "data_breach"           ? "border-amber-500/30 text-amber-400 bg-amber-500/10" :
+    type === "business_interruption" ? "border-blue-500/30 text-blue-400 bg-blue-500/10" :
+                                       "border-border text-muted-foreground";
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{label}</Badge>;
 }
 
@@ -137,14 +116,6 @@ function ClaimStatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{label}</Badge>;
 }
 
-function UrgencyBadge({ urgency }: { urgency: string }) {
-  const cls =
-    urgency === "high"   ? "border-red-500/30 text-red-400 bg-red-500/10" :
-    urgency === "medium" ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" :
-                           "border-border text-muted-foreground";
-  return <Badge className={cn("text-[10px] border capitalize", cls)}>{urgency} priority</Badge>;
-}
-
 // ── Component ──────────────────────────────────────────────────
 
 export default function CyberInsurance() {
@@ -152,22 +123,63 @@ export default function CyberInsurance() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
-  }, []);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [stats, setStats] = useState<InsuranceStats | null>(null);
+
+  const fetchAll = () => {
+    setLoading(true);
+    setError(null);
+    Promise.allSettled([
+      apiFetch("/api/v1/cyber-insurance/policies?org_id=default"),
+      apiFetch("/api/v1/cyber-insurance/claims?org_id=default"),
+      apiFetch("/api/v1/cyber-insurance/stats?org_id=default"),
+    ]).then(([polRes, clmRes, stsRes]) => {
+      if (polRes.status === "fulfilled") {
+        const d = polRes.value;
+        setPolicies(Array.isArray(d) ? d : (d.items ?? d.policies ?? []));
+      }
+      if (clmRes.status === "fulfilled") {
+        const d = clmRes.value;
+        setClaims(Array.isArray(d) ? d : (d.items ?? d.claims ?? []));
+      }
+      if (stsRes.status === "fulfilled") setStats(stsRes.value);
+      if (polRes.status === "rejected" && clmRes.status === "rejected") {
+        setError("Failed to load cyber insurance data");
+      }
+    }).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchAll(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchAll();
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const gaugeColor = OVERALL_SCORE >= 80 ? "text-green-400" : OVERALL_SCORE >= 60 ? "text-yellow-400" : "text-red-400";
-  const gaugeBorder = OVERALL_SCORE >= 80 ? "border-green-500/40" : OVERALL_SCORE >= 60 ? "border-yellow-500/40" : "border-red-500/40";
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
 
+  if (error && policies.length === 0 && claims.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <AlertTriangle className="h-10 w-10 text-amber-400 opacity-60" />
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Button variant="outline" size="sm" onClick={fetchAll}>Retry</Button>
+      </div>
+    );
+  }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
+  const totalCoverage   = stats?.total_coverage   ?? policies.reduce((s, p) => s + (p.coverage_limit ?? 0), 0);
+  const activePolicies  = stats?.active_policies  ?? policies.filter((p) => p.status === "active").length;
+  const openClaims      = stats?.open_claims       ?? claims.filter((c) => c.status !== "settled" && c.status !== "denied").length;
+  const avgPremium      = stats?.avg_premium       ?? (policies.length ? policies.reduce((s, p) => s + (p.premium_annual ?? 0), 0) / policies.length : 0);
 
   return (
     <motion.div
@@ -189,110 +201,139 @@ export default function CyberInsurance() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Coverage"  value="$5M"     icon={Shield}        />
-        <KpiCard title="Active Policies" value={3}       icon={FileText}      />
-        <KpiCard title="Open Claims"     value={2}       icon={AlertTriangle} trend="up" className="border-amber-500/20" />
-        <KpiCard title="Annual Premium"  value="$47,000" icon={DollarSign}    />
+        <KpiCard title="Total Coverage"  value={fmt(totalCoverage)}  icon={Shield}        />
+        <KpiCard title="Active Policies" value={activePolicies}       icon={FileText}      />
+        <KpiCard
+          title="Open Claims"
+          value={openClaims}
+          icon={AlertTriangle}
+          trend={openClaims > 0 ? "up" : "flat"}
+          className={openClaims > 0 ? "border-amber-500/20" : ""}
+        />
+        <KpiCard title="Avg Premium" value={`${fmt(avgPremium)}/yr`} icon={DollarSign} />
       </div>
 
       {/* Policy Cards */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {POLICIES.map((p, i) => (
-          <Card key={i} className="flex flex-col">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">{p.carrier}</CardTitle>
-                <PolicyStatusBadge status={p.status} />
-              </div>
-              <CardDescription className="text-[11px] font-mono">{p.policyNum}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 flex-1">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <div className="text-muted-foreground">Coverage Limit</div>
-                <div className="font-semibold text-right">{p.limit}</div>
-                <div className="text-muted-foreground">Deductible</div>
-                <div className="font-medium text-right">{p.deductible}</div>
-                <div className="text-muted-foreground">Premium</div>
-                <div className="font-medium text-right">{p.premium}</div>
-                <div className="text-muted-foreground">Effective</div>
-                <div className="tabular-nums text-right">{p.effective}</div>
-                <div className="text-muted-foreground">Expires</div>
-                <div className="tabular-nums text-right">{p.expiry}</div>
-              </div>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {p.events.map((e) => (
-                  <Badge key={e} className="text-[10px] border border-border text-muted-foreground">{e}</Badge>
-                ))}
-              </div>
-              <Button variant="outline" size="sm" className="mt-auto h-7 text-xs w-full">View Details</Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {policies.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground gap-3">
+            <Shield className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No policies found</p>
+            <p className="text-xs">Add a policy to start tracking coverage</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {policies.map((p) => (
+            <Card key={p.policy_id} className="flex flex-col">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold">{p.carrier}</CardTitle>
+                  <PolicyStatusBadge status={p.status} />
+                </div>
+                <CardDescription className="text-[11px] font-mono">{p.policy_number}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 flex-1">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <div className="text-muted-foreground">Coverage Limit</div>
+                  <div className="font-semibold text-right">{fmt(p.coverage_limit)}</div>
+                  <div className="text-muted-foreground">Deductible</div>
+                  <div className="font-medium text-right">{fmt(p.deductible)}</div>
+                  <div className="text-muted-foreground">Premium</div>
+                  <div className="font-medium text-right">{fmt(p.premium_annual)}/yr</div>
+                  <div className="text-muted-foreground">Effective</div>
+                  <div className="tabular-nums text-right">{p.effective_date}</div>
+                  <div className="text-muted-foreground">Expires</div>
+                  <div className="tabular-nums text-right">{p.expiry_date}</div>
+                  <div className="text-muted-foreground">Type</div>
+                  <div className="tabular-nums text-right capitalize">{p.coverage_type.replace(/_/g, " ")}</div>
+                </div>
+                {p.covered_events.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {p.covered_events.map((e) => (
+                      <Badge key={e} className="text-[10px] border border-border text-muted-foreground capitalize">
+                        {e.replace(/_/g, " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <Button variant="outline" size="sm" className="mt-auto h-7 text-xs w-full">View Details</Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Risk Assessment + Claims */}
+      {/* Risk Assessment (from stats gap analysis) + Coverage Gap */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Risk Assessment */}
+        {/* Coverage summary */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-blue-400" />
-              Security Risk Assessment
+              Coverage Summary
             </CardTitle>
-            <CardDescription className="text-xs">Insurer scoring categories affecting premium</CardDescription>
+            <CardDescription className="text-xs">Aggregate coverage position across all policies</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Overall gauge */}
-            <div className={cn("flex items-center gap-4 rounded-lg border p-3", gaugeBorder)}>
-              <div className={cn("text-4xl font-bold tabular-nums", gaugeColor)}>{OVERALL_SCORE}</div>
-              <div>
-                <div className="text-xs font-semibold">Overall Security Score</div>
-                <div className="text-[10px] text-muted-foreground">
-                  {OVERALL_SCORE >= 80 ? "Preferred rate tier" : OVERALL_SCORE >= 60 ? "Standard rate tier" : "High-risk — premium surcharge likely"}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: "Total Coverage", value: fmt(totalCoverage) },
+                { label: "Active Policies", value: String(activePolicies) },
+                { label: "Open Claims", value: String(openClaims) },
+                { label: "Total Settled", value: fmt(stats?.total_settled ?? 0) },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                  <p className="text-[10px] text-muted-foreground">{label}</p>
+                  <p className="text-lg font-bold tabular-nums mt-0.5">{value}</p>
                 </div>
-              </div>
+              ))}
             </div>
-            {RISK_SCORES.map((s) => (
-              <div key={s.label} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{s.label}</span>
-                  <span className="font-bold tabular-nums">{s.pct}%</span>
-                </div>
-                <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${s.pct}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn("h-full rounded-full", s.color)}
-                  />
-                </div>
+            {stats?.coverage_gap_analysis && (
+              <div className={cn(
+                "rounded-lg border p-3 text-xs",
+                stats.coverage_gap_analysis.adequately_covered
+                  ? "border-green-500/30 bg-green-500/5 text-green-400"
+                  : "border-red-500/30 bg-red-500/5 text-red-400"
+              )}>
+                {stats.coverage_gap_analysis.adequately_covered
+                  ? "Coverage is adequate for current open claim exposure."
+                  : `Coverage gap of ${fmt(stats.coverage_gap_analysis.gap)} identified.`}
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
 
-        {/* Coverage Gaps */}
+        {/* Claims summary */}
         <Card className="border-orange-500/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-orange-400">
               <AlertTriangle className="h-4 w-4" />
-              Coverage Gap Analysis
+              Claims Overview
             </CardTitle>
-            <CardDescription className="text-xs">Risks not covered by current policies</CardDescription>
+            <CardDescription className="text-xs">Open and recent claim exposure</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {GAPS.map((g, i) => (
-              <div key={i} className="rounded-lg border border-border/50 bg-muted/10 p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs font-semibold">{g.title}</span>
-                  <UrgencyBadge urgency={g.urgency} />
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">{g.desc}</p>
-                <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] w-full">
-                  <PlusCircle className="h-3 w-3 mr-1" /> Add Coverage
-                </Button>
+            {claims.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
+                <FileText className="h-6 w-6 opacity-30" />
+                <p className="text-xs">No claims on record</p>
               </div>
-            ))}
+            ) : (
+              claims.slice(0, 4).map((c) => (
+                <div key={c.claim_id} className="rounded-lg border border-border/50 bg-muted/10 p-3 space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-semibold font-mono">{c.claim_id.slice(0, 8).toUpperCase()}</span>
+                    <ClaimStatusBadge status={c.status} />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <IncidentBadge type={c.incident_type} />
+                    <span className="font-semibold text-foreground">{fmt(c.estimated_loss)}</span>
+                  </div>
+                  {c.adjuster && <p className="text-[10px] text-muted-foreground">{c.adjuster}</p>}
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
@@ -310,34 +351,45 @@ export default function CyberInsurance() {
           <CardDescription className="text-xs">All submitted insurance claims and current status</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Claim ID</TableHead>
-                  <TableHead className="text-[11px] h-8">Type</TableHead>
-                  <TableHead className="text-[11px] h-8">Incident Date</TableHead>
-                  <TableHead className="text-[11px] h-8">Est. Loss</TableHead>
-                  <TableHead className="text-[11px] h-8">Settlement</TableHead>
-                  <TableHead className="text-[11px] h-8">Status</TableHead>
-                  <TableHead className="text-[11px] h-8">Adjuster</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {CLAIMS.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
-                    <TableCell className="py-2.5"><IncidentBadge type={row.type} /></TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.date}</TableCell>
-                    <TableCell className="text-xs py-2.5 font-medium tabular-nums">{row.loss}</TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.settlement}</TableCell>
-                    <TableCell className="py-2.5"><ClaimStatusBadge status={row.status} /></TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{row.adjuster}</TableCell>
+          {claims.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 text-muted-foreground gap-2">
+              <FileText className="h-8 w-8 opacity-30" />
+              <p className="text-sm">No claims on record</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Claim ID</TableHead>
+                    <TableHead className="text-[11px] h-8">Type</TableHead>
+                    <TableHead className="text-[11px] h-8">Incident Date</TableHead>
+                    <TableHead className="text-[11px] h-8">Est. Loss</TableHead>
+                    <TableHead className="text-[11px] h-8">Settlement</TableHead>
+                    <TableHead className="text-[11px] h-8">Status</TableHead>
+                    <TableHead className="text-[11px] h-8">Adjuster</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {claims.map((row) => (
+                    <TableRow key={row.claim_id} className="hover:bg-muted/30">
+                      <TableCell className="text-xs font-mono py-2.5">{row.claim_id.slice(0, 8).toUpperCase()}</TableCell>
+                      <TableCell className="py-2.5"><IncidentBadge type={row.incident_type} /></TableCell>
+                      <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">
+                        {row.incident_date ? row.incident_date.slice(0, 10) : "—"}
+                      </TableCell>
+                      <TableCell className="text-xs py-2.5 font-medium tabular-nums">{fmt(row.estimated_loss)}</TableCell>
+                      <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">
+                        {row.settlement_amount != null ? fmt(row.settlement_amount) : "—"}
+                      </TableCell>
+                      <TableCell className="py-2.5"><ClaimStatusBadge status={row.status} /></TableCell>
+                      <TableCell className="text-xs py-2.5 text-muted-foreground">{row.adjuster ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

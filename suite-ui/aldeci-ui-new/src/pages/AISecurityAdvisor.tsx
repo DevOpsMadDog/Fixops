@@ -3,14 +3,17 @@
  *
  * LLM-powered security consultant — proactive recommendations,
  * incident analysis, and threat briefings.
- *   1. KPIs: Recommendations Generated, Critical Findings Addressed,
- *            Avg Risk Reduction, Briefings Delivered
- *   2. Ask the Advisor — chat interface with seeded Q&A
- *   3. AI-Generated Recommendations — priority table (12 rows)
- *   4. Quick Analysis Panels — Posture Review, Threat Briefing, Incident Analyzer
- *   5. Session History
+ *   1. KPIs: Sessions, Critical Recs, Implemented, Avg Impact
+ *   2. Ask the Advisor — live chat POSTing to /api/v1/ai-advisor/ask
+ *   3. AI-Generated Recommendations — from /api/v1/ai-advisor/recommendations
+ *   4. Quick Analysis Panels — posture, threat, incident
+ *   5. Session History — from /api/v1/ai-advisor/sessions
  *
- * API stub: GET /api/v1/ai-advisor/recommendations, /api/v1/ai-advisor/sessions
+ * API:
+ *   GET  /api/v1/ai-advisor/stats
+ *   GET  /api/v1/ai-advisor/recommendations
+ *   GET  /api/v1/ai-advisor/sessions
+ *   POST /api/v1/ai-advisor/ask  (body: {question})
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -22,10 +25,9 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "dev-key";
-const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, options?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -36,6 +38,7 @@ async function apiFetch(path: string, options?: RequestInit) {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
+
 import {
   Brain,
   Bot,
@@ -63,7 +66,6 @@ import { cn } from "@/lib/utils";
 
 type Priority = "critical" | "high" | "medium" | "low";
 type RecStatus = "pending" | "accepted" | "rejected" | "implemented";
-type SessionType = "posture_review" | "incident_analysis" | "threat_briefing" | "remediation_plan";
 type SessionStatus = "completed" | "failed" | "pending";
 
 interface ChatMessage {
@@ -72,76 +74,41 @@ interface ChatMessage {
   ts?: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const QA_EXCHANGES = [
-  {
-    q: "What are our top 3 critical remediation priorities?",
-    a: "Based on current posture data, your top priorities are: (1) Patch CVE-2024-3400 in PAN-OS affecting 12 internet-facing devices — CVSS 10.0 with active exploitation; (2) Remediate 847 expired service account credentials across cloud workloads; (3) Enable MFA for 23 privileged admin accounts in Azure AD. Estimated risk reduction: 41%.",
-  },
-  {
-    q: "Is our SOC2 Type II audit ready?",
-    a: "Current compliance posture shows 78% SOC2 readiness. 6 controls need evidence collection (CC6.1, CC6.3, CC7.2, CC9.1, A1.1, A1.2). Primary gap: access review documentation for Q1 is incomplete. Estimated 3 weeks to audit-ready state with current remediation velocity.",
-  },
-  {
-    q: "What threat actors are targeting our sector?",
-    a: "Your industry (Financial Services) faces active campaigns from 3 tracked APT groups: Lazarus Group (DPRK) targeting SWIFT infrastructure, TA505 deploying Clop ransomware via phishing, and FIN7 using advanced LOLBins. 14 IOCs from these groups match assets in your environment. Immediate action: block IPs 185.220.101.0/24.",
-  },
-  {
-    q: "Analyze last week's failed login surge",
-    a: "The 340% spike in failed auth events (Mon–Wed) indicates a credential stuffing attack targeting your customer portal. Source IPs concentrate in 3 ASNs (AS209588, AS60781, AS62240) with 94% matching known proxy networks. Recommend: implement CAPTCHA + rate limiting on /auth/login. No successful compromises detected — attack was unsuccessful.",
-  },
-  {
-    q: "Generate remediation plan for Log4Shell exposure",
-    a: "Found 3 vulnerable Log4j instances: app-server-prod-02 (Log4j 2.14.1), analytics-pipeline-01 (Log4j 2.15.0), legacy-api-gateway (Log4j 2.12.0). Remediation plan: (1) Emergency patch to 2.17.1 — 4h effort; (2) WAF rule deployment — 30min; (3) Network egress blocking for JNDI — 1h; (4) Scan for exploitation artifacts in /var/log — 2h. Total: 7.5h. RCA: log4j-core version in Maven pom.xml not pinned.",
-  },
-];
-
 interface Recommendation {
   id: string;
   priority: Priority;
   category: string;
   title: string;
-  rationale: string;
-  effort: string;
-  impact: number;
+  rationale?: string;
+  description?: string;
+  effort_days?: number;
+  effort?: string;
+  impact_score?: number;
+  impact?: number;
   status: RecStatus;
 }
 
-const RECOMMENDATIONS: Recommendation[] = [
-  { id: "REC-001", priority: "critical", category: "vulnerability",      title: "Emergency patch for actively exploited CVE-2024-3400",                  rationale: "CVSS 10.0, active exploitation in the wild, 12 internet-facing PAN-OS devices exposed.",       effort: "1d",  impact: 10, status: "pending"     },
-  { id: "REC-002", priority: "critical", category: "access_control",     title: "Rotate all service account credentials post-breach indicator",            rationale: "Breach indicator detected in SIEM; 847 stale service accounts present lateral movement risk.",  effort: "2d",  impact: 9,  status: "accepted"    },
-  { id: "REC-003", priority: "critical", category: "incident_response",  title: "Isolate 3 hosts with confirmed C2 beacon activity",                       rationale: "ThreatGraph correlation confirmed C2 callbacks to 185.220.101.47 from prod segment.",           effort: "4h",  impact: 10, status: "pending"     },
-  { id: "REC-004", priority: "high",     category: "architecture",       title: "Implement network micro-segmentation for crown jewel assets",              rationale: "Lateral movement paths identified from DMZ to internal DB tier — 0 segmentation controls.",      effort: "14d", impact: 8,  status: "pending"     },
-  { id: "REC-005", priority: "high",     category: "access_control",     title: "Enable MFA for all 23 privileged Azure AD admin accounts",                 rationale: "Admin accounts without MFA represent highest-risk single point of compromise.",                  effort: "3d",  impact: 8,  status: "accepted"    },
-  { id: "REC-006", priority: "high",     category: "monitoring",         title: "Deploy UEBA baseline for insider threat detection",                         rationale: "No behavioral baselining active; 3 anomalous after-hours data access events undetected.",         effort: "5d",  impact: 7,  status: "pending"     },
-  { id: "REC-007", priority: "high",     category: "compliance",         title: "Collect missing SOC2 evidence for 6 controls before audit",                rationale: "CC6.1, CC6.3, CC7.2, CC9.1, A1.1, A1.2 have no linked evidence — audit fails without them.",    effort: "7d",  impact: 7,  status: "implemented" },
-  { id: "REC-008", priority: "medium",   category: "vulnerability",      title: "Patch OpenSSL 3.0.x to 3.0.9 across 34 servers",                           rationale: "CVE-2023-0464 (high) present; servers exposed internally — not internet-facing.",               effort: "4d",  impact: 6,  status: "pending"     },
-  { id: "REC-009", priority: "medium",   category: "monitoring",         title: "Integrate CloudTrail logs into SIEM for AWS workloads",                     rationale: "38% of AWS API activity has no SIEM coverage — blind spot for cloud-native attacks.",            effort: "3d",  impact: 6,  status: "accepted"    },
-  { id: "REC-010", priority: "medium",   category: "architecture",       title: "Enforce TLS 1.3 minimum — deprecate TLS 1.0 and 1.1",                      rationale: "4 internal services still negotiating TLS 1.0; BEAST and POODLE attacks remain feasible.",        effort: "5d",  impact: 5,  status: "pending"     },
-  { id: "REC-011", priority: "low",      category: "compliance",         title: "Automate quarterly access reviews for all SaaS applications",               rationale: "Manual review process creates 6–8 week lag; SOX requires timely recertification.",               effort: "10d", impact: 4,  status: "pending"     },
-  { id: "REC-012", priority: "low",      category: "access_control",     title: "Implement just-in-time (JIT) privileged access for cloud console",          rationale: "Standing admin access to AWS/Azure consoles violates least-privilege — JIT reduces blast radius.", effort: "14d", impact: 4,  status: "rejected"    },
-];
-
 interface Session {
   id: string;
-  type: SessionType;
+  session_type?: string;
+  type?: string;
   status: SessionStatus;
-  recsCount: number;
-  createdAt: string;
-  duration: string;
+  recommendation_count?: number;
+  recsCount?: number;
+  created_at?: string;
+  createdAt?: string;
+  completed_at?: string;
+  duration?: string;
 }
 
-const SESSIONS: Session[] = [
-  { id: "SES-0024", type: "posture_review",      status: "completed", recsCount: 8,  createdAt: "2026-04-16 14:30", duration: "3m 42s" },
-  { id: "SES-0023", type: "incident_analysis",   status: "completed", recsCount: 5,  createdAt: "2026-04-16 12:15", duration: "2m 18s" },
-  { id: "SES-0022", type: "threat_briefing",      status: "completed", recsCount: 12, createdAt: "2026-04-16 09:00", duration: "4m 55s" },
-  { id: "SES-0021", type: "remediation_plan",     status: "completed", recsCount: 7,  createdAt: "2026-04-15 17:45", duration: "5m 10s" },
-  { id: "SES-0020", type: "posture_review",       status: "completed", recsCount: 9,  createdAt: "2026-04-15 11:00", duration: "3m 28s" },
-  { id: "SES-0019", type: "incident_analysis",    status: "failed",    recsCount: 0,  createdAt: "2026-04-15 08:30", duration: "0m 12s" },
-  { id: "SES-0018", type: "threat_briefing",      status: "completed", recsCount: 6,  createdAt: "2026-04-14 16:00", duration: "4m 03s" },
-  { id: "SES-0017", type: "remediation_plan",     status: "completed", recsCount: 11, createdAt: "2026-04-14 10:20", duration: "6m 30s" },
-];
+interface AdvisorStats {
+  session_count?: number;
+  total_recommendations?: number;
+  recommendations_by_priority?: Record<string, number>;
+  recommendations_by_status?: Record<string, number>;
+  implemented_count?: number;
+  total_impact_score?: number;
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -171,7 +138,7 @@ function StatusBadge({ s }: { s: RecStatus | SessionStatus }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{s}</Badge>;
 }
 
-function SessionTypeBadge({ t }: { t: SessionType }) {
+function SessionTypeBadge({ t }: { t: string }) {
   const label = t.replace(/_/g, " ");
   return (
     <Badge className="text-[10px] border border-indigo-500/30 text-indigo-400 bg-indigo-500/10 capitalize">
@@ -204,32 +171,36 @@ function ImpactDots({ score }: { score: number }) {
 export default function AISecurityAdvisor() {
   const [refreshing, setRefreshing] = useState(false);
   const [question, setQuestion] = useState("");
-  const [liveData, setLiveData] = useState<any>(null);
+  const [stats, setStats] = useState<AdvisorStats | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveRecs, setLiveRecs] = useState<Recommendation[] | null>(null);
-  const [liveSessions, setLiveSessions] = useState<Session[] | null>(null);
+  const [recs, setRecs] = useState<Recommendation[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const fetchAll = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/ai-advisor/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ai-advisor/recommendations?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ai-advisor/sessions?org_id=${ORG_ID}`),
+      apiFetch("/api/v1/ai-advisor/stats?org_id=default"),
+      apiFetch("/api/v1/ai-advisor/recommendations?org_id=default"),
+      apiFetch("/api/v1/ai-advisor/sessions?org_id=default"),
     ]).then(([statsRes, recsRes, sessionsRes]) => {
-      if (statsRes.status === "fulfilled") setLiveData(statsRes.value);
+      if (statsRes.status === "fulfilled") setStats(statsRes.value);
       if (recsRes.status === "fulfilled") {
-        const recs = recsRes.value?.items ?? recsRes.value?.recommendations ?? recsRes.value;
-        if (Array.isArray(recs) && recs.length > 0) setLiveRecs(recs);
+        const d = recsRes.value;
+        const arr = Array.isArray(d) ? d : (d.items ?? d.recommendations ?? []);
+        setRecs(arr);
       }
       if (sessionsRes.status === "fulfilled") {
-        const sess = sessionsRes.value?.items ?? sessionsRes.value?.sessions ?? sessionsRes.value;
-        if (Array.isArray(sess) && sess.length > 0) setLiveSessions(sess);
+        const d = sessionsRes.value;
+        const arr = Array.isArray(d) ? d : (d.items ?? d.sessions ?? []);
+        setSessions(arr);
       }
     }).finally(() => setDataLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchAll(); }, []);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -243,7 +214,7 @@ export default function AISecurityAdvisor() {
     setChatMessages((prev) => [...prev, userMsg]);
     setChatLoading(true);
     try {
-      const resp = await apiFetch(`/api/v1/ai-advisor/ask?org_id=${ORG_ID}`, {
+      const resp = await apiFetch("/api/v1/ai-advisor/ask?org_id=default", {
         method: "POST",
         body: JSON.stringify({ question: q }),
       });
@@ -262,23 +233,18 @@ export default function AISecurityAdvisor() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setDataLoading(true);
-    Promise.allSettled([
-      apiFetch(`/api/v1/ai-advisor/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ai-advisor/recommendations?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ai-advisor/sessions?org_id=${ORG_ID}`),
-    ]).then(([statsRes, recsRes, sessionsRes]) => {
-      if (statsRes.status === "fulfilled") setLiveData(statsRes.value);
-      if (recsRes.status === "fulfilled") {
-        const recs = recsRes.value?.items ?? recsRes.value?.recommendations ?? recsRes.value;
-        if (Array.isArray(recs) && recs.length > 0) setLiveRecs(recs);
-      }
-      if (sessionsRes.status === "fulfilled") {
-        const sess = sessionsRes.value?.items ?? sessionsRes.value?.sessions ?? sessionsRes.value;
-        if (Array.isArray(sess) && sess.length > 0) setLiveSessions(sess);
-      }
-    }).finally(() => { setRefreshing(false); setDataLoading(false); });
+    fetchAll();
+    setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Derive KPI values from stats
+  const totalRecs = stats?.total_recommendations ??
+    (stats?.recommendations_by_priority
+      ? Object.values(stats.recommendations_by_priority).reduce((a, b) => a + b, 0)
+      : recs.length);
+  const criticalCount = stats?.recommendations_by_priority?.critical ?? recs.filter((r) => r.priority === "critical").length;
+  const implementedCount = stats?.implemented_count ?? recs.filter((r) => r.status === "implemented").length;
+  const sessionCount = stats?.session_count ?? sessions.length;
 
   return (
     <motion.div
@@ -300,10 +266,10 @@ export default function AISecurityAdvisor() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Recommendations Generated" value={liveData?.total_recommendations ?? liveData?.recommendations_generated ?? 127} icon={Brain}    trend="up"   trendLabel="↑ 12 this week"           className="border-purple-500/20" />
-        <KpiCard title="Critical Findings Addressed" value={liveData?.critical_addressed ?? liveData?.accepted_recommendations ?? 18}  icon={Shield}   trend="up"   trendLabel="85% acceptance rate"       className="border-green-500/20" />
-        <KpiCard title="Avg Risk Reduction"          value={liveData?.avg_risk_reduction != null ? `${liveData.avg_risk_reduction}%` : "34%"} icon={Activity} trend="up"   trendLabel="per recommendation"        className="border-blue-500/20" />
-        <KpiCard title="Briefings Delivered"         value={liveData?.total_sessions ?? liveData?.briefings_delivered ?? 24}  icon={FileText} trend="flat" trendLabel="last 30 days"              className="border-indigo-500/20" />
+        <KpiCard title="Total Recommendations" value={totalRecs}       icon={Brain}    trend="up"   className="border-purple-500/20" />
+        <KpiCard title="Critical Findings"     value={criticalCount}   icon={Shield}   trend="up"   className="border-red-500/20" />
+        <KpiCard title="Implemented"           value={implementedCount} icon={Activity} trend="up"   className="border-green-500/20" />
+        <KpiCard title="Advisor Sessions"      value={sessionCount}    icon={FileText} trend="flat" className="border-indigo-500/20" />
       </div>
 
       {/* Section 1: Ask the Advisor */}
@@ -325,28 +291,13 @@ export default function AISecurityAdvisor() {
               "bg-black/20 shadow-inner"
             )}
           >
-            {/* Seeded Q&A when no live messages yet */}
-            {chatMessages.length === 0 && QA_EXCHANGES.map((item, idx) => (
-              <div key={idx} className="space-y-2">
-                <div className="flex items-start gap-2">
-                  <div className="shrink-0 w-6 h-6 rounded-full bg-muted/40 flex items-center justify-center">
-                    <User className="h-3 w-3 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 rounded-md bg-muted/20 px-3 py-2 text-xs text-foreground">
-                    {item.q}
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="shrink-0 w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/30 flex items-center justify-center">
-                    <Bot className="h-3 w-3 text-purple-400" />
-                  </div>
-                  <div className="flex-1 rounded-md border border-purple-500/20 bg-purple-500/5 px-3 py-2 text-xs text-foreground leading-relaxed">
-                    {item.a}
-                  </div>
-                </div>
+            {chatMessages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
+                <Bot className="h-8 w-8 opacity-30" />
+                <p className="text-xs">Ask a security question to get started</p>
+                <p className="text-[10px] opacity-60">e.g. "What are our top 3 critical priorities?" or "Is our SOC2 audit ready?"</p>
               </div>
-            ))}
-            {/* Live chat messages */}
+            )}
             {chatMessages.map((msg, idx) => (
               <div key={idx} className="flex items-start gap-2">
                 {msg.role === "user" ? (
@@ -422,53 +373,66 @@ export default function AISecurityAdvisor() {
               </CardDescription>
             </div>
             <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">
-              {(liveRecs ?? RECOMMENDATIONS).length} recommendations
+              {recs.length} recommendations
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] h-8">Priority</TableHead>
-                  <TableHead className="text-[11px] h-8">Category</TableHead>
-                  <TableHead className="text-[11px] h-8">Recommendation</TableHead>
-                  <TableHead className="text-[11px] h-8">Effort</TableHead>
-                  <TableHead className="text-[11px] h-8">Impact</TableHead>
-                  <TableHead className="text-[11px] h-8">Status</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(liveRecs ?? RECOMMENDATIONS).map((rec: any) => (
-                  <TableRow key={rec.id} className="hover:bg-muted/30">
-                    <TableCell className="py-2.5"><PriorityBadge p={rec.priority} /></TableCell>
-                    <TableCell className="py-2.5"><CategoryBadge cat={rec.category} /></TableCell>
-                    <TableCell className="py-2.5 max-w-[280px]">
-                      <p className="text-xs font-medium truncate">{rec.title}</p>
-                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">{rec.rationale}</p>
-                    </TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground font-medium">{rec.effort}</TableCell>
-                    <TableCell className="py-2.5"><ImpactDots score={rec.impact} /></TableCell>
-                    <TableCell className="py-2.5"><StatusBadge s={rec.status} /></TableCell>
-                    <TableCell className="py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {rec.status === "pending" && (
-                          <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">
-                            Accept
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">
-                          View Details
-                        </Button>
-                      </div>
-                    </TableCell>
+          {recs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 text-muted-foreground gap-2">
+              <Zap className="h-8 w-8 opacity-30" />
+              <p className="text-sm">No recommendations yet</p>
+              <p className="text-xs">Start an advisor session to generate recommendations</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Priority</TableHead>
+                    <TableHead className="text-[11px] h-8">Category</TableHead>
+                    <TableHead className="text-[11px] h-8">Recommendation</TableHead>
+                    <TableHead className="text-[11px] h-8">Effort</TableHead>
+                    <TableHead className="text-[11px] h-8">Impact</TableHead>
+                    <TableHead className="text-[11px] h-8">Status</TableHead>
+                    <TableHead className="text-[11px] h-8 text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {recs.map((rec) => {
+                    const effort = rec.effort ?? (rec.effort_days != null ? `${rec.effort_days}d` : "—");
+                    const impact = rec.impact ?? Math.round(rec.impact_score ?? 0);
+                    const rationale = rec.rationale ?? rec.description ?? "";
+                    return (
+                      <TableRow key={rec.id} className="hover:bg-muted/30">
+                        <TableCell className="py-2.5"><PriorityBadge p={rec.priority} /></TableCell>
+                        <TableCell className="py-2.5"><CategoryBadge cat={rec.category} /></TableCell>
+                        <TableCell className="py-2.5 max-w-[280px]">
+                          <p className="text-xs font-medium truncate">{rec.title}</p>
+                          {rationale && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{rationale}</p>}
+                        </TableCell>
+                        <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground font-medium">{effort}</TableCell>
+                        <TableCell className="py-2.5"><ImpactDots score={impact} /></TableCell>
+                        <TableCell className="py-2.5"><StatusBadge s={rec.status} /></TableCell>
+                        <TableCell className="py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {rec.status === "pending" && (
+                              <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">
+                                Accept
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">
+                              View Details
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -485,12 +449,8 @@ export default function AISecurityAdvisor() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold tabular-nums">72<span className="text-sm text-muted-foreground font-normal">/100</span></p>
-                <p className="text-xs text-muted-foreground">Grade: <span className="text-blue-400 font-semibold">B</span></p>
-              </div>
-              <div className="text-right space-y-1">
-                <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">3 critical findings</Badge>
-                <p className="text-[10px] text-green-400">↑ Trend: improving</p>
+                <p className="text-xs text-muted-foreground">Advisor sessions available</p>
+                <p className="text-2xl font-bold tabular-nums">{sessionCount}</p>
               </div>
             </div>
             <Button size="sm" className="w-full h-7 text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/20">
@@ -508,12 +468,11 @@ export default function AISecurityAdvisor() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10 mb-1">Threat Level: HIGH</Badge>
-                <p className="text-xs text-muted-foreground">3 active APT campaigns</p>
-                <p className="text-xs text-muted-foreground">14 matched IOCs</p>
-              </div>
+            <div>
+              <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10 mb-1">
+                {criticalCount > 0 ? "Critical findings present" : "No critical findings"}
+              </Badge>
+              <p className="text-xs text-muted-foreground">{criticalCount} critical recommendations</p>
             </div>
             <Button size="sm" className="w-full h-7 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20">
               Generate Briefing
@@ -530,11 +489,12 @@ export default function AISecurityAdvisor() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold tabular-nums">2 <span className="text-sm text-muted-foreground font-normal">open</span></p>
-                <p className="text-xs text-muted-foreground">Last analysis: <span className="text-amber-400">2h ago</span></p>
-              </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Pending recommendations</p>
+              <p className="text-2xl font-bold tabular-nums">
+                {recs.filter((r) => r.status === "pending").length}
+                <span className="text-sm text-muted-foreground font-normal"> pending</span>
+              </p>
             </div>
             <Button size="sm" className="w-full h-7 text-xs bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/20">
               Analyze Now
@@ -555,56 +515,62 @@ export default function AISecurityAdvisor() {
               <CardDescription className="text-xs">Previous advisor sessions and generated outputs</CardDescription>
             </div>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {(liveSessions ?? SESSIONS).length} sessions
+              {sessions.length} sessions
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-[11px] h-8">Session ID</TableHead>
-                <TableHead className="text-[11px] h-8">Type</TableHead>
-                <TableHead className="text-[11px] h-8">Status</TableHead>
-                <TableHead className="text-[11px] h-8">Recommendations</TableHead>
-                <TableHead className="text-[11px] h-8">Duration</TableHead>
-                <TableHead className="text-[11px] h-8">Created</TableHead>
-                <TableHead className="text-[11px] h-8 text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(liveSessions ?? SESSIONS).map((s: any) => {
-                const sid      = s.id ?? s.session_id ?? "—";
-                const stype    = s.type ?? s.session_type ?? "posture_review";
-                const sstatus  = s.status ?? "completed";
-                const recsCount= s.recsCount ?? s.recommendations_count ?? s.rec_count ?? 0;
-                const duration = s.duration ?? s.duration_seconds != null ? `${s.duration_seconds}s` : "—";
-                const created  = s.createdAt ?? s.created_at ?? "—";
-                return (
-                <TableRow key={sid} className="hover:bg-muted/30">
-                  <TableCell className="text-xs font-mono py-2.5">{sid}</TableCell>
-                  <TableCell className="py-2.5"><SessionTypeBadge t={stype as SessionType} /></TableCell>
-                  <TableCell className="py-2.5">
-                    <div className="flex items-center gap-1">
-                      {sstatus === "completed" ? <CheckCircle className="h-3 w-3 text-green-400" /> :
-                       sstatus === "failed"    ? <XCircle className="h-3 w-3 text-red-400" /> :
-                                                 <Clock className="h-3 w-3 text-yellow-400" />}
-                      <StatusBadge s={sstatus as SessionStatus} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs py-2.5 tabular-nums text-center">{recsCount}</TableCell>
-                  <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{duration}</TableCell>
-                  <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{created}</TableCell>
-                  <TableCell className="py-2.5 text-right">
-                    <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" disabled={sstatus !== "completed"}>
-                      View
-                    </Button>
-                  </TableCell>
+          {sessions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 text-muted-foreground gap-2">
+              <Clock className="h-8 w-8 opacity-30" />
+              <p className="text-sm">No advisor sessions yet</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] h-8">Session ID</TableHead>
+                  <TableHead className="text-[11px] h-8">Type</TableHead>
+                  <TableHead className="text-[11px] h-8">Status</TableHead>
+                  <TableHead className="text-[11px] h-8">Recommendations</TableHead>
+                  <TableHead className="text-[11px] h-8">Created</TableHead>
+                  <TableHead className="text-[11px] h-8 text-right">Action</TableHead>
                 </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sessions.map((s) => {
+                  const sid       = s.id ?? "—";
+                  const stype     = s.session_type ?? s.type ?? "posture_review";
+                  const sstatus   = s.status ?? "completed";
+                  const recsCount = s.recommendation_count ?? s.recsCount ?? 0;
+                  const created   = s.created_at ?? s.createdAt ?? "—";
+                  return (
+                    <TableRow key={sid} className="hover:bg-muted/30">
+                      <TableCell className="text-xs font-mono py-2.5">{sid.slice(0, 8).toUpperCase()}</TableCell>
+                      <TableCell className="py-2.5"><SessionTypeBadge t={stype} /></TableCell>
+                      <TableCell className="py-2.5">
+                        <div className="flex items-center gap-1">
+                          {sstatus === "completed" ? <CheckCircle className="h-3 w-3 text-green-400" /> :
+                           sstatus === "failed"    ? <XCircle className="h-3 w-3 text-red-400" /> :
+                                                     <Clock className="h-3 w-3 text-yellow-400" />}
+                          <StatusBadge s={sstatus as SessionStatus} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs py-2.5 tabular-nums text-center">{recsCount}</TableCell>
+                      <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">
+                        {typeof created === "string" ? created.slice(0, 16).replace("T", " ") : "—"}
+                      </TableCell>
+                      <TableCell className="py-2.5 text-right">
+                        <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" disabled={sstatus !== "completed"}>
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </motion.div>
