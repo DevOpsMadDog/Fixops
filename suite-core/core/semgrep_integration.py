@@ -9,6 +9,16 @@ Usage:
     if scanner.is_semgrep_available():
         result = scanner.scan_and_ingest("/path/to/project", org_id="acme")
 
+NO-MOCKS contract:
+    When the semgrep binary is not available, ``scan_and_ingest`` records the
+    scan with ``status="unavailable"`` and ``findings=[]`` — it never returns
+    fabricated findings.  ``_run_semgrep`` raises ``SemgrepUnavailableError``
+    when the binary is absent so callers can surface an honest HTTP 422.
+
+    The ``_MOCK_SEMGREP_OUTPUT`` constant is retained ONLY for explicit test
+    opt-in via the ``_use_mock=True`` constructor flag.  It must never be used
+    on any production code path.
+
 Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 """
 
@@ -58,8 +68,18 @@ _AVAILABLE_RULESETS: List[str] = [
     "p/default",
 ]
 
+
+class SemgrepUnavailableError(ValueError):
+    """Raised when the semgrep binary is not on PATH.
+
+    Surfaces to the router as HTTP 422 — never as fabricated findings.
+    Install semgrep: https://semgrep.dev/docs/getting-started/
+    """
+
+
 # ---------------------------------------------------------------------------
-# Mock Semgrep output for when semgrep binary is not installed
+# Mock Semgrep output — TEST OPT-IN ONLY, never used in production paths.
+# Access via SemgrepScanner(_use_mock=True) in tests.
 # ---------------------------------------------------------------------------
 _MOCK_SEMGREP_OUTPUT: Dict[str, Any] = {
     "version": "1.0.0-mock",
@@ -71,7 +91,7 @@ _MOCK_SEMGREP_OUTPUT: Dict[str, Any] = {
             "end": {"line": 42, "col": 20},
             "extra": {
                 "severity": "ERROR",
-                "message": "Use of exec() detected — mock finding (semgrep not installed)",
+                "message": "Use of exec() detected — MOCK finding (test opt-in only)",
                 "lines": "    exec(user_input)",
                 "metadata": {
                     "category": "security",
@@ -87,7 +107,7 @@ _MOCK_SEMGREP_OUTPUT: Dict[str, Any] = {
             "end": {"line": 15, "col": 35},
             "extra": {
                 "severity": "WARNING",
-                "message": "Hardcoded password detected — mock finding (semgrep not installed)",
+                "message": "Hardcoded password detected — MOCK finding (test opt-in only)",
                 "lines": "DB_PASSWORD = 'supersecret123'",
                 "metadata": {
                     "category": "security",
@@ -110,8 +130,9 @@ class SemgrepScanner:
     """
     Wraps the Semgrep CLI to perform SAST scans on directories and files.
 
-    Falls back to mock data when the semgrep binary is not available so that
-    the rest of the pipeline can be exercised without a real installation.
+    When the semgrep binary is not available, raises SemgrepUnavailableError
+    rather than returning fabricated findings.  Pass ``_use_mock=True`` only
+    in test code that explicitly needs to exercise the mock output path.
     """
 
     #: Semgrep CLI binary name (override via SEMGREP_BIN env var)
@@ -119,10 +140,12 @@ class SemgrepScanner:
     #: Default scan timeout in seconds
     DEFAULT_TIMEOUT = 300
 
-    def __init__(self, timeout: int = DEFAULT_TIMEOUT) -> None:
+    def __init__(self, timeout: int = DEFAULT_TIMEOUT, _use_mock: bool = False) -> None:
         import os
         self.timeout = timeout
         self._bin = os.environ.get("SEMGREP_BIN", self.SEMGREP_BIN)
+        # _use_mock=True is for tests ONLY — never set in production code.
+        self._use_mock = _use_mock
 
     # ------------------------------------------------------------------
     # Availability check
@@ -148,32 +171,46 @@ class SemgrepScanner:
         """
         Execute semgrep with the given arguments and return parsed JSON.
 
-        Falls back to mock data when semgrep is not installed.
-        Raises RuntimeError on non-zero exit code (semgrep real errors).
+        Raises SemgrepUnavailableError when the binary is absent (never returns
+        fabricated findings).  Raises RuntimeError on non-zero exit code.
+
+        Test opt-in: when ``self._use_mock`` is True (test code only) and the
+        binary is absent, returns ``_MOCK_SEMGREP_OUTPUT`` so unit tests that
+        exercise downstream normalization/history paths work without a binary.
         """
         if not self.is_semgrep_available():
-            logger.warning(
-                "semgrep binary not found at %r — returning mock scan data. "
-                "Install semgrep: https://semgrep.dev/docs/getting-started/",
-                self._bin,
+            if self._use_mock:
+                logger.debug(
+                    "semgrep binary absent — returning MOCK output (test opt-in)"
+                )
+                return dict(_MOCK_SEMGREP_OUTPUT)
+            raise SemgrepUnavailableError(
+                f"semgrep binary not found at {self._bin!r}. "
+                "Install semgrep: https://semgrep.dev/docs/getting-started/"
             )
-            return dict(_MOCK_SEMGREP_OUTPUT)
 
         cmd = [self._bin, "--json"] + args
         logger.info("Running semgrep: %s", " ".join(cmd))
+        # Strip PYTHONPATH from the child environment so that semgrep's
+        # bundled Python interpreter (pysemgrep) does not pick up the
+        # application's sys.path and shadow its own dependencies.
+        import os as _os
+        clean_env = {k: v for k, v in _os.environ.items() if k != "PYTHONPATH"}
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603
                 cmd,
                 capture_output=True,
                 timeout=self.timeout,
+                env=clean_env,
             )
         except subprocess.TimeoutExpired:
             raise RuntimeError(
                 f"Semgrep scan timed out after {self.timeout}s"
             )
         except FileNotFoundError:
-            logger.warning("semgrep binary disappeared — returning mock data")
-            return dict(_MOCK_SEMGREP_OUTPUT)
+            raise SemgrepUnavailableError(
+                f"semgrep binary disappeared mid-run: {self._bin!r}"
+            )
 
         stdout = result.stdout.decode("utf-8", errors="replace").strip()
         stderr = result.stderr.decode("utf-8", errors="replace").strip()
@@ -355,7 +392,7 @@ class SemgrepScanner:
         """
         scan_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
-        is_mock = not self.is_semgrep_available()
+        scanner_available = self.is_semgrep_available()
 
         try:
             raw = self.scan_directory(path, rules=rules)
@@ -377,7 +414,9 @@ class SemgrepScanner:
                 "started_at": started_at,
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "completed",
-                "is_mock": is_mock,
+                "scanner_available": scanner_available,
+                "is_real": scanner_available and not self._use_mock,
+                "is_mock": self._use_mock,
                 "findings_count": len(findings),
                 "severity_breakdown": sev_counts,
                 "findings": findings,
@@ -401,11 +440,33 @@ class SemgrepScanner:
                         "asset_id": f.get("asset_id"),
                         "cvss": f.get("cvss"),
                         "epss": f.get("epss"),
-                        "is_mock": f.get("is_mock", is_mock),
+                        "is_mock": self._use_mock,
                         **f,
                     })
             except Exception:
                 pass
+
+        except SemgrepUnavailableError as exc:
+            # Binary absent — honest empty result, NOT fabricated findings.
+            logger.warning(
+                "semgrep binary unavailable for scan of %r: %s", path, exc
+            )
+            entry = {
+                "scan_id": scan_id,
+                "org_id": org_id,
+                "target": path,
+                "rules": rules or "p/default",
+                "started_at": started_at,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "status": "unavailable",
+                "error": str(exc),
+                "scanner_available": False,
+                "is_real": False,
+                "is_mock": False,
+                "findings_count": 0,
+                "severity_breakdown": {},
+                "findings": [],
+            }
 
         except Exception as exc:
             logger.error("Semgrep scan failed for %r: %s", path, exc, exc_info=True)
@@ -418,7 +479,9 @@ class SemgrepScanner:
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "failed",
                 "error": str(exc),
-                "is_mock": is_mock,
+                "scanner_available": scanner_available,
+                "is_real": False,
+                "is_mock": self._use_mock,
                 "findings_count": 0,
                 "severity_breakdown": {},
                 "findings": [],

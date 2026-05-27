@@ -9,6 +9,17 @@ Usage:
     if scanner.is_trivy_available():
         result = scanner.scan_and_ingest("nginx:latest", org_id="acme")
 
+NO-MOCKS contract:
+    When the trivy binary is not available, ``scan_and_ingest`` records the
+    scan with ``status="unavailable"`` and ``findings=[]`` — it never returns
+    fabricated CVEs or vulnerability data.  ``_run_trivy`` raises
+    ``TrivyUnavailableError`` when the binary is absent so callers can surface
+    an honest HTTP 422.
+
+    The ``_MOCK_TRIVY_OUTPUT`` constant is retained ONLY for explicit test
+    opt-in via the ``_use_mock=True`` constructor flag.  It must never be used
+    on any production code path.
+
 Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 """
 
@@ -40,8 +51,17 @@ def _get_lock():
     return _history_lock
 
 
+class TrivyUnavailableError(ValueError):
+    """Raised when the trivy binary is not on PATH.
+
+    Surfaces to the router as HTTP 422 — never as fabricated findings.
+    Install trivy: https://aquasecurity.github.io/trivy/
+    """
+
+
 # ---------------------------------------------------------------------------
-# Mock Trivy output for when trivy binary is not installed
+# Mock Trivy output — TEST OPT-IN ONLY, never used in production paths.
+# Access via TrivyScanner(_use_mock=True) in tests.
 # ---------------------------------------------------------------------------
 _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
     "SchemaVersion": 2,
@@ -59,8 +79,8 @@ _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
                     "InstalledVersion": "1.1.1n-0+deb11u3",
                     "FixedVersion": "1.1.1n-0+deb11u4",
                     "Severity": "HIGH",
-                    "Title": "Mock: OpenSSL vulnerability (trivy not installed)",
-                    "Description": "This is mock data. Install trivy for real scans.",
+                    "Title": "MOCK: OpenSSL vulnerability (test opt-in only)",
+                    "Description": "MOCK DATA — test opt-in only. Install trivy for real scans.",
                 },
                 {
                     "VulnerabilityID": "CVE-2023-0002",
@@ -68,8 +88,8 @@ _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
                     "InstalledVersion": "7.74.0-1.3+deb11u7",
                     "FixedVersion": "7.74.0-1.3+deb11u8",
                     "Severity": "MEDIUM",
-                    "Title": "Mock: curl vulnerability (trivy not installed)",
-                    "Description": "This is mock data. Install trivy for real scans.",
+                    "Title": "MOCK: curl vulnerability (test opt-in only)",
+                    "Description": "MOCK DATA — test opt-in only. Install trivy for real scans.",
                 },
             ],
         }
@@ -81,8 +101,9 @@ class TrivyScanner:
     """
     Wraps the Trivy CLI to scan Docker images, filesystems, and git repos.
 
-    Falls back to mock data when the trivy binary is not available so that
-    the rest of the pipeline can be exercised without a real installation.
+    When the trivy binary is not available, raises TrivyUnavailableError
+    rather than returning fabricated CVE data.  Pass ``_use_mock=True`` only
+    in test code that explicitly needs to exercise the mock output path.
     """
 
     #: Trivy CLI binary name (override via TRIVY_BIN env var)
@@ -90,10 +111,12 @@ class TrivyScanner:
     #: Default scan timeout in seconds
     DEFAULT_TIMEOUT = 300
 
-    def __init__(self, timeout: int = DEFAULT_TIMEOUT) -> None:
+    def __init__(self, timeout: int = DEFAULT_TIMEOUT, _use_mock: bool = False) -> None:
         import os
         self.timeout = timeout
         self._bin = os.environ.get("TRIVY_BIN", self.TRIVY_BIN)
+        # _use_mock=True is for tests ONLY — never set in production code.
+        self._use_mock = _use_mock
 
     # ------------------------------------------------------------------
     # Availability check
@@ -111,21 +134,28 @@ class TrivyScanner:
         """
         Execute trivy with the given arguments and return parsed JSON.
 
-        Falls back to mock data when trivy is not installed.
-        Raises RuntimeError on non-zero exit code (trivy real errors).
+        Raises TrivyUnavailableError when the binary is absent (never returns
+        fabricated CVE data).  Raises RuntimeError on non-zero exit code.
+
+        Test opt-in: when ``self._use_mock`` is True (test code only) and the
+        binary is absent, returns ``_MOCK_TRIVY_OUTPUT`` so unit tests that
+        exercise downstream normalization/history paths work without a binary.
         """
         if not self.is_trivy_available():
-            logger.warning(
-                "trivy binary not found at %r — returning mock scan data. "
-                "Install trivy: https://aquasecurity.github.io/trivy/",
-                self._bin,
+            if self._use_mock:
+                logger.debug(
+                    "trivy binary absent — returning MOCK output (test opt-in)"
+                )
+                return dict(_MOCK_TRIVY_OUTPUT)
+            raise TrivyUnavailableError(
+                f"trivy binary not found at {self._bin!r}. "
+                "Install trivy: https://aquasecurity.github.io/trivy/"
             )
-            return dict(_MOCK_TRIVY_OUTPUT)
 
         cmd = [self._bin, "--format", "json"] + args
         logger.info("Running trivy: %s", " ".join(cmd))
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603
                 cmd,
                 capture_output=True,
                 timeout=self.timeout,
@@ -135,8 +165,9 @@ class TrivyScanner:
                 f"Trivy scan timed out after {self.timeout}s"
             )
         except FileNotFoundError:
-            logger.warning("trivy binary disappeared — returning mock data")
-            return dict(_MOCK_TRIVY_OUTPUT)
+            raise TrivyUnavailableError(
+                f"trivy binary disappeared mid-run: {self._bin!r}"
+            )
 
         stdout = result.stdout.decode("utf-8", errors="replace").strip()
         stderr = result.stderr.decode("utf-8", errors="replace").strip()
@@ -325,7 +356,7 @@ class TrivyScanner:
         """
         scan_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
-        is_mock = not self.is_trivy_available()
+        scanner_available = self.is_trivy_available()
 
         try:
             if scan_type == "filesystem":
@@ -354,7 +385,9 @@ class TrivyScanner:
                 "started_at": started_at,
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "completed",
-                "is_mock": is_mock,
+                "scanner_available": scanner_available,
+                "is_real": scanner_available and not self._use_mock,
+                "is_mock": self._use_mock,
                 "findings_count": len(findings),
                 "severity_breakdown": sev_counts,
                 "findings": findings,
@@ -378,11 +411,33 @@ class TrivyScanner:
                         "asset_id": f.get("asset_id"),
                         "cvss": f.get("cvss"),
                         "epss": f.get("epss"),
-                        "is_mock": f.get("is_mock", is_mock),
+                        "is_mock": self._use_mock,
                         **f,
                     })
             except Exception:
                 pass
+
+        except TrivyUnavailableError as exc:
+            # Binary absent — honest empty result, NOT fabricated CVEs.
+            logger.warning(
+                "trivy binary unavailable for scan of %r: %s", image_name, exc
+            )
+            entry = {
+                "scan_id": scan_id,
+                "org_id": org_id,
+                "target": image_name,
+                "scan_type": scan_type,
+                "started_at": started_at,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "status": "unavailable",
+                "error": str(exc),
+                "scanner_available": False,
+                "is_real": False,
+                "is_mock": False,
+                "findings_count": 0,
+                "severity_breakdown": {},
+                "findings": [],
+            }
 
         except Exception as exc:
             logger.error("Scan failed for %r: %s", image_name, exc, exc_info=True)
@@ -395,7 +450,9 @@ class TrivyScanner:
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "failed",
                 "error": str(exc),
-                "is_mock": is_mock,
+                "scanner_available": scanner_available,
+                "is_real": False,
+                "is_mock": self._use_mock,
                 "findings_count": 0,
                 "severity_breakdown": {},
                 "findings": [],

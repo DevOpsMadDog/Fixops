@@ -122,8 +122,8 @@ def test_get_image_scan_round_trip(client):
 
     assert rec["scan_id"] == scan_id
     assert rec["image"] == "alpine:3.19"
-    # Either real trivy ran, or mock returned — both reach completed state.
-    assert rec["status"] == "completed"
+    # Either real trivy ran (completed) or binary absent (unavailable) — never fabricated.
+    assert rec["status"] in ("completed", "unavailable")
     assert isinstance(rec["severity_counts"], dict)
     # Buckets exist for every valid severity (zero is allowed).
     for sev in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"):
@@ -174,6 +174,7 @@ def test_engine_singleton_persists_across_calls(tmp_path):
     fetched = e2.get_scan(sid)
     assert fetched is not None
     assert fetched["image"] == "redis:7.2"
-    assert fetched["status"] == "completed"
+    # completed when trivy binary present; unavailable when absent — never fabricated.
+    assert fetched["status"] in ("completed", "unavailable")
 
     engine_mod.reset_trivy_scan_engine()

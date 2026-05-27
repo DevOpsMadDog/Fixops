@@ -49,8 +49,8 @@ _SCANNER_TYPES = ("vuln", "secret", "config", "license")
 
 _TRIVY_BIN = os.environ.get("TRIVY_BIN", "trivy")
 
-# Mock output used when trivy is not installed — keeps the queue+SQLite
-# round-trip working in tests / air-gapped dev installs.
+# Mock output — TEST OPT-IN ONLY via TrivyScanEngine(_use_mock=True).
+# Never used on a production code path.
 _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
     "SchemaVersion": 2,
     "ArtifactName": "mock-image:latest",
@@ -67,7 +67,7 @@ _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
                     "InstalledVersion": "1.1.1n",
                     "FixedVersion": "1.1.1w",
                     "Severity": "HIGH",
-                    "Title": "Mock OpenSSL CVE — install trivy CLI for real scans",
+                    "Title": "MOCK OpenSSL CVE — test opt-in only",
                 },
                 {
                     "VulnerabilityID": "CVE-2024-MOCK-002",
@@ -75,7 +75,7 @@ _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
                     "InstalledVersion": "7.74.0",
                     "FixedVersion": "7.88.1",
                     "Severity": "MEDIUM",
-                    "Title": "Mock curl CVE — install trivy CLI for real scans",
+                    "Title": "MOCK curl CVE — test opt-in only",
                 },
                 {
                     "VulnerabilityID": "CVE-2024-MOCK-003",
@@ -83,7 +83,7 @@ _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
                     "InstalledVersion": "1.2.11",
                     "FixedVersion": "1.2.13",
                     "Severity": "LOW",
-                    "Title": "Mock zlib CVE — install trivy CLI for real scans",
+                    "Title": "MOCK zlib CVE — test opt-in only",
                 },
             ],
         }
@@ -97,7 +97,12 @@ _MOCK_TRIVY_OUTPUT: Dict[str, Any] = {
 
 
 class TrivyScanEngine:
-    """Async-queue Trivy image scan engine with SQLite persistence."""
+    """Async-queue Trivy image scan engine with SQLite persistence.
+
+    NO-MOCKS contract: when the trivy binary is absent, ``queue_scan``
+    records status="unavailable" with zero vulnerabilities rather than
+    fabricating CVE data.  Pass ``_use_mock=True`` only in test code.
+    """
 
     DEFAULT_TIMEOUT = 300
 
@@ -105,12 +110,15 @@ class TrivyScanEngine:
         self,
         db_path: Optional[str] = None,
         timeout: int = DEFAULT_TIMEOUT,
+        _use_mock: bool = False,
     ) -> None:
         if db_path is None:
             db_path = str(_DEFAULT_DB_PATH)
         self._db_path = db_path
         self._timeout = timeout
         self._lock = threading.Lock()
+        # _use_mock=True is for tests ONLY — never set in production code.
+        self._use_mock = _use_mock
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -184,11 +192,22 @@ class TrivyScanEngine:
         skip_files: Optional[List[str]] = None,
         ignore_unfixed: bool = False,
     ) -> Dict[str, Any]:
+        """Run the trivy CLI and return parsed JSON output.
+
+        Raises RuntimeError("trivy_binary_unavailable") when the binary is
+        absent — callers record status="unavailable" without fabricating CVEs.
+
+        Test opt-in: when ``self._use_mock`` is True returns ``_MOCK_TRIVY_OUTPUT``
+        so unit tests can exercise the full queue→SQLite→bucket→fetch path
+        without the trivy binary.
+        """
         if not self.is_trivy_available():
-            logger.warning(
-                "trivy CLI not on PATH — returning deterministic mock output"
-            )
-            return dict(_MOCK_TRIVY_OUTPUT)
+            if self._use_mock:
+                logger.debug(
+                    "trivy binary absent — returning MOCK output (test opt-in)"
+                )
+                return dict(_MOCK_TRIVY_OUTPUT)
+            raise RuntimeError("trivy_binary_unavailable")
 
         cmd = self._build_cli_args(image, severities, skip_files, ignore_unfixed)
         try:
@@ -203,8 +222,7 @@ class TrivyScanEngine:
                 f"trivy scan of {image!r} timed out after {self._timeout}s"
             ) from exc
         except FileNotFoundError:
-            logger.warning("trivy disappeared mid-run — falling back to mock")
-            return dict(_MOCK_TRIVY_OUTPUT)
+            raise RuntimeError("trivy_binary_unavailable")
 
         # trivy exits 1 when vulns are found — that is not an error.
         if proc.returncode not in (0, 1):
@@ -327,6 +345,34 @@ class TrivyScanEngine:
                         json.dumps(severity_counts),
                         completed_at,
                         json.dumps(raw)[:1_000_000],  # cap at ~1MB
+                        scan_id,
+                    ),
+                )
+                conn.commit()
+        except RuntimeError as exc:
+            # "trivy_binary_unavailable" → record as unavailable (NO-MOCKS).
+            # Any other RuntimeError → record as failed.
+            status = (
+                "unavailable" if str(exc) == "trivy_binary_unavailable" else "failed"
+            )
+            if status == "unavailable":
+                logger.warning("trivy binary unavailable — scan %s recorded as unavailable", scan_id)
+            else:
+                logger.error("trivy scan failed for %r: %s", image, exc)
+            with self._lock, self._conn() as conn:
+                conn.execute(
+                    """
+                    UPDATE trivy_scans
+                       SET status = ?,
+                           scan_completed_at = ?,
+                           raw_output_json = ?
+                     WHERE scan_id = ?
+                    """,
+                    (
+                        status,
+                        datetime.now(timezone.utc).isoformat(),
+                        json.dumps({}) if status == "unavailable"
+                        else json.dumps({"error": str(exc)}),
                         scan_id,
                     ),
                 )

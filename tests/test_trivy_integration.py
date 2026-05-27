@@ -122,8 +122,16 @@ class TestTrivyScannerRunTrivy:
         from core.trivy_integration import TrivyScanner
         return TrivyScanner()
 
-    def test_returns_mock_when_not_installed(self):
+    def test_raises_unavailable_when_not_installed(self):
+        from core.trivy_integration import TrivyUnavailableError
         scanner = self._make_scanner()
+        with patch("shutil.which", return_value=None):
+            with pytest.raises(TrivyUnavailableError, match="trivy binary not found"):
+                scanner._run_trivy(["image", "nginx:latest"])
+
+    def test_returns_mock_when_not_installed_and_use_mock_true(self):
+        from core.trivy_integration import TrivyScanner
+        scanner = TrivyScanner(_use_mock=True)
         with patch("shutil.which", return_value=None):
             result = scanner._run_trivy(["image", "nginx:latest"])
         assert "Results" in result
@@ -185,12 +193,13 @@ class TestTrivyScannerRunTrivy:
             with pytest.raises(RuntimeError, match="timed out"):
                 scanner._run_trivy(["image", "nginx:1.25"])
 
-    def test_fallback_on_file_not_found(self):
+    def test_raises_unavailable_on_file_not_found(self):
+        from core.trivy_integration import TrivyUnavailableError
         scanner = self._make_scanner()
         with patch("shutil.which", return_value="/usr/bin/trivy"), \
              patch("subprocess.run", side_effect=FileNotFoundError):
-            result = scanner._run_trivy(["image", "nginx:1.25"])
-        assert "Results" in result  # mock data returned
+            with pytest.raises(TrivyUnavailableError, match="disappeared mid-run"):
+                scanner._run_trivy(["image", "nginx:1.25"])
 
 
 class TestScanMethods:
@@ -356,13 +365,18 @@ class TestScanAndIngest:
         assert org_id in _scan_history
         assert len(_scan_history[org_id]) >= 1
 
-    def test_scan_and_ingest_is_mock_flag_set(self):
+    def test_scan_and_ingest_unavailable_when_binary_absent(self):
         from core.trivy_integration import TrivyScanner
         scanner = TrivyScanner()
         scanner._try_ingest_to_pipeline = MagicMock()
         with patch("shutil.which", return_value=None):
             result = scanner.scan_and_ingest("nginx:latest", org_id="org1")
-        assert result["is_mock"] is True
+        # Binary absent → status=unavailable, no fabricated CVEs, is_mock=False
+        assert result["status"] == "unavailable"
+        assert result["findings"] == []
+        assert result["findings_count"] == 0
+        assert result["is_mock"] is False
+        assert result["scanner_available"] is False
 
     def test_scan_and_ingest_pipeline_ingest_called(self):
         scanner = self._make_scanner()

@@ -1,0 +1,11 @@
+# Fixture for trivy real-binary integration tests.
+# Contains deliberately vulnerable package pins that trivy fs / --scanners vuln
+# should detect.  Do NOT use these versions in production.
+#
+# Known CVEs present:
+#   requests==2.18.0  — CVE-2018-18074 (HTTP Basic auth leak on redirect)
+#   PyYAML==5.3.1     — CVE-2020-14343 (full load arbitrary code exec)
+#   Pillow==8.2.0     — CVE-2021-25287 / CVE-2021-25288 (out-of-bounds read)
+requests==2.18.0
+PyYAML==5.3.1
+Pillow==8.2.0
