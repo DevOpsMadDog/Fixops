@@ -1221,6 +1221,15 @@ class GrypeScannerNormalizer(_Base):
             vuln = match.get("vulnerability", {})
             art = match.get("artifact", {})
             vid = vuln.get("id", "")
+            # grype's primary id is often a GHSA; the CVE lives in
+            # match.relatedVulnerabilities — surface it so cross-scanner
+            # correlation (grype<->trivy<->osv on the same CVE) works.
+            _related = match.get("relatedVulnerabilities", []) or []
+            cve = vid if vid.startswith("CVE-") else next(
+                (str(r.get("id")) for r in _related
+                 if str(r.get("id", "")).startswith("CVE-")),
+                None,
+            )
             sev = vuln.get("severity", "Unknown")
             desc = vuln.get("description", "")
             fix_versions = vuln.get("fix", {}).get("versions", [])
@@ -1236,7 +1245,7 @@ class GrypeScannerNormalizer(_Base):
                 title=f"{vid}: {desc[:200]}" if desc else vid,
                 description=desc,
                 recommendation=f"Upgrade {pkg} to {', '.join(fix_versions)}" if fix_versions else None,
-                cve_id=vid if vid.startswith("CVE-") else None,
+                cve_id=cve,
                 package_name=pkg,
                 package_version=ver,
                 package_ecosystem=ptype,
