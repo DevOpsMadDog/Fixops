@@ -731,7 +731,7 @@ class LiveFeedbackRequest(BaseModel):
 @router.post("/demo/live-feedback", tags=["admin", "demo"])
 async def demo_live_feedback(
     req: LiveFeedbackRequest,
-    _mode: None = Depends(_require_non_enterprise),
+    _mode: None = Depends(_require_demo_mode),
     _: str = Depends(_verify_api_key),
 ) -> Dict[str, Any]:
     """Submit one feedback record, run learning, and show scoring effect.
@@ -750,8 +750,9 @@ async def demo_live_feedback(
     5. Return before/after comparison
     """
     try:
-        from core.self_learning import get_learning_engine
-        engine = get_learning_engine()
+        from core.self_learning import get_demo_learning_engine
+        # Demo-only: write to the isolated demo DB, never the production moat.
+        engine = get_demo_learning_engine()
 
         # Step 1: Score BEFORE
         finding = {
