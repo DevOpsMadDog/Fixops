@@ -7001,6 +7001,81 @@ def create_app() -> FastAPI:
     except Exception as _e:
         _logger.warning("outbound_webhooks_router unavailable: %s", _e)
 
+    # -----------------------------------------------------------------------
+    # UI-alias mounts — Multica #9030
+    # These fix the 21 UI-expected prefixes that 404'd because the UI uses
+    # different path conventions than the engines.  Each block is wrapped in
+    # try/except so a single import failure can never crash startup.
+    # -----------------------------------------------------------------------
+
+    # 1. cloud_security_router was imported but never include_router'd
+    try:
+        from apps.api.cloud_security_router import router as _cloud_security_router
+        app.include_router(_cloud_security_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted cloud_security_router at /api/v1/cloud-security")
+    except Exception as _e:
+        _logger.warning("cloud_security_router unavailable: %s", _e)
+
+    # 2. developer_portal_router was imported but never include_router'd
+    try:
+        from apps.api.developer_portal_router import router as _developer_portal_router
+        from apps.api.developer_portal_router import alias_router as _developer_portal_alias_router
+        app.include_router(_developer_portal_router, dependencies=[Depends(_verify_api_key)])
+        app.include_router(_developer_portal_alias_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted developer_portal_router at /api/v1/developer + /api/v1/developer-portal")
+    except Exception as _e:
+        _logger.warning("developer_portal_router unavailable: %s", _e)
+
+    # 3. threat_modeling_router was imported but never include_router'd
+    try:
+        from apps.api.threat_modeling_router import router as _threat_modeling_router
+        app.include_router(_threat_modeling_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted threat_modeling_router at /api/v1/threat-modeling")
+    except Exception as _e:
+        _logger.warning("threat_modeling_router unavailable: %s", _e)
+
+    # 4. integration_health_router was imported but never include_router'd
+    try:
+        from apps.api.integration_health_router import router as _integration_health_router
+        app.include_router(_integration_health_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted integration_health_router at /api/v1/integrations")
+    except Exception as _e:
+        _logger.warning("integration_health_router unavailable: %s", _e)
+
+    # 5-13. UI prefix alias routers (ui_alias_router.py)
+    try:
+        from apps.api.ui_alias_router import (
+            asset_inventory_alias,
+            container_security_alias,
+            data_classification_alias,
+            integration_health_alias,
+            repos_alias,
+            security_awareness_alias,
+            security_metrics_alias,
+            security_posture_alias,
+            vuln_heatmap_alias,
+        )
+        app.include_router(asset_inventory_alias)
+        _logger.info("Mounted asset_inventory_alias at /api/v1/asset-inventory")
+        app.include_router(container_security_alias)
+        _logger.info("Mounted container_security_alias at /api/v1/container-security")
+        app.include_router(data_classification_alias)
+        _logger.info("Mounted data_classification_alias at /api/v1/data-classification")
+        app.include_router(integration_health_alias)
+        _logger.info("Mounted integration_health_alias at /api/v1/integration-health")
+        app.include_router(repos_alias)
+        _logger.info("Mounted repos_alias at /api/v1/repos")
+        app.include_router(security_awareness_alias)
+        _logger.info("Mounted security_awareness_alias at /api/v1/security-awareness")
+        app.include_router(security_metrics_alias)
+        _logger.info("Mounted security_metrics_alias at /api/v1/security-metrics")
+        app.include_router(security_posture_alias)
+        _logger.info("Mounted security_posture_alias at /api/v1/security-posture")
+        app.include_router(vuln_heatmap_alias)
+        _logger.info("Mounted vuln_heatmap_alias at /api/v1/vuln-heatmap")
+    except Exception as _e:
+        _logger.warning("ui_alias_router unavailable: %s", _e)
+
     # NEW-G071: IDE-in-browser backend (file tree + content + analysis snapshots + diff)
     # -----------------------------------------------------------------------
     # API-doc aliases — MUST be registered BEFORE the SPA catch-all so they
