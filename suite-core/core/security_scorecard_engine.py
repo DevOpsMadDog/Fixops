@@ -506,9 +506,13 @@ class SecurityScorecardEngine:
         }
         sc = self.create_scorecard(org_id, sc_data)
 
-        # Enrich with domain-level detail and percentile
+        # Enrich with domain-level detail and percentile.
+        # percentile_rank is NOT fabricated: it requires benchmark data via
+        # compare_to_benchmark(). Until computed it is None with an explicit
+        # source flag so consumers never mistake a placeholder for a real rank.
         sc["domain_scores"] = domain_details
-        sc["percentile_rank"] = 50  # Default; callers may set via compare_to_benchmark
+        sc["percentile_rank"] = None
+        sc["percentile_rank_source"] = "uncalibrated_no_benchmark"
 
         return sc
 
