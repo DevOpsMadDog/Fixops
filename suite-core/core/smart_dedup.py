@@ -148,7 +148,8 @@ def _extract_scanner(finding: Dict[str, Any]) -> Optional[str]:
 def _extract_component_version(finding: Dict[str, Any]) -> Optional[str]:
     """Return 'package@version' key or None."""
     pkg = None
-    for field in ("package", "component", "library", "module", "dependency", "asset_name"):
+    for field in ("package", "package_name", "component", "component_name",
+                  "library", "module", "dependency", "asset_name"):
         val = finding.get(field)
         if val and isinstance(val, str):
             pkg = val.strip().lower()
@@ -401,8 +402,15 @@ class SmartDedup:
             path = _extract_file(f)
             if not path:
                 continue
-            fid = _fid(f)
             line_range = _extract_line_range(f)
+            # Skip findings with NO real line (range (0,0)). _lines_overlap treats
+            # (0,0) vs (0,0) as overlapping, so every line-less finding in a file
+            # would merge — e.g. all dependency CVEs in one requirements.txt collapse
+            # to one, hiding distinct vulns. Line-less findings are deduped by their
+            # CVE/package identity in the other strategies instead. See #9050.
+            if line_range == (0, 0):
+                continue
+            fid = _fid(f)
             file_map[path].append((fid, line_range))
 
         groups: List[Tuple[List[str], float]] = []
@@ -473,12 +481,21 @@ class SmartDedup:
     def _find_component_version_matches(
         self, findings: List[Dict[str, Any]]
     ) -> List[Tuple[List[str], float]]:
-        """Same package@version from any scanner → group."""
+        """Same package@version AND same CVE from any scanner → group.
+
+        The key MUST include the CVE: a single package@version legitimately
+        carries multiple DISTINCT CVEs (e.g. mako@1.3.10 with 5 advisories),
+        which are 5 separate findings — keying on package@version alone collapses
+        them into one and hides real vulnerabilities. Findings with no CVE keep
+        package-level grouping (key suffix empty). See dogfooding finding #9050.
+        """
         comp_map: Dict[str, List[str]] = defaultdict(list)
         for f in findings:
             key = _extract_component_version(f)
             if key:
-                comp_map[key].append(_fid(f))
+                cves = _extract_cves(f)
+                cve = cves[0] if cves else ""
+                comp_map[f"{key}|{cve}"].append(_fid(f))
 
         groups: List[Tuple[List[str], float]] = []
         for key, fids in comp_map.items():
