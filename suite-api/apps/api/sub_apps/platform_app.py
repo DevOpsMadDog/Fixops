@@ -1339,6 +1339,15 @@ def register_platform_routers(
     except ImportError as exc:
         _logger.warning("local_file_store_router not available: %s", exc)
 
+    try:
+        from apps.api.local_file_store_api_router import (
+            router as local_file_store_api_router,  # noqa: PLC0415
+        )
+        app.include_router(local_file_store_api_router)
+        _logger.info("Mounted Local File Store API router at /api/v1/local-file-store")
+    except ImportError as exc:
+        _logger.warning("local_file_store_api_router not available: %s", exc)
+
     # ------------------------------------------------------------------
     # Security tooling / health / telemetry / registry / query / automation
     # (formerly ~L6455-L7580 in app.py)
