@@ -7,7 +7,15 @@ import time
 import urllib.request
 import urllib.error
 
-TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJlYXN0QGFsZGVjaS5pbyIsImV4cCI6MTc3OTAxNjY1MywiaWF0IjoxNzc2NDI0NjUzLCJuYW1lIjoiQmVhc3QgQWRtaW4iLCJzdWIiOiIyNTFmOWZlNi02MTNmLTRiZWItOThhYS1mNzE4YzU4MWJjNTkifQ.VZI_OrdpEudpl4xqrLvm9XJw0_0ud5IpFHXO_0J5FZQ"
+# Read the Multica bearer token from the environment — never hardcode a token in
+# a tracked script (the previous hardcoded JWT was an expired local Multica admin
+# token; see secret-audit #9057).
+TOKEN = os.environ.get("MULTICA_TOKEN") or os.environ.get("FIXOPS_API_TOKEN") or ""
+if not TOKEN:
+    raise SystemExit(
+        "Set MULTICA_TOKEN (a Multica bearer token) in the environment before running "
+        "this script — e.g. export MULTICA_TOKEN=<token>."
+    )
 BASE_URL = "http://localhost:8080/api"
 WORKSPACE_SLUG = "aldeci"
 PRD_DIR = "/Users/devops.ai/fixops/Fixops/.omc/prds"
