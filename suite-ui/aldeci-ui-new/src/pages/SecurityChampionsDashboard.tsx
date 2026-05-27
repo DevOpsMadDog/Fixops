@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
@@ -233,7 +234,7 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-const MAX_POINTS = 2847;
+// MAX_POINTS is derived from live data in the component, not hardcoded
 
 // ── Component ──────────────────────────────────────────────────
 
@@ -283,10 +284,10 @@ export default function SecurityChampionsDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Champions"      value={liveData?.stats?.active_champions ?? 34}                    icon={Users}  trend="up"   className="border-purple-500/20" />
-        <KpiCard title="Certifications Valid"  value={liveData?.stats?.valid_certifications ?? 89}                icon={Award}  trend="up"   className="border-green-500/20" />
-        <KpiCard title="Active Campaigns"      value={liveData?.stats?.active_campaigns ?? 5}                     icon={Shield} trend="flat" className="border-blue-500/20" />
-        <KpiCard title="Avg Points Score"      value={liveData?.stats?.avg_points_score ?? "847"}                 icon={Star}   trend="up"   className="border-yellow-500/20" />
+        <KpiCard title="Active Champions"      value={liveData?.stats?.active_champions ?? "—"}                    icon={Users}  trend="up"   className="border-purple-500/20" />
+        <KpiCard title="Certifications Valid"  value={liveData?.stats?.valid_certifications ?? "—"}                icon={Award}  trend="up"   className="border-green-500/20" />
+        <KpiCard title="Active Campaigns"      value={liveData?.stats?.active_campaigns ?? "—"}                     icon={Shield} trend="flat" className="border-blue-500/20" />
+        <KpiCard title="Avg Points Score"      value={liveData?.stats?.avg_points_score ?? "—"}                 icon={Star}   trend="up"   className="border-yellow-500/20" />
       </div>
 
       {/* Champions Leaderboard */}
@@ -296,7 +297,7 @@ export default function SecurityChampionsDashboard() {
             <Trophy className="h-4 w-4 text-yellow-400" />
             Champions Leaderboard
           </CardTitle>
-          <CardDescription className="text-xs">Ranked by total points — {CHAMPIONS.length} active champions shown</CardDescription>
+          <CardDescription className="text-xs">Ranked by total points — {(liveData?.champions?.items ?? liveData?.champions ?? []).length} active champions shown</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -314,35 +315,42 @@ export default function SecurityChampionsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.champions?.items ?? liveData?.champions ?? CHAMPIONS).map((c: any) => (
-                  <TableRow key={c.rank} className="hover:bg-muted/30">
-                    <TableCell className="py-2.5"><RankBadge rank={c.rank} /></TableCell>
-                    <TableCell className="text-xs font-semibold py-2.5">{c.name}</TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{c.department}</TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{c.team}</TableCell>
-                    <TableCell className="py-2.5"><LevelBadge level={c.level} /></TableCell>
-                    <TableCell className="py-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="relative h-1.5 w-16 rounded-full bg-muted/30 overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(c.points / MAX_POINTS) * 100}%` }}
-                            transition={{ duration: 0.7, ease: "easeOut" }}
-                            className={cn(
-                              "h-full rounded-full",
-                              c.level === "platinum" ? "bg-purple-500" :
-                              c.level === "gold"     ? "bg-yellow-500" :
-                              c.level === "silver"   ? "bg-gray-400"   : "bg-orange-600"
-                            )}
-                          />
+                {(() => {
+                  const rows = liveData?.champions?.items ?? liveData?.champions ?? [];
+                  if (rows.length === 0) return (
+                    <TableRow><TableCell colSpan={8}><EmptyState icon={Trophy} title="No champions yet" description="Champions will appear here once enrolled in the program." /></TableCell></TableRow>
+                  );
+                  const maxPts = Math.max(...rows.map((c: any) => c.points ?? 0), 1);
+                  return rows.map((c: any) => (
+                    <TableRow key={c.rank ?? c.id ?? c.name} className="hover:bg-muted/30">
+                      <TableCell className="py-2.5"><RankBadge rank={c.rank} /></TableCell>
+                      <TableCell className="text-xs font-semibold py-2.5">{c.name}</TableCell>
+                      <TableCell className="text-xs py-2.5 text-muted-foreground">{c.department}</TableCell>
+                      <TableCell className="text-xs py-2.5 text-muted-foreground">{c.team}</TableCell>
+                      <TableCell className="py-2.5"><LevelBadge level={c.level} /></TableCell>
+                      <TableCell className="py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="relative h-1.5 w-16 rounded-full bg-muted/30 overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${((c.points ?? 0) / maxPts) * 100}%` }}
+                              transition={{ duration: 0.7, ease: "easeOut" }}
+                              className={cn(
+                                "h-full rounded-full",
+                                c.level === "platinum" ? "bg-purple-500" :
+                                c.level === "gold"     ? "bg-yellow-500" :
+                                c.level === "silver"   ? "bg-gray-400"   : "bg-orange-600"
+                              )}
+                            />
+                          </div>
+                          <span className="text-xs font-bold tabular-nums">{(c.points ?? 0).toLocaleString()}</span>
                         </div>
-                        <span className="text-xs font-bold tabular-nums">{c.points.toLocaleString()}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-[10px] py-2.5 text-muted-foreground max-w-[200px] truncate">{c.recent_activity}</TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-right font-medium">{c.certs}</TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-[10px] py-2.5 text-muted-foreground max-w-[200px] truncate">{c.recent_activity}</TableCell>
+                      <TableCell className="text-xs py-2.5 tabular-nums text-right font-medium">{c.certs}</TableCell>
+                    </TableRow>
+                  ));
+                })()}
               </TableBody>
             </Table>
           </div>
@@ -372,12 +380,14 @@ export default function SecurityChampionsDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ACTIVITIES.map((a, i) => (
+                  {(liveData?.activities?.items ?? liveData?.activities ?? []).length === 0 ? (
+                    <TableRow><TableCell colSpan={4}><EmptyState icon={BookOpen} title="No activity yet" description="Champion activities will appear here once logged." /></TableCell></TableRow>
+                  ) : (liveData?.activities?.items ?? liveData?.activities ?? []).map((a: any, i: number) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2">{a.champion}</TableCell>
                       <TableCell className="py-2"><ActivityTypeBadge type={a.type} /></TableCell>
                       <TableCell className="text-xs py-2 tabular-nums font-bold text-green-400 text-right">+{a.points}</TableCell>
-                      <TableCell className="text-[10px] py-2 tabular-nums text-muted-foreground">{a.completed_at.slice(0, 10)}</TableCell>
+                      <TableCell className="text-[10px] py-2 tabular-nums text-muted-foreground">{(a.completed_at ?? "").slice(0, 10)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -408,7 +418,9 @@ export default function SecurityChampionsDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {CERTIFICATIONS.map((cert, i) => (
+                  {(liveData?.certifications?.items ?? liveData?.certifications ?? []).length === 0 ? (
+                    <TableRow><TableCell colSpan={5}><EmptyState icon={CheckCircle} title="No certifications yet" description="Champion certifications will appear here once recorded." /></TableCell></TableRow>
+                  ) : (liveData?.certifications?.items ?? liveData?.certifications ?? []).map((cert: any, i: number) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2">{cert.champion}</TableCell>
                       <TableCell className="text-xs py-2 font-semibold">{cert.cert}</TableCell>
@@ -431,7 +443,9 @@ export default function SecurityChampionsDashboard() {
           Active Campaigns
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {(liveData?.campaigns?.items ?? liveData?.campaigns ?? CAMPAIGNS).map((c: any) => {
+          {(liveData?.campaigns?.items ?? liveData?.campaigns ?? []).length === 0 ? (
+            <div className="col-span-full"><EmptyState icon={Shield} title="No active campaigns" description="Security awareness campaigns will appear here once launched." /></div>
+          ) : (liveData?.campaigns?.items ?? liveData?.campaigns ?? []).map((c: any) => {
             const pct = Math.round((c.participants / c.total) * 100);
             return (
               <Card key={c.title} className="border-blue-500/20">
@@ -472,23 +486,24 @@ export default function SecurityChampionsDashboard() {
           <CardDescription className="text-xs">Champion tier breakdown and promotion thresholds</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {LEVEL_DISTRIBUTION.map((l) => (
-              <div key={l.level} className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/20 border border-border/40">
-                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", l.color + "/20", "border-2", l.color.replace("bg-", "border-"))}>
-                  <Trophy className={cn("h-5 w-5", l.text)} />
+          {(liveData?.stats?.level_distribution ?? liveData?.level_distribution ?? []).length === 0 ? (
+            <EmptyState icon={Star} title="No level data yet" description="Champion level distribution will appear here once champions are enrolled." />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {(liveData?.stats?.level_distribution ?? liveData?.level_distribution ?? []).map((l: any) => (
+                <div key={l.level} className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/20 border border-border/40">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-muted/30 border-2 border-border">
+                    <Trophy className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <span className="text-xs font-bold capitalize">{l.level}</span>
+                  <span className="text-2xl font-black tabular-nums">{l.count}</span>
+                  {l.next && l.next !== "—" && (
+                    <span className="text-[9px] text-muted-foreground text-center">Next: {l.next}</span>
+                  )}
                 </div>
-                <span className={cn("text-xs font-bold", l.text)}>{l.level}</span>
-                <span className="text-2xl font-black tabular-nums">{l.count}</span>
-                {l.next !== "—" && (
-                  <span className="text-[9px] text-muted-foreground text-center">Next: {l.next}</span>
-                )}
-                {l.next === "—" && (
-                  <span className="text-[9px] text-muted-foreground text-center">Top tier</span>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

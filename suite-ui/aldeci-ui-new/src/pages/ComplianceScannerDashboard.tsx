@@ -13,7 +13,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ClipboardCheck, AlertTriangle, RefreshCw, BarChart3, CheckCircle, XCircle, AlertCircle, Play } from "lucide-react";
+import { ClipboardCheck, AlertTriangle, RefreshCw, BarChart3, CheckCircle, XCircle, AlertCircle, Play, Inbox } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -36,51 +36,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const PROFILES = [
-  { id: "PRF-01", name: "Production Cloud",   frameworks: ["SOC2", "ISO27001", "PCI"],     last_scan: "2026-04-16 06:00", score: 84, status: "passing" },
-  { id: "PRF-02", name: "Dev Environment",    frameworks: ["NIST", "SOC2"],               last_scan: "2026-04-15 22:00", score: 71, status: "warning" },
-  { id: "PRF-03", name: "Customer Data Infra", frameworks: ["HIPAA", "GDPR", "PCI"],      last_scan: "2026-04-16 04:00", score: 62, status: "failing" },
-  { id: "PRF-04", name: "Corporate Network",  frameworks: ["ISO27001", "NIST"],            last_scan: "2026-04-15 18:00", score: 89, status: "passing" },
-  { id: "PRF-05", name: "SaaS Platform",      frameworks: ["SOC2", "GDPR"],               last_scan: "2026-04-16 02:00", score: 77, status: "warning" },
-  { id: "PRF-06", name: "Legacy Systems",     frameworks: ["NIST"],                        last_scan: "2026-04-14 08:00", score: 51, status: "failing" },
-];
-
-const SCAN_RESULTS = [
-  { control_id: "CC6.1",   control_name: "Logical Access Controls",     status: "pass",    severity: "Critical", category: "Access Control",   remediation: "Enforce MFA on all privileged accounts" },
-  { control_id: "CC7.2",   control_name: "System Monitoring",           status: "pass",    severity: "High",     category: "Monitoring",       remediation: "SIEM rules active" },
-  { control_id: "PCI-3.4", control_name: "Cardholder Data Encryption",  status: "fail",    severity: "Critical", category: "Encryption",       remediation: "Enable AES-256 for all cardholder fields" },
-  { control_id: "A.12.6",  control_name: "Technical Vulnerability Mgmt", status: "warn",  severity: "High",     category: "Vulnerability",    remediation: "Schedule patch cycle for 14 EOL packages" },
-  { control_id: "NIST-SI-2", control_name: "Flaw Remediation",          status: "pass",    severity: "Medium",   category: "Remediation",      remediation: "Patch SLA met" },
-  { control_id: "HIPAA-164.312", control_name: "Audit Controls",        status: "fail",    severity: "Critical", category: "Audit",            remediation: "Enable audit logging on PHI databases" },
-  { control_id: "GDPR-32", control_name: "Data Processing Security",    status: "warn",    severity: "High",     category: "Data Protection",  remediation: "Review third-party data processor contracts" },
-  { control_id: "CC9.2",   control_name: "Vendor Risk Assessment",      status: "pass",    severity: "Medium",   category: "Supply Chain",     remediation: "Annual assessment complete" },
-];
-
-const TASKS = [
-  { id: "TSK-01", priority: "Critical", title: "Enable AES-256 on cardholder DB",        assigned: "CloudOps",  due: "2026-04-17", status: "overdue",     days: -1 },
-  { id: "TSK-02", priority: "Critical", title: "Enable PHI audit logging",               assigned: "InfraSec",  due: "2026-04-17", status: "overdue",     days: -1 },
-  { id: "TSK-03", priority: "High",     title: "Patch 14 EOL packages",                  assigned: "DevSec",    due: "2026-04-18", status: "in_progress", days: 2  },
-  { id: "TSK-04", priority: "High",     title: "Review data processor contracts",        assigned: "Legal",     due: "2026-04-19", status: "in_progress", days: 3  },
-  { id: "TSK-05", priority: "High",     title: "MFA enforcement on dev accounts",        assigned: "IAM Team",  due: "2026-04-20", status: "open",        days: 4  },
-  { id: "TSK-06", priority: "Medium",   title: "Update NIST control evidence",           assigned: "GRC",       due: "2026-04-21", status: "open",        days: 5  },
-  { id: "TSK-07", priority: "Medium",   title: "Legacy system hardening baseline",       assigned: "InfraSec",  due: "2026-04-23", status: "open",        days: 7  },
-  { id: "TSK-08", priority: "Medium",   title: "Renew annual vendor assessments",        assigned: "GRC",       due: "2026-04-25", status: "open",        days: 9  },
-  { id: "TSK-09", priority: "Low",      title: "Archive Q1 compliance evidence",         assigned: "GRC",       due: "2026-04-30", status: "open",        days: 14 },
-  { id: "TSK-10", priority: "Low",      title: "Update security policy documents",       assigned: "SecAdmin",  due: "2026-05-01", status: "open",        days: 15 },
-];
-
-const FRAMEWORK_SCORES = [
-  { name: "SOC 2",    score: 84, color: "bg-green-500"  },
-  { name: "ISO 27001", score: 89, color: "bg-green-500" },
-  { name: "NIST CSF", score: 73, color: "bg-amber-500"  },
-  { name: "PCI DSS",  score: 62, color: "bg-amber-500"  },
-  { name: "HIPAA",    score: 57, color: "bg-red-500"    },
-  { name: "GDPR",     score: 71, color: "bg-amber-500"  },
-];
+// ── Static config (badge colour maps — not domain data) ──
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -188,10 +147,10 @@ export default function ComplianceScannerDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Scan Profiles"    value={liveData?.stats?.total_profiles ?? liveData?.profiles?.length ?? 6}                         icon={ClipboardCheck} className="border-blue-500/20" />
-        <KpiCard title="Avg Score"        value={liveData?.stats?.avg_score != null ? `${liveData.stats.avg_score}%` : "78.4%"}              icon={BarChart3}      trend="up"   className="border-green-500/20" />
-        <KpiCard title="Open Tasks"       value={liveData?.stats?.open_tasks ?? liveData?.stats?.total_open_tasks ?? 34}                     icon={AlertTriangle}  trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Failures" value={liveData?.stats?.critical_failures ?? liveData?.stats?.failed_critical ?? 5}               icon={XCircle}        trend="down" className="border-red-500/20" />
+        <KpiCard title="Scan Profiles"    value={liveData?.stats?.total_profiles ?? liveData?.profiles?.length ?? "—"}                      icon={ClipboardCheck} className="border-blue-500/20" />
+        <KpiCard title="Avg Score"        value={liveData?.stats?.avg_score != null ? `${liveData.stats.avg_score}%` : "—"}                  icon={BarChart3}      trend="up"   className="border-green-500/20" />
+        <KpiCard title="Open Tasks"       value={liveData?.stats?.open_tasks ?? liveData?.stats?.total_open_tasks ?? "—"}                    icon={AlertTriangle}  trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Failures" value={liveData?.stats?.critical_failures ?? liveData?.stats?.failed_critical ?? "—"}             icon={XCircle}        trend="down" className="border-red-500/20" />
       </div>
 
       {/* Scan Profiles */}
@@ -217,7 +176,9 @@ export default function ComplianceScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.profiles ?? PROFILES).map((row: any) => (
+                {(liveData?.profiles ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="py-6"><EmptyState icon={ClipboardCheck} title="No scan profiles yet" description="Profiles will appear once compliance scans have been configured." /></TableCell></TableRow>
+                ) : (liveData.profiles as any[]).map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -282,7 +243,9 @@ export default function ComplianceScannerDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(liveData?.results?.items ?? liveData?.results ?? SCAN_RESULTS).map((row: any) => (
+                  {(liveData?.results?.items ?? liveData?.results ?? []).length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="py-6"><EmptyState icon={CheckCircle} title="No control results yet" description="Control check outcomes will appear after a scan runs." /></TableCell></TableRow>
+                  ) : (liveData?.results?.items ?? liveData?.results as any[]).map((row: any) => (
                     <TableRow key={row.control_id} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 pl-4"><ControlStatus status={row.status} /></TableCell>
                       <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{row.control_id}</TableCell>
@@ -308,24 +271,30 @@ export default function ComplianceScannerDashboard() {
             <CardDescription className="text-xs">Current compliance posture per standard</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {FRAMEWORK_SCORES.map((fw) => (
-              <div key={fw.name} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium">{fw.name}</span>
-                  <span className={cn("font-bold tabular-nums",
-                    fw.score >= 80 ? "text-green-400" : fw.score >= 60 ? "text-amber-400" : "text-red-400"
-                  )}>{fw.score}%</span>
+            {(liveData?.stats?.framework_scores ?? []).length === 0 ? (
+              <EmptyState icon={BarChart3} title="No framework scores yet" description="Scores will appear once compliance scans complete." />
+            ) : (liveData.stats.framework_scores as any[]).map((fw: any) => {
+              const score: number = fw.score ?? fw.compliance_score ?? 0;
+              const barColor = score >= 80 ? "bg-green-500" : score >= 60 ? "bg-amber-500" : "bg-red-500";
+              return (
+                <div key={fw.name ?? fw.framework} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium">{fw.name ?? fw.framework}</span>
+                    <span className={cn("font-bold tabular-nums",
+                      score >= 80 ? "text-green-400" : score >= 60 ? "text-amber-400" : "text-red-400"
+                    )}>{score}%</span>
+                  </div>
+                  <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${score}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className={cn("h-full rounded-full", barColor)}
+                    />
+                  </div>
                 </div>
-                <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${fw.score}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn("h-full rounded-full", fw.color)}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       </div>
@@ -338,7 +307,7 @@ export default function ComplianceScannerDashboard() {
               <AlertTriangle className="h-4 w-4 text-amber-400" />
               Remediation Tasks
             </CardTitle>
-            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.tasks ?? TASKS).length} tasks</Badge>
+            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.tasks ?? []).length} tasks</Badge>
           </div>
           <CardDescription className="text-xs">Open compliance remediation items sorted by priority</CardDescription>
         </CardHeader>
@@ -356,7 +325,9 @@ export default function ComplianceScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.tasks ?? TASKS).map((row: any) => (
+                {(liveData?.tasks ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="py-6"><EmptyState icon={AlertTriangle} title="No remediation tasks yet" description="Tasks will appear once compliance scan failures generate action items." /></TableCell></TableRow>
+                ) : (liveData.tasks as any[]).map((row: any) => (
                   <TableRow key={row.id} className={cn("hover:bg-muted/30", row.days < 0 && "bg-red-500/5")}>
                     <TableCell className="py-2.5"><PriorityBadge p={row.priority} /></TableCell>
                     <TableCell className="text-xs py-2.5 font-medium max-w-[220px] truncate">{row.title}</TableCell>

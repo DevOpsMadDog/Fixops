@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Database, AlertTriangle, Shield, Globe, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Database, AlertTriangle, Shield, Globe, RefreshCw, CheckCircle, XCircle, Inbox } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
@@ -220,7 +221,9 @@ export default function DataGovernanceDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(liveData?.assets ?? ASSETS).map((row: any) => (
+                  {(liveData?.assets ?? []).length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No data assets yet</TableCell></TableRow>
+                  ) : (liveData?.assets ?? []).map((row: any) => (
                     <TableRow key={row.name} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-mono py-2.5 max-w-[160px] truncate">{row.name}</TableCell>
                       <TableCell className="py-2.5">
@@ -253,13 +256,15 @@ export default function DataGovernanceDashboard() {
                 Open Violations
               </CardTitle>
               <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-                {(liveData?.violations ?? VIOLATIONS).length}
+                {(liveData?.violations ?? []).length}
               </Badge>
             </div>
             <CardDescription className="text-xs">Active policy violations requiring remediation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(liveData?.violations ?? VIOLATIONS).map((v: any) => (
+            {(liveData?.violations ?? []).length === 0 ? (
+              <EmptyState icon={AlertTriangle} title="No open violations" description="Policy violations will appear here when detected." />
+            ) : (liveData?.violations ?? []).map((v: any) => (
               <div key={v.id} className="flex items-start gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                 <SeverityDot sev={v.severity} />
                 <div className="flex-1 min-w-0">
@@ -296,7 +301,9 @@ export default function DataGovernanceDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(liveData?.policies ?? POLICIES).map((p: any) => (
+                  {(liveData?.policies ?? []).length === 0 ? (
+                    <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No data policies yet</TableCell></TableRow>
+                  ) : (liveData?.policies ?? []).map((p: any) => (
                     <TableRow key={p.name} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2.5 max-w-[180px] truncate font-medium">{p.name}</TableCell>
                       <TableCell className="py-2.5">
@@ -326,27 +333,29 @@ export default function DataGovernanceDashboard() {
             <CardDescription className="text-xs">Active data flows with encryption and approval status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {FLOWS.map((flow, i) => (
+            {(liveData?.stats?.data_flows ?? liveData?.stats?.flows ?? []).length === 0 ? (
+              <EmptyState icon={Globe} title="No data flows yet" description="Active data flows will appear here once assets are classified and mapped." />
+            ) : (liveData?.stats?.data_flows ?? liveData?.stats?.flows ?? []).map((flow: any, i: number) => (
               <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-xs font-mono">
-                    <span className="truncate text-blue-400">{flow.source}</span>
+                    <span className="truncate text-blue-400">{flow.source ?? flow.source_asset}</span>
                     <span className="text-muted-foreground shrink-0">→</span>
-                    <span className="truncate text-cyan-400">{flow.destination}</span>
+                    <span className="truncate text-cyan-400">{flow.destination ?? flow.destination_asset}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge className={cn(
                       "text-[10px] border",
-                      flow.type === "cross-border" ? "border-orange-500/30 text-orange-400 bg-orange-500/10" :
-                      flow.type === "external"     ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" :
-                                                     "border-blue-500/30 text-blue-400 bg-blue-500/10"
+                      (flow.type ?? flow.flow_type) === "cross-border" ? "border-orange-500/30 text-orange-400 bg-orange-500/10" :
+                      (flow.type ?? flow.flow_type) === "external"     ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" :
+                                                                          "border-blue-500/30 text-blue-400 bg-blue-500/10"
                     )}>
-                      {flow.type}
+                      {flow.type ?? flow.flow_type ?? "internal"}
                     </Badge>
-                    {flow.encrypted
+                    {(flow.encrypted ?? flow.is_encrypted)
                       ? <span className="text-[10px] text-green-400 flex items-center gap-0.5"><CheckCircle className="h-3 w-3" />encrypted</span>
                       : <span className="text-[10px] text-red-400 flex items-center gap-0.5"><XCircle className="h-3 w-3" />unencrypted</span>}
-                    {flow.approved
+                    {(flow.approved ?? flow.is_approved)
                       ? <span className="text-[10px] text-green-400">approved</span>
                       : <span className="text-[10px] text-amber-400">unapproved</span>}
                   </div>

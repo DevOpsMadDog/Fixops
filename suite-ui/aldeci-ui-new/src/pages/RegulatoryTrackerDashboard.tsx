@@ -13,7 +13,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ScrollText, AlertTriangle, ClipboardCheck, BarChart3, RefreshCw, Globe, Calendar } from "lucide-react";
+import { ScrollText, AlertTriangle, ClipboardCheck, BarChart3, RefreshCw, Globe, Calendar, Inbox } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -37,6 +37,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ───────────────────────────────────────────────────
@@ -247,7 +248,7 @@ export default function RegulatoryTrackerDashboard() {
               <Calendar className="h-4 w-4 text-blue-400" />
               Upcoming Regulatory Changes
             </CardTitle>
-            <Badge className="text-[10px] border border-border text-muted-foreground">{UPCOMING_CHANGES.length} changes</Badge>
+            <Badge className="text-[10px] border border-border text-muted-foreground">{(liveData?.upcoming ?? []).length} changes</Badge>
           </div>
           <CardDescription className="text-xs">Sorted by effective date — impact to your compliance posture</CardDescription>
         </CardHeader>
@@ -265,7 +266,9 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.upcoming ?? UPCOMING_CHANGES).map((row: any, idx: number) => (
+                {(liveData?.upcoming ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No upcoming regulatory changes yet</TableCell></TableRow>
+                ) : (liveData?.upcoming ?? []).map((row: any, idx: number) => (
                   <TableRow key={row.id ?? idx} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.reg ?? row.regulation_name ?? row.name}</TableCell>
                     <TableCell className="py-2.5"><ChangeTypeBadge type={row.changeType ?? row.change_type ?? "amendment"} /></TableCell>
@@ -295,7 +298,9 @@ export default function RegulatoryTrackerDashboard() {
               <ClipboardCheck className="h-4 w-4 text-purple-400" />
               Compliance Obligations
             </CardTitle>
-            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">3 overdue</Badge>
+            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
+              {(liveData?.stats?.obligations ?? []).filter((o: any) => o.status === "overdue").length} overdue
+            </Badge>
           </div>
           <CardDescription className="text-xs">Active obligations across all tracked regulations</CardDescription>
         </CardHeader>
@@ -313,12 +318,14 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {OBLIGATIONS.map((row, i) => (
+                {(liveData?.stats?.obligations ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No obligations yet</TableCell></TableRow>
+                ) : (liveData?.stats?.obligations ?? []).map((row: any, i: number) => (
                   <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
                     <TableCell className="text-xs py-2.5 max-w-[220px] truncate font-medium">{row.title}</TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{row.reg}</TableCell>
-                    <TableCell className="py-2.5"><ObligTypeBadge type={row.type} /></TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.deadline}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{row.reg ?? row.regulation}</TableCell>
+                    <TableCell className="py-2.5"><ObligTypeBadge type={row.type ?? row.obligation_type ?? "operational"} /></TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.deadline ?? row.due_date}</TableCell>
                     <TableCell className="py-2.5"><ObligStatusBadge status={row.status} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
@@ -341,22 +348,24 @@ export default function RegulatoryTrackerDashboard() {
             <CardDescription className="text-xs">Recent compliance assessments with gap counts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {ASSESSMENTS.map((a, i) => (
+            {(liveData?.stats?.assessments ?? []).length === 0 ? (
+              <EmptyState icon={BarChart3} title="No assessments yet" description="Compliance assessments will appear here once completed." />
+            ) : (liveData?.stats?.assessments ?? []).map((a: any, i: number) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{a.reg}</span>
-                    {a.critGaps > 0 && (
-                      <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{a.critGaps} critical</Badge>
+                    <span className="font-medium">{a.reg ?? a.regulation_name ?? a.framework}</span>
+                    {(a.critGaps ?? a.critical_gaps ?? 0) > 0 && (
+                      <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{a.critGaps ?? a.critical_gaps} critical</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <span>{a.gaps} gaps</span>
+                    <span>{a.gaps ?? a.gap_count ?? 0} gaps</span>
                     <span>·</span>
-                    <span>{a.assessedAt}</span>
+                    <span>{a.assessedAt ?? a.assessed_at}</span>
                   </div>
                 </div>
-                <ComplianceBar pct={a.compliancePct} />
+                <ComplianceBar pct={a.compliancePct ?? a.compliance_pct ?? a.compliance_score ?? 0} />
                 <p className="text-[10px] text-muted-foreground">Assessed by: {a.assessor}</p>
               </div>
             ))}
@@ -384,17 +393,19 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CATALOG.map((reg, i) => (
+                {(liveData?.active ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">No regulations tracked yet</TableCell></TableRow>
+                ) : (liveData?.active ?? []).map((reg: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium py-2">{reg.name}</TableCell>
-                    <TableCell className="py-2"><JurisdictionBadge j={reg.jurisdiction} /></TableCell>
-                    <TableCell className="py-2"><CategoryBadge cat={reg.category} /></TableCell>
+                    <TableCell className="text-xs font-medium py-2">{reg.name ?? reg.regulation_name}</TableCell>
+                    <TableCell className="py-2"><JurisdictionBadge j={reg.jurisdiction ?? reg.jurisdiction_code ?? "—"} /></TableCell>
+                    <TableCell className="py-2"><CategoryBadge cat={reg.category ?? reg.regulation_type ?? "—"} /></TableCell>
                     <TableCell className="py-2">
                       <Badge className={cn("text-[10px] border capitalize",
                         reg.status === "active" ? "border-green-500/30 text-green-400 bg-green-500/10" : "border-amber-500/30 text-amber-400 bg-amber-500/10"
-                      )}>{reg.status}</Badge>
+                      )}>{reg.status ?? "active"}</Badge>
                     </TableCell>
-                    <TableCell className="text-xs py-2 text-muted-foreground font-mono">{reg.version}</TableCell>
+                    <TableCell className="text-xs py-2 text-muted-foreground font-mono">{reg.version ?? reg.regulation_version ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

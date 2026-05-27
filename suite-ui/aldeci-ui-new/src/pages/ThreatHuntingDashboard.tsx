@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
@@ -167,10 +168,10 @@ export default function ThreatHuntingDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Hunts"     value={liveData?.stats?.active_sessions ?? liveData?.stats?.active_hunts ?? liveData?.stats?.hunt_count ?? 7}   icon={Crosshair}     trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Total Findings"   value={liveData?.stats?.total_findings ?? liveData?.stats?.findings ?? 43}  icon={Search}        trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Findings" value={liveData?.stats?.critical_findings ?? 8}  icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="Queries Run"      value={liveData?.stats?.queries_run ?? liveData?.queries?.length ?? 284} icon={BarChart3}     trend="up" />
+        <KpiCard title="Active Hunts"     value={liveData?.stats?.active_sessions ?? liveData?.stats?.active_hunts ?? liveData?.stats?.hunt_count ?? "—"}   icon={Crosshair}     trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Total Findings"   value={liveData?.stats?.total_findings ?? liveData?.stats?.findings ?? "—"}  icon={Search}        trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Findings" value={liveData?.stats?.critical_findings ?? "—"}  icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Queries Run"      value={liveData?.stats?.queries_run ?? liveData?.stats?.queries_run_count ?? "—"} icon={BarChart3}     trend="up" />
       </div>
 
       {/* Active Campaigns */}
@@ -201,7 +202,9 @@ export default function ThreatHuntingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.sessions?.items ?? liveData?.sessions ?? CAMPAIGNS).map((row: any) => (
+                {(liveData?.sessions?.items ?? liveData?.sessions ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={8}><EmptyState icon={Crosshair} title="No campaigns yet" description="Hunt campaigns will appear here once created." /></TableCell></TableRow>
+                ) : (liveData?.sessions?.items ?? liveData?.sessions ?? []).map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[180px] truncate font-medium">{row.name}</TableCell>
@@ -231,7 +234,9 @@ export default function ThreatHuntingDashboard() {
           <CardDescription className="text-xs">Saved hunt queries across KQL, SPL, EQL, SIGMA, YARA</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {QUERIES.map((q) => (
+          {(liveData?.queries?.items ?? liveData?.queries ?? []).length === 0 ? (
+            <EmptyState icon={Search} title="No queries yet" description="Saved hunt queries will appear here once created." />
+          ) : (liveData?.queries?.items ?? liveData?.queries ?? []).map((q: any) => (
             <div key={q.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
               <QueryTypeBadge type={q.query_type} />
               <div className="flex-1 min-w-0">
@@ -271,7 +276,7 @@ export default function ThreatHuntingDashboard() {
                 Hunt Findings
               </CardTitle>
               <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
-                {FINDINGS.length} findings
+                {(liveData?.findings?.items ?? liveData?.findings ?? []).length} findings
               </Badge>
             </div>
           </CardHeader>
@@ -289,7 +294,9 @@ export default function ThreatHuntingDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(liveData?.findings?.items ?? liveData?.findings ?? FINDINGS).map((row: any) => (
+                  {(liveData?.findings?.items ?? liveData?.findings ?? []).length === 0 ? (
+                    <TableRow><TableCell colSpan={6}><EmptyState icon={AlertTriangle} title="No findings yet" description="Hunt findings will appear here once campaigns produce results." /></TableCell></TableRow>
+                  ) : (liveData?.findings?.items ?? liveData?.findings ?? []).map((row: any) => (
                     <TableRow key={row.id} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 pl-4"><SevDot sev={row.sev} /></TableCell>
                       <TableCell className="text-xs py-2.5 max-w-[200px] truncate font-medium">{row.title}</TableCell>
@@ -321,7 +328,9 @@ export default function ThreatHuntingDashboard() {
             <CardDescription className="text-xs">Reusable hunting procedures</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {PLAYBOOKS.map((pb) => (
+            {(liveData?.playbooks?.items ?? liveData?.playbooks ?? []).length === 0 ? (
+              <EmptyState icon={BookOpen} title="No playbooks yet" description="Hunt playbooks will appear here once configured." />
+            ) : (liveData?.playbooks?.items ?? liveData?.playbooks ?? []).map((pb: any) => (
               <div key={pb.id} className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-medium leading-tight">{pb.title}</span>
@@ -329,7 +338,7 @@ export default function ThreatHuntingDashboard() {
                 </div>
                 <HuntTypeBadge type={pb.hunt_type} />
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {pb.techniques.map((t) => (
+                  {(pb.techniques ?? []).map((t: string) => (
                     <span key={t} className="text-[9px] font-mono bg-muted/40 rounded px-1.5 py-0.5 text-muted-foreground">{t}</span>
                   ))}
                 </div>

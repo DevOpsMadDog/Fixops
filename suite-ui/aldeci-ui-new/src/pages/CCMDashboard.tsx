@@ -35,6 +35,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ───────────────────────────────────────────────────
@@ -235,7 +236,9 @@ export default function CCMDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {FRAMEWORKS.map((fw) => (
+              {(liveData?.frameworks?.items ?? liveData?.frameworks ?? []).length === 0 ? (
+                <TableRow><TableCell colSpan={6}><EmptyState icon={BarChart3} title="No framework data yet" description="Control coverage by framework will appear here once controls are configured." /></TableCell></TableRow>
+              ) : (liveData?.frameworks?.items ?? liveData?.frameworks ?? []).map((fw: any) => (
                 <TableRow key={fw.name} className="hover:bg-muted/30">
                   <TableCell className="text-xs font-medium py-2.5">{fw.name}</TableCell>
                   <TableCell className="text-xs py-2.5 text-right tabular-nums text-muted-foreground">{fw.total}</TableCell>
@@ -258,7 +261,7 @@ export default function CCMDashboard() {
               <ShieldCheck className="h-4 w-4 text-green-400" />
               Control Test Results
             </CardTitle>
-            <Badge className="text-[10px] border border-border text-muted-foreground">{CONTROLS.length} controls shown</Badge>
+            <Badge className="text-[10px] border border-border text-muted-foreground">{(liveData?.controls?.items ?? liveData?.controls ?? []).length} controls shown</Badge>
           </div>
           <CardDescription className="text-xs">Latest test status for each monitored control</CardDescription>
         </CardHeader>
@@ -278,7 +281,9 @@ export default function CCMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.controls?.items ?? liveData?.controls ?? CONTROLS).map((row: any, i: number) => (
+                {(liveData?.controls?.items ?? liveData?.controls ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={8}><EmptyState icon={ShieldCheck} title="No controls yet" description="Control test results will appear here once controls are configured." /></TableCell></TableRow>
+                ) : (liveData?.controls?.items ?? liveData?.controls ?? []).map((row: any, i: number) => (
                   <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "fail" && "bg-red-500/5")}>
                     <TableCell className="text-xs font-mono py-2.5">{row.ref}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.name}</TableCell>
@@ -310,12 +315,14 @@ export default function CCMDashboard() {
                 <XCircle className="h-4 w-4" />
                 Open Failure Tracker
               </CardTitle>
-              <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{(liveData?.failures?.items ?? liveData?.failures ?? FAILURES).length} open</Badge>
+              <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{(liveData?.failures?.items ?? liveData?.failures ?? []).length} open</Badge>
             </div>
             <CardDescription className="text-xs">Active control failures requiring remediation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(liveData?.failures?.items ?? liveData?.failures ?? FAILURES).map((f: any, i: number) => (
+            {(liveData?.failures?.items ?? liveData?.failures ?? []).length === 0 ? (
+              <EmptyState icon={XCircle} title="No open failures" description="Control failures will appear here when tests detect issues." />
+            ) : (liveData?.failures?.items ?? liveData?.failures ?? []).map((f: any, i: number) => (
               <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                 <SeverityDot severity={f.severity} />
                 <div className="flex-1 min-w-0">
@@ -343,8 +350,10 @@ export default function CCMDashboard() {
             <CardDescription className="text-xs">Last 8 automated test runs with pass/fail summary</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {TEST_HISTORY.map((run, i) => {
-              const passRate = Math.round((run.passed / run.total) * 100);
+            {(liveData?.test_history?.items ?? liveData?.test_history ?? []).length === 0 ? (
+              <EmptyState icon={Clock} title="No test runs yet" description="Automated control test run history will appear here once tests execute." />
+            ) : (liveData?.test_history?.items ?? liveData?.test_history ?? []).map((run: any, i: number) => {
+              const passRate = run.total > 0 ? Math.round((run.passed / run.total) * 100) : 0;
               return (
                 <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -357,10 +366,10 @@ export default function CCMDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono text-muted-foreground truncate">{run.runId}</span>
+                      <span className="font-mono text-muted-foreground truncate">{run.runId ?? run.run_id}</span>
                       <span className={cn("font-bold tabular-nums ml-2 shrink-0", passRate >= 90 ? "text-green-400" : "text-amber-400")}>{passRate}%</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{run.time}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{run.time ?? run.run_time}</p>
                     <div className="flex items-center gap-3 mt-1.5 text-[10px]">
                       <span className="text-green-400">✓ {run.passed} passed</span>
                       {run.failed > 0 && <span className="text-red-400">✗ {run.failed} failed</span>}

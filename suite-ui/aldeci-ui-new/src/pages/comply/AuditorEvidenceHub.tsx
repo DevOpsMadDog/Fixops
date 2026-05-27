@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -221,16 +222,8 @@ function FrameworksTab() {
           : Array.isArray(raw?.items)
           ? raw.items
           : [];
-        // Ensure all known frameworks appear even if API returns subset
-        const seen = new Set(items.map((f) => f.name));
-        const extras: FrameworkCard[] = FRAMEWORK_LABELS.filter((l) => !seen.has(l)).map((l) => ({
-          id: l,
-          name: l,
-          completion_pct: 0,
-          controls_total: 0,
-          controls_passing: 0,
-        }));
-        setCards([...items, ...extras]);
+        // Only show frameworks the API actually returned — no placeholder synthesis
+        setCards(items);
       })
       .catch((e) => setError(e?.message ?? "Failed to load frameworks"))
       .finally(() => setLoading(false));
@@ -250,6 +243,17 @@ function FrameworksTab() {
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
         <XCircle className="w-8 h-8 text-red-400" />
         <p className="text-sm">{error}</p>
+      </div>
+    );
+
+  if (cards.length === 0)
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+        <EmptyState
+          icon={LayoutGrid}
+          title="No frameworks yet"
+          description="Framework completion cards will appear here once the audit API returns framework data."
+        />
       </div>
     );
 

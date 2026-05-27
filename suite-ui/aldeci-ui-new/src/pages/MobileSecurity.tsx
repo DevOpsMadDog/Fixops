@@ -36,86 +36,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const PLATFORMS = [
-  { label: "iOS", pct: 61, color: "bg-blue-500", text: "text-blue-400", count: 761 },
-  { label: "Android", pct: 34, color: "bg-green-500", text: "text-green-400", count: 424 },
-  { label: "Windows Phone", pct: 5, color: "bg-slate-500", text: "text-slate-400", count: 62 },
-];
-
-const DEVICES = [
-  { name: "iPhone 15 Pro — CEO",     platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 12, lastSeen: "2026-04-16 09:41" },
-  { name: "Galaxy S24 — SRE-01",     platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 18, lastSeen: "2026-04-16 09:38" },
-  { name: "iPad Pro — DesignLead",   platform: "iOS",     os: "17.3.2", enrolled: "Active",   compliant: true,  risk: 9,  lastSeen: "2026-04-16 09:22" },
-  { name: "Pixel 8 — DevOps-03",     platform: "Android", os: "14.0",   enrolled: "Active",   compliant: false, risk: 67, lastSeen: "2026-04-16 07:15" },
-  { name: "iPhone 14 — SecEng-02",   platform: "iOS",     os: "16.7.5", enrolled: "Active",   compliant: false, risk: 74, lastSeen: "2026-04-15 23:04" },
-  { name: "OnePlus 12 — CloudEng",   platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 22, lastSeen: "2026-04-16 09:33" },
-  { name: "iPhone 13 — Sales-07",    platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 15, lastSeen: "2026-04-16 08:58" },
-  { name: "Galaxy A54 — Contractor", platform: "Android", os: "13.0",   enrolled: "Pending",  compliant: false, risk: 88, lastSeen: "2026-04-14 16:30" },
-  { name: "iPhone SE — HR-04",       platform: "iOS",     os: "17.2.1", enrolled: "Active",   compliant: true,  risk: 11, lastSeen: "2026-04-16 09:02" },
-  { name: "WP Elite x3 — Legacy",    platform: "Windows Phone", os: "10.0", enrolled: "Active", compliant: false, risk: 91, lastSeen: "2026-04-12 11:00" },
-  { name: "Pixel 7a — AppDev-01",    platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 19, lastSeen: "2026-04-16 09:45" },
-  { name: "iPhone 15 — CISO",        platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 8,  lastSeen: "2026-04-16 09:50" },
-];
-
-const MDM_POLICIES = [
-  {
-    name: "Corporate Device Policy",
-    rules: [
-      { label: "Min password length 12 chars", enabled: true },
-      { label: "Require uppercase + symbols", enabled: true },
-      { label: "Full-disk encryption", enabled: true },
-      { label: "Remote wipe capability", enabled: true },
-      { label: "Screen lock ≤ 5 min", enabled: true },
-    ],
-    compliance: 87,
-  },
-  {
-    name: "BYOD Policy",
-    rules: [
-      { label: "Min password length 8 chars", enabled: true },
-      { label: "Require uppercase", enabled: true },
-      { label: "Full-disk encryption", enabled: true },
-      { label: "Remote wipe capability", enabled: false },
-      { label: "Screen lock ≤ 15 min", enabled: true },
-    ],
-    compliance: 72,
-  },
-  {
-    name: "Executive Device Policy",
-    rules: [
-      { label: "Min password length 16 chars", enabled: true },
-      { label: "Biometric auth required", enabled: true },
-      { label: "Full-disk encryption", enabled: true },
-      { label: "Remote wipe capability", enabled: true },
-      { label: "VPN always-on", enabled: true },
-    ],
-    compliance: 96,
-  },
-];
-
-const THREATS = [
-  { device: "Galaxy A54 — Contractor", type: "Malware Detected",       severity: "Critical", status: "Active",      time: "2026-04-16 08:12" },
-  { device: "WP Elite x3 — Legacy",    type: "OS Jailbreak/Root",       severity: "Critical", status: "Active",      time: "2026-04-16 07:55" },
-  { device: "iPhone 14 — SecEng-02",   type: "Outdated OS (>90 days)",  severity: "High",     status: "Investigating", time: "2026-04-16 06:30" },
-  { device: "Pixel 8 — DevOps-03",     type: "Unapproved App Sideload", severity: "High",     status: "Active",      time: "2026-04-15 22:18" },
-  { device: "Galaxy A54 — Contractor", type: "Certificate Pinning Bypass", severity: "High", status: "Active",      time: "2026-04-15 21:05" },
-  { device: "OnePlus 12 — CloudEng",   type: "Public Wi-Fi No VPN",     severity: "Medium",   status: "Resolved",    time: "2026-04-15 18:44" },
-  { device: "iPhone 13 — Sales-07",    type: "Failed Login × 10",       severity: "Medium",   status: "Resolved",    time: "2026-04-15 15:20" },
-  { device: "iPad Pro — DesignLead",   type: "Backup to Personal Cloud", severity: "Low",     status: "Monitoring",  time: "2026-04-15 11:33" },
-];
-
-const COMPLIANCE_TREND = [
-  { month: "Nov", compliant: 81, non: 19 },
-  { month: "Dec", compliant: 83, non: 17 },
-  { month: "Jan", compliant: 85, non: 15 },
-  { month: "Feb", compliant: 84, non: 16 },
-  { month: "Mar", compliant: 87, non: 13 },
-  { month: "Apr", compliant: 88, non: 12 },
-];
+// ── Static config (badge colour maps — not domain data) ──
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -216,10 +140,10 @@ export default function MobileSecurity() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Devices"  value={liveData?.stats?.total_devices  ?? (liveData?.devices?.count ?? "1,247")} icon={Smartphone}   trend="up" />
-        <KpiCard title="Enrolled"       value={liveData?.stats?.enrolled_count ?? "1,189"} icon={Shield}       trend="up" className="border-blue-500/20" />
-        <KpiCard title="Compliant"      value={liveData?.stats?.compliant_count ?? "1,041"} icon={CheckCircle}  trend="up" className="border-green-500/20" />
-        <KpiCard title="Active Threats" value={liveData?.stats?.active_threats  ?? (liveData?.threats?.count ?? 12)} icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="Total Devices"  value={liveData?.stats?.total_devices  ?? liveData?.devices?.count ?? "—"} icon={Smartphone}   trend="up" />
+        <KpiCard title="Enrolled"       value={liveData?.stats?.enrolled_count ?? "—"} icon={Shield}       trend="up" className="border-blue-500/20" />
+        <KpiCard title="Compliant"      value={liveData?.stats?.compliant_count ?? "—"} icon={CheckCircle}  trend="up" className="border-green-500/20" />
+        <KpiCard title="Active Threats" value={liveData?.stats?.active_threats  ?? liveData?.threats?.count ?? "—"} icon={AlertTriangle} trend="up" className="border-red-500/20" />
       </div>
 
       {/* Platform breakdown + Compliance trend */}
@@ -234,28 +158,41 @@ export default function MobileSecurity() {
             <CardDescription className="text-xs">Device distribution by operating system</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {PLATFORMS.map((p) => (
-              <div key={p.label} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className={cn("font-semibold", p.text)}>{p.label}</span>
-                    <span className="text-muted-foreground text-[10px]">{p.count} devices</span>
+            {(liveData?.stats?.platforms ?? []).length === 0 ? (
+              <EmptyState icon={Smartphone} title="No platform data yet" description="Platform breakdown will appear once devices are enrolled." />
+            ) : (liveData.stats.platforms as any[]).map((p: any) => {
+              const pct: number = p.pct ?? p.percentage ?? 0;
+              const label: string = p.label ?? p.platform ?? p.os_type ?? "Unknown";
+              const count: number = p.count ?? 0;
+              const colorMap: Record<string, string> = { iOS: "bg-blue-500", Android: "bg-green-500" };
+              const textMap: Record<string, string> = { iOS: "text-blue-400", Android: "text-green-400" };
+              const barColor = colorMap[label] ?? "bg-slate-500";
+              const textColor = textMap[label] ?? "text-slate-400";
+              return (
+                <div key={label} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("font-semibold", textColor)}>{label}</span>
+                      <span className="text-muted-foreground text-[10px]">{count} devices</span>
+                    </div>
+                    <span className="font-bold tabular-nums">{pct}%</span>
                   </div>
-                  <span className="font-bold tabular-nums">{p.pct}%</span>
+                  <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className={cn("h-full rounded-full", barColor)}
+                    />
+                  </div>
                 </div>
-                <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${p.pct}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn("h-full rounded-full", p.color)}
-                  />
-                </div>
+              );
+            })}
+            {liveData?.stats && (
+              <div className="pt-2 text-[11px] text-muted-foreground border-t border-border/50">
+                {liveData.stats.enrollment_rate != null ? `${liveData.stats.enrollment_rate}% enrollment rate` : ""}{liveData.stats.enrollment_rate != null && liveData.stats.compliance_rate != null ? " · " : ""}{liveData.stats.compliance_rate != null ? `${liveData.stats.compliance_rate}% compliance rate` : ""}
               </div>
-            ))}
-            <div className="pt-2 text-[11px] text-muted-foreground border-t border-border/50">
-              95.3% enrollment rate · 87.6% compliance rate
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -270,23 +207,24 @@ export default function MobileSecurity() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-3 h-36">
-              {COMPLIANCE_TREND.map((m) => (
-                <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
-                  <div className="w-full flex items-end gap-0.5 h-28">
-                    <div
-                      className="flex-1 rounded-t bg-green-500/70 transition-all"
-                      style={{ height: `${m.compliant}%` }}
-                      title={`Compliant: ${m.compliant}%`}
-                    />
-                    <div
-                      className="flex-1 rounded-t bg-red-500/70 transition-all"
-                      style={{ height: `${m.non}%` }}
-                      title={`Non-compliant: ${m.non}%`}
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">{m.month}</span>
+              {(liveData?.stats?.compliance_trend ?? []).length === 0 ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <EmptyState icon={BarChart3} title="No trend data yet" description="Trend will appear after multiple compliance snapshots." />
                 </div>
-              ))}
+              ) : (liveData.stats.compliance_trend as any[]).map((m: any) => {
+                const compliant: number = m.compliant ?? m.compliant_pct ?? 0;
+                const non: number = m.non ?? m.non_compliant_pct ?? (100 - compliant);
+                const month: string = m.month ?? m.label ?? "—";
+                return (
+                  <div key={month} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div className="w-full flex items-end gap-0.5 h-28">
+                      <div className="flex-1 rounded-t bg-green-500/70 transition-all" style={{ height: `${compliant}%` }} title={`Compliant: ${compliant}%`} />
+                      <div className="flex-1 rounded-t bg-red-500/70 transition-all" style={{ height: `${non}%` }} title={`Non-compliant: ${non}%`} />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{month}</span>
+                  </div>
+                );
+              })}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500/70 inline-block" />Compliant</span>
@@ -305,7 +243,7 @@ export default function MobileSecurity() {
               Enrolled Devices
             </CardTitle>
             <Badge className="text-[10px] border border-indigo-500/30 text-indigo-400 bg-indigo-500/10">
-              {liveData?.devices?.count ?? (liveData?.devices?.devices?.length ?? DEVICES.length)} devices
+              {liveData?.devices?.count ?? liveData?.devices?.devices?.length ?? 0} devices
             </Badge>
           </div>
           <CardDescription className="text-xs">All managed mobile devices with compliance status and risk score</CardDescription>
@@ -326,7 +264,9 @@ export default function MobileSecurity() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.devices?.devices ?? DEVICES).map((d: any, i: number) => {
+                {(liveData?.devices?.devices ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={8} className="py-6"><EmptyState icon={Smartphone} title="No devices enrolled yet" description="Devices will appear once mobile endpoints are registered." /></TableCell></TableRow>
+                ) : (liveData.devices.devices as any[]).map((d: any, i: number) => {
                   const enrolledStatus = d.enrollment_status ?? d.enrolled ?? "Active";
                   const isCompliant = d.compliance_status === "compliant" || d.compliant === true;
                   const riskScore = d.risk_score ?? d.risk ?? 0;
@@ -373,7 +313,9 @@ export default function MobileSecurity() {
           MDM Policies
         </h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {MDM_POLICIES.map((policy) => (
+          {(liveData?.policies ?? []).length === 0 ? (
+            <div className="lg:col-span-3"><EmptyState icon={Lock} title="No MDM policies yet" description="Policies will appear once MDM configurations are loaded." /></div>
+          ) : (liveData.policies as any[]).map((policy: any) => (
             <Card key={policy.name}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -382,7 +324,7 @@ export default function MobileSecurity() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                {policy.rules.map((rule) => (
+                {policy.rules.map((rule: any) => (
                   <div key={rule.label} className="flex items-center gap-2 text-xs">
                     {rule.enabled
                       ? <CheckCircle className="h-3.5 w-3.5 text-green-400 shrink-0" />
@@ -426,7 +368,7 @@ export default function MobileSecurity() {
               Active Threat Feed
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {(liveData?.threats?.threats ?? THREATS).filter((t: any) => t.status === "Active" || t.status === "active").length} active
+              {(liveData?.threats?.threats ?? []).filter((t: any) => t.status === "Active" || t.status === "active").length} active
             </Badge>
           </div>
           <CardDescription className="text-xs">Recent mobile device security events requiring attention</CardDescription>
@@ -445,7 +387,9 @@ export default function MobileSecurity() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.threats?.threats ?? THREATS).map((t: any, i: number) => (
+                {(liveData?.threats?.threats ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="py-6"><EmptyState icon={Activity} title="No active threats" description="Mobile threat events will appear here once detected." /></TableCell></TableRow>
+                ) : (liveData.threats.threats as any[]).map((t: any, i: number) => (
                   <TableRow key={t.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{t.device_id ?? t.device}</TableCell>
                     <TableCell className="text-xs py-2.5">{t.threat_type ?? t.type}</TableCell>

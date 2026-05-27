@@ -101,69 +101,6 @@ const MATRIX_DATA: Record<Scanner, Record<Scanner, number>> = {
   SonarQube: { Snyk: 38, Trivy: 22, Semgrep: 67, SonarQube: 100 },
 };
 
-// ── Static grouped vulnerability clusters (fallback when API has no data) ───
-const VULN_GROUPS = [
-  {
-    id: "vg-001",
-    cve: "CVE-2024-1234",
-    title: "Log4Shell RCE in org.apache.logging",
-    severity: "critical",
-    scanners: ["Snyk", "Trivy", "Semgrep"],
-    count: 14,
-    dedupStatus: "merged",
-    affectedComponents: ["api-gateway", "auth-service", "data-pipeline"],
-  },
-  {
-    id: "vg-002",
-    cve: "CVE-2023-44487",
-    title: "HTTP/2 Rapid Reset DoS in nginx",
-    severity: "high",
-    scanners: ["Trivy", "SonarQube"],
-    count: 8,
-    dedupStatus: "merged",
-    affectedComponents: ["web-frontend", "load-balancer"],
-  },
-  {
-    id: "vg-003",
-    cve: "CVE-2024-3094",
-    title: "XZ Utils backdoor — supply chain",
-    severity: "critical",
-    scanners: ["Snyk", "Trivy"],
-    count: 3,
-    dedupStatus: "pending",
-    affectedComponents: ["build-agent", "ci-runner"],
-  },
-  {
-    id: "vg-004",
-    cve: "CVE-2023-38545",
-    title: "curl SOCKS5 heap overflow",
-    severity: "high",
-    scanners: ["Snyk", "SonarQube"],
-    count: 6,
-    dedupStatus: "split",
-    affectedComponents: ["data-fetcher", "ml-pipeline"],
-  },
-  {
-    id: "vg-005",
-    cve: "CVE-2024-22365",
-    title: "PAM local DoS — linux-pam",
-    severity: "medium",
-    scanners: ["Trivy"],
-    count: 11,
-    dedupStatus: "merged",
-    affectedComponents: ["worker-nodes"],
-  },
-  {
-    id: "vg-006",
-    cve: "CVE-2024-0056",
-    title: "SQL injection via parameterised bypass",
-    severity: "high",
-    scanners: ["Semgrep", "SonarQube"],
-    count: 5,
-    dedupStatus: "pending",
-    affectedComponents: ["reporting-service", "admin-api"],
-  },
-];
 
 interface VulnGroup {
   id: string;
@@ -307,10 +244,10 @@ export default function CorrelationEngine() {
   const isLoading = casesQuery.isLoading || trendsQuery.isLoading;
   const isError = casesQuery.isError;
 
-  // Build vuln groups from API clusters or fall back to static data
+  // Build vuln groups from API clusters — empty when no data (no static fallback)
   const apiGroups: VulnGroup[] = useMemo(() => {
     const clusters = dedupClustersQuery.data?.clusters;
-    if (!Array.isArray(clusters) || clusters.length === 0) return VULN_GROUPS;
+    if (!Array.isArray(clusters) || clusters.length === 0) return [];
     return clusters.map((c: Record<string, unknown>, i: number) => ({
       id: (c.cluster_id as string) || `vg-${i}`,
       cve: (c.cve_id as string) || "N/A",

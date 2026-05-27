@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
@@ -162,8 +163,8 @@ export default function SecurityHealthDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const liveScore = liveData?.stats?.overall_score ?? liveData?.stats?.health_score ?? OVERALL_SCORE;
-  const overallScore = typeof liveScore === "number" ? liveScore : OVERALL_SCORE;
+  const liveScore = liveData?.stats?.overall_score ?? liveData?.stats?.health_score ?? null;
+  const overallScore = typeof liveScore === "number" ? liveScore : 0;
 
   const overallColor =
     overallScore >= 80 ? "text-green-400" :
@@ -182,8 +183,10 @@ export default function SecurityHealthDashboard() {
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (overallScore / 100) * circumference;
 
-  const liveChecks    = liveData?.checks?.items    ?? liveData?.checks    ?? CHECKS;
-  const liveIncidents = liveData?.incidents?.items ?? liveData?.incidents ?? INCIDENTS;
+  const liveChecks    = liveData?.checks?.items    ?? liveData?.checks    ?? [];
+  const liveIncidents = liveData?.incidents?.items ?? liveData?.incidents ?? [];
+  const liveDomains   = liveData?.stats?.domains   ?? liveData?.domains   ?? [];
+  const liveTrend     = liveData?.stats?.trend      ?? liveData?.trend     ?? [];
 
   return (
     <motion.div
@@ -245,9 +248,13 @@ export default function SecurityHealthDashboard() {
           </CardContent>
         </Card>
 
-        {/* Domain health cards (7 domains, 2 cols for remaining 3 cols) */}
+        {/* Domain health cards */}
         <div className="lg:col-span-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-          {DOMAINS.map((d) => {
+          {liveDomains.length === 0 ? (
+            <div className="col-span-full">
+              <EmptyState icon={Shield} title="No domain data yet" description="Domain health scores will appear here once monitoring is active." />
+            </div>
+          ) : liveDomains.map((d: any) => {
             const colors = domainScoreColor(d.score);
             return (
               <Card key={d.name} className="p-3 space-y-2">
@@ -304,7 +311,9 @@ export default function SecurityHealthDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {liveChecks.map((row: any) => {
+                  {liveChecks.length === 0 ? (
+                    <TableRow><TableCell colSpan={6}><EmptyState icon={Activity} title="No checks yet" description="Health check results will appear here once monitoring runs." /></TableCell></TableRow>
+                  ) : liveChecks.map((row: any) => {
                     const colors = domainScoreColor(row.score);
                     return (
                       <TableRow key={row.name} className="hover:bg-muted/30">
@@ -349,7 +358,9 @@ export default function SecurityHealthDashboard() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {liveIncidents.map((inc: any) => (
+              {liveIncidents.length === 0 ? (
+                <EmptyState icon={AlertTriangle} title="No open incidents" description="Open incidents will appear here when health checks fail." />
+              ) : liveIncidents.map((inc: any) => (
                 <div key={inc.id} className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <SeverityBadge sev={inc.sev} />
@@ -375,29 +386,33 @@ export default function SecurityHealthDashboard() {
               <CardDescription className="text-xs">Weekly health score snapshots</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end gap-2 h-28">
-                {TREND.map((w, i) => {
-                  const heightPct = (w.score / TREND_MAX) * 100;
-                  const isLatest = i === TREND.length - 1;
-                  return (
-                    <div key={w.week} className="flex-1 flex flex-col items-center gap-1">
-                      <span className={cn("text-[9px] font-bold tabular-nums", isLatest ? "text-green-400" : "text-muted-foreground")}>
-                        {w.score}
-                      </span>
-                      <div className="w-full flex flex-col justify-end" style={{ height: "80px" }}>
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${heightPct}%` }}
-                          transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.05 }}
-                          className={cn("w-full rounded-t", isLatest ? "bg-green-500" : "bg-blue-500/50")}
-                          title={`${w.week}: ${w.score}`}
-                        />
+              {liveTrend.length === 0 ? (
+                <EmptyState icon={BarChart3} title="No trend data yet" description="Health score trend will appear here once monitoring has run for multiple periods." />
+              ) : (
+                <div className="flex items-end gap-2 h-28">
+                  {liveTrend.map((w: any, i: number) => {
+                    const heightPct = (w.score / 100) * 100;
+                    const isLatest = i === liveTrend.length - 1;
+                    return (
+                      <div key={w.week ?? i} className="flex-1 flex flex-col items-center gap-1">
+                        <span className={cn("text-[9px] font-bold tabular-nums", isLatest ? "text-green-400" : "text-muted-foreground")}>
+                          {w.score}
+                        </span>
+                        <div className="w-full flex flex-col justify-end" style={{ height: "80px" }}>
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{ height: `${heightPct}%` }}
+                            transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.05 }}
+                            className={cn("w-full rounded-t", isLatest ? "bg-green-500" : "bg-blue-500/50")}
+                            title={`${w.week}: ${w.score}`}
+                          />
+                        </div>
+                        <span className="text-[9px] text-muted-foreground text-center leading-tight">{w.week}</span>
                       </div>
-                      <span className="text-[9px] text-muted-foreground text-center leading-tight">{w.week}</span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

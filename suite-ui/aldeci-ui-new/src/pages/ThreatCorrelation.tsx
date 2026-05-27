@@ -13,13 +13,14 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { GitMerge, Zap, Bell, BarChart3, RefreshCw, Radio } from "lucide-react";
+import { GitMerge, Zap, Bell, BarChart3, RefreshCw, Radio, Inbox } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 // ── API config ─────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -85,17 +86,7 @@ const EVENT_STREAM = [
   { type: "unsigned_binary", source_ip: "10.1.1.9",       user_id: "SYSTEM",   asset: "srv-build",    ts: "7m ago",  severity: "high"   },
 ];
 
-// 24-hour bar chart data: events and correlated alerts per hour
-const TIMELINE = Array.from({ length: 24 }, (_, i) => ({
-  hour: i,
-  events: Math.floor(Math.random() * 600 + 100),
-  correlated: Math.floor(Math.random() * 8),
-})).map((d, i) => {
-  // deterministic pattern — spikes at certain hours
-  const spike = [2, 3, 9, 10, 14, 15, 21, 22].includes(i);
-  return { ...d, events: spike ? d.events + 400 : d.events, correlated: spike ? d.correlated + 5 : d.correlated };
-});
-const MAX_EVENTS = Math.max(...TIMELINE.map((d) => d.events));
+// TIMELINE is derived from live data in the component; no static array here.
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -215,7 +206,9 @@ export default function ThreatCorrelation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.rules?.rules ?? RULES).map((rule: any) => (
+                {(liveData?.rules?.rules ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No correlation rules yet</TableCell></TableRow>
+                ) : (liveData?.rules?.rules ?? []).map((rule: any) => (
                   <TableRow key={rule.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{rule.name}</TableCell>
                     <TableCell className="py-2.5 max-w-[220px]">
@@ -255,7 +248,7 @@ export default function ThreatCorrelation() {
               </CardTitle>
               <CardDescription className="text-xs">Multi-event alerts grouped by triggered rule</CardDescription>
             </div>
-            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.incidents?.incidents ?? ALERTS).length} alerts</Badge>
+            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.incidents?.incidents ?? []).length} alerts</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -273,7 +266,9 @@ export default function ThreatCorrelation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.incidents?.incidents ?? ALERTS).map((alert: any) => (
+                {(liveData?.incidents?.incidents ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No correlated alerts yet</TableCell></TableRow>
+                ) : (liveData?.incidents?.incidents ?? []).map((alert: any) => (
                   <TableRow key={alert.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{alert.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{alert.rule ?? alert.rule_name ?? alert.correlation_rule_id}</TableCell>
@@ -307,7 +302,9 @@ export default function ThreatCorrelation() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/40">
-              {(liveData?.signals?.signals ?? EVENT_STREAM).map((ev: any, i: number) => (
+              {(liveData?.signals?.signals ?? []).length === 0 ? (
+                <EmptyState icon={Radio} title="No events yet" description="Live security events will stream here once ingestion is active." />
+              ) : (liveData?.signals?.signals ?? []).map((ev: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20 transition-colors">
                   <SeverityDot sev={ev.severity ?? "low"} />
                   <Badge className="text-[9px] border border-border bg-muted/30 text-muted-foreground px-1 py-0 shrink-0 max-w-[100px] truncate">
@@ -332,29 +329,37 @@ export default function ThreatCorrelation() {
             <CardDescription className="text-xs">Event volume (blue) vs correlated alerts (red)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end gap-[2px] h-36">
-              {TIMELINE.map((d) => (
-                <div key={d.hour} className="flex-1 flex flex-col items-center gap-0 relative" title={`${d.hour}:00 — ${d.events} events, ${d.correlated} correlated`}>
-                  <div className="w-full flex items-end gap-[1px] h-28 relative">
-                    {/* event bar */}
-                    <div
-                      className="flex-1 rounded-t bg-blue-500/40 transition-all"
-                      style={{ height: `${(d.events / MAX_EVENTS) * 100}%` }}
-                    />
-                    {/* correlated overlay */}
-                    <div
-                      className="absolute bottom-0 left-0 right-0 rounded-t bg-red-500/70 transition-all"
-                      style={{ height: `${Math.min((d.correlated / 15) * 100, 100)}%` }}
-                    />
+            {(() => {
+              const timeline: any[] = liveData?.stats?.hourly_timeline ?? liveData?.stats?.timeline ?? [];
+              if (timeline.length === 0) {
+                return <EmptyState icon={BarChart3} title="No timeline data yet" description="Hourly detection data will appear once events are ingested." />;
+              }
+              const maxEvents = Math.max(...timeline.map((d: any) => d.events ?? d.event_count ?? 0), 1);
+              return (
+                <>
+                  <div className="flex items-end gap-[2px] h-36">
+                    {timeline.map((d: any, idx: number) => {
+                      const hour = d.hour ?? idx;
+                      const events = d.events ?? d.event_count ?? 0;
+                      const correlated = d.correlated ?? d.correlated_count ?? 0;
+                      return (
+                        <div key={hour} className="flex-1 flex flex-col items-center gap-0 relative" title={`${hour}:00 — ${events} events, ${correlated} correlated`}>
+                          <div className="w-full flex items-end gap-[1px] h-28 relative">
+                            <div className="flex-1 rounded-t bg-blue-500/40 transition-all" style={{ height: `${(events / maxEvents) * 100}%` }} />
+                            <div className="absolute bottom-0 left-0 right-0 rounded-t bg-red-500/70 transition-all" style={{ height: `${Math.min((correlated / 15) * 100, 100)}%` }} />
+                          </div>
+                          <span className="text-[8px] text-muted-foreground">{hour % 6 === 0 ? `${hour}h` : ""}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <span className="text-[8px] text-muted-foreground">{d.hour % 6 === 0 ? `${d.hour}h` : ""}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500/40 inline-block" />Events</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/70 inline-block" />Correlated</span>
-            </div>
+                  <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500/40 inline-block" />Events</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/70 inline-block" />Correlated</span>
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>

@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Key, Shield, AlertTriangle, CheckCircle, XCircle,
-  RefreshCw, BarChart3, ClipboardList, Users,
+  RefreshCw, BarChart3, ClipboardList, Users, Inbox,
 } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
@@ -204,17 +205,21 @@ export default function PasswordPolicy() {
           Active Policies
         </h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {POLICIES.map((policy) => (
+          {(liveData?.policies?.policies ?? liveData?.policies ?? []).length === 0 ? (
+            <div className="lg:col-span-3">
+              <EmptyState icon={Key} title="No policies yet" description="Password policies will appear here once configured." />
+            </div>
+          ) : (liveData?.policies?.policies ?? liveData?.policies ?? []).map((policy: any) => (
             <Card key={policy.name}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xs font-semibold leading-tight">{policy.name}</CardTitle>
                   <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] shrink-0">Edit</Button>
                 </div>
-                <CardDescription className="text-[10px]">{policy.users.toLocaleString()} users in scope</CardDescription>
+                <CardDescription className="text-[10px]">{(policy.users ?? policy.user_count ?? 0).toLocaleString()} users in scope</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {policy.requirements.map((req) => (
+                {(policy.requirements ?? []).map((req: any) => (
                   <div key={req.label} className="flex items-center gap-2 text-xs">
                     {req.met
                       ? <CheckCircle className="h-3.5 w-3.5 text-green-400 shrink-0" />
@@ -229,18 +234,18 @@ export default function PasswordPolicy() {
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-muted-foreground">Compliance</span>
                     <span className={cn("font-bold",
-                      policy.compliance >= 90 ? "text-green-400" :
-                      policy.compliance >= 75 ? "text-yellow-400" : "text-red-400"
-                    )}>{policy.compliance}%</span>
+                      (policy.compliance ?? 0) >= 90 ? "text-green-400" :
+                      (policy.compliance ?? 0) >= 75 ? "text-yellow-400" : "text-red-400"
+                    )}>{policy.compliance ?? 0}%</span>
                   </div>
                   <div className="relative h-1.5 rounded-full bg-muted/30 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${policy.compliance}%` }}
+                      animate={{ width: `${policy.compliance ?? 0}%` }}
                       transition={{ duration: 0.8, ease: "easeOut" }}
                       className={cn("h-full rounded-full",
-                        policy.compliance >= 90 ? "bg-green-500" :
-                        policy.compliance >= 75 ? "bg-yellow-500" : "bg-red-500"
+                        (policy.compliance ?? 0) >= 90 ? "bg-green-500" :
+                        (policy.compliance ?? 0) >= 75 ? "bg-yellow-500" : "bg-red-500"
                       )}
                     />
                   </div>
@@ -260,7 +265,7 @@ export default function PasswordPolicy() {
               Policy Violations
             </CardTitle>
             <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
-              {(liveData?.violations?.violations ?? VIOLATIONS).filter((v: any) => v.status === "Open" || v.status === "open").length} open
+              {(liveData?.violations?.violations ?? []).filter((v: any) => v.status === "Open" || v.status === "open").length} open
             </Badge>
           </div>
           <CardDescription className="text-xs">Detected password policy violations — user IDs are masked for privacy</CardDescription>
@@ -280,7 +285,9 @@ export default function PasswordPolicy() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.violations?.violations ?? VIOLATIONS).map((v: any, i: number) => (
+                {(liveData?.violations?.violations ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No violations yet</TableCell></TableRow>
+                ) : (liveData?.violations?.violations ?? []).map((v: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{v.userId}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[140px] truncate">{v.policy}</TableCell>
@@ -333,10 +340,12 @@ export default function PasswordPolicy() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.audits?.audits ?? AUDITS).map((a: any, i: number) => (
+                {(liveData?.audits?.audits ?? []).length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No audit history yet</TableCell></TableRow>
+                ) : (liveData?.audits?.audits ?? []).map((a: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{a.date}</TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-right">{a.checked.toLocaleString()}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-right">{(a.checked ?? 0).toLocaleString()}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-amber-400">{a.violations}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold text-green-400">{a.compliance}</TableCell>
                   </TableRow>
@@ -353,24 +362,26 @@ export default function PasswordPolicy() {
               <BarChart3 className="h-4 w-4 text-purple-400" />
               Password Strength Distribution
             </CardTitle>
-            <CardDescription className="text-xs">Across all {(3847).toLocaleString()} audited accounts</CardDescription>
+            <CardDescription className="text-xs">Across all audited accounts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {STRENGTH_DIST.map((s) => (
+            {(liveData?.stats?.strength_distribution ?? []).length === 0 ? (
+              <EmptyState icon={BarChart3} title="No strength data yet" description="Password strength distribution will appear once an audit has run." />
+            ) : (liveData?.stats?.strength_distribution ?? []).map((s: any) => (
               <div key={s.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{s.label}</span>
                   <div className="flex items-center gap-2">
-                    <span className="tabular-nums text-muted-foreground">{s.count.toLocaleString()}</span>
-                    <span className="tabular-nums font-bold w-10 text-right">{s.pct}%</span>
+                    <span className="tabular-nums text-muted-foreground">{(s.count ?? 0).toLocaleString()}</span>
+                    <span className="tabular-nums font-bold w-10 text-right">{s.pct ?? s.percentage ?? 0}%</span>
                   </div>
                 </div>
                 <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${s.pct}%` }}
+                    animate={{ width: `${s.pct ?? s.percentage ?? 0}%` }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn("h-full rounded-full", s.color)}
+                    className={cn("h-full rounded-full", s.color ?? "bg-blue-500")}
                   />
                 </div>
               </div>

@@ -23,6 +23,7 @@ import {
   XCircle,
   TrendingUp,
   BarChart3,
+  Inbox,
 } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
@@ -46,6 +47,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
@@ -148,7 +150,11 @@ export default function VulnRiskQueue() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const distMax = Math.max(...DISTRIBUTION.map((d) => d.count));
+  const liveDistribution: any[] = liveData?.stats?.distribution ?? liveData?.stats?.severity_distribution ?? [];
+  const distMax = liveDistribution.length > 0 ? Math.max(...liveDistribution.map((d: any) => d.count ?? 0)) : 1;
+  const liveTeams: any[] = liveData?.stats?.teams ?? liveData?.stats?.team_workload ?? [];
+  const liveQueue: any[] = liveData?.scored ?? [];
+  const liveRiskAcceptance: any[] = liveData?.stats?.risk_acceptance ?? [];
 
   return (
     <motion.div
@@ -184,7 +190,7 @@ export default function VulnRiskQueue() {
               <AlertTriangle className="h-4 w-4 text-red-400" />
               Priority Queue
             </CardTitle>
-            <Badge className="text-[10px] border border-border text-muted-foreground">{(liveData?.scored ?? QUEUE).length} items</Badge>
+            <Badge className="text-[10px] border border-border text-muted-foreground">{liveQueue.length} items</Badge>
           </div>
           <CardDescription className="text-xs">Sorted by composite risk score — CVSS × EPSS × KEV weighting</CardDescription>
         </CardHeader>
@@ -205,7 +211,9 @@ export default function VulnRiskQueue() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.scored ?? QUEUE).map((row: any) => {
+                {liveQueue.length === 0 ? (
+                  <TableRow><TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">No vulnerabilities in queue yet</TableCell></TableRow>
+                ) : liveQueue.map((row: any) => {
                   const cve       = row.cve ?? row.cve_id;
                   const asset     = row.asset ?? row.asset_id;
                   const cvss      = row.cvss ?? row.cvss_score ?? 0;
@@ -256,18 +264,20 @@ export default function VulnRiskQueue() {
             <CardDescription className="text-xs">Vulnerability count by severity tier</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DISTRIBUTION.map((d) => (
-              <div key={d.label} className="space-y-1">
+            {liveDistribution.length === 0 ? (
+              <EmptyState icon={BarChart3} title="No distribution data yet" description="Severity distribution will appear once vulnerabilities are scored." />
+            ) : liveDistribution.map((d: any) => (
+              <div key={d.label ?? d.severity} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className={cn("font-semibold", d.text)}>{d.label}</span>
-                  <span className="tabular-nums font-bold">{d.count}</span>
+                  <span className={cn("font-semibold", d.text ?? "text-foreground")}>{d.label ?? d.severity}</span>
+                  <span className="tabular-nums font-bold">{d.count ?? 0}</span>
                 </div>
                 <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${(d.count / distMax) * 100}%` }}
+                    animate={{ width: `${((d.count ?? 0) / distMax) * 100}%` }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn("h-full rounded-full", d.color)}
+                    className={cn("h-full rounded-full", d.color ?? "bg-blue-500")}
                   />
                 </div>
               </div>
@@ -295,14 +305,16 @@ export default function VulnRiskQueue() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TEAMS.map((t) => (
-                  <TableRow key={t.name} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium py-2.5">{t.name}</TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 font-bold">{t.assigned}</TableCell>
-                    <TableCell className={cn("text-xs tabular-nums py-2.5 font-semibold", t.overdue > 5 ? "text-red-400" : "text-amber-400")}>
-                      {t.overdue}
+                {liveTeams.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No team workload data yet</TableCell></TableRow>
+                ) : liveTeams.map((t: any) => (
+                  <TableRow key={t.name ?? t.team_name} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-medium py-2.5">{t.name ?? t.team_name}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 font-bold">{t.assigned ?? t.assigned_count ?? 0}</TableCell>
+                    <TableCell className={cn("text-xs tabular-nums py-2.5 font-semibold", (t.overdue ?? t.overdue_count ?? 0) > 5 ? "text-red-400" : "text-amber-400")}>
+                      {t.overdue ?? t.overdue_count ?? 0}
                     </TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{t.avgResolution}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{t.avgResolution ?? t.avg_resolution ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -320,13 +332,15 @@ export default function VulnRiskQueue() {
               Risk Acceptance Queue
             </CardTitle>
             <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
-              {RISK_ACCEPTANCE.length} pending review
+              {liveRiskAcceptance.length} pending review
             </Badge>
           </div>
           <CardDescription className="text-xs">Formal risk acceptance requests awaiting CISO approval</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {RISK_ACCEPTANCE.map((r) => (
+          {liveRiskAcceptance.length === 0 ? (
+            <EmptyState icon={Shield} title="No risk acceptance requests" description="Formal risk acceptance requests will appear here once submitted." />
+          ) : liveRiskAcceptance.map((r: any) => (
             <div
               key={r.id}
               className={cn(
@@ -339,12 +353,12 @@ export default function VulnRiskQueue() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-mono text-muted-foreground">{r.id}</span>
-                  <span className="text-xs font-semibold font-mono text-blue-400">{r.cve}</span>
-                  <SeverityBadge sev={r.risk} />
-                  <span className="text-[10px] text-muted-foreground">— {r.asset}</span>
+                  <span className="text-xs font-semibold font-mono text-blue-400">{r.cve ?? r.cve_id}</span>
+                  <SeverityBadge sev={r.risk ?? r.risk_level ?? "medium"} />
+                  <span className="text-[10px] text-muted-foreground">— {r.asset ?? r.asset_id}</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1 truncate">{r.reason}</p>
-                <p className="text-[10px] text-muted-foreground">Requested by: <span className="font-medium text-foreground">{r.requestor}</span></p>
+                <p className="text-[10px] text-muted-foreground mt-1 truncate">{r.reason ?? r.justification}</p>
+                <p className="text-[10px] text-muted-foreground">Requested by: <span className="font-medium text-foreground">{r.requestor ?? r.requested_by ?? "—"}</span></p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {accepted.has(r.id) ? (

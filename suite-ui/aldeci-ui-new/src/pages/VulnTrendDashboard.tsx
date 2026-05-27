@@ -11,13 +11,14 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Bug, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, BarChart3, Clock, Users } from "lucide-react";
+import { Bug, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, BarChart3, Clock, Users, Inbox } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 // ── API config ─────────────────────────────────────────────
@@ -32,48 +33,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const WEEKLY_TREND = [
-  { week: "Mar 18", critical: 18, high: 62, medium: 241, low: 489 },
-  { week: "Mar 25", critical: 21, high: 68, medium: 258, low: 501 },
-  { week: "Apr 1",  critical: 17, high: 71, medium: 270, low: 512 },
-  { week: "Apr 8",  critical: 23, high: 74, medium: 262, low: 498 },
-  { week: "Apr 15", critical: 19, high: 69, medium: 254, low: 487 },
-  { week: "Apr 16", critical: 12, high: 58, medium: 241, low: 472 },
-];
-
-const TREND_ANALYSIS = [
-  { sev: "Critical", pct: -34.2, dir: "down", label: "↓ 34.2%", cls: "text-green-400" },
-  { sev: "High",     pct: -6.5,  dir: "down", label: "↓ 6.5%",  cls: "text-green-400" },
-  { sev: "Medium",   pct: 0.0,   dir: "flat", label: "→ 0.0%",  cls: "text-yellow-400" },
-  { sev: "Low",      pct: -3.5,  dir: "down", label: "↓ 3.5%",  cls: "text-green-400" },
-];
-
-const OVERALL_TREND = { label: "decreasing", cls: "border-green-500/30 text-green-400 bg-green-500/10" };
-
-const SLA_ROWS = [
-  { id: "CVE-2025-29927", sev: "Critical", discovered: "2026-04-09", sla_days: 7,  days_remaining: -1, resolved: null },
-  { id: "CVE-2021-44228", sev: "Critical", discovered: "2026-04-10", sla_days: 7,  days_remaining: 1,  resolved: null },
-  { id: "CVE-2022-22965", sev: "Critical", discovered: "2026-04-11", sla_days: 7,  days_remaining: 2,  resolved: null },
-  { id: "FND-8821",       sev: "Critical", discovered: "2026-04-12", sla_days: 7,  days_remaining: 3,  resolved: null },
-  { id: "CVE-2024-3400",  sev: "High",     discovered: "2026-04-01", sla_days: 30, days_remaining: 15, resolved: null },
-  { id: "CVE-2024-21413", sev: "High",     discovered: "2026-04-02", sla_days: 30, days_remaining: 16, resolved: null },
-  { id: "FND-7741",       sev: "High",     discovered: "2026-03-28", sla_days: 30, days_remaining: 12, resolved: null },
-  { id: "CVE-2023-44487", sev: "High",     discovered: "2026-03-20", sla_days: 30, days_remaining: 4,  resolved: null },
-  { id: "FND-6612",       sev: "Medium",   discovered: "2026-03-01", sla_days: 90, days_remaining: 45, resolved: null },
-  { id: "CVE-2022-40684", sev: "High",     discovered: "2026-04-14", sla_days: 30, days_remaining: 28, resolved: "2026-04-15" },
-  { id: "FND-5530",       sev: "Medium",   discovered: "2026-02-15", sla_days: 90, days_remaining: 29, resolved: "2026-04-14" },
-  { id: "CVE-2021-26855", sev: "Critical", discovered: "2026-04-08", sla_days: 7,  days_remaining: -2, resolved: null },
-];
-
-const COHORTS = [
-  { name: "Q1 2026 Discovered",     vuln_count: 312, avg_age: 24.1, avg_cvss: 6.8 },
-  { name: "Legacy (pre-2025)",       vuln_count: 178, avg_age: 91.4, avg_cvss: 5.9 },
-  { name: "Container-sourced",       vuln_count: 94,  avg_age: 12.3, avg_cvss: 7.2 },
-  { name: "IaC / Cloud Config",      vuln_count: 67,  avg_age: 18.7, avg_cvss: 6.1 },
-  { name: "SAST / Code-level",       vuln_count: 241, avg_age: 8.4,  avg_cvss: 7.8 },
-];
+// ── Static config (chart colours / legend — not domain data) ──
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -144,10 +104,10 @@ export default function VulnTrendDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Tracked"       value={liveData?.stats?.total_vulns ?? liveData?.stats?.total_tracked ?? "1,847"}             icon={Bug}          trend="up" />
-        <KpiCard title="SLA Breach Rate"     value={liveData?.stats?.sla_breach_rate != null ? `${liveData.stats.sla_breach_rate}%` : "8.4%"} icon={AlertTriangle} trend="up"  className="border-red-500/20" />
-        <KpiCard title="Critical Mean Age"   value={liveData?.stats?.critical_mean_age != null ? `${liveData.stats.critical_mean_age}d` : "12.4d"} icon={Clock}        trend="down" className="border-amber-500/20" />
-        <KpiCard title="Resolved This Week"  value={liveData?.stats?.resolved_this_week ?? 47}                                              icon={TrendingDown}  trend="up" />
+        <KpiCard title="Total Tracked"       value={liveData?.stats?.total_vulns ?? liveData?.stats?.total_tracked ?? "—"}             icon={Bug}          trend="up" />
+        <KpiCard title="SLA Breach Rate"     value={liveData?.stats?.sla_breach_rate != null ? `${liveData.stats.sla_breach_rate}%` : "—"} icon={AlertTriangle} trend="up"  className="border-red-500/20" />
+        <KpiCard title="Critical Mean Age"   value={liveData?.stats?.critical_mean_age != null ? `${liveData.stats.critical_mean_age}d` : "—"} icon={Clock}        trend="down" className="border-amber-500/20" />
+        <KpiCard title="Resolved This Week"  value={liveData?.stats?.resolved_this_week ?? "—"}                                              icon={TrendingDown}  trend="up" />
       </div>
 
       {/* 30-day trend + Trend Analysis */}
@@ -163,13 +123,15 @@ export default function VulnTrendDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {(liveData?.snapshots?.map((s: any) => ({
+              {(liveData?.snapshots ?? []).length === 0 ? (
+                <EmptyState icon={BarChart3} title="No trend snapshots yet" description="Snapshots will appear once the vulnerability trend engine has run." />
+              ) : (liveData.snapshots.map((s: any) => ({
                 week: s.taken_at ? s.taken_at.slice(0, 10) : "—",
                 critical: s.critical ?? 0,
                 high: s.high ?? 0,
                 medium: s.medium ?? 0,
                 low: s.low ?? 0,
-              })) ?? WEEKLY_TREND).map((w: any) => {
+              }))).map((w: any) => {
                 const total = w.critical + w.high + w.medium + w.low;
                 const scale = STACKED_MAX;
                 return (
@@ -230,25 +192,33 @@ export default function VulnTrendDashboard() {
                 </CardTitle>
                 <CardDescription className="text-xs">Week-over-week change per severity</CardDescription>
               </div>
-              <Badge className={cn("text-[10px] border", liveData?.analysis?.overall_trend === "increasing" ? "border-red-500/30 text-red-400 bg-red-500/10" : liveData?.analysis?.overall_trend === "stable" ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" : OVERALL_TREND.cls)}>
-                Overall: {liveData?.analysis?.overall_trend ?? OVERALL_TREND.label}
+              <Badge className={cn("text-[10px] border", liveData?.analysis?.overall_trend === "increasing" ? "border-red-500/30 text-red-400 bg-red-500/10" : liveData?.analysis?.overall_trend === "stable" ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" : "border-border text-muted-foreground")}>
+                Overall: {liveData?.analysis?.overall_trend ?? "—"}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
-            {TREND_ANALYSIS.map((t) => (
-              <div key={t.sev} className="flex items-center justify-between">
-                <SeverityBadge sev={t.sev} />
-                <div className="flex items-center gap-2">
-                  {t.dir === "down" && <TrendingDown className="h-4 w-4 text-green-400" />}
-                  {t.dir === "up"   && <TrendingUp   className="h-4 w-4 text-red-400" />}
-                  {t.dir === "flat" && <span className="h-4 w-4 text-yellow-400 text-sm font-bold leading-4">→</span>}
-                  <span className={cn("text-sm font-bold tabular-nums", t.cls)}>{t.label}</span>
+            {!(liveData?.analysis?.by_severity) || (liveData.analysis.by_severity as any[]).length === 0 ? (
+              <EmptyState icon={TrendingUp} title="No trend analysis yet" description="Week-over-week data will appear once multiple snapshots exist." />
+            ) : (liveData.analysis.by_severity as any[]).map((t: any) => {
+              const pct: number = t.pct_change ?? t.pct ?? 0;
+              const dir = pct < 0 ? "down" : pct > 0 ? "up" : "flat";
+              const label = dir === "down" ? `↓ ${Math.abs(pct).toFixed(1)}%` : dir === "up" ? `↑ ${pct.toFixed(1)}%` : `→ 0.0%`;
+              const cls = dir === "down" ? "text-green-400" : dir === "up" ? "text-red-400" : "text-yellow-400";
+              return (
+                <div key={t.sev ?? t.severity} className="flex items-center justify-between">
+                  <SeverityBadge sev={t.sev ?? t.severity} />
+                  <div className="flex items-center gap-2">
+                    {dir === "down" && <TrendingDown className="h-4 w-4 text-green-400" />}
+                    {dir === "up"   && <TrendingUp   className="h-4 w-4 text-red-400" />}
+                    {dir === "flat" && <span className="h-4 w-4 text-yellow-400 text-sm font-bold leading-4">→</span>}
+                    <span className={cn("text-sm font-bold tabular-nums", cls)}>{label}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div className="pt-2 border-t border-border/40 text-xs text-muted-foreground">
-              Compared to week of Apr 8. Data from vulnerability scanner aggregation.
+              Week-over-week change. Data from vulnerability scanner aggregation.
             </div>
           </CardContent>
         </Card>
@@ -263,7 +233,7 @@ export default function VulnTrendDashboard() {
               SLA Tracking
             </CardTitle>
             <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
-              {liveData?.breaches?.length ?? SLA_ROWS.filter(r => r.days_remaining < 0 && !r.resolved).length} breached
+              {liveData?.breaches?.length ?? 0} breached
             </Badge>
           </div>
           <CardDescription className="text-xs">Days remaining vs SLA deadline — red bars indicate breach</CardDescription>
@@ -282,14 +252,20 @@ export default function VulnTrendDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SLA_ROWS.map((row) => {
+                {(liveData?.breaches ?? []).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-6">
+                      <EmptyState icon={Clock} title="No SLA tracking data yet" description="SLA breach data will appear once the vulnerability SLA engine has run." />
+                    </TableCell>
+                  </TableRow>
+                ) : (liveData.breaches as any[]).map((row: any) => {
                   const breached = row.days_remaining < 0 && !row.resolved;
                   const barPct = Math.max(0, Math.min(100, (row.days_remaining / row.sla_days) * 100));
                   return (
                     <TableRow key={row.id} className={cn("hover:bg-muted/30", breached && "bg-red-500/5")}>
                       <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
-                      <TableCell className="py-2.5"><SeverityBadge sev={row.sev} /></TableCell>
-                      <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.discovered}</TableCell>
+                      <TableCell className="py-2.5"><SeverityBadge sev={row.sev ?? row.severity} /></TableCell>
+                      <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.discovered ?? row.discovered_at}</TableCell>
                       <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.sla_days}d</TableCell>
                       <TableCell className="py-2.5">
                         {row.resolved ? (
@@ -303,7 +279,7 @@ export default function VulnTrendDashboard() {
                               />
                             </div>
                             <span className={cn("text-xs font-bold tabular-nums", breached ? "text-red-400" : "text-muted-foreground")}>
-                              {breached ? `${row.days_remaining}d` : `${row.days_remaining}d`}
+                              {row.days_remaining}d
                             </span>
                           </div>
                         )}
@@ -343,7 +319,13 @@ export default function VulnTrendDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(liveData?.cohorts ?? COHORTS).map((c: any) => (
+              {(liveData?.cohorts ?? []).length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-6">
+                    <EmptyState icon={Users} title="No cohort data yet" description="Cohorts will appear once the vulnerability cohort engine has grouped findings." />
+                  </TableCell>
+                </TableRow>
+              ) : (liveData.cohorts as any[]).map((c: any) => (
                 <TableRow key={c.name ?? c.cohort_name ?? c.cohort_id} className="hover:bg-muted/30">
                   <TableCell className="text-xs font-medium py-2.5">{c.name ?? c.cohort_name}</TableCell>
                   <TableCell className="text-xs tabular-nums py-2.5 text-right">{c.vuln_count ?? (c.vuln_ids?.length ?? 0)}</TableCell>
