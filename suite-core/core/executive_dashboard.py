@@ -698,15 +698,25 @@ class RiskTrendAnalyser:
         base_risk_score: float = 45.0,
         base_compliance_pct: float = 72.0,
         seed: Optional[int] = None,
+        persist: bool = False,
     ) -> List[RiskTrendSnapshot]:
         """
         Generate synthetic weekly snapshots for demonstration / testing.
+
+        IMPORTANT: This method is for demo/test use only. By default (``persist=False``)
+        the generated snapshots are returned but NOT stored in this analyser's internal
+        store, so they will never appear on a live ``get_snapshots()`` call. Pass
+        ``persist=True`` only when you explicitly want to populate the store (e.g. unit
+        tests that exercise trend computation logic). Every returned snapshot carries
+        ``is_synthetic=True`` — callers must surface that flag so consumers know the
+        data is fabricated.
 
         Args:
             weeks: Number of historical weeks to generate
             base_risk_score: Starting risk score
             base_compliance_pct: Starting compliance percentage
             seed: Optional RNG seed for reproducibility
+            persist: If True, add snapshots to this analyser's internal store. Default False.
 
         Returns:
             List of RiskTrendSnapshot ordered oldest-first.
@@ -745,7 +755,8 @@ class RiskTrendAnalyser:
                 resolved_findings=resolved_f,
             )
             snapshots.append(snap)
-            self.add_snapshot(snap)
+            if persist:
+                self.add_snapshot(snap)
 
         return snapshots
 

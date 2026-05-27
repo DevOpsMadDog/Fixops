@@ -56,8 +56,10 @@ _due_diligence_engine: DueDiligenceEngine = _dashboard["due_diligence_engine"]
 _kpi_engine: KPIEngine = _dashboard["kpi_engine"]
 _board_report_generator: BoardReportGenerator = _dashboard["board_report_generator"]
 
-# Seed synthetic trend history on startup (for demo / development)
-_trend_analyser.generate_synthetic_history(weeks=12, seed=42)
+# NOTE: No synthetic history is seeded at startup. The trend store starts empty.
+# Real snapshots must be recorded via POST /api/v1/executive/trends/snapshot.
+# Demo/synthetic data is available via GET /api/v1/executive/trends?synthetic=true
+# or GET /api/v1/executive/trends/demo — both clearly label is_synthetic=true.
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +150,28 @@ class TrendResponse(BaseModel):
     trend_direction: str
     mttr_trend: str
     weeks_analysed: int
+    is_synthetic: bool = Field(
+        False,
+        description=(
+            "True when snapshots are fabricated demo data, not real recorded posture. "
+            "Consumers must not present synthetic data as real metrics."
+        ),
+    )
+
+
+class RecordSnapshotRequest(BaseModel):
+    """Request body for recording a real weekly risk posture snapshot."""
+
+    week_start: datetime = Field(..., description="ISO-8601 UTC timestamp for the start of the week")
+    total_risk_score: float = Field(..., ge=0.0, le=100.0, description="Overall risk score (0–100, higher = riskier)")
+    critical_vulns: int = Field(..., ge=0, description="Open critical vulnerabilities")
+    high_vulns: int = Field(..., ge=0, description="Open high vulnerabilities")
+    medium_vulns: int = Field(..., ge=0, description="Open medium vulnerabilities")
+    low_vulns: int = Field(..., ge=0, description="Open low vulnerabilities")
+    compliance_pct: float = Field(..., ge=0.0, le=100.0, description="Compliance percentage (0–100)")
+    mttr_days: float = Field(..., ge=0.0, description="Mean time to remediate (days)")
+    new_findings: int = Field(..., ge=0, description="Findings opened this week")
+    resolved_findings: int = Field(..., ge=0, description="Findings closed this week")
 
 
 class BenchmarkMetricResponse(BaseModel):
@@ -452,12 +476,46 @@ async def get_risk_summary(
     "/trends",
     response_model=TrendResponse,
     summary="Risk trend data (weekly snapshots)",
-    description="Return weekly risk posture snapshots with trend direction analysis.",
+    description=(
+        "Return weekly risk posture snapshots recorded by the platform. "
+        "When no real snapshots have been recorded yet, returns an honest empty series "
+        "(snapshots=[], weeks_analysed=0). "
+        "Pass ?synthetic=true to receive 12 weeks of clearly-labelled demo data "
+        "(is_synthetic=true) — never use this for real reporting."
+    ),
 )
 async def get_trends(
     weeks: int = Query(12, ge=1, le=52, description="Number of weeks of history to return"),
+    synthetic: bool = Query(
+        False,
+        description=(
+            "If true, return fabricated demo data instead of real recorded snapshots. "
+            "Every snapshot in the response will carry is_synthetic=true. "
+            "Never surface synthetic data as real posture history."
+        ),
+    ),
 ) -> TrendResponse:
-    """Return risk trend data from weekly posture snapshots."""
+    """Return risk trend data from real recorded weekly posture snapshots.
+
+    When no real data exists, returns an empty series. Pass ?synthetic=true
+    only for demo/development purposes — the response is clearly labelled.
+    """
+    if synthetic:
+        demo_snaps = _trend_analyser.generate_synthetic_history(weeks=weeks, seed=42, persist=False)
+        # Compute trend from synthetic data without polluting the real store
+        demo_analyser = RiskTrendAnalyser()
+        for s in demo_snaps:
+            demo_analyser.add_snapshot(s)
+        trend = demo_analyser.compute_trend(weeks=min(4, weeks))
+        mttr_trend = demo_analyser.compute_mttr_trend(weeks=min(8, weeks))
+        return TrendResponse(
+            snapshots=[_snapshot_to_response(s) for s in demo_snaps],
+            trend_direction=trend,
+            mttr_trend=mttr_trend,
+            weeks_analysed=len(demo_snaps),
+            is_synthetic=True,
+        )
+
     snapshots = _trend_analyser.get_snapshots(weeks=weeks)
     trend = _trend_analyser.compute_trend(weeks=min(4, weeks))
     mttr_trend = _trend_analyser.compute_mttr_trend(weeks=min(8, weeks))
@@ -467,7 +525,70 @@ async def get_trends(
         trend_direction=trend,
         mttr_trend=mttr_trend,
         weeks_analysed=len(snapshots),
+        is_synthetic=False,
     )
+
+
+@router.get(
+    "/trends/demo",
+    response_model=TrendResponse,
+    summary="Demo risk trend data (synthetic — not real posture)",
+    description=(
+        "Return 12 weeks of fabricated demo risk-trend snapshots for UI development "
+        "and sales demos. ALL snapshots are synthetic random-walk data. "
+        "is_synthetic=true is always set. Never present this data as real metrics."
+    ),
+)
+async def get_trends_demo(
+    weeks: int = Query(12, ge=1, le=52, description="Number of synthetic weeks to return"),
+    seed: int = Query(42, ge=0, description="RNG seed for reproducible demo data"),
+) -> TrendResponse:
+    """Return clearly-labelled synthetic trend data for demo/development use."""
+    demo_snaps = _trend_analyser.generate_synthetic_history(weeks=weeks, seed=seed, persist=False)
+    demo_analyser = RiskTrendAnalyser()
+    for s in demo_snaps:
+        demo_analyser.add_snapshot(s)
+    trend = demo_analyser.compute_trend(weeks=min(4, weeks))
+    mttr_trend = demo_analyser.compute_mttr_trend(weeks=min(8, weeks))
+    return TrendResponse(
+        snapshots=[_snapshot_to_response(s) for s in demo_snaps],
+        trend_direction=trend,
+        mttr_trend=mttr_trend,
+        weeks_analysed=len(demo_snaps),
+        is_synthetic=True,
+    )
+
+
+@router.post(
+    "/trends/snapshot",
+    status_code=201,
+    summary="Record a real weekly risk posture snapshot",
+    description=(
+        "Append a real measured weekly posture snapshot to the trend store. "
+        "This is the authoritative write path — only call this with actual "
+        "platform-measured values from the brain pipeline or aggregation layer."
+    ),
+)
+async def record_snapshot(body: RecordSnapshotRequest) -> dict:
+    """Record a real weekly posture snapshot into the trend analyser."""
+    snap = RiskTrendSnapshot(
+        week_start=body.week_start,
+        total_risk_score=body.total_risk_score,
+        critical_vulns=body.critical_vulns,
+        high_vulns=body.high_vulns,
+        medium_vulns=body.medium_vulns,
+        low_vulns=body.low_vulns,
+        compliance_pct=body.compliance_pct,
+        mttr_days=body.mttr_days,
+        new_findings=body.new_findings,
+        resolved_findings=body.resolved_findings,
+    )
+    _trend_analyser.add_snapshot(snap)
+    return {
+        "recorded": True,
+        "week_start": body.week_start.isoformat(),
+        "total_snapshots": len(_trend_analyser.get_snapshots(weeks=9999)),
+    }
 
 
 @router.get(

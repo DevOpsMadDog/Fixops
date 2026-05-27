@@ -73,7 +73,10 @@ def basic_scenario() -> FAIRInputs:
 @pytest.fixture
 def trend_analyser() -> RiskTrendAnalyser:
     analyser = RiskTrendAnalyser()
-    analyser.generate_synthetic_history(weeks=12, seed=99)
+    # persist=True: store snapshots in this analyser for trend-computation tests.
+    # This is the ONLY legitimate use of generate_synthetic_history with persist=True —
+    # in tests that specifically exercise trend logic, not in production startup.
+    analyser.generate_synthetic_history(weeks=12, seed=99, persist=True)
     return analyser
 
 
@@ -798,3 +801,105 @@ class TestFactory:
         assert isinstance(dashboard["due_diligence_engine"], DueDiligenceEngine)
         assert isinstance(dashboard["kpi_engine"], KPIEngine)
         assert isinstance(dashboard["board_report_generator"], BoardReportGenerator)
+
+
+# ============================================================================
+# HONESTY / NO-FABRICATION TESTS
+# ============================================================================
+
+
+class TestNoFabricatedHistory:
+    """
+    Verify that a fresh RiskTrendAnalyser never silently contains synthetic data,
+    and that generate_synthetic_history(persist=False) does not pollute the store.
+
+    These tests guard against the class of bug fixed in Multica #9028:
+    module-import-time seeding of random-walk data presented as real posture.
+    """
+
+    def test_fresh_analyser_has_empty_store(self) -> None:
+        """A brand-new RiskTrendAnalyser must have zero snapshots."""
+        analyser = RiskTrendAnalyser()
+        assert analyser.get_snapshots() == []
+
+    def test_create_executive_dashboard_factory_yields_empty_trend_store(self) -> None:
+        """create_executive_dashboard() must not pre-seed any synthetic history."""
+        dashboard = create_executive_dashboard()
+        trend_analyser = dashboard["trend_analyser"]
+        assert isinstance(trend_analyser, RiskTrendAnalyser)
+        assert trend_analyser.get_snapshots() == [], (
+            "create_executive_dashboard() must not call generate_synthetic_history at init time"
+        )
+
+    def test_generate_synthetic_history_default_does_not_persist(self) -> None:
+        """generate_synthetic_history(persist=False) returns snapshots but does NOT store them."""
+        analyser = RiskTrendAnalyser()
+        returned = analyser.generate_synthetic_history(weeks=4, seed=1)
+        assert len(returned) == 4, "Should return 4 snapshots"
+        assert analyser.get_snapshots() == [], (
+            "Store must remain empty when persist=False (the default)"
+        )
+
+    def test_generate_synthetic_history_persist_true_does_store(self) -> None:
+        """generate_synthetic_history(persist=True) must add snapshots to the store."""
+        analyser = RiskTrendAnalyser()
+        returned = analyser.generate_synthetic_history(weeks=6, seed=2, persist=True)
+        stored = analyser.get_snapshots(weeks=99)
+        assert len(stored) == 6
+        assert len(returned) == 6
+
+    def test_empty_trend_store_returns_empty_series(self) -> None:
+        """get_snapshots() on an empty store returns [] (not fabricated data)."""
+        analyser = RiskTrendAnalyser()
+        result = analyser.get_snapshots(weeks=12)
+        assert result == []
+
+    def test_empty_trend_store_compute_trend_stable(self) -> None:
+        """compute_trend() with no snapshots must return 'stable', not raise."""
+        analyser = RiskTrendAnalyser()
+        assert analyser.compute_trend() == "stable"
+
+    def test_empty_trend_store_compute_mttr_trend_stable(self) -> None:
+        """compute_mttr_trend() with no snapshots must return 'stable', not raise."""
+        analyser = RiskTrendAnalyser()
+        assert analyser.compute_mttr_trend() == "stable"
+
+    def test_synthetic_snapshots_not_mixed_into_real_store(self) -> None:
+        """Calling generate_synthetic_history (default persist=False) then adding a real snapshot
+        must result in exactly one snapshot in the store — the real one."""
+        analyser = RiskTrendAnalyser()
+        # Call synthetic generator — must NOT pollute store
+        analyser.generate_synthetic_history(weeks=12, seed=42)
+
+        # Now record one real snapshot
+        real_snap = RiskTrendSnapshot(
+            week_start=datetime(2026, 1, 6, tzinfo=timezone.utc),
+            total_risk_score=38.5,
+            critical_vulns=1,
+            high_vulns=4,
+            medium_vulns=12,
+            low_vulns=30,
+            compliance_pct=81.0,
+            mttr_days=6.2,
+            new_findings=7,
+            resolved_findings=9,
+        )
+        analyser.add_snapshot(real_snap)
+
+        stored = analyser.get_snapshots(weeks=99)
+        assert len(stored) == 1, (
+            f"Expected exactly 1 real snapshot; got {len(stored)}. "
+            "Synthetic history must not have been persisted."
+        )
+        assert stored[0].total_risk_score == pytest.approx(38.5)
+
+    def test_synthetic_seeded_values_are_random_walk(self) -> None:
+        """Synthetic values must be within the clamped ranges used in the generator."""
+        analyser = RiskTrendAnalyser()
+        snaps = analyser.generate_synthetic_history(weeks=8, seed=7, persist=False)
+        for snap in snaps:
+            assert 10.0 <= snap.total_risk_score <= 95.0
+            assert 30.0 <= snap.compliance_pct <= 99.0
+            assert 1.0 <= snap.mttr_days <= 45.0
+            assert snap.critical_vulns >= 0
+            assert snap.high_vulns >= 0
