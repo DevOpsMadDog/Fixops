@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import {
   Server, RefreshCw, Download, AlertTriangle, CheckCircle,
-  ChevronDown, ChevronRight, Cloud, GitBranch, Settings,
+  Cloud, GitBranch, Settings,
   Shield, Layers, Activity, Upload, FileCode, XCircle, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,8 +49,50 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useFindings, useAutofix } from "@/hooks/use-api";
-import { findingsApi } from "@/lib/api";
+import { findingsApi, buildApiUrl, getStoredAuthToken } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+// ── Config-benchmark types ────────────────────────────────────
+interface BenchmarkAssessment {
+  result_id: string;
+  org_id: string;
+  profile_id: string;
+  target_name: string;
+  assessed_at: string;
+  passed: number;
+  failed: number;
+  warnings: number;
+  not_applicable: number;
+  score: number;
+  status: string;
+}
+
+interface BenchmarkStats {
+  org_id: string;
+  total_profiles: number;
+  total_assessments: number;
+  avg_score: number;
+  by_standard: Record<string, { assessments: number; avg_score: number }>;
+  critical_failures_total: number;
+}
+
+async function fetchBenchmarkData(): Promise<{ assessments: BenchmarkAssessment[]; stats: BenchmarkStats | null }> {
+  const key = getStoredAuthToken();
+  const headers = { "X-API-Key": key };
+  const [assessRes, statsRes] = await Promise.allSettled([
+    fetch(buildApiUrl("/api/v1/config-benchmark/assessments?org_id=default"), { headers }),
+    fetch(buildApiUrl("/api/v1/config-benchmark/stats?org_id=default"), { headers }),
+  ]);
+  const assessments: BenchmarkAssessment[] =
+    assessRes.status === "fulfilled" && assessRes.value.ok
+      ? await assessRes.value.json()
+      : [];
+  const stats: BenchmarkStats | null =
+    statsRes.status === "fulfilled" && statsRes.value.ok
+      ? await statsRes.value.json()
+      : null;
+  return { assessments, stats };
+}
 
 interface IaCFinding {
   id?: string;
@@ -119,12 +162,7 @@ interface ScanResponse {
   results?: unknown[];
 }
 
-const CIS_CONTROLS = [
-  { id: "CIS-1", name: "Inventory and Control of Enterprise Assets", pass: 0, total: 0 },
-  { id: "CIS-4", name: "Secure Configuration of Enterprise Assets", pass: 0, total: 0 },
-  { id: "CIS-12", name: "Network Infrastructure Management", pass: 0, total: 0 },
-  { id: "CIS-14", name: "Data Protection", pass: 0, total: 0 },
-];
+// CIS_CONTROLS removed — replaced by live /api/v1/config-benchmark/assessments fetch
 
 export default function IaCScanning() {
   const navigate = useNavigate();
@@ -133,6 +171,13 @@ export default function IaCScanning() {
   const [severityFilter, setSeverityFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [detailFinding, setDetailFinding] = useState<IaCFinding | null>(null);
+
+  // ── Real config-benchmark data ─────────────────────────────
+  const benchmarkQ = useQuery({
+    queryKey: ["config-benchmark"],
+    queryFn: fetchBenchmarkData,
+    staleTime: 60_000,
+  });
 
   const params = useMemo(() => {
     const p: Record<string, unknown> = { limit: 200, scanner: "iac" };
@@ -252,12 +297,22 @@ export default function IaCScanning() {
     };
   }, [allFindings]);
 
-  // Enrich CIS with real counts from findings
-  const cisControls = useMemo(() => CIS_CONTROLS.map((c) => {
-    const fail = allFindings.filter((f) => f.framework?.includes(c.id)).length;
-    const pass = 0; // Real pass count requires CSPM API
-    return { ...c, pass, total: fail, fail };
-  }), [allFindings]);
+  // CIS controls from real /api/v1/config-benchmark/assessments data
+  const cisControls = useMemo(() => {
+    const assessments = benchmarkQ.data?.assessments ?? [];
+    if (assessments.length === 0) {
+      // No assessments yet — show empty honest state
+      return [] as { id: string; name: string; pass: number; fail: number; total: number }[];
+    }
+    // Map each assessment to a CIS control entry
+    return assessments.map((a) => ({
+      id: a.target_name,
+      name: `${a.target_name} (score: ${a.score.toFixed(0)}%)`,
+      pass: a.passed,
+      fail: a.failed,
+      total: a.passed + a.failed + a.warnings + a.not_applicable,
+    }));
+  }, [benchmarkQ.data]);
 
   const driftAlerts = useMemo(() => allFindings.filter((f) => f.drift), [allFindings]);
 
@@ -600,41 +655,77 @@ export default function IaCScanning() {
                 <Shield className="h-4 w-4 text-primary" />
                 CIS Benchmark Coverage
               </CardTitle>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Source: /api/v1/config-benchmark/assessments
+              </p>
             </CardHeader>
             <CardContent>
-              <Accordion type="multiple" className="w-full">
-                {cisControls.map((control) => {
-                  const pct = control.total > 0 ? Math.round((control.pass / control.total) * 100) : 0;
-                  return (
-                    <AccordionItem key={control.id} value={control.id} className="border-b border-border/50">
-                      <AccordionTrigger className="text-xs hover:no-underline py-3">
-                        <div className="flex-1 text-left">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold">{control.id}</span>
-                            <span className={cn("text-xs font-bold", pct >= 80 ? "text-green-400" : pct >= 50 ? "text-yellow-400" : "text-red-400")}>
-                              {pct}%
-                            </span>
-                          </div>
-                          <Progress
-                            value={pct}
-                            className="h-1.5"
-                          />
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="py-2 space-y-2">
-                          <p className="text-xs text-muted-foreground">{control.name}</p>
-                          <div className="flex gap-4 text-xs">
-                            <span className="text-green-400">{control.pass} passing</span>
-                            <span className="text-red-400">{control.total - control.pass} failing</span>
-                            <span className="text-muted-foreground">{control.total} total</span>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
+              {benchmarkQ.isLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-10 rounded bg-muted/30 animate-pulse" />
+                  ))}
+                </div>
+              ) : cisControls.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+                  <CheckCircle className="h-6 w-6 opacity-30" />
+                  <p className="text-xs text-center">No CIS assessments yet</p>
+                  <p className="text-[10px] text-center opacity-60">
+                    Run config-benchmark against a target to populate this panel
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {benchmarkQ.data?.stats && (
+                    <div className="mb-3 p-2 rounded-md bg-muted/20 border border-border/40 space-y-1">
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>Avg score</span>
+                        <span className={cn("font-bold", benchmarkQ.data.stats.avg_score >= 80 ? "text-green-400" : benchmarkQ.data.stats.avg_score >= 50 ? "text-yellow-400" : "text-red-400")}>
+                          {benchmarkQ.data.stats.avg_score.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>Assessments</span>
+                        <span>{benchmarkQ.data.stats.total_assessments}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>Critical failures</span>
+                        <span className="text-red-400">{benchmarkQ.data.stats.critical_failures_total}</span>
+                      </div>
+                    </div>
+                  )}
+                  <Accordion type="multiple" className="w-full">
+                    {cisControls.map((control) => {
+                      const pct = control.total > 0 ? Math.round((control.pass / control.total) * 100) : 0;
+                      return (
+                        <AccordionItem key={control.id} value={control.id} className="border-b border-border/50">
+                          <AccordionTrigger className="text-xs hover:no-underline py-3">
+                            <div className="flex-1 text-left">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold truncate max-w-[120px]">{control.id}</span>
+                                <span className={cn("text-xs font-bold ml-2", pct >= 80 ? "text-green-400" : pct >= 50 ? "text-yellow-400" : "text-red-400")}>
+                                  {pct}%
+                                </span>
+                              </div>
+                              <Progress value={pct} className="h-1.5" />
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="py-2 space-y-2">
+                              <p className="text-xs text-muted-foreground">{control.name}</p>
+                              <div className="flex gap-4 text-xs">
+                                <span className="text-green-400">{control.pass} passing</span>
+                                <span className="text-red-400">{control.fail} failing</span>
+                                <span className="text-muted-foreground">{control.total} total</span>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                </>
+              )}
             </CardContent>
           </Card>
 

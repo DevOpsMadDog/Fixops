@@ -29,8 +29,52 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useFindings, useDashboardCompliance } from "@/hooks/use-api";
+// useFindings removed — CloudPosture now fetches /api/v1/cloud-posture/findings directly
+import { buildApiUrl, getStoredAuthToken } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+
+// ── Compliance frameworks from real engine ────────────────────
+interface ComplianceFramework {
+  framework: string;
+  enabled: boolean;
+  total_controls: number;
+  automated_controls: number;
+}
+
+async function fetchComplianceFrameworks(): Promise<ComplianceFramework[]> {
+  const url = buildApiUrl("/api/v1/compliance-engine/frameworks");
+  const key = getStoredAuthToken();
+  const r = await fetch(url, { headers: { "X-API-Key": key } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  const d = await r.json() as { frameworks?: ComplianceFramework[] } | ComplianceFramework[];
+  return Array.isArray(d) ? d : (d.frameworks ?? []);
+}
+
+// ── Cloud posture findings from dedicated endpoint ────────────
+interface CloudPostureFinding {
+  id: string;
+  resource_id: string;
+  resource_type: string;
+  provider: string;
+  severity: string;
+  title: string;
+  status: string;
+  detected_at: string;
+  cloud_account_id?: string;
+}
+
+async function fetchCloudPostureFindings(provider?: string, severity?: string): Promise<CloudPostureFinding[]> {
+  const params: Record<string, string> = { org_id: "default" };
+  if (provider && provider !== "all") params.provider = provider;
+  if (severity && severity !== "all") params.severity = severity;
+  const url = buildApiUrl("/api/v1/cloud-posture/findings", params);
+  const key = getStoredAuthToken();
+  const r = await fetch(url, { headers: { "X-API-Key": key } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  const d = await r.json() as CloudPostureFinding[] | { findings?: CloudPostureFinding[] };
+  return Array.isArray(d) ? d : (d.findings ?? []);
+}
 import {
   BarChart,
   Bar,
@@ -100,41 +144,63 @@ function RiskScore({ score }: { score?: number }) {
 
 const REGION_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"];
 
-const FRAMEWORK_DATA = [
-  { name: "CIS AWS", framework: "cis_aws" },
-  { name: "CIS Azure", framework: "cis_azure" },
-  { name: "CIS GCP", framework: "cis_gcp" },
-  { name: "NIST 800-53", framework: "nist" },
-  { name: "PCI DSS", framework: "pci" },
-  { name: "SOC 2", framework: "soc2" },
-];
+// FRAMEWORK_DATA removed — compliance framework list is now built from
+// the real /api/v1/analytics/dashboard/compliance-status response.
+// Fallback display names for known framework keys (purely cosmetic).
+const FRAMEWORK_DISPLAY_NAMES: Record<string, string> = {
+  cis_aws:   "CIS AWS",
+  cis_azure: "CIS Azure",
+  cis_gcp:   "CIS GCP",
+  nist:      "NIST 800-53",
+  pci:       "PCI DSS",
+  pci_dss:   "PCI DSS",
+  soc2:      "SOC 2",
+  hipaa:     "HIPAA",
+  iso27001:  "ISO 27001",
+};
 
 export default function CloudPosture() {
   const [cloudTab, setCloudTab] = useState("all");
   const [regionFilter, setRegionFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
 
-  const params = useMemo(() => {
-    const p: Record<string, unknown> = { limit: 200, type: "cloud_posture" };
-    if (cloudTab !== "all") p.provider = cloudTab;
-    if (severityFilter !== "all") p.severity = severityFilter;
-    return p;
-  }, [cloudTab, severityFilter]);
+  // ── Real cloud-posture findings ───────────────────────────
+  const findingsQ = useQuery<CloudPostureFinding[]>({
+    queryKey: ["cloud-posture-findings", cloudTab, severityFilter],
+    queryFn: () => fetchCloudPostureFindings(
+      cloudTab !== "all" ? cloudTab : undefined,
+      severityFilter !== "all" ? severityFilter : undefined,
+    ),
+    staleTime: 30_000,
+  });
 
-  const query = useFindings(params);
-  const complianceQuery = useDashboardCompliance();
-  const refetch = useCallback(() => { query.refetch(); complianceQuery.refetch(); }, [query, complianceQuery]);
+  // ── Real compliance frameworks ────────────────────────────
+  const frameworksQ = useQuery<ComplianceFramework[]>({
+    queryKey: ["compliance-engine-frameworks"],
+    queryFn: fetchComplianceFrameworks,
+    staleTime: 60_000,
+  });
+
+  const refetch = useCallback(() => {
+    findingsQ.refetch();
+    frameworksQ.refetch();
+  }, [findingsQ, frameworksQ]);
 
   const allResources: CloudResource[] = useMemo(() => {
-    const d = query.data;
-    if (!d) return [];
-    if (Array.isArray(d)) return d;
-    if (Array.isArray(d?.findings)) return d.findings;
-    if (Array.isArray(d?.cases)) return d.cases;
-    if (Array.isArray(d?.items)) return d.items;
-    if (Array.isArray(d?.data)) return d.data;
-    return [];
-  }, [query.data]);
+    const raw = findingsQ.data ?? [];
+    // Map CloudPostureFinding → CloudResource shape
+    return raw.map(f => ({
+      id: f.id,
+      title: f.title,
+      severity: f.severity,
+      status: f.status,
+      resource_type: f.resource_type,
+      resource: f.resource_id,
+      provider: f.provider,
+      compliance_status: f.status === "open" ? "non_compliant" : "compliant",
+      created_at: f.detected_at,
+    }));
+  }, [findingsQ.data]);
 
   const filtered = useMemo(() => {
     let list = allResources;
@@ -161,26 +227,37 @@ export default function CloudPosture() {
   }, [allResources]);
 
   const regionChartData = useMemo(() => {
-    const byRegion = allResources.reduce<Record<string, number>>((acc, r) => {
-      if (r.region) acc[r.region] = (acc[r.region] || 0) + 1;
+    // Group by provider since cloud-posture findings don't have region field
+    const byProvider = allResources.reduce<Record<string, number>>((acc, r) => {
+      const key = (r.provider || r.cloud || "unknown").toUpperCase();
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
-    return Object.entries(byRegion).map(([region, count], i) => ({
+    return Object.entries(byProvider).map(([region, count], i) => ({
       region,
       count,
       fill: REGION_COLORS[i % REGION_COLORS.length],
     }));
   }, [allResources]);
 
+  // Compliance chart: built from real /api/v1/compliance-engine/frameworks
+  // Shows automated_controls / total_controls as coverage %, not 0% hardcoded
   const complianceData = useMemo(() => {
-    const cd = complianceQuery.data;
-    return FRAMEWORK_DATA.map((fw) => {
-      const pct = cd?.frameworks?.[fw.framework]?.compliance_percentage || cd?.[fw.framework] || 0;
-      return { ...fw, pct: Math.min(100, Math.max(0, Number(pct))) };
-    });
-  }, [complianceQuery.data]);
+    const frameworks = frameworksQ.data ?? [];
+    return frameworks
+      .filter(fw => fw.enabled)
+      .map(fw => ({
+        framework: fw.framework,
+        name: FRAMEWORK_DISPLAY_NAMES[fw.framework.toLowerCase().replace(/[^a-z0-9]/g, "_")]
+          ?? fw.framework.replace(/_/g, " "),
+        pct: fw.total_controls > 0
+          ? Math.round((fw.automated_controls / fw.total_controls) * 100)
+          : 0,
+      }))
+      .sort((a, b) => b.pct - a.pct);
+  }, [frameworksQ.data]);
 
-  if (query.isLoading) {
+  if (findingsQ.isLoading) {
     return (
       <div className="space-y-6 p-6">
         <Skeleton className="h-10 w-64" />
@@ -196,7 +273,7 @@ export default function CloudPosture() {
     );
   }
 
-  if (query.isError) {
+  if (findingsQ.isError) {
     return <ErrorState message="Failed to load cloud posture data." onRetry={refetch} />;
   }
 
@@ -267,20 +344,34 @@ export default function CloudPosture() {
               <Shield className="h-4 w-4 text-primary" />
               Compliance by Framework
             </CardTitle>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Source: /api/v1/compliance-engine/frameworks — automated control coverage
+            </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {complianceData.map((fw) => (
-              <div key={fw.name}>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-medium">{fw.name}</span>
-                  <span className={cn(
-                    "text-xs font-bold font-mono",
-                    fw.pct >= 80 ? "text-green-400" : fw.pct >= 60 ? "text-yellow-400" : "text-red-400"
-                  )}>{fw.pct}%</span>
-                </div>
-                <Progress value={fw.pct} className="h-1.5" />
+            {frameworksQ.isLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-8 rounded bg-muted/30 animate-pulse" />)}
               </div>
-            ))}
+            ) : complianceData.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+                <CheckCircle className="h-6 w-6 opacity-30" />
+                <p className="text-sm">No compliance framework data</p>
+              </div>
+            ) : (
+              complianceData.map((fw) => (
+                <div key={fw.framework}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-medium">{fw.name}</span>
+                    <span className={cn(
+                      "text-xs font-bold font-mono",
+                      fw.pct >= 80 ? "text-green-400" : fw.pct >= 60 ? "text-yellow-400" : "text-red-400"
+                    )}>{fw.pct}%</span>
+                  </div>
+                  <Progress value={fw.pct} className="h-1.5" />
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
