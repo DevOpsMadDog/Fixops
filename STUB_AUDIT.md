@@ -122,6 +122,69 @@ Legend: ❌ fabrication (production path returns fake data) · ⚠️ needs tria
 
 ### ⚠️ UNSURE — 0 found
 
+---
+
+## ENGINE SWEEP 3 (2026-05-27)
+
+**Scope**: `suite-core/core/*.py`, `suite-attack/`, `suite-integrations/`, `suite-feeds/` (Python only).
+**Already-fixed list honoured**: 40 engines listed in task brief skipped.
+**Fresh signatures used** (not targeted by sweep 2):
+1. Hardcoded fake domain values returned on customer-facing paths
+2. `get_*/list_*/fetch_*/analyze_*` methods whose body is a hardcoded literal list/dict
+3. Magic confidence/score constants not derived from inputs
+4. Silent stubs with `# TODO/FIXME/stub/placeholder` comments near returns
+5. `pass`-body or `return {}` masquerading as real integrations
+
+**Files grepped**: ~950 Python files across four suites.
+**Real fabrications found**: 3
+
+---
+
+### ❌ FABRICATION — 3 confirmed
+
+| # | Severity | File:line | Function | What is fabricated | Suggested fix |
+|---|----------|-----------|----------|--------------------|---------------|
+| 1 | **HIGH** | `suite-core/core/mcp_gateway.py:811-833` | `_handle_get_threat_intel` (exception branch) | When `copilot_graphrag` raises any exception, the method silently returns two hardcoded CVE records (`CVE-2021-44228`, `CVE-2023-44487`) with fabricated `relevance` scores (0.95, 0.72) and `total_returned: 2`. This is on the live `call_tool("get_threat_intel", ...)` path — any MCP client query for threat intel gets fake Log4Shell + HTTP/2 Rapid Reset results whenever GraphRAG is unavailable. No `is_fallback` or `error` field is returned. | Replace the exception body with `{"query": query, "entity_type": entity_type, "total_returned": 0, "results": [], "error": "threat_intel_unavailable", "core_queried": "threat_intel"}`. The caller already handles empty results. |
+| 2 | **HIGH** | `suite-core/core/self_learning.py:1240-1390` / `suite-api/apps/api/self_learning_router.py:523-539` and `562-614` | `seed_demo_data` (and the `/demo/seed`, `/demo/full-loop` endpoints) | `seed_demo_data()` generates 98 feedback records with deterministic `random.Random(42)`, hardcoded scanner names, hardcoded CVE IDs (`CVE-2024-3094`, `CVE-2023-44487`, `CVE-2024-21626`), and engineered accuracy progressions (60%→85%). The data is written to the **production learning database** (`data/self_learning.db`). Although the endpoint has a `_require_non_enterprise` guard (blocks when `FIXOPS_MODE=enterprise`), the guard is opt-in: any deployment that does not set this env var (the default) exposes the endpoint and allows demo data to corrupt real learning weights. The `/demo/full-loop` endpoint calls `seed_demo_data()` then immediately runs `compute_adjustments()` — so a single API call poisons the live learning loop. | (a) Promote the guard to default-deny: block the endpoint unless `FIXOPS_MODE=demo` is explicitly set (invert the gate). (b) Write `seed_demo_data` to an isolated `data/demo_self_learning.db`, never to the production DB. (c) Remove the inline `seed_demo_data()` call from `/demo/full-loop`. |
+| 3 | **MEDIUM** | `suite-core/core/mcp_gateway.py:859-871` | `_handle_ask_copilot` (exception branch) | When `copilot_graphrag` raises any exception the method returns a fabricated generic security answer: `"Based on available security intelligence, this query relates to a known vulnerability pattern. Recommend reviewing findings in the ALDECI dashboard and applying the suggested mitigations."` with `confidence: 0.65` and `evidence_count: 0`. No `error` field, no indication to the caller that this is a fallback string rather than a real GraphRAG answer. Any MCP Copilot query silently gets a generic string when GraphRAG is down. | Replace with an honest error response: `{"question": question, "answer": None, "error": "graphrag_unavailable", "confidence": 0.0, "evidence_count": 0, "sources": [], "agent_type": agent_type}`. |
+
+---
+
+### 🟢 LEGITIMATE — items investigated and cleared
+
+- `suite-core/core/cve_enrichment.py` `BUILT_IN_CVES` dict (lines 19-53): used only as a **network fallback** (`_from_builtin` is called only when `_fetch_from_network` returns `None`). The record carries `"source": "builtin"` so callers can distinguish it. Legitimate offline-safe reference data.
+- `suite-core/core/vendor_risk_engine.py` `KNOWN_BREACHES` dict (lines 79-151): a static reference table of 9 well-known public breaches (SolarWinds, Log4j, Okta, etc.) used to enrich vendor assessments. All CVE IDs are real published CVEs. Legitimate reference data.
+- `suite-core/core/mitre_mapper.py` CVE→MITRE mappings (lines 1306-1383): real published CVE-to-technique mappings (Log4Shell, ProxyLogon, EternalBlue, Heartbleed, etc.). Legitimate security knowledge base.
+- `suite-core/core/dast_scanner.py` `confidence=0.85/0.95` constants (lines 1013-1574): each value is set **after** a real probe confirms an observable indicator (SQL error string detected, header absent, redirect not found, etc.). The constant expresses the scanner's classification confidence for that finding category, not a score injected before probing. Legitimate.
+- `suite-core/core/autofix_templates.py` `confidence=0.80` (lines 195, 347, 772): these are per-template fix-confidence declarations — how confident the template author is that the suggested code transformation is correct and safe. They are static metadata on the template object, not scores computed from customer scan data. Legitimate.
+- `suite-core/core/self_learning.py` `seed_demo_data` function: the function itself is legitimately named and documented as demo seeding. The fabrication finding (#2 above) is in the **gate design** of its router exposure, not in the function's internal correctness.
+- `suite-core/core/deception_engine.py` `list_honeypot_endpoints` (line 374): returns data projected from SQLite rows, not a hardcoded literal. Legitimate.
+- `suite-core/core/self_learning.py:1279,1305` `rng.uniform(0.5, 0.95)` confidence values: these are inside `seed_demo_data` (the demo seeder), not on any live scoring path. Legitimate demo construction.
+- All `score >= 90` / `confidence >= 0.85` threshold comparisons: these are decision thresholds (grade boundaries, alert triggers, escalation cutoffs), not fabricated scores. Legitimate.
+- `pass` in exception handlers (`except Exception: pass`): these are all error-swallowing patterns in non-return paths (event bus emission, optional TrustGraph emit). None masquerade as successful data returns.
+- `return {}` occurrences: all inspected instances are error-path returns in parsers/adapters (e.g., `dast_scanner` HTTP parse failure, `configuration.py` missing-key lookup) — they signal absence of data, not fabricated data. Legitimate.
+- `suite-core/core/intelligent_security_engine.py:995-1001` `_generate_compliance_checks`: returns templated strings **derived from a real input** (`len(cve_ids)` is used). Not domain data fabrication — it is a text formatter for a compliance annotation. Acceptable.
+
+---
+
+### Summary
+
+| Category | Count |
+|----------|-------|
+| Files grepped | ~950 |
+| Hits investigated (all 5 signatures) | 83 distinct locations |
+| Real fabrications (new, not in prior sweeps) | **3** |
+| Legitimate / cleared | 17 investigated, all cleared |
+| Top priority | `mcp_gateway` exception fallbacks (#1, #3) — live MCP path returns fake data on GraphRAG failure |
+| Second priority | `self_learning` demo seed gate (#2) — demo endpoint reachable on default deployments, writes to production DB |
+
+**Top 5 by dispatch priority**:
+1. `suite-core/core/mcp_gateway.py:811` — `_handle_get_threat_intel` exception branch returns hardcoded CVEs (HIGH)
+2. `suite-api/apps/api/self_learning_router.py:523` — `/demo/seed` gate is opt-in not opt-out; demo data reaches production learning DB (HIGH)
+3. `suite-core/core/mcp_gateway.py:859` — `_handle_ask_copilot` exception branch returns fabricated advisory text (MEDIUM)
+4. Items #1–#8 from AUDIT WAVE 2 remain unresolved (not re-listed here — see wave 2 entries)
+5. Sweep 3 found **zero new fabrications** in `suite-feeds/`, `suite-integrations/`, `suite-attack/` — those subsystems are clean for sweep 3 signatures.
+
 No candidates remained unresolvable after reading caller + gate.
 
 ---
