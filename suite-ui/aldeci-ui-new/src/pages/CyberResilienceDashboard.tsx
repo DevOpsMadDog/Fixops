@@ -1,32 +1,34 @@
 /**
  * Cyber Resilience Dashboard
  *
- * Overall resilience score gauge, NIST CSF domain grid with maturity stars,
- * exercise tracker, lessons learned panel, metrics trend bars, and history sparkline.
+ * Data sources (real API):
+ *   GET /api/v1/cyber-resilience/score?org_id=default
+ *     → { overall_score, by_domain: { [domain]: { avg_score } }, maturity_distribution }
+ *   GET /api/v1/cyber-resilience/exercises?org_id=default
+ *     → [] | Exercise[]
+ *   GET /api/v1/cyber-resilience/assessments?org_id=default
+ *     → Assessment[] (id, resilience_domain, maturity_level, score, assessor, assessment_date)
  *
+ * NO mock LESSONS, HISTORY, EXERCISES, METRICS arrays.
+ * Honest EmptyState when API returns [].
  * Route: /cyber-resilience
  */
 
-import { useState, useEffect } from "react";
-const _API_BASE = "/api/v1/cyber-resilience";
-const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
-
-import {
-  ShieldAlert,
-  Star,
-  TrendingUp,
-  BookOpen,
-  BarChart2,
-} from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { ShieldAlert, Star, TrendingUp, BookOpen, BarChart2, RefreshCw } from "lucide-react";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────
 
-interface CSFDomain {
-  name: string;
-  key: "identify" | "protect" | "detect" | "respond" | "recover" | "adapt";
-  maturity: 1 | 2 | 3 | 4 | 5;
-  score: number;
-  color: string;
+interface ScoreResponse {
+  overall_score: number;
+  by_domain: Record<string, { avg_score: number }>;
+  maturity_distribution: Record<string, number>;
 }
 
 interface Exercise {
@@ -39,63 +41,49 @@ interface Exercise {
   scheduled_date: string;
 }
 
-interface MetricItem {
-  category: string;
-  value: number;
-  target: number;
-  unit: string;
-}
-
-interface Snapshot {
-  date: string;
+interface Assessment {
+  id: string;
+  org_id: string;
+  assessment_name: string;
+  resilience_domain: string;
+  maturity_level: number;
+  max_level: number;
   score: number;
+  evidence: string;
+  assessor: string;
+  assessment_date: string;
+  next_review: string;
+  created_at: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// ── Auth headers ────────────────────────────────────────────────
 
-const CSF_DOMAINS: CSFDomain[] = [
-  { name: "Identify", key: "identify", maturity: 4, score: 82, color: "#38bdf8" },
-  { name: "Protect", key: "protect", maturity: 4, score: 79, color: "#a78bfa" },
-  { name: "Detect", key: "detect", maturity: 3, score: 71, color: "#f59e0b" },
-  { name: "Respond", key: "respond", maturity: 3, score: 68, color: "#f97316" },
-  { name: "Recover", key: "recover", maturity: 2, score: 55, color: "#ef4444" },
-  { name: "Adapt", key: "adapt", maturity: 2, score: 50, color: "#ec4899" },
-];
+function apiHeaders(): Record<string, string> {
+  const token = getStoredAuthToken();
+  const strategy = getStoredAuthStrategy();
+  const orgId = getStoredOrgId();
+  const h: Record<string, string> = { "Content-Type": "application/json", "X-Org-ID": orgId };
+  if (token) {
+    if (strategy === "jwt") h.Authorization = token.toLowerCase().startsWith("bearer ") ? token : `Bearer ${token}`;
+    else h["X-API-Key"] = token;
+  }
+  return h;
+}
 
-const OVERALL_SCORE = Math.round(CSF_DOMAINS.reduce((s, d) => s + d.score, 0) / CSF_DOMAINS.length);
+// ── Domain colors ───────────────────────────────────────────────
 
-const EXERCISES: Exercise[] = [
-  { id: "ex01", exercise_name: "Q1 Ransomware Tabletop", type: "tabletop", status: "completed", participants: 18, findings_count: 7, scheduled_date: "2026-03-15" },
-  { id: "ex02", exercise_name: "Supply Chain Attack Simulation", type: "simulation", status: "completed", participants: 12, findings_count: 4, scheduled_date: "2026-04-02" },
-  { id: "ex03", exercise_name: "Red Team: Cloud Infrastructure", type: "red_team", status: "scheduled", participants: 6, findings_count: 0, scheduled_date: "2026-04-28" },
-  { id: "ex04", exercise_name: "Purple Team: EDR Evasion", type: "purple_team", status: "scheduled", participants: 10, findings_count: 0, scheduled_date: "2026-05-10" },
-  { id: "ex05", exercise_name: "IR Drill: Data Breach", type: "drill", status: "completed", participants: 22, findings_count: 11, scheduled_date: "2026-02-20" },
-];
+const DOMAIN_COLORS: Record<string, string> = {
+  identify: "#38bdf8",
+  protect:  "#a78bfa",
+  detect:   "#f59e0b",
+  respond:  "#f97316",
+  recover:  "#ef4444",
+  adapt:    "#ec4899",
+};
 
-const METRICS: MetricItem[] = [
-  { category: "Mean Time to Detect (h)", value: 4.2, target: 2.0, unit: "h" },
-  { category: "Mean Time to Respond (h)", value: 8.5, target: 6.0, unit: "h" },
-  { category: "Recovery Time Objective (%)", value: 72, target: 90, unit: "%" },
-  { category: "Backup Success Rate (%)", value: 96, target: 99, unit: "%" },
-  { category: "Incident Containment Rate (%)", value: 85, target: 95, unit: "%" },
-];
-
-const LESSONS = [
-  { id: "l01", finding: "IR runbook lacked cloud-specific containment steps", exercise: "Q1 Ransomware Tabletop", status: "resolved" },
-  { id: "l02", finding: "Communication plan had outdated vendor contacts", exercise: "IR Drill: Data Breach", status: "in_progress" },
-  { id: "l03", finding: "Recovery playbook not tested for multi-region failure", exercise: "Supply Chain Simulation", status: "open" },
-  { id: "l04", finding: "Log retention insufficient for forensics (< 90 days)", exercise: "IR Drill: Data Breach", status: "resolved" },
-];
-
-const HISTORY: Snapshot[] = [
-  { date: "Oct", score: 48 },
-  { date: "Nov", score: 52 },
-  { date: "Dec", score: 55 },
-  { date: "Jan", score: 58 },
-  { date: "Feb", score: 61 },
-  { date: "Mar", score: 63 },
-  { date: "Apr", score: 67 },
-];
+function domainColor(key: string): string {
+  return DOMAIN_COLORS[key.toLowerCase()] ?? "#6366f1";
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -103,11 +91,7 @@ function Stars({ count, max = 5 }: { count: number; max?: number }) {
   return (
     <div className="flex gap-0.5">
       {Array.from({ length: max }, (_, i) => (
-        <Star
-          key={i}
-          size={12}
-          className={i < count ? "text-yellow-400 fill-yellow-400" : "text-gray-600"}
-        />
+        <Star key={i} size={12} className={i < count ? "text-yellow-400 fill-yellow-400" : "text-gray-600"} />
       ))}
     </div>
   );
@@ -133,37 +117,16 @@ function statusBadge(status: Exercise["status"]) {
   return <span className={`px-2 py-0.5 rounded text-xs ${map[status]}`}>{status}</span>;
 }
 
-function lessonStatus(s: string) {
-  const map: Record<string, string> = {
-    resolved: "text-green-400",
-    in_progress: "text-yellow-400",
-    open: "text-red-400",
-  };
-  return <span className={`text-xs font-medium ${map[s] ?? "text-gray-400"}`}>{s.replace("_", " ")}</span>;
-}
-
 // ── SVG Arc Gauge ──────────────────────────────────────────────
 
 function ArcGauge({ score }: { score: number }) {
-  const r = 60;
-  const cx = 80;
-  const cy = 80;
-  const startAngle = 210;
-  const endAngle = 330;
-  const arcRange = 300; // degrees
+  const r = 60, cx = 80, cy = 80, startAngle = 210, arcRange = 300;
   const pct = Math.min(100, Math.max(0, score)) / 100;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const arcX = (deg: number) => cx + r * Math.cos(toRad(deg));
   const arcY = (deg: number) => cy + r * Math.sin(toRad(deg));
-
-  const describeArc = (from: number, to: number, large: boolean) => {
-    const x1 = arcX(from);
-    const y1 = arcY(from);
-    const x2 = arcX(to);
-    const y2 = arcY(to);
-    return `M ${x1} ${y1} A ${r} ${r} 0 ${large ? 1 : 0} 1 ${x2} ${y2}`;
-  };
-
+  const describeArc = (from: number, to: number, large: boolean) =>
+    `M ${arcX(from)} ${arcY(from)} A ${r} ${r} 0 ${large ? 1 : 0} 1 ${arcX(to)} ${arcY(to)}`;
   const fillEnd = startAngle + pct * arcRange;
   const fillLarge = pct * arcRange > 180;
   const color = score >= 70 ? "#22c55e" : score >= 50 ? "#f59e0b" : "#ef4444";
@@ -172,7 +135,7 @@ function ArcGauge({ score }: { score: number }) {
     <svg viewBox="0 0 160 140" className="w-48 h-40 mx-auto">
       <path d={describeArc(startAngle, startAngle + arcRange, true)} fill="none" stroke="#334155" strokeWidth="12" strokeLinecap="round" />
       <path d={describeArc(startAngle, fillEnd, fillLarge)} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
-      <text x={cx} y={cy + 6} textAnchor="middle" fontSize="28" fontWeight="bold" fill="white">{score}</text>
+      <text x={cx} y={cy + 6} textAnchor="middle" fontSize="28" fontWeight="bold" fill="white">{Math.round(score)}</text>
       <text x={cx} y={cy + 22} textAnchor="middle" fontSize="9" fill="#94a3b8">/ 100</text>
       <text x={cx} y={cy + 36} textAnchor="middle" fontSize="9" fill={color}>
         {score >= 70 ? "RESILIENT" : score >= 50 ? "DEVELOPING" : "AT RISK"}
@@ -181,92 +144,148 @@ function ArcGauge({ score }: { score: number }) {
   );
 }
 
-// ── Sparkline ──────────────────────────────────────────────────
-
-function Sparkline({ data }: { data: Snapshot[] }) {
-  if (data.length < 2) return null;
-  const W = 280, H = 50, PAD = 8;
-  const scores = data.map((d) => d.score);
-  const min = Math.min(...scores) - 3;
-  const max = Math.max(...scores) + 3;
-  const toX = (i: number) => PAD + (i / (data.length - 1)) * (W - PAD * 2);
-  const toY = (v: number) => PAD + ((max - v) / (max - min)) * (H - PAD * 2);
-  const pts = data.map((d, i) => `${toX(i)},${toY(d.score)}`).join(" ");
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-12">
-      <polyline points={pts} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinejoin="round" />
-      {data.map((d, i) => (
-        <circle key={i} cx={toX(i)} cy={toY(d.score)} r="3" fill="#22c55e" />
-      ))}
-      {data.map((d, i) => (
-        <text key={`l${i}`} x={toX(i)} y={H} fontSize="7" fill="#94a3b8" textAnchor="middle">{d.date}</text>
-      ))}
-    </svg>
-  );
-}
-
 // ── Component ──────────────────────────────────────────────────
 
 export default function CyberResilienceDashboard() {
+  const orgId = getStoredOrgId();
   const [metricFilter, setMetricFilter] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    fetch(`${_API_BASE}/score?org_id=default`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
-  }, []);
 
-  const filteredMetrics = metricFilter === "all" ? METRICS : METRICS.filter((m) =>
-    m.category.toLowerCase().includes(metricFilter.toLowerCase())
-  );
+  // Score + domains
+  const scoreQuery = useQuery<ScoreResponse>({
+    queryKey: ["cyber-resilience-score", orgId],
+    queryFn: async () => {
+      const url = buildApiUrl("/api/v1/cyber-resilience/score", { org_id: orgId });
+      const res = await axios.get<ScoreResponse>(url, { headers: apiHeaders() });
+      return res.data;
+    },
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
+
+  // Exercises
+  const exercisesQuery = useQuery<Exercise[]>({
+    queryKey: ["cyber-resilience-exercises", orgId],
+    queryFn: async () => {
+      const url = buildApiUrl("/api/v1/cyber-resilience/exercises", { org_id: orgId });
+      const res = await axios.get<Exercise[]>(url, { headers: apiHeaders() });
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 60_000,
+  });
+
+  // Assessments (domain detail with evidence, assessor, etc.)
+  const assessmentsQuery = useQuery<Assessment[]>({
+    queryKey: ["cyber-resilience-assessments", orgId],
+    queryFn: async () => {
+      const url = buildApiUrl("/api/v1/cyber-resilience/assessments", { org_id: orgId });
+      const res = await axios.get<Assessment[]>(url, { headers: apiHeaders() });
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 60_000,
+  });
+
+  const refetchAll = () => {
+    scoreQuery.refetch();
+    exercisesQuery.refetch();
+    assessmentsQuery.refetch();
+  };
+
+  if (scoreQuery.isLoading) return <PageSkeleton />;
+  if (scoreQuery.isError) return <ErrorState message="Failed to load resilience data" onRetry={refetchAll} />;
+
+  const scoreData = scoreQuery.data!;
+  const exercises = exercisesQuery.data ?? [];
+  const assessments = assessmentsQuery.data ?? [];
+  const overallScore = scoreData.overall_score ?? 0;
+
+  // Build domain list from score.by_domain
+  const domains = Object.entries(scoreData.by_domain ?? {}).map(([key, val]) => ({
+    key,
+    name: key.charAt(0).toUpperCase() + key.slice(1),
+    score: val.avg_score ?? 0,
+    color: domainColor(key),
+    // maturity from distribution if present, or derive from score
+    maturity: (() => {
+      const dist = scoreData.maturity_distribution ?? {};
+      // find maturity level for this domain from assessments
+      const match = assessments.find((a) => a.resilience_domain === key);
+      if (match) return match.maturity_level;
+      // fallback: estimate from score
+      if (val.avg_score >= 80) return 4;
+      if (val.avg_score >= 60) return 3;
+      if (val.avg_score >= 40) return 2;
+      return 1;
+    })(),
+  }));
+
+  const filteredExercises = exercises.filter((ex) => {
+    if (metricFilter === "all") return true;
+    if (metricFilter === "time") return ex.type === "tabletop" || ex.type === "drill";
+    if (metricFilter === "rate") return ex.type === "red_team" || ex.type === "purple_team" || ex.type === "simulation";
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <ShieldAlert className="text-green-400" size={28} />
-        <div>
-          <h1 className="text-2xl font-bold">Cyber Resilience Dashboard</h1>
-          <p className="text-gray-400 text-sm">NIST CSF maturity, exercise tracking, and resilience metrics</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <ShieldAlert className="text-green-400" size={28} />
+          <div>
+            <h1 className="text-2xl font-bold">Cyber Resilience Dashboard</h1>
+            <p className="text-gray-400 text-sm">NIST CSF maturity, exercise tracking, and resilience assessments</p>
+          </div>
         </div>
+        <button
+          onClick={refetchAll}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 text-sm text-gray-300 transition-colors"
+          aria-label="Refresh resilience data"
+        >
+          <RefreshCw size={14} />
+          Refresh
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Gauge + sparkline */}
+        {/* Gauge */}
         <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center lg:col-span-1">
           <h2 className="text-sm font-semibold mb-2 text-gray-300">Resilience Score</h2>
-          <ArcGauge score={OVERALL_SCORE} />
-          <div className="mt-4 w-full">
-            <div className="text-xs text-gray-400 mb-1 flex items-center gap-1">
-              <TrendingUp size={12} /> 6-month trend
+          <ArcGauge score={overallScore} />
+          {/* Maturity distribution summary */}
+          {Object.keys(scoreData.maturity_distribution ?? {}).length > 0 && (
+            <div className="mt-4 w-full space-y-1">
+              <p className="text-xs text-gray-400 mb-1 flex items-center gap-1"><TrendingUp size={12} /> Maturity Distribution</p>
+              {Object.entries(scoreData.maturity_distribution ?? {}).sort(([a], [b]) => Number(b) - Number(a)).map(([level, count]) => (
+                <div key={level} className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Level {level}</span>
+                  <span className="font-mono text-gray-200">{count} domain{Number(count) !== 1 ? "s" : ""}</span>
+                </div>
+              ))}
             </div>
-            <Sparkline data={HISTORY} />
-          </div>
+          )}
         </div>
 
         {/* NIST CSF domains */}
         <div className="bg-gray-800 rounded-lg p-6 lg:col-span-3">
           <h2 className="text-lg font-semibold mb-4">NIST CSF Domain Maturity</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {CSF_DOMAINS.map((d) => (
-              <div key={d.key} className="bg-gray-700/50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-sm" style={{ color: d.color }}>{d.name}</span>
-                  <Stars count={d.maturity} />
+          {domains.length === 0 ? (
+            <EmptyState icon={ShieldAlert} title="No domain data" description="Domain assessment data will appear here once assessments are recorded." />
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {domains.map((d) => (
+                <div key={d.key} className="bg-gray-700/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-sm" style={{ color: d.color }}>{d.name}</span>
+                    <Stars count={d.maturity} />
+                  </div>
+                  <div className="text-xs text-gray-400 mb-1">Level {d.maturity}/5 · Score {Math.round(d.score)}</div>
+                  <div className="bg-gray-700 rounded-full h-2">
+                    <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${d.score}%`, backgroundColor: d.color }} />
+                  </div>
                 </div>
-                <div className="text-xs text-gray-400 mb-1">Level {d.maturity}/5 · Score {d.score}</div>
-                <div className="bg-gray-700 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full"
-                    style={{ width: `${d.score}%`, backgroundColor: d.color }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -275,101 +294,130 @@ export default function CyberResilienceDashboard() {
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <BarChart2 size={18} className="text-green-400" /> Exercise Tracker
         </h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-gray-400 border-b border-gray-700">
-              <th className="text-left py-2">Exercise</th>
-              <th className="text-left py-2">Type</th>
-              <th className="text-left py-2">Status</th>
-              <th className="text-right py-2">Participants</th>
-              <th className="text-right py-2">Findings</th>
-              <th className="text-left py-2 pl-4">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {EXERCISES.map((ex) => (
-              <tr key={ex.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
-                <td className="py-2 text-gray-200 font-medium">{ex.exercise_name}</td>
-                <td className="py-2">{typeBadge(ex.type)}</td>
-                <td className="py-2">{statusBadge(ex.status)}</td>
-                <td className="py-2 text-right text-gray-300">{ex.participants}</td>
-                <td className="py-2 text-right">
-                  {ex.findings_count > 0 ? (
-                    <span className="text-orange-400 font-medium">{ex.findings_count}</span>
-                  ) : (
-                    <span className="text-gray-500">—</span>
-                  )}
-                </td>
-                <td className="py-2 pl-4 text-gray-400">{ex.scheduled_date}</td>
+        {exercises.length === 0 ? (
+          <EmptyState icon={BarChart2} title="No exercises recorded" description="Tabletop exercises, red team engagements, and drills will appear here once scheduled or completed." />
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-gray-400 border-b border-gray-700">
+                <th className="text-left py-2">Exercise</th>
+                <th className="text-left py-2">Type</th>
+                <th className="text-left py-2">Status</th>
+                <th className="text-right py-2">Participants</th>
+                <th className="text-right py-2">Findings</th>
+                <th className="text-left py-2 pl-4">Date</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {exercises.map((ex) => (
+                <tr key={ex.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                  <td className="py-2 text-gray-200 font-medium">{ex.exercise_name}</td>
+                  <td className="py-2">{typeBadge(ex.type)}</td>
+                  <td className="py-2">{statusBadge(ex.status)}</td>
+                  <td className="py-2 text-right text-gray-300">{ex.participants}</td>
+                  <td className="py-2 text-right">
+                    {ex.findings_count > 0
+                      ? <span className="text-orange-400 font-medium">{ex.findings_count}</span>
+                      : <span className="text-gray-500">—</span>}
+                  </td>
+                  <td className="py-2 pl-4 text-gray-400">{ex.scheduled_date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Lessons learned */}
+        {/* Assessments / Lessons learned */}
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <BookOpen size={18} className="text-green-400" /> Lessons Learned
+            <BookOpen size={18} className="text-green-400" /> Domain Assessments
           </h2>
-          <div className="space-y-3">
-            {LESSONS.map((l) => (
-              <div key={l.id} className="bg-gray-700/40 rounded-lg p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm text-gray-200">{l.finding}</p>
-                  {lessonStatus(l.status)}
+          {assessments.length === 0 ? (
+            <EmptyState icon={BookOpen} title="No assessments recorded" description="Domain assessments and lessons learned will appear here once recorded." />
+          ) : (
+            <div className="space-y-3">
+              {assessments.map((a) => (
+                <div key={a.id} className="bg-gray-700/40 rounded-lg p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm text-gray-200 font-medium">{a.assessment_name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 capitalize">Domain: {a.resilience_domain}</p>
+                      {a.evidence && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{a.evidence}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="flex items-center gap-1 justify-end mb-1">
+                        <Stars count={a.maturity_level} max={a.max_level} />
+                      </div>
+                      <span className={`text-xs font-medium ${a.score >= 70 ? "text-green-400" : a.score >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                        {a.score.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                    <span>Assessor: {a.assessor || "—"}</span>
+                    <span>{a.assessment_date.slice(0, 10)}</span>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Source: {l.exercise}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Metrics trend */}
+        {/* Metrics from score.by_domain */}
         <div className="bg-gray-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <TrendingUp size={18} className="text-green-400" /> Resilience Metrics
+              <TrendingUp size={18} className="text-green-400" /> Domain Scores
             </h2>
             <select
               className="bg-gray-700 rounded px-2 py-1 text-xs text-gray-300"
               value={metricFilter}
               onChange={(e) => setMetricFilter(e.target.value)}
             >
-              <option value="all">All Metrics</option>
-              <option value="time">Time-based</option>
-              <option value="rate">Rate-based</option>
+              <option value="all">All Domains</option>
+              <option value="identify">Identify / Protect</option>
+              <option value="detect">Detect / Respond</option>
             </select>
           </div>
-          <div className="space-y-4">
-            {filteredMetrics.map((m) => {
-              const pct = Math.min(100, Math.round((m.value / m.target) * 100));
-              const onTarget = m.value >= m.target;
-
-              if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
-              return (
-                <div key={m.category}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-300">{m.category}</span>
-                    <span className={onTarget ? "text-green-400" : "text-orange-400"}>
-                      {m.value}{m.unit} / {m.target}{m.unit}
-                    </span>
-                  </div>
-                  <div className="flex gap-1 items-center">
-                    <div className="flex-1 bg-gray-700 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${onTarget ? "bg-green-500" : "bg-orange-500"}`}
-                        style={{ width: `${pct}%` }}
-                      />
+          {domains.length === 0 ? (
+            <EmptyState icon={TrendingUp} title="No domain metrics" description="Domain score metrics will appear once assessments are completed." />
+          ) : (
+            <div className="space-y-4">
+              {domains
+                .filter((d) => {
+                  if (metricFilter === "all") return true;
+                  if (metricFilter === "identify") return ["identify", "protect"].includes(d.key);
+                  if (metricFilter === "detect") return ["detect", "respond", "recover"].includes(d.key);
+                  return true;
+                })
+                .map((d) => {
+                  const target = 80;
+                  const pct = Math.min(100, Math.round((d.score / target) * 100));
+                  const onTarget = d.score >= target;
+                  return (
+                    <div key={d.key}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-300">{d.name}</span>
+                        <span className={onTarget ? "text-green-400" : "text-orange-400"}>
+                          {Math.round(d.score)}% / {target}% target
+                        </span>
+                      </div>
+                      <div className="flex gap-1 items-center">
+                        <div className="flex-1 bg-gray-700 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-700 ${onTarget ? "bg-green-500" : "bg-orange-500"}`}
+                            style={{ width: `${Math.min(d.score, 100)}%`, backgroundColor: d.color }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       </div>
     </div>
