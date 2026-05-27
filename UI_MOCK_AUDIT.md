@@ -20,6 +20,16 @@ column headers, colour palettes, filter label arrays) are explicitly excluded.
 
 ---
 
+## RESOLUTION STATUS (2026-05-27)
+
+- **❌ 17/17 RESOLVED** — batches A (`8d4ded55`), B (`af9f8543`), C (`bf394f1b`): each now uses real `apiFetch`/`useQuery` + honest EmptyState on empty. (SLSAProvenance #14 was a false positive — `BUILD_PROVENANCE_STEPS` is a static UI diagram driven by real `build.slsa_level`.)
+- **🟡 21/28 RESOLVED** — commit `1b285c07`: fallback `?? HARDCODED` → `?? []` + EmptyState; primary arrays → live-API-driven; fake IPs/CVEs/carriers removed; dead `VULN_GROUPS` deleted.
+- **🟡 7 remaining = legit static config, intentionally KEPT** (not fabrication): #22 Copilot `SAMPLES` (prompt suggestions), #23 RiskOverview axis labels, #25 EvidenceExportCenter form options, #26 Reports templates, #27 FindingsExplorer scanner filter chips, #28 VulnScanDashboard filter chips, #21 SBOMInventory `LICENSE_COLORS` (chart palette).
+- **Backend follow-up** (Multica #9041): ~10 `/stats` endpoints lack sub-fields the de-mocked UI now consumes → those sections render EmptyState until backend computes them. Real-or-empty, never fake.
+- Build green (3.87s); Beast Mode 756/756.
+
+---
+
 ## ❌ MOCK Pages (17) — renders fabricated data, no working API integration
 
 | # | Page path | Hardcoded symbols | Suggested real endpoint |
