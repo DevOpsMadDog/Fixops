@@ -370,9 +370,14 @@ class SecurityFindingsEngine:
                                LIMIT 1""",
                             (org_id, corr_key),
                         ).fetchone()
-                if not existing and not scan_id_val:
-                    # Legacy fallback for callers that never provide scan_id:
-                    # dedup by (title, source_tool, asset_id).
+                if not existing and not scan_id_val and not correlation_key:
+                    # Legacy fallback ONLY for callers that provide neither scan_id
+                    # NOR an explicit correlation_key: dedup by (title, source_tool,
+                    # asset_id). When the caller DID pass a correlation_key it is the
+                    # stable identity (per GAP-063) — running this coarse fallback would
+                    # wrongly collapse distinct findings that share a title+asset_id
+                    # (e.g. 1600 scanner findings at different file:line under one app
+                    # asset_id all merging to ~18). See dogfooding finding 2026-05-27.
                     existing = conn.execute(
                         """SELECT * FROM security_findings
                            WHERE org_id = ? AND title = ? AND source_tool = ? AND asset_id = ?

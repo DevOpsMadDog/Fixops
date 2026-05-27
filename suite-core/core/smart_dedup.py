@@ -333,14 +333,20 @@ class SmartDedup:
 
         Returns list of (finding_id_list, confidence).
         """
-        fids_and_titles: List[Tuple[str, str]] = [
-            (_fid(f), _extract_title(f)) for f in findings
+        # Carry location (file, line) so we never merge two findings that sit at
+        # DIFFERENT file:line — they are distinct vulnerabilities even when their
+        # titles are identical (e.g. rule_id "B608" at 50 different files must NOT
+        # collapse to one). Location-less findings (CVE without a file) keep
+        # title-only fuzzy behaviour. See dogfooding finding 2026-05-27.
+        fids_and_titles: List[Tuple[str, str, str, str]] = [
+            (_fid(f), _extract_title(f), _extract_file(f), _extract_line_range(f))
+            for f in findings
         ]
         # Remove findings with empty titles
-        fids_and_titles = [(fid, t) for fid, t in fids_and_titles if t]
+        fids_and_titles = [t for t in fids_and_titles if t[1]]
 
         # Union-Find for transitive grouping
-        parent: Dict[str, str] = {fid: fid for fid, _ in fids_and_titles}
+        parent: Dict[str, str] = {fid: fid for fid, *_ in fids_and_titles}
         confidence_map: Dict[str, float] = {}
 
         def _find(x: str) -> str:
@@ -358,14 +364,19 @@ class SmartDedup:
         n = len(fids_and_titles)
         for i in range(n):
             for j in range(i + 1, n):
-                fid_a, title_a = fids_and_titles[i]
-                fid_b, title_b = fids_and_titles[j]
+                fid_a, title_a, file_a, line_a = fids_and_titles[i]
+                fid_b, title_b, file_b, line_b = fids_and_titles[j]
+                # Distinct locations => distinct findings; never merge on title
+                # alone. Only treat as fuzzy-title duplicates when locations match
+                # or at least one finding is location-less.
+                if file_a and file_b and (file_a, line_a) != (file_b, line_b):
+                    continue
                 ratio = _levenshtein_ratio(title_a, title_b)
                 if ratio >= threshold:
                     _union(fid_a, fid_b, ratio)
 
         cluster_map: Dict[str, List[str]] = defaultdict(list)
-        for fid, _ in fids_and_titles:
+        for fid, *_ in fids_and_titles:
             cluster_map[_find(fid)].append(fid)
 
         groups: List[Tuple[List[str], float]] = []
