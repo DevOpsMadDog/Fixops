@@ -37,13 +37,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/self-learning", tags=["Self-Learning"])
 
 
-def _require_non_enterprise() -> None:
-    """Block demo/seed endpoints in enterprise mode to prevent data tampering."""
+def _require_demo_mode() -> None:
+    """Allow demo/seed endpoints ONLY when FIXOPS_MODE=demo (explicit opt-in).
+
+    Default (unset), production, and enterprise deployments are all blocked.
+    This prevents fabricated seed data from ever reaching the production
+    learning DB.
+    """
     mode = os.getenv("FIXOPS_MODE", "").lower()
-    if mode == "enterprise":
+    if mode != "demo":
         raise HTTPException(
             status_code=403,
-            detail="Demo endpoints are disabled in enterprise mode",
+            detail=(
+                "Demo endpoints are disabled. "
+                "Set FIXOPS_MODE=demo to enable them in a demo environment."
+            ),
         )
 
 
@@ -522,20 +530,23 @@ async def get_metrics_trends(
 
 @router.post("/demo/seed", tags=["admin", "demo"])
 async def seed_demo_data(
-    _mode: None = Depends(_require_non_enterprise),
+    _mode: None = Depends(_require_demo_mode),
     api_key: str = Depends(_verify_api_key),
 ) -> Dict[str, Any]:
     """Seed realistic demo data for all 5 feedback loops.
 
-    Populates the learning database with 98 realistic feedback records
-    across all 5 loops, with distributions that demonstrate the learning
-    effect (e.g., decision accuracy improves from 60% to 85%).
+    Populates the DEMO learning database (data/demo_self_learning.db) with
+    98 realistic feedback records across all 5 loops, with distributions that
+    demonstrate the learning effect (e.g., decision accuracy improves from
+    60% to 85%).
+
+    Requires FIXOPS_MODE=demo.  The production learning DB is never touched.
 
     Call this BEFORE running compute-adjustments and score-with-learning.
     """
     try:
-        from core.self_learning import get_learning_engine
-        engine = get_learning_engine()
+        from core.self_learning import get_demo_learning_engine
+        engine = get_demo_learning_engine()
         return engine.seed_demo_data()
     except ImportError as e:
         raise HTTPException(status_code=500, detail=type(e).__name__)
@@ -543,17 +554,18 @@ async def seed_demo_data(
 
 @router.post("/demo/reset", tags=["admin", "demo"])
 async def reset_demo_data(
-    _mode: None = Depends(_require_non_enterprise),
+    _mode: None = Depends(_require_demo_mode),
     _: str = Depends(_verify_api_key),
 ) -> Dict[str, Any]:
-    """Reset all learning data for a fresh demo.
+    """Reset all learning data in the DEMO database for a fresh demo.
 
-    Clears all feedback records, weight adjustments, and metrics.
-    Use this to start a clean demo.
+    Clears all feedback records, weight adjustments, and metrics from
+    data/demo_self_learning.db only.  The production learning DB is never
+    touched.  Requires FIXOPS_MODE=demo.
     """
     try:
-        from core.self_learning import get_learning_engine
-        engine = get_learning_engine()
+        from core.self_learning import get_demo_learning_engine
+        engine = get_demo_learning_engine()
         return engine.reset_learning()
     except ImportError as e:
         raise HTTPException(status_code=500, detail=type(e).__name__)
@@ -561,13 +573,16 @@ async def reset_demo_data(
 
 @router.get("/demo/full-loop", tags=["admin", "demo"])
 async def demo_full_loop(
-    _mode: None = Depends(_require_non_enterprise),
+    _mode: None = Depends(_require_demo_mode),
     _: str = Depends(_verify_api_key),
 ) -> Dict[str, Any]:
     """Execute a complete self-learning demo in one call.
 
+    Operates entirely against data/demo_self_learning.db — the production
+    learning DB is never touched.  Requires FIXOPS_MODE=demo.
+
     This endpoint demonstrates the FULL feedback loop:
-    1. Reset any existing data
+    1. Reset any existing demo data
     2. Score a sample finding (baseline — no learning)
     3. Seed demo feedback data (98 records across 5 loops)
     4. Run learning step (compute weight adjustments)
@@ -577,10 +592,10 @@ async def demo_full_loop(
     This is the demo that proves ALdeci gets smarter with every decision.
     """
     try:
-        from core.self_learning import get_learning_engine
-        engine = get_learning_engine()
+        from core.self_learning import get_demo_learning_engine
+        engine = get_demo_learning_engine()
 
-        # Step 1: Reset
+        # Step 1: Reset demo DB only
         reset_result = engine.reset_learning()
 
         # Step 2: Baseline score (no learning data)
@@ -595,7 +610,7 @@ async def demo_full_loop(
         }
         baseline = engine.score_with_learning(sample_finding)
 
-        # Step 3: Seed demo data
+        # Step 3: Seed demo data into the demo DB (never touches prod)
         seed_result = engine.seed_demo_data()
 
         # Step 4: Compute adjustments (learning step)

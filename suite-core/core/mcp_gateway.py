@@ -808,27 +808,14 @@ class MCPGateway:
                 "results": entities,
                 "core_queried": "threat_intel",
             }
-        except Exception:
+        except Exception as exc:
+            logger.warning("threat_intel_graphrag_unavailable", error=str(exc))
             return {
                 "query": query,
                 "entity_type": entity_type,
-                "total_returned": 2,
-                "results": [
-                    {
-                        "id": "CVE-2021-44228",
-                        "type": "CVE",
-                        "title": "Apache Log4j Remote Code Execution",
-                        "cvss_score": 10.0,
-                        "relevance": 0.95,
-                    },
-                    {
-                        "id": "CVE-2023-44487",
-                        "type": "CVE",
-                        "title": "HTTP/2 Rapid Reset DoS",
-                        "cvss_score": 7.5,
-                        "relevance": 0.72,
-                    },
-                ],
+                "total_returned": 0,
+                "results": [],
+                "error": "threat_intel_unavailable",
                 "core_queried": "threat_intel",
             }
 
@@ -856,15 +843,13 @@ class MCPGateway:
                 "sources": result.sources,
                 "agent_type": agent_type,
             }
-        except Exception:
+        except Exception as exc:
+            logger.warning("copilot_graphrag_unavailable", error=str(exc))
             return {
                 "question": question,
-                "answer": (
-                    "Based on available security intelligence, this query relates to a known "
-                    "vulnerability pattern. Recommend reviewing findings in the ALDECI dashboard "
-                    "and applying the suggested mitigations."
-                ),
-                "confidence": 0.65,
+                "answer": None,
+                "error": "graphrag_unavailable",
+                "confidence": 0.0,
                 "evidence_count": 0,
                 "sources": [],
                 "agent_type": agent_type,

@@ -1421,11 +1421,41 @@ _engine: Optional[SelfLearningEngine] = None
 
 
 def get_learning_engine() -> SelfLearningEngine:
-    """Get or create the default SelfLearningEngine."""
+    """Get or create the default SelfLearningEngine (production DB)."""
     global _engine
     if _engine is None:
         _engine = SelfLearningEngine()
     return _engine
+
+
+# Demo engine — isolated to data/demo_self_learning.db, never touches prod
+_demo_engine: Optional[SelfLearningEngine] = None
+_demo_engine_lock = __import__("threading").Lock()
+
+_DEMO_DB_SUFFIX = "demo_self_learning.db"
+
+
+def get_demo_learning_engine() -> SelfLearningEngine:
+    """Get or create the DEMO SelfLearningEngine.
+
+    This engine writes exclusively to ``data/demo_self_learning.db`` (resolved
+    relative to FIXOPS_DATA_DIR, defaulting to ``.fixops_data``).  The
+    production DB used by ``get_learning_engine()`` is never touched.
+    """
+    global _demo_engine
+    if _demo_engine is None:
+        with _demo_engine_lock:
+            if _demo_engine is None:
+                data_dir = os.getenv("FIXOPS_DATA_DIR", ".fixops_data")
+                demo_db_path = os.path.join(data_dir, _DEMO_DB_SUFFIX)
+                demo_config = LearningConfig.from_env()
+                demo_config.db_path = demo_db_path
+                _demo_engine = SelfLearningEngine(config=demo_config)
+                logger.info(
+                    "demo_learning_engine_initialized",
+                    db_path=demo_db_path,
+                )
+    return _demo_engine
 
 
 __all__ = [
@@ -1442,4 +1472,5 @@ __all__ = [
     "PolicyViolationLoop",
     "SelfLearningEngine",
     "get_learning_engine",
+    "get_demo_learning_engine",
 ]
