@@ -10,6 +10,11 @@ Usage:
     if client.is_configured():
         result = client.import_findings(org_id="acme")
 
+When GCP credentials are NOT configured the public methods return honest
+not-configured results (empty list / ``{"configured": False, ...}``) — they
+never return fabricated mock data on the production path.  Mock data is
+available exclusively for unit tests via ``GCPSecurityClient(allow_mock=True)``.
+
 Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 """
 
@@ -22,6 +27,19 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Not-configured sentinel
+# ---------------------------------------------------------------------------
+_NOT_CONFIGURED_REASON = (
+    "GCP credentials not configured — set GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT) "
+    "and GOOGLE_APPLICATION_CREDENTIALS environment variables for real SCC data."
+)
+
+
+class GCPNotConfiguredError(ValueError):
+    """Raised when a GCP SCC operation is attempted without credentials."""
+
 
 # ---------------------------------------------------------------------------
 # In-memory import history store (keyed by org_id)
@@ -301,9 +319,11 @@ class GCPSecurityClient:
     Client for GCP Security Command Center findings ingestion.
 
     Uses a mocked google-cloud-securitycenter interface — no real GCP SDK
-    dependency required. Falls back to realistic mock data when no credentials
-    are configured so that the rest of the pipeline can be exercised without
-    GCP access.
+    dependency required.
+
+    When credentials are NOT configured the public methods return honest
+    not-configured results (empty list / ``{"configured": False, ...}``).
+    Mock data is available exclusively via ``allow_mock=True`` (tests only).
     """
 
     #: Default GCP organization ID placeholder
@@ -314,6 +334,8 @@ class GCPSecurityClient:
         project_id: Optional[str] = None,
         organization_id: Optional[str] = None,
         credentials_file: Optional[str] = None,
+        *,
+        allow_mock: bool = False,
     ) -> None:
         self._project_id: str = (
             project_id
@@ -331,6 +353,8 @@ class GCPSecurityClient:
             or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
             or ""
         ).strip()
+        # allow_mock=True is ONLY for unit tests — never set in production code.
+        self._allow_mock: bool = allow_mock
 
     # ------------------------------------------------------------------
     # Configuration check
@@ -356,14 +380,18 @@ class GCPSecurityClient:
             source_id: SCC source ID to list findings from. Defaults to '-' (all sources).
 
         Returns:
-            List of raw SCC finding dicts. Returns mock data when unconfigured.
+            List of raw SCC finding dicts.
+            When unconfigured returns ``[]`` unless ``allow_mock=True`` was
+            passed to the constructor (tests only).
         """
         if not self.is_configured():
+            if self._allow_mock:
+                return list(_MOCK_FINDINGS)
             logger.warning(
-                "GCP credentials not configured — returning mock SCC findings. "
-                "Set GCP_PROJECT_ID and GOOGLE_APPLICATION_CREDENTIALS for real data."
+                "GCP credentials not configured — get_findings returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            return list(_MOCK_FINDINGS)
+            return []
 
         try:
             client = self._make_scc_client()
@@ -386,13 +414,18 @@ class GCPSecurityClient:
         Retrieve Security Command Center sources.
 
         Returns:
-            List of source dicts. Returns mock data when unconfigured.
+            List of source dicts.
+            When unconfigured returns ``[]`` unless ``allow_mock=True`` was
+            passed to the constructor (tests only).
         """
         if not self.is_configured():
+            if self._allow_mock:
+                return list(_MOCK_SOURCES)
             logger.warning(
-                "GCP credentials not configured — returning mock SCC sources."
+                "GCP credentials not configured — get_sources returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            return list(_MOCK_SOURCES)
+            return []
 
         try:
             client = self._make_scc_client()
@@ -415,13 +448,18 @@ class GCPSecurityClient:
         Retrieve assets from Security Command Center.
 
         Returns:
-            List of asset dicts. Returns mock data when unconfigured.
+            List of asset dicts.
+            When unconfigured returns ``[]`` unless ``allow_mock=True`` was
+            passed to the constructor (tests only).
         """
         if not self.is_configured():
+            if self._allow_mock:
+                return list(_MOCK_ASSETS)
             logger.warning(
-                "GCP credentials not configured — returning mock SCC assets."
+                "GCP credentials not configured — get_assets returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            return list(_MOCK_ASSETS)
+            return []
 
         try:
             client = self._make_scc_client()
@@ -460,7 +498,10 @@ class GCPSecurityClient:
         """
         import_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
-        is_mock = not self.is_configured()
+        configured = self.is_configured()
+        # is_mock is True only when allow_mock mode is active (tests); it is
+        # never True on the default production path when unconfigured.
+        is_mock = self._allow_mock and not configured
 
         try:
             raw_findings = self.get_findings()
@@ -479,6 +520,7 @@ class GCPSecurityClient:
                 "started_at": started_at,
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "completed",
+                "configured": configured,
                 "is_mock": is_mock,
                 "findings_count": len(findings),
                 "severity_breakdown": sev_counts,
@@ -519,6 +561,7 @@ class GCPSecurityClient:
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "status": "failed",
                 "error": str(exc),
+                "configured": configured,
                 "is_mock": is_mock,
                 "findings_count": 0,
                 "severity_breakdown": {},

@@ -87,35 +87,110 @@ class TestIsConfigured:
 
 
 # ===========================================================================
-# 2. Mock data fallback (unconfigured client)
+# 2. Honest not-configured contract (default, no allow_mock)
+# ===========================================================================
+
+class TestHonestNotConfigured:
+    """Unconfigured client must return empty lists — never mock data."""
+
+    def test_code_scanning_returns_empty_when_unconfigured(self):
+        client = GitHubSecurityClient()
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        alerts = c.get_code_scanning_alerts()
+        assert alerts == []
+
+    def test_dependabot_returns_empty_when_unconfigured(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        alerts = c.get_dependabot_alerts()
+        assert alerts == []
+
+    def test_secret_scanning_returns_empty_when_unconfigured(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        alerts = c.get_secret_scanning_alerts()
+        assert alerts == []
+
+    def test_no_mock_ids_in_code_scanning_alerts(self):
+        """Specific mock identifiers must not appear in unconfigured output."""
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        alerts = c.get_code_scanning_alerts()
+        for alert in alerts:
+            assert alert.get("_mock") is not True
+            assert "mock-owner" not in str(alert)
+            assert "mock-repo" not in str(alert)
+
+    def test_no_mock_ids_in_dependabot_alerts(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        alerts = c.get_dependabot_alerts()
+        for alert in alerts:
+            assert alert.get("_mock") is not True
+            assert "GHSA-mock" not in str(alert)
+
+    def test_no_mock_ids_in_secret_scanning_alerts(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        alerts = c.get_secret_scanning_alerts()
+        for alert in alerts:
+            assert alert.get("_mock") is not True
+            assert "ghp_mock" not in str(alert)
+
+    def test_import_all_has_zero_findings_when_unconfigured(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        result = c.import_all(org_id="honest_test")
+        assert result["total_findings"] == 0
+        assert result["configured"] is False
+        assert result["is_mock"] is False
+
+    def test_import_all_no_mock_owner_when_unconfigured(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient()
+        result = c.import_all(org_id="honest_owner_test")
+        assert result["owner"] == ""
+        assert result["repo"] == ""
+
+
+# ===========================================================================
+# 2b. Mock data fallback (allow_mock=True — tests only)
 # ===========================================================================
 
 class TestMockFallback:
-    def test_code_scanning_returns_mock_when_unconfigured(self):
-        client = GitHubSecurityClient()
-        alerts = client.get_code_scanning_alerts()
+    """Mock data only available via allow_mock=True constructor kwarg."""
+
+    def test_code_scanning_returns_mock_when_allow_mock(self):
+        client = GitHubSecurityClient(allow_mock=True)
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient(allow_mock=True)
+        alerts = c.get_code_scanning_alerts()
         assert isinstance(alerts, list)
         assert len(alerts) > 0
         assert alerts[0].get("_mock") is True
 
-    def test_dependabot_returns_mock_when_unconfigured(self):
-        client = GitHubSecurityClient()
-        alerts = client.get_dependabot_alerts()
+    def test_dependabot_returns_mock_when_allow_mock(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient(allow_mock=True)
+        alerts = c.get_dependabot_alerts()
         assert isinstance(alerts, list)
         assert len(alerts) > 0
         assert alerts[0].get("_mock") is True
 
-    def test_secret_scanning_returns_mock_when_unconfigured(self):
-        client = GitHubSecurityClient()
-        alerts = client.get_secret_scanning_alerts()
+    def test_secret_scanning_returns_mock_when_allow_mock(self):
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient(allow_mock=True)
+        alerts = c.get_secret_scanning_alerts()
         assert isinstance(alerts, list)
         assert len(alerts) > 0
         assert alerts[0].get("_mock") is True
 
     def test_mock_data_is_copies_not_references(self):
         """Mutations to returned lists should not affect module-level mock data."""
-        client = GitHubSecurityClient()
-        alerts = client.get_code_scanning_alerts()
+        with patch.dict("os.environ", {}, clear=True):
+            c = GitHubSecurityClient(allow_mock=True)
+        alerts = c.get_code_scanning_alerts()
         alerts.clear()
         assert len(_MOCK_CODE_SCANNING_ALERTS) > 0
 
@@ -307,9 +382,19 @@ class TestImportAll:
         assert "severity_breakdown" in result
         assert "findings" in result
 
-    def test_import_all_mock_flag_set(self):
-        client = GitHubSecurityClient()
+    def test_import_all_mock_flag_false_by_default(self):
+        """Unconfigured client without allow_mock must have is_mock=False."""
+        with patch.dict("os.environ", {}, clear=True):
+            client = GitHubSecurityClient()
         result = client.import_all(org_id="test_org_mock")
+        assert result["is_mock"] is False
+        assert result["configured"] is False
+
+    def test_import_all_mock_flag_true_with_allow_mock(self):
+        """allow_mock=True + unconfigured must set is_mock=True."""
+        with patch.dict("os.environ", {}, clear=True):
+            client = GitHubSecurityClient(allow_mock=True)
+        result = client.import_all(org_id="test_org_mock_explicit")
         assert result["is_mock"] is True
 
     def test_import_all_counts_all_types(self):
@@ -469,6 +554,8 @@ class TestGitHubSecurityRouter:
         data = resp.json()
         assert "configured" in data
         assert "is_mock" in data
+        # is_mock must always be False — we never fabricate data
+        assert data["is_mock"] is False
 
     def test_code_scanning_endpoint_returns_200(self):
         resp = self.http.get("/api/v1/security/github/alerts/code-scanning")
@@ -502,9 +589,11 @@ class TestGitHubSecurityRouter:
         resp = self.http.get("/api/v1/security/github/alerts/all")
         data = resp.json()
         assert isinstance(data, list)
-        # Should include all 3 types combined
-        types = {f.get("alert_type") for f in data}
-        assert types == {"code_scanning", "dependabot", "secret_scanning"}
+        # When unconfigured, returns empty list — no mock data fabricated
+        for finding in data:
+            assert finding.get("_mock") is not True
+            assert "mock-owner" not in str(finding)
+            assert "mock-repo" not in str(finding)
 
     def test_import_endpoint_returns_200(self):
         resp = self.http.post(
@@ -553,5 +642,8 @@ class TestGitHubSecurityRouter:
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
-        # Raw mode preserves _mock flag from source
-        assert data[0].get("_mock") is True
+        # When unconfigured, raw mode returns [] — no mock data fabricated
+        for item in data:
+            assert item.get("_mock") is not True
+            assert "mock-owner" not in str(item)
+            assert "mock-repo" not in str(item)

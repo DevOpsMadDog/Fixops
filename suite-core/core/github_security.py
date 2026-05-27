@@ -8,6 +8,11 @@ import history per org.
 Follows the trivy_integration.py pattern: mock-safe, in-memory history,
 optional BrainPipeline ingestion.
 
+When GitHub credentials are NOT configured the public methods return honest
+not-configured results (empty list) — they never return fabricated mock data
+on the production path.  Mock data is available exclusively for unit tests
+via ``GitHubSecurityClient(allow_mock=True)``.
+
 GitHub API version: 2022-11-28
 Docs: https://docs.github.com/en/rest/code-scanning
       https://docs.github.com/en/rest/dependabot/alerts
@@ -26,6 +31,19 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Not-configured sentinel
+# ---------------------------------------------------------------------------
+_NOT_CONFIGURED_REASON = (
+    "GitHub credentials not configured — set GITHUB_TOKEN (or GH_TOKEN), "
+    "GITHUB_OWNER, and GITHUB_REPO environment variables for real data."
+)
+
+
+class GitHubNotConfiguredError(ValueError):
+    """Raised when a GitHub operation is attempted without credentials."""
+
 
 # ---------------------------------------------------------------------------
 # In-memory import history store (keyed by org_id)
@@ -175,8 +193,9 @@ class GitHubSecurityClient:
     Pulls GitHub Advanced Security alerts (code scanning, Dependabot, secret scanning)
     for a given repository.
 
-    Falls back to mock data when no token is configured, so the rest of
-    the pipeline can be exercised without a real GitHub PAT.
+    When credentials are NOT configured the public methods return honest
+    not-configured results (empty list).  Mock data is available exclusively
+    via ``allow_mock=True`` (tests only).
     """
 
     GITHUB_API_BASE = "https://api.github.com"
@@ -190,22 +209,27 @@ class GitHubSecurityClient:
         repo: Optional[str] = None,
         base_url: Optional[str] = None,
         timeout: int = DEFAULT_TIMEOUT,
+        *,
+        allow_mock: bool = False,
     ) -> None:
         """
         Configure the client with a GitHub PAT.
 
         Args:
-            token:    GitHub Personal Access Token (or read from GITHUB_TOKEN env).
-            owner:    Repository owner (user or org).
-            repo:     Repository name.
-            base_url: GitHub API base (override for GHES).
-            timeout:  HTTP request timeout in seconds.
+            token:      GitHub Personal Access Token (or read from GITHUB_TOKEN env).
+            owner:      Repository owner (user or org).
+            repo:       Repository name.
+            base_url:   GitHub API base (override for GHES).
+            timeout:    HTTP request timeout in seconds.
+            allow_mock: When True, return mock data while unconfigured (tests only).
         """
         self.token = token or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
         self.owner = owner or os.environ.get("GITHUB_OWNER")
         self.repo = repo or os.environ.get("GITHUB_REPO")
         self.base_url = (base_url or self.GITHUB_API_BASE).rstrip("/")
         self.timeout = timeout
+        # allow_mock=True is ONLY for unit tests — never set in production code.
+        self._allow_mock: bool = allow_mock
 
     # ------------------------------------------------------------------
     # Configuration check
@@ -301,12 +325,21 @@ class GitHubSecurityClient:
         """
         Fetch all open code scanning alerts for the configured repository.
 
-        Returns mock data when not configured.
+        Returns:
+            List of raw alert dicts.
+            When unconfigured returns ``[]`` unless ``allow_mock=True`` was
+            passed to the constructor (tests only).
+
         GET /repos/{owner}/{repo}/code-scanning/alerts
         """
         if not self.is_configured():
-            logger.info("GitHubSecurityClient not configured — returning mock code scanning alerts")
-            return list(_MOCK_CODE_SCANNING_ALERTS)
+            if self._allow_mock:
+                return list(_MOCK_CODE_SCANNING_ALERTS)
+            logger.warning(
+                "GitHubSecurityClient not configured — get_code_scanning_alerts returning empty. %s",
+                _NOT_CONFIGURED_REASON,
+            )
+            return []
         path = f"/repos/{self.owner}/{self.repo}/code-scanning/alerts"
         return self._get(path, {"state": "open"})
 
@@ -314,12 +347,21 @@ class GitHubSecurityClient:
         """
         Fetch all open Dependabot alerts for the configured repository.
 
-        Returns mock data when not configured.
+        Returns:
+            List of raw alert dicts.
+            When unconfigured returns ``[]`` unless ``allow_mock=True`` was
+            passed to the constructor (tests only).
+
         GET /repos/{owner}/{repo}/dependabot/alerts
         """
         if not self.is_configured():
-            logger.info("GitHubSecurityClient not configured — returning mock Dependabot alerts")
-            return list(_MOCK_DEPENDABOT_ALERTS)
+            if self._allow_mock:
+                return list(_MOCK_DEPENDABOT_ALERTS)
+            logger.warning(
+                "GitHubSecurityClient not configured — get_dependabot_alerts returning empty. %s",
+                _NOT_CONFIGURED_REASON,
+            )
+            return []
         path = f"/repos/{self.owner}/{self.repo}/dependabot/alerts"
         return self._get(path, {"state": "open"})
 
@@ -327,12 +369,21 @@ class GitHubSecurityClient:
         """
         Fetch all open secret scanning alerts for the configured repository.
 
-        Returns mock data when not configured.
+        Returns:
+            List of raw alert dicts.
+            When unconfigured returns ``[]`` unless ``allow_mock=True`` was
+            passed to the constructor (tests only).
+
         GET /repos/{owner}/{repo}/secret-scanning/alerts
         """
         if not self.is_configured():
-            logger.info("GitHubSecurityClient not configured — returning mock secret scanning alerts")  # nosemgrep: python-logger-credential-disclosure
-            return list(_MOCK_SECRET_SCANNING_ALERTS)
+            if self._allow_mock:
+                return list(_MOCK_SECRET_SCANNING_ALERTS)
+            logger.warning(
+                "GitHubSecurityClient not configured — get_secret_scanning_alerts returning empty. %s",  # nosemgrep: python-logger-credential-disclosure
+                _NOT_CONFIGURED_REASON,
+            )
+            return []
         path = f"/repos/{self.owner}/{self.repo}/secret-scanning/alerts"
         return self._get(path, {"state": "open"})
 
@@ -531,7 +582,10 @@ class GitHubSecurityClient:
         """
         import_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
-        is_mock = not self.is_configured()
+        configured = self.is_configured()
+        # is_mock is True only when allow_mock mode is active (tests); it is
+        # never True on the default production path when unconfigured.
+        is_mock = self._allow_mock and not configured
 
         all_findings: List[Dict[str, Any]] = []
         counts: Dict[str, int] = {}
@@ -563,11 +617,12 @@ class GitHubSecurityClient:
         entry: Dict[str, Any] = {
             "import_id": import_id,
             "org_id": org_id,
-            "owner": self.owner or "mock-owner",
-            "repo": self.repo or "mock-repo",
+            "owner": self.owner or "",
+            "repo": self.repo or "",
             "started_at": started_at,
             "completed_at": datetime.now(timezone.utc).isoformat(),
             "status": "failed" if errors and not all_findings else "completed",
+            "configured": configured,
             "is_mock": is_mock,
             "total_findings": len(all_findings),
             "counts_by_type": counts,

@@ -141,20 +141,20 @@ def github_status():
     """
     Return whether the GitHub Security client is fully configured.
 
-    When not configured, all alert endpoints return mock sample data.
+    When not configured, all alert endpoints return empty lists with
+    configured=False — no mock data is fabricated.
     """
     client = _get_client()
     configured = client.is_configured()
     return {
         "configured": configured,
-        "is_mock": not configured,
+        "is_mock": False,
         "owner": client.owner,
         "repo": client.repo,
         "message": (
             f"GitHub Security active for {client.owner}/{client.repo}"
             if configured
-            else "Not configured — set GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO env vars. "
-            "Mock data mode active."
+            else "Not configured — set GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO env vars."
         ),
     }
 

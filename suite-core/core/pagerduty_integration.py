@@ -9,6 +9,14 @@ Usage:
     if client.is_configured():
         result = client.create_incident(title="High CVE detected", service_id="PABC123")
 
+When PagerDuty credentials are NOT configured the public methods return honest
+not-configured results (empty list / ``{"configured": False, ...}``) — they
+never return fabricated mock data on the production path.  Mock data is
+available exclusively for unit tests via ``PagerDutyClient(allow_mock=True)``.
+
+Note: ``create_incident`` already sets ``is_mock=True`` on its mock path for
+backwards-compat; the other 9 methods have been brought into alignment.
+
 Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V9 (Air-Gapped)
 """
 
@@ -22,6 +30,19 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Not-configured sentinel
+# ---------------------------------------------------------------------------
+_NOT_CONFIGURED_REASON = (
+    "PagerDuty credentials not configured — set PAGERDUTY_API_TOKEN "
+    "environment variable for real data."
+)
+
+
+class PagerDutyNotConfiguredError(ValueError):
+    """Raised when a PagerDuty operation is attempted without credentials."""
+
 
 # ---------------------------------------------------------------------------
 # In-memory incident history (keyed by org_id)
@@ -177,8 +198,9 @@ class PagerDutyClient:
     """
     REST API v2 client for PagerDuty incident management.
 
-    Falls back to mock data when no API token is configured so that the
-    rest of the pipeline can be exercised without real credentials.
+    When credentials are NOT configured the public methods return honest
+    not-configured results (empty list / ``{"configured": False, ...}``).
+    Mock data is available exclusively via ``allow_mock=True`` (tests only).
     """
 
     DEFAULT_TIMEOUT = 30
@@ -188,6 +210,8 @@ class PagerDutyClient:
         api_token: Optional[str] = None,
         from_email: Optional[str] = None,
         timeout: int = DEFAULT_TIMEOUT,
+        *,
+        allow_mock: bool = False,
     ) -> None:
         self._api_token: str = (
             api_token or os.environ.get("PAGERDUTY_API_TOKEN", "") or ""
@@ -198,6 +222,8 @@ class PagerDutyClient:
         ).strip()
         self.timeout = timeout
         self._session = None  # lazy-init
+        # allow_mock=True is ONLY for unit tests — never set in production code.
+        self._allow_mock: bool = allow_mock
 
     # ------------------------------------------------------------------
     # Configuration check
@@ -392,16 +418,18 @@ class PagerDutyClient:
             raise ValueError("incident_id must be a non-empty string")
 
         if not self.is_configured():
+            if self._allow_mock:
+                mock = dict(_MOCK_INCIDENTS[0])
+                mock["id"] = incident_id
+                mock["status"] = status or mock["status"]
+                mock["updated_at"] = datetime.now(timezone.utc).isoformat()
+                mock["is_mock"] = True
+                return mock
             logger.warning(
-                "PagerDuty token not configured — returning mock update for incident=%s.",
-                incident_id,
+                "PagerDuty token not configured — update_incident returning not-configured. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            mock = dict(_MOCK_INCIDENTS[0])
-            mock["id"] = incident_id
-            mock["status"] = status or mock["status"]
-            mock["updated_at"] = datetime.now(timezone.utc).isoformat()
-            mock["is_mock"] = True
-            return mock
+            return {"configured": False, "reason": _NOT_CONFIGURED_REASON, "incident_id": incident_id}
 
         update: Dict[str, Any] = {"type": "incident"}
         if status:
@@ -452,29 +480,31 @@ class PagerDutyClient:
             List of incident dicts. Mock when unconfigured.
         """
         if not self.is_configured():
+            if self._allow_mock:
+                mock_incidents = list(_MOCK_INCIDENTS)
+                try:
+                    from core.trustgraph_event_bus import get_event_bus
+                    bus = get_event_bus()
+                    for f in mock_incidents:
+                        bus.emit("incident.created", {
+                            "org_id": "default",
+                            "engine": "pagerduty",
+                            "id": f.get("id") or f.get("incident_id"),
+                            "cve_id": f.get("cve_id"),
+                            "severity": f.get("urgency") or f.get("severity", "unknown"),
+                            "title": f.get("title") or f.get("description"),
+                            "asset_id": f.get("asset_id"),
+                            "is_mock": True,
+                            **f,
+                        })
+                except Exception:
+                    pass
+                return mock_incidents
             logger.warning(
-                "PagerDuty token not configured — returning mock incident list."
+                "PagerDuty token not configured — list_incidents returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            mock_incidents = list(_MOCK_INCIDENTS)
-            # Emit mock incidents as incident.created too (is_mock=True flag)
-            try:
-                from core.trustgraph_event_bus import get_event_bus
-                bus = get_event_bus()
-                for f in mock_incidents:
-                    bus.emit("incident.created", {
-                        "org_id": "default",
-                        "engine": "pagerduty",
-                        "id": f.get("id") or f.get("incident_id"),
-                        "cve_id": f.get("cve_id"),
-                        "severity": f.get("urgency") or f.get("severity", "unknown"),
-                        "title": f.get("title") or f.get("description"),
-                        "asset_id": f.get("asset_id"),
-                        "is_mock": True,
-                        **f,
-                    })
-            except Exception:
-                pass
-            return mock_incidents
+            return []
 
         params: Dict[str, Any] = {"limit": min(limit, 100)}
         if statuses:
@@ -523,14 +553,16 @@ class PagerDutyClient:
             raise ValueError("incident_id must be a non-empty string")
 
         if not self.is_configured():
+            if self._allow_mock:
+                mock = dict(_MOCK_INCIDENTS[0])
+                mock["id"] = incident_id
+                mock["is_mock"] = True
+                return mock
             logger.warning(
-                "PagerDuty token not configured — returning mock incident for id=%s.",
-                incident_id,
+                "PagerDuty token not configured — get_incident returning not-configured. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            mock = dict(_MOCK_INCIDENTS[0])
-            mock["id"] = incident_id
-            mock["is_mock"] = True
-            return mock
+            return {"configured": False, "reason": _NOT_CONFIGURED_REASON, "incident_id": incident_id}
 
         data = self._get(f"/incidents/{incident_id}")
         return data.get("incident", data) if isinstance(data, dict) else data
@@ -550,10 +582,13 @@ class PagerDutyClient:
             List of schedule dicts. Mock when unconfigured.
         """
         if not self.is_configured():
+            if self._allow_mock:
+                return list(_MOCK_SCHEDULES)
             logger.warning(
-                "PagerDuty token not configured — returning mock schedules."
+                "PagerDuty token not configured — list_schedules returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            return list(_MOCK_SCHEDULES)
+            return []
 
         params: Dict[str, Any] = {}
         if query:
@@ -585,15 +620,17 @@ class PagerDutyClient:
             raise ValueError("schedule_id must be a non-empty string")
 
         if not self.is_configured():
+            if self._allow_mock:
+                mock_schedule = next(
+                    (s for s in _MOCK_SCHEDULES if s["id"] == schedule_id),
+                    _MOCK_SCHEDULES[0],
+                )
+                return mock_schedule.get("users", [])
             logger.warning(
-                "PagerDuty token not configured — returning mock on-call users for schedule=%s.",
-                schedule_id,
+                "PagerDuty token not configured — get_oncall_users returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            mock_schedule = next(
-                (s for s in _MOCK_SCHEDULES if s["id"] == schedule_id),
-                _MOCK_SCHEDULES[0],
-            )
-            return mock_schedule.get("users", [])
+            return []
 
         params: Dict[str, Any] = {}
         if since:
@@ -623,10 +660,13 @@ class PagerDutyClient:
             List of escalation policy dicts. Mock when unconfigured.
         """
         if not self.is_configured():
+            if self._allow_mock:
+                return list(_MOCK_ESCALATION_POLICIES)
             logger.warning(
-                "PagerDuty token not configured — returning mock escalation policies."
+                "PagerDuty token not configured — list_escalation_policies returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            return list(_MOCK_ESCALATION_POLICIES)
+            return []
 
         params: Dict[str, Any] = {}
         if query:
@@ -651,12 +691,18 @@ class PagerDutyClient:
             raise ValueError("policy_id must be a non-empty string")
 
         if not self.is_configured():
-            mock = next(
-                (p for p in _MOCK_ESCALATION_POLICIES if p["id"] == policy_id),
-                dict(_MOCK_ESCALATION_POLICIES[0]),
+            if self._allow_mock:
+                mock = next(
+                    (p for p in _MOCK_ESCALATION_POLICIES if p["id"] == policy_id),
+                    dict(_MOCK_ESCALATION_POLICIES[0]),
+                )
+                mock["is_mock"] = True
+                return mock
+            logger.warning(
+                "PagerDuty token not configured — get_escalation_policy returning not-configured. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            mock["is_mock"] = True
-            return mock
+            return {"configured": False, "reason": _NOT_CONFIGURED_REASON, "policy_id": policy_id}
 
         data = self._get(f"/escalation_policies/{policy_id}")
         return data.get("escalation_policy", data) if isinstance(data, dict) else data
@@ -676,10 +722,13 @@ class PagerDutyClient:
             List of service dicts. Mock when unconfigured.
         """
         if not self.is_configured():
+            if self._allow_mock:
+                return list(_MOCK_SERVICES)
             logger.warning(
-                "PagerDuty token not configured — returning mock services."
+                "PagerDuty token not configured — list_services returning empty. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            return list(_MOCK_SERVICES)
+            return []
 
         params: Dict[str, Any] = {}
         if query:
@@ -701,13 +750,19 @@ class PagerDutyClient:
             raise ValueError("service_id must be a non-empty string")
 
         if not self.is_configured():
-            mock = next(
-                (s for s in _MOCK_SERVICES if s["id"] == service_id),
-                dict(_MOCK_SERVICES[0]),
+            if self._allow_mock:
+                mock = next(
+                    (s for s in _MOCK_SERVICES if s["id"] == service_id),
+                    dict(_MOCK_SERVICES[0]),
+                )
+                mock["is_mock"] = True
+                mock["open_incidents"] = 1
+                return mock
+            logger.warning(
+                "PagerDuty token not configured — get_service_health returning not-configured. %s",
+                _NOT_CONFIGURED_REASON,
             )
-            mock["is_mock"] = True
-            mock["open_incidents"] = 1
-            return mock
+            return {"configured": False, "reason": _NOT_CONFIGURED_REASON, "service_id": service_id}
 
         data = self._get(f"/services/{service_id}")
         service = data.get("service", data) if isinstance(data, dict) else {}
