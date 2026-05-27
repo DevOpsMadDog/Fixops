@@ -51,8 +51,12 @@ start_api_server() {
     local start_ts=$(date +%s)
 
     if [[ "$workers" == "1" ]]; then
-        # Single-process uvicorn (fastest startup, simplest debugging)
-        uvicorn apps.api.app:create_app --factory --host 0.0.0.0 --port 8000 --log-level "$log_level" &
+        # Single-process uvicorn (fastest startup, simplest debugging).
+        # Serve the module-level `app` singleton (built ONCE at import) instead of
+        # `:create_app --factory` — the latter built the route graph TWICE per boot
+        # (module-level `app = create_app()` AND the factory call), ~doubling cold
+        # start on fly's shared CPU and blowing past the health-check window (#9021).
+        uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --log-level "$log_level" &
     else
         # Multi-worker gunicorn with uvicorn workers (production scaling)
         if [[ "$workers" == "auto" ]]; then
