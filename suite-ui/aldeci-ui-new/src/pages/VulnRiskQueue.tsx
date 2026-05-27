@@ -11,7 +11,7 @@
  * API stubs: GET /api/v1/vulns/queue, /api/v1/vulns/distribution, /api/v1/vulns/risk-acceptance
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -24,6 +24,7 @@ import {
   TrendingUp,
   BarChart3,
   Inbox,
+  ShieldAlert,
 } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
@@ -41,14 +42,29 @@ async function apiFetch(path: string) {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
+
+async function apiPost(path: string, body: Record<string, unknown>) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error((err as any).detail ?? res.statusText);
+  }
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -122,14 +138,36 @@ function CvssScore({ score }: { score: number }) {
   return <span className={cn("font-bold tabular-nums text-xs", color)}>{score.toFixed(1)}</span>;
 }
 
+// ── Toast (local — no shared toast provider in this app) ───────
+
+type Toast = { id: number; msg: string; kind: "ok" | "err" };
+
+function useToast() {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const add = useCallback((msg: string, kind: "ok" | "err") => {
+    const id = Date.now();
+    setToasts((t) => [...t, { id, msg, kind }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
+  }, []);
+  return { toasts, add };
+}
+
 // ── Component ──────────────────────────────────────────────────
 
 export default function VulnRiskQueue() {
+  const { user } = useAuth();
+  const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
   const [rejected, setRejected] = useState<Set<string>>(new Set());
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const { toasts, add: toast } = useToast();
+
+  // Accept-risk dialog state
+  const [acceptTarget, setAcceptTarget] = useState<{ id: string; label: string } | null>(null);
+  const [acceptReason, setAcceptReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setDataLoading(true);
@@ -143,11 +181,43 @@ export default function VulnRiskQueue() {
         setLiveData({ scored, stats });
       }
     }).finally(() => setDataLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    setRefreshKey((k) => k + 1);
     setTimeout(() => setRefreshing(false), 800);
+  };
+
+  const openAcceptDialog = (id: string, label: string) => {
+    setAcceptTarget({ id, label });
+    setAcceptReason("");
+  };
+
+  const closeAcceptDialog = () => {
+    if (submitting) return;
+    setAcceptTarget(null);
+    setAcceptReason("");
+  };
+
+  const submitAcceptRisk = async () => {
+    if (!acceptTarget || !acceptReason.trim()) return;
+    setSubmitting(true);
+    try {
+      await apiPost("/api/v1/vuln-prioritization/risk-acceptance", {
+        finding_id: acceptTarget.id,
+        reason: acceptReason.trim(),
+        accepted_by: user?.email || "security-team",
+      });
+      toast(`Risk accepted for ${acceptTarget.label}`, "ok");
+      setAcceptTarget(null);
+      setAcceptReason("");
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Risk acceptance failed", "err");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const liveDistribution: any[] = liveData?.stats?.distribution ?? liveData?.stats?.severity_distribution ?? [];
@@ -208,6 +278,7 @@ export default function VulnRiskQueue() {
                   <TableHead className="text-[11px] h-8">Team</TableHead>
                   <TableHead className="text-[11px] h-8">Status</TableHead>
                   <TableHead className="text-[11px] h-8">SLA</TableHead>
+                  <TableHead className="text-[11px] h-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,6 +314,18 @@ export default function VulnRiskQueue() {
                     <TableCell className="text-xs py-2 text-muted-foreground">{team}</TableCell>
                     <TableCell className="py-2"><StatusBadge status={status} /></TableCell>
                     <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{sla}</TableCell>
+                    <TableCell className="py-2">
+                      {status !== "accepted" && status !== "resolved" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] border-amber-500/30 text-amber-400 hover:bg-amber-500/10 whitespace-nowrap"
+                          onClick={() => openAcceptDialog(row.id ?? cve, cve ?? row.id)}
+                        >
+                          <ShieldAlert className="h-3 w-3 mr-1" />Accept Risk
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                   );
                 })}
@@ -390,6 +473,69 @@ export default function VulnRiskQueue() {
           ))}
         </CardContent>
       </Card>
+      {/* Accept Risk dialog */}
+      <Dialog open={!!acceptTarget} onOpenChange={(open) => { if (!open) closeAcceptDialog(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-4 w-4 text-amber-400" />
+              Accept Risk
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Document why this vulnerability is being accepted rather than remediated.
+              {acceptTarget && (
+                <span className="block mt-1 font-mono text-blue-400">{acceptTarget.label}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <label className="block text-xs font-medium text-foreground">
+              Reason / Justification <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              rows={3}
+              placeholder="e.g. Compensating control active — IDS/IPS on segment; migration planned Q3 2026"
+              value={acceptReason}
+              onChange={(e) => setAcceptReason(e.target.value)}
+              disabled={submitting}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Accepted by: <span className="font-medium text-foreground">{user?.email || "security-team"}</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={closeAcceptDialog} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={submitAcceptRisk}
+              disabled={submitting || !acceptReason.trim()}
+            >
+              {submitting ? "Submitting…" : "Accept Risk"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Toast overlay */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={cn(
+              "rounded-md border px-4 py-2.5 text-xs font-medium shadow-lg pointer-events-auto",
+              t.kind === "ok"
+                ? "border-green-500/30 bg-green-500/10 text-green-400"
+                : "border-red-500/30 bg-red-500/10 text-red-400"
+            )}
+          >
+            {t.msg}
+          </div>
+        ))}
+      </div>
     </motion.div>
   );
 }
