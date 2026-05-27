@@ -448,3 +448,13 @@ pkg@ver alone -> collapsed distinct CVEs); _extract_component_version recognises
 (enables comp_version to collapse TRUE dup (cve,pkg,ver) across worktree copies). LIVE PROOF:
 re-ingest trivy -> findings 9 -> 159 (~true distinct 168); bandit 1307 + semgrep 70 unchanged
 (code findings, real lines). grand total 2308 real self-scan findings. 125 dedup tests pass.
+
+### SECRET AUDIT COMPLETE (2026-05-27) — only 1 real leak
+Scoped trivy self-scan secret findings triaged (each classified by entropy + placeholder markers + JWT-payload decode):
+- mytoken.txt: REAL GitHub fine-grained PAT -> untracked+gitignored (4a74a438), REVOKE on GitHub (#9054, in history).
+- scripts/ctem_*demo*.{py,sh} github-pat: PLACEHOLDERS (ghp_xxx.../ghp_ABCDEFG, entropy 0.7-5.2 with xxx/ABC markers).
+- slack webhooks in demo scripts: example hooks.slack.com URLs (placeholder).
+- ctem_demo_004.sh "stripe secret": Stripe public docs example key (4eC39Hq...).
+- scripts/populate_multica.py JWT: EXPIRED (2026-05-17) LOCAL Multica admin token (beast@aldeci.io, HS256, localhost single-user) — low risk; minor hygiene: read from env not hardcode.
+- data/keys/*.pem,*.ed25519: gitignored runtime signing keys (not leaked).
+Conclusion: 1 real leak (handled), rest fixtures/expired-local. Secret hygiene of the repo is otherwise clean.
