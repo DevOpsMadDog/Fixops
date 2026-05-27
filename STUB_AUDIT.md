@@ -144,3 +144,88 @@ No candidates remained unresolvable after reading caller + gate.
 6. `trivy_integration._run_trivy` + `trivy_scan_engine._run_trivy` (#9027) — silent mock container scan results when binary absent.
 7. `executive_dashboard_router` startup seed (#9028) — 12 weeks of synthetic trend history served as real posture data.
 8. `soar_engine._simulate_action` (#9029) — all SOAR executions are fabricated completions with no real dispatch.
+
+---
+
+## ROUTER AUDIT (2026-05-27)
+
+**Scope:** 798 router files in `suite-api/apps/api/` (`*_router.py` + `*_routes.py`).
+**Method:** Multi-pass grep + Python AST scan for: module-level `_MOCK_`/`_DEMO_`/`_SAMPLE_` constants returned to callers; route handlers returning hardcoded list/dict literals with no engine delegation; silent demo fallbacks when real data is absent; `random.*`/`uuid4()` generating fabricated response values; hardcoded fake identifiers in production response paths.
+**Exclusions (🟢):** static config/capability lists (enum option lists, provider capability manifests, MITRE ATT&CK knowledge references, scan profile definitions, tier info, health/status probes); legitimate sample/ingest endpoints that are explicitly named and gated; seed-demo endpoints gated by `_require_non_enterprise()` or `Depends`; test-fire payloads clearly labeled `"test_fire": true`.
+
+### Counts
+
+| Classification | Count |
+|---|---|
+| Routers scanned | 798 |
+| ❌ INLINE-FABRICATION (returns hardcoded data to client, no engine) | 3 |
+| 🟡 PARTIAL (delegates to engine but silently falls back to hardcoded demo data when result is empty) | 2 |
+| 🟢 REAL (delegates to engine/db or is legitimate static config) | 793 |
+
+### ❌ INLINE-FABRICATION — 3 routers
+
+| Router | Line | Fabricated symbol / return | Engine it SHOULD call |
+|---|---|---|---|
+| `evidence_router.py` | L565–567 | `_get_demo_bundles()` — 4 hardcoded compliance bundles (EVB-2026-001/002/003, EVB-2025-042) returned as real bundle listing when no disk manifests found | `EvidenceEngine` / real bundle DB; should return empty list or 404 with onboarding message |
+| `evidence_router.py` | L878–900 | `_get_demo_bundles()` — same 4 fake bundles used to synthesise a fake "download" response (sections, finding_count, remediation_count) when no physical bundle file exists | Same — should 404 or stream a real generated bundle |
+| `knowledge_graph_router.py` | L418–L500+ (inside `POST /seed-demo`) | 20 hardcoded VULN-001…VULN-020 entries with fabricated CVEs (`CVE-2025-44123`, `CVE-2025-31001` etc.), fabricated EPSS scores, and fabricated KEV flags seeded into the live knowledge graph via `POST /seed-demo` with no enterprise-mode gate at the **router** level (gate exists but only blocks `FIXOPS_MODE=enterprise`; any other deploy accepts the endpoint) | Endpoint is correctly named "seed-demo" but inserts fabricated CVEs into the production knowledge graph — gate should also require an explicit `ALDECI_DEMO_KEY` or be restricted to `FIXOPS_MODE=demo` only |
+
+**Evidence detail:**
+
+- ❌ **evidence_router** `list_compliance_bundles` (`L529–568`) / `download_compliance_bundle` (`L870–900`)
+  - File: `suite-api/apps/api/evidence_router.py:114,117,565,567,878`
+  - Evidence: `_DEMO_SIGNED_BUNDLES = {"EVB-2026-001", "EVB-2026-003"}` at L114; `_get_demo_bundles()` at L117 returns 4 hardcoded bundle dicts with fabricated `finding_count`, `remediation_count`, `hash`, `sections`. Called at L565: `if not bundles: bundles = _get_demo_bundles()` — any fresh/unconfigured deploy with no manifest directory returns these 4 demo bundles as real compliance evidence to every `GET /bundles` caller. Also called at L878 to fabricate a download response for the same fake bundle IDs.
+  - Gate: Only triggered when `manifest_dir` is absent or empty (the common case on any new install). No `is_demo` flag in the response — clients receive `"status": "signed"`, `"signature_valid": true` for fabricated bundles.
+  - Engine it SHOULD call: Real bundle manifest files in `FIXOPS_DATA_DIR` / compliance DB. When empty → return `{"bundles": [], "total": 0}` not demo data.
+  - Multica: **#9034**
+
+- ❌ **evidence_router** `verify_bundle_signature` (`L1008–1020`)
+  - File: `suite-api/apps/api/evidence_router.py:1008–1020`
+  - Evidence: `if safe_id in _DEMO_SIGNED_BUNDLES: return BundleVerificationResult(valid=True, hash_match=True, signature_valid=True, ...)` — for IDs `EVB-2026-001` and `EVB-2026-003`, the verification endpoint unconditionally returns `valid=True` with a fabricated certificate chain (`"ALdeci Trust Services"`) without performing any cryptographic verification.
+  - Gate: Unconditional for those two IDs — no env var, no crypto check.
+  - Engine it SHOULD call: `RSAVerifier` (already imported in the same file at L35). Real verification path exists at L990–1004 but is bypassed for the demo IDs.
+  - Multica: **#9034** (same issue as above)
+
+- ❌ **knowledge_graph_router** `seed_demo_data` (`POST /seed-demo`, L315–500+)
+  - File: `suite-api/apps/api/knowledge_graph_router.py:418–500+`
+  - Evidence: 20 hardcoded findings `VULN-001`…`VULN-020` with fabricated CVEs (e.g. `CVE-2025-44123`, `CVE-2025-31001`, `CVE-2025-19234`), fabricated EPSS scores (e.g. `0.94`, `0.72`), and fabricated KEV booleans are inserted into the live FalkorDB knowledge graph. Once seeded, these appear as real findings in `/attack-paths`, `/blast-radius`, `/analytics` endpoints.
+  - Gate: `_require_non_enterprise()` only blocks `FIXOPS_MODE=enterprise`. Any deploy in `dev`/`staging`/unconfigured mode can hit this endpoint. No `ALDECI_DEMO_KEY` requirement.
+  - Engine it SHOULD call: Not a real fix needed — endpoint is correctly scoped as demo. Fix: tighten gate to require `FIXOPS_MODE=demo` explicitly OR add explicit opt-in param; add `"is_demo": true` marker to all seeded nodes.
+  - Multica: **#9034**
+
+### 🟡 PARTIAL — 2 routers (delegate to engine but have hardcoded fallback)
+
+| Router | Line | Pattern | Note |
+|---|---|---|---|
+| `crowdstrike_falcon_router.py` | L161–169 | `GET /sample` returns `FALCON_SAMPLE_DETECTIONS` (10 hardcoded detections from connector) to any caller | Explicitly named `/sample` endpoint; connector also has real `/ingest` path. 🟡 because the endpoint is purposefully named but returns connector-internal sample data as an API response — no `is_sample` flag, no auth beyond api_key |
+| `executive_dashboard_router.py` | L60 (module import) | `_trend_analyser.generate_synthetic_history(weeks=12, seed=42)` called unconditionally at startup | Already tracked as ❌ #9028 in Wave 2 (engine audit). Listed here for completeness — the **router** seeds the engine at import time. |
+
+### 🟢 LEGITIMATE — confirmed clean patterns (not re-listed individually)
+
+The following patterns appeared in the broad scan but are **NOT fabrication**:
+
+- **Health/status probes** (`return {"status": "healthy", "engine": "X"}`) — 80+ routers — static operational metadata, not client data.
+- **Static capability lists** (`list_scan_profiles`, `list_attack_vectors`, `list_scan_modes`, `list_providers`, `list_node_types`, `get_tier_info`, `list_experts`) — enum-derived or hardcoded product-capability manifests. Correct to be static.
+- **MITRE ATT&CK knowledge** (`feeds_router.py:438` `_MITRE_TECHNIQUES`) — 12 static ATT&CK v15.1 technique records used as a searchable reference. Not fabricated findings.
+- **Test-fire webhook payloads** (`webhook_notifications_router.py:563`) — `"test_fire": true` flag present in all payloads; `"finding_id": "test-finding-001"` / `"CVE-2024-99999"` are clearly labeled test data. Not a production finding path.
+- **Seed-demo endpoints properly gated** (`self_learning_router.py POST /demo/seed`, `knowledge_graph_router.py POST /seed-demo`) — explicitly tagged `tags=["demo"]`, gated by `_require_non_enterprise()`. The router endpoint itself is legitimate; the ❌ finding above is about insufficient gate strength.
+- **Commercial vendor `/sample` endpoints** (`commercial_vendor_router.py`) — return connector-embedded sample payloads for integration testing. Correctly named and scoped.
+- **`changelog_router.py`** — all handlers delegate to `ChangelogGenerator` (reads real git log via `subprocess`). Static `list_formats` return is a capability manifest.
+- **`version_router.py`**, **`versioning_router.py`** — return live version data (`_git_commit()`, `_build_date()`) and API versioning manager delegation. Not fabricated.
+- **`audit_router.py GET /retention`** (L494) — returns a static policy specification (365 days / AES-256-GCM). This is a config declaration, not fabricated operational data.
+- **`breach_simulation_router.py GET /scenarios`** — iterates `AttackScenario` enum + calls `get_breach_simulator().get_scenario_steps(s)`. Engine delegation present.
+- **`llm_router.py GET /providers`** — hardcoded provider capability manifest (model IDs, feature flags, env var names). Static product config, not fabricated security data.
+
+### Summary
+
+| Category | Count | Multica |
+|---|---|---|
+| Routers scanned | 798 | — |
+| ❌ Inline fabrication (production default returns fake data) | 3 findings across 2 files | #9034 |
+| 🟡 Partial (explicit sample endpoint / known startup seed) | 2 | #9028 (already tracked) |
+| 🟢 Real / legitimate static config | 793 | — |
+
+**Prioritised ❌ fix order:**
+1. `evidence_router` `verify_bundle_signature` (#9034) — fabricated `valid=True` + fake cert chain for known demo IDs undermines trust in cryptographic evidence verification.
+2. `evidence_router` `list_compliance_bundles` / `download_compliance_bundle` (#9034) — demo bundles silently served as real compliance evidence on any unconfigured deploy.
+3. `knowledge_graph_router` `seed_demo_data` gate (#9034) — tighten from `FIXOPS_MODE != enterprise` to `FIXOPS_MODE == demo` to prevent accidental demo seeding in staging/prod.
