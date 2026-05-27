@@ -1249,6 +1249,67 @@ class GrypeScannerNormalizer(_Base):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 17b. OSV-Scanner Parser (Google osv-scanner — dependency vulns, OSV schema)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class OSVScannerNormalizer(_Base):
+    """Normalizer for osv-scanner JSON output.
+
+    Format: results[].packages[].{package:{name,version,ecosystem},
+    vulnerabilities:[{id (GHSA), aliases:[CVE-...], summary, details,
+    database_specific:{severity}}]}. Each (package, vulnerability) pair is a
+    finding; CVE is taken from aliases when present (id is usually a GHSA).
+    """
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        try:
+            d = json.loads(content)
+            res = d.get("results")
+            if isinstance(res, list) and res and isinstance(res[0], dict) and "packages" in res[0]:
+                return 0.95
+        except (json.JSONDecodeError, KeyError, ValueError, UnicodeDecodeError):
+            pass
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        data = json.loads(content)
+        findings = []
+        for result in data.get("results", []) or []:
+            for pkg_entry in result.get("packages", []) or []:
+                pkg = pkg_entry.get("package") or {}
+                name = pkg.get("name", "")
+                ver = pkg.get("version", "")
+                eco = pkg.get("ecosystem", "")
+                for v in pkg_entry.get("vulnerabilities", []) or []:
+                    vid = v.get("id", "")
+                    aliases = v.get("aliases") or []
+                    cve = next(
+                        (str(a) for a in aliases if str(a).upper().startswith("CVE-")),
+                        None,
+                    )
+                    summary = v.get("summary") or ""
+                    details = v.get("details") or ""
+                    sev_str = (v.get("database_specific") or {}).get("severity") or "medium"
+                    f = _make_finding(
+                        source_format_str="osv-scanner",
+                        source_tool="osv-scanner",
+                        source_id=vid,
+                        severity=self._map_severity(sev_str),
+                        title=f"{cve or vid}: {summary[:200]}" if summary else (cve or vid),
+                        description=details or summary,
+                        recommendation=f"Upgrade {name} ({eco})" if name else None,
+                        cve_id=cve,
+                        package_name=name,
+                        package_version=ver,
+                        package_ecosystem=eco,
+                    )
+                    if hasattr(f, "compute_fingerprint"):
+                        f.compute_fingerprint()
+                    findings.append(f)
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # 18. Semgrep Parser (SARIF-based but also direct JSON)
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -2354,6 +2415,8 @@ SCANNER_NORMALIZERS = {
     # New parsers for enterprise scanner ecosystem
     "trivy": TrivyScannerNormalizer,
     "grype": GrypeScannerNormalizer,
+    "osv-scanner": OSVScannerNormalizer,
+    "osv": OSVScannerNormalizer,
     "semgrep": SemgrepScannerNormalizer,
     "dependabot": DependabotScannerNormalizer,
     # Enterprise scanner ecosystem
