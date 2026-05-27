@@ -415,3 +415,17 @@ The following patterns appeared in the broad scan but are **NOT fabrication**:
 1. `evidence_router` `verify_bundle_signature` (#9034) — fabricated `valid=True` + fake cert chain for known demo IDs undermines trust in cryptographic evidence verification.
 2. `evidence_router` `list_compliance_bundles` / `download_compliance_bundle` (#9034) — demo bundles silently served as real compliance evidence on any unconfigured deploy.
 3. `knowledge_graph_router` `seed_demo_data` gate (#9034) — tighten from `FIXOPS_MODE != enterprise` to `FIXOPS_MODE == demo` to prevent accidental demo seeding in staging/prod.
+
+## DOGFOODING FINDING (2026-05-27) — ingest under-reporting
+
+Ran a REAL bandit self-scan of suite-core+suite-api (1636 findings / 683 files / 18 rule_ids,
+4 HIGH 58 MED 1574 LOW) and ingested via POST /api/v1/scanner-ingest/upload. Discovered the
+endpoint reported findings_count:1636 but persisted only ~18: `_promote_findings_to_issues`
+built correlation_key as `scanner|rule_id|asset_id`, and asset_id was the app-level "aldeci-self"
+(shared by all findings), so SecurityFindingsEngine.record_finding deduped 1636 distinct
+file:line findings down to one-per-rule. A security product silently hiding 99% of real findings
+= critical under-reporting (inverse of fabrication, equally bad). SmartDedup was INNOCENT
+(returned all 1636 canonical). FIXED (commit 68c21bce): corr_key now file_path:line_number
+(then package@version, then asset_id). Proven OLD=18 -> NEW=1633 distinct keys; 87 ingest/findings
+tests green. NOTE: local dev API (PID 46586) still runs old `--factory` code — restart with
+preserved FIXOPS_API_TOKEN + FIXOPS_DATA_DIR=.fixops_data to re-ingest and populate dashboards live.
