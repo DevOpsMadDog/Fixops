@@ -10,6 +10,19 @@ SOAR Router — Security Orchestration, Automation and Response.
   GET    /api/v1/soar/executions                get_execution_history
   GET    /api/v1/soar/stats                     get_playbook_stats
   GET    /api/v1/soar/mttr                      get_mean_time_to_respond
+
+EXECUTION MODE (currently simulated — no real connector calls)
+--------------------------------------------------------------
+All playbook executions are currently SIMULATED.  No real tickets are created,
+no real alerts are sent, no real firewall rules are applied.  Every
+SOARExecution response carries ``"simulated": true`` and
+``"execution_mode": "simulated"`` so API consumers can distinguish simulated
+runs from real SOAR execution.  Every per-action result in ``actions_taken``
+also carries these honesty flags.
+
+To enable real dispatch: implement connector logic in
+``soar_engine._dispatch_action()`` and set
+``soar_engine.EXECUTION_MODE = "real"``.
 """
 
 from __future__ import annotations
@@ -204,6 +217,11 @@ def execute_playbook(playbook_id: str, body: ExecutePlaybookRequest) -> SOARExec
 
     Useful for manual incident response or testing playbook actions.
     Returns 404 if the playbook does not exist, 422 if it is disabled.
+
+    NOTE: currently simulated — no real connector calls are made.
+    The response carries ``"simulated": true`` and
+    ``"execution_mode": "simulated"`` on both the run record and every
+    entry in ``actions_taken``.
     """
     engine = _get_engine()
     try:

@@ -24,6 +24,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
 
 from core.soar_engine import (
+    EXECUTION_MODE,
     ExecutionStatus,
     PlaybookStats,
     PlaybookTrigger,
@@ -264,6 +265,33 @@ class TestEvaluateTrigger:
         assert len(relevant) == 1
         assert relevant[0].status in (ExecutionStatus.COMPLETED, ExecutionStatus.PARTIAL)
 
+    def test_trigger_execution_carries_simulated_flag(self, engine, critical_playbook):
+        executions = engine.evaluate_trigger(
+            event={"trigger": "finding_critical", "severity": "critical"},
+            org_id="testorg",
+        )
+        relevant = [e for e in executions if e.playbook_id == critical_playbook.id]
+        assert len(relevant) == 1
+        run = relevant[0]
+        assert run.simulated is True
+        assert run.execution_mode == "simulated"
+
+    def test_trigger_actions_taken_carry_simulated_flag(self, engine, critical_playbook):
+        executions = engine.evaluate_trigger(
+            event={"trigger": "finding_critical", "severity": "critical"},
+            org_id="testorg",
+        )
+        relevant = [e for e in executions if e.playbook_id == critical_playbook.id]
+        run = relevant[0]
+        assert len(run.actions_taken) > 0
+        for action_result in run.actions_taken:
+            assert action_result.get("simulated") is True, (
+                f"Action result missing simulated=True: {action_result}"
+            )
+            assert action_result.get("execution_mode") == "simulated", (
+                f"Action result missing execution_mode='simulated': {action_result}"
+            )
+
 
 # ============================================================================
 # EXECUTE PLAYBOOK
@@ -308,6 +336,25 @@ class TestExecutePlaybook:
         engine.execute_playbook(playbook_id=critical_playbook.id, org_id="testorg")
         pb = engine.get_playbook(critical_playbook.id, org_id="testorg")
         assert pb.execution_count >= 1
+
+    def test_manual_execute_run_carries_simulated_flag(self, engine, critical_playbook):
+        execution = engine.execute_playbook(
+            playbook_id=critical_playbook.id, org_id="testorg"
+        )
+        assert execution.simulated is True
+        assert execution.execution_mode == "simulated"
+
+    def test_manual_execute_actions_carry_simulated_flag(self, engine, critical_playbook):
+        execution = engine.execute_playbook(
+            playbook_id=critical_playbook.id, org_id="testorg"
+        )
+        for action_result in execution.actions_taken:
+            assert action_result.get("simulated") is True, (
+                f"Action result missing simulated=True: {action_result}"
+            )
+            assert action_result.get("execution_mode") == "simulated", (
+                f"Action result missing execution_mode='simulated': {action_result}"
+            )
 
 
 # ============================================================================
@@ -452,3 +499,152 @@ class TestEnums:
 
     def test_action_count(self):
         assert len(SOARAction) == 9
+
+
+# ============================================================================
+# HONESTY / SIMULATION LABEL REGRESSION
+# ============================================================================
+
+
+class TestSimulationHonesty:
+    """
+    Regression suite ensuring simulated SOAR runs are never presented as real.
+
+    These tests must remain green for as long as EXECUTION_MODE == "simulated".
+    If real connectors are wired and EXECUTION_MODE is changed to "real", update
+    these tests to assert execution_mode="real" and simulated=False instead.
+    """
+
+    def test_execution_mode_constant_is_simulated(self):
+        """Module constant must be 'simulated' until real connectors exist."""
+        assert EXECUTION_MODE == "simulated", (
+            "EXECUTION_MODE was changed away from 'simulated' without wiring real "
+            "connectors — this would cause real-connector absence to go undetected. "
+            "If you have wired real connectors, update this assertion to 'real'."
+        )
+
+    def test_soar_execution_model_has_honesty_fields(self):
+        """SOARExecution Pydantic model must carry simulated + execution_mode fields."""
+        fields = SOARExecution.model_fields
+        assert "simulated" in fields, "SOARExecution missing 'simulated' field"
+        assert "execution_mode" in fields, "SOARExecution missing 'execution_mode' field"
+
+    def test_soar_execution_default_simulated_true(self):
+        """Default SOARExecution instance must have simulated=True."""
+        exec_obj = SOARExecution(playbook_id="test-pb")
+        assert exec_obj.simulated is True
+        assert exec_obj.execution_mode == "simulated"
+
+    def test_run_result_simulated_flag(self, engine, sample_actions):
+        """execute_playbook() result must carry simulated=True."""
+        pb = engine.create_playbook(
+            name="Honesty PB",
+            trigger=PlaybookTrigger.FINDING_CRITICAL,
+            actions=sample_actions,
+            org_id="honesty-org",
+        )
+        result = engine.execute_playbook(pb.id, org_id="honesty-org")
+        assert result.simulated is True, (
+            f"execute_playbook() returned simulated={result.simulated!r} — "
+            "must be True until real connectors are wired"
+        )
+        assert result.execution_mode == "simulated", (
+            f"execute_playbook() returned execution_mode={result.execution_mode!r}"
+        )
+
+    def test_every_action_result_carries_simulated_flag(self, engine, sample_actions):
+        """Every action result in actions_taken must carry simulated=True."""
+        pb = engine.create_playbook(
+            name="Action Honesty PB",
+            trigger=PlaybookTrigger.FINDING_HIGH,
+            actions=sample_actions,
+            org_id="action-honesty-org",
+        )
+        result = engine.execute_playbook(pb.id, org_id="action-honesty-org")
+        assert len(result.actions_taken) > 0, "No actions_taken to check"
+        for i, action_result in enumerate(result.actions_taken):
+            assert action_result.get("simulated") is True, (
+                f"actions_taken[{i}] missing simulated=True: {action_result}"
+            )
+            assert action_result.get("execution_mode") == "simulated", (
+                f"actions_taken[{i}] missing execution_mode='simulated': {action_result}"
+            )
+
+    def test_all_nine_action_types_carry_simulated_flag(self, engine):
+        """All 9 SOARAction types must carry honesty labels when simulated."""
+        all_actions = [
+            {"action": SOARAction.CREATE_TICKET, "priority": "P1"},
+            {"action": SOARAction.SEND_ALERT, "channel": "slack"},
+            {"action": SOARAction.BLOCK_IP},
+            {"action": SOARAction.QUARANTINE_HOST},
+            {"action": SOARAction.ROTATE_CREDENTIALS},
+            {"action": SOARAction.RUN_SCAN},
+            {"action": SOARAction.ESCALATE, "to": "ciso"},
+            {"action": SOARAction.UPDATE_FIREWALL},
+            {"action": SOARAction.COLLECT_EVIDENCE},
+        ]
+        pb = engine.create_playbook(
+            name="All Actions PB",
+            trigger=PlaybookTrigger.INCIDENT_CREATED,
+            actions=all_actions,
+            org_id="all-actions-org",
+        )
+        result = engine.execute_playbook(pb.id, org_id="all-actions-org")
+        assert len(result.actions_taken) == 9
+        for action_result in result.actions_taken:
+            assert action_result.get("simulated") is True, (
+                f"Action {action_result.get('action')} missing simulated=True"
+            )
+            assert action_result.get("execution_mode") == "simulated", (
+                f"Action {action_result.get('action')} missing execution_mode='simulated'"
+            )
+
+    def test_evaluate_trigger_runs_carry_simulated_flag(self, engine, sample_actions):
+        """evaluate_trigger() executions must also carry honesty flags."""
+        pb = engine.create_playbook(
+            name="Trigger Honesty PB",
+            trigger=PlaybookTrigger.SLA_BREACH,
+            actions=sample_actions,
+            org_id="trigger-honesty-org",
+        )
+        executions = engine.evaluate_trigger(
+            event={"trigger": "sla_breach"},
+            org_id="trigger-honesty-org",
+        )
+        assert len(executions) >= 1
+        for run in executions:
+            assert run.simulated is True, (
+                f"evaluate_trigger run {run.id} has simulated={run.simulated!r}"
+            )
+            assert run.execution_mode == "simulated"
+
+    def test_simulated_run_status_completed_still_labelled(self, engine, sample_actions):
+        """A 'completed' status must NOT suppress the simulated label."""
+        pb = engine.create_playbook(
+            name="Completed Honesty PB",
+            trigger=PlaybookTrigger.ANOMALY_DETECTED,
+            actions=sample_actions,
+            org_id="completed-honesty-org",
+        )
+        result = engine.execute_playbook(pb.id, org_id="completed-honesty-org")
+        assert result.status in (ExecutionStatus.COMPLETED, ExecutionStatus.PARTIAL)
+        # Even a "completed" run must be labelled simulated
+        assert result.simulated is True
+        assert result.execution_mode == "simulated"
+
+    def test_engine_has_dispatch_action_entry_point(self, engine):
+        """_dispatch_action() must exist as the routing entry-point."""
+        assert hasattr(engine, "_dispatch_action"), (
+            "SOAREngine missing _dispatch_action() — the real-connector gate "
+            "entry-point was removed or renamed"
+        )
+
+    def test_dispatch_action_falls_through_to_simulate(self, engine):
+        """When EXECUTION_MODE='simulated', _dispatch_action returns simulated result."""
+        result = engine._dispatch_action(
+            {"action": SOARAction.CREATE_TICKET, "priority": "P1"},
+            {"org": "test"},
+        )
+        assert result.get("simulated") is True
+        assert result.get("execution_mode") == "simulated"
+        assert result.get("status") == "completed"

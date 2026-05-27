@@ -11,6 +11,21 @@ Provides automated playbook execution triggered by security events:
 - MTTR (Mean Time To Respond) tracking
 
 Compliance: NIST CSF RS.AN-1, SOC2 CC7.2, ISO 27035
+
+EXECUTION MODE
+--------------
+ALL playbook runs are currently SIMULATED (EXECUTION_MODE="simulated").
+
+Every run result (SOARExecution) and every per-action result carries
+``"simulated": True`` and ``"execution_mode": "simulated"`` so callers can
+never mistake a simulated run for a real SOAR execution.
+
+To add real dispatch: implement real connector logic inside _dispatch_action()
+and set EXECUTION_MODE = "real" once integrations are configured.  The
+_simulate_action() path stays as the labelled simulation fallback.
+
+_DATA_SOURCE: "simulated" — no real connectors wired; deterministic outcomes
+per action type with uuid-based IDs that are NOT real ticket/scan/evidence IDs.
 """
 
 from __future__ import annotations
@@ -35,6 +50,17 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# EXECUTION MODE — module-level constant
+# ---------------------------------------------------------------------------
+# "simulated" = all action dispatch goes through _simulate_action() and every
+#               result is labelled simulated=True / execution_mode="simulated".
+# "real"      = reserved for when real connector integrations are wired inside
+#               _dispatch_action().  Do NOT set to "real" until that gate is
+#               implemented; doing so without a real connector would cause every
+#               action to silently fall back to simulation without the label.
+EXECUTION_MODE: str = "simulated"
 
 # Default DB path (data/ directory alongside the running process)
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "soar_engine.db")
@@ -114,6 +140,16 @@ class SOARExecution(BaseModel):
     status: ExecutionStatus = ExecutionStatus.PENDING
     org_id: str = "default"
     error_message: Optional[str] = None
+    # Honesty fields — callers must check these before treating a run as real
+    simulated: bool = Field(
+        default=True,
+        description="True when no real connector calls were made. "
+                    "Always True until EXECUTION_MODE is set to 'real'.",
+    )
+    execution_mode: str = Field(
+        default="simulated",
+        description="'simulated' or 'real'. Currently always 'simulated'.",
+    )
 
 
 class PlaybookStats(BaseModel):
@@ -370,14 +406,23 @@ class SOAREngine:
         return True
 
     def _simulate_action(self, action_def: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Simulate executing a single action. Returns result dict."""
+        """
+        Produce a SIMULATED result for a single action.
+
+        This is the labelled simulation fallback — it fabricates IDs (ticket_id,
+        scan_id, evidence_id, rule_id) that are NOT real external system IDs.
+        Every result carries ``"simulated": True`` and
+        ``"execution_mode": "simulated"`` so it is unambiguous to callers.
+        """
         action_type = action_def.get("action", "")
         result: Dict[str, Any] = {
             "action": action_type,
             "status": "completed",
+            "simulated": True,
+            "execution_mode": "simulated",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        # Simulate action-specific outcomes
+        # Simulate action-specific outcomes (IDs are fabricated, NOT real)
         if action_type == SOARAction.CREATE_TICKET:
             result["ticket_id"] = f"TKT-{uuid.uuid4().hex[:8].upper()}"
         elif action_type == SOARAction.SEND_ALERT:
@@ -398,22 +443,49 @@ class SOAREngine:
             result["evidence_id"] = f"EVD-{uuid.uuid4().hex[:8].upper()}"
         return result
 
+    def _dispatch_action(self, action_def: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Entry-point for action dispatch.  Routes to a real connector when
+        EXECUTION_MODE == "real" and the connector is configured; otherwise
+        falls through to _simulate_action() with honest simulation labels.
+
+        Real-connector gate (currently commented — no connectors wired):
+          1. Check EXECUTION_MODE == "real".
+          2. Route action_type to the appropriate connector
+             (e.g. Jira for CREATE_TICKET, PagerDuty for SEND_ALERT, etc.).
+          3. Return result with ``"execution_mode": "real"``.
+          4. If the connector call fails → raise so _run_playbook_actions
+             records the action as "failed" (not silently simulate).
+
+        Until real connectors exist, EXECUTION_MODE must stay "simulated".
+        """
+        # if EXECUTION_MODE == "real":
+        #     return self._dispatch_to_connector(action_def, context)
+        return self._simulate_action(action_def, context)
+
     def _run_playbook_actions(
         self,
         playbook: SOARPlaybook,
         context: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
-        """Execute all actions in a playbook and return results."""
+        """Execute all actions in a playbook and return results.
+
+        Routes every action through _dispatch_action() so real-connector
+        dispatch can be enabled without touching this loop.  All results
+        carry simulated/execution_mode labels from the dispatch layer.
+        """
         results = []
         for action_def in playbook.actions:
             try:
-                result = self._simulate_action(action_def, context)
+                result = self._dispatch_action(action_def, context)
                 results.append(result)
             except Exception as exc:
                 _logger.warning("Action %s failed: %s", action_def.get("action"), exc)
                 results.append({
                     "action": action_def.get("action", "unknown"),
                     "status": "failed",
+                    "simulated": EXECUTION_MODE == "simulated",
+                    "execution_mode": EXECUTION_MODE,
                     "error": str(exc),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 })
@@ -638,6 +710,8 @@ class SOAREngine:
             status=final_status,
             org_id=org_id,
             error_message=error_msg,
+            simulated=EXECUTION_MODE == "simulated",
+            execution_mode=EXECUTION_MODE,
         )
 
     def get_execution_history(
