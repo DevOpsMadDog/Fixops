@@ -303,12 +303,29 @@ async def list_node_types() -> Dict[str, Any]:
 # Seeds 5 applications, 20 vulnerabilities, 10+ attack paths for enterprise demo
 # ---------------------------------------------------------------------------
 def _require_non_enterprise() -> None:
-    """Block demo/seed endpoints in enterprise mode."""
+    """Block demo/seed endpoints unless explicitly opted in.
+
+    Two conditions must both be true to allow seeding:
+      1. FIXOPS_MODE is not "enterprise"
+      2. FIXOPS_ALLOW_DEMO_SEED is set to exactly "1"
+
+    This prevents fabricated CVE/vulnerability nodes from silently
+    entering dev/staging graphs and surfacing in attack-path or
+    blast-radius results as if they were real findings.
+    """
     mode = os.getenv("FIXOPS_MODE", "").lower()
     if mode == "enterprise":
         raise HTTPException(
             status_code=403,
             detail="Demo endpoints are disabled in enterprise mode",
+        )
+    if os.getenv("FIXOPS_ALLOW_DEMO_SEED") != "1":
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Demo seed is disabled. Set FIXOPS_ALLOW_DEMO_SEED=1 to opt in. "
+                "Never enable in production — seeded nodes are fabricated data."
+            ),
         )
 
 
@@ -348,7 +365,7 @@ async def seed_demo_data(
             engine._backend.add_node(GraphNode(
                 id=f"app:{app['id']}",
                 type=NodeType.APP,
-                properties=app,
+                properties={**app, "is_demo": True, "source": "demo-seed"},
             ))
 
         # ==================================================================
@@ -379,7 +396,7 @@ async def seed_demo_data(
             engine._backend.add_node(GraphNode(
                 id=comp["id"],
                 type=NodeType.COMPONENT,
-                properties=comp,
+                properties={**comp, "is_demo": True, "source": "demo-seed"},
             ))
             # Link component to its app
             engine._backend.add_edge(GraphEdge(
@@ -404,7 +421,7 @@ async def seed_demo_data(
             engine._backend.add_node(GraphNode(
                 id=ep["id"],
                 type=NodeType.ENDPOINT,
-                properties=ep,
+                properties={**ep, "is_demo": True, "source": "demo-seed"},
             ))
             engine._backend.add_edge(GraphEdge(
                 source_id=ep["component"],
@@ -461,6 +478,8 @@ async def seed_demo_data(
                     "kev": finding["kev"],
                     "status": "open",
                     "description": finding["description"],
+                    "is_demo": True,
+                    "source": "demo-seed",
                 },
             ))
 
@@ -479,7 +498,7 @@ async def seed_demo_data(
                 engine._backend.add_node(GraphNode(
                     id=cwe_id,
                     type=NodeType.CWE,
-                    properties={"cwe_id": finding["cwe"]},
+                    properties={"cwe_id": finding["cwe"], "is_demo": True, "source": "demo-seed"},
                 ))
                 engine._backend.add_edge(GraphEdge(
                     source_id=f"finding:{f_id}",
@@ -493,7 +512,7 @@ async def seed_demo_data(
                 engine._backend.add_node(GraphNode(
                     id=cve_id,
                     type=NodeType.CVE,
-                    properties={"cve_id": finding["cve"], "cvss": finding["cvss"], "epss": finding["epss"], "kev": finding["kev"]},
+                    properties={"cve_id": finding["cve"], "cvss": finding["cvss"], "epss": finding["epss"], "kev": finding["kev"], "is_demo": True, "source": "demo-seed"},
                 ))
                 engine._backend.add_edge(GraphEdge(
                     source_id=f"finding:{f_id}",
@@ -598,7 +617,7 @@ async def seed_demo_data(
             engine._backend.add_node(GraphNode(
                 id=ctrl["id"],
                 type=NodeType.CONTROL,
-                properties={"name": ctrl["name"], "control_type": ctrl["type"], "status": ctrl["status"]},
+                properties={"name": ctrl["name"], "control_type": ctrl["type"], "status": ctrl["status"], "is_demo": True, "source": "demo-seed"},
             ))
             for finding_id in ctrl["mitigates"]:
                 engine._backend.add_edge(GraphEdge(

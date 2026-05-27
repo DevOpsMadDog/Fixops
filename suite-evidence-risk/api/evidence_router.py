@@ -108,102 +108,6 @@ _BUNDLE_ID_RE = re.compile(r"^EVB-\d{4}-[A-Za-z0-9]{3,8}$")
 _BUNDLE_ID_SAFE_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 # ---------------------------------------------------------------------------
-# Demo data — known signed bundle IDs and fallback bundle metadata
-# ---------------------------------------------------------------------------
-
-_DEMO_SIGNED_BUNDLES = {"EVB-2026-001", "EVB-2026-003"}
-
-
-def _get_demo_bundles() -> list[dict[str, Any]]:
-    """Return demo evidence bundles for UI presentation when no real data exists."""
-    return [
-        {
-            "id": "EVB-2026-001",
-            "framework": "SOC2",
-            "frameworks": ["SOC2", "ISO27001"],
-            "date_range": {"start": "2025-12-01", "end": "2026-02-28"},
-            "status": "signed",
-            "created_at": "2026-02-28T10:00:00Z",
-            "size_mb": 2.4,
-            "finding_count": 47,
-            "remediation_count": 38,
-            "hash": "sha256:a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e",
-            "signed_by": "ALdeci Trust Services",
-            "signature_valid": True,
-            "sections": [
-                {"name": "Executive Summary", "page_count": 3},
-                {"name": "SOC2 Control Mapping", "page_count": 15},
-                {"name": "Finding Inventory", "page_count": 30},
-                {"name": "Risk Score Analysis", "page_count": 10},
-                {"name": "Remediation Evidence", "page_count": 25},
-                {"name": "Audit Trail", "page_count": 12},
-            ],
-        },
-        {
-            "id": "EVB-2026-002",
-            "framework": "PCI-DSS",
-            "frameworks": ["PCI-DSS"],
-            "date_range": {"start": "2026-01-01", "end": "2026-02-28"},
-            "status": "generated",
-            "created_at": "2026-02-28T14:30:00Z",
-            "size_mb": 1.8,
-            "finding_count": 23,
-            "remediation_count": 15,
-            "hash": "sha256:b2c3d4e5f6a10718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e",
-            "signed_by": None,
-            "signature_valid": False,
-            "sections": [
-                {"name": "Executive Summary", "page_count": 2},
-                {"name": "PCI-DSS Control Mapping", "page_count": 12},
-                {"name": "Finding Inventory", "page_count": 18},
-                {"name": "Compliance Gaps", "page_count": 8},
-            ],
-        },
-        {
-            "id": "EVB-2026-003",
-            "framework": "HIPAA",
-            "frameworks": ["HIPAA"],
-            "date_range": {"start": "2025-11-01", "end": "2026-02-28"},
-            "status": "signed",
-            "created_at": "2026-02-27T09:15:00Z",
-            "size_mb": 3.1,
-            "finding_count": 62,
-            "remediation_count": 55,
-            "hash": "sha256:c3d4e5f6a1b20718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e",
-            "signed_by": "ALdeci Trust Services",
-            "signature_valid": True,
-            "sections": [
-                {"name": "Executive Summary", "page_count": 4},
-                {"name": "HIPAA Control Mapping", "page_count": 20},
-                {"name": "PHI Handling Evidence", "page_count": 15},
-                {"name": "Risk Assessment", "page_count": 12},
-                {"name": "Remediation Evidence", "page_count": 22},
-            ],
-        },
-        {
-            "id": "EVB-2025-042",
-            "framework": "NIST-CSF",
-            "frameworks": ["NIST-CSF"],
-            "date_range": {"start": "2025-07-01", "end": "2025-09-30"},
-            "status": "expired",
-            "created_at": "2025-10-01T08:00:00Z",
-            "size_mb": 1.5,
-            "finding_count": 31,
-            "remediation_count": 28,
-            "hash": "sha256:d4e5f6a1b2c30718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e",
-            "signed_by": None,
-            "signature_valid": False,
-            "sections": [
-                {"name": "Executive Summary", "page_count": 2},
-                {"name": "NIST-CSF Control Mapping", "page_count": 10},
-                {"name": "Finding Inventory", "page_count": 14},
-                {"name": "Remediation Evidence", "page_count": 16},
-            ],
-        },
-    ]
-
-
-# ---------------------------------------------------------------------------
 # Shared sanitization helper
 # ---------------------------------------------------------------------------
 
@@ -562,9 +466,8 @@ async def list_compliance_bundles(request: Request) -> dict[str, Any]:
                 "sections": manifest_data.get("sections", []),
             })
 
-    # If no bundles found from disk, provide demo data for UI presentation
-    if not bundles:
-        bundles = _get_demo_bundles()
+    # No real bundles on disk — return honest empty response.
+    # Never fabricate signed bundles as if real.
     return {"bundles": bundles, "total": len(bundles)}
 
 
@@ -868,45 +771,15 @@ async def download_evidence_bundle(
             },
         )
 
-    # No physical file — return synthetic bundle data for demo / presentation
-    now = dt.now(tz.utc).isoformat()
-    content_hash = hashlib.sha256(
-        f"{safe_bundle_id}{now}{format}".encode()
-    ).hexdigest()
-
-    # Look up demo bundle metadata if available
-    demo_bundles_map = {b["id"]: b for b in _get_demo_bundles()}
-    demo = demo_bundles_map.get(safe_bundle_id, {})
-
-    synthetic = {
-        "bundle_id": safe_bundle_id,
-        "format": format,
-        "hash": f"sha256:{content_hash}",
-        "generated_at": now,
-        "sections": demo.get("sections", [
-            {"name": "Executive Summary", "page_count": 3},
-            {"name": "Control Mapping", "page_count": 15},
-            {"name": "Finding Inventory", "page_count": 30},
-        ]),
-        "framework": demo.get("framework", "SOC2"),
-        "frameworks": demo.get("frameworks", ["SOC2"]),
-        "finding_count": demo.get("finding_count", 0),
-        "remediation_count": demo.get("remediation_count", 0),
-        "signed_by": demo.get("signed_by"),
-        "signature_algorithm": "RSA-SHA256" if demo.get("signature_valid") else None,
-        "metadata": {
-            "platform": "ALdeci CTEM+",
-            "version": "1.0.0",
-            "bundle_id": safe_bundle_id,
-        },
-    }
-
-    return JSONResponse(
-        content=synthetic,
-        headers={
-            "Content-Disposition": f'attachment; filename="{safe_bundle_id}.{format}"',
-            "Access-Control-Expose-Headers": "Content-Disposition",
-        },
+    # No physical file found on disk — return 404 rather than fabricating content.
+    # Callers must generate a real bundle via POST /evidence/bundles/generate
+    # before downloading.
+    raise HTTPException(
+        status_code=404,
+        detail=(
+            f"Bundle '{safe_bundle_id}' has no stored file. "
+            "Generate a bundle first via POST /evidence/bundles/generate."
+        ),
     )
 
 
@@ -1003,21 +876,6 @@ async def verify_bundle(
                 safe_id,
                 exc_info=True,
             )
-
-    # Demo mode — return deterministic results for known demo bundles
-    if safe_id in _DEMO_SIGNED_BUNDLES:
-        return BundleVerificationResult(
-            valid=True,
-            hash_match=True,
-            signature_valid=True,
-            timestamp=verification_ts,
-            certificate_chain=[
-                "ALdeci Evidence Engine v1.0 (Root CA)",
-                "ALdeci Signing Authority (Intermediate)",
-                f"Bundle {safe_id} (Leaf Certificate)",
-            ],
-            issuer="ALdeci Trust Services",
-        )
 
     # No real evidence found — return honest "unverifiable" result.
     # Never fake a pass/fail for a bundle we cannot actually verify.
