@@ -151,6 +151,11 @@ class ConfidencePrediction:
     recommendation: str
     model_version: str
     prediction_time_ms: float
+    # Provenance: "synthetic_training" means the Random Forest was trained on
+    # RNG-generated fix outcomes, not real historical fix data.  "real_outcomes"
+    # means the model was (re)trained on recorded FixOutcome data.  Consumers
+    # should disclose or discount predictions from synthetic-trained models.
+    model_data_source: str = "synthetic_training"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -166,6 +171,8 @@ class ConfidencePrediction:
             "recommendation": self.recommendation,
             "model_version": self.model_version,
             "prediction_time_ms": round(self.prediction_time_ms, 4),
+            # Provenance disclosure field — always present so callers can inspect.
+            "model_data_source": self.model_data_source,
         }
 
 
@@ -296,6 +303,9 @@ class AutoFixConfidenceModel:
         self._metrics: Optional[ConfidenceModelMetrics] = None
         self._trained = False
         self._bootstrap_models: List[Any] = []
+        # Tracks training data provenance; set to "real_outcomes" when retrained
+        # on actual FixOutcome records.  Reported in every prediction dict.
+        self._model_data_source: str = "synthetic_training"
 
     @property
     def is_trained(self) -> bool:
@@ -553,6 +563,11 @@ class AutoFixConfidenceModel:
         recommendation = _classification_to_recommendation(classification)
         prediction_time_ms = (time.monotonic() - t0) * 1000
 
+        # The model is always trained on synthetic data unless a caller explicitly
+        # retrains with real FixOutcome records (future path).  Report source so
+        # consumers can disclose calibration origin to end-users.
+        data_source = getattr(self, "_model_data_source", "synthetic_training")
+
         return ConfidencePrediction(
             confidence_score=confidence_score,
             classification=classification,
@@ -561,6 +576,7 @@ class AutoFixConfidenceModel:
             recommendation=recommendation,
             model_version=MODEL_VERSION if self.is_trained else "fallback-1.0",
             prediction_time_ms=prediction_time_ms,
+            model_data_source=data_source,
         )
 
     def save(self, path: Optional[Path] = None) -> Path:

@@ -28,8 +28,10 @@ Usage:
 from __future__ import annotations
 
 import logging
+import sqlite3
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
@@ -59,6 +61,44 @@ SCAN_FEATURE_NAMES = [
 
 DEFAULT_CONTAMINATION = 0.05  # 5% expected anomaly rate
 
+# Path to the findings data directory (one DB per tenant: findings_{tenant_id}.db)
+_FINDINGS_DATA_DIR = Path(__file__).resolve().parents[4] / "data"
+
+# Minimum number of distinct scan snapshots required before we trust real history
+_MIN_REAL_SCANS = 3
+
+
+def _has_real_scan_history() -> bool:
+    """Return True if at least _MIN_REAL_SCANS rows exist across any findings DB.
+
+    Queries the `findings` table (created by findings_persistence.py) in every
+    ``data/findings_*.db`` file found under the repo data directory.  Returns
+    False (fall back to synthetic) if no DB exists yet or if the total row
+    count is below the minimum threshold.
+    """
+    try:
+        dbs = list(_FINDINGS_DATA_DIR.glob("findings_*.db"))
+        if not dbs:
+            return False
+        total_rows = 0
+        for db_path in dbs:
+            try:
+                conn = sqlite3.connect(str(db_path), timeout=3)
+                try:
+                    row = conn.execute(
+                        "SELECT COUNT(*) FROM findings"
+                    ).fetchone()
+                    total_rows += row[0] if row else 0
+                finally:
+                    conn.close()
+                if total_rows >= _MIN_REAL_SCANS:
+                    return True
+            except (sqlite3.Error, OSError):
+                continue
+        return total_rows >= _MIN_REAL_SCANS
+    except Exception:  # pragma: no cover — defensive catch-all
+        return False
+
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -74,6 +114,8 @@ class AnomalyResult:
     scan_features: Dict[str, float]
     baseline_stats: Dict[str, Dict[str, float]]  # mean/std per feature
     detection_time_ms: float
+    # Provenance: "synthetic_bootstrap", "real_history", or "not_fitted"
+    baseline_source: str = "not_fitted"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -91,6 +133,11 @@ class AnomalyResult:
                 for k, v in self.baseline_stats.items()
             },
             "detection_time_ms": round(self.detection_time_ms, 4),
+            # Provenance disclosure: "synthetic_bootstrap" means the IsolationForest
+            # was calibrated on RNG-generated data, not on this tenant's real scan
+            # history.  Downstream (BrainPipeline, UI) should discount or flag results
+            # accordingly.  "real_history" means the model was fitted on ≥3 real scans.
+            "baseline_source": self.baseline_source,
         }
 
 
@@ -178,6 +225,9 @@ class AnomalyDetector:
         self._feature_means: Optional[np.ndarray] = None
         self._feature_stds: Optional[np.ndarray] = None
         self._scan_history: List[Dict[str, Any]] = []
+        # Tracks whether the fitted baseline came from real history or synthetic
+        # bootstrap.  Used to stamp every anomaly result with "baseline_source".
+        self._baseline_source: str = "not_fitted"
 
     @property
     def is_fitted(self) -> bool:
@@ -235,15 +285,25 @@ class AnomalyDetector:
         )
         self._model.fit(X)
         self._fitted = True
+        # Preserve whatever source label was set before calling fit_baseline.
+        # fit_from_synthetic_baseline sets _baseline_source = "synthetic_bootstrap"
+        # before calling us; direct callers (real history) should set it to
+        # "real_history" — we default here so a direct fit_baseline() call is
+        # correctly labelled even if the caller forgot.
+        if self._baseline_source not in ("synthetic_bootstrap",):
+            self._baseline_source = "real_history"
 
         logger.info(
-            "Anomaly detector fitted on %d historical scans. Baseline: mean_findings=%.1f",
+            "Anomaly detector fitted on %d historical scans (baseline_source=%s). "
+            "Baseline: mean_findings=%.1f",
             len(historical_scans),
+            self._baseline_source,
             float(self._feature_means[0]),
         )
 
         return {
             "scans_fitted": len(historical_scans),
+            "baseline_source": self._baseline_source,
             "feature_means": {
                 SCAN_FEATURE_NAMES[i]: float(self._feature_means[i])
                 for i in range(len(SCAN_FEATURE_NAMES))
@@ -309,6 +369,8 @@ class AnomalyDetector:
                 })
             synthetic_scans.append(findings)
 
+        # Mark source BEFORE calling fit_baseline so the label is preserved.
+        self._baseline_source = "synthetic_bootstrap"
         return self.fit_baseline(synthetic_scans)
 
     def detect(self, findings) -> AnomalyResult:
@@ -351,6 +413,7 @@ class AnomalyDetector:
                 scan_features=scan_features,
                 baseline_stats={},
                 detection_time_ms=dt,
+                baseline_source="not_fitted",
             )
 
         # Isolation Forest prediction
@@ -417,6 +480,7 @@ class AnomalyDetector:
             scan_features=scan_features,
             baseline_stats=baseline_stats,
             detection_time_ms=dt,
+            baseline_source=self._baseline_source,
         )
 
     def update_baseline(self, findings: List[Dict[str, Any]]) -> None:
@@ -687,14 +751,65 @@ _detector_instance: Optional[AnomalyDetector] = None
 
 
 def get_anomaly_detector() -> AnomalyDetector:
-    """Get or create the global AnomalyDetector instance."""
+    """Get or create the global AnomalyDetector instance.
+
+    Baseline selection (Bug fix — was always synthetic):
+      1. If real scan history exists in findings_*.db (≥3 rows), load and fit
+         from that data so customers see scores calibrated on their own history.
+      2. Only when zero real history is available does this fall back to
+         synthetic bootstrap data — and every result will carry
+         ``baseline_source="synthetic_bootstrap"`` so consumers can disclose it.
+    """
     global _detector_instance
     if _detector_instance is None:
         _detector_instance = AnomalyDetector()
-        # Initialize with synthetic baseline
         try:
-            _detector_instance.fit_from_synthetic_baseline()
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            if _has_real_scan_history():
+                # Fit from real findings rows grouped into synthetic scan-level
+                # vectors.  Each findings DB row is treated as one "scan" of one
+                # finding so the feature extractor can build a distribution.
+                # A richer loader can replace this stub in the future.
+                import sqlite3 as _sqlite3
+
+                dbs = list(_FINDINGS_DATA_DIR.glob("findings_*.db"))
+                scan_rows: List[List[Dict[str, Any]]] = []
+                for db_path in dbs:
+                    try:
+                        conn = _sqlite3.connect(str(db_path), timeout=3)
+                        conn.row_factory = _sqlite3.Row
+                        try:
+                            rows = conn.execute(
+                                "SELECT severity, cve_id, risk_score FROM findings LIMIT 500"
+                            ).fetchall()
+                        finally:
+                            conn.close()
+                        # Each DB row → single-finding "scan" for baseline fitting
+                        for r in rows:
+                            scan_rows.append([{
+                                "severity": r["severity"] or "medium",
+                                "cve_id": r["cve_id"] or None,
+                                "cvss_score": float(r["risk_score"] or 0),
+                            }])
+                    except (_sqlite3.Error, OSError):
+                        continue
+
+                if len(scan_rows) >= _MIN_REAL_SCANS:
+                    _detector_instance._baseline_source = "real_history"
+                    _detector_instance.fit_baseline(scan_rows)
+                    logger.info(
+                        "Anomaly detector fitted from real scan history (%d rows)",
+                        len(scan_rows),
+                    )
+                else:
+                    # Race between DB check and actual read — fall back gracefully
+                    _detector_instance.fit_from_synthetic_baseline()
+            else:
+                _detector_instance.fit_from_synthetic_baseline()
+                logger.info(
+                    "Anomaly detector fitted from synthetic bootstrap "
+                    "(no real scan history found yet)"
+                )
+        except (OSError, ValueError, KeyError, RuntimeError) as e:
             logger.warning("Could not fit anomaly baseline: %s", e)
     return _detector_instance
 

@@ -194,6 +194,10 @@ class RegressionPrediction:
     monitoring_config: Dict[str, Any]
     model_version: str
     prediction_time_ms: float
+    # Provenance: "synthetic_training" = model trained on RNG-generated outcomes;
+    # "real_outcomes" = model was (re)trained with recorded FixOutcome data.
+    # Consumers should disclose or discount predictions from synthetic-trained models.
+    model_data_source: str = "synthetic_training"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -211,6 +215,8 @@ class RegressionPrediction:
             "monitoring_config": self.monitoring_config,
             "model_version": self.model_version,
             "prediction_time_ms": round(self.prediction_time_ms, 4),
+            # Provenance disclosure field — always present so callers can inspect.
+            "model_data_source": self.model_data_source,
         }
 
 
@@ -545,6 +551,9 @@ class RegressionPredictor:
         self._bootstrap_models: List[Any] = []
         self._outcome_history: List[FixOutcome] = []
         self._max_history = 5000
+        # Tracks training data provenance; set to "real_outcomes" when retrained
+        # on actual FixOutcome records.  Reported in every prediction dict.
+        self._model_data_source: str = "synthetic_training"
 
     @property
     def is_trained(self) -> bool:
@@ -765,10 +774,17 @@ class RegressionPredictor:
             cv_std=cv_std,
         )
         self._trained = True
+        # If any real FixOutcome records were provided, mark as real_outcomes;
+        # otherwise the model was trained purely on synthetic data.
+        if outcomes:
+            self._model_data_source = "real_outcomes"
+        else:
+            self._model_data_source = "synthetic_training"
 
         logger.info(
-            "RegressionPredictor trained: MAE=%.4f, R²=%.4f, CV MAE=%.4f±%.4f, samples=%d",
-            mae, r2, cv_mae, cv_std, len(X),
+            "RegressionPredictor trained: MAE=%.4f, R²=%.4f, CV MAE=%.4f±%.4f, "
+            "samples=%d, model_data_source=%s",
+            mae, r2, cv_mae, cv_std, len(X), self._model_data_source,
         )
 
         return self._metrics
@@ -842,6 +858,7 @@ class RegressionPredictor:
             monitoring_config=monitoring,
             model_version=MODEL_VERSION,
             prediction_time_ms=elapsed,
+            model_data_source=getattr(self, "_model_data_source", "synthetic_training"),
         )
 
     def should_rollback(

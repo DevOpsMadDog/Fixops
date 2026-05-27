@@ -38,10 +38,32 @@ _DEFAULT_DB = str(
 
 try:
     from core.ml.anomaly_detector import AnomalyDetector as _AnomalyDetector
+    # Do NOT fit at import time — fitting (even synthetic) runs sklearn IsolationForest
+    # which is slow and triggers a side effect that pollutes module load.  The
+    # instance is created unfitted here; _get_anomaly_ml() lazily initialises it
+    # on first real use so importing this module never blocks or fits a model.
     _anomaly_ml: Optional[_AnomalyDetector] = _AnomalyDetector()
-    _anomaly_ml.fit_from_synthetic_baseline()
-except (ImportError, Exception):
+except ImportError:
     _anomaly_ml = None
+
+
+def _get_anomaly_ml() -> "Optional[_AnomalyDetector]":
+    """Return a fitted AnomalyDetector, fitting lazily on first call.
+
+    Uses the module-level singleton ``_anomaly_ml``.  If it is not yet fitted,
+    delegates to ``get_anomaly_detector()`` (which applies the real-history-first
+    logic) and re-uses that instance so training only happens once per process.
+    """
+    global _anomaly_ml
+    if _anomaly_ml is None:
+        return None
+    if not _anomaly_ml.is_fitted:
+        try:
+            from core.ml.anomaly_detector import get_anomaly_detector
+            _anomaly_ml = get_anomaly_detector()
+        except Exception:
+            pass
+    return _anomaly_ml if (_anomaly_ml is not None and _anomaly_ml.is_fitted) else None
 
 _VALID_BEHAVIOR_TYPES = {
     "login_anomaly", "data_access_spike", "privilege_escalation",
@@ -402,7 +424,9 @@ class BehavioralAnalyticsEngine:
         open_anomalies   = row["open_anomalies"]    or 0
         last_anomaly_at  = row["last_anomaly_at"]
 
-        if _anomaly_ml is not None:
+        ml = _get_anomaly_ml()
+        ml_baseline_source = "not_fitted"
+        if ml is not None:
             try:
                 # Map behavioral anomaly counts into scan-finding format for ML
                 findings = (
@@ -410,9 +434,10 @@ class BehavioralAnalyticsEngine:
                     + [{"severity": "high"} for _ in range(high_count)]
                     + [{"severity": "medium"} for _ in range(max(0, open_anomalies - critical_count - high_count))]
                 )
-                ml_result = _anomaly_ml.detect(findings)
+                ml_result = ml.detect(findings)
                 # anomaly_score is -1 (most anomalous) to 1 (most normal); map to 0-100 risk
                 risk_score = round(max(0.0, min(100.0, (1.0 - ml_result.anomaly_score) * 50.0)), 2)
+                ml_baseline_source = ml_result.baseline_source
             except Exception:
                 risk_score = min(total_anomalies * 10, 100)
         else:
@@ -426,6 +451,10 @@ class BehavioralAnalyticsEngine:
             "open_anomalies": open_anomalies,
             "risk_score": risk_score,
             "last_anomaly_at": last_anomaly_at,
+            # Provenance disclosure: if "synthetic_bootstrap", the risk_score was
+            # computed by an IsolationForest calibrated on RNG data, not real
+            # tenant history.  Downstream should flag or discount accordingly.
+            "baseline_source": ml_baseline_source,
         }
 
     # ------------------------------------------------------------------
