@@ -253,3 +253,6 @@ agentdb.rvf.lock
 suite-feeds/data/
 suite-feeds/feeds/ghsa/
 suite-feeds/feeds/tor_exit_nodes/
+
+# Leaked GitHub PAT — untracked 2026-05-27; token must be REVOKED on GitHub (in history 794b71a1)
+mytoken.txt
