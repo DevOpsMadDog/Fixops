@@ -171,6 +171,21 @@ class VulnerabilityPrioritizationEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_sa_org_status
                     ON sla_assignments (org_id, status, due_date);
+
+                CREATE TABLE IF NOT EXISTS risk_acceptances (
+                    id          TEXT PRIMARY KEY,
+                    org_id      TEXT NOT NULL,
+                    finding_id  TEXT NOT NULL,
+                    reason      TEXT NOT NULL,
+                    accepted_by TEXT NOT NULL,
+                    risk_level  TEXT,
+                    expires_at  TEXT,
+                    created_at  TEXT NOT NULL,
+                    status      TEXT NOT NULL DEFAULT 'active'
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ra_org_status
+                    ON risk_acceptances (org_id, status);
                 """
             )
 
@@ -436,6 +451,100 @@ class VulnerabilityPrioritizationEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Risk Acceptance
+    # ------------------------------------------------------------------
+
+    def accept_risk(
+        self,
+        org_id: str,
+        finding_id: str,
+        reason: str,
+        accepted_by: str,
+        risk_level: Optional[str] = None,
+        expires_at: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """INSERT a new risk acceptance row and return the created record.
+
+        Raises ValueError if any of finding_id, reason, or accepted_by is blank.
+        """
+        if not finding_id or not finding_id.strip():
+            raise ValueError("finding_id must not be empty")
+        if not reason or not reason.strip():
+            raise ValueError("reason must not be empty")
+        if not accepted_by or not accepted_by.strip():
+            raise ValueError("accepted_by must not be empty")
+
+        record: Dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "finding_id": finding_id.strip(),
+            "reason": reason.strip(),
+            "accepted_by": accepted_by.strip(),
+            "risk_level": risk_level,
+            "expires_at": expires_at,
+            "created_at": _now(),
+            "status": "active",
+        }
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO risk_acceptances
+                       (id, org_id, finding_id, reason, accepted_by,
+                        risk_level, expires_at, created_at, status)
+                       VALUES (:id, :org_id, :finding_id, :reason, :accepted_by,
+                               :risk_level, :expires_at, :created_at, :status)""",
+                    record,
+                )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit(
+                        "RISK_ACCEPTED",
+                        {
+                            "entity_type": "risk_acceptance",
+                            "org_id": org_id,
+                            "finding_id": finding_id,
+                            "source_engine": "vuln_prioritization",
+                        },
+                    )
+            except Exception:
+                pass
+
+        return record
+
+    def list_risk_acceptances(
+        self, org_id: str, status: str = "active"
+    ) -> List[Dict[str, Any]]:
+        """SELECT risk acceptances for org ordered by created_at DESC."""
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """SELECT * FROM risk_acceptances
+                       WHERE org_id = ? AND status = ?
+                       ORDER BY created_at DESC""",
+                    (org_id, status),
+                ).fetchall()
+        return [dict(r) for r in rows]
+
+    def revoke_risk_acceptance(self, org_id: str, acceptance_id: str) -> bool:
+        """Set status='revoked' on the given acceptance row.
+
+        Returns True if a row was updated, False if not found or already revoked.
+        """
+        with self._lock:
+            with self._conn() as conn:
+                cursor = conn.execute(
+                    """UPDATE risk_acceptances
+                       SET status = 'revoked'
+                       WHERE id = ? AND org_id = ? AND status = 'active'""",
+                    (acceptance_id, org_id),
+                )
+                return cursor.rowcount > 0
+
     def bulk_score_vulnerabilities(
         self, org_id: str, vulns_list: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
@@ -579,10 +688,7 @@ class VulnerabilityPrioritizationEngine:
 
         teams = {r["assigned_team"]: r["cnt"] for r in team_rows}
 
-        # risk_acceptance: intentionally empty — no "accept risk" feature or
-        # accepted/risk_accepted column exists in the schema yet.  The UI
-        # already renders an EmptyState when this is [].  Do NOT fabricate data.
-        risk_acceptance: list = []
+        risk_acceptance = self.list_risk_acceptances(org_id)
 
         return {
             "total_scored": total_row["cnt"] if total_row else 0,

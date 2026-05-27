@@ -72,6 +72,14 @@ class SLAAssignRequest(BaseModel):
     assigned_team: str
 
 
+class RiskAcceptanceCreate(BaseModel):
+    finding_id: str
+    reason: str
+    accepted_by: str
+    risk_level: Optional[str] = None
+    expires_at: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -166,6 +174,57 @@ async def get_stats(
     """Get high-level prioritization stats: totals, by_tier, KEV count, SLA breaches."""
     engine = _get_engine(org_id)
     return engine.get_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Risk Acceptance endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/risk-acceptance", status_code=201)
+async def create_risk_acceptance(
+    payload: RiskAcceptanceCreate,
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Accept a risk for a specific finding and persist it with a full audit trail."""
+    engine = _get_engine(org_id)
+    try:
+        return engine.accept_risk(
+            org_id=org_id,
+            finding_id=payload.finding_id,
+            reason=payload.reason,
+            accepted_by=payload.accepted_by,
+            risk_level=payload.risk_level,
+            expires_at=payload.expires_at,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get("/risk-acceptance")
+async def list_risk_acceptances(
+    org_id: str = Query(default="default"),
+    status: str = Query(default="active"),
+) -> List[Dict[str, Any]]:
+    """List risk acceptances for an org, filtered by status (default: active)."""
+    engine = _get_engine(org_id)
+    return engine.list_risk_acceptances(org_id, status=status)
+
+
+@router.post("/risk-acceptance/{acceptance_id}/revoke", status_code=200)
+async def revoke_risk_acceptance(
+    acceptance_id: str,
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Revoke (soft-delete) an active risk acceptance by ID."""
+    engine = _get_engine(org_id)
+    revoked = engine.revoke_risk_acceptance(org_id, acceptance_id)
+    if not revoked:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Risk acceptance '{acceptance_id}' not found or already revoked",
+        )
+    return {"acceptance_id": acceptance_id, "status": "revoked"}
 
 
 __all__ = ["router"]
