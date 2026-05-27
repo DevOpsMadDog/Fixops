@@ -903,6 +903,9 @@ class ThreatHuntingEngine:
             "results_by_mitre_tactic": by_category,
             "avg_confidence": round(avg_confidence, 3),
             "predefined_query_count": len(_BUILTIN_QUERIES),
+            # UI-alias keys (additive — do not remove above keys)
+            "queries": len(_BUILTIN_QUERIES),
+            "playbooks": total_sessions,
         }
 
     # ------------------------------------------------------------------

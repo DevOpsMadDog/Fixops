@@ -740,6 +740,23 @@ class ConfigBenchmarkEngine:
                 (org_id,),
             ).fetchone()["cnt"]
 
+            # Total failed checks across all assessments for org
+            total_failed_checks = conn.execute(
+                """
+                SELECT COUNT(*) as cnt
+                FROM check_results cr
+                JOIN assessment_results ar ON cr.result_id = ar.result_id
+                WHERE ar.org_id=? AND cr.status='fail'
+                """,
+                (org_id,),
+            ).fetchone()["cnt"]
+
+            # Most recent result_id for this org (used for check_results alias)
+            latest_result_row = conn.execute(
+                "SELECT result_id FROM assessment_results WHERE org_id=? ORDER BY assessed_at DESC LIMIT 1",
+                (org_id,),
+            ).fetchone()
+
         by_standard = {
             r["standard"]: {"assessments": r["cnt"], "avg_score": round(r["avg_score"] or 0.0, 2)}
             for r in by_standard_rows
@@ -749,6 +766,11 @@ class ConfigBenchmarkEngine:
             for r in by_target_rows
         }
 
+        # Failed check rows for most recent assessment (real empty list when no data)
+        latest_failed_checks: List[Dict[str, Any]] = []
+        if latest_result_row:
+            latest_failed_checks = self.get_failed_checks(org_id, latest_result_row["result_id"])
+
         return {
             "org_id": org_id,
             "total_profiles": profile_count,
@@ -757,4 +779,8 @@ class ConfigBenchmarkEngine:
             "by_standard": by_standard,
             "by_target_type": by_target_type,
             "critical_failures_total": critical_failures or 0,
+            # UI-alias keys (additive — do not remove above keys)
+            "score_by_standard": by_standard,
+            "failed_checks": total_failed_checks or 0,
+            "check_results": latest_failed_checks,
         }

@@ -747,9 +747,22 @@ class CCMEngine:
                     (org_id,),
                 ).fetchone()
 
+                # Recent control history (last 30 rows) for test_history UI key
+                history_rows = conn.execute(
+                    """SELECT recorded_at, status
+                       FROM control_history
+                       WHERE org_id = ?
+                       ORDER BY recorded_at DESC
+                       LIMIT 30""",
+                    (org_id,),
+                ).fetchall()
+
         total_tests = test_row["total_tests"] if test_row else 0
         passing_tests = test_row["passing_tests"] if test_row else 0
         coverage_pct = (passing_tests / total_tests * 100.0) if total_tests > 0 else 0.0
+
+        # frameworks: reuse get_control_coverage() by_framework (same conn pattern, no double-lock)
+        coverage = self.get_control_coverage(org_id)
 
         return {
             "total_controls": ctrl_row["total_controls"] if ctrl_row else 0,
@@ -760,6 +773,12 @@ class CCMEngine:
             "open_failures": fail_row["open_failures"] if fail_row else 0,
             "critical_failures": fail_row["critical_failures"] if fail_row else 0,
             "coverage_pct": round(coverage_pct, 2),
+            # UI-alias keys (additive — do not remove above keys)
+            "frameworks": coverage["by_framework"],
+            "test_history": [
+                {"recorded_at": r["recorded_at"], "status": r["status"]}
+                for r in history_rows
+            ],
         }
 
 

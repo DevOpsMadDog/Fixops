@@ -562,6 +562,25 @@ class IncidentTimelineEngine:
             ).fetchall()
             by_severity = {r["severity"]: r["cnt"] for r in sev_rows}
 
+            # Total signal count from timeline_events (column: event_time confirmed)
+            signals_row = conn.execute(
+                "SELECT COUNT(*) FROM timeline_events WHERE org_id=?", (org_id,)
+            ).fetchone()
+            signals = signals_row[0] if signals_row else 0
+
+            # Hourly event distribution over the last 24 h (column: event_time confirmed)
+            hourly_rows = conn.execute(
+                """
+                SELECT strftime('%H', event_time) AS hour, COUNT(*) AS cnt
+                FROM timeline_events
+                WHERE org_id=? AND event_time >= datetime('now', '-1 day')
+                GROUP BY hour
+                ORDER BY hour
+                """,
+                (org_id,),
+            ).fetchall()
+            hourly_timeline = {r["hour"]: r["cnt"] for r in hourly_rows}
+
         return {
             "total_timelines": total_timelines,
             "active_incidents": active_incidents,
@@ -570,4 +589,6 @@ class IncidentTimelineEngine:
             "avg_mttr": avg_mttr,
             "by_type": by_type,
             "by_severity": by_severity,
+            "signals": signals,
+            "hourly_timeline": hourly_timeline,
         }

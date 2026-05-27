@@ -808,8 +808,32 @@ class PasswordPolicyEngine:
             ).fetchone()[0]
             mfa_enrollment_rate = (enrolled_mfa / total_mfa_users * 100.0) if total_mfa_users > 0 else 0.0
 
+            # Strength distribution: aggregate across ALL audits for this org.
+            # password_audits schema confirmed columns: weak_count (INTEGER),
+            # compliant (INTEGER), non_compliant (INTEGER).
+            # No "fair" bucket exists in the schema — mapping is:
+            #   weak   = SUM(weak_count)
+            #   strong = SUM(compliant)
+            # non_compliant overlaps with weak_count (it includes weak + expired +
+            # no_mfa), so we do NOT double-count it as a separate bucket.
+            # Empty audits -> all zeros (real empty, not fabricated).
+            strength_row = conn.execute(
+                """
+                SELECT COALESCE(SUM(weak_count), 0) AS weak_total,
+                       COALESCE(SUM(compliant), 0)  AS strong_total
+                FROM password_audits
+                WHERE org_id=?
+                """,
+                (org_id,),
+            ).fetchone()
+
         compliance_rate = round(latest_audit or 0.0, 2)
         avg_complexity_score = round(avg_complexity or 0.0, 1)
+
+        strength_distribution = {
+            "weak": int(strength_row["weak_total"]) if strength_row else 0,
+            "strong": int(strength_row["strong_total"]) if strength_row else 0,
+        }
 
         return {
             "total_policies": total_policies,
@@ -822,4 +846,5 @@ class PasswordPolicyEngine:
             "avg_complexity_score": avg_complexity_score,
             "mfa_enrollment_rate": round(mfa_enrollment_rate, 2),
             "users_without_mfa": not_enrolled_mfa,
+            "strength_distribution": strength_distribution,
         }

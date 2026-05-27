@@ -595,8 +595,10 @@ class RegulatoryTracker:
         Statistics grouped by framework and impact level.
 
         Returns:
-            Dict with by_framework (count per framework) and
-            by_impact (count per impact level).
+            Dict with by_framework (count per framework),
+            by_impact (count per impact level), by_status (count per status),
+            obligations (total regulation count for org), and
+            assessments (total impact assessment count for org).
         """
         with self._lock:
             conn = self._connect()
@@ -638,6 +640,20 @@ class RegulatoryTracker:
                 )
                 by_status = {r["status"]: int(r["cnt"]) for r in cursor.fetchall()}
 
+                # obligations = total tracked regulations for this org
+                cursor.execute(
+                    "SELECT COUNT(*) as cnt FROM regulations WHERE org_id = ?",
+                    (org_id,),
+                )
+                obligations = int(cursor.fetchone()["cnt"])
+
+                # assessments = total impact assessments recorded for this org
+                cursor.execute(
+                    "SELECT COUNT(*) as cnt FROM regulatory_impacts WHERE org_id = ?",
+                    (org_id,),
+                )
+                assessments = int(cursor.fetchone()["cnt"])
+
             finally:
                 self._close(conn)
 
@@ -646,6 +662,8 @@ class RegulatoryTracker:
             "by_framework": by_framework,
             "by_impact": by_impact,
             "by_status": by_status,
+            "obligations": obligations,
+            "assessments": assessments,
         }
 
     # ------------------------------------------------------------------

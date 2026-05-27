@@ -566,6 +566,14 @@ class DataGovernanceEngine:
                 (org_id,),
             ).fetchone()[0]
 
+            # data_flows breakdown by flow_type
+            data_flows: Dict[str, int] = {}
+            for row in conn.execute(
+                "SELECT flow_type, COUNT(*) as cnt FROM data_flows WHERE org_id=? GROUP BY flow_type",
+                (org_id,),
+            ).fetchall():
+                data_flows[row[0]] = row[1]
+
         return {
             "total_assets": total_assets,
             "by_classification": by_classification,
@@ -575,4 +583,5 @@ class DataGovernanceEngine:
             "critical_violations": critical_violations,
             "cross_border_flows": cross_border_flows,
             "unencrypted_restricted": unencrypted_restricted,
+            "data_flows": data_flows,
         }

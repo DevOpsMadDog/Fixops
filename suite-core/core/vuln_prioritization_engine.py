@@ -548,7 +548,41 @@ class VulnerabilityPrioritizationEngine:
                     (org_id,),
                 ).fetchall()
 
+                # Severity distribution: bucket cvss_score from vuln_scores into
+                # critical (>=9), high (>=7), medium (>=4), low (<4).
+                dist_rows = conn.execute(
+                    """SELECT
+                         SUM(CASE WHEN cvss_score >= 9 THEN 1 ELSE 0 END) AS critical,
+                         SUM(CASE WHEN cvss_score >= 7 AND cvss_score < 9 THEN 1 ELSE 0 END) AS high,
+                         SUM(CASE WHEN cvss_score >= 4 AND cvss_score < 7 THEN 1 ELSE 0 END) AS medium,
+                         SUM(CASE WHEN cvss_score < 4 THEN 1 ELSE 0 END) AS low
+                       FROM vuln_scores WHERE org_id = ?""",
+                    (org_id,),
+                ).fetchone()
+
+                # Team workload: count SLA assignments per assigned_team
+                team_rows = conn.execute(
+                    """SELECT assigned_team, COUNT(*) AS cnt
+                       FROM sla_assignments WHERE org_id = ?
+                       GROUP BY assigned_team""",
+                    (org_id,),
+                ).fetchall()
+
         by_tier = {r["priority_tier"]: r["cnt"] for r in tier_rows}
+
+        distribution = {
+            "critical": int(dist_rows["critical"] or 0) if dist_rows else 0,
+            "high": int(dist_rows["high"] or 0) if dist_rows else 0,
+            "medium": int(dist_rows["medium"] or 0) if dist_rows else 0,
+            "low": int(dist_rows["low"] or 0) if dist_rows else 0,
+        }
+
+        teams = {r["assigned_team"]: r["cnt"] for r in team_rows}
+
+        # risk_acceptance: intentionally empty — no "accept risk" feature or
+        # accepted/risk_accepted column exists in the schema yet.  The UI
+        # already renders an EmptyState when this is [].  Do NOT fabricate data.
+        risk_acceptance: list = []
 
         return {
             "total_scored": total_row["cnt"] if total_row else 0,
@@ -557,6 +591,9 @@ class VulnerabilityPrioritizationEngine:
             "avg_priority_score": round(float(avg_row["avg"] or 0.0), 4) if avg_row else 0.0,
             "sla_breached_count": breach_row["cnt"] if breach_row else 0,
             "upcoming_due": [dict(r) for r in upcoming_rows],
+            "distribution": distribution,
+            "teams": teams,
+            "risk_acceptance": risk_acceptance,
         }
 
 

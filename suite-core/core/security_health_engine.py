@@ -428,6 +428,23 @@ class SecurityHealthEngine:
             i for i in open_incidents if i.get("severity") == "critical"
         ]
 
+        # trend: last 10 snapshots oldest→newest for charting
+        with self._conn() as conn:
+            snapshot_rows = conn.execute(
+                """
+                SELECT overall_score, taken_at
+                FROM health_snapshots
+                WHERE org_id=?
+                ORDER BY taken_at DESC
+                LIMIT 10
+                """,
+                (org_id,),
+            ).fetchall()
+        trend = [
+            {"score": r["overall_score"], "taken_at": r["taken_at"]}
+            for r in reversed(snapshot_rows)
+        ]
+
         return {
             "total_checks": total_checks,
             "by_status": by_status,
@@ -435,4 +452,6 @@ class SecurityHealthEngine:
             "overall_score": overall_score,
             "open_incidents": len(open_incidents),
             "critical_incidents": len(critical_incidents),
+            "domains": by_category,
+            "trend": trend,
         }

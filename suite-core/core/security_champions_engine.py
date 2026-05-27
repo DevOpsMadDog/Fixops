@@ -498,4 +498,7 @@ class SecurityChampionsEngine:
             "active_campaigns": active_campaigns,
             "top_champions": top_champions,
             "level_distribution": level_distribution,
+            # UI-alias keys (additive — do not remove above keys)
+            "activities": total_activities,
+            "certifications": certs_expiring,
         }
