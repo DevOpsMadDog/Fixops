@@ -46,6 +46,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useFindings, useDashboardTrends } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
 import { deduplicationApi } from "@/lib/api";
@@ -79,27 +80,10 @@ const SEVERITY_COLORS: Record<string, string> = {
   low: "#22c55e",
 };
 
-// ── Correlation matrix heat palette ───────────────────────────────────────
-const heatColor = (val: number) => {
-  if (val >= 80) return "bg-red-500/80 text-white";
-  if (val >= 60) return "bg-orange-500/70 text-white";
-  if (val >= 40) return "bg-yellow-500/60 text-foreground";
-  if (val >= 20) return "bg-emerald-500/40 text-foreground";
-  return "bg-muted text-muted-foreground";
-};
-
 // Empty defaults — dedup trend and noise pie are loaded exclusively from the dedup API
 const DEDUP_TREND_EMPTY: { week: string; total: number; deduplicated: number; unique: number }[] = [];
 
 const NOISE_PIE_EMPTY: { name: string; value: number; color: string }[] = [];
-
-// ── Cross-scanner correlation matrix (percentage overlap) ───────────────────
-const MATRIX_DATA: Record<Scanner, Record<Scanner, number>> = {
-  Snyk: { Snyk: 100, Trivy: 73, Semgrep: 41, SonarQube: 38 },
-  Trivy: { Snyk: 73, Trivy: 100, Semgrep: 29, SonarQube: 22 },
-  Semgrep: { Snyk: 41, Trivy: 29, Semgrep: 100, SonarQube: 67 },
-  SonarQube: { Snyk: 38, Trivy: 22, Semgrep: 67, SonarQube: 100 },
-};
 
 
 interface VulnGroup {
@@ -441,58 +425,11 @@ export default function CorrelationEngine() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs border-collapse">
-                <thead>
-                  <tr>
-                    <th className="p-2 text-left text-muted-foreground font-medium w-28" />
-                    {SCANNERS.map((s) => (
-                      <th key={s} className="p-2 text-center text-muted-foreground font-medium">
-                        {s}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {SCANNERS.map((rowS) => (
-                    <tr key={rowS}>
-                      <td className="p-2 font-medium text-foreground">{rowS}</td>
-                      {SCANNERS.map((colS) => {
-                        const val = MATRIX_DATA[rowS][colS];
-                        const isSelf = rowS === colS;
-                        return (
-                          <td key={colS} className="p-1 text-center">
-                            <div
-                              className={cn(
-                                "rounded-md py-2 font-mono font-semibold transition-all",
-                                isSelf
-                                  ? "bg-primary/20 text-primary text-xs"
-                                  : heatColor(val)
-                              )}
-                            >
-                              {val}%
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex gap-4 mt-4 flex-wrap">
-              {[
-                { label: "≥80% High overlap", cls: "bg-red-500/80" },
-                { label: "60–79% Moderate", cls: "bg-orange-500/70" },
-                { label: "40–59% Low", cls: "bg-yellow-500/60" },
-                { label: "<40% Minimal", cls: "bg-emerald-500/40" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-1.5">
-                  <span className={cn("w-3 h-3 rounded-sm", item.cls)} />
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                </div>
-              ))}
-            </div>
+            <EmptyState
+              icon={BarChart2}
+              title="No matrix data yet"
+              description="The cross-scanner overlap matrix is derived from real correlated findings across multiple scanners. Ingest findings from at least two scanners and run a correlation pass to populate this view."
+            />
           </CardContent>
         </Card>
 
