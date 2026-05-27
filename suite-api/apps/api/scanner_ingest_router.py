@@ -201,9 +201,21 @@ def _promote_findings_to_issues(
                 or f.get("remediation")
                 or ""
             )[:1000]
+            # Correlation key must be LOCATION-granular, else distinct findings
+            # at different file:line collapse to one row (asset_id is often an
+            # app-level id like "aldeci-self", shared by 100s of real findings).
+            # Prefer file_path:line_number; fall back to package@version, then asset_id.
+            _loc = f.get("file_path")
+            _line = f.get("line_number")
+            if _loc and _line is not None:
+                _loc_key = f"{_loc}:{_line}"
+            elif f.get("package_name"):
+                _loc_key = f"{f.get('package_name')}@{f.get('package_version') or f.get('version') or ''}"
+            else:
+                _loc_key = f.get("file_path") or str(asset_id)
             corr_key = (
                 f.get("correlation_key")
-                or f"{scanner}|{f.get('rule_id') or f.get('cve_id') or title}|{asset_id}"
+                or f"{scanner}|{f.get('rule_id') or f.get('cve_id') or title}|{_loc_key}"
             )
             engine.record_finding(
                 org_id=org_id or "default",
