@@ -429,3 +429,12 @@ file:line findings down to one-per-rule. A security product silently hiding 99% 
 (then package@version, then asset_id). Proven OLD=18 -> NEW=1633 distinct keys; 87 ingest/findings
 tests green. NOTE: local dev API (PID 46586) still runs old `--factory` code — restart with
 preserved FIXOPS_API_TOKEN + FIXOPS_DATA_DIR=.fixops_data to re-ingest and populate dashboards live.
+
+### RESOLVED (2026-05-27) — ingest under-reporting, LIVE-verified
+Root cause was SmartDedup.find_fuzzy_title_matches merging by title-similarity with no location
+check (_extract_title falls back to rule_id), collapsing 1636 distinct-location findings to 8.
+Fixed (commit 74fca158): location-aware fuzzy-title (never merge different file:line) + record_finding
+skips coarse (title,asset) fallback when an explicit correlation_key is given + scanner-ingest
+corr_key is file:line granular (68c21bce). LIVE PROOF: re-ingested real bandit self-scan ->
+findings 780->2079 (+1299), bandit 19->1318 (was collapsing to ~18). Beast Mode 756/756. Lesson:
+logic-proof was insufficient (a 2nd dedup layer existed); LIVE re-ingest caught it.
