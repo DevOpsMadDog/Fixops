@@ -438,3 +438,13 @@ skips coarse (title,asset) fallback when an explicit correlation_key is given + 
 corr_key is file:line granular (68c21bce). LIVE PROOF: re-ingested real bandit self-scan ->
 findings 780->2079 (+1299), bandit 19->1318 (was collapsing to ~18). Beast Mode 756/756. Lesson:
 logic-proof was insufficient (a 2nd dedup layer existed); LIVE re-ingest caught it.
+
+### RESOLVED (2026-05-27) — dependency-finding dedup over-collapse, LIVE-verified
+#9050: trivy dep findings (no file line) collapsed 168 distinct (cve,pkg,ver) -> 89. Root
+cause (diagnosed per-strategy): find_same_location merged ALL line-less findings in a lockfile
+((0,0) ranges "overlap" within tolerance). Fix (commit 9a79d1a3, 3 coordinated): same_location
+skips (0,0)-line findings; _find_component_version_matches keys on package@version|CVE (was
+pkg@ver alone -> collapsed distinct CVEs); _extract_component_version recognises package_name
+(enables comp_version to collapse TRUE dup (cve,pkg,ver) across worktree copies). LIVE PROOF:
+re-ingest trivy -> findings 9 -> 159 (~true distinct 168); bandit 1307 + semgrep 70 unchanged
+(code findings, real lines). grand total 2308 real self-scan findings. 125 dedup tests pass.
