@@ -126,6 +126,72 @@ No candidates remained unresolvable after reading caller + gate.
 
 ---
 
+## ENGINE SWEEP 2 (2026-05-27)
+
+**Scope**: `suite-core/core/*.py`, `suite-core/connectors/*.py`, `suite-feeds/`, `suite-evidence-risk/` (Python only).
+**Method**: grepped for `import random`, `random\.`, `np\.random`, `uniform(`, `randint(`, `_simulate`, `_mock`, `_fake`, `MOCK_`, `placeholder`, `dummy`, `sample_data`, `FAKE_`, `hashlib.*% 100`, `hash.*% 100`, `% 100.*score`, `int(hashlib`. Every hit was opened and its call chain traced to the nearest customer-facing API route to classify gate.
+**Files grepped**: ~430 Python files across the four directories. Fabrication signatures found in 8 distinct files; classified below.
+
+---
+
+### ❌ CRITICAL — hash-derived compliance metrics presented as real to board-level report endpoint
+
+| severity | file:line | engine/function | what's fabricated | suggested fix |
+|----------|-----------|-----------------|-------------------|---------------|
+| CRITICAL | `suite-core/core/executive_reports.py:404` | `ExecutiveReportEngine._build_compliance_status` | Per-framework compliance scores generated as `70.0 + (hash(org_id + fw) % 30)` — a deterministic hash on the org_id string, not a count of real controls. Served via `GET /api/v1/reports/executive` (executive_report_router.py). Every customer gets a fake 70-100% score that never changes unless their org_id string changes. | Pull real framework scores from `ComplianceScannerEngine` or `CCMEngine` (already real) and return honest empty/null when no scans have run. |
+| CRITICAL | `suite-core/core/executive_reports.py:426` | `ExecutiveReportEngine._build_compliance_status` | "Control pass/fail" totals derived as `50 + (hash(org_id + fw + "t") % 100)` — a hash-derived integer, not a count of real controls assessed. "Evidence collection status" (lines 445-452) cascades from these fake totals. Presented as authoritative compliance evidence counts in the board-level report. | Derive from real CCM/compliance scan results. Return zero-counts with an honest `"no_scans_run": true` flag if data absent. |
+| HIGH | `suite-core/core/supply_chain_analyzer.py:158-161` | `SupplyChainAnalyzer.analyze_package` (step 4: abandonment detection) | `days_since_last_release` computed as `(md5(name) % 1000) + 1` — a hash of the package name, not a real registry lookup. Used to set `is_abandoned = True` and add a medium-severity risk finding. Result persisted to SQLite via `mlops_supply_chain_router.py:174` and `supply_chain_router.py:649`. A package named "cryptography" will always show the same fake staleness age. | Call PyPI JSON API (`https://pypi.org/pypi/{name}/json`) for `releases[-1].upload_time` or OSV `/query` to get real last-release date. On network error, omit the `abandoned` risk category rather than fabricating it. |
+
+---
+
+### ❌ HIGH — synthetic fallback injects fabricated security events into real findings/anomaly stores without disclosure
+
+| severity | file:line | engine/function | what's fabricated | suggested fix |
+|----------|-----------|-----------------|-------------------|---------------|
+| HIGH | `suite-core/connectors/iam_sso_connector.py:721-728` | `IAMSSoConnector.sync` — Keycloak fallback | When Keycloak is unreachable (or not configured), `synth_events_for_realm()` generates completely random login/admin events with random IPs, auth methods, countries, and event types. These are then fed into `SecurityFindingsEngine.record_finding()` and `AnomalyDetector.record_event()` as real findings (lines 733-748). `result.fallback_synthetic = True` is set but never surfaces in the persisted findings themselves. A customer without Keycloak configured gets fake IAM security findings in their findings DB. | Gate on `fallback_synthetic=True`: skip `record_finding` / `record_event` writes entirely. Return an empty-but-honest result with a `"keycloak_not_configured"` status field. Never write synthetic events to the production findings store. |
+| HIGH | `suite-core/connectors/siem_connector.py:1551-1575` + `suite-api/apps/api/siem_connector_router.py:137-165` | `generate_events()` + `POST /api/v1/siem-connector/generate` | `generate_events()` builds fully synthetic SIEM events (Splunk HEC, Datadog, Sentinel KQL, Wazuh, CEF, syslog, Suricata) with random IPs, hostnames, rule IDs, and alert signatures using a seeded RNG. The `/generate` route correctly labels the endpoint as fixture generation and does not ingest, so the route itself is honest. The risk is `generate_and_ingest()` (line 1578) which calls `generate_events()` then passes results straight through to the real `ingest()` pipeline including `findings_engine`. Any caller of `generate_and_ingest()` will write synthetic SIEM events as real findings. | `generate_and_ingest()` should be test/load-test only — add a `FIXOPS_SIEM_LOAD_TEST=1` guard identical to the DPO cost-guard pattern. Ensure no production code path calls it without that env var. |
+
+---
+
+### ❌ MED — ML models trained exclusively on synthetic data serve production predictions without disclosure
+
+| severity | file:line | engine/function | what's fabricated | suggested fix |
+|----------|-----------|-----------------|-------------------|---------------|
+| MED | `suite-core/core/ml/anomaly_detector.py:695-696` + `suite-core/core/behavioral_analytics_engine.py:42` | `AnomalyDetector.get_anomaly_detector()` singleton bootstrap | On first use (and at `behavioral_analytics_engine` module import), `fit_from_synthetic_baseline()` is called unconditionally. It generates 30 synthetic scans using `np.random.RandomState(self.random_seed)` with fabricated CVE IDs (`CVE-{rng.randint(2019,2026)}-{rng.randint(1000,99999)}`), fabricated asset names (`asset-{rng.randint(1,50)}`), and fixed severity distributions. The resulting IsolationForest model then scores all real customer scan findings against a baseline built from fake data. Anomaly scores surfaced in `BrainPipeline` and `BehavioralAnalyticsEngine` are calibrated against thin air. | Check for real historical scan data in the DB first; only fall back to synthetic if zero real scans exist, and in that case add `"baseline_source": "synthetic_bootstrap"` to every anomaly result. Ideally accept real scan history at `fit_baseline()` call time. |
+| MED | `suite-core/core/ml/autofix_confidence.py:336-378` | `AutoFixConfidenceModel.train()` | Model is trained entirely on synthetic fix-outcome data generated by `np.random.RandomState(self.random_seed)`. The module docstring (line 30) says "Trained on synthetic but calibrated fix outcome data." This model then produces `autofix_confidence` scores consumed by `autofix_engine.py:1937-1939` for real auto-fix decisions. There is no disclosure in the prediction output that the underlying model has never seen a real fix outcome. | Add `"model_trained_on": "synthetic_bootstrap"` to prediction output until at least N real fix outcomes have been recorded. Wire to `LLMLearningLoop` / DPO pairs once available. |
+| MED | `suite-core/core/ml/regression_predictor.py:583-604` | `RegressionPredictor.train()` | Same pattern: model trained on synthetic regression-probability data (random fix characteristics + analytically derived labels). The module-level `if __name__ == "__main__"` block (line 44-47) trains and saves the model to disk; any deployment that ships the pre-trained `.pkl` is serving predictions from a synthetic-only model. Downstream consumers see `regression_risk` scores for real code-fix proposals with no provenance disclosure. | Same as autofix_confidence: add `model_data_source` provenance field to predictions; retrain on real DPO/fix-outcome data when available. |
+
+---
+
+### 🟢 CONFIRMED LEGITIMATE — not fabrication (sweep 2 re-verified)
+
+- 🟢 `integration_hub.py:1030` — `random.uniform(0, 0.5)` is jitter on exponential backoff. Correct.
+- 🟢 `self_learning.py:1261` `seed_demo_data()` — gated behind `POST /demo/seed` with `_require_non_enterprise`. Not on any production read path; `"demo": True` context flag present on every record.
+- 🟢 `executive_dashboard.py:539` `FAIREngine.run_simulation()` — FAIR Monte Carlo is the product function; stochastic sampling of user-supplied loss parameters is correct.
+- 🟢 `executive_dashboard.py:695` `generate_synthetic_history()` method body — legitimate demo helper. The ❌ is the **router** calling it at startup (already recorded as #9028 in AUDIT WAVE 2).
+- 🟢 `red_team_engine.py:254` — deterministic RNG seeded on `simulation_id + org_id`; red-team simulation outcomes are the product.
+- 🟢 `risk_quantification_engine.py:295` — Monte Carlo on user-defined min/max/likelihood scenario parameters. Correct financial risk modelling.
+- 🟢 `zero_gravity.py:227-229` — MinHash coefficient initialisation with `random.Random(42)`. Correct algorithm.
+- 🟢 `zero_gravity.py:1741-1742` — `_weighted_choice` probabilistic sampler for capacity planning; sampler-by-design.
+- 🟢 `single_agent.py:1305` — bootstrap resampling of confidence intervals. Correct statistics.
+- 🟢 `monte_carlo.py:163` — `np.random.default_rng(seed)` for Monte Carlo simulation engine. Correct.
+- 🟢 `breach_simulation.py:428` — seeded RNG for breach scenario simulation; simulation is the product.
+- 🟢 `falkordb_client.py:279` — `random.sample` for graph health-check sampling. Correct.
+- 🟢 `attack_graph_gnn.py:226` — fixed seed for GNN weight initialisation. Correct ML practice.
+- 🟢 `siem_connector.py:1551` `generate_events()` standalone — the `/generate` route labels output as fixtures; no DB write on that code path.
+- 🟢 `ml/consensus_calibrator.py:371`, `ml/attack_path_gnn.py:244`, `ml/online_learning.py`, `ml/predictive_scorer.py:220`, `ml/risk_scorer.py:400` — seeded RNG for model weight initialisation or cross-validation. Correct ML practice.
+- 🟢 `models/markov_chain.py:260,275` — `np.random.choice` for Markov chain state transitions. Correct stochastic model.
+
+---
+
+**Summary**: 8 files grepped yielded real fabrications across 3 severity levels. Top 5 to fix first:
+1. `executive_reports.py:404+426` — hash-derived compliance scores/control counts in board-level reports (CRITICAL, zero-effort to fix: call existing real engines).
+2. `supply_chain_analyzer.py:158-161` — hash-derived `days_since_last_release` triggers medium-severity findings (HIGH, one PyPI JSON API call replaces the hash).
+3. `iam_sso_connector.py:721-728` — synthetic Keycloak events written into production findings DB on Keycloak-absent deploys (HIGH, fix: skip `record_finding` writes when `fallback_synthetic=True`).
+4. `siem_connector.py:1578` `generate_and_ingest()` — no env-var guard; synthetic SIEM events can reach the ingest pipeline (HIGH, add `FIXOPS_SIEM_LOAD_TEST=1` guard).
+5. `ml/anomaly_detector.py:695-696` — IsolationForest baseline built from fabricated CVE/asset data, calibrates all real scan anomaly scores (MED, disclose `baseline_source` and prefer real history when available).
+
+
 ### Summary
 
 | Category | Count | Multica issues |
