@@ -458,3 +458,9 @@ Scoped trivy self-scan secret findings triaged (each classified by entropy + pla
 - scripts/populate_multica.py JWT: EXPIRED (2026-05-17) LOCAL Multica admin token (beast@aldeci.io, HS256, localhost single-user) — low risk; minor hygiene: read from env not hardcode.
 - data/keys/*.pem,*.ed25519: gitignored runtime signing keys (not leaked).
 Conclusion: 1 real leak (handled), rest fixtures/expired-local. Secret hygiene of the repo is otherwise clean.
+
+### RESOLVED (2026-05-28) — osv-scanner parser (#9061)
+scanner_parsers had no osv-scanner normalizer -> /scanner-ingest/upload returned 0 on valid
+osv-scanner 2.x JSON. Added OSVScannerNormalizer (OSV schema results[].packages[].vulnerabilities[],
+CVE from aliases, GHSA severity). LIVE: osv 0->18 (32 parsed, dedup correct), grand total 2339.
+FIVE scanners now functional (bandit/semgrep/trivy/grype/osv); only checkov env-broken (#9060).
