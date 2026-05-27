@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -1589,6 +1590,11 @@ def generate_and_ingest(
     Returns:
         Summary dict with per-tenant + per-format counts and totals.
     """
+    if os.getenv("FIXOPS_SIEM_LOAD_TEST") != "1":
+        raise RuntimeError(
+            "generate_and_ingest() produces SYNTHETIC SIEM events and writes them as real findings. "
+            "Set FIXOPS_SIEM_LOAD_TEST=1 to explicitly opt in (load-testing only)."
+        )
     triples = generate_events(tenants=tenants, events_per_tenant=events_per_tenant, seed=seed)
     by_tenant: Dict[str, Dict[str, int]] = {}
     by_format: Dict[str, int] = {}

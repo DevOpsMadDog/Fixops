@@ -152,22 +152,27 @@ class SupplyChainAnalyzer:
                 })
                 break
 
-        # 4. Simulate abandonment detection (real impl would call registry API)
-        # Use deterministic seed based on package name for reproducible demo data
-        import hashlib
-        name_hash = int(hashlib.md5(name.encode(), usedforsecurity=False).hexdigest(), 16)
-        # Simulate: ~10% of packages are "abandoned" (>2 years no release)
-        days_since_release = (name_hash % 1000) + 1
-        is_abandoned = days_since_release > 730
-        if is_abandoned:
-            risk_score = max(risk_score, 35.0)
-            risks.append({
-                "category": "abandoned",
-                "severity": "medium",
-                "description": (
-                    f"No release in ~{days_since_release} days — package may be unmaintained"
-                ),
-            })
+        # 4. Real abandonment detection via registry API
+        days_since_release: Optional[int] = None
+        last_release_unknown = False
+        is_abandoned = False
+        if ecosystem in ("pypi", "pip"):
+            days_since_release = self._fetch_pypi_days_since_release(name)
+            if days_since_release is None:
+                last_release_unknown = True
+            elif days_since_release > 730:
+                is_abandoned = True
+                risk_score = max(risk_score, 35.0)
+                risks.append({
+                    "category": "abandoned",
+                    "severity": "medium",
+                    "description": (
+                        f"No release in {days_since_release} days — package may be unmaintained"
+                    ),
+                })
+        else:
+            # Non-PyPI ecosystems: no fabrication — omit abandoned check
+            last_release_unknown = True
 
         # 5. Compromised version check (version-specific flags from known list)
         if version and self._is_compromised_version(name, version):
@@ -178,7 +183,7 @@ class SupplyChainAnalyzer:
                 "description": f"Version {version} of '{name}' has been flagged as compromised",
             })
 
-        return {
+        result: dict = {
             "package": name,
             "version": version,
             "ecosystem": ecosystem,
@@ -187,9 +192,84 @@ class SupplyChainAnalyzer:
             "is_typosquat": is_typosquat,
             "similar_packages": similar_packages,
             "is_known_malicious": is_known_malicious,
-            "days_since_last_release": days_since_release,
             "is_abandoned": is_abandoned,
         }
+        if days_since_release is not None:
+            result["days_since_last_release"] = days_since_release
+        if last_release_unknown:
+            result["last_release_unknown"] = True
+        return result
+
+    # ------------------------------------------------------------------
+    # PyPI release-date lookup (real data — no fabrication)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _fetch_pypi_days_since_release(package_name: str) -> Optional[int]:
+        """Query PyPI JSON API and return days since the most recent release upload.
+
+        Returns:
+            int  — days since latest release (0 = released today).
+            None — on any failure (404, network error, missing data).
+                   Callers MUST omit the ``abandoned`` finding when None is returned.
+        """
+        import datetime
+        import requests as _requests
+
+        url = f"https://pypi.org/pypi/{package_name}/json"
+        try:
+            resp = _requests.get(url, timeout=5)
+        except Exception as exc:
+            logger.debug("supply_chain.pypi_fetch_failed", package=package_name, error=str(exc))
+            return None
+
+        if resp.status_code == 404:
+            # Package not on PyPI (private, misspelled, or non-existent)
+            logger.debug("supply_chain.pypi_not_found", package=package_name)
+            return None
+
+        if resp.status_code != 200:
+            logger.debug(
+                "supply_chain.pypi_unexpected_status",
+                package=package_name,
+                status=resp.status_code,
+            )
+            return None
+
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            logger.debug("supply_chain.pypi_json_parse_failed", package=package_name, error=str(exc))
+            return None
+
+        # Walk all release file entries to find the most recent upload_time_iso_8601
+        releases: dict = data.get("releases", {})
+        latest_upload: Optional[datetime.datetime] = None
+
+        for _ver, file_list in releases.items():
+            if not isinstance(file_list, list):
+                continue
+            for file_entry in file_list:
+                upload_str = file_entry.get("upload_time_iso_8601") or file_entry.get("upload_time")
+                if not upload_str:
+                    continue
+                try:
+                    # upload_time_iso_8601 is RFC 3339 / ISO 8601 with trailing 'Z'
+                    upload_dt = datetime.datetime.fromisoformat(
+                        upload_str.replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    continue
+                if latest_upload is None or upload_dt > latest_upload:
+                    latest_upload = upload_dt
+
+        if latest_upload is None:
+            # No parseable upload timestamps in the response
+            logger.debug("supply_chain.pypi_no_upload_time", package=package_name)
+            return None
+
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        return max(0, (now_utc - latest_upload).days)
 
     def analyze_requirements(self, content: str, ecosystem: str = "pypi") -> dict:
         """Analyze requirements.txt or package.json content."""

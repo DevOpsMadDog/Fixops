@@ -1,7 +1,7 @@
 """
 IAM / SSO Real Connector — ALDECI.
 
-STATUS: PRODUCTION-READY WITH SYNTHETIC FALLBACK.
+STATUS: PRODUCTION-READY (real Keycloak path only).
 
 This connector attempts to connect to a live Keycloak instance first.
 When Keycloak is reachable (set KEYCLOAK_URL, KEYCLOAK_ADMIN,
@@ -9,12 +9,16 @@ KEYCLOAK_ADMIN_PASSWORD env vars), it provisions real realms/users/groups
 and pulls real audit events. All event processing, mirror-to-findings, and
 anomaly-engine wiring are fully real.
 
-FALLBACK: When Keycloak is not reachable (no Docker, dev environment),
-synth_events_for_realm() generates synthetic events that match Keycloak's
-documented audit JSON schema exactly (same field names, same enums). The
-IAMSSoSyncResult.fallback_synthetic flag is set to True so callers can
-detect this mode. Synthetic fallback events should NOT be presented as
-real security findings to customers without clear labelling.
+UNREACHABLE / NOT CONFIGURED: When Keycloak is not reachable or not
+configured, sync() returns an honest empty result with zero events ingested,
+keycloak_not_configured=True (or keycloak_unreachable=True), and
+fallback_synthetic=False.  NO synthetic events are generated on the
+production sync path; no fake records are written to SecurityFindingsEngine
+or AnomalyDetector.
+
+LOAD TESTING ONLY: synth_events_for_realm() is still available but is
+only invoked when the environment variable FIXOPS_IAM_LOAD_TEST=1 is set
+explicitly.  It must never be called on the normal production code path.
 
 Vendor adapters (adapt_okta_event, adapt_auth0_event, adapt_entra_event)
 translate real vendor events into the Keycloak-canonical shape — these
@@ -41,10 +45,6 @@ Audit event mirroring:
           with source_tool="iam_via_keycloak"
         * Access / location anomalies -> AccessAnomalyEngine.record_event
         * Privilege changes -> CIEM hint (logged for manual analysis)
-
-Fallback (no Docker / port conflict):
-    - Generates synthetic events that match Keycloak's audit JSON schema
-      (same field names, same enums) so downstream code is identical.
 
 Security:
     - All admin tokens kept in-memory only.
@@ -73,9 +73,10 @@ from connectors._emit import emit_connector_event
 
 logger = logging.getLogger(__name__)
 logger.info(
-    "%s loaded — production-ready with Keycloak real-mode + synthetic fallback. "
+    "%s loaded — production-ready (real Keycloak path only). "
     "Set KEYCLOAK_URL/KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD for real IAM events. "
-    "fallback_synthetic=True in sync() results when Keycloak unreachable.",
+    "When Keycloak is unreachable, sync() returns zero events (no synthetic data). "
+    "Set FIXOPS_IAM_LOAD_TEST=1 to enable synthetic event generation for load testing only.",
     __name__,
 )
 
@@ -185,6 +186,13 @@ class IAMSSoSyncResult:
     anomaly_events_emitted: int = 0
     high_severity_events: int = 0
     keycloak_reachable: bool = False
+    # True when Keycloak URL/credentials are absent (env vars not set).
+    keycloak_not_configured: bool = False
+    # True when Keycloak is configured but the server could not be reached.
+    keycloak_unreachable: bool = False
+    # Always False on the production path — synthetic events are never
+    # persisted to findings/anomaly engines.  Only True when
+    # FIXOPS_IAM_LOAD_TEST=1 is explicitly set.
     fallback_synthetic: bool = False
     duration_secs: float = 0.0
     errors: List[str] = field(default_factory=list)
@@ -200,6 +208,8 @@ class IAMSSoSyncResult:
             "anomaly_events_emitted": self.anomaly_events_emitted,
             "high_severity_events": self.high_severity_events,
             "keycloak_reachable": self.keycloak_reachable,
+            "keycloak_not_configured": self.keycloak_not_configured,
+            "keycloak_unreachable": self.keycloak_unreachable,
             "fallback_synthetic": self.fallback_synthetic,
             "duration_secs": round(self.duration_secs, 3),
             "errors": list(self.errors),
@@ -659,22 +669,140 @@ class IAMSSoConnector:
         """Provision realms + pull events + mirror to engines.
 
         Single-call entry point used by the API endpoint.
+
+        When Keycloak is not configured or not reachable, this method returns
+        an honest empty result (zero events, zero findings).  It does NOT
+        generate synthetic events on the production path; synthetic event
+        generation is gated behind FIXOPS_IAM_LOAD_TEST=1 and is never
+        persisted to SecurityFindingsEngine or AnomalyDetector.
         """
         result = IAMSSoSyncResult()
         result.realms_total = realm_count or self.cfg.realm_count
         t0 = time.monotonic()
 
+        # ------------------------------------------------------------------
+        # Detect "not configured": both URL and credentials are at defaults.
+        # An operator who genuinely wants localhost:8090 must set the env var
+        # explicitly — the sentinel check below catches the common case of
+        # "nothing was set at all".
+        # ------------------------------------------------------------------
+        _url_default = "http://localhost:8090"
+        _cred_default = "admin"
+        _keycloak_configured = not (
+            self.cfg.keycloak_url == _url_default
+            and self.cfg.admin_user == _cred_default
+            and self.cfg.admin_pass == _cred_default
+            and os.environ.get("KEYCLOAK_URL") is None
+        )
+
         client: Optional[KeycloakAdminClient] = None
-        if not force_synthetic:
+        if not force_synthetic and _keycloak_configured:
             try:
                 client = self._get_client()
                 result.keycloak_reachable = client.ping()
+                if not result.keycloak_reachable:
+                    result.keycloak_unreachable = True
+                    logger.warning(
+                        "Keycloak configured but unreachable at %s — "
+                        "sync will return zero events (no synthetic data written).",
+                        self.cfg.keycloak_url,
+                    )
             except Exception as exc:  # connection / auth issues
-                logger.warning("Keycloak unreachable; using synthetic mode: %s", exc)
+                logger.warning(
+                    "Keycloak probe failed; returning zero events (no synthetic data): %s", exc
+                )
                 result.errors.append(f"keycloak_probe: {exc}")
                 result.keycloak_reachable = False
+                result.keycloak_unreachable = True
+        elif not _keycloak_configured:
+            result.keycloak_not_configured = True
+            logger.info(
+                "Keycloak not configured (KEYCLOAK_URL/KEYCLOAK_ADMIN/"
+                "KEYCLOAK_ADMIN_PASSWORD not set) — returning zero events."
+            )
 
-        result.fallback_synthetic = not result.keycloak_reachable
+        # fallback_synthetic stays False on the production path.
+        # It is only set True in the load-test branch below.
+
+        # ------------------------------------------------------------------
+        # Early-exit when Keycloak is not available: return the honest empty
+        # result immediately — no provisioning counts, no fake findings.
+        # ------------------------------------------------------------------
+        _load_test_mode = os.environ.get("FIXOPS_IAM_LOAD_TEST") == "1"
+        keycloak_available = client is not None and result.keycloak_reachable
+
+        if not keycloak_available and not _load_test_mode:
+            result.duration_secs = time.monotonic() - t0
+            emit_connector_event(
+                connector="IAMSSoConnector",
+                org_id=org_id_prefix or "default",
+                source_kind="iam",
+                finding_count=0,
+                extra={
+                    "keycloak_not_configured": result.keycloak_not_configured,
+                    "keycloak_unreachable": result.keycloak_unreachable,
+                    "fallback_synthetic": False,
+                    "events_pulled": 0,
+                },
+            )
+            return result
+
+        # ------------------------------------------------------------------
+        # Load-test-only synthetic path (FIXOPS_IAM_LOAD_TEST=1).
+        # Synthetic events are generated but still NOT persisted to
+        # SecurityFindingsEngine / AnomalyDetector in this branch.
+        # They are counted in events_pulled so load-test tooling can
+        # measure throughput, but findings_emitted stays 0.
+        # ------------------------------------------------------------------
+        if _load_test_mode and not keycloak_available:
+            result.fallback_synthetic = True
+            logger.info(
+                "FIXOPS_IAM_LOAD_TEST=1: generating synthetic events for %d realms "
+                "(NOT persisted to findings/anomaly engines).",
+                result.realms_total,
+            )
+            for idx in range(result.realms_total):
+                realm = f"{org_id_prefix}-{idx + 1:03d}"
+                users = [
+                    f"user{u}@{realm}.local"
+                    for u in range(1, self.cfg.users_per_realm + 1)
+                ]
+                result.realms_provisioned += 1
+                result.users_provisioned += len(users)
+                result.groups_provisioned += self.cfg.groups_per_realm
+                login_events, admin_events = synth_events_for_realm(
+                    realm,
+                    users,
+                    login_count=self.cfg.events_per_realm_login,
+                    admin_count=self.cfg.events_per_realm_admin,
+                    rng=self._rng,
+                )
+                result.events_pulled += len(login_events) + len(admin_events)
+                # Count high-severity synthetic events for load-test metrics,
+                # but do NOT call record_finding / record_event.
+                for ev in login_events:
+                    if ev.get("type") in KC_LOGIN_EVENTS_HIGH:
+                        result.high_severity_events += 1
+                for ev in admin_events:
+                    if ev.get("operationType") in KC_ADMIN_EVENTS_HIGH:
+                        result.high_severity_events += 1
+            result.duration_secs = time.monotonic() - t0
+            emit_connector_event(
+                connector="IAMSSoConnector",
+                org_id=org_id_prefix or "default",
+                source_kind="iam",
+                finding_count=0,
+                extra={
+                    "fallback_synthetic": True,
+                    "load_test_mode": True,
+                    "events_pulled": result.events_pulled,
+                },
+            )
+            return result
+
+        # ------------------------------------------------------------------
+        # REAL PATH — Keycloak is reachable.
+        # ------------------------------------------------------------------
 
         # Lazy-import engines so unit tests can monkey-patch them.
         findings_engine = _safe_import_findings_engine()
@@ -687,49 +815,46 @@ class IAMSSoConnector:
             groups = [f"grp-{g}-{realm}" for g in range(1, self.cfg.groups_per_realm + 1)]
 
             # ---- Provision -------------------------------------------------
-            if client and result.keycloak_reachable:
-                try:
-                    if client.ensure_realm(realm):
-                        result.realms_provisioned += 1
-                    for u in users:
-                        if client.ensure_user(realm, u.split("@")[0], u):
-                            result.users_provisioned += 1
-                    for g in groups:
-                        if client.ensure_group(realm, g):
-                            result.groups_provisioned += 1
-                except ConnectionError as exc:
-                    result.errors.append(f"provision[{realm}]: {exc}")
-                    # Switch to synthetic for the rest of this run.
-                    result.keycloak_reachable = False
-                    result.fallback_synthetic = True
-            else:
-                # Synthetic provisioning is just counting.
-                result.realms_provisioned += 1
-                result.users_provisioned += len(users)
-                result.groups_provisioned += len(groups)
+            try:
+                if client.ensure_realm(realm):
+                    result.realms_provisioned += 1
+                for u in users:
+                    if client.ensure_user(realm, u.split("@")[0], u):
+                        result.users_provisioned += 1
+                for g in groups:
+                    if client.ensure_group(realm, g):
+                        result.groups_provisioned += 1
+            except ConnectionError as exc:
+                result.errors.append(f"provision[{realm}]: {exc}")
+                # Keycloak dropped mid-run — stop processing further realms
+                # rather than silently continuing with stale/missing data.
+                result.keycloak_reachable = False
+                result.keycloak_unreachable = True
+                logger.warning(
+                    "Keycloak connection lost mid-sync at realm %s; "
+                    "halting real-path processing (no synthetic fallback).",
+                    realm,
+                )
+                break
 
-            # ---- Pull / generate events -----------------------------------
+            # ---- Pull real events from Keycloak ---------------------------
             login_events: List[Dict[str, Any]] = []
             admin_events: List[Dict[str, Any]] = []
-            if client and result.keycloak_reachable:
-                try:
-                    login_events = client.list_events(realm, max_events=50)
-                    admin_events = client.list_admin_events(realm, max_events=50)
-                except ConnectionError as exc:
-                    result.errors.append(f"events[{realm}]: {exc}")
+            try:
+                login_events = client.list_events(realm, max_events=50)
+                admin_events = client.list_admin_events(realm, max_events=50)
+            except ConnectionError as exc:
+                result.errors.append(f"events[{realm}]: {exc}")
+                # A per-realm event fetch failure is non-fatal; continue to
+                # the next realm with empty lists (zero events is honest).
 
-            if not login_events and not admin_events:
-                login_events, admin_events = synth_events_for_realm(
-                    realm,
-                    users,
-                    login_count=self.cfg.events_per_realm_login,
-                    admin_count=self.cfg.events_per_realm_admin,
-                    rng=self._rng,
-                )
+            # NOTE: if login_events and admin_events are both empty, that is
+            # a valid honest state (realm has no audit events yet).
+            # We do NOT call synth_events_for_realm here.
 
             result.events_pulled += len(login_events) + len(admin_events)
 
-            # ---- Mirror to engines ----------------------------------------
+            # ---- Mirror real events to engines ----------------------------
             for ev in login_events:
                 payload = _login_to_finding_payload(ev)
                 if payload and findings_engine is not None:
@@ -769,7 +894,7 @@ class IAMSSoConnector:
                 "groups_provisioned": result.groups_provisioned,
                 "events_pulled": result.events_pulled,
                 "high_severity_events": result.high_severity_events,
-                "fallback_synthetic": result.fallback_synthetic,
+                "fallback_synthetic": False,
             },
         )
         return result

@@ -393,60 +393,123 @@ class ExecutiveReportEngine:
 
         return sections
 
+    def _get_compliance_scanner(self) -> Any:
+        """Return a ComplianceScannerEngine instance (lazy import)."""
+        try:
+            from core.compliance_scanner_engine import ComplianceScannerEngine
+            return ComplianceScannerEngine()
+        except Exception as e:
+            _logger.debug("executive_reports: ComplianceScannerEngine unavailable", error=str(e))
+            return None
+
+    def _get_ccm_engine(self) -> Any:
+        """Return a CCMEngine instance (lazy import)."""
+        try:
+            from core.ccm_engine import CCMEngine
+            return CCMEngine()
+        except Exception as e:
+            _logger.debug("executive_reports: CCMEngine unavailable", error=str(e))
+            return None
+
     def _build_compliance_status(
         self, org_id: str, start: datetime, end: datetime
     ) -> List[ReportSection]:
-        """Build sections for a Compliance Status report."""
+        """Build sections for a Compliance Status report.
+
+        Scores and pass/fail counts are derived exclusively from real engine
+        data (ComplianceScannerEngine + CCMEngine).  When no assessments have
+        been run for a framework, the entry is returned with score=None and
+        counts=0 plus ``no_scans_run=True`` — never with fabricated numbers.
+        """
         sections: List[ReportSection] = []
 
-        # --- Per-framework compliance scores ---
-        framework_scores: Dict[str, float] = {
-            fw: round(70.0 + (hash(org_id + fw) % 30), 1)
-            for fw in _COMPLIANCE_FRAMEWORKS
-        }
+        # --- Query real engines ---
+        scanner = self._get_compliance_scanner()
+        ccm = self._get_ccm_engine()
+
+        # scanner_stats["by_framework"] → {framework_name: float score 0-100}
+        scanner_by_fw: Dict[str, float] = {}
+        try:
+            if scanner:
+                stats = scanner.get_compliance_stats(org_id)
+                scanner_by_fw = stats.get("by_framework", {})
+        except Exception as e:
+            _logger.debug("executive_reports: compliance_scanner stats unavailable", error=str(e))
+
+        # ccm_coverage["by_framework"] → {framework_name: {total, passing, failing}}
+        ccm_by_fw: Dict[str, Any] = {}
+        try:
+            if ccm:
+                coverage = ccm.get_control_coverage(org_id)
+                ccm_by_fw = coverage.get("by_framework", {})
+        except Exception as e:
+            _logger.debug("executive_reports: ccm coverage unavailable", error=str(e))
+
+        # --- Per-framework compliance scores (real data only) ---
+        framework_scores: Dict[str, Any] = {}
+        for fw in _COMPLIANCE_FRAMEWORKS:
+            # Normalise lookup: scanner uses exact names, CCM may use shortened names
+            score = scanner_by_fw.get(fw)
+            if score is None:
+                framework_scores[fw] = None  # honest null — no scans run
+            else:
+                framework_scores[fw] = round(float(score), 1)
+
+        scored_values = [v for v in framework_scores.values() if v is not None]
+        average_score: Optional[float] = (
+            round(sum(scored_values) / len(scored_values), 1) if scored_values else None
+        )
 
         sections.append(
             ReportSection(
                 title="Per-Framework Compliance Scores",
-                description="Compliance percentage per framework based on control assessments.",
+                description="Compliance percentage per framework based on real control assessments.",
                 data={
                     "frameworks": framework_scores,
-                    "average_score": round(
-                        sum(framework_scores.values()) / len(framework_scores), 1
-                    ),
+                    "average_score": average_score,
+                    "data_source": "compliance_scanner_engine",
+                    "no_scans_run": average_score is None,
                 },
                 chart_type="bar",
                 order=1,
             )
         )
 
-        # --- Control pass/fail summary ---
-        control_summary: Dict[str, Dict[str, int]] = {}
+        # --- Control pass/fail summary (real data only) ---
+        control_summary: Dict[str, Dict[str, Any]] = {}
         for fw in _COMPLIANCE_FRAMEWORKS:
-            total = 50 + (hash(org_id + fw + "t") % 100)
-            passed = int(total * (framework_scores[fw] / 100.0))
+            ccm_fw = ccm_by_fw.get(fw, {})
+            passed = ccm_fw.get("passing", 0) or 0
+            failed = ccm_fw.get("failing", 0) or 0
+            total = ccm_fw.get("total", 0) or 0
+            no_data = total == 0
             control_summary[fw] = {
                 "total": total,
                 "passed": passed,
-                "failed": total - passed,
+                "failed": failed,
+                "no_scans_run": no_data,
             }
 
         sections.append(
             ReportSection(
                 title="Control Pass/Fail Summary",
                 description="Breakdown of controls by pass/fail status for each framework.",
-                data={"controls": control_summary},
+                data={
+                    "controls": control_summary,
+                    "data_source": "ccm_engine",
+                },
                 chart_type="table",
                 order=2,
             )
         )
 
-        # --- Evidence collection status ---
+        # --- Evidence collection status (derived from real pass counts) ---
         evidence_status = {
             fw: {
                 "collected": int(control_summary[fw]["passed"] * 0.9),
-                "pending": int(control_summary[fw]["passed"] * 0.1) + 1,
+                "pending": int(control_summary[fw]["passed"] * 0.1),
                 "missing": control_summary[fw]["failed"],
+                "no_scans_run": control_summary[fw]["no_scans_run"],
             }
             for fw in _COMPLIANCE_FRAMEWORKS
         }
@@ -461,7 +524,7 @@ class ExecutiveReportEngine:
             )
         )
 
-        # --- Gaps and recommended actions ---
+        # --- Gaps and recommended actions (based on real failed counts) ---
         gaps = [
             {
                 "framework": fw,
