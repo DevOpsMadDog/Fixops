@@ -16,8 +16,10 @@ import csv
 import io
 import json
 import logging
+import os
 import sqlite3
 import threading
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -27,6 +29,52 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
+
+
+def _retention_days_from_env(default: int = 90) -> int:
+    """Read FIXOPS_AUDIT_RETENTION_DAYS env, default 90, clamped to [1, 3650]."""
+    raw = os.environ.get("FIXOPS_AUDIT_RETENTION_DAYS")
+    if not raw:
+        return default
+    try:
+        v = int(raw)
+    except (TypeError, ValueError):
+        _logger.warning("audit retention: invalid FIXOPS_AUDIT_RETENTION_DAYS=%r, using %d", raw, default)
+        return default
+    return max(1, min(3650, v))
+
+
+def _start_retention_daemon(audit_logger: "AuditLogger", interval_hours: int = 24) -> threading.Thread:
+    """Start a daemon thread that runs purge_old() every interval_hours.
+
+    Reads retention from FIXOPS_AUDIT_RETENTION_DAYS env (default 90, clamped
+    [1, 3650]). Runs an initial purge immediately on start, then sleeps + repeats.
+    Daemon thread — does not block process exit. Returns the started Thread.
+    """
+    def _loop() -> None:
+        while True:
+            try:
+                days = _retention_days_from_env()
+                deleted = audit_logger.purge_old(retention_days=days)
+                if deleted:
+                    _logger.info(
+                        "audit retention: purged %d entries older than %d days",
+                        deleted, days,
+                    )
+            except (sqlite3.Error, OSError, RuntimeError) as exc:
+                _logger.warning(
+                    "audit retention purge failed: %s", type(exc).__name__,
+                )
+            time.sleep(interval_hours * 3600)
+    t = threading.Thread(target=_loop, daemon=True, name="audit-retention")
+    t.start()
+    return t
+
+
+# Process-level guard so the daemon only starts ONCE per process even if many
+# AuditLogger instances are constructed (tests, fixtures, ...).
+_RETENTION_DAEMON_STARTED = False
+_RETENTION_DAEMON_LOCK = threading.Lock()
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -138,6 +186,20 @@ class AuditLogger:
         self._mem_conn: Optional[sqlite3.Connection] = None
         self._file_conn: Optional[sqlite3.Connection] = None  # persistent file-backed connection
         self._init_db()
+        # Auto-start the daily retention purge daemon, ONCE per process.
+        # File-backed loggers only (in-memory ":memory:" used by tests/fixtures
+        # doesn't need a daemon — it dies with the process). Opt-out for tests via
+        # FIXOPS_DISABLE_AUDIT_RETENTION=1. Retention days from FIXOPS_AUDIT_RETENTION_DAYS.
+        global _RETENTION_DAEMON_STARTED
+        if (
+            str(self._db_path) != ":memory:"
+            and os.environ.get("FIXOPS_DISABLE_AUDIT_RETENTION") != "1"
+            and not _RETENTION_DAEMON_STARTED
+        ):
+            with _RETENTION_DAEMON_LOCK:
+                if not _RETENTION_DAEMON_STARTED:
+                    _start_retention_daemon(self)
+                    _RETENTION_DAEMON_STARTED = True
 
     # ------------------------------------------------------------------
     # DB helpers
