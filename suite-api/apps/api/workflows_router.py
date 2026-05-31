@@ -136,7 +136,10 @@ async def list_workflows(
 
 
 @router.post("", response_model=WorkflowResponse, status_code=201)
-async def create_workflow(workflow_data: WorkflowCreate):
+async def create_workflow(
+    workflow_data: WorkflowCreate,
+    org_id: str = Depends(get_org_id),
+):
     """Create a new workflow."""
     workflow = Workflow(
         id="",
@@ -147,7 +150,7 @@ async def create_workflow(workflow_data: WorkflowCreate):
         enabled=workflow_data.enabled,
     )
     try:
-        created_workflow = db.create_workflow(workflow)
+        created_workflow = db.create_workflow(workflow, org_id=org_id)
     except (sqlite3.IntegrityError, Exception) as exc:
         if "UNIQUE" in str(exc).upper():
             raise HTTPException(
@@ -179,9 +182,9 @@ async def list_workflow_rules(org_id: str = Depends(get_org_id)):
 
 
 @router.get("/{id}", response_model=WorkflowResponse)
-async def get_workflow(id: str):
+async def get_workflow(id: str, org_id: str = Depends(get_org_id)):
     """Get workflow details by ID."""
-    workflow = db.get_workflow(id)
+    workflow = db.get_workflow(id, org_id=org_id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     return WorkflowResponse(**workflow.to_dict())

@@ -98,17 +98,31 @@ class InventoryDB:
             """
             )
             conn.commit()
+            # Schema migration: ensure org_id column exists, backfill, and index.
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(applications)").fetchall()}
+            if "org_id" not in cols:
+                import logging as _l
+                _l.getLogger(__name__).warning(
+                    "LEGACY DB DETECTED: applications.org_id missing — adding column and backfilling to 'default'"
+                )
+                conn.execute("ALTER TABLE applications ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'")
+                conn.execute("UPDATE applications SET org_id = 'default' WHERE org_id IS NULL OR org_id = ''")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_applications_org_id ON applications(org_id)")
+                conn.commit()
         finally:
             conn.close()
 
-    def create_application(self, app: Application) -> Application:
+    def create_application(self, app: Application, org_id: str = "default") -> Application:
         """Create new application."""
         if not app.id:
             app.id = str(uuid.uuid4())
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO applications VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO applications
+                   (id, name, description, criticality, status, owner_team, repository_url,
+                    environment, tags, metadata, created_at, updated_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     app.id,
                     app.name,
@@ -122,6 +136,7 @@ class InventoryDB:
                     json.dumps(app.metadata),
                     app.created_at.isoformat(),
                     app.updated_at.isoformat(),
+                    org_id,
                 ),
             )
             conn.commit()
@@ -129,16 +144,26 @@ class InventoryDB:
         finally:
             conn.close()
 
-    def get_application(self, app_id: str) -> Optional[Application]:
-        """Get application by ID."""
+    def get_application(self, app_id: str, org_id: Optional[str] = None) -> Optional[Application]:
+        """Get application by ID. If org_id is provided, enforces ownership."""
         conn = self._get_connection()
         try:
             row = conn.execute(
                 "SELECT * FROM applications WHERE id = ?", (app_id,)
             ).fetchone()
-            if row:
-                return self._row_to_application(row)
-            return None
+            if not row:
+                return None
+            if org_id is not None:
+                cols = {r[1] for r in conn.execute("PRAGMA table_info(applications)").fetchall()}
+                if "org_id" not in cols:
+                    import logging as _l
+                    _l.getLogger(__name__).warning(
+                        "LEGACY DB DETECTED: applications.org_id missing — returning None for safety"
+                    )
+                    return None
+                if row["org_id"] != org_id:
+                    return None
+            return self._row_to_application(row)
         finally:
             conn.close()
 
@@ -155,7 +180,10 @@ class InventoryDB:
             else:
                 if org_id is not None and "org_id" not in cols:
                     import logging as _l
-                    _l.getLogger(__name__).warning("inventory_db: applications.org_id column missing — returning all applications")
+                    _l.getLogger(__name__).warning(
+                        "LEGACY DB DETECTED: applications.org_id missing — returning empty for safety, run migration"
+                    )
+                    return []
                 rows = conn.execute(
                     "SELECT * FROM applications ORDER BY created_at DESC LIMIT ? OFFSET ?",
                     (limit, offset),

@@ -705,9 +705,14 @@ async def list_internal_vulnerabilities(
 
 
 @router.get("/internal/{vuln_id}")
-async def get_internal_vulnerability(vuln_id: str) -> Dict[str, Any]:
+async def get_internal_vulnerability(
+    vuln_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Get full details of an internal vulnerability."""
     if vuln_id not in _discovered_vulns:
+        raise HTTPException(status_code=404, detail="Vulnerability not found")
+    if _discovered_vulns[vuln_id].get("org_id", "default") != org_id:
         raise HTTPException(status_code=404, detail="Vulnerability not found")
 
     return _discovered_vulns[vuln_id]

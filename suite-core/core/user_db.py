@@ -72,6 +72,17 @@ class UserDB:
             """
             )
             conn.commit()
+            # Schema migration: ensure org_id column exists on teams, backfill, and index.
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(teams)").fetchall()}
+            if "org_id" not in cols:
+                import logging as _l
+                _l.getLogger(__name__).warning(
+                    "LEGACY DB DETECTED: teams.org_id missing — adding column and backfilling to 'default'"
+                )
+                conn.execute("ALTER TABLE teams ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'")
+                conn.execute("UPDATE teams SET org_id = 'default' WHERE org_id IS NULL OR org_id = ''")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_teams_org_id ON teams(org_id)")
+                conn.commit()
         finally:
             conn.close()
 
@@ -197,20 +208,22 @@ class UserDB:
         finally:
             conn.close()
 
-    def create_team(self, team: Team) -> Team:
+    def create_team(self, team: Team, org_id: str = "default") -> Team:
         """Create new team."""
         if not team.id:
             team.id = str(uuid.uuid4())
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO teams VALUES (?, ?, ?, ?, ?)""",
+                """INSERT INTO teams (id, name, description, created_at, updated_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     team.id,
                     team.name,
                     team.description,
                     team.created_at.isoformat(),
                     team.updated_at.isoformat(),
+                    org_id,
                 ),
             )
             conn.commit()
@@ -218,16 +231,26 @@ class UserDB:
         finally:
             conn.close()
 
-    def get_team(self, team_id: str) -> Optional[Team]:
-        """Get team by ID."""
+    def get_team(self, team_id: str, org_id: Optional[str] = None) -> Optional[Team]:
+        """Get team by ID. If org_id is provided, enforces ownership."""
         conn = self._get_connection()
         try:
             row = conn.execute(
                 "SELECT * FROM teams WHERE id = ?", (team_id,)
             ).fetchone()
-            if row:
-                return self._row_to_team(row)
-            return None
+            if not row:
+                return None
+            if org_id is not None:
+                cols = {r[1] for r in conn.execute("PRAGMA table_info(teams)").fetchall()}
+                if "org_id" not in cols:
+                    import logging as _l
+                    _l.getLogger(__name__).warning(
+                        "LEGACY DB DETECTED: teams.org_id missing — returning None for safety"
+                    )
+                    return None
+                if row["org_id"] != org_id:
+                    return None
+            return self._row_to_team(row)
         finally:
             conn.close()
 
@@ -244,7 +267,10 @@ class UserDB:
             else:
                 if org_id is not None and "org_id" not in cols:
                     import logging as _l
-                    _l.getLogger(__name__).warning("user_db: teams.org_id column missing — returning all teams")
+                    _l.getLogger(__name__).warning(
+                        "LEGACY DB DETECTED: teams.org_id missing — returning empty for safety, run migration"
+                    )
+                    return []
                 rows = conn.execute(
                     "SELECT * FROM teams ORDER BY created_at DESC LIMIT ? OFFSET ?",
                     (limit, offset),

@@ -206,7 +206,10 @@ async def list_applications(
 
 
 @router.post("/applications", response_model=ApplicationResponse, status_code=201)
-async def create_application(app_data: ApplicationCreate):
+async def create_application(
+    app_data: ApplicationCreate,
+    org_id: str = Depends(get_org_id),
+):
     """Register a new application."""
     app = Application(
         id="",
@@ -220,14 +223,14 @@ async def create_application(app_data: ApplicationCreate):
         tags=app_data.tags,
         metadata=app_data.metadata,
     )
-    created_app = db.create_application(app)
+    created_app = db.create_application(app, org_id=org_id)
     return ApplicationResponse(**created_app.to_dict())
 
 
 @router.get("/applications/{id}", response_model=ApplicationResponse)
-async def get_application(id: str):
+async def get_application(id: str, org_id: str = Depends(get_org_id)):
     """Get application details by ID."""
-    app = db.get_application(id)
+    app = db.get_application(id, org_id=org_id)
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
     return ApplicationResponse(**app.to_dict())

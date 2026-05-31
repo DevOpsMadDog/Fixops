@@ -513,9 +513,14 @@ async def list_sessions(
 
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
-async def get_session(session_id: str) -> SessionResponse:
+async def get_session(
+    session_id: str,
+    org_id: str = Depends(get_org_id),
+) -> SessionResponse:
     """Get a specific chat session."""
     if session_id not in _sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if _sessions[session_id].get("org_id") != org_id:
         raise HTTPException(status_code=404, detail="Session not found")
 
     return SessionResponse(**_sessions[session_id])
@@ -641,12 +646,15 @@ async def get_messages(
     session_id: str,
     limit: int = Query(default=50, le=200),
     before: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
 ) -> List[MessageResponse]:
     """Get messages in a session.
 
     Returns messages in chronological order. Use 'before' for pagination.
     """
     if session_id not in _sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if _sessions[session_id].get("org_id") != org_id:
         raise HTTPException(status_code=404, detail="Session not found")
 
     messages = _messages.get(session_id, [])

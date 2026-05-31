@@ -63,17 +63,29 @@ class WorkflowDB:
             """
             )
             conn.commit()
+            # Schema migration: ensure org_id column exists, backfill, and index.
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(workflows)").fetchall()}
+            if "org_id" not in cols:
+                import logging as _l
+                _l.getLogger(__name__).warning(
+                    "LEGACY DB DETECTED: workflows.org_id missing — adding column and backfilling to 'default'"
+                )
+                conn.execute("ALTER TABLE workflows ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'")
+                conn.execute("UPDATE workflows SET org_id = 'default' WHERE org_id IS NULL OR org_id = ''")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_workflows_org_id ON workflows(org_id)")
+                conn.commit()
         finally:
             conn.close()
 
-    def create_workflow(self, workflow: Workflow) -> Workflow:
+    def create_workflow(self, workflow: Workflow, org_id: str = "default") -> Workflow:
         """Create new workflow."""
         if not workflow.id:
             workflow.id = str(uuid.uuid4())
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO workflows VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO workflows (id, name, description, steps, triggers, enabled, created_by, created_at, updated_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     workflow.id,
                     workflow.name,
@@ -84,6 +96,7 @@ class WorkflowDB:
                     workflow.created_by,
                     workflow.created_at.isoformat(),
                     workflow.updated_at.isoformat(),
+                    org_id,
                 ),
             )
             conn.commit()
@@ -91,16 +104,26 @@ class WorkflowDB:
         finally:
             conn.close()
 
-    def get_workflow(self, workflow_id: str) -> Optional[Workflow]:
-        """Get workflow by ID."""
+    def get_workflow(self, workflow_id: str, org_id: Optional[str] = None) -> Optional[Workflow]:
+        """Get workflow by ID. If org_id is provided, enforces ownership."""
         conn = self._get_connection()
         try:
             row = conn.execute(
                 "SELECT * FROM workflows WHERE id = ?", (workflow_id,)
             ).fetchone()
-            if row:
-                return self._row_to_workflow(row)
-            return None
+            if not row:
+                return None
+            if org_id is not None:
+                cols = {row[1] for row in conn.execute("PRAGMA table_info(workflows)").fetchall()}
+                if "org_id" not in cols:
+                    import logging as _l
+                    _l.getLogger(__name__).warning(
+                        "LEGACY DB DETECTED: workflows.org_id missing — returning None for safety"
+                    )
+                    return None
+                if row["org_id"] != org_id:
+                    return None
+            return self._row_to_workflow(row)
         finally:
             conn.close()
 
@@ -117,7 +140,10 @@ class WorkflowDB:
             else:
                 if org_id is not None and "org_id" not in cols:
                     import logging as _l
-                    _l.getLogger(__name__).warning("workflow_db: workflows.org_id column missing — returning all workflows")
+                    _l.getLogger(__name__).warning(
+                        "LEGACY DB DETECTED: workflows.org_id missing — returning empty for safety, run migration"
+                    )
+                    return []
                 rows = conn.execute(
                     "SELECT * FROM workflows ORDER BY created_at DESC LIMIT ? OFFSET ?",
                     (limit, offset),

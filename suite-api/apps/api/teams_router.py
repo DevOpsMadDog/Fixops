@@ -73,7 +73,10 @@ async def list_teams(
 
 
 @router.post("", response_model=TeamResponse, status_code=201)
-async def create_team(team_data: TeamCreate):
+async def create_team(
+    team_data: TeamCreate,
+    org_id: str = Depends(get_org_id),
+):
     """Create a new team."""
     import sqlite3
 
@@ -83,7 +86,7 @@ async def create_team(team_data: TeamCreate):
         description=team_data.description,
     )
     try:
-        created_team = db.create_team(team)
+        created_team = db.create_team(team, org_id=org_id)
         return TeamResponse(**created_team.to_dict())
     except sqlite3.IntegrityError as e:
         err_msg = str(e)
@@ -97,9 +100,9 @@ async def create_team(team_data: TeamCreate):
 
 
 @router.get("/{id}", response_model=TeamResponse)
-async def get_team(id: str):
+async def get_team(id: str, org_id: str = Depends(get_org_id)):
     """Get team details by ID."""
-    team = db.get_team(id)
+    team = db.get_team(id, org_id=org_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
     return TeamResponse(**team.to_dict())
