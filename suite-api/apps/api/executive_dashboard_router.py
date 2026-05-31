@@ -406,24 +406,56 @@ _DEFAULT_FAIR_SCENARIOS = [
     ),
 ]
 
-_DEFAULT_COMPLIANCE_DATA: Dict[Regulation, float] = {
-    Regulation.SOC2: 78.5,
-    Regulation.PCI_DSS: 65.0,
-    Regulation.HIPAA: 71.0,
-    Regulation.GDPR: 82.0,
-    Regulation.CCPA: 88.0,
-}
+# ---------------------------------------------------------------------------
+# Real data accessors for KPI and compliance (replacing former hardcoded defaults)
+# ---------------------------------------------------------------------------
 
-_DEFAULT_KPI_VALUES: Dict[str, float] = {
-    "vuln_sla_compliance_rate": 84.2,
-    "mttd_hours": 18.5,
-    "mttc_hours": 3.2,
-    "mttr_days": 8.4,
-    "security_training_completion_pct": 91.0,
-    "phishing_click_rate_pct": 6.8,
-    "third_party_risk_score": 72.0,
-    "code_security_score": 77.5,
-}
+def _get_real_kpi_values(org_id: str) -> Dict[str, float]:
+    """Return current KPI values from the real KPIEngine store.
+
+    Returns an empty dict when no KPIs have been recorded yet — callers must
+    treat an empty result as "no data" rather than substituting fake numbers.
+    """
+    try:
+        from core.kpi_engine import KPIEngine as _RealKPIEngine
+        engine = _RealKPIEngine()
+        kpis = engine.get_current_kpis(org_id=org_id)
+        return {kpi.name: kpi.value for kpi in kpis}
+    except Exception:
+        return {}
+
+
+def _get_real_compliance_data(org_id: str) -> Dict[Regulation, float]:
+    """Return compliance scores from ComplianceAutomationEngine.
+
+    Queries the persisted DB at .fixops_data/compliance.db (same path used by
+    gap_router.py). Returns an empty dict when no evidence has been collected.
+    """
+    _REGULATION_TO_FRAMEWORK = {
+        Regulation.SOC2: "SOC2",
+        Regulation.PCI_DSS: "PCI-DSS",
+        Regulation.HIPAA: "HIPAA",
+        Regulation.GDPR: "ISO27001",  # closest available framework
+        Regulation.CCPA: "NIST-800-53",
+    }
+    try:
+        from core.compliance_engine import ComplianceAutomationEngine
+        engine = ComplianceAutomationEngine(
+            db_path=".fixops_data/compliance.db",
+            org_id=org_id,
+        )
+        overall = engine.get_overall_status()
+        fw_scores: Dict[str, float] = {
+            fw["framework"]: fw["score"]
+            for fw in overall.get("frameworks", [])
+        }
+        result: Dict[Regulation, float] = {}
+        for reg, fw_name in _REGULATION_TO_FRAMEWORK.items():
+            if fw_name in fw_scores:
+                result[reg] = fw_scores[fw_name]
+        return result
+    except Exception:
+        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -632,8 +664,24 @@ async def get_benchmarks(
 async def get_regulatory_heatmap(
     org_id: str = Query("default", description="Organisation identifier"),
 ) -> RegulatoryHeatmapResponse:
-    """Return regulatory risk heatmap with penalty exposure per framework."""
-    statuses = _heatmap_engine.build_heatmap(_DEFAULT_COMPLIANCE_DATA)
+    """Return regulatory risk heatmap with penalty exposure per framework.
+
+    Compliance percentages are drawn from ComplianceAutomationEngine (real
+    persisted evidence). When no evidence has been collected yet, the heatmap
+    is built with no frameworks (empty list) rather than fabricated numbers.
+    """
+    real_compliance = _get_real_compliance_data(org_id)
+    if not real_compliance:
+        # Honest empty response — no compliance evidence ingested yet.
+        return RegulatoryHeatmapResponse(
+            regulations=[],
+            total_estimated_exposure_usd=0.0,
+            red_count=0,
+            yellow_count=0,
+            green_count=0,
+            computed_at=datetime.now(timezone.utc),
+        )
+    statuses = _heatmap_engine.build_heatmap(real_compliance)
 
     total_exposure = sum(s.estimated_exposure_usd for s in statuses)
     red = sum(1 for s in statuses if s.color == HeatmapColor.RED)
@@ -707,8 +755,25 @@ async def get_due_diligence(
 async def get_kpis(
     org_id: str = Query("default", description="Organisation identifier"),
 ) -> KPIDashboardResponse:
-    """Return KPI dashboard with status and trend for each metric."""
-    dashboard = _kpi_engine.build_dashboard(org_id=org_id, values=_DEFAULT_KPI_VALUES)
+    """Return KPI dashboard with status and trend for each metric.
+
+    Values are drawn from the real KPIEngine store (same DB as /api/v1/kpis).
+    When no KPIs have been recorded yet, returns an honest empty dashboard
+    rather than fabricated numbers. Populate via POST /api/v1/kpis/record or
+    POST /api/v1/kpis/calculate.
+    """
+    real_values = _get_real_kpi_values(org_id)
+    if not real_values:
+        return KPIDashboardResponse(
+            org_id=org_id,
+            kpis=[],
+            overall_health_score=0.0,
+            on_track_count=0,
+            at_risk_count=0,
+            breached_count=0,
+            computed_at=datetime.now(timezone.utc),
+        )
+    dashboard = _kpi_engine.build_dashboard(org_id=org_id, values=real_values)
 
     return KPIDashboardResponse(
         org_id=dashboard.org_id,
@@ -772,9 +837,11 @@ async def generate_board_report(body: BoardReportRequest) -> BoardReportResponse
                 detail=f"Unknown regulation: '{key}'. Valid values: {[r.value for r in Regulation]}",
             )
     if not compliance_data:
-        compliance_data = _DEFAULT_COMPLIANCE_DATA
+        # Fall back to real compliance engine — not hardcoded numbers.
+        compliance_data = _get_real_compliance_data(body.org_id)
 
-    kpi_values = body.kpi_values or _DEFAULT_KPI_VALUES
+    # KPI values: use caller-supplied → real engine → empty (never fake defaults).
+    kpi_values: Dict[str, float] = body.kpi_values or _get_real_kpi_values(body.org_id)
 
     try:
         report = _board_report_generator.generate(

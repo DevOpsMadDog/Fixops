@@ -5887,6 +5887,39 @@ def create_app() -> FastAPI:
 
     # compliance_gap_router — moved to grc_app.py (Wave-B-pilot 2026-05-03)
 
+    # Industry Benchmarking — honest 501 (no external peer-data feed configured)
+    try:
+        from apps.api.benchmarking_router import router as benchmarking_router
+        app.include_router(
+            benchmarking_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Industry Benchmarking router at /api/v1/benchmarking")
+    except Exception as e:
+        _logger.warning(f"Industry Benchmarking router not loaded: {e}")
+
+    # Peer Insights — honest 501 (no external peer-data feed configured)
+    try:
+        from apps.api.peer_insights_router import router as peer_insights_router
+        app.include_router(
+            peer_insights_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Peer Insights router at /api/v1/peer-insights")
+    except Exception as e:
+        _logger.warning(f"Peer Insights router not loaded: {e}")
+
+    # ML Anomaly Detection — wired to real AnomalyDetector (statistical engine)
+    try:
+        from apps.api.ml_anomaly_router import router as ml_anomaly_router_v2
+        app.include_router(
+            ml_anomaly_router_v2,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted ML Anomaly Detection router at /api/v1/ml/anomaly")
+    except Exception as e:
+        _logger.warning(f"ML Anomaly Detection router not loaded: {e}")
+
     # Vulnerability Risk Scoring — contextual risk scores (CVSS + EPSS + KEV + asset context)
     try:
         from apps.api.vuln_risk_router import router as vuln_risk_router
