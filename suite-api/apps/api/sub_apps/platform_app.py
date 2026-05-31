@@ -2264,6 +2264,50 @@ def register_platform_routers(
         _logger.warning("databricks_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # MongoDB Atlas Admin API Connector — 2026-05-31
+    # GET /api/v1/mongodb-atlas/                                  connector info / configured-status  (read:scans)
+    # GET /api/v1/mongodb-atlas/orgs/{org_id}/projects            list projects in an org             (read:scans)
+    # GET /api/v1/mongodb-atlas/groups/{group_id}/clusters        list clusters in a project          (read:scans)
+    # GET /api/v1/mongodb-atlas/groups/{group_id}/databaseUsers   list database users                 (read:scans)
+    # GET /api/v1/mongodb-atlas/groups/{group_id}/auditLog        audit log (security findings)       (read:scans)
+    # GET /api/v1/mongodb-atlas/groups/{group_id}/accessList      IP allowlist entries                (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.mongodb_atlas_router import router as mongodb_atlas_router  # noqa: PLC0415
+        app.include_router(
+            mongodb_atlas_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted MongoDB Atlas Admin API connector router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("mongodb_atlas_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Elasticsearch Data-Plane Connector — 2026-05-31
+    # GET  /api/v1/elasticsearch/                      connector info / configured-status  (read:scans)
+    # GET  /api/v1/elasticsearch/cluster/health        cluster health                      (read:scans)
+    # GET  /api/v1/elasticsearch/indices               index list + metrics                (read:scans)
+    # POST /api/v1/elasticsearch/search/{index}        query DSL search                    (read:scans)
+    # GET  /api/v1/elasticsearch/nodes                 node stats (fs/jvm/os)              (read:scans)
+    # GET  /api/v1/elasticsearch/tasks                 running tasks                       (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.elasticsearch_router import router as elasticsearch_router  # noqa: PLC0415
+        app.include_router(
+            elasticsearch_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Elasticsearch data-plane connector router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("elasticsearch_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Cloudflare API v4 Live REST — 2026-05-04
     # GET /api/v1/cloudflare/                                                              capability summary  (read:scans)
     # GET /api/v1/cloudflare/client/v4/zones                                               list zones          (read:scans)
