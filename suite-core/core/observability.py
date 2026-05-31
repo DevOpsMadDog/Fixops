@@ -11,6 +11,7 @@ Provides:
 from __future__ import annotations
 
 import logging
+import os
 import statistics
 import threading
 import time
@@ -861,3 +862,132 @@ def get_log_aggregator() -> LogAggregator:
 def get_tracing_context() -> TracingContext:
     """Return the global TracingContext instance."""
     return _tracing_context
+
+
+# ---------------------------------------------------------------------------
+# Production observability hooks — Sentry + StatsD (cred-gated, honest no-op)
+# ---------------------------------------------------------------------------
+
+_sentry_active: bool = False
+_statsd_active: bool = False
+_statsd_client: Any = None
+
+_obs_logger = logging.getLogger(__name__ + ".prod")
+
+
+def init_sentry(dsn: Optional[str] = None) -> bool:
+    """Initialise Sentry SDK if a DSN is available.
+
+    Priority: explicit ``dsn`` argument > ``SENTRY_DSN`` env var.
+    Returns True on successful init, False when DSN is absent or
+    ``sentry_sdk`` is not installed.  Never raises.
+    """
+    global _sentry_active
+    resolved_dsn = dsn or os.environ.get("SENTRY_DSN", "").strip() or None
+    if not resolved_dsn:
+        _obs_logger.debug("init_sentry: no DSN configured — Sentry inactive")
+        return False
+    try:
+        import sentry_sdk  # type: ignore[import]
+        from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore[import]
+        from sentry_sdk.integrations.starlette import StarletteIntegration  # type: ignore[import]
+
+        sentry_sdk.init(
+            dsn=resolved_dsn,
+            traces_sample_rate=0.1,
+            integrations=[StarletteIntegration(), FastApiIntegration()],
+            send_default_pii=False,
+        )
+        _sentry_active = True
+        _obs_logger.info("init_sentry: Sentry SDK initialised (traces_sample_rate=0.1)")
+        return True
+    except ImportError:
+        _obs_logger.warning(
+            "init_sentry: sentry_sdk not installed — pip install sentry-sdk[fastapi]"
+        )
+        return False
+    except Exception as exc:  # pragma: no cover
+        _obs_logger.warning("init_sentry: init failed: %s", exc)
+        return False
+
+
+def init_statsd(host: Optional[str] = None, port: int = 8125) -> bool:
+    """Initialise a DataDog statsd client if a host is configured.
+
+    Priority: explicit ``host`` argument > ``DATADOG_STATSD_HOST`` env var.
+    Returns True on successful init, False when host is absent or
+    ``datadog`` package is not installed.  Never raises.
+    """
+    global _statsd_active, _statsd_client
+    resolved_host = host or os.environ.get("DATADOG_STATSD_HOST", "").strip() or None
+    if not resolved_host:
+        _obs_logger.debug("init_statsd: no host configured — StatsD inactive")
+        return False
+    try:
+        from datadog import initialize, statsd as _statsd  # type: ignore[import]
+
+        initialize(statsd_host=resolved_host, statsd_port=port)
+        _statsd_client = _statsd
+        _statsd_active = True
+        _obs_logger.info(
+            "init_statsd: DataDog statsd connected to %s:%d", resolved_host, port
+        )
+        return True
+    except ImportError:
+        _obs_logger.warning(
+            "init_statsd: datadog package not installed — pip install datadog"
+        )
+        return False
+    except Exception as exc:  # pragma: no cover
+        _obs_logger.warning("init_statsd: init failed: %s", exc)
+        return False
+
+
+def report_exception(exc: Exception, context: Optional[Dict[str, Any]] = None) -> None:
+    """Report an exception to Sentry if it is active; otherwise a no-op.
+
+    ``context`` is merged into the Sentry scope as extra data.
+    """
+    if not _sentry_active:
+        return
+    try:
+        import sentry_sdk  # type: ignore[import]
+
+        with sentry_sdk.push_scope() as scope:
+            if context:
+                for key, value in context.items():
+                    scope.set_extra(key, value)
+            sentry_sdk.capture_exception(exc)
+    except Exception:  # pragma: no cover
+        pass  # never let observability code crash the caller
+
+
+def record_metric(
+    name: str,
+    value: float,
+    tags: Optional[List[str]] = None,
+) -> None:
+    """Send a gauge metric to StatsD/DataDog if it is active; otherwise a no-op."""
+    if not _statsd_active or _statsd_client is None:
+        return
+    try:
+        _statsd_client.gauge(name, value, tags=tags or [])
+    except Exception:  # pragma: no cover
+        pass  # never let observability code crash the caller
+
+
+def observability_status() -> Dict[str, Any]:
+    """Return a dict describing which production observability backends are active.
+
+    Suitable for inclusion in /health endpoint responses.
+    """
+    return {
+        "sentry": {
+            "configured": _sentry_active,
+            "dsn_env_set": bool(os.environ.get("SENTRY_DSN", "").strip()),
+        },
+        "statsd": {
+            "configured": _statsd_active,
+            "host_env_set": bool(os.environ.get("DATADOG_STATSD_HOST", "").strip()),
+        },
+    }

@@ -723,3 +723,174 @@ class TestObservabilityRouter:
         a = get_health_probe()
         b = get_health_probe()
         assert a is b
+
+
+# ===========================================================================
+# Production observability hooks — init_sentry / init_statsd / helpers
+# ===========================================================================
+
+
+class TestInitSentry:
+    def setup_method(self):
+        # Reset module-level state before each test
+        import core.observability as _obs
+        _obs._sentry_active = False
+
+    def test_returns_false_when_no_dsn_env_and_no_arg(self, monkeypatch):
+        """init_sentry must return False when SENTRY_DSN is absent."""
+        from core.observability import init_sentry
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+        assert init_sentry() is False
+
+    def test_returns_false_when_dsn_arg_is_none_and_env_unset(self, monkeypatch):
+        from core.observability import init_sentry
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+        assert init_sentry(dsn=None) is False
+
+    def test_returns_false_when_sentry_sdk_not_installed(self, monkeypatch):
+        """If sentry_sdk is missing, init_sentry must return False (not raise)."""
+        import sys
+        import core.observability as _obs
+        monkeypatch.setenv("SENTRY_DSN", "https://fake@sentry.io/1")
+        # Simulate ImportError by temporarily hiding sentry_sdk
+        real_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else None
+        import builtins
+        original = builtins.__import__
+        def fake_import(name, *args, **kwargs):
+            if name == "sentry_sdk":
+                raise ImportError("sentry_sdk not installed")
+            return original(name, *args, **kwargs)
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+        result = _obs.init_sentry(dsn="https://fake@sentry.io/1")
+        assert result is False
+
+    def test_returns_true_when_sentry_sdk_available(self, monkeypatch):
+        """init_sentry returns True when sentry_sdk.init succeeds (mocked)."""
+        import types
+        import sys
+        import core.observability as _obs
+
+        # Build a minimal mock for sentry_sdk
+        mock_sentry = types.ModuleType("sentry_sdk")
+        mock_sentry.init = lambda **kw: None
+        mock_sentry.push_scope = None
+        mock_sentry.capture_exception = lambda e: None
+
+        mock_integrations = types.ModuleType("sentry_sdk.integrations")
+        mock_fastapi_int = types.ModuleType("sentry_sdk.integrations.fastapi")
+        mock_fastapi_int.FastApiIntegration = lambda: None
+        mock_starlette_int = types.ModuleType("sentry_sdk.integrations.starlette")
+        mock_starlette_int.StarletteIntegration = lambda: None
+
+        monkeypatch.setitem(sys.modules, "sentry_sdk", mock_sentry)
+        monkeypatch.setitem(sys.modules, "sentry_sdk.integrations", mock_integrations)
+        monkeypatch.setitem(sys.modules, "sentry_sdk.integrations.fastapi", mock_fastapi_int)
+        monkeypatch.setitem(sys.modules, "sentry_sdk.integrations.starlette", mock_starlette_int)
+
+        result = _obs.init_sentry(dsn="https://fake@sentry.io/1")
+        assert result is True
+        assert _obs._sentry_active is True
+
+
+class TestInitStatsd:
+    def setup_method(self):
+        import core.observability as _obs
+        _obs._statsd_active = False
+        _obs._statsd_client = None
+
+    def test_returns_false_when_no_host_env_and_no_arg(self, monkeypatch):
+        """init_statsd must return False when DATADOG_STATSD_HOST is absent."""
+        from core.observability import init_statsd
+        monkeypatch.delenv("DATADOG_STATSD_HOST", raising=False)
+        assert init_statsd() is False
+
+    def test_returns_false_when_host_arg_none_and_env_unset(self, monkeypatch):
+        from core.observability import init_statsd
+        monkeypatch.delenv("DATADOG_STATSD_HOST", raising=False)
+        assert init_statsd(host=None) is False
+
+    def test_returns_false_when_datadog_not_installed(self, monkeypatch):
+        import builtins
+        import core.observability as _obs
+        monkeypatch.setenv("DATADOG_STATSD_HOST", "localhost")
+        original = builtins.__import__
+        def fake_import(name, *args, **kwargs):
+            if name == "datadog":
+                raise ImportError("datadog not installed")
+            return original(name, *args, **kwargs)
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+        assert _obs.init_statsd(host="localhost") is False
+
+
+class TestReportExceptionAndRecordMetric:
+    def setup_method(self):
+        import core.observability as _obs
+        _obs._sentry_active = False
+        _obs._statsd_active = False
+        _obs._statsd_client = None
+
+    def test_report_exception_noop_when_sentry_inactive(self):
+        """report_exception must not raise when Sentry is not init'd."""
+        from core.observability import report_exception
+        report_exception(ValueError("test error"))  # must not raise
+
+    def test_report_exception_noop_with_context_when_inactive(self):
+        from core.observability import report_exception
+        report_exception(RuntimeError("ctx test"), context={"key": "val"})
+
+    def test_record_metric_noop_when_statsd_inactive(self):
+        """record_metric must not raise when StatsD is not init'd."""
+        from core.observability import record_metric
+        record_metric("fixops.test.gauge", 42.0, tags=["env:test"])
+
+    def test_record_metric_noop_no_tags(self):
+        from core.observability import record_metric
+        record_metric("fixops.test.counter", 1.0)
+
+
+class TestObservabilityStatus:
+    def setup_method(self):
+        import core.observability as _obs
+        _obs._sentry_active = False
+        _obs._statsd_active = False
+
+    def test_returns_dict_with_expected_keys(self, monkeypatch):
+        """observability_status must return a dict with sentry and statsd keys."""
+        from core.observability import observability_status
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+        monkeypatch.delenv("DATADOG_STATSD_HOST", raising=False)
+        status = observability_status()
+        assert "sentry" in status
+        assert "statsd" in status
+
+    def test_sentry_configured_false_when_inactive(self, monkeypatch):
+        from core.observability import observability_status
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+        status = observability_status()
+        assert status["sentry"]["configured"] is False
+
+    def test_statsd_configured_false_when_inactive(self, monkeypatch):
+        from core.observability import observability_status
+        monkeypatch.delenv("DATADOG_STATSD_HOST", raising=False)
+        status = observability_status()
+        assert status["statsd"]["configured"] is False
+
+    def test_sentry_dsn_env_set_reflects_env(self, monkeypatch):
+        from core.observability import observability_status
+        monkeypatch.setenv("SENTRY_DSN", "https://fake@sentry.io/1")
+        status = observability_status()
+        assert status["sentry"]["dsn_env_set"] is True
+
+    def test_statsd_host_env_set_reflects_env(self, monkeypatch):
+        from core.observability import observability_status
+        monkeypatch.setenv("DATADOG_STATSD_HOST", "localhost")
+        status = observability_status()
+        assert status["statsd"]["host_env_set"] is True
+
+    def test_sentry_configured_true_after_init(self, monkeypatch):
+        """When _sentry_active is set to True, status reflects it."""
+        import core.observability as _obs
+        from core.observability import observability_status
+        _obs._sentry_active = True
+        status = observability_status()
+        assert status["sentry"]["configured"] is True

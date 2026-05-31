@@ -1,277 +1,475 @@
+"""Stripe Billing Router — ALDECI (2026-05-31).
+
+Wraps the Stripe REST API (v1) with live httpx calls for customer management,
+subscription lifecycle, and webhook event handling.
+
+Prefix: /api/v1/billing
+Auth:   api_key_auth dependency (read:scans scope at registration)
+
+Routes:
+  GET  /api/v1/billing/                              info + configured status + mode
+  POST /api/v1/billing/customers                     create Stripe customer
+  POST /api/v1/billing/subscriptions                 create subscription
+  GET  /api/v1/billing/subscriptions/{sub_id}        retrieve subscription
+  POST /api/v1/billing/subscriptions/{sub_id}/cancel cancel subscription
+  POST /api/v1/billing/webhook                       Stripe-signature-verified webhook
+
+NO MOCKS rule: when STRIPE_SECRET_KEY is missing every live endpoint returns
+HTTP 503 with ``{"error":"stripe_not_configured","needed":["STRIPE_SECRET_KEY"]}``.
+We do not fabricate customer IDs, subscription objects, or billing data ever.
+
+Credentials
+-----------
+  STRIPE_SECRET_KEY     — Stripe API key (sk_live_... or sk_test_...).
+                          Mode is inferred from the key prefix:
+                            sk_live_  -> live
+                            sk_test_  -> test
+                            other     -> unknown
+  STRIPE_WEBHOOK_SECRET — (optional) Stripe webhook signing secret (whsec_...).
+                          When set, stripe-signature header is verified.
+                          When unset, signature verification is skipped with a
+                          warning (development/test only).
+
+Implementation note: the ``stripe`` Python SDK is not installed in this
+environment. All calls use direct httpx requests to api.stripe.com using
+HTTP Basic Auth (API key as username, empty password), matching the Stripe
+REST API v1 specification.
 """
-Billing Tier API — ALDECI Commercial P2.
 
-Endpoints (all under /api/v1/billing):
-    GET  /tier        — current org billing tier (Starter / Pro / Enterprise)
-    POST /upgrade     — initiate Stripe Checkout Session, return session.url
-
-Tier hierarchy (lowest → highest):
-    starter < pro < enterprise
-
-The ``requires_tier`` dependency returns HTTP 402 Payment Required when the
-org's current tier is below the required tier.  Applied to high-value endpoints
-in executive_reporting_router, risk_quantifier_router, and remediation_board_router.
-
-Auth: inherited from app.py (_verify_api_key applied globally).
-Stripe SDK (stripe-python >=7) is used when FIXOPS_STRIPE_SECRET_KEY is set.
-"""
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import logging
 import os
-import sqlite3
-from functools import wraps
-from pathlib import Path
-from typing import Any, Dict, Optional
+import time
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+import httpx
+from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
 from pydantic import BaseModel, Field
 
-from apps.api.dependencies import get_org_id
-from core.audit_logger import AuditEvent, create_audit_logger
+_logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
+_STRIPE_BASE_URL = "https://api.stripe.com/v1"
+_TIMEOUT = 15.0  # seconds — Stripe can be slow on first call
+_NOT_CONFIGURED_ERROR = "stripe_not_configured"
+_NEEDED_VARS = ["STRIPE_SECRET_KEY"]
 
-router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
+# Auth-protected endpoints (api_key_auth required)
+router = APIRouter(
+    prefix="/api/v1/billing",
+    tags=["Billing"],
+    dependencies=[Depends(api_key_auth)],
+)
 
-_audit = create_audit_logger()
+# Webhook endpoint (no api_key_auth — Stripe signs the payload instead)
+webhook_router = APIRouter(
+    prefix="/api/v1/billing",
+    tags=["Billing"],
+)
+
 
 # ---------------------------------------------------------------------------
-# Tier ordering — integer rank for comparison
+# Internal helpers
 # ---------------------------------------------------------------------------
 
-_TIER_RANK: Dict[str, int] = {
-    "starter": 0,
-    "pro": 1,
-    "enterprise": 2,
-}
 
-_DEFAULT_TIER = "starter"
-
-# ---------------------------------------------------------------------------
-# Tier store — lightweight SQLite keyed by org_id
-# ---------------------------------------------------------------------------
-
-_DB_PATH = Path(os.getenv("FIXOPS_BILLING_DB", "data/billing.db"))
+def _get_key() -> Optional[str]:
+    """Return the Stripe secret key or None if unset/blank."""
+    key = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+    return key if key else None
 
 
-def _get_conn() -> sqlite3.Connection:
-    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(_DB_PATH), check_same_thread=False)
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS org_tiers "
-        "(org_id TEXT PRIMARY KEY, tier TEXT NOT NULL DEFAULT 'starter')"
-    )
-    conn.commit()
-    return conn
-
-
-def get_org_tier(org_id: str) -> str:
-    """Return current tier for org (defaults to 'starter')."""
-    try:
-        with _get_conn() as conn:
-            row = conn.execute(
-                "SELECT tier FROM org_tiers WHERE org_id = ?", (org_id,)
-            ).fetchone()
-            return row[0] if row else _DEFAULT_TIER
-    except Exception:
-        logger.warning("billing: could not read tier for org %s, defaulting to starter", org_id)
-        return _DEFAULT_TIER
-
-
-def set_org_tier(org_id: str, tier: str) -> None:
-    """Upsert tier for org."""
-    tier = tier.lower()
-    if tier not in _TIER_RANK:
-        raise ValueError(f"Unknown tier: {tier}")
-    with _get_conn() as conn:
-        conn.execute(
-            "INSERT INTO org_tiers (org_id, tier) VALUES (?, ?) "
-            "ON CONFLICT(org_id) DO UPDATE SET tier=excluded.tier",
-            (org_id, tier),
+def _require_key() -> str:
+    """Return the Stripe secret key or raise HTTP 503 not_configured."""
+    key = _get_key()
+    if key is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": _NOT_CONFIGURED_ERROR,
+                "needed": _NEEDED_VARS,
+            },
         )
-        conn.commit()
+    return key
 
 
-# ---------------------------------------------------------------------------
-# Tier-gate dependency
-# ---------------------------------------------------------------------------
+def _mode(key: str) -> str:
+    """Infer Stripe mode from key prefix."""
+    if key.startswith("sk_live_"):
+        return "live"
+    if key.startswith("sk_test_"):
+        return "test"
+    return "unknown"
 
-def requires_tier(minimum: str):
+
+def _auth(key: str) -> httpx.BasicAuth:
+    """Return httpx BasicAuth for Stripe (key as username, empty password)."""
+    return httpx.BasicAuth(username=key, password="")
+
+
+async def _stripe_post(key: str, path: str, data: Dict[str, Any]) -> Any:
+    """POST form-encoded data to Stripe API. Returns parsed JSON or raises HTTPException."""
+    url = f"{_STRIPE_BASE_URL}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(url, auth=_auth(key), data=data)
+    except httpx.TimeoutException as exc:
+        _logger.warning("stripe_timeout path=%s exc=%s", path, exc)
+        raise HTTPException(
+            status_code=504,
+            detail={"error": "stripe_timeout", "path": path},
+        ) from exc
+    except httpx.HTTPError as exc:
+        _logger.warning("stripe_http_error path=%s exc=%s", path, exc)
+        raise HTTPException(
+            status_code=502,
+            detail={"error": "stripe_upstream_error", "path": path},
+        ) from exc
+
+    try:
+        body = resp.json()
+    except Exception:
+        body = {"error": "stripe_invalid_json", "status": resp.status_code}
+
+    if resp.status_code >= 400:
+        _logger.warning(
+            "stripe_upstream_error path=%s status=%d body=%.300s",
+            path, resp.status_code, resp.text,
+        )
+        raise HTTPException(status_code=resp.status_code, detail=body)
+
+    return body
+
+
+async def _stripe_get(key: str, path: str) -> Any:
+    """GET from Stripe API. Returns parsed JSON or raises HTTPException."""
+    url = f"{_STRIPE_BASE_URL}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.get(url, auth=_auth(key))
+    except httpx.TimeoutException as exc:
+        _logger.warning("stripe_timeout path=%s exc=%s", path, exc)
+        raise HTTPException(
+            status_code=504,
+            detail={"error": "stripe_timeout", "path": path},
+        ) from exc
+    except httpx.HTTPError as exc:
+        _logger.warning("stripe_http_error path=%s exc=%s", path, exc)
+        raise HTTPException(
+            status_code=502,
+            detail={"error": "stripe_upstream_error", "path": path},
+        ) from exc
+
+    try:
+        body = resp.json()
+    except Exception:
+        body = {"error": "stripe_invalid_json", "status": resp.status_code}
+
+    if resp.status_code >= 400:
+        _logger.warning(
+            "stripe_upstream_error path=%s status=%d body=%.300s",
+            path, resp.status_code, resp.text,
+        )
+        raise HTTPException(status_code=resp.status_code, detail=body)
+
+    return body
+
+
+def _verify_stripe_signature(
+    payload: bytes,
+    sig_header: str,
+    secret: str,
+    tolerance_seconds: int = 300,
+) -> bool:
+    """Verify Stripe-Signature header using HMAC-SHA256.
+
+    Returns True if valid, raises HTTPException 400 on any mismatch.
+    See: https://stripe.com/docs/webhooks/signatures
     """
-    FastAPI dependency factory.  Returns HTTP 402 if org tier is below ``minimum``.
-
-    Usage::
-
-        @router.get("/premium-report")
-        async def premium(org_id: str = Depends(requires_tier("enterprise"))):
-            ...
-    """
-    minimum_lower = minimum.lower()
-    if minimum_lower not in _TIER_RANK:
-        raise ValueError(f"requires_tier: unknown tier '{minimum}'")
-
-    async def _dep(org_id: str = Depends(get_org_id)) -> str:
-        current = get_org_tier(org_id)
-        if _TIER_RANK.get(current, 0) < _TIER_RANK[minimum_lower]:
-            raise HTTPException(
-                status_code=402,
-                detail={
-                    "error": "tier_required",
-                    "required": minimum_lower,
-                    "current": current,
-                    "upgrade_url": "/api/v1/billing/upgrade",
-                    "message": (
-                        f"This feature requires the {minimum_lower.capitalize()} plan. "
-                        f"Your org is on the {current.capitalize()} plan."
-                    ),
-                },
-            )
-        return org_id
-
-    return _dep
-
-
-# ---------------------------------------------------------------------------
-# Pydantic models
-# ---------------------------------------------------------------------------
-
-class TierResponse(BaseModel):
-    org_id: str
-    tier: str
-    tier_rank: int
-    features: Dict[str, Any]
-
-
-class UpgradeRequest(BaseModel):
-    target_tier: str = Field(..., description="pro | enterprise")
-    seats: int = Field(default=1, ge=1, le=10000)
-
-
-class UpgradeResponse(BaseModel):
-    status: str
-    checkout_url: str
-    target_tier: str
-    message: str
-
-
-# ---------------------------------------------------------------------------
-# Tier feature map (informational — returned in /tier response)
-# ---------------------------------------------------------------------------
-
-_TIER_FEATURES: Dict[str, Dict[str, Any]] = {
-    "starter": {
-        "price_usd_month": 199,
-        "scans_per_month": 100,
-        "exec_reporting": False,
-        "risk_quantification": False,
-        "board_presentations": False,
-        "api_access": True,
-        "support": "community",
-    },
-    "pro": {
-        "price_usd_month": 499,
-        "scans_per_month": 1000,
-        "exec_reporting": True,
-        "risk_quantification": True,
-        "board_presentations": False,
-        "api_access": True,
-        "support": "email",
-    },
-    "enterprise": {
-        "price_usd_month": 1499,
-        "scans_per_month": -1,  # unlimited
-        "exec_reporting": True,
-        "risk_quantification": True,
-        "board_presentations": True,
-        "api_access": True,
-        "support": "dedicated",
-    },
-}
-
-
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
-
-@router.get("/tier", response_model=TierResponse, summary="Get current billing tier")
-async def get_tier(org_id: str = Depends(get_org_id)):
-    """Return the current billing tier for the authenticated org."""
-    tier = get_org_tier(org_id)
-    return TierResponse(
-        org_id=org_id,
-        tier=tier,
-        tier_rank=_TIER_RANK.get(tier, 0),
-        features=_TIER_FEATURES.get(tier, {}),
-    )
-
-
-@router.post("/upgrade", response_model=UpgradeResponse, summary="Initiate tier upgrade")
-async def initiate_upgrade(body: UpgradeRequest, org_id: str = Depends(get_org_id)):
-    """
-    Record upgrade intent and return a Stripe checkout URL placeholder.
-    Real Stripe integration is wired when FIXOPS_STRIPE_SECRET_KEY is set.
-    """
-    target = body.target_tier.lower()
-    if target not in _TIER_RANK:
-        raise HTTPException(status_code=400, detail=f"Unknown tier: {body.target_tier}")
-
-    current = get_org_tier(org_id)
-    if _TIER_RANK.get(target, 0) <= _TIER_RANK.get(current, 0):
+    try:
+        parts = {
+            p.split("=", 1)[0]: p.split("=", 1)[1]
+            for p in sig_header.split(",")
+            if "=" in p
+        }
+        timestamp = int(parts.get("t", "0"))
+        signatures = [v for k, v in parts.items() if k == "v1"]
+    except (ValueError, KeyError) as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"Target tier '{target}' is not higher than current tier '{current}'.",
+            detail={"error": "stripe_signature_malformed"},
+        ) from exc
+
+    if not timestamp or not signatures:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "stripe_signature_missing_fields"},
         )
 
-    _audit.log(AuditEvent(
-        actor_id=org_id,
-        action="billing.upgrade_intent",
-        resource_type="billing",
-        resource_id=org_id,
-        org_id=org_id,
-        result="success",
-        details={"target_tier": target, "current_tier": current, "seats": body.seats},
-    ))
-
-    stripe_key = os.getenv("FIXOPS_STRIPE_SECRET_KEY", "")
-    if stripe_key:
-        try:
-            import stripe as _stripe  # type: ignore
-
-            _stripe.api_key = stripe_key
-
-            # Resolve Stripe Price ID for the target tier
-            price_id_env = f"FIXOPS_STRIPE_PRICE_ID_{target.upper()}"
-            price_id = os.getenv(price_id_env, "")
-            if not price_id:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Stripe price ID not configured: set {price_id_env}",
-                )
-
-            session = _stripe.checkout.Session.create(
-                mode="subscription",
-                line_items=[{"price": price_id, "quantity": body.seats}],
-                success_url="https://aldeci.ai/billing/success?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url="https://aldeci.ai/billing/cancel",
-                metadata={"org_id": org_id, "target_tier": target},
-            )
-            checkout_url = session.url or ""
-        except HTTPException:
-            raise
-        except Exception as exc:
-            logger.error("stripe checkout session creation failed: %s", exc)
-            raise HTTPException(status_code=502, detail="Stripe checkout session creation failed")
-    else:
-        checkout_url = (
-            f"https://aldeci.ai/billing/checkout?org={org_id}&tier={target}&seats={body.seats}"
+    # Replay-attack guard
+    if abs(time.time() - timestamp) > tolerance_seconds:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "stripe_signature_expired"},
         )
 
-    return UpgradeResponse(
-        status="intent_recorded",
-        checkout_url=checkout_url,
-        target_tier=target,
-        message=(
-            f"Upgrade intent recorded. Complete checkout at the URL to activate {target} tier."
-        ),
+    signed_payload = f"{timestamp}.".encode() + payload
+    expected = hmac.new(
+        secret.encode("utf-8"),
+        signed_payload,
+        hashlib.sha256,
+    ).hexdigest()
+
+    if not any(hmac.compare_digest(expected, sig) for sig in signatures):
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "stripe_signature_invalid"},
+        )
+
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Pydantic schemas
+# ---------------------------------------------------------------------------
+
+
+class BillingInfoResponse(BaseModel):
+    service: str = "Stripe Billing API"
+    version: str = "v1"
+    endpoints: List[str]
+    configured: bool
+    mode: str  # test | live | unknown | unconfigured
+
+
+class CreateCustomerRequest(BaseModel):
+    email: str = Field(..., description="Customer email address")
+    name: Optional[str] = Field(None, description="Customer full name")
+
+
+class CustomerResponse(BaseModel):
+    model_config = {"extra": "allow"}
+
+
+class CreateSubscriptionRequest(BaseModel):
+    customer_id: str = Field(..., description="Stripe customer ID (cus_...)")
+    price_id: str = Field(..., description="Stripe price ID (price_...)")
+
+
+class SubscriptionResponse(BaseModel):
+    model_config = {"extra": "allow"}
+
+
+class WebhookResponse(BaseModel):
+    received: bool = True
+    event_type: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# GET / — billing info (always returns 200, no creds required beyond api_key)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/", response_model=BillingInfoResponse)
+async def billing_info() -> BillingInfoResponse:
+    """Billing connector capability summary — safe to call without Stripe credentials.
+
+    Returns configured-status and mode (test vs live) so the UI can surface
+    actionable setup guidance without requiring a live Stripe account.
+    """
+    key = _get_key()
+    configured = key is not None
+    mode = _mode(key) if configured else "unconfigured"
+
+    _logger.info("billing_info configured=%s mode=%s", configured, mode)
+    return BillingInfoResponse(
+        endpoints=[
+            "POST /customers",
+            "POST /subscriptions",
+            "GET /subscriptions/{sub_id}",
+            "POST /subscriptions/{sub_id}/cancel",
+            "POST /webhook",
+        ],
+        configured=configured,
+        mode=mode,
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /customers — create Stripe customer
+# ---------------------------------------------------------------------------
+
+
+@router.post("/customers", response_model=CustomerResponse, status_code=201)
+async def create_customer(body: CreateCustomerRequest) -> CustomerResponse:
+    """Create a new Stripe customer.
+
+    Upstream: POST /v1/customers
+    Returns 503 when STRIPE_SECRET_KEY is unset.
+    Returns 201 with the created Customer object on success.
+    """
+    key = _require_key()
+    data: Dict[str, Any] = {"email": body.email}
+    if body.name:
+        data["name"] = body.name
+
+    result = await _stripe_post(key, "/customers", data)
+    _logger.info("billing_create_customer id=%s email=%s", result.get("id"), body.email)
+    return CustomerResponse(**result)
+
+
+# ---------------------------------------------------------------------------
+# POST /subscriptions — create subscription
+# ---------------------------------------------------------------------------
+
+
+@router.post("/subscriptions", response_model=SubscriptionResponse, status_code=201)
+async def create_subscription(body: CreateSubscriptionRequest) -> SubscriptionResponse:
+    """Create a new Stripe subscription.
+
+    Upstream: POST /v1/subscriptions
+    Returns 503 when STRIPE_SECRET_KEY is unset.
+    Returns 201 with the created Subscription object on success.
+    """
+    key = _require_key()
+    data: Dict[str, Any] = {
+        "customer": body.customer_id,
+        "items[0][price]": body.price_id,
+    }
+
+    result = await _stripe_post(key, "/subscriptions", data)
+    _logger.info(
+        "billing_create_subscription id=%s customer=%s price=%s status=%s",
+        result.get("id"), body.customer_id, body.price_id, result.get("status"),
+    )
+    return SubscriptionResponse(**result)
+
+
+# ---------------------------------------------------------------------------
+# GET /subscriptions/{sub_id} — retrieve subscription
+# ---------------------------------------------------------------------------
+
+
+@router.get("/subscriptions/{sub_id}", response_model=SubscriptionResponse)
+async def get_subscription(
+    sub_id: str = Path(..., min_length=1, max_length=255, description="Stripe subscription ID (sub_...)"),
+) -> SubscriptionResponse:
+    """Retrieve a Stripe subscription by ID.
+
+    Upstream: GET /v1/subscriptions/{sub_id}
+    Returns 503 when STRIPE_SECRET_KEY is unset.
+    """
+    key = _require_key()
+    result = await _stripe_get(key, f"/subscriptions/{sub_id}")
+    _logger.info(
+        "billing_get_subscription id=%s status=%s",
+        result.get("id"), result.get("status"),
+    )
+    return SubscriptionResponse(**result)
+
+
+# ---------------------------------------------------------------------------
+# POST /subscriptions/{sub_id}/cancel — cancel subscription
+# ---------------------------------------------------------------------------
+
+
+@router.post("/subscriptions/{sub_id}/cancel", response_model=SubscriptionResponse)
+async def cancel_subscription(
+    sub_id: str = Path(..., min_length=1, max_length=255, description="Stripe subscription ID (sub_...)"),
+) -> SubscriptionResponse:
+    """Cancel a Stripe subscription immediately.
+
+    Upstream: POST /v1/subscriptions/{sub_id}/cancel  (empty body)
+    Returns 503 when STRIPE_SECRET_KEY is unset.
+    """
+    key = _require_key()
+    result = await _stripe_post(key, f"/subscriptions/{sub_id}/cancel", {})
+    _logger.info(
+        "billing_cancel_subscription id=%s status=%s",
+        result.get("id"), result.get("status"),
+    )
+    return SubscriptionResponse(**result)
+
+
+# ---------------------------------------------------------------------------
+# POST /webhook — Stripe webhook receiver (no api_key_auth — uses sig verify)
+# Registered on webhook_router (separate router, no Depends(api_key_auth)).
+# ---------------------------------------------------------------------------
+
+
+@webhook_router.post("/webhook", response_model=WebhookResponse)
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: Optional[str] = Header(None, alias="stripe-signature"),
+) -> WebhookResponse:
+    """Handle Stripe webhook events with optional signature verification.
+
+    Supported events:
+      - customer.subscription.deleted
+      - invoice.payment_failed
+
+    Signature is verified against STRIPE_WEBHOOK_SECRET when set.
+    When STRIPE_WEBHOOK_SECRET is unset, verification is skipped with a warning
+    (suitable for development/test; always set in production).
+
+    Always returns 200 so Stripe does not retry events we explicitly handle.
+    """
+    raw_body = await request.body()
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
+
+    if webhook_secret:
+        if not stripe_signature:
+            _logger.warning("stripe_webhook_missing_signature")
+            raise HTTPException(
+                status_code=400,
+                detail={"error": "stripe_signature_required"},
+            )
+        _verify_stripe_signature(raw_body, stripe_signature, webhook_secret)
+    else:
+        _logger.warning(
+            "stripe_webhook_no_secret_configured — skipping signature verification "
+            "(set STRIPE_WEBHOOK_SECRET in production)"
+        )
+
+    try:
+        event = json.loads(raw_body)
+    except Exception as exc:
+        _logger.warning("stripe_webhook_invalid_json exc=%s", exc)
+        raise HTTPException(status_code=400, detail={"error": "invalid_json"}) from exc
+
+    event_type = event.get("type", "unknown")
+    event_id = event.get("id", "unknown")
+
+    if event_type == "customer.subscription.deleted":
+        obj = event.get("data", {}).get("object", {})
+        sub_id = obj.get("id", "unknown")
+        customer_id = obj.get("customer", "unknown")
+        _logger.info(
+            "stripe_webhook event=%s id=%s sub=%s customer=%s",
+            event_type, event_id, sub_id, customer_id,
+        )
+
+    elif event_type == "invoice.payment_failed":
+        obj = event.get("data", {}).get("object", {})
+        invoice_id = obj.get("id", "unknown")
+        customer_id = obj.get("customer", "unknown")
+        amount_due = obj.get("amount_due", 0)
+        _logger.warning(
+            "stripe_webhook event=%s id=%s invoice=%s customer=%s amount_due=%d",
+            event_type, event_id, invoice_id, customer_id, amount_due,
+        )
+
+    else:
+        _logger.info(
+            "stripe_webhook event=%s id=%s (unhandled — acknowledged)",
+            event_type, event_id,
+        )
+
+    return WebhookResponse(received=True, event_type=event_type)
+
+
+__all__ = ["router", "webhook_router"]

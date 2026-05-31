@@ -4041,3 +4041,26 @@ def register_platform_routers(
         _logger.info("Mounted LangSmith observability router at /api/v1/langsmith (read:scans)")
     except ImportError as exc:
         _logger.warning("langsmith_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Stripe Billing — customer + subscription lifecycle + webhook
+    # (Multica #9068 — 2026-05-31)
+    # GET  /api/v1/billing/                              info + mode
+    # POST /api/v1/billing/customers                     create customer
+    # POST /api/v1/billing/subscriptions                 create subscription
+    # GET  /api/v1/billing/subscriptions/{sub_id}        retrieve subscription
+    # POST /api/v1/billing/subscriptions/{sub_id}/cancel cancel subscription
+    # POST /api/v1/billing/webhook                       Stripe-sig-verified events
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.billing_router import router as billing_router  # noqa: PLC0415
+        from apps.api.billing_router import webhook_router as billing_webhook_router  # noqa: PLC0415
+        app.include_router(
+            billing_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
+        )
+        # Webhook receiver — no api_key_auth; Stripe signs the payload
+        app.include_router(billing_webhook_router)
+        _logger.info("Mounted Stripe Billing router at /api/v1/billing (read:scans) + webhook (no auth)")
+    except ImportError as exc:
+        _logger.warning("billing_router not available: %s", exc)

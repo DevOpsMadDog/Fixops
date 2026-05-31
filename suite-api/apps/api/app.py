@@ -2184,6 +2184,15 @@ def create_app() -> FastAPI:
         ],
     )
     FastAPIInstrumentor.instrument_app(app)
+
+    # ── Production observability: Sentry + StatsD (cred-gated, honest no-op) ─
+    try:
+        from core.observability import init_sentry, init_statsd
+        init_sentry()
+        init_statsd()
+    except Exception as _obs_exc:  # pragma: no cover
+        logging.getLogger(__name__).debug("Observability init skipped: %s", _obs_exc)
+
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()  # type: ignore[assignment]
 
