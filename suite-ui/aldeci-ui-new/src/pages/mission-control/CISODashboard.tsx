@@ -44,6 +44,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { HealthCardWidget } from "@/components/HealthCardWidget";
 import { CouncilVerdictsCard } from "@/components/exec/CouncilVerdictsCard";
+import { HealthzWidget } from "@/components/shared/HealthzWidget";
 import { buildApiUrl, getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -360,6 +361,9 @@ export default function CISODashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── Liveness probe widget ── */}
+      <HealthzWidget />
 
       {/* ── KPI strip — 6 cards ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
