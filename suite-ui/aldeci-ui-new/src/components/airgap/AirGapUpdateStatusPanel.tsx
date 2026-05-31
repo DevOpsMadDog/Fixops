@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw, Download, CheckCircle, FileArchive } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import api from "@/lib/api";
 
 interface UpdatePackage {
   package_id?: string;
@@ -47,10 +48,7 @@ export function AirGapUpdateStatusPanel() {
     setLoading(true);
     setError(null);
     try {
-      const { default: axios } = await import("axios");
-      const token = window.localStorage.getItem("aldeci.authToken") || "";
-      const headers = token ? { "X-API-Key": token } : {};
-      const res = await axios.get("/api/v1/airgap/updates/history", { headers });
+      const res = await api.get("/api/v1/airgap/updates/history");
       const d = res.data;
       setPackages(Array.isArray(d?.packages) ? d.packages : []);
     } catch (e: unknown) {

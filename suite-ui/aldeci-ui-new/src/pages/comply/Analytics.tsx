@@ -12,7 +12,6 @@
 
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,7 +32,7 @@ import {
   LineChart, Line, BarChart, Bar, Legend,
 } from "recharts";
 import { useDashboardTrends, useDashboardOverview, useComplianceOverallStatus } from "@/hooks/use-api";
-import { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
+import api, { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -109,7 +108,7 @@ export default function Analytics() {
     queryKey: ["analytics-engine-summary", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/analytics-engine/summary", { org_id: orgId });
-      const res = await axios.get<AnalyticsSummary>(url, { headers: apiHeaders() });
+      const res = await api.get<AnalyticsSummary>(url);
       return res.data;
     },
     staleTime: 60_000,

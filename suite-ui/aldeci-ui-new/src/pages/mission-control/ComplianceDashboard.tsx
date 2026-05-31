@@ -40,7 +40,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { complianceApi, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId, buildApiUrl } from "@/lib/api";
+import api, { complianceApi, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId, buildApiUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────
@@ -188,19 +188,19 @@ function ctemAuthHeaders(): Record<string, string> {
 
 async function listCtemCycles(orgId: string): Promise<CtemCycle[]> {
   const url = buildApiUrl("/api/v1/ctem/cycles", { org_id: orgId });
-  const res = await axios.get<CtemCycle[]>(url, { headers: ctemAuthHeaders() });
+  const res = await api.get<CtemCycle[]>(url);
   return Array.isArray(res.data) ? res.data : [];
 }
 
 async function createCtemCycle(name: string, orgId: string): Promise<CtemCycle> {
   const url = buildApiUrl("/api/v1/ctem/cycles", { org_id: orgId });
-  const res = await axios.post<CtemCycle>(url, { name }, { headers: ctemAuthHeaders() });
+  const res = await api.post<CtemCycle>(url, { name });
   return res.data;
 }
 
 async function advanceCtemStage(cycleId: string): Promise<CtemCycle> {
   const url = buildApiUrl(`/api/v1/ctem/cycles/${cycleId}/advance`);
-  const res = await axios.post<CtemCycle>(url, {}, { headers: ctemAuthHeaders() });
+  const res = await api.post<CtemCycle>(url, {});
   return res.data;
 }
 
@@ -402,7 +402,7 @@ export default function ComplianceDashboard() {
     queryKey: ["compliance-frameworks"],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/compliance/frameworks", { org_id: orgId });
-      const res = await axios.get<FrameworksResponse>(url, { headers: ctemAuthHeaders() });
+      const res = await api.get<FrameworksResponse>(url);
       return res.data;
     },
     staleTime: 120_000,
@@ -413,7 +413,7 @@ export default function ComplianceDashboard() {
     queryKey: ["compliance-scanner-results", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/compliance-scanner/results", { org_id: orgId });
-      const res = await axios.get<ScanResult[]>(url, { headers: ctemAuthHeaders() });
+      const res = await api.get<ScanResult[]>(url);
       return Array.isArray(res.data) ? res.data : [];
     },
     refetchInterval: 120_000,
@@ -425,7 +425,7 @@ export default function ComplianceDashboard() {
     queryKey: ["compliance-scanner-profiles", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/compliance-scanner/profiles", { org_id: orgId });
-      const res = await axios.get<ScanProfile[]>(url, { headers: ctemAuthHeaders() });
+      const res = await api.get<ScanProfile[]>(url);
       return Array.isArray(res.data) ? res.data : [];
     },
     staleTime: 120_000,

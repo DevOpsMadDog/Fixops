@@ -21,7 +21,6 @@ import {
   Search, Filter, RefreshCw, Inbox, ThumbsUp, ThumbsDown, Ban,
   Building2, Layers,
 } from "lucide-react";
-import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
+import api, { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // ═══════════════════════════════════════════════════════════
@@ -535,7 +534,7 @@ export default function RiskAcceptance() {
     queryKey: ["risk-acceptance", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/risk-acceptance", { org_id: orgId });
-      const res = await axios.get<ApiAcceptance[]>(url, { headers: apiHeaders() });
+      const res = await api.get<ApiAcceptance[]>(url);
       const arr = Array.isArray(res.data) ? res.data : [];
       return arr.map((r, i) => mapApiRecord(r, i));
     },

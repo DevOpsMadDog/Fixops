@@ -20,6 +20,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios, { AxiosError } from "axios";
+import api from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,35 +44,17 @@ import {
 import { toast } from "sonner";
 import {
   buildApiUrl,
-  getStoredAuthToken,
-  getStoredAuthStrategy,
   getStoredOrgId,
 } from "@/lib/api";
 
-// ── Local axios POST helper (uses the same auth headers as lib/api.ts) ──────
+// ── Local POST helper — routes through the shared api interceptor ───────────
 async function apiPost<T = unknown>(
   path: string,
   body: unknown,
   query?: Record<string, string>,
 ): Promise<T> {
   const url = buildApiUrl(path, query);
-  const token = getStoredAuthToken();
-  const strategy = getStoredAuthStrategy();
-  const orgId = getStoredOrgId();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) {
-    if (strategy === "jwt") {
-      headers["Authorization"] = token.toLowerCase().startsWith("bearer ")
-        ? token
-        : `Bearer ${token}`;
-    } else {
-      headers["X-API-Key"] = token;
-    }
-  }
-  if (orgId) headers["X-Org-ID"] = orgId;
-  const res = await axios.post<T>(url, body, { headers });
+  const res = await api.post<T>(url, body);
   return res.data;
 }
 

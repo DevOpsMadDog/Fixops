@@ -9,6 +9,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios, { AxiosError } from "axios";
+import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,8 +37,6 @@ import {
 } from "lucide-react";
 import {
   buildApiUrl,
-  getStoredAuthToken,
-  getStoredAuthStrategy,
   getStoredOrgId,
 } from "@/lib/api";
 
@@ -49,39 +48,13 @@ async function apiPost<T = unknown>(
   query?: Record<string, string>,
 ): Promise<T> {
   const url = buildApiUrl(path, query);
-  const token = getStoredAuthToken();
-  const strategy = getStoredAuthStrategy();
-  const orgId = getStoredOrgId();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) {
-    headers[strategy === "jwt" ? "Authorization" : "X-API-Key"] =
-      strategy === "jwt"
-        ? token.toLowerCase().startsWith("bearer ")
-          ? token
-          : `Bearer ${token}`
-        : token;
-  }
-  if (orgId) headers["X-Org-ID"] = orgId;
-  const res = await axios.post<T>(url, body, { headers });
+  const res = await api.post<T>(url, body);
   return res.data;
 }
 
 async function apiPostForm<T = unknown>(path: string, fd: FormData): Promise<T> {
   const url = buildApiUrl(path);
-  const token = getStoredAuthToken();
-  const strategy = getStoredAuthStrategy();
-  const orgId = getStoredOrgId();
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers[strategy === "jwt" ? "Authorization" : "X-API-Key"] =
-      strategy === "jwt"
-        ? token.toLowerCase().startsWith("bearer ")
-          ? token
-          : `Bearer ${token}`
-        : token;
-  }
-  if (orgId) headers["X-Org-ID"] = orgId;
-  const res = await axios.post<T>(url, fd, { headers });
+  const res = await api.post<T>(url, fd);
   return res.data;
 }
 

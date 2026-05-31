@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw, Package, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import api from "@/lib/api";
 
 interface Bundle {
   bundle_id: string;
@@ -52,12 +53,9 @@ export function AirGapFeedsPanel() {
     setLoading(true);
     setError(null);
     try {
-      const { default: axios } = await import("axios");
-      const token = window.localStorage.getItem("aldeci.authToken") || "";
-      const headers = token ? { "X-API-Key": token } : {};
       const [listRes, statsRes] = await Promise.allSettled([
-        axios.get("/api/v1/air-gap/bundle/list", { headers }),
-        axios.get("/api/v1/air-gap/bundle/stats", { headers }),
+        api.get("/api/v1/air-gap/bundle/list"),
+        api.get("/api/v1/air-gap/bundle/stats"),
       ]);
       if (listRes.status === "fulfilled") {
         const d = listRes.value.data;

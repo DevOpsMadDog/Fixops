@@ -31,9 +31,8 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
+import api, { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import axios from "axios";
 
 // ─────────────────────────────────────────────────────────────
 // Types — matching the real API shape
@@ -338,7 +337,7 @@ export default function RiskRegister() {
     queryKey: ["risk-register", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/risk-register-engine/risks", { org_id: orgId });
-      const res = await axios.get<ApiRisk[]>(url, { headers: apiHeaders() });
+      const res = await api.get<ApiRisk[]>(url);
       const arr = Array.isArray(res.data) ? res.data : [];
       return arr.map(mapApiRisk);
     },

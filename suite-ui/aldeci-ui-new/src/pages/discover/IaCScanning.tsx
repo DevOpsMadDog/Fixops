@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
+import api from "@/lib/api";
 import {
   Server, RefreshCw, Download, AlertTriangle, CheckCircle,
   Cloud, GitBranch, Settings,
@@ -224,11 +225,9 @@ export default function IaCScanning() {
     setScanResult(null);
     setScanning(true);
     try {
-      const baseURL = (import.meta.env.VITE_API_URL as string | undefined) || "";
-      const res = await axios.post<ScanResponse>(
-        `${baseURL}/api/v1/iac/scan`,
+      const res = await api.post<ScanResponse>(
+        "/api/v1/iac/scan",
         { content: scanContent, filename: scanFilename || "main.tf" },
-        { headers: { "Content-Type": "application/json" } },
       );
       setScanResult(res.data);
       const count =

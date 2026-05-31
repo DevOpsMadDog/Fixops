@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw, ShieldCheck, WifiOff, Cpu, Lock } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import api from "@/lib/api";
 
 interface AirGapStatus {
   mode?: string;
@@ -42,11 +43,7 @@ export function AirGapFeedStatusPanel() {
     setLoading(true);
     setError(null);
     try {
-      const { default: axios } = await import("axios");
-      const token = window.localStorage.getItem("aldeci.authToken") || "";
-      const res = await axios.get("/api/v1/airgap/status", {
-        headers: token ? { "X-API-Key": token } : {},
-      });
+      const res = await api.get("/api/v1/airgap/status");
       setData(res.data as AirGapStatus);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load air-gap status");

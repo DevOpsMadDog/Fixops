@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import api from "@/lib/api";
 import { toArray } from "@/lib/api-utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -248,9 +249,7 @@ function CreateRoomDialog({
     setOpen(false);
     // Persist war room creation via collaboration activity API
     try {
-      const { default: axios } = await import("axios");
-      const baseUrl = import.meta.env.VITE_API_URL || "";
-      await axios.post(`${baseUrl}/api/v1/collaboration/activity`, {
+      await api.post("/api/v1/collaboration/activity", {
         entity_type: "war_room",
         entity_id: `room_${Date.now()}`,
         org_id: "default",

@@ -16,12 +16,11 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { ShieldAlert, Star, TrendingUp, BookOpen, BarChart2, RefreshCw } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
+import api, { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredOrgId } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -155,7 +154,7 @@ export default function CyberResilienceDashboard() {
     queryKey: ["cyber-resilience-score", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/cyber-resilience/score", { org_id: orgId });
-      const res = await axios.get<ScoreResponse>(url, { headers: apiHeaders() });
+      const res = await api.get<ScoreResponse>(url);
       return res.data;
     },
     staleTime: 60_000,
@@ -167,7 +166,7 @@ export default function CyberResilienceDashboard() {
     queryKey: ["cyber-resilience-exercises", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/cyber-resilience/exercises", { org_id: orgId });
-      const res = await axios.get<Exercise[]>(url, { headers: apiHeaders() });
+      const res = await api.get<Exercise[]>(url);
       return Array.isArray(res.data) ? res.data : [];
     },
     staleTime: 60_000,
@@ -178,7 +177,7 @@ export default function CyberResilienceDashboard() {
     queryKey: ["cyber-resilience-assessments", orgId],
     queryFn: async () => {
       const url = buildApiUrl("/api/v1/cyber-resilience/assessments", { org_id: orgId });
-      const res = await axios.get<Assessment[]>(url, { headers: apiHeaders() });
+      const res = await api.get<Assessment[]>(url);
       return Array.isArray(res.data) ? res.data : [];
     },
     staleTime: 60_000,
