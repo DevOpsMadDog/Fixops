@@ -129,9 +129,10 @@ async def list_audit_logs(
 async def export_audit_logs(
     format: str = Query("json", pattern="^(json|csv|siem)$"),
     days: int = Query(30, ge=1, le=365),
+    org_id: str = Depends(get_org_id),
 ):
     """Export audit logs in JSON, CSV, or SIEM-compatible format."""
-    logs = db.list_audit_logs(limit=50000)
+    logs = db.list_audit_logs(org_id=org_id, limit=50000)
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     filtered = []
     for log in logs:
@@ -180,9 +181,9 @@ async def export_audit_logs(
 
 
 @router.get("/logs/{id}", response_model=AuditLogResponse)
-async def get_audit_log(id: str):
+async def get_audit_log(id: str, org_id: str = Depends(get_org_id)):
     """Get audit log entry by ID."""
-    logs = db.list_audit_logs(limit=1000)
+    logs = db.list_audit_logs(org_id=org_id, limit=1000)
     for log in logs:
         if log.id == id:
             return AuditLogResponse(**log.to_dict())
@@ -191,10 +192,12 @@ async def get_audit_log(id: str):
 
 @router.get("/user-activity")
 async def get_user_activity(
-    user_id: str = Query("default"), limit: int = Query(100, ge=1, le=1000)
+    user_id: str = Query("default"),
+    limit: int = Query(100, ge=1, le=1000),
+    org_id: str = Depends(get_org_id),
 ):
     """Get user activity logs."""
-    logs = db.list_audit_logs(user_id=user_id, limit=limit)
+    logs = db.list_audit_logs(user_id=user_id, org_id=org_id, limit=limit)
     return {
         "user_id": user_id,
         "activities": [log.to_dict() for log in logs],
@@ -203,9 +206,12 @@ async def get_user_activity(
 
 
 @router.get("/policy-changes")
-async def get_policy_changes(limit: int = Query(100, ge=1, le=1000)):
+async def get_policy_changes(
+    limit: int = Query(100, ge=1, le=1000),
+    org_id: str = Depends(get_org_id),
+):
     """Get policy change history."""
-    logs = db.list_audit_logs(event_type="policy_updated", limit=limit)
+    logs = db.list_audit_logs(event_type="policy_updated", org_id=org_id, limit=limit)
     return {
         "changes": [log.to_dict() for log in logs],
         "total": len(logs),
@@ -214,10 +220,12 @@ async def get_policy_changes(limit: int = Query(100, ge=1, le=1000)):
 
 @router.get("/decision-trail")
 async def get_decision_trail(
-    limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    org_id: str = Depends(get_org_id),
 ):
     """Get decision audit trail."""
-    logs = db.list_audit_logs(event_type="decision_made", limit=limit, offset=offset)
+    logs = db.list_audit_logs(event_type="decision_made", org_id=org_id, limit=limit, offset=offset)
     return {
         "decisions": [log.to_dict() for log in logs],
         "total": len(logs),

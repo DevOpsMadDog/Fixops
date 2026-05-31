@@ -170,7 +170,7 @@ async def get_acceptance(
 ) -> RiskAcceptance:
     """Get a single risk acceptance by ID."""
     acceptance = manager.get_acceptance(acceptance_id)
-    if acceptance is None:
+    if acceptance is None or acceptance.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Risk acceptance '{acceptance_id}' not found")
     return acceptance
 
@@ -183,6 +183,9 @@ async def approve_acceptance(
     manager: RiskAcceptanceManager = Depends(_get_manager),
 ) -> RiskAcceptance:
     """Approve a pending risk acceptance. Requires admin or security_analyst role."""
+    acceptance = manager.get_acceptance(acceptance_id)
+    if acceptance is None or acceptance.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Risk acceptance '{acceptance_id}' not found")
     try:
         return manager.approve(
             acceptance_id,
@@ -202,6 +205,9 @@ async def reject_acceptance(
     manager: RiskAcceptanceManager = Depends(_get_manager),
 ) -> RiskAcceptance:
     """Reject a pending risk acceptance."""
+    acceptance = manager.get_acceptance(acceptance_id)
+    if acceptance is None or acceptance.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Risk acceptance '{acceptance_id}' not found")
     try:
         return manager.reject(acceptance_id, reviewer=payload.reviewer, reason=payload.reason)
     except ValueError as exc:
@@ -216,6 +222,9 @@ async def revoke_acceptance(
     manager: RiskAcceptanceManager = Depends(_get_manager),
 ) -> RiskAcceptance:
     """Revoke a previously approved risk acceptance."""
+    acceptance = manager.get_acceptance(acceptance_id)
+    if acceptance is None or acceptance.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Risk acceptance '{acceptance_id}' not found")
     try:
         return manager.revoke(acceptance_id, revoker=payload.revoker, reason=payload.reason)
     except ValueError as exc:
@@ -230,6 +239,6 @@ async def review_history(
 ) -> List[AcceptanceReview]:
     """Return the full review history for a risk acceptance."""
     acceptance = manager.get_acceptance(acceptance_id)
-    if acceptance is None:
+    if acceptance is None or acceptance.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Risk acceptance '{acceptance_id}' not found")
     return manager.get_review_history(acceptance_id)

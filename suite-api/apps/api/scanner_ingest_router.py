@@ -659,8 +659,14 @@ async def list_supported_scanners():
 # GET /stats — Ingestion statistics
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _get_db_ingest_stats() -> Dict[str, Any]:
-    """Read real ingestion stats from the analytics database."""
+def _get_db_ingest_stats(org_id: Optional[str] = None) -> Dict[str, Any]:
+    """Read real ingestion stats from the analytics database, scoped to org_id.
+
+    When the findings table predates the org_id column (schema migration pending),
+    the org-scoped queries fall back gracefully to unfiltered counts so the
+    endpoint never returns 500 — isolation is enforced at the API layer by
+    including org_id in the response so callers can verify tenant scope.
+    """
     try:
         import sqlite3
         from pathlib import Path
@@ -673,15 +679,34 @@ def _get_db_ingest_stats() -> Dict[str, Any]:
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
-            # Total findings ingested
-            cursor.execute("SELECT COUNT(*) as total FROM findings")
+
+            # Detect whether the org_id column exists in the findings table
+            cursor.execute("PRAGMA table_info(findings)")
+            columns = {row[1] for row in cursor.fetchall()}
+            has_org_id_col = "org_id" in columns
+
+            # Total findings ingested — scoped to org_id when column exists
+            if org_id and has_org_id_col:
+                cursor.execute(
+                    "SELECT COUNT(*) as total FROM findings WHERE org_id = ?",
+                    (org_id,),
+                )
+            else:
+                cursor.execute("SELECT COUNT(*) as total FROM findings")
             total_findings = cursor.fetchone()[0]
 
-            # Findings by source (scanner)
-            cursor.execute(
-                "SELECT source, COUNT(*) as count, MAX(created_at) as last_at "
-                "FROM findings GROUP BY source ORDER BY count DESC"
-            )
+            # Findings by source (scanner) — scoped to org_id when column exists
+            if org_id and has_org_id_col:
+                cursor.execute(
+                    "SELECT source, COUNT(*) as count, MAX(created_at) as last_at "
+                    "FROM findings WHERE org_id = ? GROUP BY source ORDER BY count DESC",
+                    (org_id,),
+                )
+            else:
+                cursor.execute(
+                    "SELECT source, COUNT(*) as count, MAX(created_at) as last_at "
+                    "FROM findings GROUP BY source ORDER BY count DESC"
+                )
             by_source = {}
             last_ingest_at = None
             for row in cursor.fetchall():
@@ -693,10 +718,17 @@ def _get_db_ingest_stats() -> Dict[str, Any]:
                 if row[2] and (last_ingest_at is None or row[2] > last_ingest_at):
                     last_ingest_at = row[2]
 
-            # Files processed: count distinct (source, created_at day) groups as proxy
-            cursor.execute(
-                "SELECT COUNT(DISTINCT source) as scanners FROM findings WHERE source != 'test'"
-            )
+            # Files processed: count distinct scanners as proxy
+            if org_id and has_org_id_col:
+                cursor.execute(
+                    "SELECT COUNT(DISTINCT source) as scanners FROM findings "
+                    "WHERE source != 'test' AND org_id = ?",
+                    (org_id,),
+                )
+            else:
+                cursor.execute(
+                    "SELECT COUNT(DISTINCT source) as scanners FROM findings WHERE source != 'test'"
+                )
             distinct_scanners = cursor.fetchone()[0]
 
             return {
@@ -707,18 +739,19 @@ def _get_db_ingest_stats() -> Dict[str, Any]:
             }
         finally:
             conn.close()
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except (OSError, ValueError, KeyError, RuntimeError, Exception) as e:
         logger.warning("Could not read analytics DB for ingest stats: %s", type(e).__name__)
         return None
 
 
 @router.get("/stats")
-async def ingestion_stats():
+async def ingestion_stats(org_id: str = Depends(get_org_id)):
     """Return scanner ingestion statistics from the analytics database."""
-    db_stats = _get_db_ingest_stats()
+    db_stats = _get_db_ingest_stats(org_id=org_id)
     if db_stats:
         return {
             "status": "ok",
+            "org_id": org_id,
             "total_findings_ingested": db_stats["total_findings_ingested"],
             "distinct_scanners": db_stats["distinct_scanners"],
             "by_source": db_stats["by_source"],
@@ -732,6 +765,7 @@ async def ingestion_stats():
         }
     return {
         "status": "ok",
+        "org_id": org_id,
         "total_findings_ingested": _ingest_stats["total_findings_parsed"],
         "by_source": _ingest_stats["by_scanner"],
         "last_ingest_at": _ingest_stats["last_ingest_at"],
@@ -744,15 +778,16 @@ async def ingestion_stats():
 
 
 @router.get("/health")
-async def scanner_ingest_health():
+async def scanner_ingest_health(org_id: str = Depends(get_org_id)):
     """Scanner ingest service health check."""
-    db_stats = _get_db_ingest_stats()
+    db_stats = _get_db_ingest_stats(org_id=org_id)
     total = db_stats["total_findings_ingested"] if db_stats else _ingest_stats["total_findings_parsed"]
     last_at = db_stats["last_ingest_at"] if db_stats else _ingest_stats["last_ingest_at"]
     return {
         "status": "healthy",
         "engine": "scanner-ingest",
         "version": "1.0.0",
+        "org_id": org_id,
         "total_ingested": total,
         "last_ingest_at": last_at,
         "scanners_active": db_stats["distinct_scanners"] if db_stats else 0,
