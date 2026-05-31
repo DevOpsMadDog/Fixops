@@ -2308,6 +2308,48 @@ def register_platform_routers(
         _logger.warning("elasticsearch_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # GCP BigQuery Data Plane Connector — 2026-05-31
+    # GET  /api/v1/bigquery/                             connector info / configured-status  (read:scans)
+    # GET  /api/v1/bigquery/datasets                     list datasets in project            (read:scans)
+    # GET  /api/v1/bigquery/datasets/{dataset_id}/tables list tables in dataset              (read:scans)
+    # GET  /api/v1/bigquery/jobs                         list jobs in project                (read:scans)
+    # POST /api/v1/bigquery/queries                      execute synchronous query           (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.bigquery_router import router as bigquery_router  # noqa: PLC0415
+        app.include_router(
+            bigquery_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted GCP BigQuery data-plane connector router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("bigquery_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # AWS Redshift Data API Connector — 2026-05-31
+    # GET  /api/v1/aws-redshift/                              connector info / configured-status  (read:scans)
+    # GET  /api/v1/aws-redshift/clusters                      list Redshift clusters              (read:scans)
+    # POST /api/v1/aws-redshift/queries                       execute SQL statement               (read:scans)
+    # GET  /api/v1/aws-redshift/queries/{statement_id}        describe statement status           (read:scans)
+    # GET  /api/v1/aws-redshift/queries/{statement_id}/result fetch statement result rows         (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.aws_redshift_router import router as aws_redshift_router  # noqa: PLC0415
+        app.include_router(
+            aws_redshift_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted AWS Redshift data-plane connector router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("aws_redshift_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Cloudflare API v4 Live REST — 2026-05-04
     # GET /api/v1/cloudflare/                                                              capability summary  (read:scans)
     # GET /api/v1/cloudflare/client/v4/zones                                               list zones          (read:scans)
