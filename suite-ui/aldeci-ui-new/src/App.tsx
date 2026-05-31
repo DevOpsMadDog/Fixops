@@ -313,6 +313,41 @@ const FipsComplianceDashboard = lazy(() => import("@/pages/FipsComplianceDashboa
 const LocalFileStoreDashboard = lazy(() => import("@/pages/LocalFileStoreDashboard"));
 const DynamicRuleDSLDashboard = lazy(() => import("@/pages/DynamicRuleDSLDashboard"));
 
+// === S01-S16 v2 consolidation lazy imports ===
+const S01LoginAuth = lazy(() => import("@/pages/v2/S01LoginAuth"));
+const S02Onboarding = lazy(() => import("@/pages/v2/S02Onboarding"));
+const S03MissionControl = lazy(() => import("@/pages/v2/S03MissionControl"));
+const S04AspmCode = lazy(() => import("@/pages/v2/S04AspmCode"));
+const S05AspmApi = lazy(() => import("@/pages/v2/S05AspmApi"));
+const S06AspmRuntime = lazy(() => import("@/pages/v2/S06AspmRuntime"));
+const S07SupplyChain = lazy(() => import("@/pages/v2/S07SupplyChain"));
+const S08SecretsCrypto = lazy(() => import("@/pages/v2/S08SecretsCrypto"));
+const S09CspmPosture = lazy(() => import("@/pages/v2/S09CspmPosture"));
+const S10CloudAccounts = lazy(() => import("@/pages/v2/S10CloudAccounts"));
+const S11CloudWorkloads = lazy(() => import("@/pages/v2/S11CloudWorkloads"));
+const S12NetworkSec = lazy(() => import("@/pages/v2/S12NetworkSec"));
+const S13IdentityAccess = lazy(() => import("@/pages/v2/S13IdentityAccess"));
+const S14AttackSurface = lazy(() => import("@/pages/v2/S14AttackSurface"));
+const S15TrustGraph = lazy(() => import("@/pages/v2/S15TrustGraph"));
+const S16CtemCycles = lazy(() => import("@/pages/v2/S16CtemCycles"));
+
+// === S17-S31 v2 consolidation lazy imports ===
+const S17FindingsExplorer = lazy(() => import("@/pages/v2/S17FindingsExplorer"));
+const S18RiskAcceptance = lazy(() => import("@/pages/v2/S18RiskAcceptance"));
+const S19ThreatIntel = lazy(() => import("@/pages/v2/S19ThreatIntel"));
+const S20Detections = lazy(() => import("@/pages/v2/S20Detections"));
+const S21Incidents = lazy(() => import("@/pages/v2/S21Incidents"));
+const S22RansomwareMalware = lazy(() => import("@/pages/v2/S22RansomwareMalware"));
+const S23DataSecurity = lazy(() => import("@/pages/v2/S23DataSecurity"));
+const S24Privacy = lazy(() => import("@/pages/v2/S24Privacy"));
+const S25Compliance = lazy(() => import("@/pages/v2/S25Compliance"));
+const S26VendorRisk = lazy(() => import("@/pages/v2/S26VendorRisk"));
+const S27IotOtEndpoints = lazy(() => import("@/pages/v2/S27IotOtEndpoints"));
+const S28AiSecurity = lazy(() => import("@/pages/v2/S28AiSecurity"));
+const S29Integrations = lazy(() => import("@/pages/v2/S29Integrations"));
+const S30Collaboration = lazy(() => import("@/pages/v2/S30Collaboration"));
+const S31SettingsAdmin = lazy(() => import("@/pages/v2/S31SettingsAdmin"));
+
 // Wave 35 domain dashboards
 const VulnScoringDashboard = lazy(() => import("@/pages/VulnScoringDashboard"));
 
@@ -1362,6 +1397,40 @@ export default function App() {
             <Route path="/rules/taxonomy" element={<Navigate to="/comply/rules?tab=taxonomy" replace />} />
             {/* /audit/explorer, /system/fips-status → consolidated into /compliance hero */}
             <Route path="/violations/lifecycle" element={<ViolationLifecycleTimeline />} />
+
+            {/* === S01-S16 v2 consolidation routes === */}
+            <Route path="/v2/login" element={<S01LoginAuth />} />
+            <Route path="/v2/onboarding" element={<S02Onboarding />} />
+            <Route path="/v2/mission-control" element={<S03MissionControl />} />
+            <Route path="/v2/aspm/code" element={<S04AspmCode />} />
+            <Route path="/v2/aspm/api" element={<S05AspmApi />} />
+            <Route path="/v2/aspm/runtime" element={<S06AspmRuntime />} />
+            <Route path="/v2/aspm/supply-chain" element={<S07SupplyChain />} />
+            <Route path="/v2/aspm/secrets" element={<S08SecretsCrypto />} />
+            <Route path="/v2/cspm/posture" element={<S09CspmPosture />} />
+            <Route path="/v2/cloud/accounts" element={<S10CloudAccounts />} />
+            <Route path="/v2/cloud/workloads" element={<S11CloudWorkloads />} />
+            <Route path="/v2/cloud/network" element={<S12NetworkSec />} />
+            <Route path="/v2/identity" element={<S13IdentityAccess />} />
+            <Route path="/v2/exposure/asm" element={<S14AttackSurface />} />
+            <Route path="/v2/exposure/trustgraph" element={<S15TrustGraph />} />
+            <Route path="/v2/exposure/ctem" element={<S16CtemCycles />} />
+            {/* === S17-S31 v2 consolidation routes === */}
+            <Route path="/v2/findings" element={<S17FindingsExplorer />} />
+            <Route path="/v2/findings/waivers" element={<S18RiskAcceptance />} />
+            <Route path="/v2/threats/intel" element={<S19ThreatIntel />} />
+            <Route path="/v2/threats/detections" element={<S20Detections />} />
+            <Route path="/v2/threats/incidents" element={<S21Incidents />} />
+            <Route path="/v2/threats/malware" element={<S22RansomwareMalware />} />
+            <Route path="/v2/data/security" element={<S23DataSecurity />} />
+            <Route path="/v2/data/privacy" element={<S24Privacy />} />
+            <Route path="/v2/compliance" element={<S25Compliance />} />
+            <Route path="/v2/risk/vendor" element={<S26VendorRisk />} />
+            <Route path="/v2/risk/endpoints" element={<S27IotOtEndpoints />} />
+            <Route path="/v2/risk/ai-security" element={<S28AiSecurity />} />
+            <Route path="/v2/platform/integrations" element={<S29Integrations />} />
+            <Route path="/v2/platform/collab" element={<S30Collaboration />} />
+            <Route path="/v2/admin" element={<S31SettingsAdmin />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
