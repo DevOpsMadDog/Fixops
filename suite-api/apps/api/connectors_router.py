@@ -24,7 +24,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 try:
     from apps.api.dependencies import get_org_id as _get_org_id
@@ -106,6 +106,17 @@ class RegisterConnectorRequest(BaseModel):
     jira: Optional[JiraConfig] = None
     github: Optional[GitHubConfig] = None
     slack: Optional[SlackConfig] = None
+    # Generic alias: customers may send {"type":"github","config":{...}} instead of
+    # {"type":"github","github":{...}}.  The model_validator below remaps it so both
+    # forms succeed.  The field is excluded from serialisation so it never leaks out.
+    config: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Generic config alias. Alternatively use the connector-type key directly "
+            "(e.g. 'github': {...}). When both are present, the typed key wins."
+        ),
+        exclude=True,
+    )
 
     @field_validator("name")
     @classmethod
@@ -117,6 +128,63 @@ class RegisterConnectorRequest(BaseModel):
                 "start with alphanumeric, max 63 chars"
             )
         return v
+
+    @model_validator(mode="after")
+    def _remap_generic_config(self) -> "RegisterConnectorRequest":
+        """If the caller used the generic ``config`` key instead of the typed key,
+        remap it automatically.  This lets both request shapes succeed:
+
+            {"type": "github", "github": {...}}   <- canonical
+            {"type": "github", "config": {...}}   <- alias (remapped here)
+
+        If neither the typed key nor ``config`` is provided, raise a 400-style
+        ValueError whose message names the exact key the caller should use.
+        """
+        _type_field_map: Dict[str, str] = {
+            "jira": "jira",
+            "github": "github",
+            "slack": "slack",
+        }
+        _type_model_map: Dict[str, type] = {
+            "jira": JiraConfig,
+            "github": GitHubConfig,
+            "slack": SlackConfig,
+        }
+
+        connector_type = self.type.value  # already validated enum value
+        expected_key = _type_field_map[connector_type]
+        typed_value = getattr(self, expected_key)  # e.g. self.github
+
+        # Case 1: typed key already present — nothing to do.
+        if typed_value is not None:
+            return self
+
+        # Case 2: generic ``config`` provided — remap to the typed key.
+        if self.config is not None:
+            model_cls = _type_model_map[connector_type]
+            try:
+                parsed = model_cls(**self.config)
+            except Exception as exc:
+                raise ValueError(
+                    f"Connector type '{connector_type}' requires a '{expected_key}' config object. "
+                    f"The provided 'config' value failed validation: {exc}"
+                ) from exc
+            setattr(self, expected_key, parsed)
+            return self
+
+        # Case 3: neither typed key nor config — tell the caller exactly what to send.
+        provided_keys = [
+            k for k in ("jira", "github", "slack")
+            if getattr(self, k) is not None
+        ]
+        example = {expected_key: {f: "..." for f in _type_model_map[connector_type].model_fields}}
+        required_fields = list(_type_model_map[connector_type].model_fields.keys())
+        raise ValueError(
+            f"Connector type '{connector_type}' requires a '{expected_key}' config object. "
+            f"Send it as '\"{expected_key}\": " + "{...}" + f"' or as '\"config\": " + "{...}" + f"' in the request body. "
+            f"Required fields: {required_fields}. "
+            f"Keys provided: {provided_keys or ['(none)']}"
+        )
 
 
 class FindingInput(BaseModel):
@@ -287,11 +355,17 @@ async def register_connector(
     uc = _get_universal()
     connector: Any
 
+    # model_validator guarantees req.jira/github/slack is populated at this point.
+    # The guards below are safety-net only (unreachable in normal flow).
     if req.type == ConnectorType.jira:
-        if not req.jira:
+        if not req.jira:  # pragma: no cover
             raise HTTPException(
-                status_code=422,
-                detail="Jira config is required when type is 'jira'",
+                status_code=400,
+                detail=(
+                    "Connector type 'jira' requires a 'jira' config object, e.g. "
+                    '{"jira": {"base_url": "...", "email": "...", "api_token": "...", "project_key": "..."}}. '
+                    "Alternatively send the fields under a generic 'config' key."
+                ),
             )
         connector = JiraConnector(
             base_url=req.jira.base_url,
@@ -302,10 +376,14 @@ async def register_connector(
         )
 
     elif req.type == ConnectorType.github:
-        if not req.github:
+        if not req.github:  # pragma: no cover
             raise HTTPException(
-                status_code=422,
-                detail="GitHub config is required when type is 'github'",
+                status_code=400,
+                detail=(
+                    "Connector type 'github' requires a 'github' config object, e.g. "
+                    '{"github": {"token": "...", "owner": "...", "repo": "..."}}. '
+                    "Alternatively send the fields under a generic 'config' key."
+                ),
             )
         connector = GitHubConnector(
             token=req.github.token,
@@ -314,10 +392,14 @@ async def register_connector(
         )
 
     elif req.type == ConnectorType.slack:
-        if not req.slack:
+        if not req.slack:  # pragma: no cover
             raise HTTPException(
-                status_code=422,
-                detail="Slack config is required when type is 'slack'",
+                status_code=400,
+                detail=(
+                    "Connector type 'slack' requires a 'slack' config object, e.g. "
+                    '{"slack": {"webhook_url": "https://hooks.slack.com/..."}}. '
+                    "Alternatively send the fields under a generic 'config' key."
+                ),
             )
         connector = SlackConnector(
             webhook_url=req.slack.webhook_url,

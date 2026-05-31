@@ -28,7 +28,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,39 @@ router = APIRouter(prefix="/api/v1/integrations", tags=["Integration Hub"])
 def _hub():
     from core.integration_hub import get_hub
     return get_hub()
+
+
+# ---------------------------------------------------------------------------
+# Org-scoped name helpers
+# The engine's ConnectorRegistry uses a flat dict keyed by `name` with no
+# org_id field.  We namespace every integration name as "{org_id}__{name}"
+# so that one org can never observe or mutate another org's integrations.
+# The prefix is always stripped before returning responses to callers.
+# ---------------------------------------------------------------------------
+
+_SEP = "__"
+
+
+def _scoped_name(org_id: str, name: str) -> str:
+    """Return the internal registry key for an integration."""
+    return f"{org_id}{_SEP}{name}"
+
+
+def _unscoped_name(org_id: str, internal_name: str) -> str:
+    """Strip the org prefix from an internal name before returning to caller."""
+    prefix = org_id + _SEP
+    if internal_name.startswith(prefix):
+        return internal_name[len(prefix):]
+    return internal_name
+
+
+def _strip_prefix(org_id: str, resp: Any) -> Any:
+    """Return a copy of an IntegrationRegistrationResponse with name unscoped."""
+    if resp is None:
+        return None
+    d = resp.model_dump()
+    d["name"] = _unscoped_name(org_id, d["name"])
+    return d
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +124,11 @@ class InboundSyncRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/", summary="Register a new integration")
-async def register_integration(req: RegisterIntegrationRequest) -> Dict[str, Any]:
+async def register_integration(
+    req: RegisterIntegrationRequest,
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
+) -> Dict[str, Any]:
     """Register a new integration connector (Slack, Jira, PagerDuty, ServiceNow, Teams, webhook)."""
     from core.integration_hub import IntegrationType
 
@@ -102,10 +141,11 @@ async def register_integration(req: RegisterIntegrationRequest) -> Dict[str, Any
                    f"Valid: {[t.value for t in IntegrationType]}",
         )
 
+    internal_name = _scoped_name(org_id, req.name)
     hub = _hub()
     try:
         hub.add_integration(
-            name=req.name,
+            name=internal_name,
             integration_type=itype,
             config=req.config,
             tags=req.tags,
@@ -113,30 +153,43 @@ async def register_integration(req: RegisterIntegrationRequest) -> Dict[str, Any
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
 
-    resp = hub.get_integration(req.name)
-    return {"status": "registered", "integration": resp.model_dump() if resp else {}}
+    resp = hub.get_integration(internal_name)
+    return {"status": "registered", "integration": _strip_prefix(org_id, resp)}
 
 
 @router.get("/", summary="List all integrations")
 async def list_integrations(
     enabled_only: bool = Query(False, description="Return only enabled integrations"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """List all registered integration connectors."""
+    """List all registered integration connectors for the caller's org."""
     hub = _hub()
-    integrations = hub.list_integrations(enabled_only=enabled_only)
+    prefix = org_id + _SEP
+    integrations = [
+        i for i in hub.list_integrations(enabled_only=enabled_only)
+        if i.name.startswith(prefix)
+    ]
     return {
         "total": len(integrations),
-        "integrations": [i.model_dump() for i in integrations],
+        "integrations": [_strip_prefix(org_id, i) for i in integrations],
     }
 
 
 @router.delete("/{name}", summary="Remove an integration")
 async def remove_integration(
     name: str = Path(..., description="Integration slug name"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """Deregister and remove an integration connector."""
+    """Deregister and remove an integration connector owned by the caller's org."""
+    internal_name = _scoped_name(org_id, name)
     hub = _hub()
-    removed = hub.remove_integration(name)
+    # Confirm it belongs to this org before removing
+    existing = hub.get_integration(internal_name)
+    if existing is None:
+        raise HTTPException(status_code=404, detail=f"Integration '{name}' not found")
+    removed = hub.remove_integration(internal_name)
     if not removed:
         raise HTTPException(status_code=404, detail=f"Integration '{name}' not found")
     return {"status": "removed", "name": name}
@@ -147,10 +200,22 @@ async def remove_integration(
 # ---------------------------------------------------------------------------
 
 @router.get("/health", summary="All integrations health summary")
-async def all_health() -> Dict[str, Any]:
-    """Return health status for all registered integrations."""
+async def all_health(
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Return health status for all integrations owned by the caller's org."""
     hub = _hub()
-    summaries = hub.health_summary()
+    prefix = org_id + _SEP
+    all_summaries = hub.health_summary()
+    # health_summary() returns a list of dicts with an "integration_name" key
+    summaries = [
+        s for s in all_summaries
+        if isinstance(s, dict) and s.get("integration_name", "").startswith(prefix)
+    ]
+    # Strip prefix from integration_name in each summary
+    for s in summaries:
+        s["integration_name"] = _unscoped_name(org_id, s["integration_name"])
     return {
         "total": len(summaries),
         "integrations": summaries,
@@ -160,22 +225,34 @@ async def all_health() -> Dict[str, Any]:
 @router.get("/{name}/health", summary="Single integration health")
 async def integration_health(
     name: str = Path(..., description="Integration slug name"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return detailed health and circuit breaker state for one integration."""
+    internal_name = _scoped_name(org_id, name)
     hub = _hub()
-    hlth = hub.integration_health(name)
+    hlth = hub.integration_health(internal_name)
     if hlth is None:
         raise HTTPException(status_code=404, detail=f"Integration '{name}' not found")
+    if isinstance(hlth, dict) and "integration_name" in hlth:
+        hlth = dict(hlth)
+        hlth["integration_name"] = _unscoped_name(org_id, hlth["integration_name"])
     return hlth
 
 
 @router.post("/{name}/reset-circuit", summary="Reset circuit breaker")
 async def reset_circuit_breaker(
     name: str = Path(..., description="Integration slug name"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Force-reset the circuit breaker for an integration back to CLOSED."""
+    internal_name = _scoped_name(org_id, name)
     hub = _hub()
-    reset = hub.reset_circuit_breaker(name)
+    # Guard: verify it belongs to this org
+    if hub.get_integration(internal_name) is None:
+        raise HTTPException(status_code=404, detail=f"Integration '{name}' not found")
+    reset = hub.reset_circuit_breaker(internal_name)
     if not reset:
         raise HTTPException(status_code=404, detail=f"Integration '{name}' not found")
     return {"status": "reset", "name": name, "circuit_state": "closed"}
@@ -185,10 +262,31 @@ async def reset_circuit_breaker(
 # Webhook endpoints
 # ---------------------------------------------------------------------------
 
+def _org_integration_ids(org_id: str) -> set:
+    """Return the set of integration UUIDs owned by this org."""
+    hub = _hub()
+    prefix = org_id + _SEP
+    return {
+        i.id for i in hub.list_integrations()
+        if i.name.startswith(prefix)
+    }
+
+
 @router.post("/webhooks", summary="Register a webhook")
-async def register_webhook(req: RegisterWebhookRequest) -> Dict[str, Any]:
-    """Register an inbound or outbound webhook for an integration."""
+async def register_webhook(
+    req: RegisterWebhookRequest,
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Register an inbound or outbound webhook for an integration owned by the caller's org."""
     from core.integration_hub import EventType, SyncDirection
+
+    # Guard: integration_id must belong to this org
+    if req.integration_id not in _org_integration_ids(org_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Integration '{req.integration_id}' not found",
+        )
 
     try:
         direction = SyncDirection(req.direction)
@@ -224,10 +322,26 @@ async def register_webhook(req: RegisterWebhookRequest) -> Dict[str, Any]:
 @router.get("/webhooks", summary="List webhooks")
 async def list_webhooks(
     integration_id: Optional[str] = Query(None, description="Filter by integration UUID"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """List all registered webhooks, optionally filtered by integration."""
+    """List webhooks for the caller's org (optionally filtered by integration UUID)."""
     hub = _hub()
-    hooks = hub.list_webhooks(integration_id=integration_id)
+    owned_ids = _org_integration_ids(org_id)
+
+    if integration_id is not None:
+        # Guard: the requested integration_id must belong to this org
+        if integration_id not in owned_ids:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Integration '{integration_id}' not found",
+            )
+        hooks = hub.list_webhooks(integration_id=integration_id)
+    else:
+        # Return only webhooks whose integration_id belongs to this org
+        all_hooks = hub.list_webhooks()
+        hooks = [h for h in all_hooks if h.integration_id in owned_ids]
+
     return {
         "total": len(hooks),
         "webhooks": [h.model_dump() for h in hooks],
@@ -237,9 +351,17 @@ async def list_webhooks(
 @router.delete("/webhooks/{hook_id}", summary="Remove a webhook")
 async def remove_webhook(
     hook_id: str = Path(..., description="Webhook UUID"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """Remove a registered webhook."""
+    """Remove a registered webhook that belongs to the caller's org."""
     hub = _hub()
+    owned_ids = _org_integration_ids(org_id)
+    # Find the webhook and verify ownership before deletion
+    all_hooks = hub.list_webhooks()
+    target = next((h for h in all_hooks if h.id == hook_id), None)
+    if target is None or target.integration_id not in owned_ids:
+        raise HTTPException(status_code=404, detail=f"Webhook '{hook_id}' not found")
     removed = hub.remove_webhook(hook_id)
     if not removed:
         raise HTTPException(status_code=404, detail=f"Webhook '{hook_id}' not found")
@@ -251,8 +373,12 @@ async def remove_webhook(
 # ---------------------------------------------------------------------------
 
 @router.post("/routing-rules", summary="Add an event routing rule")
-async def add_routing_rule(req: AddRoutingRuleRequest) -> Dict[str, Any]:
-    """Add a rule that routes a specific event type to one or more integrations."""
+async def add_routing_rule(
+    req: AddRoutingRuleRequest,
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Add a rule routing a specific event type to one or more integrations owned by this org."""
     from core.integration_hub import EventType
 
     try:
@@ -261,6 +387,15 @@ async def add_routing_rule(req: AddRoutingRuleRequest) -> Dict[str, Any]:
         raise HTTPException(
             status_code=422,
             detail=f"Unknown event_type '{req.event_type}'. Valid: {[e.value for e in EventType]}",
+        )
+
+    # Guard: all target integration_ids must belong to this org
+    owned_ids = _org_integration_ids(org_id)
+    foreign = [iid for iid in req.integration_ids if iid not in owned_ids]
+    if foreign:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Integration(s) not found: {foreign}",
         )
 
     hub = _hub()
@@ -274,10 +409,19 @@ async def add_routing_rule(req: AddRoutingRuleRequest) -> Dict[str, Any]:
 
 
 @router.get("/routing-rules", summary="List routing rules")
-async def list_routing_rules() -> Dict[str, Any]:
-    """List all event routing rules."""
+async def list_routing_rules(
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """List event routing rules that reference only this org's integrations."""
     hub = _hub()
-    rules = hub.event_router.list_rules()
+    owned_ids = _org_integration_ids(org_id)
+    all_rules = hub.event_router.list_rules()
+    # A rule belongs to this org if ALL of its integration_ids are org-owned
+    rules = [
+        r for r in all_rules
+        if all(iid in owned_ids for iid in (r.integration_ids if hasattr(r, "integration_ids") else []))
+    ]
     return {
         "total": len(rules),
         "rules": [r.model_dump() for r in rules],
@@ -287,9 +431,19 @@ async def list_routing_rules() -> Dict[str, Any]:
 @router.delete("/routing-rules/{rule_id}", summary="Remove a routing rule")
 async def remove_routing_rule(
     rule_id: str = Path(..., description="Rule UUID"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """Remove an event routing rule."""
+    """Remove an event routing rule that belongs to this org."""
     hub = _hub()
+    owned_ids = _org_integration_ids(org_id)
+    all_rules = hub.event_router.list_rules()
+    target = next((r for r in all_rules if r.id == rule_id), None)
+    if target is None or not all(
+        iid in owned_ids
+        for iid in (target.integration_ids if hasattr(target, "integration_ids") else [])
+    ):
+        raise HTTPException(status_code=404, detail=f"Routing rule '{rule_id}' not found")
     removed = hub.event_router.remove_rule(rule_id)
     if not removed:
         raise HTTPException(status_code=404, detail=f"Routing rule '{rule_id}' not found")
@@ -301,7 +455,11 @@ async def remove_routing_rule(
 # ---------------------------------------------------------------------------
 
 @router.post("/events/route", summary="Route an event to matching integrations")
-async def route_event(req: RouteEventRequest) -> Dict[str, Any]:
+async def route_event(
+    req: RouteEventRequest,
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
+) -> Dict[str, Any]:
     """Route an event through the hub — resolves rules and delivers to all matching targets."""
     from core.integration_hub import EventType
 
@@ -314,14 +472,21 @@ async def route_event(req: RouteEventRequest) -> Dict[str, Any]:
         )
 
     hub = _hub()
-    results = hub.route_event(event_type=event_type, event_payload=req.payload)
+    # Inject org_id into payload so downstream rules can filter by org
+    payload = {**req.payload, "_org_id": org_id}
+    results = hub.route_event(event_type=event_type, event_payload=payload)
+
+    # Filter delivery results to only this org's integrations
+    owned_ids = _org_integration_ids(org_id)
+    org_results = [r for r in results if getattr(r, "integration_id", None) in owned_ids]
 
     return {
         "event_type": req.event_type,
-        "targets_reached": len(results),
-        "successes": sum(1 for r in results if r.success),
-        "failures": sum(1 for r in results if not r.success),
-        "results": [r.model_dump() for r in results],
+        "org_id": org_id,
+        "targets_reached": len(org_results),
+        "successes": sum(1 for r in org_results if r.success),
+        "failures": sum(1 for r in org_results if not r.success),
+        "results": [r.model_dump() for r in org_results],
     }
 
 
@@ -330,8 +495,18 @@ async def route_event(req: RouteEventRequest) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @router.post("/sync/inbound", summary="Process an inbound status sync")
-async def inbound_sync(req: InboundSyncRequest) -> Dict[str, Any]:
-    """Accept a status update from an external integration and map it to an ALDECI finding."""
+async def inbound_sync(
+    req: InboundSyncRequest,
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Accept a status update from an integration owned by the caller's org."""
+    # Guard: integration_id must belong to this org
+    if req.integration_id not in _org_integration_ids(org_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Integration '{req.integration_id}' not found",
+        )
     hub = _hub()
     record = hub.process_inbound_sync(
         integration_id=req.integration_id,
@@ -350,11 +525,18 @@ async def inbound_sync(req: InboundSyncRequest) -> Dict[str, Any]:
 @router.get("/delivery-history", summary="Recent delivery attempt history")
 async def delivery_history(
     limit: int = Query(100, ge=1, le=1000, description="Max records to return"),
+    org_id: str = Depends(get_org_id),
+    _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
-    """Return recent delivery attempt history (successes and failures)."""
+    """Return recent delivery attempt history for this org's integrations."""
     hub = _hub()
-    attempts = hub.delivery_history(limit=limit)
+    owned_ids = _org_integration_ids(org_id)
+    all_attempts = hub.delivery_history(limit=limit * 10)  # fetch a wider window then filter
+    org_attempts = [
+        a for a in all_attempts
+        if getattr(a, "integration_id", None) in owned_ids
+    ][:limit]
     return {
-        "total": len(attempts),
-        "attempts": [a.model_dump() for a in attempts],
+        "total": len(org_attempts),
+        "attempts": [a.model_dump() for a in org_attempts],
     }

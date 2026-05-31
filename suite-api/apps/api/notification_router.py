@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.dependencies import get_org_id
 from core.notifications import (
     AlertRule,
     Channel,
@@ -25,7 +26,7 @@ from core.notifications import (
     NotificationEngine,
     NotificationPreference,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -84,8 +85,11 @@ class MarkReadRequest(BaseModel):
 
 
 @router.post("/rules", status_code=201)
-async def create_rule(req: CreateRuleRequest) -> Dict[str, Any]:
-    """Create a new alert rule."""
+async def create_rule(
+    req: CreateRuleRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Create a new alert rule scoped to the caller's org."""
     rule = AlertRule(
         name=req.name,
         description=req.description,
@@ -95,20 +99,24 @@ async def create_rule(req: CreateRuleRequest) -> Dict[str, Any]:
         recipients=req.recipients,
         digest_frequency=req.digest_frequency.value if hasattr(req.digest_frequency, "value") else req.digest_frequency,
     )
-    created = _get_engine().add_rule(rule)
+    created = _get_engine().add_rule(rule, org_id=org_id)
     return created.model_dump(mode="json")
 
 
 @router.get("/rules")
-async def list_rules() -> List[Dict[str, Any]]:
-    """List all alert rules."""
-    rules = _get_engine().list_rules()
+async def list_rules(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
+    """List alert rules for the caller's org."""
+    rules = _get_engine().list_rules(org_id=org_id)
     return [r.model_dump(mode="json") for r in rules]
 
 
 @router.put("/rules/{rule_id}")
-async def update_rule(rule_id: str, req: UpdateRuleRequest) -> Dict[str, Any]:
-    """Update an existing alert rule."""
+async def update_rule(
+    rule_id: str,
+    req: UpdateRuleRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Update an existing alert rule (must belong to the caller's org)."""
     updates: Dict[str, Any] = {}
     if req.name is not None:
         updates["name"] = req.name
@@ -129,16 +137,19 @@ async def update_rule(rule_id: str, req: UpdateRuleRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=422, detail="No fields to update")
 
     try:
-        updated = _get_engine().update_rule(rule_id, updates)
+        updated = _get_engine().update_rule(rule_id, updates, org_id=org_id)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
     return updated.model_dump(mode="json")
 
 
 @router.delete("/rules/{rule_id}")
-async def delete_rule(rule_id: str) -> Dict[str, Any]:
-    """Delete an alert rule."""
-    deleted = _get_engine().delete_rule(rule_id)
+async def delete_rule(
+    rule_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Delete an alert rule (must belong to the caller's org)."""
+    deleted = _get_engine().delete_rule(rule_id, org_id=org_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
     return {"id": rule_id, "status": "deleted"}
@@ -150,16 +161,22 @@ async def delete_rule(rule_id: str) -> Dict[str, Any]:
 
 
 @router.get("/inbox")
-async def get_inbox(user_email: str = Query(..., description="User email address")) -> List[Dict[str, Any]]:
-    """Return unread in-app notifications for a user."""
-    notifications = _get_engine().get_unread_notifications(user_email)
+async def get_inbox(
+    user_email: str = Query(..., description="User email address"),
+    org_id: str = Depends(get_org_id),
+) -> List[Dict[str, Any]]:
+    """Return unread in-app notifications for a user within the caller's org."""
+    notifications = _get_engine().get_unread_notifications(user_email, org_id=org_id)
     return [n.model_dump(mode="json") for n in notifications]
 
 
 @router.post("/read")
-async def mark_read(req: MarkReadRequest) -> Dict[str, Any]:
-    """Mark one or more notifications as read."""
-    count = _get_engine().mark_read(req.notification_ids)
+async def mark_read(
+    req: MarkReadRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Mark one or more notifications as read (scoped to caller's org)."""
+    count = _get_engine().mark_read(req.notification_ids, org_id=org_id)
     return {"marked_read": count}
 
 
@@ -213,7 +230,7 @@ _notif_logger = _notif_logger_mod.getLogger(__name__)
 
 
 @router.get("/")
-def get_notification_root_summary(org_id: str = Query(default="default")):
+def get_notification_root_summary(org_id: str = Depends(get_org_id)):
     """Return a 5-state summary envelope for the Notifications domain.
 
     States:
@@ -225,7 +242,7 @@ def get_notification_root_summary(org_id: str = Query(default="default")):
     """
     try:
         engine = _get_engine()
-        rules = engine.list_rules()
+        rules = engine.list_rules(org_id=org_id)
         total_rules = len(rules)
         enabled_rules = sum(1 for r in rules if getattr(r, "enabled", True))
     except Exception as exc:

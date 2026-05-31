@@ -21,6 +21,12 @@ from pydantic import BaseModel, Field
 router = APIRouter(prefix="/api/v1/auth/keys", tags=["api-key-management"])
 
 
+def _check_key_ownership(key: Optional[APIKey], org_id: str) -> None:
+    """Raise 404 if key is missing or belongs to a different org."""
+    if key is None or key.org_id != org_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Key not found")
+
+
 # ---------------------------------------------------------------------------
 # Dependency
 # ---------------------------------------------------------------------------
@@ -47,7 +53,7 @@ _admin = Depends(require_scope("admin:all"))
 
 class CreateKeyRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    org_id: str = Field(..., min_length=1)
+    org_id: Optional[str] = Field(None, description="Ignored — org is derived from the authenticated caller")
     role: str = "viewer"
     scopes: List[str] = Field(default_factory=list)
     expires_at: Optional[datetime] = None
@@ -128,7 +134,7 @@ async def create_key(
 
     key, raw = mgr.create_key(
         name=body.name,
-        org_id=body.org_id,
+        org_id=auth.org_id,  # always use the authenticated caller's org — never trust body.org_id
         role=role,
         scopes=body.scopes,
         expires_at=body.expires_at,
@@ -142,12 +148,15 @@ async def create_key(
 
 @router.get("", response_model=List[APIKeyResponse])
 async def list_keys(
-    org_id: str,
     auth: AuthContext = _admin,
     mgr: APIKeyManager = Depends(_mgr),
 ) -> List[APIKeyResponse]:
-    """List all API keys for an org (no secrets exposed)."""
-    return [_to_response(k) for k in mgr.list_keys(org_id=org_id)]
+    """List all API keys for the caller's org (no secrets exposed).
+
+    The org is derived from the authenticated caller — callers cannot list
+    another org's keys by supplying a different org_id.
+    """
+    return [_to_response(k) for k in mgr.list_keys(org_id=auth.org_id)]
 
 
 @router.get("/{key_id}", response_model=APIKeyResponse)
@@ -156,11 +165,10 @@ async def get_key(
     auth: AuthContext = _admin,
     mgr: APIKeyManager = Depends(_mgr),
 ) -> APIKeyResponse:
-    """Get a single API key by ID."""
+    """Get a single API key by ID (must belong to the caller's org)."""
     key = mgr.get_key(key_id)
-    if key is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Key not found")
-    return _to_response(key)
+    _check_key_ownership(key, auth.org_id)
+    return _to_response(key)  # type: ignore[arg-type]
 
 
 @router.put("/{key_id}", response_model=APIKeyResponse)
@@ -170,7 +178,14 @@ async def update_key(
     auth: AuthContext = _admin,
     mgr: APIKeyManager = Depends(_mgr),
 ) -> APIKeyResponse:
-    """Update mutable key metadata: name, description, scopes, rate_limit."""
+    """Update mutable key metadata: name, description, scopes, rate_limit.
+
+    Key must belong to the caller's org.
+    """
+    # Ownership check before mutation
+    existing = mgr.get_key(key_id)
+    _check_key_ownership(existing, auth.org_id)
+
     updates: Dict[str, Any] = {
         k: v for k, v in body.model_dump().items() if v is not None
     }
@@ -187,7 +202,13 @@ async def rotate_key(
     auth: AuthContext = _admin,
     mgr: APIKeyManager = Depends(_mgr),
 ) -> CreateKeyResponse:
-    """Rotate a key — deactivates old, returns new key (plaintext shown once)."""
+    """Rotate a key — deactivates old, returns new key (plaintext shown once).
+
+    Key must belong to the caller's org.
+    """
+    existing = mgr.get_key(key_id)
+    _check_key_ownership(existing, auth.org_id)
+
     try:
         new_key, new_raw = mgr.rotate_key(key_id, created_by=auth.user_id)
     except ValueError as exc:
@@ -202,7 +223,13 @@ async def revoke_key(
     auth: AuthContext = _admin,
     mgr: APIKeyManager = Depends(_mgr),
 ) -> Dict[str, Any]:
-    """Revoke a key immediately."""
+    """Revoke a key immediately.
+
+    Key must belong to the caller's org — prevents cross-org key revocation.
+    """
+    existing = mgr.get_key(key_id)
+    _check_key_ownership(existing, auth.org_id)
+
     try:
         mgr.revoke_key(key_id)
     except ValueError as exc:
@@ -216,7 +243,10 @@ async def get_usage(
     auth: AuthContext = _admin,
     mgr: APIKeyManager = Depends(_mgr),
 ) -> Dict[str, Any]:
-    """Get usage statistics for a key."""
+    """Get usage statistics for a key (must belong to the caller's org)."""
+    existing = mgr.get_key(key_id)
+    _check_key_ownership(existing, auth.org_id)
+
     try:
         return mgr.get_usage_stats(key_id)
     except ValueError as exc:

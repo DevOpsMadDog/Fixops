@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 from apps.api.auth_deps import api_key_auth as _verify_api_key
+from apps.api.dependencies import get_org_id
 
 # ---------------------------------------------------------------------------
 # Lazy singleton
@@ -133,15 +134,18 @@ async def get_widget_library() -> List[Dict[str, Any]]:
 
 
 @router.post("/from-template", dependencies=[Depends(_verify_api_key)])
-async def create_from_template(req: FromTemplateRequest) -> Dict[str, Any]:
-    """Create a new dashboard from a built-in template."""
+async def create_from_template(
+    req: FromTemplateRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Create a new dashboard from a built-in template (org_id sourced from auth token)."""
     builder = _get_builder()
     try:
         dash = builder.create_from_template(
             template_id=req.template_id,
             name=req.name,
             owner=req.owner_email,
-            org_id=req.org_id,
+            org_id=org_id,  # always from auth, never from request body
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
@@ -149,46 +153,65 @@ async def create_from_template(req: FromTemplateRequest) -> Dict[str, Any]:
 
 
 @router.post("", dependencies=[Depends(_verify_api_key)])
-async def create_dashboard(req: CreateDashboardRequest) -> Dict[str, Any]:
-    """Create a new empty dashboard."""
+async def create_dashboard(
+    req: CreateDashboardRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Create a new empty dashboard (org_id sourced from auth token)."""
     builder = _get_builder()
     dash = builder.create_dashboard(
         name=req.name,
         description=req.description,
         owner=req.owner_email,
-        org_id=req.org_id,
+        org_id=org_id,  # always from auth, never from request body
     )
     return dash.model_dump()
 
 
 @router.get("", dependencies=[Depends(_verify_api_key)])
 async def list_dashboards(
-    org_id: Optional[str] = Query(None, description="Filter by organisation"),
+    org_id: str = Depends(get_org_id),
     owner: Optional[str] = Query(None, description="Filter by owner email"),
 ) -> List[Dict[str, Any]]:
-    """List dashboards, optionally filtered by org or owner."""
+    """List dashboards for the caller's org only."""
     builder = _get_builder()
+    # org_id always comes from auth — the query-param org_id is intentionally
+    # removed to prevent callers from scoping to a different org.
     dashboards = builder.list_dashboards(org_id=org_id, owner=owner)
     return [d.model_dump() for d in dashboards]
 
 
-@router.get("/{dashboard_id}", dependencies=[Depends(_verify_api_key)])
-async def get_dashboard(dashboard_id: str) -> Dict[str, Any]:
-    """Retrieve a single dashboard by ID."""
-    builder = _get_builder()
+def _get_dashboard_owned(builder: Any, dashboard_id: str, org_id: str):
+    """Fetch a dashboard and raise 404 if it doesn't exist or belongs to another org."""
     try:
         dash = builder.get_dashboard(dashboard_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+    if dash.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Dashboard not found: {dashboard_id}")
+    return dash
+
+
+@router.get("/{dashboard_id}", dependencies=[Depends(_verify_api_key)])
+async def get_dashboard(
+    dashboard_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Retrieve a single dashboard by ID (must belong to the caller's org)."""
+    builder = _get_builder()
+    dash = _get_dashboard_owned(builder, dashboard_id, org_id)
     return dash.model_dump()
 
 
 @router.put("/{dashboard_id}", dependencies=[Depends(_verify_api_key)])
 async def update_dashboard(
-    dashboard_id: str, req: UpdateDashboardRequest
+    dashboard_id: str,
+    req: UpdateDashboardRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Update dashboard metadata (name, description, visibility, layout)."""
+    """Update dashboard metadata (must belong to the caller's org)."""
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     try:
         dash = builder.update_dashboard(dashboard_id, updates)
@@ -198,9 +221,13 @@ async def update_dashboard(
 
 
 @router.delete("/{dashboard_id}", dependencies=[Depends(_verify_api_key)])
-async def delete_dashboard(dashboard_id: str) -> Dict[str, str]:
-    """Delete a dashboard and all its widgets."""
+async def delete_dashboard(
+    dashboard_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, str]:
+    """Delete a dashboard and all its widgets (must belong to the caller's org)."""
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     try:
         builder.delete_dashboard(dashboard_id)
     except KeyError as exc:
@@ -213,10 +240,15 @@ async def delete_dashboard(dashboard_id: str) -> Dict[str, str]:
 # ------------------------------------------------------------------
 
 @router.post("/{dashboard_id}/widgets", dependencies=[Depends(_verify_api_key)])
-async def add_widget(dashboard_id: str, req: AddWidgetRequest) -> Dict[str, Any]:
-    """Add a new widget to a dashboard."""
+async def add_widget(
+    dashboard_id: str,
+    req: AddWidgetRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Add a new widget to a dashboard (must belong to the caller's org)."""
     from core.dashboard_builder import Widget, WidgetType
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     try:
         widget = Widget(
             type=WidgetType(req.type),
@@ -235,10 +267,14 @@ async def add_widget(dashboard_id: str, req: AddWidgetRequest) -> Dict[str, Any]
 
 @router.put("/{dashboard_id}/widgets/{widget_id}", dependencies=[Depends(_verify_api_key)])
 async def update_widget(
-    dashboard_id: str, widget_id: str, req: UpdateWidgetRequest
+    dashboard_id: str,
+    widget_id: str,
+    req: UpdateWidgetRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Update an existing widget's properties."""
+    """Update an existing widget's properties (dashboard must belong to the caller's org)."""
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     try:
         widget = builder.update_widget(dashboard_id, widget_id, updates)
@@ -250,9 +286,14 @@ async def update_widget(
 
 
 @router.delete("/{dashboard_id}/widgets/{widget_id}", dependencies=[Depends(_verify_api_key)])
-async def remove_widget(dashboard_id: str, widget_id: str) -> Dict[str, str]:
-    """Remove a widget from a dashboard."""
+async def remove_widget(
+    dashboard_id: str,
+    widget_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, str]:
+    """Remove a widget from a dashboard (must belong to the caller's org)."""
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     try:
         builder.remove_widget(dashboard_id, widget_id)
     except KeyError as exc:
@@ -261,9 +302,14 @@ async def remove_widget(dashboard_id: str, widget_id: str) -> Dict[str, str]:
 
 
 @router.post("/{dashboard_id}/reorder", dependencies=[Depends(_verify_api_key)])
-async def reorder_widgets(dashboard_id: str, req: ReorderRequest) -> Dict[str, str]:
+async def reorder_widgets(
+    dashboard_id: str,
+    req: ReorderRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, str]:
     """Reorder widgets by providing a new ordered list of widget IDs."""
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     try:
         builder.reorder_widgets(dashboard_id, req.widget_ids)
     except KeyError as exc:
@@ -276,10 +322,15 @@ async def reorder_widgets(dashboard_id: str, req: ReorderRequest) -> Dict[str, s
 # ------------------------------------------------------------------
 
 @router.post("/{dashboard_id}/share", dependencies=[Depends(_verify_api_key)])
-async def share_dashboard(dashboard_id: str, req: ShareRequest) -> Dict[str, Any]:
+async def share_dashboard(
+    dashboard_id: str,
+    req: ShareRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Share a dashboard with a list of email addresses and/or change visibility."""
     from core.dashboard_builder import DashboardVisibility
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     visibility = DashboardVisibility(req.visibility) if req.visibility else None
     try:
         dash = builder.share_dashboard(dashboard_id, req.emails, visibility)
@@ -291,9 +342,14 @@ async def share_dashboard(dashboard_id: str, req: ShareRequest) -> Dict[str, Any
 
 
 @router.post("/{dashboard_id}/clone", dependencies=[Depends(_verify_api_key)])
-async def clone_dashboard(dashboard_id: str, req: CloneRequest) -> Dict[str, Any]:
-    """Clone a dashboard for a new owner."""
+async def clone_dashboard(
+    dashboard_id: str,
+    req: CloneRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Clone a dashboard for a new owner (source must belong to the caller's org)."""
     builder = _get_builder()
+    _get_dashboard_owned(builder, dashboard_id, org_id)  # ownership check
     try:
         dash = builder.clone_dashboard(dashboard_id, req.new_name, req.new_owner)
     except KeyError as exc:
@@ -308,8 +364,10 @@ async def clone_dashboard(dashboard_id: str, req: CloneRequest) -> Dict[str, Any
 @router.get("/{dashboard_id}/stats", dependencies=[Depends(_verify_api_key)])
 async def get_stats(
     dashboard_id: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Return aggregate dashboard statistics for an organisation."""
+    """Return aggregate dashboard statistics for the caller's org."""
     builder = _get_builder()
+    # Verify the dashboard belongs to this org (prevents stats oracle via ID enumeration)
+    _get_dashboard_owned(builder, dashboard_id, org_id)
     return builder.get_dashboard_stats(org_id=org_id)

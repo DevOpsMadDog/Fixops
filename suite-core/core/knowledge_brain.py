@@ -223,6 +223,9 @@ class KnowledgeBrain:
         self._conn_lock = threading.Lock()
         self._conn = self._open_connection()
         self._create_tables()
+        # Backfill legacy NULL-org nodes to 'system' org on every startup.
+        # The UPDATE is a no-op once the DB is clean, so this is safe to run always.
+        self._migrate_legacy_null_nodes()
         # Checkpoint any WAL data written in a previous session that was
         # not flushed on shutdown (e.g. server killed with SIGKILL).
         self._checkpoint()
@@ -319,6 +322,11 @@ class KnowledgeBrain:
     # ------------------------------------------------------------------
     # Schema
     # ------------------------------------------------------------------
+    # Reserved org_id for shared/global knowledge (CVEs, threat-actor nodes, etc.).
+    # Nodes with this org_id are readable by all tenants but deletable only by
+    # callers with admin:all scope.
+    SYSTEM_ORG: str = "system"
+
     def _create_tables(self) -> None:
         with self._conn_lock:
             self._conn.executescript(
@@ -356,6 +364,31 @@ class KnowledgeBrain:
                 );
                 CREATE INDEX IF NOT EXISTS idx_events_type ON brain_events(event_type);
             """
+            )
+
+    def _migrate_legacy_null_nodes(self) -> None:
+        """Idempotent one-time migration: backfill NULL/empty org_id to SYSTEM_ORG.
+
+        Legacy nodes created before tenant-isolation was enforced have org_id=NULL.
+        These represent shared knowledge (CVEs, threat-actor data, etc.) that is
+        readable by all tenants.  We assign them to the reserved 'system' org so
+        that the isolation guards in brain_router can apply consistent rules:
+        - Any tenant may read system nodes (shared threat knowledge).
+        - Only callers with admin:all scope may delete system nodes.
+
+        This UPDATE is a no-op on databases that have already been migrated.
+        """
+        with self._conn_lock:
+            cursor = self._conn.execute(
+                "UPDATE brain_nodes SET org_id = ? WHERE org_id IS NULL OR org_id = ''",
+                (self.SYSTEM_ORG,),
+            )
+            self._conn.commit()
+        if cursor.rowcount:
+            logger.info(
+                "KnowledgeBrain: migrated %d legacy NULL-org nodes to org_id='%s'",
+                cursor.rowcount,
+                self.SYSTEM_ORG,
             )
 
     def reload_graph(self) -> Dict[str, int]:

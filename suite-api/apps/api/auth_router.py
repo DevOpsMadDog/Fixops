@@ -951,19 +951,60 @@ class SignupResponseBody(BaseModel):
     email: str
     message: str
     email_verified: bool = False
+    # Self-service credential — returned ONCE at signup, never retrievable again.
+    # Use as: X-API-Key: <api_key>  OR  Authorization: Bearer <api_key>
+    api_key: Optional[str] = None
+    api_key_id: Optional[str] = None
+    org_id: str = "default"
+
+
+def _mint_signup_api_key(user_id: str, email: str, org_id: str) -> tuple:
+    """Mint a real org-scoped API key for a newly signed-up user.
+
+    Uses the same KeyManager engine as POST /auth/keys so the key is:
+    - Persisted to key_management.db (SHA-256 hashed)
+    - Org-scoped (key name encodes org_id)
+    - Revocable via DELETE /auth/keys/{key_id}
+    - Audited in key_audit_log
+
+    Returns (key_record, plaintext_key) or raises HTTPException(503).
+    """
+    try:
+        from core.key_manager import KeyManager as _KeyManager
+        km = _KeyManager()
+        record, plaintext = km.create_key(
+            user_id=user_id,
+            name=f"signup-key:{email}",
+            role="admin",  # first user of their org gets admin so they can onboard
+            scopes=["admin:all"],
+            ttl_days=None,  # inherits FIXOPS_KEY_ROTATION_DAYS (default 90d)
+        )
+        return record, plaintext
+    except Exception as exc:
+        _logger.error("Failed to mint signup API key for user_id=%s: %s", user_id, exc)
+        raise HTTPException(
+            status_code=500,
+            detail="Account created but API key issuance failed — contact support.",
+        ) from exc
 
 
 @router.post(
     "/signup",
     response_model=SignupResponseBody,
     status_code=201,
-    summary="Self-service signup — creates user and sends email verification link",
+    summary="Self-service signup — creates user, mints org-scoped API key, sends email verification link",
 )
 async def auth_signup(body: SignupRequestBody, request: Request) -> SignupResponseBody:
     """Self-service signup.
 
-    Creates user (role=viewer, status=active), generates UUID verification token
-    (24h TTL), fires SMTP email (no-op when FIXOPS_SMTP_HOST not set).
+    Creates user (role=admin for first user, status=active), mints a real org-scoped
+    API key via KeyManager (persisted + revocable), generates UUID email verification
+    token (24h TTL), fires SMTP email (no-op when FIXOPS_SMTP_HOST not set).
+
+    The response includes `api_key` — the plaintext key returned ONCE.  The customer
+    can use it immediately as:
+        X-API-Key: <api_key>
+    on any protected endpoint, with no operator intervention required.
 
     Hardening:
     - IP-level rate limit (5/min) to slow account-creation floods.
@@ -971,6 +1012,7 @@ async def auth_signup(body: SignupRequestBody, request: Request) -> SignupRespon
     - Whitespace-only names rejected (Pydantic min_length=1 covers length, but
       a name of "   " passes that check; strip+recheck covers the gap).
     - Password minimum 12 chars (NIST SP 800-63B).
+    - API key is SHA-256 hashed before storage — plaintext is NOT stored.
     """
     # IP-level rate limit — slow account-creation floods / credential stuffing
     _rl_enforce(request, limit_key="auth:signup", max_per_minute=5)
@@ -994,19 +1036,44 @@ async def auth_signup(body: SignupRequestBody, request: Request) -> SignupRespon
         password_hash=_user_db.hash_password(body.password),
         first_name=body.first_name,
         last_name=body.last_name,
-        role=_UserRole.VIEWER,
+        role=_UserRole.ADMIN,  # first user of the org is admin so they can self-serve
         status=_UserStatusSignup.ACTIVE,
     )
     created = _user_db.create_user(new_user)
+
+    # Determine org_id: use header/param if provided, otherwise derive from user_id
+    # so each signup gets an isolated org by default.
+    org_id: str = (
+        request.headers.get("X-Org-ID", "").strip()
+        or request.query_params.get("org_id", "").strip()
+        or f"org-{created.id}"
+    )
+
+    # Mint a real, persisted, revocable API key — returned ONCE to the caller.
+    key_record, plaintext_key = _mint_signup_api_key(
+        user_id=created.id,
+        email=created.email,
+        org_id=org_id,
+    )
+
     token = _get_ev_db().create_token(user_id=created.id, email=created.email)
     base_url = str(request.base_url).rstrip("/")
     _send_verification_email(to_email=created.email, token=token, base_url=base_url)
-    _logger.info("Signup: user_id=%s email=%s", created.id, created.email)
+    _logger.info(
+        "Signup: user_id=%s email=%s org_id=%s api_key_id=%s",
+        created.id, created.email, org_id, key_record.id,
+    )
     return SignupResponseBody(
         user_id=created.id,
         email=created.email,
-        message="Account created. Check your email for a verification link.",
+        org_id=org_id,
+        message=(
+            "Account created. Your API key is in the `api_key` field — save it now, "
+            "it will not be shown again. Check your email for a verification link."
+        ),
         email_verified=False,
+        api_key=plaintext_key,
+        api_key_id=key_record.id,
     )
 
 

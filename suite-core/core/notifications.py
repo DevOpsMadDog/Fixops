@@ -87,6 +87,26 @@ CREATE TABLE IF NOT EXISTS preferences (
 """
 
 
+def _migrate_org_id_columns(conn: sqlite3.Connection) -> None:
+    """Add org_id column to alert_rules and notifications if missing (safe backfill to 'default').
+
+    Also creates indexes on org_id after the column is guaranteed to exist.
+    Called immediately after executescript(_SCHEMA) so the column is present
+    before any INSERT that references org_id.
+    """
+    changed = False
+    for table in ("alert_rules", "notifications"):
+        cols = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}  # nosec B608
+        if "org_id" not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'")  # nosec B608
+            changed = True
+    if changed:
+        # Create indexes only after the column exists
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_rules_org ON alert_rules(org_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_notif_org ON notifications(org_id)")
+    conn.commit()
+
+
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
@@ -164,6 +184,7 @@ def _get_db(db_path: str = _DB_PATH) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(_SCHEMA)
+    _migrate_org_id_columns(conn)
     return conn
 
 
@@ -202,8 +223,8 @@ class NotificationEngine:
     # Rule CRUD
     # ------------------------------------------------------------------
 
-    def add_rule(self, rule: AlertRule) -> AlertRule:
-        """Persist a new alert rule. Returns the rule with assigned id."""
+    def add_rule(self, rule: AlertRule, org_id: str = "default") -> AlertRule:
+        """Persist a new alert rule scoped to *org_id*. Returns the rule with assigned id."""
         now_dt = datetime.now(timezone.utc)
         now_iso = now_dt.isoformat()
         rule = rule.model_copy(update={"created_at": now_dt, "updated_at": now_dt})
@@ -214,8 +235,8 @@ class NotificationEngine:
             conn = _get_db(self._db_path)
             try:
                 conn.execute(
-                    "INSERT INTO alert_rules (id,name,description,enabled,conditions,channels,recipients,digest_frequency,created_at,updated_at) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO alert_rules (id,name,description,enabled,conditions,channels,recipients,digest_frequency,created_at,updated_at,org_id) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         rule.id,
                         rule.name,
@@ -227,16 +248,17 @@ class NotificationEngine:
                         freq_val,
                         now_iso,
                         now_iso,
+                        org_id,
                     ),
                 )
                 conn.commit()
             finally:
                 conn.close()
-        logger.info("Created alert rule '%s' (id=%s)", rule.name, rule.id)
+        logger.info("Created alert rule '%s' (id=%s) for org=%s", rule.name, rule.id, org_id)
         return rule
 
-    def update_rule(self, rule_id: str, updates: Dict[str, Any]) -> AlertRule:
-        """Update fields on an existing rule. Raises KeyError if not found."""
+    def update_rule(self, rule_id: str, updates: Dict[str, Any], org_id: str = "default") -> AlertRule:
+        """Update fields on an existing rule scoped to *org_id*. Raises KeyError if not found."""
         now = datetime.now(timezone.utc).isoformat()
         updates["updated_at"] = now
 
@@ -253,8 +275,8 @@ class NotificationEngine:
                 set_clauses.append(f"{key}=?")
                 params.append(val)
 
-        params.append(rule_id)
-        sql = f"UPDATE alert_rules SET {', '.join(set_clauses)} WHERE id=?"  # nosec B608
+        params.extend([rule_id, org_id])
+        sql = f"UPDATE alert_rules SET {', '.join(set_clauses)} WHERE id=? AND org_id=?"  # nosec B608
 
         with self._lock:
             conn = _get_db(self._db_path)
@@ -263,41 +285,49 @@ class NotificationEngine:
                 if cur.rowcount == 0:
                     raise KeyError(f"Rule {rule_id} not found")
                 conn.commit()
-                row = conn.execute("SELECT * FROM alert_rules WHERE id=?", (rule_id,)).fetchone()
+                row = conn.execute(
+                    "SELECT * FROM alert_rules WHERE id=? AND org_id=?", (rule_id, org_id)
+                ).fetchone()
             finally:
                 conn.close()
         return _rule_from_row(row)
 
-    def delete_rule(self, rule_id: str) -> bool:
-        """Remove a rule by id. Returns True if deleted, False if not found."""
+    def delete_rule(self, rule_id: str, org_id: str = "default") -> bool:
+        """Remove a rule by id scoped to *org_id*. Returns True if deleted, False if not found."""
         with self._lock:
             conn = _get_db(self._db_path)
             try:
-                cur = conn.execute("DELETE FROM alert_rules WHERE id=?", (rule_id,))
+                cur = conn.execute(
+                    "DELETE FROM alert_rules WHERE id=? AND org_id=?", (rule_id, org_id)
+                )
                 conn.commit()
                 found = cur.rowcount > 0
             finally:
                 conn.close()
         if found:
-            logger.info("Deleted alert rule %s", rule_id)
+            logger.info("Deleted alert rule %s (org=%s)", rule_id, org_id)
         return found
 
-    def list_rules(self) -> List[AlertRule]:
-        """Return all alert rules ordered by name."""
+    def list_rules(self, org_id: str = "default") -> List[AlertRule]:
+        """Return all alert rules for *org_id* ordered by name."""
         with self._lock:
             conn = _get_db(self._db_path)
             try:
-                rows = conn.execute("SELECT * FROM alert_rules ORDER BY name").fetchall()
+                rows = conn.execute(
+                    "SELECT * FROM alert_rules WHERE org_id=? ORDER BY name", (org_id,)
+                ).fetchall()
             finally:
                 conn.close()
         return [_rule_from_row(r) for r in rows]
 
-    def get_rule(self, rule_id: str) -> Optional[AlertRule]:
-        """Return a single rule by id, or None."""
+    def get_rule(self, rule_id: str, org_id: str = "default") -> Optional[AlertRule]:
+        """Return a single rule by id scoped to *org_id*, or None."""
         with self._lock:
             conn = _get_db(self._db_path)
             try:
-                row = conn.execute("SELECT * FROM alert_rules WHERE id=?", (rule_id,)).fetchone()
+                row = conn.execute(
+                    "SELECT * FROM alert_rules WHERE id=? AND org_id=?", (rule_id, org_id)
+                ).fetchone()
             finally:
                 conn.close()
         return _rule_from_row(row) if row else None
@@ -594,21 +624,21 @@ class NotificationEngine:
     # In-app inbox
     # ------------------------------------------------------------------
 
-    def get_unread_notifications(self, user_email: str) -> List[Notification]:
-        """Return unread in-app notifications for a user."""
+    def get_unread_notifications(self, user_email: str, org_id: str = "default") -> List[Notification]:
+        """Return unread in-app notifications for a user scoped to *org_id*."""
         with self._lock:
             conn = _get_db(self._db_path)
             try:
                 rows = conn.execute(
-                    "SELECT * FROM notifications WHERE recipient=? AND channel='in_app' AND read=0 ORDER BY timestamp DESC",
-                    (user_email,),
+                    "SELECT * FROM notifications WHERE recipient=? AND org_id=? AND channel='in_app' AND read=0 ORDER BY timestamp DESC",
+                    (user_email, org_id),
                 ).fetchall()
             finally:
                 conn.close()
         return [_notification_from_row(r) for r in rows]
 
-    def mark_read(self, notification_ids: List[str]) -> int:
-        """Mark notifications as read. Returns count updated."""
+    def mark_read(self, notification_ids: List[str], org_id: str = "default") -> int:
+        """Mark notifications as read within *org_id*. Returns count updated."""
         if not notification_ids:
             return 0
         placeholders = ",".join("?" * len(notification_ids))
@@ -616,8 +646,8 @@ class NotificationEngine:
             conn = _get_db(self._db_path)
             try:
                 cur = conn.execute(
-                    f"UPDATE notifications SET read=1 WHERE id IN ({placeholders})",  # nosec B608
-                    notification_ids,
+                    f"UPDATE notifications SET read=1 WHERE id IN ({placeholders}) AND org_id=?",  # nosec B608
+                    (*notification_ids, org_id),
                 )
                 conn.commit()
                 return cur.rowcount

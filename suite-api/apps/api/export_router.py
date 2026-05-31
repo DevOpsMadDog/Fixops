@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
@@ -177,7 +178,7 @@ _ASSET_COLUMNS = [
 
 @router.get("/alerts")
 def export_alerts(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     format: str = Query("csv", description="Export format: csv or json"),
     severity: str = Query(None, description="Filter by severity"),
     status: str = Query(None, description="Filter by status"),
@@ -204,7 +205,7 @@ def export_alerts(
 
 @router.get("/vulnerabilities")
 def export_vulnerabilities(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     format: str = Query("csv", description="Export format: csv or json"),
     severity: str = Query(None, description="Filter by severity"),
     finding_status: str = Query(None, description="Filter by finding_status"),
@@ -230,7 +231,7 @@ def export_vulnerabilities(
 
 @router.get("/compliance")
 def export_compliance(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     format: str = Query("csv", description="Export format: csv or json"),
     framework: str = Query(None, description="Filter by compliance framework"),
     status: str = Query(None, description="Filter control status"),
@@ -265,7 +266,7 @@ def export_compliance(
 
 @router.get("/dashboard")
 def export_dashboard(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     format: str = Query("json", description="Export format: csv or json"),
 ) -> StreamingResponse:
     """Export a dashboard summary for an org — alert/vuln/asset counts by severity.
@@ -316,7 +317,7 @@ def export_dashboard(
 
 @router.get("/assets")
 def export_assets(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     format: str = Query("csv", description="Export format: csv or json"),
     asset_type: str = Query(None, description="Filter by asset type"),
     criticality: str = Query(None, description="Filter by criticality"),

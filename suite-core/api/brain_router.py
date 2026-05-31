@@ -12,9 +12,12 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
 from core.event_bus import Event, EventType, get_event_bus
-from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode, get_brain
-from fastapi import APIRouter, Depends, HTTPException, Query
+from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode, KnowledgeBrain, get_brain
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
+
+# org_id assigned to pre-isolation shared/global nodes (CVEs, threat actors, etc.)
+_SYSTEM_ORG: str = KnowledgeBrain.SYSTEM_ORG
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/brain", tags=["knowledge-brain"])
@@ -199,15 +202,21 @@ async def get_node(
     node_id: str,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Get a specific node by ID, scoped to the caller's org."""
+    """Get a specific node by ID, scoped to the caller's org.
+
+    Access rules:
+    - Tenant-owned node (org_id == caller org): allowed.
+    - System/global node (org_id == 'system'): readable by any authenticated caller
+      (shared threat-intelligence such as CVEs and threat-actor data).
+    - Another tenant's node: 404 (information leak prevention).
+    """
     brain = get_brain()
     node = brain.get_node(node_id)
     if node is None:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
-    # Nodes with an org_id set must match the caller's org.
-    # Nodes with org_id=None are shared/global; allow read access.
     node_org = node.get("org_id")
-    if node_org is not None and node_org != org_id:
+    # Allow: own node, or shared system/global node.
+    if node_org != org_id and node_org != _SYSTEM_ORG:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
     return node
 
@@ -215,20 +224,43 @@ async def get_node(
 @router.delete("/nodes/{node_id}")
 async def delete_node(
     node_id: str,
+    request: Request,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Delete a node and all its edges. Scoped to the caller's org."""
+    """Delete a node and all its edges.
+
+    Access rules:
+    - Tenant-owned node (org_id == caller org): allowed.
+    - System/global node (org_id == 'system'): requires admin:all scope.
+      Regular tenants receive 403 (not 404) so they know the node exists
+      but they are not authorised to delete shared knowledge.
+    - Another tenant's node: 404 (information leak prevention).
+    """
     brain = get_brain()
     node = brain.get_node(node_id)
     if node is None:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
-    # Only allow deletion of nodes that belong to this org.
-    # Nodes with org_id=None are shared/global — block deletion to prevent
-    # cross-tenant destruction; a schema migration is needed to assign them.
+
     node_org = node.get("org_id")
-    if node_org != org_id:
-        # Either it belongs to a different org, or it's an unscoped shared node.
+
+    if node_org == org_id:
+        # Caller owns this node — allow deletion.
+        pass
+    elif node_org == _SYSTEM_ORG:
+        # Shared/global node — only admin:all scope may delete.
+        caller_scopes: list = getattr(request.state, "user_scopes", [])
+        if "admin:all" not in caller_scopes:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Node '{node_id}' is a shared system node. "
+                    "Deletion requires admin:all scope."
+                ),
+            )
+    else:
+        # Another tenant's node — return 404 to avoid information leak.
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
+
     deleted = brain.delete_node(node_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")

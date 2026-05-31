@@ -57,8 +57,13 @@ def register_ctem_routers(
     # ------------------------------------------------------------------
 
     # CTEM 15-stage pipeline — ingest, batch processing, stage monitoring
+    # NOTE: the real module is pipeline_routes (prefix /api/v1/pipeline).
+    # ctem_pipeline_router never existed; the old name caused a silent ImportError
+    # swallowed by the try/except below.  app.py also mounts this router at
+    # module-load time (line ~341) so both paths are correct after this fix —
+    # FastAPI tolerates duplicate route registration without error.
     try:
-        from apps.api.ctem_pipeline_router import router as ctem_pipeline_router
+        from apps.api.pipeline_routes import router as ctem_pipeline_router
     except ImportError:
         ctem_pipeline_router = None  # type: ignore[assignment]
     if ctem_pipeline_router:
