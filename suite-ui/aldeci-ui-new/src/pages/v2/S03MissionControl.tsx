@@ -6,6 +6,12 @@ const CISODashboard = lazy(() => import("@/pages/mission-control/CISODashboard")
 const LiveFeed = lazy(() => import("@/pages/mission-control/LiveFeed"));
 const RiskOverview = lazy(() => import("@/pages/mission-control/RiskOverview"));
 const SLADashboard = lazy(() => import("@/pages/mission-control/SLADashboard"));
+// P2 VP Engineering — per-team debt + DORA metrics (wire real component when built)
+const EngineeringSecurityPlaceholder = () => (
+  <div className="p-6 text-muted-foreground text-sm">
+    Engineering Security — Per-team debt + DORA metrics — wire when component exists
+  </div>
+);
 
 export default function S03MissionControl() {
   const [tab, setTab] = useState("ciso");
@@ -21,12 +27,14 @@ export default function S03MissionControl() {
           <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
           <TabsTrigger value="risk">Risk Overview</TabsTrigger>
           <TabsTrigger value="sla">SLA Dashboard</TabsTrigger>
+          <TabsTrigger value="eng-security">Engineering Security</TabsTrigger>
         </TabsList>
         <Suspense fallback={<div className="p-4">Loading…</div>}>
           <TabsContent value="ciso"><CISODashboard /></TabsContent>
           <TabsContent value="live-feed"><LiveFeed /></TabsContent>
           <TabsContent value="risk"><RiskOverview /></TabsContent>
           <TabsContent value="sla"><SLADashboard /></TabsContent>
+          <TabsContent value="eng-security"><EngineeringSecurityPlaceholder /></TabsContent>
         </Suspense>
       </Tabs>
     </div>

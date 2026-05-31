@@ -6,6 +6,7 @@ const BehaviorAnalyticsHub = lazy(() => import("@/pages/BehaviorAnalyticsHub"));
 const DetectAndRespondHub = lazy(() => import("@/pages/DetectAndRespondHub"));
 const SecurityTelemetryDashboard = lazy(() => import("@/pages/SecurityTelemetryDashboard"));
 const EventTimelineDashboard = lazy(() => import("@/pages/EventTimelineDashboard"));
+const SecurityQueryLanguageDashboard = lazy(() => import("@/pages/SecurityQueryLanguageDashboard"));
 
 export default function S20Detections() {
   const [tab, setTab] = useState("behavior");
@@ -21,12 +22,14 @@ export default function S20Detections() {
           <TabsTrigger value="detect">Detect &amp; Respond</TabsTrigger>
           <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="timeline">Event Timeline</TabsTrigger>
+          <TabsTrigger value="rql">RQL</TabsTrigger>
         </TabsList>
         <Suspense fallback={<div className="p-4">Loading…</div>}>
           <TabsContent value="behavior"><BehaviorAnalyticsHub /></TabsContent>
           <TabsContent value="detect"><DetectAndRespondHub /></TabsContent>
           <TabsContent value="telemetry"><SecurityTelemetryDashboard /></TabsContent>
           <TabsContent value="timeline"><EventTimelineDashboard /></TabsContent>
+          <TabsContent value="rql"><SecurityQueryLanguageDashboard /></TabsContent>
         </Suspense>
       </Tabs>
     </div>

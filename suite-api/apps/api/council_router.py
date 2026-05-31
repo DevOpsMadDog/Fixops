@@ -3,8 +3,16 @@
 Wraps LLMCouncil.convene() with:
 - Input validation via Pydantic
 - 503 when OPENROUTER_API_KEY is not set (CouncilNotConfiguredError)
-- Auth via X-API-Key header (same as all other routers)
+- Auth delegated to app.py router-include (auth_deps.verify_api_key via Depends)
 - /health and /status aliases (required by enterprise E2E test)
+
+Auth note: this router is mounted in create_app() with
+  dependencies=[Depends(_verify_api_key)]
+using auth_deps.verify_api_key, which checks FIXOPS_API_TOKEN / JWT Bearer.
+The endpoint does NOT carry a redundant local auth dependency — doing so with
+a separate env-var (FIXOPS_API_KEY) caused double-auth 401s when FIXOPS_API_KEY
+and FIXOPS_API_TOKEN differed or the local copy ran after the router-level dep
+had already validated the credential.
 """
 
 from __future__ import annotations
@@ -13,29 +21,12 @@ import logging
 import os
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/council", tags=["council"])
-
-# ---------------------------------------------------------------------------
-# Auth (mirrors existing suite-api pattern)
-# ---------------------------------------------------------------------------
-
-
-def _verify_api_key(request: Request) -> None:
-    """Require X-API-Key header matching FIXOPS_API_KEY env var.
-
-    If FIXOPS_API_KEY is not set, the endpoint is open (dev mode).
-    """
-    expected = os.environ.get("FIXOPS_API_KEY", "")
-    if not expected:
-        return  # dev mode — no auth required
-    provided = request.headers.get("X-API-Key", "")
-    if provided != expected:
-        raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +104,6 @@ def _get_council() -> Any:
 )
 async def convene(
     body: ConveneRequest,
-    _auth: None = Depends(_verify_api_key),
 ) -> ConveneResponse:
     """Fan out a security decision prompt to 4 free OpenRouter models in parallel.
 
