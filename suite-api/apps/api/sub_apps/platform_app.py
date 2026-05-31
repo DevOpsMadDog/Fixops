@@ -2350,6 +2350,50 @@ def register_platform_routers(
         _logger.warning("aws_redshift_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Alert Correlation Rules — Multica #3756 — 2026-05-31
+    # GET    /api/v1/alert-mgmt/                      router info + rule counts     (read:scans)
+    # GET    /api/v1/alert-mgmt/rules                 list rules (filter by org_id) (read:scans)
+    # POST   /api/v1/alert-mgmt/rules                 create a correlation rule     (read:scans)
+    # GET    /api/v1/alert-mgmt/rules/{rule_id}       fetch rule by id              (read:scans)
+    # PUT    /api/v1/alert-mgmt/rules/{rule_id}       partial update a rule         (read:scans)
+    # DELETE /api/v1/alert-mgmt/rules/{rule_id}       hard-delete a rule            (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.alert_correlation_router import router as alert_correlation_router  # noqa: PLC0415
+        app.include_router(
+            alert_correlation_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Alert Correlation Rules router at /api/v1/alert-mgmt (read:scans)")
+    except ImportError as exc:
+        _logger.warning("alert_correlation_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # IDS/IPS Rules and Verdicts — Multica #3757 — 2026-05-31
+    # GET    /api/v1/ids-ips/                         router info + rule/verdict counts (read:scans)
+    # POST   /api/v1/ids-ips/rules/import             bulk import Snort/Suricata rules  (read:scans)
+    # GET    /api/v1/ids-ips/rules                    list rules (org_id, ruleset)      (read:scans)
+    # DELETE /api/v1/ids-ips/rules/{rule_id}          delete a rule                     (read:scans)
+    # POST   /api/v1/ids-ips/verdicts                 ingest a verdict (alert event)    (read:scans)
+    # GET    /api/v1/ids-ips/verdicts                 list recent verdicts              (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.ids_ips_router import router as ids_ips_router  # noqa: PLC0415
+        app.include_router(
+            ids_ips_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted IDS/IPS Rules and Verdicts router at /api/v1/ids-ips (read:scans)")
+    except ImportError as exc:
+        _logger.warning("ids_ips_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Cloudflare API v4 Live REST — 2026-05-04
     # GET /api/v1/cloudflare/                                                              capability summary  (read:scans)
     # GET /api/v1/cloudflare/client/v4/zones                                               list zones          (read:scans)
