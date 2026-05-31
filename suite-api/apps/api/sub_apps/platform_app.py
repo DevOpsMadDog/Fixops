@@ -2394,6 +2394,56 @@ def register_platform_routers(
         _logger.warning("ids_ips_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # RaaS Intelligence — Multica #3760 — 2026-05-31
+    # GET    /api/v1/raas-intel/                     router info + summary counts      (read:scans)
+    # GET    /api/v1/raas-intel/raas-groups           list groups (org_id, status)      (read:scans)
+    # POST   /api/v1/raas-intel/raas-groups           create a group record             (read:scans)
+    # PUT    /api/v1/raas-intel/raas-groups/{id}      partial update a group record     (read:scans)
+    # GET    /api/v1/raas-intel/extortion-intel        list negotiations (status filter) (read:scans)
+    # POST   /api/v1/raas-intel/extortion-intel        create a negotiation record       (read:scans)
+    # GET    /api/v1/raas-intel/leak-posts             list leak-site posts (days filter)(read:scans)
+    # POST   /api/v1/raas-intel/leak-posts             create a leak-site post record    (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.raas_intel_router import router as raas_intel_router  # noqa: PLC0415
+        app.include_router(
+            raas_intel_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted RaaS Intelligence router at /api/v1/raas-intel (read:scans)")
+    except ImportError as exc:
+        _logger.warning("raas_intel_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
+    # LLM Firewall / Prompt-Injection / Model-Governance — Multica #3761 — 2026-05-31
+    # GET    /api/v1/llm-firewall/                    router info + aggregate counts    (read:scans)
+    # GET    /api/v1/llm-firewall/policies             list policies (org_id)            (read:scans)
+    # POST   /api/v1/llm-firewall/policies             create a firewall policy          (read:scans)
+    # PUT    /api/v1/llm-firewall/policies/{id}        partial update a policy           (read:scans)
+    # DELETE /api/v1/llm-firewall/policies/{id}        delete a policy                   (read:scans)
+    # POST   /api/v1/llm-firewall/scan                 scan a prompt vs active policies  (read:scans)
+    # GET    /api/v1/llm-firewall/events               list injection events             (read:scans)
+    # GET    /api/v1/llm-firewall/models               list governed models              (read:scans)
+    # POST   /api/v1/llm-firewall/models               register a model for governance   (read:scans)
+    # PUT    /api/v1/llm-firewall/models/{id}/approve  approve a governed model          (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.llm_firewall_router import router as llm_firewall_router  # noqa: PLC0415
+        app.include_router(
+            llm_firewall_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted LLM Firewall router at /api/v1/llm-firewall (read:scans)")
+    except ImportError as exc:
+        _logger.warning("llm_firewall_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Cloudflare API v4 Live REST — 2026-05-04
     # GET /api/v1/cloudflare/                                                              capability summary  (read:scans)
     # GET /api/v1/cloudflare/client/v4/zones                                               list zones          (read:scans)
