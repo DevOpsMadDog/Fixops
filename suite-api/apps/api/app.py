@@ -7056,7 +7056,34 @@ def create_app() -> FastAPI:
     except Exception as _e:
         _logger.warning("integration_health_router unavailable: %s", _e)
 
-    # 5-13. UI prefix alias routers (ui_alias_router.py)
+    # 5. siem_router (suite-integrations) — loaded at module level but never include_router'd
+    # Real class: SIEMEngine (not SIEMConnector); real module: integrations.siem_engine
+    if siem_router is not None:
+        try:
+            app.include_router(siem_router, dependencies=[Depends(_verify_api_key)])
+            _logger.info("Mounted siem_router at /api/v1/siem (targets/forward/stats/health)")
+        except Exception as _e:
+            _logger.warning("siem_router mount failed: %s", _e)
+
+    # 6. compliance_dashboard_router — /api/v1/compliance-dashboard
+    # Real function: _get_engine() in apps.api.compliance_router (not get_compliance_engine)
+    try:
+        from apps.api.compliance_dashboard_router import router as _compliance_dashboard_router
+        app.include_router(_compliance_dashboard_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted compliance_dashboard_router at /api/v1/compliance-dashboard")
+    except Exception as _e:
+        _logger.warning("compliance_dashboard_router unavailable: %s", _e)
+
+    # 7. data_residency_router — /api/v1/data-residency
+    # Real module: core.data_security (not core.geo_engine); real class: DataSecurityEngine
+    try:
+        from apps.api.data_residency_router import router as _data_residency_router
+        app.include_router(_data_residency_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted data_residency_router at /api/v1/data-residency")
+    except Exception as _e:
+        _logger.warning("data_residency_router unavailable: %s", _e)
+
+    # 8-16. UI prefix alias routers (ui_alias_router.py)
     try:
         from apps.api.ui_alias_router import (
             asset_inventory_alias,
