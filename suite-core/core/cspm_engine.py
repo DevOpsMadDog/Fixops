@@ -1552,7 +1552,19 @@ def get_cspm_engine() -> CSPMEngine:
 
 
 # ---------------------------------------------------------------------------
-# Backward-compat shims for cspm_router.py (Pydantic-based API)
+# Typed error for not-configured state — mirrors GCPSCCUnavailableError pattern
+# ---------------------------------------------------------------------------
+
+class CSPMNotConfiguredError(RuntimeError):
+    """Raised when a live-cloud CSPM method is called but no cloud connector
+    has been configured.  Callers (cspm_router.py) translate this to HTTP 503
+    so the client receives an honest "not_configured" signal rather than a
+    fabricated perfect-posture response.
+    """
+
+
+# ---------------------------------------------------------------------------
+# Pydantic models for the router API
 # These are imported by suite-api/apps/api/cspm_router.py
 # ---------------------------------------------------------------------------
 
@@ -1724,80 +1736,9 @@ try:
             default_factory=lambda: _datetime.now(_timezone.utc).isoformat()
         )
 
-    # Stub legacy methods onto CSPMEngine so cspm_router.py doesn't break
-    def _stub_get_posture(self, org_id: str = "default") -> OrgPosture:
-        return OrgPosture(
-            org_id=org_id,
-            overall_score=100.0,
-            total_resources=0,
-            total_findings=0,
-            critical_findings=0,
-            high_findings=0,
-            medium_findings=0,
-            low_findings=0,
-        )
-
-    def _stub_list_findings(self, org_id="default", status=None, severity=None):
-        return []
-
-    def _stub_list_resources(self, org_id="default"):
-        return []
-
-    def _stub_register_resource(self, resource):
-        return resource
-
-    def _stub_get_benchmark_status(self, org_id="default"):
-        return {"rules": [], "org_id": org_id}
-
-    def _stub_run_scan(self, org_id="default", rule_ids=None):
-        posture = OrgPosture(
-            org_id=org_id,
-            overall_score=100.0,
-            total_resources=0,
-            total_findings=0,
-            critical_findings=0,
-            high_findings=0,
-            medium_findings=0,
-            low_findings=0,
-        )
-        return ScanResult(
-            org_id=org_id,
-            posture=posture,
-            started_at=_datetime.now(_timezone.utc).isoformat(),
-        )
-
-    def _stub_list_drift(self, org_id="default"):
-        return []
-
-    def _stub_save_baseline(self, org_id="default"):
-        return 0
-
-    def _stub_get_remediation(self, finding_id: str):
-        return None
-
-    def _stub_get_compliance_map(self):
-        return {}
-
-    def _stub_get_finding(self, finding_id: str):
-        return None
-
-    def _stub_suppress_finding(self, finding_id: str, reason: str):
-        return None
-
-    def _stub_resolve_finding(self, finding_id: str):
-        return None
-
-    def _stub_list_scans(self, org_id="default", limit=10):
-        return []
-
-    def _stub_get_resource(self, resource_id: str):
-        return None
-
-    def _stub_delete_resource(self, resource_id: str):
-        return False
-
     # ---------------------------------------------------------------------------
     # AllowlistEntry — finding-suppression allowlist model
+    # Real implementation: in-memory store with TrustGraph events.
     # ---------------------------------------------------------------------------
 
     class AllowlistEntry(_BaseModel):
@@ -1818,25 +1759,93 @@ try:
             default_factory=lambda: _datetime.now(_timezone.utc).isoformat()
         )
 
-    # Storage: in-memory list (survives the process lifetime, adequate for the stub)
+    # Module-level store for allowlist entries (process-lifetime, real behaviour).
     _ALLOWLIST_STORE: _List = []
 
-    def _stub_add_allowlist_entry(self, entry: AllowlistEntry) -> AllowlistEntry:
+    # ---------------------------------------------------------------------------
+    # Attach real methods to CSPMEngine.
+    #
+    # Methods that require a live cloud connector raise CSPMNotConfiguredError
+    # so the router returns HTTP 503 with an honest "not_configured" signal.
+    # This mirrors the GCPSCCUnavailableError → 503 pattern in gcp_scc_engine.py.
+    #
+    # The fabricated overall_score=100.0 / total_findings=0 responses that were
+    # here previously have been REMOVED — they silently deceived paying customers
+    # into believing their cloud posture was perfect when no scan had ever run.
+    #
+    # Allowlist CRUD is genuinely implemented (in-memory store) and is kept real.
+    # ---------------------------------------------------------------------------
+
+    _NOT_CONFIGURED_MSG = (
+        "CSPM live-cloud posture scanning requires a cloud connector. "
+        "Configure an AWS, Azure, or GCP connector and re-run the scan."
+    )
+
+    def _cspm_get_posture(self, org_id: str = "default") -> OrgPosture:  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_list_findings(self, org_id="default", status=None, severity=None):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_list_resources(self, org_id="default"):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_register_resource(self, resource):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_get_benchmark_status(self, org_id="default"):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_run_scan(self, org_id="default", rule_ids=None):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_list_drift(self, org_id="default"):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_save_baseline(self, org_id="default"):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_get_remediation(self, finding_id: str):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_get_compliance_map(self):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_get_finding(self, finding_id: str):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_suppress_finding(self, finding_id: str, reason: str):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_resolve_finding(self, finding_id: str):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_list_scans(self, org_id="default", limit=10):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_get_resource(self, resource_id: str):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    def _cspm_delete_resource(self, resource_id: str):  # type: ignore[no-untyped-def]
+        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+
+    # Allowlist methods are genuinely implemented — no connector needed.
+    def _cspm_add_allowlist_entry(self, entry: AllowlistEntry) -> AllowlistEntry:  # type: ignore[no-untyped-def]
         _ALLOWLIST_STORE.append(entry)
         _emit_event("cspm.allowlist.added", {"id": entry.id, "rule_id": entry.rule_id})
         return entry
 
-    def _stub_list_allowlist(
+    def _cspm_list_allowlist(
         self,
         org_id: str = "default",
         rule_id: _Optional[str] = None,
-    ) -> _List[AllowlistEntry]:
+    ) -> _List[AllowlistEntry]:  # type: ignore[no-untyped-def]
         entries = [e for e in _ALLOWLIST_STORE if e.org_id == org_id]
         if rule_id:
             entries = [e for e in entries if e.rule_id == rule_id]
         return entries
 
-    def _stub_delete_allowlist_entry(self, entry_id: str) -> bool:
+    def _cspm_delete_allowlist_entry(self, entry_id: str) -> bool:  # type: ignore[no-untyped-def]
         for i, e in enumerate(_ALLOWLIST_STORE):
             if e.id == entry_id:
                 _ALLOWLIST_STORE.pop(i)
@@ -1844,27 +1853,27 @@ try:
                 return True
         return False
 
-    # Attach stubs to CSPMEngine
-    CSPMEngine.get_posture = _stub_get_posture  # type: ignore[attr-defined]
-    CSPMEngine.list_findings = _stub_list_findings  # type: ignore[attr-defined]
-    CSPMEngine.list_resources = _stub_list_resources  # type: ignore[attr-defined]
-    CSPMEngine.register_resource = _stub_register_resource  # type: ignore[attr-defined]
-    CSPMEngine.get_benchmark_status = _stub_get_benchmark_status  # type: ignore[attr-defined]
-    CSPMEngine.run_scan = _stub_run_scan  # type: ignore[attr-defined]
-    CSPMEngine.list_drift = _stub_list_drift  # type: ignore[attr-defined]
-    CSPMEngine.save_baseline = _stub_save_baseline  # type: ignore[attr-defined]
-    CSPMEngine.get_remediation = _stub_get_remediation  # type: ignore[attr-defined]
-    CSPMEngine.get_compliance_map = _stub_get_compliance_map  # type: ignore[attr-defined]
-    CSPMEngine.get_finding = _stub_get_finding  # type: ignore[attr-defined]
-    CSPMEngine.suppress_finding = _stub_suppress_finding  # type: ignore[attr-defined]
-    CSPMEngine.resolve_finding = _stub_resolve_finding  # type: ignore[attr-defined]
-    CSPMEngine.list_scans = _stub_list_scans  # type: ignore[attr-defined]
-    CSPMEngine.get_resource = _stub_get_resource  # type: ignore[attr-defined]
-    CSPMEngine.delete_resource = _stub_delete_resource  # type: ignore[attr-defined]
-    CSPMEngine.add_allowlist_entry = _stub_add_allowlist_entry  # type: ignore[attr-defined]
-    CSPMEngine.list_allowlist = _stub_list_allowlist  # type: ignore[attr-defined]
-    CSPMEngine.delete_allowlist_entry = _stub_delete_allowlist_entry  # type: ignore[attr-defined]
+    # Bind all methods onto CSPMEngine
+    CSPMEngine.get_posture = _cspm_get_posture  # type: ignore[attr-defined]
+    CSPMEngine.list_findings = _cspm_list_findings  # type: ignore[attr-defined]
+    CSPMEngine.list_resources = _cspm_list_resources  # type: ignore[attr-defined]
+    CSPMEngine.register_resource = _cspm_register_resource  # type: ignore[attr-defined]
+    CSPMEngine.get_benchmark_status = _cspm_get_benchmark_status  # type: ignore[attr-defined]
+    CSPMEngine.run_scan = _cspm_run_scan  # type: ignore[attr-defined]
+    CSPMEngine.list_drift = _cspm_list_drift  # type: ignore[attr-defined]
+    CSPMEngine.save_baseline = _cspm_save_baseline  # type: ignore[attr-defined]
+    CSPMEngine.get_remediation = _cspm_get_remediation  # type: ignore[attr-defined]
+    CSPMEngine.get_compliance_map = _cspm_get_compliance_map  # type: ignore[attr-defined]
+    CSPMEngine.get_finding = _cspm_get_finding  # type: ignore[attr-defined]
+    CSPMEngine.suppress_finding = _cspm_suppress_finding  # type: ignore[attr-defined]
+    CSPMEngine.resolve_finding = _cspm_resolve_finding  # type: ignore[attr-defined]
+    CSPMEngine.list_scans = _cspm_list_scans  # type: ignore[attr-defined]
+    CSPMEngine.get_resource = _cspm_get_resource  # type: ignore[attr-defined]
+    CSPMEngine.delete_resource = _cspm_delete_resource  # type: ignore[attr-defined]
+    CSPMEngine.add_allowlist_entry = _cspm_add_allowlist_entry  # type: ignore[attr-defined]
+    CSPMEngine.list_allowlist = _cspm_list_allowlist  # type: ignore[attr-defined]
+    CSPMEngine.delete_allowlist_entry = _cspm_delete_allowlist_entry  # type: ignore[attr-defined]
 
 except Exception:
-    # Pydantic not available — skip legacy compat shims
+    # Pydantic not available — skip router-compat shims
     pass
