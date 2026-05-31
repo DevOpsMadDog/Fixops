@@ -23,7 +23,7 @@ from core.analytics_models import (
     FindingSeverity,
     FindingStatus,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -398,15 +398,26 @@ async def get_compliance_status(
     }
 
 
-@router.get("/findings", response_model=List[FindingResponse])
+@router.get("/findings")
 async def query_findings(
+    response: Response,
     org_id: str = Depends(get_org_id),
     severity: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    """Query findings with filters. Returns real ingested findings."""
+    """Query findings with filters. Returns real ingested findings.
+
+    Compat strategy: returns envelope {"items": [...], "total": N, "limit": L,
+    "offset": O} so new callers get structured pagination.  The UI client at
+    api.ts already reads .data?.items as a fallback, so this is non-breaking.
+    X-Total-Count header is also set for clients that cannot change their
+    response-body parsing (e.g. integrations that expect a bare array via the
+    items key).
+    """
+    # Real total count with same filters (excludes test findings via source check)
+    total = db.count_findings(org_id=org_id, severity=severity, status=status)
     findings = db.list_findings(
         org_id=org_id,
         severity=severity,
@@ -416,7 +427,9 @@ async def query_findings(
     )
     # Exclude synthetic test-only findings
     findings = [f for f in findings if getattr(f, "source", "") != "test"]
-    return [FindingResponse(**f.to_dict()) for f in findings[:limit]]
+    items = [FindingResponse(**f.to_dict()) for f in findings[:limit]]
+    response.headers["X-Total-Count"] = str(total)
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 @router.post("/findings", response_model=FindingResponse, status_code=201)

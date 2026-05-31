@@ -195,19 +195,40 @@ async def query_nodes(
 
 
 @router.get("/nodes/{node_id}")
-async def get_node(node_id: str) -> Dict[str, Any]:
-    """Get a specific node by ID."""
+async def get_node(
+    node_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Get a specific node by ID, scoped to the caller's org."""
     brain = get_brain()
     node = brain.get_node(node_id)
     if node is None:
+        raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
+    # Nodes with an org_id set must match the caller's org.
+    # Nodes with org_id=None are shared/global; allow read access.
+    node_org = node.get("org_id")
+    if node_org is not None and node_org != org_id:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
     return node
 
 
 @router.delete("/nodes/{node_id}")
-async def delete_node(node_id: str) -> Dict[str, Any]:
-    """Delete a node and all its edges."""
+async def delete_node(
+    node_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Delete a node and all its edges. Scoped to the caller's org."""
     brain = get_brain()
+    node = brain.get_node(node_id)
+    if node is None:
+        raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
+    # Only allow deletion of nodes that belong to this org.
+    # Nodes with org_id=None are shared/global — block deletion to prevent
+    # cross-tenant destruction; a schema migration is needed to assign them.
+    node_org = node.get("org_id")
+    if node_org != org_id:
+        # Either it belongs to a different org, or it's an unscoped shared node.
+        raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
     deleted = brain.delete_node(node_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
@@ -217,6 +238,7 @@ async def delete_node(node_id: str) -> Dict[str, Any]:
             event_type=EventType.GRAPH_UPDATED,
             source="brain_router",
             data={"action": "delete_node", "node_id": node_id},
+            org_id=org_id,
         )
     )
     return {"deleted": True, "node_id": node_id}

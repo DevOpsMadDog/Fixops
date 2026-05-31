@@ -12,7 +12,7 @@ from core.services.remediation import (
     RemediationService,
     RemediationStatus,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -163,21 +163,29 @@ def list_tasks(
 
 
 @router.get("/tasks/{task_id}")
-def get_task(task_id: str) -> Dict[str, Any]:
+def get_task(
+    task_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Get a specific task by ID."""
     service = get_remediation_service()
     task = service.get_task(task_id)
-    if not task:
+    if not task or task.get("org_id") != org_id:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
 
 @router.put("/tasks/{task_id}/status")
 async def update_task_status(
-    task_id: str, request: UpdateStatusRequest
+    task_id: str,
+    request: UpdateStatusRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update task status with state machine validation."""
     service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task or task.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     try:
         result = service.update_status(
             task_id=task_id,
@@ -214,9 +222,16 @@ async def update_task_status(
 
 
 @router.put("/tasks/{task_id}/assign")
-def assign_task(task_id: str, request: AssignTaskRequest) -> Dict[str, Any]:
+def assign_task(
+    task_id: str,
+    request: AssignTaskRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Assign task to a user."""
     service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task or task.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     try:
         return service.assign_task(
             task_id=task_id,
@@ -231,10 +246,15 @@ def assign_task(task_id: str, request: AssignTaskRequest) -> Dict[str, Any]:
 
 @router.post("/tasks/{task_id}/verification")
 def submit_verification(
-    task_id: str, request: SubmitVerificationRequest
+    task_id: str,
+    request: SubmitVerificationRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Submit verification evidence for a task."""
     service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task or task.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     try:
         return service.submit_verification(
             task_id=task_id,
@@ -248,9 +268,16 @@ def submit_verification(
 
 
 @router.put("/tasks/{task_id}/ticket")
-def link_ticket(task_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
+def link_ticket(
+    task_id: str,
+    request: LinkTicketRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Link task to external ticket."""
     service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task or task.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     success = service.link_to_ticket(
         task_id=task_id,
         ticket_id=request.ticket_id,
@@ -319,7 +346,11 @@ class AutoFixTaskRequest(BaseModel):
 
 
 @router.post("/tasks/{task_id}/autofix")
-async def autofix_task(task_id: str, request: AutoFixTaskRequest) -> Dict[str, Any]:
+async def autofix_task(
+    task_id: str,
+    request: AutoFixTaskRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Generate an AI-powered autofix for a remediation task.
 
     Uses the task metadata to generate a code fix, dependency update,
@@ -330,7 +361,7 @@ async def autofix_task(task_id: str, request: AutoFixTaskRequest) -> Dict[str, A
 
     service = get_remediation_service()
     task = service.get_task(task_id)
-    if not task:
+    if not task or task.get("org_id") != org_id:
         raise HTTPException(status_code=404, detail="Task not found")
 
     # Build a finding dict from the task
@@ -374,10 +405,18 @@ async def autofix_task(task_id: str, request: AutoFixTaskRequest) -> Dict[str, A
 
 
 @router.get("/tasks/{task_id}/autofix/suggestions")
-async def get_task_autofix_suggestions(task_id: str) -> Dict[str, Any]:
+async def get_task_autofix_suggestions(
+    task_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Get existing autofix suggestions for a remediation task."""
     if not _HAS_AUTOFIX:
         raise HTTPException(status_code=501, detail="AutoFix engine not available")
+
+    service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task or task.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Task not found")
 
     engine = get_autofix_engine()
     fixes = engine.list_fixes(finding_id=task_id)
@@ -393,10 +432,15 @@ async def get_task_autofix_suggestions(task_id: str) -> Dict[str, Any]:
 
 @router.put("/tasks/{task_id}/transition")
 def transition_task_status(
-    task_id: str, request: UpdateStatusRequest
+    task_id: str,
+    request: UpdateStatusRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Transition task status (CLI-compatible alias for /tasks/{task_id}/status)."""
     service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task or task.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     try:
         return service.update_status(
             task_id=task_id,
@@ -410,9 +454,16 @@ def transition_task_status(
 
 
 @router.post("/tasks/{task_id}/verify")
-def verify_task(task_id: str, request: SubmitVerificationRequest) -> Dict[str, Any]:
+def verify_task(
+    task_id: str,
+    request: SubmitVerificationRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Verify task (CLI-compatible alias for /tasks/{task_id}/verification)."""
     service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task or task.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     try:
         return service.submit_verification(
             task_id=task_id,
@@ -611,12 +662,11 @@ def get_remediation_backlog(
 
 
 @router.get("/stats")
-async def remediation_stats(request: Request):
+async def remediation_stats(org_id: str = Depends(get_org_id)):
     """Remediation statistics — task counts by severity/status/assignee."""
     svc = get_remediation_service()
     tasks = []
     try:
-        org_id = request.query_params.get("org_id", "default")
         raw = svc.get_tasks(org_id=org_id, limit=1000) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError):
@@ -648,12 +698,11 @@ async def remediation_stats(request: Request):
 
 
 @router.get("/queue")
-async def remediation_queue(request: Request):
+async def remediation_queue(org_id: str = Depends(get_org_id)):
     """Remediation queue — pending tasks ordered by priority."""
     svc = get_remediation_service()
     tasks = []
     try:
-        org_id = request.query_params.get("org_id", "default")
         raw = svc.get_tasks(org_id=org_id, limit=200) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError):
@@ -679,12 +728,12 @@ async def remediation_queue(request: Request):
 
 
 @router.get("/summary")
-async def remediation_summary(request: Request):
+async def remediation_summary(org_id: str = Depends(get_org_id)):
     """Remediation summary — high-level overview."""
     svc = get_remediation_service()
     tasks = []
     try:
-        raw = svc.get_tasks(org_id="default", limit=1000) if hasattr(svc, "get_tasks") else []
+        raw = svc.get_tasks(org_id=org_id, limit=1000) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError):
         pass
@@ -714,7 +763,10 @@ async def remediation_summary(request: Request):
 
 
 @router.get("/tasks/{task_id}/timeline")
-def get_task_timeline(task_id: str) -> Dict[str, Any]:
+def get_task_timeline(
+    task_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Full remediation lifecycle timeline for a task.
 
     Returns every phase of the finding lifecycle:
@@ -723,7 +775,7 @@ def get_task_timeline(task_id: str) -> Dict[str, Any]:
     """
     service = get_remediation_service()
     task = service.get_task(task_id)
-    if not task:
+    if not task or task.get("org_id") != org_id:
         raise HTTPException(status_code=404, detail="Task not found")
 
     task_dict = dict(task) if not isinstance(task, dict) else task
@@ -933,7 +985,11 @@ def list_plans(
 
 
 @router.put("/{plan_id}/status", summary="Update plan state")
-def update_plan_state(plan_id: str, req: UpdatePlanStateRequest) -> Dict[str, Any]:
+def update_plan_state(
+    plan_id: str,
+    req: UpdatePlanStateRequest,
+    org_id: str = Depends(get_org_id),  # noqa: ARG001 — enforces auth; plan model has no org_id yet
+) -> Dict[str, Any]:
     """Advance a remediation plan through its state machine."""
     if not _HAS_PLAN_ENGINE:
         raise HTTPException(status_code=501, detail="Remediation plan engine not available")

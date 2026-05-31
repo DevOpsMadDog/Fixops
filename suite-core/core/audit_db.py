@@ -158,6 +158,39 @@ class AuditDB:
         finally:
             conn.close()
 
+    def count_audit_logs(
+        self,
+        event_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        org_id: Optional[str] = None,
+    ) -> int:
+        """Return total count of audit logs matching the same filters as list_audit_logs."""
+        conn = self._get_connection()
+        try:
+            conditions = []
+            params: list = []
+            if org_id:
+                conditions.append("(org_id = ? OR org_id IS NULL)")
+                params.append(org_id)
+            if event_type:
+                conditions.append("event_type = ?")
+                params.append(event_type)
+            if user_id:
+                conditions.append("user_id = ?")
+                params.append(user_id)
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            row = conn.execute(
+                f"SELECT COUNT(*) FROM audit_logs {where}",  # nosec B608
+                params,
+            ).fetchone()
+            return int(row[0]) if row else 0
+        finally:
+            conn.close()
+
+    def count_logs(self, org_id: Optional[str] = None) -> int:
+        """Alias for count_audit_logs scoped to org_id (used by audit_index)."""
+        return self.count_audit_logs(org_id=org_id)
+
     def create_framework(self, framework: ComplianceFramework) -> ComplianceFramework:
         """Create compliance framework."""
         if not framework.id:

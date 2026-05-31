@@ -9,7 +9,11 @@ Generates real compliance assessment evidence packs with:
 
 from __future__ import annotations
 
+import json
 import logging
+import os
+import sqlite3
+import threading
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -17,6 +21,95 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Issue 4: SQLite-backed evidence pack store (survives restart)
+# ---------------------------------------------------------------------------
+
+_EVIDENCE_DB_PATH = os.environ.get(
+    "FIXOPS_EVIDENCE_DB", os.path.join("data", "evidence_packs.db")
+)
+
+
+class _EvidencePackStore:
+    """Lightweight SQLite store for evidence packs.
+
+    Thread-safe via a per-instance lock.  Uses WAL mode for concurrent
+    readers.  Designed after the PersistentDict pattern used elsewhere.
+    """
+
+    _CREATE_TABLE = """
+    CREATE TABLE IF NOT EXISTS evidence_packs (
+        pack_id   TEXT PRIMARY KEY,
+        org_id    TEXT NOT NULL,
+        data_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_ep_org_id ON evidence_packs(org_id);
+    """
+
+    def __init__(self, db_path: str = _EVIDENCE_DB_PATH) -> None:
+        self._db_path = db_path
+        self._lock = threading.Lock()
+        self._ensure_db()
+
+    def _ensure_db(self) -> None:
+        try:
+            os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
+            with self._connect() as conn:
+                conn.executescript(self._CREATE_TABLE)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("EvidencePackStore: DB init failed (in-memory fallback): %s", exc)
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._db_path, timeout=10, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        return conn
+
+    def save(self, pack: "EvidencePack") -> None:
+        """Persist a pack; idempotent on re-save (upsert by pack_id)."""
+        try:
+            with self._lock, self._connect() as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO evidence_packs "
+                    "(pack_id, org_id, data_json, created_at) VALUES (?, ?, ?, ?)",
+                    (
+                        pack.pack_id,
+                        pack.org_id,
+                        json.dumps(pack.to_dict(), default=str),
+                        pack.generated_at,
+                    ),
+                )
+                conn.commit()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("EvidencePackStore.save failed (pack %s): %s", pack.pack_id, exc)
+
+    def get(self, pack_id: str) -> Optional[Dict[str, Any]]:
+        """Return the raw dict for a pack_id, or None."""
+        try:
+            with self._lock, self._connect() as conn:
+                row = conn.execute(
+                    "SELECT data_json FROM evidence_packs WHERE pack_id=?", (pack_id,)
+                ).fetchone()
+                if row:
+                    return json.loads(row[0])
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("EvidencePackStore.get failed (pack %s): %s", pack_id, exc)
+        return None
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        """Return all packs ordered by created_at descending."""
+        try:
+            with self._lock, self._connect() as conn:
+                rows = conn.execute(
+                    "SELECT data_json FROM evidence_packs ORDER BY created_at DESC"
+                ).fetchall()
+                return [json.loads(r[0]) for r in rows]
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("EvidencePackStore.list_all failed: %s", exc)
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -239,11 +332,63 @@ class EvidencePack:
         }
 
 
+def _dict_to_evidence_pack(raw: Dict[str, Any]) -> Optional["EvidencePack"]:
+    """Reconstruct a minimal EvidencePack from a persisted to_dict() blob.
+
+    Only the fields needed for list/get API responses are populated.
+    Control assessments are restored as plain ControlAssessment objects.
+    Returns None on any parse error so the caller can skip gracefully.
+    """
+    try:
+        pack = EvidencePack(
+            org_id=raw.get("org_id", ""),
+            timeframe_start=raw.get("timeframe_start", ""),
+            timeframe_end=raw.get("timeframe_end", ""),
+            timeframe_days=int(raw.get("timeframe_days", 90)),
+        )
+        pack.pack_id = raw.get("pack_id", pack.pack_id)
+        pack.generated_at = raw.get("generated_at", pack.generated_at)
+        pack.controls_assessed = int(raw.get("controls_assessed", 0))
+        pack.controls_effective = int(raw.get("controls_effective", 0))
+        pack.controls_needing_improvement = int(raw.get("controls_needing_improvement", 0))
+        pack.controls_not_effective = int(raw.get("controls_not_effective", 0))
+        pack.overall_score = float(raw.get("overall_score", 0.0))
+        pack.overall_status = raw.get("overall_status", "not_qualified")
+        pack.summary = raw.get("summary", {})
+        # Restore assessments
+        for a_raw in raw.get("assessments", []):
+            try:
+                pack.assessments.append(
+                    ControlAssessment(
+                        control_id=a_raw.get("control_id", ""),
+                        title=a_raw.get("title", ""),
+                        tsc=a_raw.get("tsc", ""),
+                        status=ControlStatus(a_raw.get("status", "not_assessed")),
+                        checks_passed=int(a_raw.get("checks_passed", 0)),
+                        checks_total=int(a_raw.get("checks_total", 0)),
+                        evidence_items=a_raw.get("evidence_items", []),
+                        findings=a_raw.get("findings", []),
+                        tested_at=a_raw.get("tested_at", ""),
+                    )
+                )
+            except Exception:  # noqa: BLE001
+                pass  # Skip malformed assessment rows
+        return pack
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_dict_to_evidence_pack: parse error: %s", exc)
+        return None
+
+
 class SOC2EvidenceGenerator:
     """Generates real SOC2 Type II evidence packs by assessing platform data."""
 
     def __init__(self) -> None:
+        # Issue 4: in-memory cache backed by SQLite store for restart survival
         self._packs: Dict[str, EvidencePack] = {}
+        try:
+            self._store: Optional[_EvidencePackStore] = _EvidencePackStore()
+        except Exception:  # noqa: BLE001
+            self._store = None
 
     def generate(
         self,
@@ -303,6 +448,9 @@ class SOC2EvidenceGenerator:
         pack.pipeline_data = data
 
         self._packs[pack.pack_id] = pack
+        # Issue 4: persist to SQLite so packs survive restart
+        if self._store is not None:
+            self._store.save(pack)
         logger.info(
             "Generated evidence pack %s: score=%.2f status=%s",
             pack.pack_id,
@@ -312,9 +460,29 @@ class SOC2EvidenceGenerator:
         return pack
 
     def get_pack(self, pack_id: str) -> Optional[EvidencePack]:
-        return self._packs.get(pack_id)
+        # Check in-memory cache first (fast path)
+        if pack_id in self._packs:
+            return self._packs[pack_id]
+        # Issue 4: fall back to SQLite store (post-restart path)
+        if self._store is not None:
+            raw = self._store.get(pack_id)
+            if raw is not None:
+                # Reconstruct a minimal EvidencePack from persisted dict
+                pack = _dict_to_evidence_pack(raw)
+                if pack is not None:
+                    self._packs[pack_id] = pack  # warm the cache
+                    return pack
+        return None
 
     def list_packs(self) -> List[EvidencePack]:
+        # Issue 4: merge in-memory cache with persisted packs
+        if self._store is not None:
+            for raw in self._store.list_all():
+                pid = raw.get("pack_id")
+                if pid and pid not in self._packs:
+                    pack = _dict_to_evidence_pack(raw)
+                    if pack is not None:
+                        self._packs[pid] = pack
         return sorted(self._packs.values(), key=lambda p: p.generated_at, reverse=True)
 
     def _assess_control(

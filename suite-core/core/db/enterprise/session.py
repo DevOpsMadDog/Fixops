@@ -74,6 +74,17 @@ class DatabaseManager:
             autocommit=False,
         )
 
+        # Issue 3: create tables (CREATE TABLE IF NOT EXISTS) so pipeline_runs
+        # and other SQLAlchemy models exist without requiring Alembic in dev/test.
+        try:
+            from core.db.models import Base as _ModelsBase  # noqa: PLC0415
+            async with cls._engine.begin() as _conn:
+                await _conn.run_sync(_ModelsBase.metadata.create_all)
+            logger.info("Enterprise database tables ensured (create_all)")
+        except Exception as _exc:  # noqa: BLE001
+            # Table creation failure must never prevent startup
+            logger.warning("Enterprise table creation failed (non-fatal): %s", _exc)
+
         # Set up connection event handlers
         cls._setup_event_handlers()
 

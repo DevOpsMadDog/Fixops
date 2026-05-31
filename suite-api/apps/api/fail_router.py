@@ -335,13 +335,16 @@ async def list_drills(
     "/drills/{drill_id}",
     summary="Drill detail with timeline and score",
 )
-async def get_drill(drill_id: str) -> Dict[str, Any]:
+async def get_drill(
+    drill_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """
     Get full detail for a drill including timeline events and score breakdown.
     """
     engine = _get_engine()
     drill = engine.get_drill(drill_id)
-    if not drill:
+    if not drill or drill.get("org_id") != org_id:
         raise HTTPException(status_code=404, detail=f"Drill {drill_id} not found")
     return drill
 
@@ -487,6 +490,7 @@ async def grade_drill(drill_id: str, req: GradeRequest) -> GradeResponse:
 )
 async def cancel_drill(
     drill_id: str,
+    org_id: str = Depends(get_org_id),
     cancelled_by: Optional[str] = Query(None, description="Who is cancelling the drill"),
     reason: str = Query("", description="Reason for cancellation"),
 ) -> Dict[str, Any]:
@@ -496,8 +500,12 @@ async def cancel_drill(
     The drill will be marked as cancelled and removed from the active list.
     Cancelled drills are excluded from readiness scoring.
     """
+    # Ownership check before destructive cancellation
+    engine = _get_engine()
+    drill = engine.get_drill(drill_id)
+    if not drill or drill.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail=f"Drill {drill_id} not found")
     try:
-        engine = _get_engine()
         return engine.cancel_drill(
             drill_id=drill_id,
             cancelled_by=cancelled_by,
@@ -505,7 +513,7 @@ async def cancel_drill(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=type(exc).__name__)
-    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+    except (OSError, KeyError, RuntimeError) as exc:
         logger.exception("cancel_drill failed: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error")
 

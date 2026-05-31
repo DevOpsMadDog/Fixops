@@ -4,13 +4,12 @@ Exposes endpoints to trigger, monitor, and query the 12-step
 ALdeci Brain Pipeline orchestrator.
 
 Endpoints:
-    POST /api/v1/brain/pipeline/run     - Execute full pipeline
-    GET  /api/v1/brain/pipeline/runs     - List past runs
-    GET  /api/v1/brain/pipeline/runs/{id} - Get run details
-    POST /api/v1/brain/pipeline/run-async - Start async run (returns immediately)
-    POST /api/v1/brain/evidence/generate - Generate SOC2 evidence pack
-    GET  /api/v1/brain/evidence/packs    - List evidence packs
-    GET  /api/v1/brain/evidence/packs/{id} - Get evidence pack details
+    POST /api/v1/pipeline/run            - Execute full pipeline
+    GET  /api/v1/pipeline/runs           - List past runs (scoped to org)
+    GET  /api/v1/pipeline/runs/{id}      - Get run details (org-scoped)
+    POST /api/v1/pipeline/evidence/generate - Generate SOC2 evidence pack
+    GET  /api/v1/pipeline/evidence/packs    - List evidence packs (org-scoped)
+    GET  /api/v1/pipeline/evidence/packs/{id} - Get evidence pack (org-scoped)
 """
 
 from __future__ import annotations
@@ -73,9 +72,101 @@ class EvidenceGenerateRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _extract_verdict(result_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract a normalised top-level verdict from a PipelineResult dict.
+
+    Priority order:
+      1. llm_council step output  (council_verdict via CouncilPipelineAdapter)
+      2. llm_consensus step output (multi-provider consensus)
+      3. apply_policy step output  (OPA/deterministic policy)
+      4. deterministic fallback from summary risk score
+
+    The ``source`` field is always honest:
+      - "council"        — real LLM council verdict
+      - "consensus"      — multi-provider LLM consensus
+      - "policy"         — OPA / rule-based policy engine
+      - "deterministic"  — heuristic fallback, no LLM
+      - "degraded"       — pipeline status is not completed
+    """
+    # Find step outputs by name
+    steps_by_name: Dict[str, Any] = {
+        s["name"]: s.get("output", {})
+        for s in result_dict.get("steps", [])
+        if s.get("status") == "completed"
+    }
+
+    # 1. LLM Council (step: llm_council)
+    council_out = steps_by_name.get("llm_council", {})
+    if council_out.get("decision") or council_out.get("final_decision"):
+        decision = council_out.get("decision") or council_out.get("final_decision", "review")
+        return {
+            "decision": decision,
+            "confidence": float(council_out.get("confidence", council_out.get("consensus_pct", 0.0))),
+            "summary": council_out.get("summary") or council_out.get("note") or f"Council decision: {decision}",
+            "source": "council",
+        }
+
+    # 2. LLM Consensus (step: llm_consensus)
+    consensus_out = steps_by_name.get("llm_consensus", {})
+    if consensus_out.get("decision") or consensus_out.get("final_decision"):
+        decision = consensus_out.get("decision") or consensus_out.get("final_decision", "review")
+        method = consensus_out.get("method", "")
+        source = "deterministic" if "deterministic" in method else "consensus"
+        return {
+            "decision": decision,
+            "confidence": float(consensus_out.get("consensus_pct", 0.0)),
+            "summary": consensus_out.get("note") or f"Consensus decision: {decision} (method={method})",
+            "source": source,
+        }
+
+    # 3. Policy step (step: apply_policy)
+    policy_out = steps_by_name.get("apply_policy", {})
+    if policy_out.get("decision") or policy_out.get("opa_verdict"):
+        decision = policy_out.get("decision") or policy_out.get("opa_verdict", "review")
+        return {
+            "decision": decision,
+            "confidence": 1.0,
+            "summary": f"Policy engine decision: {decision}",
+            "source": "policy",
+        }
+
+    # 4. Heuristic fallback from summary
+    status = result_dict.get("status", "")
+    if status not in ("completed", "partial"):
+        return {
+            "decision": "review",
+            "confidence": 0.0,
+            "summary": f"Pipeline did not complete (status={status}); manual review required.",
+            "source": "degraded",
+        }
+
+    avg_risk = result_dict.get("summary", {}).get("avg_risk_score", 0.0)
+    critical = result_dict.get("summary", {}).get("critical_cases", 0)
+    if critical > 0 or avg_risk >= 0.75:
+        decision = "block"
+    elif avg_risk >= 0.5:
+        decision = "review"
+    else:
+        decision = "allow"
+
+    return {
+        "decision": decision,
+        "confidence": 0.0,
+        "summary": (
+            f"Heuristic fallback (no LLM verdict available): avg_risk={avg_risk:.2f}, "
+            f"critical_cases={critical}. Configure OPENROUTER_API_KEY for real verdicts."
+        ),
+        "source": "deterministic",
+    }
+
+
+# ---------------------------------------------------------------------------
 # Pipeline Endpoints
 # ---------------------------------------------------------------------------
-@router.post("/pipeline/run")
+@router.post("/run")
 async def run_pipeline(
     req: PipelineRunRequest,
     org_id: str = Depends(get_org_id),
@@ -100,36 +191,52 @@ async def run_pipeline(
         policy_rules=req.policy_rules,
     )
     result = pipeline.run(inp)
-    return result.to_dict()
+    result_dict = result.to_dict()
+    # Issue 2: inject top-level verdict derived from real pipeline step outputs
+    result_dict["verdict"] = _extract_verdict(result_dict)
+    return result_dict
 
 
-@router.get("/pipeline/runs")
-async def list_pipeline_runs(limit: int = 20, offset: int = 0) -> Dict[str, Any]:
-    """List past pipeline runs."""
+@router.get("/runs")
+async def list_pipeline_runs(
+    limit: int = 20,
+    offset: int = 0,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """List past pipeline runs for the authenticated org."""
     from core.brain_pipeline import get_brain_pipeline
 
     pipeline = get_brain_pipeline()
-    runs = pipeline.list_runs()
-    total = len(runs)
-    page = runs[offset : offset + limit]
+    # Issue 5: filter by org_id — only return this org's runs
+    all_runs = pipeline.list_runs(limit=limit + offset)
+    org_runs = [r for r in all_runs if r.get("org_id") == org_id]
+    page = org_runs[offset : offset + limit]
     return {
-        "total": total,
+        "total": len(org_runs),
         "limit": limit,
         "offset": offset,
         "runs": page,
     }
 
 
-@router.get("/pipeline/runs/{run_id}")
-async def get_pipeline_run(run_id: str) -> Dict[str, Any]:
-    """Get details of a specific pipeline run."""
+@router.get("/runs/{run_id}")
+async def get_pipeline_run(
+    run_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Get details of a specific pipeline run (org-scoped)."""
     from core.brain_pipeline import get_brain_pipeline
 
     pipeline = get_brain_pipeline()
     result = pipeline.get_run(run_id)
     if not result:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
-    return result.to_dict()
+    # Issue 5: cross-tenant guard
+    if result.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    result_dict = result.to_dict()
+    result_dict["verdict"] = _extract_verdict(result_dict)
+    return result_dict
 
 
 # ---------------------------------------------------------------------------
@@ -140,11 +247,12 @@ async def generate_evidence_pack(
     req: EvidenceGenerateRequest,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Generate a SOC2 Type II evidence pack."""
-    from core.soc2_evidence_generator import SOC2EvidenceGenerator
+    """Generate a SOC2 Type II evidence pack (persisted, org-scoped)."""
+    from core.soc2_evidence_generator import get_evidence_generator
 
     effective_org_id = req.org_id or org_id
-    generator = SOC2EvidenceGenerator()
+    # Issue 4: use the persistent singleton, not a throw-away instance
+    generator = get_evidence_generator()
     platform_data = _collect_platform_data(req)
     pack = generator.generate(
         org_id=effective_org_id,
@@ -156,29 +264,40 @@ async def generate_evidence_pack(
 
 
 @router.get("/evidence/packs")
-async def list_evidence_packs(limit: int = 20) -> Dict[str, Any]:
-    """List generated evidence packs."""
+async def list_evidence_packs(
+    limit: int = 20,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """List generated evidence packs for the authenticated org."""
     from core.soc2_evidence_generator import get_evidence_generator
 
     generator = get_evidence_generator()
-    packs = generator.list_packs()[:limit]
-    return {"total": len(packs), "packs": [p.to_dict() for p in packs]}
+    # Issue 5: filter by org_id — SOC2 evidence is highly sensitive
+    all_packs = generator.list_packs()
+    org_packs = [p for p in all_packs if p.org_id == org_id]
+    return {"total": len(org_packs), "packs": [p.to_dict() for p in org_packs[:limit]]}
 
 
 @router.get("/evidence/packs/{pack_id}")
-async def get_evidence_pack(pack_id: str) -> Dict[str, Any]:
-    """Get a specific evidence pack."""
+async def get_evidence_pack(
+    pack_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Get a specific evidence pack (org-scoped)."""
     from core.soc2_evidence_generator import get_evidence_generator
 
     generator = get_evidence_generator()
     pack = generator.get_pack(pack_id)
     if not pack:
         raise HTTPException(status_code=404, detail=f"Pack {pack_id} not found")
+    # Issue 5: cross-tenant guard — SOC2 evidence is highly sensitive
+    if pack.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Pack {pack_id} not found")
     return pack.to_dict()
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Platform data helper
 # ---------------------------------------------------------------------------
 def _collect_platform_data(req: EvidenceGenerateRequest) -> Dict[str, Any]:
     """Collect platform telemetry data for evidence assessment."""

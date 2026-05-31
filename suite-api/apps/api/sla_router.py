@@ -280,7 +280,7 @@ def _task_age_hours(task: Dict[str, Any], now: datetime) -> float:
 
 
 @router.get("/dashboard-legacy")
-async def sla_dashboard_legacy() -> Dict[str, Any]:
+async def sla_dashboard_legacy(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Legacy SLA compliance dashboard — breach counts from remediation tasks."""
     now = datetime.now(timezone.utc)
     targets = _compute_sla_targets()
@@ -288,7 +288,7 @@ async def sla_dashboard_legacy() -> Dict[str, Any]:
     try:
         db = _get_remediation_db()
         if db:
-            raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
+            raw = db.list_tasks(org_id=org_id, limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError):
         pass
@@ -356,14 +356,14 @@ async def sla_dashboard_legacy() -> Dict[str, Any]:
 
 
 @router.get("/metrics")
-async def sla_metrics() -> Dict[str, Any]:
+async def sla_metrics(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Detailed SLA metrics — MTTR, team breakdown, escalations."""
     targets = _compute_sla_targets()
     tasks: List[Dict[str, Any]] = []
     try:
         db = _get_remediation_db()
         if db:
-            raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
+            raw = db.list_tasks(org_id=org_id, limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError):
         pass
@@ -413,7 +413,7 @@ async def sla_metrics() -> Dict[str, Any]:
 
 
 @router.get("/breaches")
-async def sla_breaches() -> Dict[str, Any]:
+async def sla_breaches(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List current SLA breaches (task-level, legacy view)."""
     now = datetime.now(timezone.utc)
     targets = _compute_sla_targets()
@@ -421,7 +421,7 @@ async def sla_breaches() -> Dict[str, Any]:
     try:
         db = _get_remediation_db()
         if db:
-            raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
+            raw = db.list_tasks(org_id=org_id, limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError):
         pass

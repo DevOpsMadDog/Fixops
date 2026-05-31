@@ -301,14 +301,19 @@ async def logout(request: Request):
 @router.get("", response_model=PaginatedUserResponse)
 async def list_users(
     org_id: str = Depends(get_org_id),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    """List all users with pagination."""
+    """List all users with pagination.
+
+    Envelope: {"items": [...], "total": <full count>, "limit": limit, "offset": offset}.
+    total reflects the full tenant row count, not just len(items).
+    """
     users = db.list_users(org_id=org_id, limit=limit, offset=offset)
+    total = db.count_users(org_id=org_id)
     return {
         "items": [UserResponse(**u.to_dict()) for u in users],
-        "total": len(users),
+        "total": total,
         "limit": limit,
         "offset": offset,
     }

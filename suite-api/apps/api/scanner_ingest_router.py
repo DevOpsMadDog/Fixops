@@ -42,15 +42,17 @@ router = APIRouter(
 )
 
 # ── Security constants ──────────────────────────────────────────────
-# Maximum upload size: 100 MB (prevents zip bombs and memory exhaustion)
-_MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+# Maximum upload size: 50 MB (prevents zip bombs and memory exhaustion)
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+# Internal alias — used throughout this module
+_MAX_UPLOAD_BYTES = MAX_UPLOAD_BYTES
 # Maximum body size for webhook ingestion: 50 MB
 _MAX_WEBHOOK_BYTES = 50 * 1024 * 1024
-# Allowed file extensions for scanner output uploads
+# Allowed file extensions for scanner output uploads.
+# Deliberately narrow: only well-known scanner output formats accepted.
+# Reject executables, archives, scripts, and other risky types with 415.
 _ALLOWED_EXTENSIONS = frozenset({
-    ".json", ".xml", ".html", ".csv", ".sarif",
-    ".nessus", ".nmap", ".txt", ".log", ".yaml", ".yml",
-    ".cdx", ".spdx", ".vex",
+    ".json", ".sarif", ".xml", ".csv", ".txt",
 })
 # Valid scanner type characters (alphanumeric + hyphens/underscores only)
 import re as _re
@@ -319,18 +321,37 @@ async def upload_scanner_output(
     # Security: validate filename (path traversal defense)
     safe_filename = _validate_filename(file.filename)
 
-    # Security: validate file extension
+    # Security: validate file extension BEFORE reading body (fast-reject)
     if safe_filename:
         import os
         ext = os.path.splitext(safe_filename)[1].lower()
         if ext and ext not in _ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=415,
-                detail=f"Unsupported file extension: {ext}. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
+                detail=(
+                    f"Unsupported file extension: {ext!r}. "
+                    f"Allowed: {sorted(_ALLOWED_EXTENSIONS)}"
+                ),
             )
 
+    # Security: check Content-Length header before reading body (early 413)
+    content_length_header = request.headers.get("content-length")
+    if content_length_header:
+        try:
+            declared_size = int(content_length_header)
+            if declared_size > _MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=(
+                        f"Upload too large: declared Content-Length {declared_size} bytes "
+                        f"exceeds {_MAX_UPLOAD_BYTES} byte limit ({_MAX_UPLOAD_BYTES // (1024*1024)} MB)"
+                    ),
+                )
+        except ValueError:
+            pass  # non-integer Content-Length — ignore, actual size check below
+
     content = await file.read()
-    # Security: validate upload size (zip bomb / DoS prevention)
+    # Security: validate actual upload size (zip bomb / DoS prevention)
     _validate_upload_size(content, _MAX_UPLOAD_BYTES)
 
     t0 = time.time()

@@ -170,6 +170,21 @@ class UserDB:
         finally:
             conn.close()
 
+    def count_users(self, org_id: Optional[str] = None) -> int:
+        """Return total count of users, optionally scoped to org_id."""
+        conn = self._get_connection()
+        try:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+            if org_id is not None and "org_id" in cols:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE org_id = ?", (org_id,)
+                ).fetchone()
+            else:
+                row = conn.execute("SELECT COUNT(*) FROM users").fetchone()
+            return int(row[0]) if row else 0
+        finally:
+            conn.close()
+
     def update_user(self, user: User) -> User:
         """Update user."""
         user.updated_at = datetime.now(timezone.utc)

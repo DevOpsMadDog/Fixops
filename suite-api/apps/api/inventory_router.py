@@ -149,12 +149,14 @@ async def list_assets(
     asset_type: Optional[str] = Query(
         None, description="Filter by asset type: application, service, api"
     ),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
     """List all assets across the inventory.
 
     Returns a unified view of all asset types (applications, services, APIs).
+    Pagination: limit/offset query params; X-Total-Count header carries the
+    unfiltered total for callers that still read a bare items array.
     """
     assets: List[AssetResponse] = []
 
@@ -181,9 +183,12 @@ async def list_assets(
     # In production, would also fetch services and APIs from their respective stores
     # For now, return the applications we have
 
+    # Real total count (not just current page size)
+    total = db.count_applications(org_id=org_id)
+
     return {
         "items": assets[:limit],
-        "total": len(assets),
+        "total": total,
         "limit": limit,
         "offset": offset,
     }
@@ -192,14 +197,19 @@ async def list_assets(
 @router.get("/applications", response_model=PaginatedResponse)
 async def list_applications(
     org_id: str = Depends(get_org_id),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    """List all applications with pagination."""
+    """List all applications with pagination.
+
+    Envelope: {"items": [...], "total": <full count>, "limit": limit, "offset": offset}.
+    The total field is the real row count for the tenant, not just len(items).
+    """
     applications = db.list_applications(org_id=org_id, limit=limit, offset=offset)
+    total = db.count_applications(org_id=org_id)
     return {
         "items": [ApplicationResponse(**app.to_dict()) for app in applications],
-        "total": len(applications),
+        "total": total,
         "limit": limit,
         "offset": offset,
     }

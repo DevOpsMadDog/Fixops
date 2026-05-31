@@ -180,6 +180,33 @@ class AnalyticsDB:
         finally:
             conn.close()
 
+    def count_findings(
+        self,
+        org_id: Optional[str] = None,
+        severity: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> int:
+        """Return total count of findings matching the same filters as list_findings."""
+        conn = self._get_connection()
+        try:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(findings)").fetchall()}
+            has_org = "org_id" in cols
+            query = "SELECT COUNT(*) FROM findings WHERE 1=1"
+            params: List[Any] = []
+            if org_id is not None and has_org:
+                query += " AND org_id = ?"
+                params.append(org_id)
+            if severity:
+                query += " AND severity = ?"
+                params.append(severity)
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            row = conn.execute(query, params).fetchone()
+            return int(row[0]) if row else 0
+        finally:
+            conn.close()
+
     def update_finding(self, finding: Finding) -> Finding:
         """Update finding."""
         finding.updated_at = datetime.now(timezone.utc)

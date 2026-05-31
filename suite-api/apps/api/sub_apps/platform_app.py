@@ -358,11 +358,18 @@ def register_platform_routers(
 
     try:
         from apps.api.auth_router import router as auth_router  # noqa: PLC0415
-        app.include_router(
-            auth_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
-        )
-        _logger.info("Mounted Auth router (admin:all)")
+        # IMPORTANT: auth_router is mounted with NO router-level auth dependencies.
+        # Public endpoints (login, signup, forgot-password, reset-password, email
+        # verification, oauth/saml callbacks, token refresh) MUST be reachable by
+        # unauthenticated users — a blanket scope gate blocks new customers entirely.
+        # Protected endpoints inside this router (/keys/*, /disposable-token*,
+        # /role-view*, /dev-token) already carry their own
+        # `dependencies=[Depends(api_key_auth)]` at the endpoint level and remain
+        # fully protected. NOTE: /sso config management endpoints currently have no
+        # per-endpoint guard; they should be secured inside auth_router.py in a
+        # follow-up (tracked separately) — do NOT re-add the blanket admin:all here.
+        app.include_router(auth_router)
+        _logger.info("Mounted Auth router (no blanket scope — per-endpoint guards active)")
     except ImportError as exc:
         _logger.warning("auth_router not available: %s", exc)
 

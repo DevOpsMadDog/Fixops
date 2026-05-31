@@ -192,6 +192,21 @@ class InventoryDB:
         finally:
             conn.close()
 
+    def count_applications(self, org_id: Optional[str] = None) -> int:
+        """Return total count of applications, optionally scoped to org_id."""
+        conn = self._get_connection()
+        try:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(applications)").fetchall()}
+            if org_id is not None and "org_id" in cols:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM applications WHERE org_id = ?", (org_id,)
+                ).fetchone()
+            else:
+                row = conn.execute("SELECT COUNT(*) FROM applications").fetchone()
+            return int(row[0]) if row else 0
+        finally:
+            conn.close()
+
     def update_application(self, app: Application) -> Application:
         """Update application."""
         app.updated_at = datetime.now(timezone.utc)

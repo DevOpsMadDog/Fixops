@@ -693,6 +693,9 @@ def _mint_token(payload_extra: dict, ttl_seconds: int) -> str:
 
 class LoginRequestBody(BaseModel):
     email: str = Field(..., min_length=1, max_length=255)
+    # min_length=1 intentional on login: we return generic 401 for bad creds
+    # (enforcement is on the DB lookup, not the field length — avoids enumeration
+    # where attacker can infer "short password = no such user" from 422 vs 401)
     password: str = Field(..., min_length=1, max_length=1024)
 
 
@@ -722,19 +725,35 @@ class RefreshResponseBody(BaseModel):
 async def auth_login(body: LoginRequestBody, request: Request) -> LoginResponseBody:
     """Commercial-grade login endpoint.
 
-    - Rate-limited (5 attempts / 15 min per email).
+    - IP-level rate limit (10/min per IP via endpoint_rate_limit).
+    - Per-email lockout after 5 failed attempts (15-min window).
+    - Email format validated before touching the DB (avoids wasted DB lookups).
+    - Returns GENERIC 401 regardless of whether email exists (prevents enumeration).
     - Validates against UserDB (bcrypt).
     - Returns HS256 access token (2h) + refresh token (7d).
     - Every attempt (success or failure) is written to AuditLogger.
     """
-    client_ip = request.client.host if request.client else "unknown"
-    _check_login_rate_limit(body.email)
+    # IP-level rate limit — applied before any DB work
+    _rl_enforce(request, limit_key="auth:login", max_per_minute=10)
 
-    user = _user_db.get_user_by_email(body.email)
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Email format validation — reject obviously malformed addresses early.
+    # Use generic 401 (not 422) to avoid leaking whether the format itself is wrong
+    # vs the credentials being wrong — both paths must return indistinguishable responses
+    # to prevent user enumeration through different HTTP status codes.
+    email_stripped = body.email.strip()
+    if not email_stripped or not _EMAIL_RE.match(email_stripped):
+        _logger.warning("Login attempt with malformed email from %s", client_ip)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    _check_login_rate_limit(email_stripped)
+
+    user = _user_db.get_user_by_email(email_stripped)
     if not user or not _user_db.verify_password(body.password, user.password_hash):
-        _record_login_failure(body.email)
+        _record_login_failure(email_stripped)
         _auth_audit.log(_AuditEvent(
-            actor_id=body.email,
+            actor_id=email_stripped,
             actor_role="unknown",
             action="auth.login.failure",
             resource_type="session",
@@ -743,12 +762,12 @@ async def auth_login(body: LoginRequestBody, request: Request) -> LoginResponseB
             result="failure",
             details={"ip": client_ip, "reason": "invalid_credentials"},
         ))
-        _logger.warning("Failed login for %s from %s", body.email, client_ip)
+        _logger.warning("Failed login for %s from %s", email_stripped, client_ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if user.status != _UserStatus.ACTIVE:
         _auth_audit.log(_AuditEvent(
-            actor_id=body.email,
+            actor_id=email_stripped,
             actor_role=user.role.value,
             action="auth.login.failure",
             resource_type="session",
@@ -759,7 +778,7 @@ async def auth_login(body: LoginRequestBody, request: Request) -> LoginResponseB
         ))
         raise HTTPException(status_code=403, detail="Account is not active")
 
-    _clear_login_failures(body.email)
+    _clear_login_failures(email_stripped)
 
     org_id = getattr(user, "org_id", "default") or "default"
     token_claims = {
@@ -855,9 +874,13 @@ def _send_verification_email(to_email: str, token: str, base_url: str) -> None:
         _logger.warning("Verification email failed for %s: %s", to_email, exc)
 
 
+# Minimum password length enforced at the field level on signup and reset.
+# 12 chars is the NIST SP 800-63B recommended minimum for user-chosen passwords.
+_PASSWORD_MIN_LENGTH = 12
+
 class SignupRequestBody(BaseModel):
     email: str = Field(..., min_length=1, max_length=255)
-    password: str = Field(..., min_length=8, max_length=1024)
+    password: str = Field(..., min_length=_PASSWORD_MIN_LENGTH, max_length=1024)
     first_name: str = Field(..., min_length=1, max_length=128)
     last_name: str = Field(..., min_length=1, max_length=128)
 
@@ -880,10 +903,27 @@ async def auth_signup(body: SignupRequestBody, request: Request) -> SignupRespon
 
     Creates user (role=viewer, status=active), generates UUID verification token
     (24h TTL), fires SMTP email (no-op when FIXOPS_SMTP_HOST not set).
+
+    Hardening:
+    - IP-level rate limit (5/min) to slow account-creation floods.
+    - Email format validated with regex.
+    - Whitespace-only names rejected (Pydantic min_length=1 covers length, but
+      a name of "   " passes that check; strip+recheck covers the gap).
+    - Password minimum 12 chars (NIST SP 800-63B).
     """
-    if not _EMAIL_RE.match(body.email):
+    # IP-level rate limit — slow account-creation floods / credential stuffing
+    _rl_enforce(request, limit_key="auth:signup", max_per_minute=5)
+
+    if not _EMAIL_RE.match(body.email.strip()):
         raise HTTPException(status_code=422, detail="Invalid email format")
-    if _user_db.get_user_by_email(body.email):
+
+    # Reject whitespace-only names
+    if not body.first_name.strip():
+        raise HTTPException(status_code=422, detail="first_name must not be blank")
+    if not body.last_name.strip():
+        raise HTTPException(status_code=422, detail="last_name must not be blank")
+
+    if _user_db.get_user_by_email(body.email.strip()):
         raise HTTPException(status_code=409, detail="Email already registered")
 
     from core.user_models import User as _User, UserRole as _UserRole, UserStatus as _UserStatusSignup
@@ -1084,7 +1124,7 @@ class ForgotPasswordResponse(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str = Field(..., min_length=1, max_length=64)
-    new_password: str = Field(..., min_length=8, max_length=1024)
+    new_password: str = Field(..., min_length=_PASSWORD_MIN_LENGTH, max_length=1024)
 
 
 class ResetPasswordResponse(BaseModel):
@@ -1102,7 +1142,12 @@ async def auth_forgot_password(body: ForgotPasswordRequest, request: Request) ->
 
     Always returns 200 regardless of whether the email is registered (prevents enumeration).
     Token is UUID4, 60-minute TTL, single-use. Previous tokens for the same email are invalidated.
+
+    Hardening: IP-level rate limit (5/min) to prevent token-flood / SMTP abuse.
     """
+    # IP-level rate limit — prevents SMTP abuse and token-flood attacks
+    _rl_enforce(request, limit_key="auth:forgot-password", max_per_minute=5)
+
     if not _EMAIL_RE.match(body.email):
         # Return 200 even for malformed — no enumeration, but skip DB/SMTP work
         return ForgotPasswordResponse(
@@ -1133,11 +1178,17 @@ async def auth_forgot_password(body: ForgotPasswordRequest, request: Request) ->
     status_code=200,
     summary="Consume a reset token and set a new password",
 )
-async def auth_reset_password(body: ResetPasswordRequest) -> ResetPasswordResponse:
+async def auth_reset_password(body: ResetPasswordRequest, request: Request) -> ResetPasswordResponse:
     """Consume a password reset token and persist the new bcrypt-hashed password.
 
     Returns 400 if the token is invalid, expired, or already used.
+
+    Hardening: IP-level rate limit (10/min) prevents token-guessing brute force.
+    new_password minimum is 12 chars (NIST SP 800-63B, enforced at Pydantic field level).
     """
+    # IP-level rate limit — prevents token-guessing brute force
+    _rl_enforce(request, limit_key="auth:reset-password", max_per_minute=10)
+
     result = _get_pr_db().consume_token(body.token)
     if not result:
         raise HTTPException(status_code=400, detail="Token invalid, expired, or already used")

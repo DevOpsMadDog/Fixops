@@ -116,11 +116,12 @@ def list_classified_assets(
 @router.get("/assets/{asset_id}", response_model=ClassifiedAsset)
 def get_asset_classification(
     asset_id: str,
+    org_id: str = Depends(get_org_id),
     engine: DataClassificationEngine = Depends(_engine),
 ) -> ClassifiedAsset:
-    """Retrieve the classification record for a specific asset."""
+    """Retrieve the classification record for a specific asset, scoped to caller's org."""
     asset = engine.get_asset_classification(asset_id)
-    if asset is None:
+    if asset is None or asset.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Asset not found: {asset_id}")
     return asset
 
@@ -146,9 +147,14 @@ def auto_classify_asset(
 def upgrade_classification(
     asset_id: str,
     body: UpgradeRequest,
+    org_id: str = Depends(get_org_id),
     engine: DataClassificationEngine = Depends(_engine),
 ) -> ClassifiedAsset:
     """Escalate an asset's classification to a higher level."""
+    # Ownership check before mutating state
+    asset = engine.get_asset_classification(asset_id)
+    if asset is None or asset.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Asset not found: {asset_id}")
     try:
         return engine.upgrade_classification(
             asset_id=asset_id,
@@ -164,9 +170,14 @@ def upgrade_classification(
 def downgrade_classification(
     asset_id: str,
     body: DowngradeRequest,
+    org_id: str = Depends(get_org_id),
     engine: DataClassificationEngine = Depends(_engine),
 ) -> ClassifiedAsset:
     """Lower an asset's classification level. Requires approval_id and reason."""
+    # Ownership check before destructive downgrade
+    asset = engine.get_asset_classification(asset_id)
+    if asset is None or asset.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Asset not found: {asset_id}")
     try:
         return engine.downgrade_classification(
             asset_id=asset_id,

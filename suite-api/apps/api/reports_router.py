@@ -478,7 +478,7 @@ async def list_reports(
     Both ``/api/v1/reports`` and ``/api/v1/reports/`` are accepted to avoid
     the 44% frontend 404 issue caused by trailing-slash variation.
     """
-    reports = db.list_reports(report_type=report_type, limit=limit, offset=offset)
+    reports = db.list_reports(report_type=report_type, limit=limit, offset=offset, org_id=org_id)
     return {
         "items": [ReportResponse(**r.to_dict()) for r in reports],
         "total": len(reports),
@@ -488,7 +488,10 @@ async def list_reports(
 
 
 @router.post("", response_model=ReportResponse, status_code=201)
-async def create_report(report_data: ReportCreate):
+async def create_report(
+    report_data: ReportCreate,
+    org_id: str = Depends(get_org_id),
+):
     """Create and generate a new report with real file output."""
     report = Report(
         id="",
@@ -497,6 +500,7 @@ async def create_report(report_data: ReportCreate):
         format=report_data.format,
         status=ReportStatus.PENDING,
         parameters=report_data.parameters,
+        org_id=org_id,
     )
     created_report = db.create_report(report)
 
@@ -516,16 +520,20 @@ async def create_report(report_data: ReportCreate):
 
 
 @router.post("/generate", response_model=ReportResponse, status_code=201)
-async def generate_report(report_data: ReportCreate):
+async def generate_report(
+    report_data: ReportCreate,
+    org_id: str = Depends(get_org_id),
+):
     """Generate a new report (alias for POST /api/v1/reports).
 
     This is the preferred endpoint for UI report generation.
     """
-    return await create_report(report_data)
+    return await create_report(report_data, org_id=org_id)
 
 
 @router.get("/stats")
 async def get_report_stats(
+    org_id: str = Depends(get_org_id),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
 ):
@@ -554,7 +562,7 @@ async def get_report_stats(
     else:
         end_dt = end_dt
 
-    reports = db.list_reports(limit=10000, offset=0)
+    reports = db.list_reports(limit=10000, offset=0, org_id=org_id)
     filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
 
     by_type: Dict[str, int] = {}
@@ -589,18 +597,18 @@ async def get_report_stats(
 
 
 @router.get("/{id}", response_model=ReportResponse)
-async def get_report(id: str):
+async def get_report(id: str, org_id: str = Depends(get_org_id)):
     """Get report details by ID."""
-    report = db.get_report(id)
+    report = db.get_report(id, org_id=org_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     return ReportResponse(**report.to_dict())
 
 
 @router.get("/{id}/download")
-async def download_report(id: str):
+async def download_report(id: str, org_id: str = Depends(get_org_id)):
     """Download report file."""
-    report = db.get_report(id)
+    report = db.get_report(id, org_id=org_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
@@ -622,9 +630,9 @@ async def download_report(id: str):
 
 
 @router.get("/{id}/file")
-async def get_report_file(id: str):
+async def get_report_file(id: str, org_id: str = Depends(get_org_id)):
     """Get the actual report file for download."""
-    report = db.get_report(id)
+    report = db.get_report(id, org_id=org_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
@@ -668,7 +676,10 @@ async def get_report_file(id: str):
 
 
 @router.post("/schedule", status_code=201)
-async def schedule_report(schedule_data: ReportScheduleCreate):
+async def schedule_report(
+    schedule_data: ReportScheduleCreate,
+    org_id: str = Depends(get_org_id),
+):
     """Schedule a recurring report."""
     from core.report_models import ReportSchedule
 
@@ -678,17 +689,20 @@ async def schedule_report(schedule_data: ReportScheduleCreate):
         format=schedule_data.format,
         schedule_cron=schedule_data.schedule_cron,
         parameters=schedule_data.parameters,
+        org_id=org_id,
     )
-    created_schedule = db.create_schedule(schedule)
+    created_schedule = db.create_schedule(schedule, org_id=org_id)
     return created_schedule.to_dict()
 
 
 @router.get("/schedules/list")
 async def list_schedules(
-    limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
     """List all scheduled reports."""
-    schedules = db.list_schedules(limit=limit, offset=offset)
+    schedules = db.list_schedules(limit=limit, offset=offset, org_id=org_id)
     return {
         "items": [s.to_dict() for s in schedules],
         "total": len(schedules),

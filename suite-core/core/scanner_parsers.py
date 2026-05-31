@@ -168,16 +168,51 @@ def _parse_xml_safe(data: bytes) -> Optional[ET.Element]:
 
 _MAX_JSON_SIZE = 100 * 1024 * 1024  # 100 MB limit for JSON files
 
+# Maximum number of findings returned by a single parse call.
+# Prevents memory exhaustion from adversarially crafted scanner output
+# containing millions of synthetic findings.
+MAX_FINDINGS_PER_PARSE = 100_000
+
 
 def _parse_json_safe(data: bytes) -> Optional[Any]:
-    """Safely parse JSON with size limit, return None on failure."""
+    """Safely parse JSON with size limit.
+
+    Returns None on any failure — used internally by normalizers which
+    handle None gracefully.  Never raises.
+    """
     if len(data) > _MAX_JSON_SIZE:
         logger.warning("JSON data exceeds size limit (%d > %d bytes)", len(data), _MAX_JSON_SIZE)
         return None
     try:
         return json.loads(data.decode("utf-8", errors="ignore"))
-    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError, RecursionError):
         return None
+
+
+def _parse_json_strict(data: bytes) -> Any:
+    """Parse JSON, raising ValueError('malformed scanner output') on any failure.
+
+    Used at the API boundary (parse_scanner_output) so callers get a clean
+    error instead of a raw stack trace.  Defences:
+    - Size limit (MAX_JSON_SIZE) prevents memory exhaustion on huge payloads.
+    - RecursionError guard prevents stack overflow from deeply-nested JSON
+      (billion-laughs JSON equivalent: [[[[...]]]] with 10k nesting levels).
+    - json.JSONDecodeError is re-raised as ValueError with a safe message that
+      does not include raw file content.
+    """
+    if len(data) > _MAX_JSON_SIZE:
+        raise ValueError(
+            f"malformed scanner output: JSON payload too large "
+            f"({len(data)} bytes, limit {_MAX_JSON_SIZE})"
+        )
+    try:
+        return json.loads(data.decode("utf-8", errors="ignore"))
+    except RecursionError:
+        raise ValueError("malformed scanner output: JSON structure too deeply nested")
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as exc:
+        # Raise clean message — do NOT include raw content or full exc details
+        # to prevent leaking attacker-controlled data into error responses.
+        raise ValueError("malformed scanner output") from exc
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2546,6 +2581,23 @@ def parse_scanner_output(
     config = NormalizerConfig(name=name, enabled=True, priority=50)
     normalizer = cls(config)
 
+    # Hardening: validate that content is not hopelessly corrupt JSON/XML before
+    # handing it to the normalizer.  For JSON-native scanners, run _parse_json_strict
+    # which raises a clean ValueError("malformed scanner output") instead of leaking
+    # a raw json.JSONDecodeError stack trace to callers.
+    _json_first_scanners = {
+        "zap", "bandit", "snyk", "nuclei", "grype", "trivy",
+        "sonarqube", "checkmarx", "semgrep", "gitleaks",
+        "prowler", "checkov", "dependabot", "sarif",
+    }
+    content_head = content[:4].lstrip()
+    is_json_content = content_head.startswith(b"{") or content_head.startswith(b"[")
+    if name in _json_first_scanners and is_json_content:
+        # Raises ValueError("malformed scanner output") on bad JSON — caller (router)
+        # converts this to HTTP 422 with the clean message (no stack trace exposed).
+        _parse_json_strict(content)
+        # If we reach here the JSON is structurally valid; normalizer proceeds normally.
+
     # Hardening: wrap normalize() to catch crashes from malformed input.
     # Each normalizer must survive bad input without affecting others.
     try:
@@ -2553,22 +2605,27 @@ def parse_scanner_output(
         if not isinstance(findings, list):
             logger.warning("Normalizer %s returned non-list: %s", name, type(findings).__name__)
             findings = list(findings) if findings else []
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except ValueError:
+        # Re-raise ValueError so the API router can convert it to a clean 422
+        # (includes "malformed scanner output" from _parse_json_strict above)
+        raise
+    except (OSError, KeyError, RuntimeError, RecursionError) as e:
         logger.error(
             "Normalizer %s crashed on input (%d bytes): %s",
             name, len(content), type(e).__name__,
             exc_info=True,
         )
-        return []
+        raise ValueError("malformed scanner output") from e
 
-    # Cap total findings to prevent memory exhaustion from huge reports
-    _MAX_FINDINGS_PER_PARSE = 50_000
-    if len(findings) > _MAX_FINDINGS_PER_PARSE:
+    # Cap total findings to prevent memory exhaustion from huge reports.
+    # Uses the module-level constant (MAX_FINDINGS_PER_PARSE = 100_000) so
+    # callers and tests can reference the same threshold.
+    if len(findings) > MAX_FINDINGS_PER_PARSE:
         logger.warning(
-            "Normalizer %s produced %d findings, capping at %d",
-            name, len(findings), _MAX_FINDINGS_PER_PARSE,
+            "Normalizer %s produced %d findings, truncating to %d (MAX_FINDINGS_PER_PARSE)",
+            name, len(findings), MAX_FINDINGS_PER_PARSE,
         )
-        findings = findings[:_MAX_FINDINGS_PER_PARSE]
+        findings = findings[:MAX_FINDINGS_PER_PARSE]
 
     # Tag with APP_ID
     if app_id or component:

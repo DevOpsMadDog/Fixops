@@ -184,11 +184,14 @@ async def list_sessions(
 
 
 @router.get("/sessions/{session_id}")
-async def get_session(session_id: str) -> Dict[str, Any]:
+async def get_session(
+    session_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Get hunt session details by ID."""
     engine = _get_engine()
     session = engine.get_session(session_id)
-    if session is None:
+    if session is None or session.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
     return session.model_dump()
 
@@ -197,13 +200,14 @@ async def get_session(session_id: str) -> Dict[str, Any]:
 async def run_hunt(
     session_id: str,
     body: RunHuntRequest,
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Execute a hunt query against a list of findings, persist results."""
     engine = _get_engine()
 
-    # Verify session exists
+    # Verify session exists and belongs to caller's org
     session = engine.get_session(session_id)
-    if session is None:
+    if session is None or session.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
 
     try:
@@ -238,9 +242,14 @@ async def run_hunt(
 async def end_session(
     session_id: str,
     body: EndSessionRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """End a hunt session and mark it completed."""
     engine = _get_engine()
+    # Ownership check before destructive state change
+    session = engine.get_session(session_id)
+    if session is None or session.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
     try:
         session = engine.end_session(session_id, notes=body.notes)
     except ValueError as exc:
@@ -249,11 +258,14 @@ async def end_session(
 
 
 @router.get("/sessions/{session_id}/results")
-async def get_session_results(session_id: str) -> List[Dict[str, Any]]:
+async def get_session_results(
+    session_id: str,
+    org_id: str = Depends(get_org_id),
+) -> List[Dict[str, Any]]:
     """Retrieve all hunt results for a session."""
     engine = _get_engine()
     session = engine.get_session(session_id)
-    if session is None:
+    if session is None or session.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
     results = engine.get_results(session_id)
     return [r.model_dump() for r in results]
@@ -350,11 +362,14 @@ async def list_hunts(
 
 
 @router.get("/hunts/{hunt_id}")
-async def get_hunt(hunt_id: str) -> Dict[str, Any]:
+async def get_hunt(
+    hunt_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Get a saved hunt by ID."""
     engine = _get_hunt_engine()
     hunt = engine.get_hunt(hunt_id)
-    if hunt is None:
+    if hunt is None or hunt.get("org_id") != org_id:
         raise HTTPException(status_code=404, detail=f"Hunt {hunt_id} not found")
     return hunt
 
@@ -394,9 +409,16 @@ async def schedule_hunt(
 
 
 @router.delete("/hunts/{hunt_id}", status_code=204)
-async def delete_hunt(hunt_id: str) -> None:
+async def delete_hunt(
+    hunt_id: str,
+    org_id: str = Depends(get_org_id),
+) -> None:
     """Delete a saved hunt by ID."""
     engine = _get_hunt_engine()
+    # Ownership check before destructive deletion
+    hunt = engine.get_hunt(hunt_id)
+    if hunt is None or hunt.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail=f"Hunt {hunt_id} not found")
     deleted = engine.delete_hunt(hunt_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Hunt {hunt_id} not found")

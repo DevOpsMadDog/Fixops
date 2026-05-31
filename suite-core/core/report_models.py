@@ -53,6 +53,7 @@ class Report:
     error_message: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
+    org_id: str = "default"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""
@@ -71,6 +72,7 @@ class Report:
             "completed_at": self.completed_at.isoformat()
             if self.completed_at
             else None,
+            "org_id": self.org_id,
         }
 
 
@@ -89,6 +91,7 @@ class ReportSchedule:
     created_by: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
+    org_id: str = "default"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""
@@ -104,6 +107,7 @@ class ReportSchedule:
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "org_id": self.org_id,
         }
 
 
