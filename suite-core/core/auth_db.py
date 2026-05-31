@@ -20,6 +20,7 @@ class AuthDB:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_tables()
+        self._migrate_sso_configs_org_id()
 
     def _get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))
@@ -41,7 +42,8 @@ class AuthDB:
                     sso_url TEXT,
                     certificate TEXT,
                     created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+                    updated_at TEXT NOT NULL,
+                    org_id TEXT NOT NULL DEFAULT 'default'
                 );
                 CREATE TABLE IF NOT EXISTS saml_assertions (
                     id TEXT PRIMARY KEY,
@@ -89,14 +91,48 @@ class AuthDB:
         finally:
             conn.close()
 
-    def create_sso_config(self, config: SSOConfig) -> SSOConfig:
-        """Create new SSO configuration."""
+    def _migrate_sso_configs_org_id(self) -> None:
+        """PRAGMA-introspect sso_configs; add org_id column + backfill if absent.
+
+        Idempotent — safe to call on every startup.  Matches the pattern used
+        in suite-core/core/user_db.py for teams.org_id migration.
+        """
+        conn = self._get_connection()
+        try:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(sso_configs)").fetchall()}
+            if "org_id" not in cols:
+                import logging as _log
+                _log.getLogger(__name__).warning(
+                    "LEGACY DB: sso_configs.org_id column missing — adding and backfilling to 'default'"
+                )
+                conn.execute(
+                    "ALTER TABLE sso_configs ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'"
+                )
+                conn.execute(
+                    "UPDATE sso_configs SET org_id = 'default' WHERE org_id IS NULL OR org_id = ''"
+                )
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_sso_configs_org ON sso_configs(org_id)"
+                )
+                conn.commit()
+        finally:
+            conn.close()
+
+    def create_sso_config(self, config: SSOConfig, org_id: str = "default") -> SSOConfig:
+        """Create new SSO configuration, scoped to org_id."""
         if not config.id:
             config.id = str(uuid.uuid4())
+        # Attach org_id to the config object for round-trip visibility
+        if hasattr(config, "org_id"):
+            if not config.org_id:
+                config.org_id = org_id
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO sso_configs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO sso_configs
+                   (id, name, provider, status, metadata, entity_id, sso_url,
+                    certificate, created_at, updated_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     config.id,
                     config.name,
@@ -108,6 +144,7 @@ class AuthDB:
                     config.certificate,
                     config.created_at.isoformat(),
                     config.updated_at.isoformat(),
+                    org_id,
                 ),
             )
             conn.commit()
@@ -116,7 +153,7 @@ class AuthDB:
             conn.close()
 
     def get_sso_config(self, config_id: str) -> Optional[SSOConfig]:
-        """Get SSO configuration by ID."""
+        """Get SSO configuration by ID (no org filter — caller must verify org_id)."""
         conn = self._get_connection()
         try:
             row = conn.execute(
@@ -128,20 +165,43 @@ class AuthDB:
         finally:
             conn.close()
 
-    def list_sso_configs(self, limit: int = 100, offset: int = 0) -> List[SSOConfig]:
-        """List SSO configurations with pagination."""
+    def get_sso_config_org_id(self, config_id: str) -> Optional[str]:
+        """Return only the org_id for a config — used for tenant-isolation checks."""
         conn = self._get_connection()
         try:
-            rows = conn.execute(
-                "SELECT * FROM sso_configs ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                (limit, offset),
-            ).fetchall()
+            row = conn.execute(
+                "SELECT org_id FROM sso_configs WHERE id = ?", (config_id,)
+            ).fetchone()
+            return str(row["org_id"]) if row else None
+        finally:
+            conn.close()
+
+    def list_sso_configs(self, limit: int = 100, offset: int = 0,
+                         org_id: Optional[str] = None) -> List[SSOConfig]:
+        """List SSO configurations.
+
+        When *org_id* is provided, only configs for that org are returned.
+        When *org_id* is None, all configs are returned (admin use only).
+        """
+        conn = self._get_connection()
+        try:
+            if org_id is not None:
+                rows = conn.execute(
+                    "SELECT * FROM sso_configs WHERE org_id = ? "
+                    "ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (org_id, limit, offset),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM sso_configs ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
+                ).fetchall()
             return [self._row_to_sso_config(row) for row in rows]
         finally:
             conn.close()
 
     def update_sso_config(self, config: SSOConfig) -> SSOConfig:
-        """Update SSO configuration."""
+        """Update SSO configuration (org_id is immutable after creation)."""
         config.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
@@ -176,17 +236,21 @@ class AuthDB:
             conn.close()
 
     def _row_to_sso_config(self, row) -> SSOConfig:
+        # org_id may be absent in rows fetched before the migration ran on a
+        # legacy DB — guard with dict.get() to avoid KeyError.
+        row_dict = dict(row)
         return SSOConfig(
-            id=row["id"],
-            name=row["name"],
-            provider=AuthProvider(row["provider"]) if row["provider"] in AuthProvider._value2member_map_ else AuthProvider.OAUTH2,
-            status=SSOStatus(row["status"]) if row["status"] in SSOStatus._value2member_map_ else SSOStatus.INACTIVE,
-            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
-            entity_id=row["entity_id"],
-            sso_url=row["sso_url"],
-            certificate=row["certificate"],
-            created_at=datetime.fromisoformat(row["created_at"]),
-            updated_at=datetime.fromisoformat(row["updated_at"]),
+            id=row_dict["id"],
+            name=row_dict["name"],
+            provider=AuthProvider(row_dict["provider"]) if row_dict["provider"] in AuthProvider._value2member_map_ else AuthProvider.OAUTH2,
+            status=SSOStatus(row_dict["status"]) if row_dict["status"] in SSOStatus._value2member_map_ else SSOStatus.INACTIVE,
+            metadata=json.loads(row_dict["metadata"]) if row_dict.get("metadata") else {},
+            entity_id=row_dict.get("entity_id"),
+            sso_url=row_dict.get("sso_url"),
+            certificate=row_dict.get("certificate"),
+            created_at=datetime.fromisoformat(row_dict["created_at"]),
+            updated_at=datetime.fromisoformat(row_dict["updated_at"]),
+            org_id=row_dict.get("org_id") or "default",
         )
 
     # ------------------------------------------------------------------

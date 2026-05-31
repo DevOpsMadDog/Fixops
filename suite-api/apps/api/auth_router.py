@@ -268,12 +268,60 @@ class PaginatedSSOConfigResponse(BaseModel):
     offset: int
 
 
-@router.get("/sso", response_model=PaginatedSSOConfigResponse)
+# ---------------------------------------------------------------------------
+# SSO CONFIG CRUD — admin-only, org-scoped
+#
+# These endpoints manage SSO IdP configurations (create/read/update/delete).
+# They are ADMIN-ONLY because they control authentication infrastructure for
+# an entire org.  A misconfigured SSO entry could grant unauthorized access
+# to all users in the org.
+#
+# Access control (per AUTHZ-VULN-03 pattern):
+#   1. api_key_auth — caller must present a valid API key or JWT.
+#   2. _require_sso_admin() — caller must have "admin:all" scope or admin role.
+#   3. Org scoping — list/get/update operate only on the caller's org_id.
+#      Cross-org access is a 404 (not 403) to avoid leaking existence of
+#      configs in other orgs.
+#
+# NOTE: The SAML/OAuth *login-flow* endpoints below (/saml/{idp}/initiate,
+# /oauth/{provider}/start, /oauth/{provider}/callback, /saml/{idp}/callback)
+# must remain PUBLIC — they are the front-door of the authentication flow and
+# are hit before the caller has a token.
+# ---------------------------------------------------------------------------
+
+def _require_sso_admin(request: Request) -> str:
+    """Enforce admin:all scope for SSO config management.
+
+    Returns the caller's org_id on success.
+    Raises HTTP 403 if the caller lacks admin:all scope or admin role.
+    """
+    caller_role: str = getattr(request.state, "user_role", "viewer")
+    caller_scopes: list = getattr(request.state, "user_scopes", [])
+    if caller_role not in ("admin", "super_admin") and "admin:all" not in caller_scopes:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: SSO configuration management requires admin:all scope",
+        )
+    # Resolve org_id from the authenticated caller's state
+    org_id: str = (
+        getattr(request.state, "org_id", None)
+        or request.headers.get("X-Org-ID", "")
+        or request.query_params.get("org_id", "")
+        or "default"
+    )
+    return org_id
+
+
+@router.get("/sso", response_model=PaginatedSSOConfigResponse,
+            dependencies=[Depends(api_key_auth)])
 async def list_sso_configs(
-    limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
+    request: Request,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
-    """List all SSO configurations."""
-    configs = db.list_sso_configs(limit=limit, offset=offset)
+    """List SSO configurations for the caller's org (admin:all required)."""
+    org_id = _require_sso_admin(request)
+    configs = db.list_sso_configs(limit=limit, offset=offset, org_id=org_id)
     return {
         "items": [SSOConfigResponse(**c.to_dict()) for c in configs],
         "total": len(configs),
@@ -282,9 +330,11 @@ async def list_sso_configs(
     }
 
 
-@router.post("/sso", response_model=SSOConfigResponse, status_code=201)
-async def create_sso_config(config_data: SSOConfigCreate):
-    """Create a new SSO configuration."""
+@router.post("/sso", response_model=SSOConfigResponse, status_code=201,
+             dependencies=[Depends(api_key_auth)])
+async def create_sso_config(config_data: SSOConfigCreate, request: Request):
+    """Create a new SSO configuration in the caller's org (admin:all required)."""
+    org_id = _require_sso_admin(request)
     config = SSOConfig(
         id="",
         name=config_data.name,
@@ -294,25 +344,36 @@ async def create_sso_config(config_data: SSOConfigCreate):
         entity_id=config_data.entity_id,
         sso_url=config_data.sso_url,
         certificate=config_data.certificate,
+        org_id=org_id,
     )
-    created_config = db.create_sso_config(config)
+    created_config = db.create_sso_config(config, org_id=org_id)
     return SSOConfigResponse(**created_config.to_dict())
 
 
-@router.get("/sso/{id}", response_model=SSOConfigResponse)
-async def get_sso_config(id: str):
-    """Get SSO configuration by ID."""
+@router.get("/sso/{id}", response_model=SSOConfigResponse,
+            dependencies=[Depends(api_key_auth)])
+async def get_sso_config(id: str, request: Request):
+    """Get SSO configuration by ID (admin:all required, org-scoped)."""
+    org_id = _require_sso_admin(request)
     config = db.get_sso_config(id)
     if not config:
+        raise HTTPException(status_code=404, detail="SSO configuration not found")
+    # Tenant isolation: 404 if config belongs to a different org (avoids existence leak)
+    if config.org_id != org_id:
         raise HTTPException(status_code=404, detail="SSO configuration not found")
     return SSOConfigResponse(**config.to_dict())
 
 
-@router.put("/sso/{id}", response_model=SSOConfigResponse)
-async def update_sso_config(id: str, config_data: SSOConfigUpdate):
-    """Update SSO configuration."""
+@router.put("/sso/{id}", response_model=SSOConfigResponse,
+            dependencies=[Depends(api_key_auth)])
+async def update_sso_config(id: str, config_data: SSOConfigUpdate, request: Request):
+    """Update SSO configuration (admin:all required, org-scoped)."""
+    org_id = _require_sso_admin(request)
     config = db.get_sso_config(id)
     if not config:
+        raise HTTPException(status_code=404, detail="SSO configuration not found")
+    # Tenant isolation: 404 if config belongs to a different org
+    if config.org_id != org_id:
         raise HTTPException(status_code=404, detail="SSO configuration not found")
 
     if config_data.name is not None:

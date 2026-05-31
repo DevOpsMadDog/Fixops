@@ -101,6 +101,7 @@ class SSOConfig:
     certificate: Optional[str] = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    org_id: str = "default"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -114,6 +115,7 @@ class SSOConfig:
             "certificate": self.certificate,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "org_id": self.org_id,
         }
 
 

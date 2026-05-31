@@ -43,8 +43,10 @@ import hmac
 import json
 import logging
 import os
+import sqlite3
 import time
-from typing import Any, Dict, List, Optional
+from pathlib import Path as _Path
+from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 from apps.api.auth_deps import api_key_auth
@@ -231,6 +233,176 @@ def _verify_stripe_signature(
         )
 
     return True
+
+
+# ---------------------------------------------------------------------------
+# Org-tier store — lightweight SQLite table ``org_tiers``.
+#
+# Schema: org_id TEXT PRIMARY KEY, tier TEXT NOT NULL DEFAULT 'starter'
+#
+# BILLING-UNCONFIGURED RULE (self-hosted / dev deployments):
+#   When STRIPE_SECRET_KEY is absent, the billing subsystem is effectively
+#   not configured.  In that case ``get_org_tier()`` returns the tier
+#   recorded in the DB if one exists, otherwise it returns ``"enterprise"``
+#   (full-access default-allow) and logs a DEBUG note.  This ensures that
+#   self-hosted deployments with no Stripe key keep working without anyone
+#   having to manually seed tiers.
+#
+# TIER ORDERING: starter < pro < enterprise
+# ---------------------------------------------------------------------------
+
+_TIER_ORDER: Dict[str, int] = {"starter": 0, "pro": 1, "enterprise": 2}
+_TIER_DB_PATH = _Path(os.environ.get("FIXOPS_ORG_TIER_DB", "data/org_tiers.db"))
+
+
+def _get_tier_db_conn() -> sqlite3.Connection:
+    """Return an open SQLite connection to the org_tiers database."""
+    _TIER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(_TIER_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    # Idempotent table init — runs on every first connection
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS org_tiers (
+            org_id TEXT PRIMARY KEY,
+            tier   TEXT NOT NULL DEFAULT 'starter',
+            updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        )
+        """
+    )
+    conn.commit()
+    return conn
+
+
+def get_org_tier(org_id: str) -> str:
+    """Return the billing tier string for *org_id*.
+
+    Tier strings: ``"starter"``, ``"pro"``, ``"enterprise"``.
+
+    Behaviour when billing is NOT configured (no STRIPE_SECRET_KEY):
+        - If the org has an explicit row in org_tiers, return that tier.
+        - Otherwise default-allow: return ``"enterprise"`` and log DEBUG.
+          Self-hosted / dev deployments must keep working without a Stripe key.
+
+    Behaviour when billing IS configured:
+        - Return the tier from the DB row, or ``"starter"`` if no row exists.
+    """
+    try:
+        conn = _get_tier_db_conn()
+        try:
+            row = conn.execute(
+                "SELECT tier FROM org_tiers WHERE org_id = ?", (org_id,)
+            ).fetchone()
+        finally:
+            conn.close()
+
+        if row is not None:
+            return str(row["tier"]).lower()
+
+        # No row for this org.
+        if _get_key() is None:
+            # Billing unconfigured → default-allow so self-hosted installs work.
+            _logger.debug(
+                "get_org_tier: billing unconfigured, no tier row for org=%s — default-allow (enterprise)",
+                org_id,
+            )
+            return "enterprise"
+
+        # Billing configured but no row → treat as the lowest tier.
+        _logger.debug(
+            "get_org_tier: billing configured, no tier row for org=%s — defaulting to starter",
+            org_id,
+        )
+        return "starter"
+
+    except Exception as exc:
+        _logger.warning("get_org_tier: DB error for org=%s, defaulting to starter: %s", org_id, exc)
+        return "starter"
+
+
+def set_org_tier(org_id: str, tier: str) -> None:
+    """Upsert the billing tier for *org_id*.  Used by the Stripe webhook handler."""
+    tier = tier.lower()
+    if tier not in _TIER_ORDER:
+        raise ValueError(f"Unknown tier '{tier}'. Valid: {list(_TIER_ORDER)}")
+    conn = _get_tier_db_conn()
+    try:
+        conn.execute(
+            """
+            INSERT INTO org_tiers (org_id, tier, updated_at)
+            VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+            ON CONFLICT(org_id) DO UPDATE SET
+                tier = excluded.tier,
+                updated_at = excluded.updated_at
+            """,
+            (org_id, tier),
+        )
+        conn.commit()
+        _logger.info("set_org_tier org=%s tier=%s", org_id, tier)
+    finally:
+        conn.close()
+
+
+def requires_tier(min_tier: str) -> Callable:
+    """Dependency factory: enforce a minimum billing tier.
+
+    Returns a raw async callable suitable for use with FastAPI ``Depends``.
+    Callers use it as: ``org_id: str = Depends(requires_tier("pro"))``
+
+    The returned dependency:
+    1. Resolves the caller's ``org_id`` via the auth state / request.
+    2. Looks up that org's tier via ``get_org_tier()``.
+    3. If the org's tier is below *min_tier* AND billing is configured
+       (STRIPE_SECRET_KEY is set), raises ``HTTP 402`` with a clear message.
+    4. Otherwise returns ``org_id`` (so callsites that do
+       ``org_id: str = Depends(requires_tier("pro"))`` get the expected value).
+
+    When billing is NOT configured (no STRIPE_SECRET_KEY), every org is
+    default-allowed regardless of min_tier — honest documented behaviour for
+    self-hosted deployments.
+    """
+    min_tier_lower = min_tier.lower()
+    if min_tier_lower not in _TIER_ORDER:
+        raise ValueError(f"requires_tier: unknown tier '{min_tier}'. Valid: {list(_TIER_ORDER)}")
+
+    async def _dependency(request: Request) -> str:
+        # Resolve org_id from request state (set by auth middleware / JWT claim).
+        org_id: str = (
+            getattr(request.state, "org_id", None)
+            or request.headers.get("X-Org-ID", "")
+            or request.query_params.get("org_id", "")
+            or "default"
+        )
+
+        # When billing is not configured, always allow (self-hosted default).
+        if _get_key() is None:
+            _logger.debug(
+                "requires_tier('%s'): billing unconfigured — default-allow org=%s",
+                min_tier, org_id,
+            )
+            return org_id
+
+        # Billing is configured — enforce tier.
+        actual_tier = get_org_tier(org_id)
+        if _TIER_ORDER.get(actual_tier, 0) < _TIER_ORDER[min_tier_lower]:
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "tier_required",
+                    "message": (
+                        f"This feature requires the '{min_tier}' plan or higher. "
+                        f"Your org is on the '{actual_tier}' plan."
+                    ),
+                    "required_tier": min_tier_lower,
+                    "current_tier": actual_tier,
+                },
+            )
+
+        return org_id
+
+    # Return the raw callable — callers wrap it with Depends() themselves:
+    #   org_id: str = Depends(requires_tier("pro"))
+    return _dependency
 
 
 # ---------------------------------------------------------------------------
@@ -472,4 +644,4 @@ async def stripe_webhook(
     return WebhookResponse(received=True, event_type=event_type)
 
 
-__all__ = ["router", "webhook_router"]
+__all__ = ["router", "webhook_router", "get_org_tier", "set_org_tier", "requires_tier"]
