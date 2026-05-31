@@ -53,7 +53,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/secrets", tags=["secrets", "Secrets Management"])
+router = APIRouter(prefix="/api/v1/secrets-scanner", tags=["secrets", "Secrets Management"])
 db = SecretsDB()
 
 _MAX_FILE_PATH_LENGTH = 1024
@@ -243,8 +243,8 @@ async def create_secret_finding(finding_data: SecretFindingCreate, org_id: str =
 async def get_secret_finding(id: str, org_id: str = Depends(get_org_id)):
     """Get secret finding by ID."""
     finding = db.get_finding(id)
-    if not finding:
-        raise HTTPException(status_code=404, detail="Secret finding not found")
+    if not finding or finding.org_id != org_id:
+        raise HTTPException(status_code=404, detail="secret_not_found")
     return SecretFindingResponse(**finding.to_dict())
 
 
@@ -252,8 +252,8 @@ async def get_secret_finding(id: str, org_id: str = Depends(get_org_id)):
 async def resolve_secret_finding(id: str, org_id: str = Depends(get_org_id)):
     """Mark secret finding as resolved."""
     finding = db.get_finding(id)
-    if not finding:
-        raise HTTPException(status_code=404, detail="Secret finding not found")
+    if not finding or finding.org_id != org_id:
+        raise HTTPException(status_code=404, detail="secret_not_found")
 
     finding.status = SecretStatus.RESOLVED
     finding.resolved_at = datetime.now(timezone.utc)

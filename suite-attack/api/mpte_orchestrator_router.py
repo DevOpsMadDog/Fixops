@@ -597,6 +597,7 @@ async def remediation(body: RemediationRequest, org_id: str = Depends(get_org_id
 # ---------------------------------------------------------------------------
 
 _pentest_campaign_map: Dict[str, str] = {}  # test_id → campaign_id
+_pentest_org_map: Dict[str, str] = {}  # test_id → org_id
 
 
 @router.post("/run")
@@ -623,6 +624,7 @@ async def run_pentest(body: PentestRunRequest, org_id: str = Depends(get_org_id)
         )
 
         _pentest_campaign_map[test_id] = campaign.campaign_id
+        _pentest_org_map[test_id] = org_id
 
         return {
             "test_id": test_id,
@@ -646,6 +648,10 @@ async def run_pentest(body: PentestRunRequest, org_id: str = Depends(get_org_id)
 @router.get("/status/{test_id}")
 async def get_pentest_status(test_id: str, org_id: str = Depends(get_org_id)):
     """Get real status of an advanced penetration test from engine."""
+    # Ownership check: test must belong to this org
+    if _pentest_org_map.get(test_id) is not None and _pentest_org_map.get(test_id) != org_id:
+        raise HTTPException(404, detail="test_not_found")
+
     engine = _get_attack_engine()
 
     campaign_id = _pentest_campaign_map.get(test_id)

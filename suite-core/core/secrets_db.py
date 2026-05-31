@@ -2,6 +2,7 @@
 Secrets detection database manager using SQLite.
 """
 import json
+import logging
 import sqlite3
 import uuid
 from datetime import datetime
@@ -9,6 +10,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
+
+_log = logging.getLogger(__name__)
 
 
 class SecretsDB:
@@ -64,6 +67,17 @@ class SecretsDB:
             """
             )
             conn.commit()
+            # Graceful migration: add org_id column if not present (older deployments)
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(secret_findings)").fetchall()}
+            if "org_id" not in cols:
+                conn.execute(
+                    "ALTER TABLE secret_findings ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'"
+                )
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_secret_org ON secret_findings(org_id)"
+                )
+                conn.commit()
+                _log.warning("secrets_db: migrated secret_findings to add org_id column")
         finally:
             conn.close()
 
@@ -74,7 +88,11 @@ class SecretsDB:
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO secret_findings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO secret_findings
+                   (id, secret_type, status, file_path, line_number, repository, branch,
+                    commit_hash, matched_pattern, entropy_score, metadata, detected_at,
+                    resolved_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     finding.id,
                     finding.secret_type.value,
@@ -89,6 +107,7 @@ class SecretsDB:
                     json.dumps(finding.metadata),
                     finding.detected_at.isoformat(),
                     finding.resolved_at.isoformat() if finding.resolved_at else None,
+                    finding.org_id,
                 ),
             )
             conn.commit()
@@ -148,22 +167,24 @@ class SecretsDB:
 
     def _row_to_finding(self, row) -> SecretFinding:
         """Convert database row to SecretFinding object."""
+        row_dict = dict(row)
         return SecretFinding(
-            id=row["id"],
-            secret_type=SecretType(row["secret_type"]),
-            status=SecretStatus(row["status"]),
-            file_path=row["file_path"],
-            line_number=row["line_number"],
-            repository=row["repository"],
-            branch=row["branch"],
-            commit_hash=row["commit_hash"],
-            matched_pattern=row["matched_pattern"],
-            entropy_score=row["entropy_score"],
-            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
-            detected_at=datetime.fromisoformat(row["detected_at"]),
+            id=row_dict["id"],
+            secret_type=SecretType(row_dict["secret_type"]),
+            status=SecretStatus(row_dict["status"]),
+            file_path=row_dict["file_path"],
+            line_number=row_dict["line_number"],
+            repository=row_dict["repository"],
+            branch=row_dict["branch"],
+            commit_hash=row_dict["commit_hash"],
+            matched_pattern=row_dict["matched_pattern"],
+            entropy_score=row_dict["entropy_score"],
+            metadata=json.loads(row_dict["metadata"]) if row_dict["metadata"] else {},
+            detected_at=datetime.fromisoformat(row_dict["detected_at"]),
             resolved_at=(
-                datetime.fromisoformat(row["resolved_at"])
-                if row["resolved_at"]
+                datetime.fromisoformat(row_dict["resolved_at"])
+                if row_dict["resolved_at"]
                 else None
             ),
+            org_id=row_dict.get("org_id", "default"),
         )

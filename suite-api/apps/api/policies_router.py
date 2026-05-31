@@ -120,7 +120,7 @@ async def list_policies(
     offset: int = Query(0, ge=0),
 ):
     """List all policies with optional filtering."""
-    policies = db.list_policies(policy_type=policy_type, limit=limit, offset=offset)
+    policies = db.list_policies(org_id=org_id, policy_type=policy_type, limit=limit, offset=offset)
     return {
         "items": [PolicyResponse(**p.to_dict()) for p in policies],
         "total": len(policies),

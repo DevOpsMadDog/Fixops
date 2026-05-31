@@ -786,6 +786,17 @@ class SecretScanner:
             org_id=row["org_id"],
         )
 
+    def get_secret(self, secret_id: str) -> Optional["DetectedSecret"]:
+        """Return a single detected secret by ID, or None if not found."""
+        conn = self._conn()
+        row = conn.execute(
+            "SELECT * FROM detected_secrets WHERE id = ?",
+            (secret_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return self._row_to_secret(row)
+
     def get_active_secrets(self, org_id: str = "default") -> List[DetectedSecret]:
         """Return all unrotated, non-false-positive secrets for an org."""
         conn = self._conn()

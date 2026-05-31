@@ -58,9 +58,11 @@ CREATE TABLE IF NOT EXISTS webhooks (
     created_at TEXT NOT NULL,
     last_triggered TEXT,
     failure_count INTEGER NOT NULL DEFAULT 0,
-    description TEXT
+    description TEXT,
+    org_id TEXT NOT NULL DEFAULT 'default'
 );
 CREATE INDEX IF NOT EXISTS idx_wh_active ON webhooks(active);
+CREATE INDEX IF NOT EXISTS idx_wh_org ON webhooks(org_id);
 """
 
 
@@ -110,11 +112,19 @@ class SecurityEvent(BaseModel):
 
 
 def _get_db(db_path: str = _DB_PATH) -> sqlite3.Connection:
+    import logging as _logging
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(_SCHEMA)
+    # Graceful migration: add org_id column for older deployments
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(webhooks)").fetchall()}
+    if "org_id" not in cols:
+        conn.execute("ALTER TABLE webhooks ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_wh_org ON webhooks(org_id)")
+        conn.commit()
+        _logging.getLogger(__name__).warning("event_emitter: migrated webhooks table to add org_id column")
     return conn
 
 
@@ -161,6 +171,7 @@ class EventEmitter:
         event_types: List[EventType],
         secret: Optional[str] = None,
         description: Optional[str] = None,
+        org_id: str = "default",
     ) -> str:
         """Register a webhook URL for a set of event types.
 
@@ -191,9 +202,9 @@ class EventEmitter:
                 conn = _get_db(self._db_path)
                 try:
                     conn.execute(
-                        "INSERT INTO webhooks (id, url, event_types, secret, active, created_at, failure_count, description) "
-                        "VALUES (?, ?, ?, ?, 1, ?, 0, ?)",
-                        (webhook_id, url, event_types_json, effective_secret, now, description),
+                        "INSERT INTO webhooks (id, url, event_types, secret, active, created_at, failure_count, description, org_id) "
+                        "VALUES (?, ?, ?, ?, 1, ?, 0, ?, ?)",
+                        (webhook_id, url, event_types_json, effective_secret, now, description, org_id),
                     )
                     conn.commit()
                 finally:
@@ -226,15 +237,21 @@ class EventEmitter:
             logger.warning("Webhook %s not found for unregistration", webhook_id)
         return found
 
-    def list_webhooks(self) -> List[Dict[str, Any]]:
-        """Return all active webhook registrations."""
+    def list_webhooks(self, org_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Return active webhook registrations, optionally filtered to a single org."""
         try:
             with self._lock:
                 conn = _get_db(self._db_path)
                 try:
-                    rows = conn.execute(
-                        "SELECT * FROM webhooks WHERE active=1 ORDER BY created_at DESC"
-                    ).fetchall()
+                    if org_id is not None:
+                        rows = conn.execute(
+                            "SELECT * FROM webhooks WHERE active=1 AND org_id=? ORDER BY created_at DESC",
+                            (org_id,),
+                        ).fetchall()
+                    else:
+                        rows = conn.execute(
+                            "SELECT * FROM webhooks WHERE active=1 ORDER BY created_at DESC"
+                        ).fetchall()
                 finally:
                     conn.close()
         except sqlite3.Error as exc:

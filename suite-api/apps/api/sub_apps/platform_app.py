@@ -925,6 +925,19 @@ def register_platform_routers(
     except ImportError as exc:
         _logger.warning("defender_xdr_router not available: %s", exc)
 
+    # Defender XDR Connector — ingest/parse Defender XDR JSON dumps
+    try:
+        from apps.api.defender_xdr_connector_router import (
+            router as defender_xdr_connector_router,  # noqa: PLC0415
+        )
+        app.include_router(
+            defender_xdr_connector_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Defender XDR Connector router at /api/v1/connectors/defender-xdr")
+    except ImportError as exc:
+        _logger.warning("defender_xdr_connector_router not available: %s", exc)
+
     try:
         from apps.api.purview_dlp_router import (
             router as purview_dlp_router,  # noqa: PLC0415
@@ -1492,9 +1505,11 @@ def register_platform_routers(
     try:
         from apps.api.versioning_router import (
             router as versioning_router,  # noqa: PLC0415
+            _legacy_versions_router,
         )
         app.include_router(versioning_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted API Versioning router")
+        app.include_router(_legacy_versions_router)
+        _logger.info("Mounted API Versioning router at /api/v1/versions (legacy 308 at /api/versions)")
     except ImportError as exc:
         _logger.warning("versioning_router not available: %s", exc)
 
@@ -2047,9 +2062,11 @@ def register_platform_routers(
     try:
         from apps.api.versioning_router import (
             router as versioning_router,  # noqa: PLC0415
+            _legacy_versions_router,
         )
         app.include_router(versioning_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Versioning router (wave-6)")
+        app.include_router(_legacy_versions_router)
+        _logger.info("Mounted Versioning router (wave-6) at /api/v1/versions (legacy 308 at /api/versions)")
     except ImportError:
         pass
 
@@ -4017,6 +4034,14 @@ def register_platform_routers(
         _logger.warning("guardrails_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Helicone — LLM observability (request logs, cost, user metrics, feedback)
+    try:
+        from apps.api.helicone_router import router as helicone_router  # noqa: PLC0415
+        app.include_router(helicone_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Helicone LLM Observability router at /api/v1/helicone")
+    except ImportError as exc:
+        _logger.warning("helicone_router not available: %s", exc)
+
     # LangSmith — LLM observability (runs / datasets / examples / feedback /
     #   sessions) - 2026-05-04
     # GET  /api/v1/langsmith/                                  capability summary           (read:scans)

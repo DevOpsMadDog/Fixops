@@ -160,7 +160,7 @@ async def list_assets(
 
     # Get applications and convert to assets
     if asset_type is None or asset_type == "application":
-        applications = db.list_applications(limit=limit, offset=offset)
+        applications = db.list_applications(org_id=org_id, limit=limit, offset=offset)
         for app in applications:
             app_dict = app.to_dict()
             assets.append(
@@ -196,7 +196,7 @@ async def list_applications(
     offset: int = Query(0, ge=0),
 ):
     """List all applications with pagination."""
-    applications = db.list_applications(limit=limit, offset=offset)
+    applications = db.list_applications(org_id=org_id, limit=limit, offset=offset)
     return {
         "items": [ApplicationResponse(**app.to_dict()) for app in applications],
         "total": len(applications),

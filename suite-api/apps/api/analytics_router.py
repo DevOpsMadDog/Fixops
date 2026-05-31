@@ -175,7 +175,7 @@ async def get_dashboard_summary(
     org_id: str = Depends(get_org_id),
 ):
     """Compact dashboard summary with key counts and risk score."""
-    findings = db.list_findings(limit=5000)
+    findings = db.list_findings(org_id=org_id, limit=5000)
     total = len(findings)
     by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     open_count = 0
@@ -208,7 +208,7 @@ async def get_dashboard_severity(
     org_id: str = Depends(get_org_id),
 ):
     """Severity breakdown for dashboard charts."""
-    findings = db.list_findings(limit=5000)
+    findings = db.list_findings(org_id=org_id, limit=5000)
     by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     for f in findings:
         sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
@@ -228,7 +228,7 @@ async def get_dashboard_scanners(
     org_id: str = Depends(get_org_id),
 ):
     """Scanner activity breakdown for dashboard."""
-    findings = db.list_findings(limit=5000)
+    findings = db.list_findings(org_id=org_id, limit=5000)
     by_scanner: Dict[str, int] = {}
     for f in findings:
         scanner = getattr(f, "source", None) or "unknown"
@@ -375,7 +375,7 @@ async def get_compliance_status(
     org_id: str = Depends(get_org_id),
 ):
     """Get compliance framework status."""
-    findings = db.list_findings(limit=1000)
+    findings = db.list_findings(org_id=org_id, limit=1000)
 
     total = len(findings)
     open_count = sum(1 for f in findings if f.status == FindingStatus.OPEN)
@@ -408,6 +408,7 @@ async def query_findings(
 ):
     """Query findings with filters. Returns real ingested findings."""
     findings = db.list_findings(
+        org_id=org_id,
         severity=severity,
         status=status,
         limit=limit + 10,  # over-fetch to allow filtering
@@ -481,6 +482,7 @@ async def query_decisions(
 ):
     """Query decision history."""
     decisions = db.list_decisions(
+        org_id=org_id,
         finding_id=finding_id,
         limit=limit,
         offset=offset,

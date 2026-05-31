@@ -14,10 +14,16 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.persistent_store import get_persistent_store
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
+try:
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+    _AUTH_DEPS: list = [Depends(_api_key_auth)]
+except ImportError:  # suite-core used standalone without suite-api on path
+    _AUTH_DEPS = []
+
+router = APIRouter(prefix="/api/v1/llm", tags=["LLM"], dependencies=_AUTH_DEPS)
 
 
 class LLMProviderStatus(BaseModel):

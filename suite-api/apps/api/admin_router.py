@@ -154,7 +154,7 @@ async def admin_list_users(
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
     """List all users with pagination. Requires admin scope."""
-    users = _get_db().list_users(limit=limit, offset=offset)
+    users = _get_db().list_users(org_id=org_id, limit=limit, offset=offset)
     return {
         "items": [AdminUserResponse(**u.to_dict()) for u in users],
         "total": len(users),
@@ -266,7 +266,7 @@ async def admin_list_teams(
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
     """List all teams with pagination. Requires admin scope."""
-    teams = _get_db().list_teams(limit=limit, offset=offset)
+    teams = _get_db().list_teams(org_id=org_id, limit=limit, offset=offset)
     return {
         "items": [AdminTeamResponse(**t.to_dict()) for t in teams],
         "total": len(teams),

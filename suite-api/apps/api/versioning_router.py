@@ -24,12 +24,28 @@ from core.api_versioning import (
     EndpointVersion,
     get_version_manager,
 )
-from fastapi import APIRouter, HTTPException, Query
+from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/versions", tags=["versioning"])
+router = APIRouter(prefix="/api/v1/versions", tags=["versioning"], dependencies=[Depends(api_key_auth)])
+
+# ---------------------------------------------------------------------------
+# Legacy redirect — keeps /api/versions clients working after prefix change
+# ---------------------------------------------------------------------------
+_legacy_versions_router = APIRouter(prefix="/api/versions", tags=["versioning-legacy"])
+
+
+@_legacy_versions_router.get("/{path:path}", include_in_schema=False)
+@_legacy_versions_router.post("/{path:path}", include_in_schema=False)
+async def _legacy_versions_redirect(path: str) -> Response:
+    """HTTP 308 permanent redirect from /api/versions/* to /api/v1/versions/*."""
+    return Response(
+        status_code=308,
+        headers={"Location": f"/api/v1/versions/{path}"},
+    )
 
 # ---------------------------------------------------------------------------
 # Shared manager instance (uses env override for db path in tests)

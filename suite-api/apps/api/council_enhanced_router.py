@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/council", tags=["council"])
+router = APIRouter(prefix="/api/v1/council-enhanced", tags=["council"])
 
 # Lazy singleton — avoid importing heavy council at module load
 _council: Optional[Any] = None

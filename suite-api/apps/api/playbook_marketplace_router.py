@@ -12,7 +12,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 # Ensure suite-core is importable
@@ -28,7 +29,7 @@ from core.playbook_marketplace import (
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/playbook-marketplace", tags=["playbook-marketplace"])
+router = APIRouter(prefix="/playbook-marketplace", tags=["playbook-marketplace"], dependencies=[Depends(api_key_auth)])
 
 # Module-level singleton — one DB per process
 _marketplace: Optional[PlaybookMarketplace] = None

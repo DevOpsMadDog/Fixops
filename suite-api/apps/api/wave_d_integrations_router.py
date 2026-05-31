@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
@@ -177,7 +178,7 @@ def create_connector_mapping(
         "target_field": body.target_field,
         "transform": body.transform,
         "enabled": body.enabled,
-        "created_at": int(time.time()),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     # Best-effort persist via persistent_store
     try:
@@ -287,7 +288,7 @@ def webhook_subscribe(
         "event_types": body.event_types,
         "active": True,
         "description": body.description,
-        "created_at": int(time.time()),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     try:
         from core.persistent_store import get_persistent_store
@@ -318,7 +319,7 @@ def easm_seed_domain(
             "org_id": org_id,
             "domain": body.domain,
             "report_id": rep_id,
-            "seeded_at": int(time.time()),
+            "seeded_at": datetime.now(timezone.utc).isoformat(),
             "subsidiaries_requested": body.discover_subsidiaries,
         }
     except Exception as exc:
@@ -328,7 +329,7 @@ def easm_seed_domain(
             "org_id": org_id,
             "domain": body.domain,
             "report_id": f"easm_{uuid.uuid4().hex[:10]}",
-            "seeded_at": int(time.time()),
+            "seeded_at": datetime.now(timezone.utc).isoformat(),
             "subsidiaries_requested": body.discover_subsidiaries,
             "note": "discovery engine unavailable — seed accepted",
         }
@@ -449,7 +450,7 @@ def copilot_graph_nl_query(
         "query": body.query,
         "steps": trace_steps,
         "elapsed_s": elapsed,
-        "completed_at": int(time.time()),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
     }
     result["elapsed_s"] = elapsed
     return result
@@ -530,7 +531,7 @@ def ai_exposure_sanctioned_list(
         "provider": body.provider,
         "data_classification": body.data_classification,
         "approved_by": body.approved_by,
-        "registered_at": int(time.time()),
+        "registered_at": datetime.now(timezone.utc).isoformat(),
     }
     try:
         from core.persistent_store import get_persistent_store
@@ -571,7 +572,7 @@ def dispatch_agent_task(
         "prompt_preview": body.prompt[:200],
         "priority": body.priority,
         "status": "queued",
-        "created_at": int(time.time()),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "metadata": body.metadata,
     }
     try:
@@ -600,7 +601,7 @@ def tag_crown_jewel(
         "business_impact": body.business_impact,
         "justification": body.justification,
         "tagged_by": body.tagged_by,
-        "tagged_at": int(time.time()),
+        "tagged_at": datetime.now(timezone.utc).isoformat(),
     }
     # Best-effort delegate to asset_tagging_engine
     try:

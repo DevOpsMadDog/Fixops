@@ -55,7 +55,10 @@ class BatchTraceRequest(BaseModel):
 
 
 @router.post("/trace")
-async def trace_vulnerability(req: TraceRequest) -> Dict[str, Any]:
+async def trace_vulnerability(
+    req: TraceRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Trace a vulnerability from code to cloud deployment."""
     from core.code_to_cloud_tracer import get_code_to_cloud_tracer
 
@@ -73,13 +76,17 @@ async def trace_vulnerability(req: TraceRequest) -> Dict[str, Any]:
         internet_facing=req.internet_facing,
     )
     result_dict = result.to_dict()
+    result_dict["org_id"] = org_id
     # Store for later retrieval
     _trace_store[result.trace_id] = result_dict
     return result_dict
 
 
 @router.post("/trace/batch")
-async def batch_trace_vulnerabilities(req: BatchTraceRequest) -> Dict[str, Any]:
+async def batch_trace_vulnerabilities(
+    req: BatchTraceRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Batch trace multiple vulnerabilities from code to cloud."""
     from core.code_to_cloud_tracer import get_code_to_cloud_tracer
 
@@ -102,6 +109,7 @@ async def batch_trace_vulnerabilities(req: BatchTraceRequest) -> Dict[str, Any]:
             internet_facing=vuln.internet_facing,
         )
         result_dict = result.to_dict()
+        result_dict["org_id"] = org_id
         _trace_store[result.trace_id] = result_dict
         results.append(result_dict)
         risk_amplifications.append(result.risk_amplification)
@@ -146,12 +154,15 @@ async def get_application_topology(
     connections: List[Dict[str, Any]] = []
     vuln_overlay: List[Dict[str, Any]] = []
 
-    # Aggregate from stored traces for this app
+    # Aggregate from stored traces for this app (org-scoped)
     app_traces = [
         t for t in _trace_store.values()
-        if app_id in t.get("vulnerability_id", "")
-        or any(
-            app_id in n.get("name", "") for n in t.get("nodes", [])
+        if t.get("org_id", "default") == org_id
+        and (
+            app_id in t.get("vulnerability_id", "")
+            or any(
+                app_id in n.get("name", "") for n in t.get("nodes", [])
+            )
         )
     ]
 
@@ -255,10 +266,11 @@ async def get_commit_risk(
     """
     t0 = time.time()
 
-    # Find all traces related to this commit
+    # Find all traces related to this commit (org-scoped)
     commit_traces = [
         t for t in _trace_store.values()
-        if any(
+        if t.get("org_id", "default") == org_id
+        and any(
             commit_sha[:12] in n.get("name", "") or commit_sha[:12] in n.get("node_id", "")
             for n in t.get("nodes", [])
         )
@@ -331,7 +343,7 @@ async def code_to_cloud_summary(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate code-to-cloud risk summary across all traced vulnerabilities."""
-    all_traces = list(_trace_store.values())
+    all_traces = [t for t in _trace_store.values() if t.get("org_id", "default") == org_id]
     internet_count = sum(
         1 for t in all_traces if t.get("cloud_exposure") == "internet"
     )

@@ -5845,7 +5845,7 @@ def create_app() -> FastAPI:
         from apps.api.scim_router import router as scim_router
         app.include_router(
             scim_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
         )
         _logger.info("Mounted SCIM router")
     except ImportError as _scim_err:
@@ -6965,7 +6965,12 @@ def create_app() -> FastAPI:
 
     if versioning_router is not None:
         app.include_router(versioning_router)
-        _logger.info("Mounted API Versioning router at /api/versions")
+        try:
+            from apps.api.versioning_router import _legacy_versions_router
+            app.include_router(_legacy_versions_router)
+        except ImportError:
+            pass
+        _logger.info("Mounted API Versioning router at /api/v1/versions (legacy 308 at /api/versions)")
 
     if incident_response_router is not None:
         app.include_router(incident_response_router, dependencies=[Depends(_verify_api_key)])

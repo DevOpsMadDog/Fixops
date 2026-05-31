@@ -126,7 +126,7 @@ async def list_workflows(
     offset: int = Query(0, ge=0),
 ):
     """List all workflows."""
-    workflows = db.list_workflows(limit=limit, offset=offset)
+    workflows = db.list_workflows(org_id=org_id, limit=limit, offset=offset)
     return {
         "items": [WorkflowResponse(**w.to_dict()) for w in workflows],
         "total": len(workflows),
@@ -162,7 +162,7 @@ async def create_workflow(workflow_data: WorkflowCreate):
 @router.get("/rules")
 async def list_workflow_rules(org_id: str = Depends(get_org_id)):
     """List all workflow trigger rules and conditions."""
-    workflows = db.list_workflows(limit=1000)
+    workflows = db.list_workflows(org_id=org_id, limit=1000)
     rules = []
     for w in workflows:
         if w.triggers:
@@ -336,12 +336,12 @@ async def _execute_action(action: str, params: Dict, context: Dict) -> Any:
         try:
             addr = ipaddress.ip_address(hostname)
             if addr.is_private or addr.is_loopback or addr.is_link_local:
-                return {"error": "SSRF blocked: private/internal IP not allowed"}
+                raise HTTPException(status_code=400, detail="SSRF blocked: private/internal IP not allowed")
         except ValueError:
             # hostname is a DNS name — block known metadata endpoints
             blocked = {"metadata.google.internal", "169.254.169.254"}
             if hostname.lower() in blocked:
-                return {"error": "SSRF blocked: cloud metadata endpoint not allowed"}
+                raise HTTPException(status_code=400, detail="SSRF blocked: cloud metadata endpoint not allowed")
 
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.request(

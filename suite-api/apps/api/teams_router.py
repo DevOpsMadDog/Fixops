@@ -63,7 +63,7 @@ async def list_teams(
     offset: int = Query(0, ge=0),
 ):
     """List all teams with pagination."""
-    teams = db.list_teams(limit=limit, offset=offset)
+    teams = db.list_teams(org_id=org_id, limit=limit, offset=offset)
     return {
         "items": [TeamResponse(**t.to_dict()) for t in teams],
         "total": len(teams),

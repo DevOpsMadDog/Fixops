@@ -18,7 +18,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
-from apps.api.org_middleware import get_org_id
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 

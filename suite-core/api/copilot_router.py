@@ -463,7 +463,10 @@ async def _call_llm_agent(
 
 
 @router.post("/sessions", response_model=SessionResponse)
-async def create_session(request: CreateSessionRequest) -> SessionResponse:
+async def create_session(
+    request: CreateSessionRequest,
+    org_id: str = Depends(get_org_id),
+) -> SessionResponse:
     """Create a new chat session.
 
     Creates a new conversation session with optional initial context.
@@ -480,6 +483,7 @@ async def create_session(request: CreateSessionRequest) -> SessionResponse:
         "updated_at": now,
         "message_count": 0,
         "context": request.context or {},
+        "org_id": org_id,
     }
 
     _sessions[session_id] = session
@@ -550,7 +554,9 @@ async def send_message(
     The agent type can be overridden per-message.
     """
     if session_id not in _sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(status_code=404, detail="session_not_found")
+    if _sessions[session_id].get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="session_not_found")
 
     session = _sessions[session_id]
     agent_type = request.agent_type or session["agent_type"]
@@ -673,7 +679,9 @@ async def execute_action(
     Async actions return immediately with a task ID for polling.
     """
     if session_id not in _sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(status_code=404, detail="session_not_found")
+    if _sessions[session_id].get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="session_not_found")
 
     action_id = _generate_id()
     now = _now()
@@ -862,7 +870,9 @@ async def add_context(
     Types: cve, asset, finding, sbom, policy, evidence
     """
     if session_id not in _sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(status_code=404, detail="session_not_found")
+    if _sessions[session_id].get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="session_not_found")
 
     session = _sessions[session_id]
     context = session.get("context", {})

@@ -93,21 +93,36 @@ class PolicyDB:
             conn.close()
 
     def list_policies(
-        self, policy_type: Optional[str] = None, limit: int = 100, offset: int = 0
+        self,
+        org_id: Optional[str] = None,
+        policy_type: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> List[Policy]:
-        """List policies with optional filtering."""
+        """List policies with optional filtering, optionally scoped to org_id."""
         conn = self._get_connection()
         try:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(policies)").fetchall()}
+            has_org = "org_id" in cols
+
+            query = "SELECT * FROM policies WHERE 1=1"
+            params: list = []
+
+            if org_id is not None and has_org:
+                query += " AND org_id = ?"
+                params.append(org_id)
+            elif org_id is not None and not has_org:
+                import logging as _l
+                _l.getLogger(__name__).warning("policy_db: policies.org_id column missing — returning all policies")
+
             if policy_type:
-                rows = conn.execute(
-                    "SELECT * FROM policies WHERE policy_type = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                    (policy_type, limit, offset),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM policies ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                    (limit, offset),
-                ).fetchall()
+                query += " AND policy_type = ?"
+                params.append(policy_type)
+
+            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+            rows = conn.execute(query, params).fetchall()
             return [self._row_to_policy(row) for row in rows]
         finally:
             conn.close()

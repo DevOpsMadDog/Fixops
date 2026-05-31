@@ -196,12 +196,10 @@ async def get_audit_trail(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return the full state-transition history for a rotation record."""
+    record = _tracker.get_rotation(rotation_id)
+    if record is None or record.get("org_id", "default") != org_id:
+        raise HTTPException(status_code=404, detail="rotation_not_found")
     trail = _tracker.get_audit_trail(rotation_id)
-    if not trail:
-        # Check if rotation exists at all
-        record = _tracker.get_rotation(rotation_id)
-        if record is None:
-            raise HTTPException(status_code=404, detail=f"Rotation {rotation_id!r} not found")
     return trail
 
 
@@ -212,6 +210,6 @@ async def get_rotation(
 ) -> Dict[str, Any]:
     """Retrieve a single rotation record by ID."""
     record = _tracker.get_rotation(rotation_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail=f"Rotation {rotation_id!r} not found")
+    if record is None or record.get("org_id", "default") != org_id:
+        raise HTTPException(status_code=404, detail="rotation_not_found")
     return record

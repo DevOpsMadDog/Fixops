@@ -466,6 +466,7 @@ async def report_discovered_vulnerability(
         "cve_id": None,
         "created_at": now,
         "updated_at": now,
+        "org_id": org_id,
     }
 
     _discovered_vulns[vuln_id] = vuln
@@ -720,7 +721,9 @@ async def update_internal_vulnerability(
 ) -> Dict[str, Any]:
     """Update an internal vulnerability."""
     if vuln_id not in _discovered_vulns:
-        raise HTTPException(status_code=404, detail="Vulnerability not found")
+        raise HTTPException(status_code=404, detail="vuln_not_found")
+    if _discovered_vulns[vuln_id].get("org_id", "") != org_id:
+        raise HTTPException(status_code=404, detail="vuln_not_found")
 
     vuln = _discovered_vulns[vuln_id]
 

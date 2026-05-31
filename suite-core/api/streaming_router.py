@@ -22,7 +22,7 @@ from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/stream", tags=["SSE Streaming"])
+router = APIRouter(prefix="/api/v1/stream-v2", tags=["SSE Streaming"])
 
 
 # ---------------------------------------------------------------------------

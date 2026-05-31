@@ -410,6 +410,14 @@ def register_ctem_routers(
     except ImportError:
         pass
 
+    # OTX (AlienVault Open Threat Exchange) — threat-intel feeds
+    try:
+        from apps.api.otx_router import router as otx_router
+        app.include_router(otx_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted OTX router at /api/v1/otx")
+    except ImportError as _e:
+        _logger.warning("OTX router not available: %s", _e)
+
     # IoC Enrichment
     try:
         from apps.api.ioc_enrichment_router import router as ioc_enrichment_router
@@ -1269,6 +1277,14 @@ def register_ctem_routers(
     except ImportError:
         pass
 
+    # Bandit SAST — Python static analysis
+    try:
+        from apps.api.bandit_router import router as bandit_router  # noqa: PLC0415
+        app.include_router(bandit_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Bandit SAST router at /api/v1/bandit")
+    except ImportError as _e:
+        _logger.warning("Bandit SAST router not available: %s", _e)
+
     # SAST (suite-attack/api/)
     try:
         from api.sast_router import router as sast_router  # noqa: PLC0415
@@ -1326,6 +1342,14 @@ def register_ctem_routers(
         _logger.info("Mounted Malware Analysis router (wave-6)")
     except ImportError:
         pass
+
+    # PyRIT — Microsoft AI Red Teaming toolkit bridge
+    try:
+        from apps.api.pyrit_router import router as pyrit_router  # noqa: PLC0415
+        app.include_router(pyrit_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted PyRIT router at /api/v1/pyrit")
+    except ImportError as _e:
+        _logger.warning("PyRIT router not available: %s", _e)
 
     # Suite-Attack MPTE suite (attack:execute scope) — formerly inline loop
     try:

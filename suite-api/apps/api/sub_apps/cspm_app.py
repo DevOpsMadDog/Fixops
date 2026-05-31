@@ -635,4 +635,12 @@ def register_cspm_routers(
     except ImportError:
         pass
 
+    # Trivy async-queue scan router — durable image/fs scan front door
+    try:
+        from apps.api.trivy_scan_router import router as trivy_scan_router  # noqa: PLC0415
+        app.include_router(trivy_scan_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Trivy async-queue scan router at /api/v1/trivy")
+    except ImportError as _e:
+        _logger.warning("trivy_scan_router not available: %s", _e)
+
     _logger.info("CSPM sub-app: wave-6 loop-bound routers registered")

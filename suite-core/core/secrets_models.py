@@ -45,6 +45,7 @@ class SecretFinding:
     metadata: Dict[str, Any] = field(default_factory=dict)
     detected_at: datetime = field(default_factory=datetime.utcnow)
     resolved_at: Optional[datetime] = None
+    org_id: str = "default"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""
@@ -62,6 +63,7 @@ class SecretFinding:
             "metadata": self.metadata,
             "detected_at": self.detected_at.isoformat(),
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+            "org_id": self.org_id,
         }
 
 

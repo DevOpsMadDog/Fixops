@@ -14,12 +14,13 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/n8n", tags=["n8n"])
+router = APIRouter(prefix="/api/v1/n8n", tags=["n8n"], dependencies=[Depends(api_key_auth)])
 
 # ---------------------------------------------------------------------------
 # Lazy connector singleton

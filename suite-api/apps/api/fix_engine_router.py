@@ -38,7 +38,7 @@ except ImportError as _exc:
     _logger.warning("fix_engine_router: remediation_engine unavailable: %s", _exc)
     _HAS_ENGINE = False
 
-router = APIRouter(prefix="/api/v1/remediation", tags=["fix-engine"])
+router = APIRouter(prefix="/api/v1/fix-engine", tags=["fix-engine"])
 
 
 # ---------------------------------------------------------------------------

@@ -305,7 +305,7 @@ async def list_users(
     offset: int = Query(0, ge=0),
 ):
     """List all users with pagination."""
-    users = db.list_users(limit=limit, offset=offset)
+    users = db.list_users(org_id=org_id, limit=limit, offset=offset)
     return {
         "items": [UserResponse(**u.to_dict()) for u in users],
         "total": len(users),

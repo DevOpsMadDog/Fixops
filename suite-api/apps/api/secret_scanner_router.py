@@ -259,6 +259,9 @@ async def rotate_secret(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, str]:
     """Mark a detected secret as rotated and record who rotated it."""
+    secret = _scanner.get_secret(secret_id)
+    if not secret or secret.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Secret {secret_id!r} not found")
     success = _scanner.mark_rotated(
         secret_id, rotated_by=body.rotated_by, new_key_prefix=body.new_key_prefix
     )

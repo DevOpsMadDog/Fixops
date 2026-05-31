@@ -142,16 +142,28 @@ class AnalyticsDB:
 
     def list_findings(
         self,
+        org_id: Optional[str] = None,
         severity: Optional[str] = None,
         status: Optional[str] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> List[Finding]:
-        """List findings with optional filtering."""
+        """List findings with optional filtering, optionally scoped to org_id."""
         conn = self._get_connection()
         try:
+            # Graceful: check if org_id column exists
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(findings)").fetchall()}
+            has_org = "org_id" in cols
+
             query = "SELECT * FROM findings WHERE 1=1"
             params: List[Any] = []
+
+            if org_id is not None and has_org:
+                query += " AND org_id = ?"
+                params.append(org_id)
+            elif org_id is not None and not has_org:
+                import logging as _l
+                _l.getLogger(__name__).warning("analytics_db: findings.org_id column missing — returning all findings")
 
             if severity:
                 query += " AND severity = ?"
@@ -223,21 +235,38 @@ class AnalyticsDB:
             conn.close()
 
     def list_decisions(
-        self, finding_id: Optional[str] = None, limit: int = 100, offset: int = 0
+        self,
+        org_id: Optional[str] = None,
+        finding_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> List[Decision]:
-        """List decisions with optional filtering."""
+        """List decisions with optional filtering, optionally scoped to org_id."""
         conn = self._get_connection()
         try:
+            # Graceful: check if org_id column exists (via findings join is not possible here,
+            # so we filter via a subquery if org_id is requested and the column exists on findings)
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(decisions)").fetchall()}
+            has_org = "org_id" in cols
+
+            query = "SELECT * FROM decisions WHERE 1=1"
+            params: List[Any] = []
+
+            if org_id is not None and has_org:
+                query += " AND org_id = ?"
+                params.append(org_id)
+            elif org_id is not None and not has_org:
+                import logging as _l
+                _l.getLogger(__name__).warning("analytics_db: decisions.org_id column missing — returning all decisions")
+
             if finding_id:
-                rows = conn.execute(
-                    "SELECT * FROM decisions WHERE finding_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                    (finding_id, limit, offset),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM decisions ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                    (limit, offset),
-                ).fetchall()
+                query += " AND finding_id = ?"
+                params.append(finding_id)
+
+            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+            rows = conn.execute(query, params).fetchall()
             return [self._row_to_decision(row) for row in rows]
         finally:
             conn.close()

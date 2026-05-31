@@ -104,14 +104,24 @@ class WorkflowDB:
         finally:
             conn.close()
 
-    def list_workflows(self, limit: int = 100, offset: int = 0) -> List[Workflow]:
-        """List workflows."""
+    def list_workflows(self, org_id: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Workflow]:
+        """List workflows, optionally filtered by org_id."""
         conn = self._get_connection()
         try:
-            rows = conn.execute(
-                "SELECT * FROM workflows ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                (limit, offset),
-            ).fetchall()
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(workflows)").fetchall()}
+            if org_id is not None and "org_id" in cols:
+                rows = conn.execute(
+                    "SELECT * FROM workflows WHERE org_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (org_id, limit, offset),
+                ).fetchall()
+            else:
+                if org_id is not None and "org_id" not in cols:
+                    import logging as _l
+                    _l.getLogger(__name__).warning("workflow_db: workflows.org_id column missing — returning all workflows")
+                rows = conn.execute(
+                    "SELECT * FROM workflows ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
+                ).fetchall()
             return [self._row_to_workflow(row) for row in rows]
         finally:
             conn.close()

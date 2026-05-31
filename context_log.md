@@ -1,5 +1,53 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-05-31 00:00] technical-writer — CUSTOMER DOCS SET (Multica #9074)
+
+- **What**: Created 7-file enterprise customer documentation set under `docs/customer/`. All content verified against real source files before writing — no fabrication. Explicit "in progress" flags placed on SOC 2 Type II (Q4 2026), FedRAMP, and HIPAA/PCI DSS formal certifications.
+- **Files touched**:
+  - `docs/customer/README.md` (99 lines) — index linking all 6 docs with 1-paragraph summaries
+  - `docs/customer/quickstart.md` (191 lines) — 6-step first-verdict guide, curl examples, screenshot placeholders
+  - `docs/customer/integrations.md` (639 lines) — 40+ integrations: source/credentials/endpoint/errors per connector; verified against `platform_app.py` router mounts
+  - `docs/customer/api-reference.md` (488 lines) — 15 most-used endpoints with curl examples; auth patterns; rate limit table; pagination envelope; links to live OpenAPI spec
+  - `docs/customer/security-whitepaper.md` (215 lines) — encryption, RBAC (6 roles from `rbac_engine.py:ROLES`), audit retention (`audit_log.py:_retention_days_from_env`), FIPS, SOC2, multi-tenancy
+  - `docs/customer/troubleshooting.md` (300 lines) — decision-tree format; 401/403/422/503/502/CSP/council/evidence symptom→check→resolution
+  - `docs/customer/incident-response-runbook.md` (294 lines) — P1/P2/P3 triage, Fly.io health, rollback, key rotation (verified `flyctl secrets set` procedure), mass-revoke, audit export, DB recovery
+- **Outcome**: SUCCESS — 2,226 total lines; all 7 files created; zero stubs; zero vaporware claims
+- **Pillar(s) served**: V3 (Decision Intelligence), V5 (Trust — honest compliance posture), V7 (Enterprise-ready)
+
+### [2026-05-27] frontend-craftsman — 5 pages de-mocked, real API wired (Multica #9033 continuation)
+
+- **What**: Removed all hardcoded VULNS/SCAN_SCHEDULES/SEVERITY_TREND/SCANNERS/MODEL_WEIGHTS/CIS_CONTROLS/FRAMEWORK_DATA arrays from 5 pages. Replaced with real API fetches, loading skeletons, and honest empty states.
+- **Files touched**:
+  - `suite-ui/aldeci-ui-new/src/pages/VulnerabilityScanner.tsx` — VULNS/SCAN_SCHEDULES/SEVERITY_TREND/SCANNERS removed; wired to `/api/v1/vuln-scans/stats` (200, 9 scans/6 findings/4 critical_open), `/api/v1/vuln-scans/scans` (200, 9 rows), `/api/v1/vuln-scans/findings` (200, 6 rows). Trend chart derived from real detected_at timestamps. Scanner health from by_scanner stats object.
+  - `suite-ui/aldeci-ui-new/src/pages/VulnerabilityScannerPage.tsx` — Same pattern as above (near-duplicate page). All 3 endpoints wired identically.
+  - `suite-ui/aldeci-ui-new/src/pages/VulnScoringDashboard.tsx` — MODEL_WEIGHTS kept as informational reference (no /model-weights endpoint exists); hardcoded vuln/override/asset-risk arrays removed; wired to `/api/v1/vuln-scoring` (200, 3 scored vulns). Asset risk table derived from real scored data grouped by asset_id. Override history shows honest empty. Distribution donut derives from real priority_tier counts.
+  - `suite-ui/aldeci-ui-new/src/pages/discover/IaCScanning.tsx` — CIS_CONTROLS array (always 0/0) removed; wired to `/api/v1/config-benchmark/assessments` (200, 1 assessment) + `/api/v1/config-benchmark/stats` (200, avg_score 33.33%, 1 critical failure). Honest empty shown when no assessments. Stats summary panel added. Rest of page (findings table, scan panel) was already real.
+  - `suite-ui/aldeci-ui-new/src/pages/discover/CloudPosture.tsx` — FRAMEWORK_DATA (static 6-framework list always 0%) removed; compliance chart now from `/api/v1/compliance-engine/frameworks` (200, 10 frameworks with real automated_controls/total_controls). Resource table rewired from generic useFindings to dedicated `/api/v1/cloud-posture/findings` (200, 5 real findings). useDashboardCompliance removed. Honest empty state for both charts.
+- **Endpoints confirmed live**:
+  - GET /api/v1/vuln-scans/stats → 200 `{total_scans:9, critical_open:4, by_scanner:{nessus:5,...}}`
+  - GET /api/v1/vuln-scans/scans → 200 `[9 items]`
+  - GET /api/v1/vuln-scans/findings → 200 `[6 items]`
+  - GET /api/v1/vuln-scoring → 200 `[3 scored vulns]`
+  - GET /api/v1/config-benchmark/assessments → 200 `[1 assessment]`
+  - GET /api/v1/config-benchmark/stats → 200 `{avg_score:33.33, critical_failures_total:1}`
+  - GET /api/v1/cloud-posture/findings → 200 `[5 findings]`
+  - GET /api/v1/compliance-engine/frameworks → 200 `[10 frameworks]`
+- **Outcome**: SUCCESS — `npx tsc --noEmit` shows 0 errors in all 5 files
+- **Pillar(s) served**: V1 (real data), V3 (honest UI), V7 (demo-ready)
+
+### [2026-05-27] frontend-craftsman — 6 pages wired to real API (Multica #9033)
+
+- **What**: Replaced all hardcoded mock arrays in 6 pages with real apiFetch calls + honest EmptyState. No mock fallbacks remain.
+- **Files touched**:
+  - `suite-ui/aldeci-ui-new/src/pages/CyberInsurance.tsx` — POLICIES/CLAIMS/GAPS/RISK_SCORES removed; wired to `/api/v1/cyber-insurance/policies`, `/claims`, `/stats` (all 200). KPIs derived from live stats. `fmt()` helper formats raw dollar amounts from API.
+  - `suite-ui/aldeci-ui-new/src/pages/AISecurityAdvisor.tsx` — QA_EXCHANGES/RECOMMENDATIONS/SESSIONS removed; wired to `/api/v1/ai-advisor/stats`, `/recommendations`, `/sessions` (all 200). Chat sends real POST to `/ask`. Empty state shown when no recs/sessions yet.
+  - `suite-ui/aldeci-ui-new/src/pages/SecurityMetricsDashboard.tsx` — TREND_DATA/TOP_METRICS/CATEGORIES/THRESHOLDS removed; wired to `/api/v1/security-metrics/metrics`, `/stats`, `/alerts` (all 200, currently empty — honest empty shown). TREND chart section removed (no trend endpoint exists).
+  - `suite-ui/aldeci-ui-new/src/pages/SecurityMetricsDashboard2.tsx` — METRICS/READINGS/ALERTS/AGGREGATES removed; same three endpoints. Sparkline renders from `readings` field in metric objects when present; honest empty otherwise.
+  - `suite-ui/aldeci-ui-new/src/pages/NetworkAnalysis.tsx` — HOURLY/PROTOCOLS/REGIONS: HOURLY removed entirely (no traffic-timeline endpoint); PROTOCOLS/REGIONS kept as display-only UI scaffolding with clear comment (no dedicated API endpoint exists). Top talkers wired to `/api/v1/network-monitoring/stats` (200). Anomaly feed wired to `/api/v1/ndr/alerts` (200, currently []). KPIs from `/api/v1/ndr/stats` (200). Honest empty for zero flows/anomalies.
+  - `suite-ui/aldeci-ui-new/src/pages/remediate/TicketIntegration.tsx` — AVAILABLE_INTEGRATIONS was injecting fake "Configured" state; replaced with `SUPPORTED_TYPES` catalogue. `isConfigured` now driven purely by real API response. "Not configured" badge shown honestly for unconfigured types. All data from `useIntegrations()` hook → `/api/v1/integrations`.
+- **Outcome**: SUCCESS — `npx tsc --noEmit` shows 0 errors in all 6 files; total error count 47 (all pre-existing, unchanged)
+- **Pillar(s) served**: V1 (real data), V3 (honest UI), V7 (demo-ready)
+
 ### [2026-05-27 21:00] backend-hardener — LOCAL FILE STORE API built (Multica #9032)
 
 - **What**: UI `LocalFileStoreDashboard.tsx` called `/api/v1/local-file-store/{stats,list,config}` → 404. Existing backend was `local_file_store_router.py` at prefix `/api/v1/local-store` (different prefix) serving per-repo `.fixops/` CLI analysis data (different concept). Built a new platform-level blob store router at the correct `/api/v1/local-file-store` prefix backed by a real configurable filesystem dir (`FIXOPS_LOCAL_FILE_STORE_DIR` env, default `./data/file_store`). Engine: real `os.walk()` scan — never fabricates files. Stats computed from real disk state. SHA-256 computed for files ≤10 MiB. Kind inferred from extension (sbom/report/archive/sarif/json/blob etc). Honest empty when dir absent/empty. Config reads from env vars. Mounted in `platform_app.py` via `register_platform_routers`. 24/24 new tests pass. Live curl confirmed: stats→200 (honest zeros, store not yet populated), list→200 (`[]`), config→200 (real path + settings).
@@ -6833,3 +6881,14 @@
 - **Files touched**: suite-core/core/audit_log.py (+28 LOC purge_old), suite-api/apps/api/app.py (+49 LOC startup/shutdown hooks), tests/test_audit_retention.py (new, 3 tests)
 - **Outcome**: SUCCESS — 3/3 audit retention tests pass, phase4 23/23 green, SHA cc1894bd pushed
 - **Pillar(s) served**: V1 (compliance/audit), V7 (operational hardening)
+
+### [2026-05-27 11:00] frontend-craftsman — MOCK REMOVAL (6 pages)
+- **What**: Replaced all hardcoded/mock data arrays in 6 UI pages with real useQuery API fetches + honest EmptyState. SLSAProvenance.tsx left untouched (BUILD_PROVENANCE_STEPS is a static UI visual constant, not fabricated domain data).
+- **Files touched**:
+  - suite-ui/aldeci-ui-new/src/pages/mission-control/ComplianceDashboard.tsx — removed MOCK_FRAMEWORKS/MOCK_CONTROLS/MOCK_TIMELINE/MOCK_GAPS; wired /api/v1/compliance/frameworks + /compliance-scanner/results?org_id + /compliance-scanner/profiles?org_id
+  - suite-ui/aldeci-ui-new/src/pages/mission-control/RiskRegister.tsx — removed MOCK_RISKS (useState init + error fallback); wired /api/v1/risk-register-engine/risks?org_id=default
+  - suite-ui/aldeci-ui-new/src/pages/risk/RiskAcceptance.tsx — removed MOCK_RECORDS (setRecords on error); wired /api/v1/risk-acceptance?org_id=default (returns [] — honest EmptyState)
+  - suite-ui/aldeci-ui-new/src/pages/comply/Analytics.tsx — removed SCANNER_ROI_DATA + HEATMAP_DATA; wired /api/v1/analytics-engine/summary; EmptyState on empty trend arrays
+  - suite-ui/aldeci-ui-new/src/pages/CyberResilienceDashboard.tsx — removed LESSONS/HISTORY/EXERCISES/METRICS/CSF_DOMAINS; wired /api/v1/cyber-resilience/score + /exercises + /assessments
+- **Outcome**: SUCCESS — tsc --noEmit 0 new errors in all 5 touched files; all endpoints 200; real data confirmed via curl
+- **Pillar(s) served**: V1 (real data integrity), V3 (compliance visibility), V5 (risk management)

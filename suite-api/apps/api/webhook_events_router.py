@@ -101,6 +101,7 @@ async def register_webhook(
             event_types=event_type_enums,
             secret=req.secret,
             description=req.description,
+            org_id=org_id,
         )
     except Exception as exc:
         logger.error("Failed to register webhook: %s", exc)
@@ -120,9 +121,9 @@ async def register_webhook(
 async def list_webhooks(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    """List all active registered webhooks."""
+    """List active registered webhooks for this org."""
     try:
-        webhooks = _emitter.list_webhooks()
+        webhooks = _emitter.list_webhooks(org_id=org_id)
     except Exception as exc:
         logger.error("Failed to list webhooks: %s", exc)
         raise HTTPException(500, "Failed to list webhooks") from exc
@@ -135,6 +136,16 @@ async def unregister_webhook(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Unregister (deactivate) a webhook by ID."""
+    # Ownership check: ensure webhook belongs to this org
+    try:
+        org_webhooks = _emitter.list_webhooks(org_id=org_id)
+    except Exception as exc:
+        logger.error("Failed to query webhooks for ownership check: %s", exc)
+        raise HTTPException(500, "Failed to unregister webhook") from exc
+
+    if not any(w["id"] == webhook_id for w in org_webhooks):
+        raise HTTPException(404, f"Webhook {webhook_id} not found")
+
     try:
         found = _emitter.unregister_webhook(webhook_id)
     except Exception as exc:
@@ -154,9 +165,9 @@ async def test_webhook(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Send a test SecurityEvent to a specific registered webhook."""
-    # Verify webhook exists
+    # Verify webhook exists and belongs to this org
     try:
-        webhooks = _emitter.list_webhooks()
+        webhooks = _emitter.list_webhooks(org_id=org_id)
     except Exception as exc:
         raise HTTPException(500, "Failed to query webhooks") from exc
 

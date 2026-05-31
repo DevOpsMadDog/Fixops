@@ -136,14 +136,25 @@ class UserDB:
         finally:
             conn.close()
 
-    def list_users(self, limit: int = 100, offset: int = 0) -> List[User]:
-        """List users with pagination."""
+    def list_users(self, org_id: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[User]:
+        """List users with pagination, optionally filtered by org_id."""
         conn = self._get_connection()
         try:
-            rows = conn.execute(
-                "SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                (limit, offset),
-            ).fetchall()
+            # Graceful: check if org_id column exists
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+            if org_id is not None and "org_id" in cols:
+                rows = conn.execute(
+                    "SELECT * FROM users WHERE org_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (org_id, limit, offset),
+                ).fetchall()
+            else:
+                if org_id is not None and "org_id" not in cols:
+                    import logging as _l
+                    _l.getLogger(__name__).warning("user_db: org_id column missing — returning all users")
+                rows = conn.execute(
+                    "SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
+                ).fetchall()
             return [self._row_to_user(row) for row in rows]
         finally:
             conn.close()
@@ -220,14 +231,24 @@ class UserDB:
         finally:
             conn.close()
 
-    def list_teams(self, limit: int = 100, offset: int = 0) -> List[Team]:
-        """List teams with pagination."""
+    def list_teams(self, org_id: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Team]:
+        """List teams with pagination, optionally filtered by org_id."""
         conn = self._get_connection()
         try:
-            rows = conn.execute(
-                "SELECT * FROM teams ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                (limit, offset),
-            ).fetchall()
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(teams)").fetchall()}
+            if org_id is not None and "org_id" in cols:
+                rows = conn.execute(
+                    "SELECT * FROM teams WHERE org_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (org_id, limit, offset),
+                ).fetchall()
+            else:
+                if org_id is not None and "org_id" not in cols:
+                    import logging as _l
+                    _l.getLogger(__name__).warning("user_db: teams.org_id column missing — returning all teams")
+                rows = conn.execute(
+                    "SELECT * FROM teams ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
+                ).fetchall()
             return [self._row_to_team(row) for row in rows]
         finally:
             conn.close()
