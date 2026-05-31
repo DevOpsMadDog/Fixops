@@ -2242,6 +2242,28 @@ def register_platform_routers(
         _logger.warning("sailpoint_iga_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Databricks REST Connector — 2026-05-31
+    # GET /api/v1/databricks/                     connector info / configured-status  (read:scans)
+    # GET /api/v1/databricks/clusters             list clusters (REST 2.0)            (read:scans)
+    # GET /api/v1/databricks/jobs                 list jobs (REST 2.1)                (read:scans)
+    # GET /api/v1/databricks/runs/{run_id}        job run detail (REST 2.1)           (read:scans)
+    # GET /api/v1/databricks/workspace/list       workspace object list (REST 2.0)    (read:scans)
+    # GET /api/v1/databricks/warehouses           SQL warehouses (REST 2.0)           (read:scans)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.databricks_router import router as databricks_router  # noqa: PLC0415
+        app.include_router(
+            databricks_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Databricks REST connector router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("databricks_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Cloudflare API v4 Live REST — 2026-05-04
     # GET /api/v1/cloudflare/                                                              capability summary  (read:scans)
     # GET /api/v1/cloudflare/client/v4/zones                                               list zones          (read:scans)
