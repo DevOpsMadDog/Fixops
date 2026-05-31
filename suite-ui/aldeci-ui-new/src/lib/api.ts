@@ -173,9 +173,14 @@ api.interceptors.response.use(
     }
 
     if (status === 401) {
-      // Non-JWT auth: redirect to login
-      const next = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.assign(`/login?next=${next}`);
+      // Non-JWT auth: redirect to login unless visual-verify bypass is active
+      const visualVerify = (() => {
+        try { return window.localStorage.getItem("FIXOPS_VISUAL_VERIFY") === "1"; } catch { return false; }
+      })();
+      if (!visualVerify) {
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.assign(`/login?next=${next}`);
+      }
     }
 
     return Promise.reject(err);
