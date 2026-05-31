@@ -144,7 +144,10 @@ def start_campaign(
     campaign_id: str,
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
-    """Start a staged campaign — queues and simulates initial tasks."""
+    """Start a staged campaign.
+
+    Returns 501 until PENTEST_CONNECTOR_URL is configured in the environment.
+    """
     engine = _get_engine(org_id)
     try:
         return engine.start_campaign(org_id, campaign_id)
@@ -157,11 +160,14 @@ def advance_phase(
     campaign_id: str,
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
-    """Advance the campaign to the next MITRE ATT&CK phase."""
+    """Advance the campaign to the next MITRE ATT&CK phase.
+
+    Returns 501 until PENTEST_CONNECTOR_URL is configured in the environment.
+    """
     engine = _get_engine(org_id)
     try:
         result = engine.advance_phase(org_id, campaign_id)
-        return {"data": result, "_simulation_warning": _SIMULATION_WARNING}
+        return {"data": result}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

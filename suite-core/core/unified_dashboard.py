@@ -117,18 +117,22 @@ def _safe_posture_score(org_id: str) -> Dict[str, Any]:
         return {"score": 72.0, "trend": "stable", "components": {}}
 
 
-def _safe_sla_summary(org_id: str) -> Dict[str, Any]:  # noqa: ARG001
-    # NOTE: core.sla_tracker module no longer exists (deleted in earlier wave).
-    # SLA summary is now sourced via the canonical SLA engine; until that
-    # wiring lands, return a deterministic placeholder so the dashboard
-    # renders without surfacing an import error every request.
-    _logger.debug("sla_summary_unavailable_module_retired")
-    return {
-        "on_track": 87,
-        "at_risk": 8,
-        "breached": 5,
-        "compliance_rate_pct": 87.0,
-    }
+def _safe_sla_summary(org_id: str) -> Dict[str, Any]:
+    try:
+        from core.sla_engine import SLAEngine
+
+        engine = SLAEngine()
+        dashboard = engine.get_dashboard(org_id)
+        return {
+            "on_track": dashboard.get("on_track", 0),
+            "at_risk": dashboard.get("at_risk", 0),
+            "breached": dashboard.get("breached", 0),
+            "compliance_rate_pct": dashboard.get("compliance_rate_30d", 0.0),
+            "total_tracked": dashboard.get("total_tracked", 0),
+        }
+    except Exception as exc:
+        _logger.warning("sla_summary_unavailable", error=str(exc))
+        return {"status": "not_configured", "on_track": 0, "at_risk": 0, "breached": 0, "compliance_rate_pct": 0.0}
 
 
 def _safe_findings_summary(org_id: str) -> Dict[str, Any]:
@@ -158,52 +162,93 @@ def _safe_findings_summary(org_id: str) -> Dict[str, Any]:
 
 
 def _safe_compliance_summary(org_id: str) -> Dict[str, Any]:
-    # REMOVED — ``core.compliance_engine.ComplianceEngine`` was renamed to
-    # ``ComplianceAutomationEngine`` (no ``.get_summary`` method on the new
-    # class). 2026-05-03 silenced-imports audit. Returning the prior
-    # warning + safe-default envelope until a per-org summary helper lands
-    # on the canonical engine.
-    _ = org_id  # signature preserved
-    _logger.warning(
-        "compliance_summary_unavailable",
-        error="ComplianceEngine removed; ComplianceAutomationEngine lacks get_summary",
-    )
-    return {
-        "frameworks": {
-            "SOC2": {"coverage_pct": 88, "controls_passing": 44, "controls_total": 50},
-            "PCI-DSS": {"coverage_pct": 76, "controls_passing": 95, "controls_total": 125},
-            "ISO27001": {"coverage_pct": 82, "controls_passing": 105, "controls_total": 128},
-        },
-        "overall_coverage_pct": 82,
-    }
+    try:
+        from core.compliance_automation_engine import ComplianceAutomationEngine
+
+        engine = ComplianceAutomationEngine()
+        stats = engine.get_compliance_stats(org_id)
+        # get_compliance_stats returns job-counts by framework, not per-framework
+        # coverage_pct — build honest framework rows from what we have.
+        frameworks: Dict[str, Any] = {}
+        for fw, job_count in stats.get("by_framework", {}).items():
+            frameworks[fw] = {
+                "job_count": job_count,
+                "controls_tested": stats.get("total_controls_tested", 0),
+                "pass_rate": stats.get("pass_rate", 0.0),
+            }
+        return {
+            "frameworks": frameworks,
+            "overall_pass_rate": stats.get("pass_rate", 0.0),
+            "total_controls_tested": stats.get("total_controls_tested", 0),
+            "status": "ok" if frameworks else "not_configured",
+        }
+    except Exception as exc:
+        _logger.warning("compliance_summary_unavailable", error=str(exc))
+        return {"frameworks": {}, "overall_pass_rate": 0.0, "total_controls_tested": 0, "status": "not_configured"}
 
 
-def _safe_incidents_summary(org_id: str) -> Dict[str, Any]:  # noqa: ARG001
-    # NOTE: core.incident_tracker module no longer exists (deleted in earlier
-    # wave). Incident summary is now exposed via the IR/SOAR engines; until
-    # that wiring lands, return a deterministic placeholder.
-    _logger.debug("incidents_summary_unavailable_module_retired")
-    return {
-        "active": 3,
-        "resolved_30d": 12,
-        "mean_time_to_resolve_hours": 4.2,
-        "p1_active": 0,
-        "p2_active": 1,
-    }
+def _safe_incidents_summary(org_id: str) -> Dict[str, Any]:
+    try:
+        from core.incident_response_engine import IncidentResponseEngine
+
+        engine = IncidentResponseEngine()
+        all_incidents = engine.list_incidents(org_id)
+        active = [i for i in all_incidents if i.get("status") not in ("resolved", "closed")]
+        p1_active = sum(1 for i in active if i.get("severity", "").lower() == "critical")
+        p2_active = sum(1 for i in active if i.get("severity", "").lower() == "high")
+
+        # MTTR: average resolution time from resolved incidents
+        resolved = [
+            i for i in all_incidents
+            if i.get("status") in ("resolved", "closed")
+            and i.get("resolved_at") and i.get("detected_at")
+        ]
+        mttr_hours = 0.0
+        if resolved:
+            from datetime import datetime, timezone
+            total_secs = 0.0
+            count = 0
+            for inc in resolved:
+                try:
+                    detected = datetime.fromisoformat(inc["detected_at"].replace("Z", "+00:00"))
+                    res = datetime.fromisoformat(inc["resolved_at"].replace("Z", "+00:00"))
+                    total_secs += (res - detected).total_seconds()
+                    count += 1
+                except Exception:
+                    pass
+            if count:
+                mttr_hours = round(total_secs / count / 3600, 2)
+
+        return {
+            "active": len(active),
+            "total": len(all_incidents),
+            "p1_active": p1_active,
+            "p2_active": p2_active,
+            "mean_time_to_resolve_hours": mttr_hours,
+            "status": "ok",
+        }
+    except Exception as exc:
+        _logger.warning("incidents_summary_unavailable", error=str(exc))
+        return {"active": 0, "total": 0, "p1_active": 0, "p2_active": 0, "mean_time_to_resolve_hours": 0.0, "status": "not_configured"}
 
 
 def _safe_threat_intel_summary(org_id: str) -> Dict[str, Any]:  # noqa: ARG001
-    # NOTE: core.threat_intel_aggregator module no longer exists (deleted in
-    # earlier wave). Threat-intel rollup is now exposed via suite-feeds
-    # importers; until the dashboard query is rewired, return a deterministic
-    # placeholder.
-    _logger.debug("threat_intel_unavailable_module_retired")
-    return {
-        "feeds_active": 28,
-        "iocs_ingested_24h": 1842,
-        "high_confidence_iocs": 94,
-        "threat_actors_tracked": 12,
-    }
+    try:
+        from feeds_service import FeedsService
+
+        svc = FeedsService()
+        stats = svc.get_feed_stats()
+        epss = stats.get("epss", {})
+        kev = stats.get("kev", {})
+        return {
+            "epss_cves_tracked": epss.get("total_cves", 0),
+            "kev_entries": kev.get("total_cves", 0),
+            "overlap_cves": stats.get("overlap", {}).get("cves_in_both", 0),
+            "status": "ok",
+        }
+    except Exception as exc:
+        _logger.warning("threat_intel_summary_unavailable", error=str(exc))
+        return {"epss_cves_tracked": 0, "kev_entries": 0, "overlap_cves": 0, "status": "not_configured"}
 
 
 def _safe_analytics_kpis(org_id: str) -> Dict[str, Any]:
@@ -255,26 +300,24 @@ def _safe_developer_findings(org_id: str, user_email: str) -> Dict[str, Any]:
 
 
 def _safe_attack_surface(org_id: str) -> Dict[str, Any]:
-    # REMOVED — ``core.attack_surface.AttackSurfaceAnalyzer`` was renamed to
-    # ``AttackSurfaceMapper`` (canonical factory ``get_attack_surface_mapper()``
-    # returns an instance whose ``get_attack_surface(org_id) -> AttackSurface``
-    # yields a Pydantic model rather than the Dict shape this widget needs).
-    # 2026-05-03 silenced-imports audit. Returning prior fallback envelope
-    # until a Dict-shape adapter lands on the canonical mapper.
-    _ = org_id  # signature preserved
-    _logger.warning(
-        "attack_surface_unavailable",
-        error=(
-            "AttackSurfaceAnalyzer removed; AttackSurfaceMapper.get_attack_surface "
-            "returns a Pydantic model, not the Dict shape this widget expects"
-        ),
-    )
-    return {
-        "exposed_endpoints": 14,
-        "internet_facing_critical": 2,
-        "unpatched_services": 5,
-        "exposure_score": 38,
-    }
+    try:
+        from core.attack_surface_engine import AttackSurfaceEngine
+
+        engine = AttackSurfaceEngine()
+        stats = engine.get_surface_stats(org_id)
+        by_severity = stats.get("by_severity", {})
+        return {
+            "total_assets": stats.get("total_assets", 0),
+            "total_exposures": stats.get("total_exposures", 0),
+            "open_critical": stats.get("open_critical", 0),
+            "open_high": by_severity.get("high", 0),
+            "surface_score": stats.get("surface_score", 0),
+            "recent_changes": stats.get("recent_changes", 0),
+            "status": "ok",
+        }
+    except Exception as exc:
+        _logger.warning("attack_surface_unavailable", error=str(exc))
+        return {"total_assets": 0, "total_exposures": 0, "open_critical": 0, "surface_score": 0, "status": "not_configured"}
 
 
 # ---------------------------------------------------------------------------
@@ -380,11 +423,11 @@ class UnifiedDashboard:
             _kpi_widget(
                 "SLA Compliance Rate",
                 {
-                    "value": sla.get("compliance_rate_pct", 87.0),
+                    "value": sla.get("compliance_rate_pct", 0.0),
                     "unit": "%",
                     "on_track": sla.get("on_track", 0),
                     "breached": sla.get("breached", 0),
-                    "status": "good" if sla.get("compliance_rate_pct", 87.0) >= 90 else "warning",
+                    "status": "good" if sla.get("compliance_rate_pct", 0.0) >= 90 else "warning",
                 },
             ),
             _kpi_widget(
@@ -623,11 +666,11 @@ class UnifiedDashboard:
             _kpi_widget(
                 "SLA Compliance",
                 {
-                    "compliance_rate_pct": sla.get("compliance_rate_pct", 87.0),
+                    "compliance_rate_pct": sla.get("compliance_rate_pct", 0.0),
                     "on_track": sla.get("on_track", 0),
                     "at_risk": sla.get("at_risk", 0),
                     "breached": sla.get("breached", 0),
-                    "status": "good" if sla.get("compliance_rate_pct", 87.0) >= 95 else "warning",
+                    "status": "good" if sla.get("compliance_rate_pct", 0.0) >= 95 else "warning",
                 },
             ),
             _alert_widget(
@@ -801,7 +844,7 @@ class UnifiedDashboard:
                     "on_track": sla.get("on_track", 0),
                     "at_risk": sla.get("at_risk", 0),
                     "breached": sla.get("breached", 0),
-                    "compliance_rate_pct": sla.get("compliance_rate_pct", 87.0),
+                    "compliance_rate_pct": sla.get("compliance_rate_pct", 0.0),
                 },
                 chart_type="bar",
                 config={"stacked": True},

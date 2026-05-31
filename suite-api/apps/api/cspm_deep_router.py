@@ -557,15 +557,20 @@ def get_compliance_report(
     try:
         engine = _engine()
         score_data = engine.get_score() if hasattr(engine, "get_score") else {}
+        # CSPMEngine does not expose a per-framework compliance breakdown yet —
+        # return an honest empty list rather than fabricated CIS benchmark scores.
+        frameworks: List[Dict[str, Any]] = []
+        if hasattr(engine, "get_compliance_frameworks"):
+            try:
+                frameworks = engine.get_compliance_frameworks(org_id) or []
+            except Exception:
+                frameworks = []
         return {
             "status": "ok",
             "org_id": org_id,
             "overall_score": score_data.get("score", 0) if isinstance(score_data, dict) else 0,
-            "frameworks": [
-                {"name": "CIS AWS 1.5", "score": 72, "controls_passed": 45, "controls_total": 62},
-                {"name": "CIS Azure 2.0", "score": 68, "controls_passed": 38, "controls_total": 56},
-                {"name": "CIS GCP 1.3", "score": 75, "controls_passed": 30, "controls_total": 40},
-            ],
+            "frameworks": frameworks,
+            "frameworks_status": "not_yet_scanned" if not frameworks else "ok",
             "critical_findings": 0,
             "last_scan": None,
         }

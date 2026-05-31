@@ -648,20 +648,13 @@ async def list_supported_scanners():
     """
     parsers = _get_scanner_parsers()
     if not parsers:
-        # Still return the known list even if module isn't loaded
-        return {
-            "scanners": {
-                "sast": ["checkmarx", "sonarqube", "bandit", "fortify", "veracode", "semgrep"],
-                "dast": ["zap", "burp", "nikto", "nuclei"],
-                "sca": ["snyk", "trivy", "grype", "dependabot"],
-                "infrastructure": ["nessus", "openvas", "nmap"],
-                "secrets": ["gitleaks"],
-                "cloud": ["prowler", "checkov"],
-                "universal": ["sarif", "cyclonedx", "spdx", "vex"],
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "detail": "scanner_parsers module unavailable",
+                "error_category": "not_configured",
             },
-            "total": 26,
-            "ingestion_methods": ["upload", "webhook", "auto-detect"],
-        }
+        )
 
     supported = parsers["get_supported_scanners"]()
     return {
