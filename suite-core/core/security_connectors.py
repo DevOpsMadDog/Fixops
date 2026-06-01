@@ -970,6 +970,97 @@ class PrismaCloudConnector(_BaseConnector):
 
 
 # ---------------------------------------------------------------------------
+# 7b. Black Duck (Synopsys) SCA Connector — SPEC-016 REQ-016-13
+# ---------------------------------------------------------------------------
+
+
+class BlackDuckConnector(_BaseConnector):
+    """Fetch SCA vulnerability data from a Black Duck Hub via its REST API.
+
+    Auth: POST {base}/api/tokens/authenticate with ``Authorization: token <api_token>``
+    -> bearerToken (cached). Then GET the configured vulnerable-bom-components URL.
+    NO MOCKS — unconfigured returns ConnectorOutcome("skipped", ...).
+    """
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
+        self.base_url = str(settings.get("base_url") or "").rstrip("/")
+        self.api_token = settings.get("api_token")
+        token_env = settings.get("api_token_env", "BLACKDUCK_API_TOKEN")
+        if token_env:
+            self.api_token = os.getenv(str(token_env)) or self.api_token
+        # Full URL to a project-version's vulnerable-bom-components endpoint.
+        self.vulnerable_bom_url = settings.get("vulnerable_bom_url") or os.getenv(
+            "BLACKDUCK_VULNERABLE_BOM_URL"
+        )
+        self._bearer: Optional[str] = None
+        self._bearer_expires: float = 0
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.base_url and self.api_token and self.vulnerable_bom_url)
+
+    def _get_bearer(self) -> Optional[str]:
+        if self._bearer and time.time() < self._bearer_expires:
+            return self._bearer
+        try:
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/api/tokens/authenticate",
+                headers={
+                    "Authorization": f"token {self.api_token}",
+                    "Accept": "application/vnd.blackducksoftware.user-4+json",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            self._bearer = data.get("bearerToken")
+            ttl_ms = float(data.get("expiresInMilliseconds", 600000))
+            self._bearer_expires = time.time() + (ttl_ms / 1000.0) - 30
+            return self._bearer
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            logger.warning("blackduck_auth_failed", exc_type=type(exc).__name__)
+            return None
+
+    def get_vulnerable_components(self, limit: int = 500) -> ConnectorOutcome:
+        """Fetch vulnerable BOM components for the configured project version."""
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "black duck not configured"}
+            )
+        bearer = self._get_bearer()
+        if not bearer:
+            return ConnectorOutcome("failed", {"error": "auth_failed"})
+        try:
+            resp = self._request(
+                "GET",
+                self.vulnerable_bom_url,
+                headers={
+                    "Authorization": f"Bearer {bearer}",
+                    "Accept": "application/vnd.blackducksoftware.bill-of-materials-6+json",
+                },
+                params={"limit": limit},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            items = data.get("items", []) if isinstance(data, dict) else (data or [])
+            return ConnectorOutcome("fetched", {"items": items, "count": len(items)})
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
+
+    def health_check(self) -> ConnectorHealth:
+        if not self.configured:
+            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+        start = time.time()
+        bearer = self._get_bearer()
+        ms = (time.time() - start) * 1000
+        return ConnectorHealth(
+            healthy=bool(bearer), latency_ms=ms,
+            message="Authenticated OK" if bearer else "Auth failed",
+        )
+
+
+# ---------------------------------------------------------------------------
 # 8. Orca Security CNAPP Connector
 # ---------------------------------------------------------------------------
 
@@ -1978,6 +2069,7 @@ __all__ = [
     "AzureSecurityCenterConnector",
     "WizConnector",
     "PrismaCloudConnector",
+    "BlackDuckConnector",
     "OrcaSecurityConnector",
     "LaceworkConnector",
     "ThreatMapperConnector",

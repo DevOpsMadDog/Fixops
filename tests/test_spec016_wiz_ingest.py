@@ -239,6 +239,77 @@ def test_req_016_08_cross_org_finding_404(client, _H):
     assert r.status_code == 404
 
 
+_BD_SAMPLE = (
+    b'{"items":[{"componentName":"log4j-core","componentVersionName":"2.14.1",'
+    b'"vulnerabilityWithRemediation":{"vulnerabilityName":"CVE-2021-44228",'
+    b'"severity":"CRITICAL","baseScore":10.0,"description":"Log4Shell",'
+    b'"remediationStatus":"NEW"}}]}'
+)
+
+
+class _OutcomeBD:
+    def __init__(self, status, details):
+        self.status, self.details = status, details
+
+
+class _FakeBlackDuck:
+    configured = True
+
+    def __init__(self, settings=None, *a, **k):
+        self.base_url = (settings or {}).get("base_url") or "https://blackduck.acme.local"
+        self.vulnerable_bom_url = (settings or {}).get("vulnerable_bom_url") \
+            or "https://blackduck.acme.local/api/projects/p/versions/v/vulnerable-bom-components"
+
+    def get_vulnerable_components(self, limit=500):
+        return _OutcomeBD("fetched", {"items": [
+            {"componentName": "log4j-core", "componentVersionName": "2.14.1",
+             "vulnerabilityWithRemediation": {"vulnerabilityName": "CVE-2021-44228",
+                                              "severity": "CRITICAL", "baseScore": 10.0}},
+        ], "count": 1})
+
+
+class _UnconfiguredBlackDuck(_FakeBlackDuck):
+    configured = False
+
+    def get_vulnerable_components(self, limit=500):
+        return _OutcomeBD("skipped", {"reason": "black duck not configured"})
+
+
+def test_req_016_13_blackduck_normalizer_registered():
+    from core.scanner_parsers import SCANNER_NORMALIZERS, BlackDuckNormalizer, parse_scanner_output
+    assert SCANNER_NORMALIZERS.get("blackduck") is BlackDuckNormalizer
+    # exercise the real ingest path (builds NormalizerConfig like the app does)
+    findings = parse_scanner_output(_BD_SAMPLE, scanner_type="blackduck")
+    assert len(findings) == 1
+    f = findings[0]
+    cve = getattr(f, "cve_id", None) or (f.get("cve_id") if isinstance(f, dict) else None)
+    assert cve == "CVE-2021-44228"
+
+
+def test_req_016_13_blackduck_unconfigured_503(client, monkeypatch, _H):
+    import core.security_connectors as SC
+    monkeypatch.setattr(SC, "BlackDuckConnector", _UnconfiguredBlackDuck)
+    monkeypatch.setenv("BLACKDUCK_API_URL", "https://blackduck.acme.local")
+    monkeypatch.delenv("BLACKDUCK_VULNERABLE_BOM_URL", raising=False)
+    r = client.post("/api/v1/blackduck/ingest", headers=_H, json={})
+    assert r.status_code == 503
+
+
+def test_req_016_13_blackduck_ingest_correlates(client, monkeypatch, _H):
+    import core.security_connectors as SC
+    monkeypatch.setattr(SC, "BlackDuckConnector", _FakeBlackDuck)
+    monkeypatch.setenv("BLACKDUCK_API_URL", "https://blackduck.acme.local")
+    monkeypatch.setenv("BLACKDUCK_VULNERABLE_BOM_URL",
+                       "https://blackduck.acme.local/api/projects/p/versions/v/vulnerable-bom-components")
+    r = client.post("/api/v1/blackduck/ingest", headers=_H, json={})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["ingested"] == 1
+    assert j["brain_nodes_added"] > 0
+    assert j["correlated"] is True
+    assert j["source"] == "blackduck"
+
+
 def test_req_016_11_classification_marking():
     from apps.api.scanner_ingest_router import _index_findings_into_brain
     from core.knowledge_brain import get_brain

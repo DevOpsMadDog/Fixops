@@ -2435,12 +2435,62 @@ class CombobulatorNormalizer(_Base):
         return findings
 
 
+class BlackDuckNormalizer(_Base):
+    """Parse Black Duck (Synopsys) SCA output — vulnerable-bom-components JSON.
+
+    SPEC-016 REQ-016-13. Handles the Hub REST ``/vulnerable-bom-components`` payload
+    ({"items":[{componentName, componentVersionName, vulnerabilityWithRemediation:{...}}]})
+    and the Black Duck vulnerability report JSON. Defensive: never raises on malformed input.
+    """
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore").lower()
+        if "vulnerabilitywithremediation" in text:
+            return 0.95
+        if "blackduck" in text and ("componentname" in text or "vulnerabilityname" in text):
+            return 0.85
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        findings: list = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+        items = parsed.get("items", parsed) if isinstance(parsed, dict) else parsed
+        if not isinstance(items, list):
+            return findings
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            vuln = it.get("vulnerabilityWithRemediation") or it.get("vulnerability") or {}
+            comp = it.get("componentName") or it.get("component") or ""
+            cver = it.get("componentVersionName") or it.get("componentVersion") or ""
+            vname = str(vuln.get("vulnerabilityName") or vuln.get("name") or "").strip()
+            cve = vname if vname.upper().startswith("CVE-") else None
+            score = vuln.get("baseScore") or vuln.get("overallScore") or vuln.get("cvss")
+            findings.append(_make_finding(
+                title=f"{vname or 'Black Duck vulnerability'} in {comp}@{cver}".strip(),
+                description=str(vuln.get("description", ""))[:500],
+                severity=str(vuln.get("severity", "medium")).lower(),
+                source_tool="blackduck",
+                source_format_str="blackduck",
+                rule_id=vname or f"bd-{comp}-{cver}",
+                cve_id=cve,
+                cvss_score=float(score) if score not in (None, "") else None,
+                package_name=comp,
+                package_version=cver,
+                recommendation=str(vuln.get("remediationStatus", "")),
+            ))
+        return findings
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Registry — Central catalog of all scanner parsers
 # ═══════════════════════════════════════════════════════════════════════════
 
 SCANNER_NORMALIZERS = {
     "zap": ZAPNormalizer,
+    "blackduck": BlackDuckNormalizer,
     "burp": BurpNormalizer,
     "nessus": NessusNormalizer,
     "openvas": OpenVASNormalizer,

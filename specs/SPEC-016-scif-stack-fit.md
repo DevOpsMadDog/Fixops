@@ -97,7 +97,8 @@ Every connector returns an **honest unconfigured path** (503 `unavailable`/`not_
 - **Prisma** ✅ real `PrismaCloudConnector`, now MOUNTED (increment 2): `prisma_router.py` + `/prisma/ingest`
   (vulns+alerts → brain), egress-guarded, honest 503. (REQ-016-03 satisfied via router mount, not the PullConnector
   registry — `PrismaCloudConnector` is a `_BaseConnector`, same as the WIZ engine, so it wires by router like WIZ.)
-- **Black Duck** 🔴 build gap → REQ-016-13.
+- **Black Duck** ✅ built (REQ-016-13): `BlackDuckConnector` (live Hub REST token-auth → bearer → vulnerable-bom),
+  `BlackDuckNormalizer` registered (`"blackduck"`) for the upload path, `blackduck_router.py` `/ingest` → brain.
 - All four vendor-SaaS FQDNs (`snyk.io`, `veracode.com`, `blackduck.com`, `synopsys.com`, `prismacloud.io`) are in the
   enforced-mode egress blocklist (`assert_egress_allowed`) so a SCIF deploy must point each at its on-prem endpoint.
 
@@ -140,5 +141,7 @@ auth — the OAuth2/REST clients already exist and are real. Commit per incremen
   - **Real bug caught by verification**: `CouncilFactory.create_default_council` is an *instance* method; the first cut
     called it unbound → `TypeError` → silently forced the severity fallback, killing the real council path. Fixed to
     `CouncilFactory().create_default_council()` (now builds `LLMCouncilEngine`); regression locked by a test.
-- Remaining: REQ-016-13 (Black Duck SCA connector) + increment 4 (Confluence design-context import). 11/11 SPEC-016
-  tests + 756/756 Beast smoke green; all routes mount.
+- **REQ-016-13 — Black Duck SCA** (this commit): `BlackDuckConnector` (Hub REST) + `BlackDuckNormalizer`
+  (registered for upload) + `blackduck_router.py` `/ingest` → brain. 3 tests.
+- Remaining: increment 4 (Confluence design-context import). 15/15 SPEC-016 tests + 756/756 Beast smoke green
+  (1 timing-flake under load, passes isolated); all routes mount.

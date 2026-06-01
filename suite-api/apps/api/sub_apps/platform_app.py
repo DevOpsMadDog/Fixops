@@ -3477,6 +3477,22 @@ def register_platform_routers(
         _logger.warning("closed_loop_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Black Duck (Synopsys) SCA router (SPEC-016 REQ-016-13)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.blackduck_router import router as blackduck_router  # noqa: PLC0415
+        app.include_router(
+            blackduck_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Black Duck SCA router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("blackduck_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Splunk SOAR (Phantom) REST router (suite-core/core/splunk_soar_engine.py) — 2026-05-04
     # GET   /api/v1/splunk-soar-rest/                                    capability summary       (read:scans)
     # GET   /api/v1/splunk-soar-rest/rest/playbook                       list playbooks            (read:scans)
