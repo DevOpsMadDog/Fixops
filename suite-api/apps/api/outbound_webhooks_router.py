@@ -42,6 +42,19 @@ from apps.api.dependencies import get_org_id
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Air-gap guard (SPEC-005 §2 — webhooks are an exfil channel)
+# ---------------------------------------------------------------------------
+
+def _is_airgap_enforced() -> bool:
+    """Local shim — delegates to the single authoritative helper in airgap_config."""
+    try:
+        from core.airgap_config import is_airgap_enforced  # type: ignore[import]
+        return is_airgap_enforced()
+    except Exception:  # noqa: BLE001
+        # Fallback: honour env var directly so the guard never silently fails
+        return os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower() == "enforced"
+
+# ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
@@ -232,7 +245,19 @@ async def dispatch_outbound(topic: str, payload: Dict[str, Any], org_id: str) ->
     HTTP-POST to each subscribed URL.  Returns list of delivery result dicts.
 
     Safe to call from async context (uses httpx.AsyncClient).
+
+    SPEC-005: returns [] immediately when air-gap enforced mode is active —
+    outbound webhooks are an exfil channel and must be blocked in SCIF deployments.
     """
+    # SPEC-005 §2 — CRITICAL: block all outbound POSTs in enforced air-gap mode
+    if _is_airgap_enforced():
+        logger.warning(
+            "dispatch_outbound: BLOCKED — air-gap enforced mode is active "
+            "(topic=%s org_id=%s). No outbound POST sent.",
+            topic, org_id,
+        )
+        return []
+
     if topic not in SUPPORTED_TOPICS:
         logger.warning("dispatch_outbound: unknown topic %s", topic)
         return []

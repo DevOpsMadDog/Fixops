@@ -673,7 +673,10 @@ class SAMLProvider:
 # SSO JWT helpers (for SSO-issued session tokens)
 # ---------------------------------------------------------------------------
 
-_SSO_JWT_SECRET = os.getenv("FIXOPS_JWT_SECRET", "fixops-dev-secret-change-in-production")
+# Never fall back to a static hardcoded constant — ephemeral random prevents
+# token forgery via source-code disclosure while still allowing dev operation.
+import secrets as _sso_secrets
+_SSO_JWT_SECRET = os.getenv("FIXOPS_JWT_SECRET", "").strip() or _sso_secrets.token_hex(32)
 _SSO_JWT_ALGORITHM = "HS256"
 _SSO_JWT_EXPIRY_HOURS = int(os.getenv("FIXOPS_JWT_EXPIRY_HOURS", "24"))
 

@@ -1817,3 +1817,39 @@ def get_air_gap_mode() -> AirGapMode:
         logger.debug("get_air_gap_mode: engine load failed: %s", exc)
 
     return AirGapMode.DISABLED
+
+
+def is_airgap_enforced() -> bool:
+    """Single authoritative guard: True when the system is running in enforced air-gap mode.
+
+    Resolution order (same as get_air_gap_mode):
+      1. FIXOPS_AIRGAP_MODE env-var == "enforced"
+      2. AirGapConfigEngine persisted state == "enforced"
+      3. fips_encryption.AirGapMode.is_enabled() — the in-process boolean flag
+
+    This is the ONLY function callers (webhooks, Slack, feeds, OTEL) should check.
+    Never re-implement this check inline.  Default (non-enforced) behaviour is
+    completely unchanged when this returns False.
+    """
+    # Fastest path: env var (used by all production / SCIF deployments)
+    env_value = os.getenv("FIXOPS_AIRGAP_MODE", "").strip().lower()
+    if env_value == AirGapMode.ENFORCED.value:
+        return True
+
+    # Second path: persisted config engine state
+    try:
+        engine = get_airgap_engine()
+        if (engine.config.mode or "").strip().lower() == AirGapMode.ENFORCED.value:
+            return True
+    except Exception:  # noqa: BLE001 - never raise from a guard helper
+        pass
+
+    # Third path: in-process flag (set by AirGapMode.enable() from fips_encryption)
+    try:
+        from core.fips_encryption import AirGapMode as _FipsAirGapMode  # type: ignore[attr-defined]
+        if _FipsAirGapMode.is_enabled():
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+
+    return False

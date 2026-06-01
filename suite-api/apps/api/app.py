@@ -2183,10 +2183,27 @@ def create_app() -> FastAPI:
             {"name": "audit", "description": "Audit logs and compliance trails"},
         ],
     )
-    FastAPIInstrumentor.instrument_app(app)
+    # SPEC-005 §6: skip OTEL instrumentation (and any OTLP exporter) when
+    # air-gap enforced mode is active.  OTLP exporters send spans to an external
+    # collector endpoint — that is an exfil channel in SCIF deployments.
+    # FastAPIInstrumentor itself is harmless when no OTLP endpoint is configured,
+    # but we also guard against an OTEL_EXPORTER_OTLP_ENDPOINT env var that an
+    # operator might inadvertently set.
+    _airgap_mode = os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower()
+    _otlp_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
+    _skip_otel = _airgap_mode == "enforced" and bool(_otlp_endpoint)
+
+    if not _skip_otel:
+        FastAPIInstrumentor.instrument_app(app)
+    else:
+        logging.getLogger(__name__).warning(
+            "airgap(enforced): OTEL instrumentation SKIPPED — "
+            "OTEL_EXPORTER_OTLP_ENDPOINT is set but air-gap enforced mode "
+            "prohibits outbound telemetry. Unset OTEL_EXPORTER_OTLP_ENDPOINT "
+            "or disable enforced mode to re-enable tracing."
+        )
 
     # ── Air-gap enforced: kill telemetry + block HF downloads BEFORE any init ─
-    _airgap_mode = os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower()
     if _airgap_mode == "enforced":
         # Set HuggingFace offline flags before any model load can happen.
         os.environ["TRANSFORMERS_OFFLINE"] = "1"

@@ -76,6 +76,7 @@ _ISO_RE = re.compile(r"\bA?\.?\s*(\d{1,2}\.\d{1,2}(?:\.\d{1,2})?)\b")
 _local = threading.local()
 
 
+from feeds import assert_feeds_egress_allowed
 class CisBenchmarkSourceError(RuntimeError):
     """Raised when no XCCDF source is reachable. Operator must intervene."""
 
@@ -407,6 +408,7 @@ class CisBenchmarkImporter:
         Returns dict with: benchmarks (count), controls (count),
         by_severity, by_profile, source.
         """
+        assert_feeds_egress_allowed("cis_benchmark")
         xml_bytes, source = self._load_xml()
         try:
             parsed = parse_xccdf(xml_bytes)

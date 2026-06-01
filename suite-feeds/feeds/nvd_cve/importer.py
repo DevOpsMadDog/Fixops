@@ -72,6 +72,7 @@ _SLEEP_WITH_KEY = 0.7
 _local = threading.local()
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_conn(db_path: str) -> sqlite3.Connection:
     key = f"conn_{db_path}"
     conn = getattr(_local, key, None)
@@ -439,6 +440,7 @@ class NvdCveImporter:
 
     def _fetch(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Issue a single NVD API call with rate-limit backoff."""
+        assert_feeds_egress_allowed("nvd_cve")
         headers: Dict[str, str] = {"User-Agent": "ALDECI-NVDImporter/1.0"}
         if self._api_key:
             headers["apiKey"] = self._api_key

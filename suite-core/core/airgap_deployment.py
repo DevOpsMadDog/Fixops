@@ -208,12 +208,24 @@ class SneakernetManifest(BaseModel):
 
 
 class NetworkCheckResult(BaseModel):
-    """Result of an active network isolation verification."""
+    """Result of an active network isolation verification.
+
+    SPEC-005 §5 — field naming:
+      egress_sample_probe: True only if ALL sampled URLs were unreachable in
+                           this probe run. This is a *sample* — not a guarantee
+                           that every possible outbound path is blocked.
+                           Callers must not treat this as a comprehensive audit.
+      egress_blocked:      Alias for egress_sample_probe (retained for API
+                           compatibility).  Will be True only when enforced mode
+                           is active AND the broader sample probe confirms no
+                           egress — not when only openai+pypi were probed.
+    """
 
     is_isolated: bool
     tcp_blocked: bool = True
     dns_blocked: bool = True
-    egress_blocked: bool = True
+    egress_sample_probe: bool = True   # SPEC-005: renamed from egress_blocked; sample only
+    egress_blocked: bool = True        # API-compat alias — mirrors egress_sample_probe
     violations: List[str] = Field(default_factory=list)
     checked_at: str = Field(default_factory=lambda: _utcnow())
     probe_duration_ms: float = 0.0
@@ -1173,12 +1185,24 @@ class NetworkIsolationVerifier:
             socket.setdefaulttimeout(old_timeout)
 
         # HTTP/HTTPS egress via urllib (no third-party deps)
+        # SPEC-005 §5: broader probe set — was only openai+pypi (DISQUALIFYING).
+        # Now covers the full threat surface: LLM APIs, feed sources, package
+        # registries, and government intel feeds that appear in feed importers.
         import ssl
+
+        _EGRESS_PROBE_URLS = [
+            "https://api.openai.com",            # LLM API
+            "https://pypi.org",                   # package registry
+            "https://api.first.org",              # FIRST EPSS / CVSS feeds
+            "https://www.cisa.gov",               # CISA KEV feed
+            "https://huggingface.co",             # HuggingFace model hub
+            "https://github.com",                 # GHSA / nuclei templates / OSV
+        ]
 
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        for url in ["https://api.openai.com", "https://pypi.org"]:
+        for url in _EGRESS_PROBE_URLS:
             try:
                 req = urllib.request.Request(url, method="HEAD")  # nosemgrep: dynamic-urllib-use-detected
                 with urllib.request.urlopen(req, timeout=1, context=ctx):  # nosemgrep: dynamic-urllib-use-detected  # nosec
@@ -1190,6 +1214,15 @@ class NetworkIsolationVerifier:
         duration_ms = (time.monotonic() - start) * 1000
         is_isolated = len(violations) == 0
 
+        # SPEC-005 §5: egress_blocked is only True when BOTH conditions hold:
+        #   (a) the broader sample probe found no reachable external URLs, AND
+        #   (b) enforced mode is active (so we're not just on a flaky network)
+        # This prevents a disconnected-but-not-enforced host from claiming
+        # egress_blocked=True without an operator-set enforcement flag.
+        import os as _os
+        _enforced = _os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower() == "enforced"
+        final_egress_blocked = egress_blocked and _enforced
+
         if violations:
             logger.warning("network_isolation_violations", count=len(violations), violations=violations)
         else:
@@ -1199,7 +1232,8 @@ class NetworkIsolationVerifier:
             is_isolated=is_isolated,
             tcp_blocked=tcp_blocked,
             dns_blocked=dns_blocked,
-            egress_blocked=egress_blocked,
+            egress_sample_probe=egress_blocked,   # raw probe result
+            egress_blocked=final_egress_blocked,   # authoritative: probe + enforced flag
             violations=violations,
             probe_duration_ms=round(duration_ms, 2),
         )

@@ -97,6 +97,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "osv.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store():
     global _store
     if _store is None:
@@ -397,6 +398,7 @@ def _ecosystem_zip_url(ecosystem: str) -> str:
 
 
 def _download_ecosystem_zip(ecosystem: str, timeout: float = DOWNLOAD_TIMEOUT) -> bytes:
+    assert_feeds_egress_allowed("osv")
     if not _HAS_HTTPX:
         raise RuntimeError(
             "httpx is not available — cannot download OSV ecosystem zip"

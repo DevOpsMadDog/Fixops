@@ -93,7 +93,12 @@ def _ensure_table(db_path: str) -> None:
 # ---------------------------------------------------------------------------
 
 def _http_get(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 30) -> Any:
-    """GET url, return parsed JSON or raw text depending on content-type."""
+    """GET url, return parsed JSON or raw text depending on content-type.
+
+    SPEC-005 §4: raises RuntimeError when air-gap enforced mode is active.
+    """
+    from feeds import assert_feeds_egress_allowed
+    assert_feeds_egress_allowed("hibp")
     hdrs = headers or {}
     if _HAS_HTTPX:
         import httpx as _httpx

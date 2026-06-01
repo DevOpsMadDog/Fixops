@@ -42,6 +42,7 @@ _TABLE = "kev_entries"
 _local = threading.local()
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_conn(db_path: str) -> sqlite3.Connection:
     key = f"conn_{db_path}"
     conn = getattr(_local, key, None)
@@ -244,6 +245,7 @@ class CisaKevImporter:
 
     def _fetch(self) -> Dict[str, Any]:
         """Download KEV JSON. Uses httpx when available, falls back to urllib."""
+        assert_feeds_egress_allowed("cisa_kev")
         if _HAS_HTTPX:
             import httpx as _httpx
             resp = _httpx.get(self._url, timeout=self._timeout, follow_redirects=True)

@@ -158,6 +158,7 @@ _local = threading.local()
 # Errors
 # ---------------------------------------------------------------------------
 
+from feeds import assert_feeds_egress_allowed
 class D3fendSourceError(RuntimeError):
     """Raised when no D3FEND ontology source is reachable.
 
@@ -506,6 +507,7 @@ class D3fendImporter:
     # ------------------------------------------------------------------
 
     def run(self, idempotent: bool = True) -> Dict[str, Any]:
+        assert_feeds_egress_allowed("d3fend")
         raw, source = self._load_jsonld()
         try:
             doc = json.loads(raw) if isinstance(raw, (bytes, bytearray, str)) else raw

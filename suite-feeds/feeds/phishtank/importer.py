@@ -47,6 +47,7 @@ _local = threading.local()
 # DB helpers
 # ---------------------------------------------------------------------------
 
+from feeds import assert_feeds_egress_allowed
 def _get_conn(db_path: str) -> sqlite3.Connection:
     key = f"conn_{db_path}"
     conn = getattr(_local, key, None)
@@ -206,6 +207,7 @@ class PhishTankImporter:
 
     def _fetch(self) -> List[Dict[str, Any]]:
         """Download PhishTank JSON feed. Returns list of raw dicts."""
+        assert_feeds_egress_allowed("phishtank")
         if _HAS_HTTPX:
             import httpx as _httpx
             resp = _httpx.get(self._url, timeout=self._timeout, follow_redirects=True)

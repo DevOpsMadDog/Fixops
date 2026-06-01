@@ -30,6 +30,13 @@ _DEV_TOKEN_JWT_ALG = "HS256"
 _DEV_TOKEN_TTL_SECONDS = 3600
 _DEV_TOKEN_AUDIT_DB = Path(os.getenv("FIXOPS_DEV_TOKEN_AUDIT_DB", "data/dev_token_audit.db"))
 
+# Ephemeral process-scoped secret: generated ONCE at import time when
+# FIXOPS_JWT_SECRET is absent.  It is intentionally NOT a static constant —
+# tokens signed with it are invalid after a process restart, which is the
+# correct behaviour for an unconfigured dev environment.  Never log this value.
+import secrets as _secrets_mod
+_EPHEMERAL_DEV_JWT_SECRET: str = _secrets_mod.token_hex(32)
+
 
 def _is_dev_mode_enabled() -> bool:
     """Return True if FIXOPS_DEV_MODE env var is truthy ('true', '1', 'yes')."""
@@ -38,24 +45,31 @@ def _is_dev_mode_enabled() -> bool:
 
 
 def _get_dev_jwt_secret() -> str:
-    """Return the JWT secret used by the production auth flow.
+    """Return the JWT secret used for dev-token minting.
 
-    Falls back to a dev-only secret when FIXOPS_JWT_SECRET is not set, mirroring
-    auth_middleware.py default. The minted JWT is validated by auth_deps which
-    requires FIXOPS_JWT_SECRET >= 32 chars in production.
+    Requires FIXOPS_JWT_SECRET to be set (>= 32 chars) for persistent tokens.
+    When absent, falls back to _EPHEMERAL_DEV_JWT_SECRET — a random value
+    generated at process start so tokens don't survive restarts.  A static
+    hardcoded constant is intentionally NOT used here, as that would allow
+    anyone who has read the source to forge tokens for any org.
     """
     secret = os.getenv("FIXOPS_JWT_SECRET", "").strip()
-    if not secret:
-        # Dev-mode only: warn loudly so this is never silent in prod.
-        _logger.warning(
-            "FIXOPS_JWT_SECRET is not set — using insecure dev fallback. "
-            "Set FIXOPS_JWT_SECRET to a random 32+ char string in production."
+    if secret and len(secret) >= 32:
+        return secret
+    if secret:
+        # Present but too short — refuse loudly rather than silently weaken.
+        raise HTTPException(
+            status_code=503,
+            detail="FIXOPS_JWT_SECRET is too short (minimum 32 chars) — JWT auth not configured.",
         )
-        secret = os.getenv(
-            "_FIXOPS_DEV_JWT_FALLBACK",
-            "fixops-dev-secret-change-in-production-min-32-chars",
-        )
-    return secret
+    # No secret set: use the ephemeral process-scoped value. Dev tokens minted
+    # now will be invalid after restart, which is intentional and safe.
+    _logger.warning(
+        "FIXOPS_JWT_SECRET is not set — using ephemeral process-scoped dev secret. "
+        "Dev tokens minted now will be invalid after a process restart. "
+        "Set FIXOPS_JWT_SECRET to a random 32+ char string for persistent tokens."
+    )
+    return _EPHEMERAL_DEV_JWT_SECRET
 
 
 def _ensure_dev_token_audit_table() -> None:
@@ -1357,9 +1371,10 @@ from urllib.parse import urlencode as _urlencode
 import httpx as _httpx
 
 _OAUTH_STATE_TTL = 600  # seconds — state token validity window
-_OAUTH_STATE_SECRET = os.getenv(
-    "FIXOPS_OAUTH_STATE_SECRET",
-    os.getenv("FIXOPS_JWT_SECRET", "fixops-dev-state-secret-change-me"),
+_OAUTH_STATE_SECRET = (
+    os.getenv("FIXOPS_OAUTH_STATE_SECRET", "").strip()
+    or os.getenv("FIXOPS_JWT_SECRET", "").strip()
+    or _EPHEMERAL_DEV_JWT_SECRET  # process-scoped random — never a static constant
 )
 
 # Provider config — loaded lazily so missing env vars don't crash import

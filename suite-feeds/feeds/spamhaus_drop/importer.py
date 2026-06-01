@@ -47,6 +47,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "spamhaus_drop.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store():
     global _store
     if _store is None:
@@ -144,6 +145,7 @@ def run_import(
     Returns:
         {"drop_cidrs": N, "edrop_cidrs": N}
     """
+    assert_feeds_egress_allowed("spamhaus_drop")
     drop_count = 0
     edrop_count = 0
     errors: List[str] = []

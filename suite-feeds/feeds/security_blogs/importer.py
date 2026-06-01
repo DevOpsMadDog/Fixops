@@ -42,6 +42,7 @@ SOURCES_URL = "suite-feeds/feeds/security_blogs/sources.txt"  # for registry
 # SQLite helpers
 # ---------------------------------------------------------------------------
 
+from feeds import assert_feeds_egress_allowed
 def _get_conn(db_path: str) -> sqlite3.Connection:
     key = f"conn_{db_path}"
     conn = getattr(_local, key, None)
@@ -110,6 +111,7 @@ def _feed_name_from_url(url: str) -> str:
 
 def _fetch_bytes(url: str, timeout: int = 30) -> Optional[bytes]:
     """Fetch raw bytes from *url* with httpx, returning None on failure."""
+    assert_feeds_egress_allowed("security_blogs")
     try:
         import httpx
         resp = httpx.get(url, timeout=timeout, follow_redirects=True,

@@ -36,6 +36,7 @@ _HTTP_TIMEOUT = 60.0
 # Lightweight SQLite store (PersistentDict pattern)
 # ---------------------------------------------------------------------------
 
+from feeds import assert_feeds_egress_allowed
 class _TechniqueStore:
     """SQLite-backed store for ATT&CK techniques."""
 
@@ -152,6 +153,7 @@ class MitreAttackExtractor:
     # ------------------------------------------------------------------
 
     def _fetch_bundle(self) -> Dict[str, Any]:
+        assert_feeds_egress_allowed("mitre_attack")
         logger.info("mitre_attack.fetch_start", extra={"url": STIX_BUNDLE_URL})
         with httpx.Client(timeout=_HTTP_TIMEOUT, follow_redirects=True) as client:
             resp = client.get(STIX_BUNDLE_URL)

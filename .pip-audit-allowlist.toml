@@ -1,0 +1,53 @@
+# pip-audit allowlist — ALDECI supply chain (SPEC-009 / REQ-009-04)
+#
+# Format: one [[skip]] block per accepted vulnerability.
+# Each entry MUST have: id, package, reason, accepted-by, review-date, review-due.
+# Entries without a review-due date are auto-expired after 90 days.
+#
+# Policy: HIGH/CRITICAL CVEs may only be allowlisted if:
+#   (a) No fix version exists, AND
+#   (b) The vulnerable code path is not reachable in ALDECI's runtime, OR
+#   (c) A compensating control exists (documented in reason).
+# Any fixable HIGH/CRITICAL MUST be patched — not allowlisted.
+#
+# To add a new skip:
+#   1. Open a security-review issue and get CTO sign-off
+#   2. Add block below with review-due ≤ 90 days out
+#   3. PR must include evidence the code path is unreachable or mitigated
+
+# ---------------------------------------------------------------------------
+# PYSEC-2026-161 — starlette==0.50.0
+# ---------------------------------------------------------------------------
+# Severity: MEDIUM (HTTP response splitting via header injection)
+# Fix available: starlette>=1.0.1
+# Status: ACCEPTED-WITH-PLAN — not blindly allowlisted.
+#
+# Why not bumped immediately:
+#   starlette is a FastAPI transitive. Bumping from 0.50.0 → 1.0.1 is a
+#   MAJOR version jump that changes internal routing and middleware APIs.
+#   FastAPI 0.127.1 (our pinned version) declares starlette>=0.40.0,<0.70.0
+#   as its dependency constraint; starlette 1.0.1 is outside that range and
+#   pip will refuse to install it. A safe upgrade requires simultaneously
+#   bumping fastapi to a version that supports starlette 1.x — which is a
+#   tested, scheduled change, not a one-liner.
+#
+# Compensating controls in place:
+#   - ALDECI sits behind a reverse proxy (nginx/Caddy) that strips/normalises
+#     response headers before reaching clients — the injection vector requires
+#     header pass-through that does not exist in our deployment topology.
+#   - The affected endpoint class (StreamingResponse with user-controlled
+#     header values) is not present in any current ALDECI router.
+#   - FIXOPS_SKIP_PATH_SECURITY=0 in production (path traversal guard active).
+#
+# Action plan:
+#   Track fastapi release that ships starlette>=1.0.1 support.
+#   Target: bump fastapi + starlette together before review-due date.
+#   Owner: DevOps Engineer.
+#
+[[skip]]
+id = "PYSEC-2026-161"
+package = "starlette"
+reason = "starlette 1.0.1 fix incompatible with fastapi==0.127.1 constraint (starlette<0.70.0). Compensating controls: reverse-proxy header normalisation + no StreamingResponse with user-controlled headers in ALDECI routers. Scheduled upgrade: fastapi + starlette major bump before 2026-09-01."
+accepted-by = "devops-engineer"
+review-date = "2026-06-01"
+review-due = "2026-09-01"

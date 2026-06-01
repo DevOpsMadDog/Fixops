@@ -44,6 +44,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "sigmahq_rules.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store():
     global _store
     if _store is None:
@@ -195,6 +196,7 @@ def import_rules_from_archive(tar_bytes: bytes) -> Dict[str, Any]:
 
 def run_import() -> Dict[str, Any]:
     """Download SigmaHQ master archive and import all rules."""
+    assert_feeds_egress_allowed("sigmahq")
     logger.info("Downloading SigmaHQ rules from %s", SIGMAHQ_TAR_URL)
     with httpx.Client(timeout=DOWNLOAD_TIMEOUT, follow_redirects=True) as client:
         response = client.get(SIGMAHQ_TAR_URL)

@@ -37,7 +37,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-_JWT_SECRET = os.getenv("FIXOPS_JWT_SECRET", "fixops-dev-secret-change-in-production")
+# Never fall back to a static hardcoded constant — that lets anyone who reads
+# the source forge tokens for any org.  Use an ephemeral random value instead
+# so the module still loads and signs tokens in dev, but tokens don't survive
+# restarts when FIXOPS_JWT_SECRET is absent.
+_JWT_SECRET = os.getenv("FIXOPS_JWT_SECRET", "").strip() or secrets.token_hex(32)
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRY_HOURS = int(os.getenv("FIXOPS_JWT_EXPIRY_HOURS", "24"))
 _AUTH_MODE = os.getenv("FIXOPS_AUTH_MODE", "dev")  # "dev" | "enforced"

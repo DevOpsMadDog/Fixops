@@ -93,7 +93,7 @@ class CloudResource(BaseModel):
     config: Dict[str, Any] = Field(default_factory=dict)
     tags: Dict[str, str] = Field(default_factory=dict)
     public_exposure: bool = False
-    encryption_enabled: bool = True
+    encryption_enabled: bool = False  # unknown/absent = not encrypted; only True when scan data confirms it
     last_synced: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     org_id: str
 

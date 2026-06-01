@@ -164,7 +164,8 @@ class CompliancePosture:
             "not_applicable": self.not_applicable,
             "overall_score": round(self.overall_score, 2),
             "compliance_percentage": round(
-                (self.satisfied + self.partially_satisfied * 0.5) / max(self.total_controls - self.not_applicable, 1) * 100, 1
+                (self.satisfied + self.partially_satisfied * 0.5)
+                / max(self.total_controls - self.not_applicable - self.not_assessed, 1) * 100, 1
             ),
             "trend": self.trend,
             "last_evaluated": self.last_evaluated,
@@ -849,26 +850,55 @@ class ComplianceEngine:
             evidence = self.db.get_evidence_for_control(ctrl_id, framework.value)
             evidence_count = len(evidence)
 
+            # Determine which evidence types this control genuinely requires.
+            # Only evidence items whose type matches the control's declared
+            # evidence types count toward satisfaction.  A SCAN_RESULT finding
+            # mapped via CWE does NOT satisfy a POLICY_CHECK, TRAINING_RECORD,
+            # or physical/manual control — those need their own evidence source.
+            required_evidence_types: list = [
+                e.value if hasattr(e, "value") else str(e)
+                for e in ctrl_def.get("evidence", [])
+            ]
+            if required_evidence_types:
+                applicable_evidence = [
+                    e for e in evidence
+                    if e.get("evidence_type") in required_evidence_types
+                ]
+            else:
+                # No declared types — fall back to all evidence (no filter)
+                applicable_evidence = evidence
+            applicable_count = len(applicable_evidence)
+
             # Determine status based on evidence
             if not ctrl_def.get("automated", True):
                 status = ControlStatus.NOT_ASSESSED
                 score = 0.0
                 notes = "Manual assessment required"
-            elif evidence_count == 0:
-                status = ControlStatus.NOT_SATISFIED
-                score = 0.0
-                notes = "No evidence collected"
-                posture.gaps.append(f"{ctrl_id}: {ctrl_def['title']} — no evidence")
+            elif applicable_count == 0:
+                # No evidence of the right type — genuinely not assessed/satisfied
+                # regardless of how many scan findings exist for this control.
+                if evidence_count > 0:
+                    status = ControlStatus.NOT_ASSESSED
+                    score = 0.0
+                    notes = (
+                        f"No applicable evidence ({evidence_count} scan findings present "
+                        f"but control requires: {', '.join(required_evidence_types) or 'unspecified'})"
+                    )
+                else:
+                    status = ControlStatus.NOT_SATISFIED
+                    score = 0.0
+                    notes = "No evidence collected"
+                posture.gaps.append(f"{ctrl_id}: {ctrl_def['title']} — no applicable evidence")
             else:
-                # Check for critical findings in evidence
+                # Check for critical findings in applicable evidence only
                 critical = sum(
-                    1 for e in evidence
+                    1 for e in applicable_evidence
                     if json.loads(e.get("metadata", "{}")).get("severity") in ("critical", "high")
                     and json.loads(e.get("metadata", "{}")).get("status") == "open"
                 )
-                total_findings = len(evidence)
+                total_findings = applicable_count
                 resolved = sum(
-                    1 for e in evidence
+                    1 for e in applicable_evidence
                     if json.loads(e.get("metadata", "{}")).get("status") in ("resolved", "fixed", "closed")
                 )
 
@@ -881,14 +911,14 @@ class ComplianceEngine:
                     status = ControlStatus.SATISFIED
                     score = 1.0
                     notes = f"All {total_findings} findings resolved"
-                elif evidence_count >= len(ctrl_def.get("evidence", [])):
+                elif applicable_count >= len(ctrl_def.get("evidence", [])):
                     status = ControlStatus.PARTIALLY_SATISFIED
                     score = 0.5 + (resolved / max(total_findings, 1)) * 0.4
                     notes = f"{resolved}/{total_findings} findings resolved"
                 else:
                     status = ControlStatus.PARTIALLY_SATISFIED
                     score = 0.3
-                    notes = f"Partial evidence ({evidence_count} items)"
+                    notes = f"Partial applicable evidence ({applicable_count} items)"
 
             # Create and save assessment
             assessment = ControlAssessment(

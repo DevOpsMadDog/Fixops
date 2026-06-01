@@ -63,6 +63,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "urlhaus.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store():
     global _store
     if _store is None:
@@ -160,6 +161,7 @@ def _upsert(rows: List[Dict[str, Any]]) -> int:
 # ---------------------------------------------------------------------------
 
 def _fetch(url: str, timeout: float = DOWNLOAD_TIMEOUT) -> str:
+    assert_feeds_egress_allowed("urlhaus")
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
         response = client.get(url)
         response.raise_for_status()

@@ -58,3 +58,21 @@ peft>=0.10
 dilithium-py>=1.0
 # Stripe SDK — real payment integration (Multica #4119)
 stripe>=7.0,<16.0
+
+# ---------------------------------------------------------------------------
+# Security-motivated dep pins (2026-06-01 hardening sweep)
+#
+# gitpython>=3.1.50 — closes CVE in ext:: transport (RCE); also defence-in-depth
+#   for the code_repo_agent.py input-validation fix.
+# urllib3>=2.7.0    — closes SSRF/redirect CVE (CVE-2025-50182 family)
+# idna>=3.15        — closes IDNA label-processing denial-of-service
+# mistune>=3.2.1    — closes ReDoS in Markdown parser
+# microsoft-kiota-http>=1.9.9 — closes auth-header leak on redirect
+# dulwich>=1.2.5    — closes path-traversal in pack file parsing
+# ---------------------------------------------------------------------------
+gitpython>=3.1.50,<4.0
+urllib3>=2.7.0,<3.0
+idna>=3.15,<4.0
+mistune>=3.2.1,<4.0
+microsoft-kiota-http>=1.9.9,<2.0
+dulwich>=1.2.5,<2.0

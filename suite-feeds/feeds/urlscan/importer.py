@@ -62,6 +62,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "urlscan.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store():
     global _store
     if _store is None:
@@ -155,6 +156,7 @@ def _build_headers() -> Dict[str, str]:
 
 def _fetch(query: str, size: int = DEFAULT_SIZE, timeout: float = DOWNLOAD_TIMEOUT) -> Dict[str, Any]:
     """Fetch URLscan search results. Returns parsed JSON dict."""
+    assert_feeds_egress_allowed("urlscan")
     params = {"q": query, "size": size}
     headers = _build_headers()
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:

@@ -84,6 +84,7 @@ _pulses_store = None
 _indicators_store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _load_persistent_dict():
     """Return the PersistentDict class, falling back to dict for stripped envs."""
     try:
@@ -304,6 +305,7 @@ def import_pulses(pulses: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
 
 def _fetch_otx(api_key: Optional[str], limit: int = 50, max_pages: int = 1) -> List[Dict[str, Any]]:
     """Fetch pulses from OTX. Uses subscribed endpoint when *api_key* is set."""
+    assert_feeds_egress_allowed("otx")
     try:
         import httpx
     except ImportError as exc:  # pragma: no cover

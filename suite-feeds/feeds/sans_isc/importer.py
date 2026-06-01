@@ -60,6 +60,7 @@ _sources_store = None
 _ports_store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _ensure_path(suite_core: str) -> None:
     if suite_core not in sys.path:
         sys.path.insert(0, suite_core)
@@ -264,6 +265,7 @@ def _replace_ports(records: List[Dict[str, Any]], now: str) -> int:
 # ---------------------------------------------------------------------------
 
 def _fetch_json(url: str, timeout: float = DOWNLOAD_TIMEOUT) -> Any:
+    assert_feeds_egress_allowed("sans_isc")
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
         response = client.get(url, headers={"Accept": "application/json"})
         response.raise_for_status()

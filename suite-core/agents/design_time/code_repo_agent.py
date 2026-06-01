@@ -6,12 +6,76 @@ Monitors code repositories and pushes SARIF, SBOM, and design context data.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from agents.core.agent_framework import AgentConfig, AgentData, BaseAgent
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Input-validation helpers — prevent RCE via malicious repo_url / repo_branch
+# ---------------------------------------------------------------------------
+
+# Allow only https:// and http:// (plain-text fallback) remote URLs.
+# Explicitly rejects:
+#   ext::        — gitpython ext:: transport executes arbitrary commands
+#   file://      — local path traversal / mounting of internal files
+#   git://       — unauthenticated, no TLS, not needed
+#   ssh://       — would require key management outside our control
+#   any leading - — option injection (e.g. --upload-pack=…)
+_REPO_URL_RE = re.compile(
+    r"^https?://"           # must start with http:// or https://
+    r"[A-Za-z0-9._~:@%/\-]+"  # host + path chars — no shell metacharacters
+    r"(\.git)?/?$",
+    re.ASCII,
+)
+
+# Branch / tag names: alphanumeric, hyphens, underscores, dots, forward slashes.
+# Rejects anything that could become a git option flag (leading -) or contain
+# shell metacharacters.
+_BRANCH_RE = re.compile(r"^[A-Za-z0-9._/\-]{1,200}$", re.ASCII)
+
+
+def _validate_repo_url(url: str) -> None:
+    """Raise ValueError if *url* is not a safe https/http remote URL.
+
+    Rejects ext:: / file:: transports (RCE / path-traversal via gitpython),
+    option-injection prefixes (leading -), and any URL that does not match
+    the strict allowlist regex.
+    """
+    if not url:
+        raise ValueError("repo_url must not be empty")
+    # Reject known dangerous transport prefixes before regex check
+    lower = url.lower().lstrip()
+    for dangerous in ("ext::", "file::", "file://", "git://", "ssh://"):
+        if lower.startswith(dangerous):
+            raise ValueError(
+                f"repo_url uses a disallowed transport ({dangerous!r}). "
+                "Only https:// and http:// are permitted."
+            )
+    if lower.startswith("-"):
+        raise ValueError("repo_url must not start with '-' (option injection)")
+    if not _REPO_URL_RE.match(url):
+        raise ValueError(
+            f"repo_url {url!r} is not a valid https/http URL. "
+            "Only https:// and http:// remote URLs are allowed."
+        )
+
+
+def _validate_repo_branch(branch: str) -> None:
+    """Raise ValueError if *branch* contains characters that could be injected
+    as git option flags or shell metacharacters."""
+    if not branch:
+        raise ValueError("repo_branch must not be empty")
+    if branch.startswith("-"):
+        raise ValueError("repo_branch must not start with '-' (option injection)")
+    if not _BRANCH_RE.match(branch):
+        raise ValueError(
+            f"repo_branch {branch!r} contains disallowed characters. "
+            "Only alphanumeric, hyphens, underscores, dots, and slashes are allowed."
+        )
 
 
 class CodeRepoAgent(BaseAgent):
@@ -25,7 +89,16 @@ class CodeRepoAgent(BaseAgent):
         repo_url: str,
         repo_branch: str = "main",
     ):
-        """Initialize code repo agent."""
+        """Initialize code repo agent.
+
+        Raises ValueError immediately if repo_url or repo_branch fail
+        validation so callers get an explicit error at construction time
+        rather than at clone time (which is harder to distinguish from a
+        network failure).
+        """
+        # Validate before storing — reject dangerous transports / injection
+        _validate_repo_url(repo_url)
+        _validate_repo_branch(repo_branch)
         super().__init__(config, fixops_api_url, fixops_api_key)
         self.repo_url = repo_url
         self.repo_branch = repo_branch
@@ -37,8 +110,18 @@ class CodeRepoAgent(BaseAgent):
         try:
             import git
 
-            # Clone or update repository
-            repo_name = self.repo_url.split("/")[-1].replace(".git", "")
+            # Re-validate before any git I/O — defence-in-depth in case repo_url
+            # or repo_branch were mutated after construction.
+            _validate_repo_url(self.repo_url)
+            _validate_repo_branch(self.repo_branch)
+
+            # Derive a safe local directory name from the URL path component only
+            # (never from user-supplied data that could contain path separators).
+            from urllib.parse import urlparse as _urlparse
+            url_path = _urlparse(self.repo_url).path  # e.g. /org/repo.git
+            repo_name = url_path.rstrip("/").split("/")[-1].replace(".git", "") or "repo"
+            # Sanitise: keep only alnum / hyphen / underscore / dot
+            repo_name = re.sub(r"[^A-Za-z0-9._\-]", "_", repo_name)[:64]
             self.repo_path = f"/tmp/fixops-agents/{repo_name}"  # nosec B108
 
             try:
@@ -53,8 +136,13 @@ class CodeRepoAgent(BaseAgent):
             logger.info(f"Connected to repository: {self.repo_url}")
             return True
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Failed to connect to repository {self.repo_url}: {e}")
+        except ValueError as e:
+            # Validation failure — log the message without the URL to avoid
+            # reflecting attacker-controlled content into logs.
+            logger.error("Rejected repository connection due to invalid input: %s", e)
+            return False
+        except (OSError, KeyError, RuntimeError) as e:
+            logger.error(f"Failed to connect to repository: {e}")
             return False
 
     async def disconnect(self):
@@ -66,6 +154,10 @@ class CodeRepoAgent(BaseAgent):
         import git
 
         try:
+            # Re-validate before any git I/O (defence-in-depth)
+            _validate_repo_url(self.repo_url)
+            _validate_repo_branch(self.repo_branch)
+
             repo = git.Repo(self.repo_path)
             repo.remotes.origin.pull()
             repo.git.checkout(self.repo_branch)

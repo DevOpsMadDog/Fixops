@@ -67,6 +67,7 @@ _ABUSEIPDB_MIN_CONFIDENCE = 75
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store():
     global _store
     if _store is None:
@@ -202,6 +203,7 @@ def import_abuseipdb_payload(payload: Dict[str, Any]) -> int:
 
 def _fetch_emergingthreats(timeout: float = DOWNLOAD_TIMEOUT) -> str:
     """Download the ET compromised-ips.txt body."""
+    assert_feeds_egress_allowed("abuseipdb")
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
         response = client.get(ET_COMPROMISED_IPS_URL)
         response.raise_for_status()

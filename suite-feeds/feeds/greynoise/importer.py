@@ -165,6 +165,8 @@ def lookup_ip(
 ) -> Dict[str, Any]:
     """Look up *ip* via the GreyNoise community API with 1-day cache.
 
+    SPEC-005 §4: raises RuntimeError when air-gap enforced mode is active.
+
     Args:
         ip:            IPv4 or IPv6 address string.
         force_refresh: Bypass the cache and always hit the API.
@@ -178,6 +180,8 @@ def lookup_ip(
         httpx.HTTPStatusError: On non-200/404 HTTP responses.
         httpx.RequestError:    On network failures.
     """
+    from feeds import assert_feeds_egress_allowed
+    assert_feeds_egress_allowed("greynoise")
     store = _get_store(db_path)
     now = _now_iso()
 

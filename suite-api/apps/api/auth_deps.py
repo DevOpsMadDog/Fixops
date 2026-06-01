@@ -98,6 +98,45 @@ def _is_dev_mode() -> bool:
 _JWT_SECRET: Optional[str] = _load_jwt_secret()
 _DEV_MODE: bool = _is_dev_mode()
 
+# ---------------------------------------------------------------------------
+# SECURITY GUARD: refuse to enable dev-mode auth-bypass on non-loopback hosts
+#
+# Dev-mode grants admin access to EVERY request with no credentials.  If the
+# process is bound to a non-loopback address (0.0.0.0, a public IP, etc.) this
+# would expose the admin API to any network reachable by that interface.
+#
+# We check FIXOPS_HOST / HOST / UVICORN_HOST in priority order.  The check
+# runs at module-import time (i.e. before any request is served) so the
+# process fails fast rather than silently serving an open admin API.
+# ---------------------------------------------------------------------------
+
+def _check_dev_mode_host_binding() -> None:
+    """Raise RuntimeError when dev-mode auth-bypass is active on a non-loopback bind."""
+    if not _DEV_MODE:
+        return
+    # Loopback addresses that are safe for dev-mode
+    _LOOPBACK = frozenset({"127.0.0.1", "localhost", "::1", ""})
+    host = (
+        os.getenv("FIXOPS_HOST", "")
+        or os.getenv("HOST", "")
+        or os.getenv("UVICORN_HOST", "")
+        or ""
+    ).strip().lower()
+    # Empty host means the framework default (127.0.0.1 for uvicorn) — safe.
+    if host in _LOOPBACK:
+        return
+    # Any other binding (0.0.0.0, a public IP, a hostname) is unsafe with dev-mode.
+    raise RuntimeError(
+        f"SECURITY: FIXOPS_MODE=dev (auth-bypass) is enabled but the server "
+        f"appears to be bound to a non-loopback address ({host!r}). "
+        "Dev-mode auth-bypass must never be enabled on a publicly reachable interface. "
+        "Either set FIXOPS_MODE=production (and configure FIXOPS_API_TOKEN / "
+        "FIXOPS_JWT_SECRET), or restrict the bind address to 127.0.0.1."
+    )
+
+
+_check_dev_mode_host_binding()
+
 # NOTE: _EXPECTED_TOKENS is intentionally NOT cached at module level.
 # Calling _load_api_tokens() per-request allows test fixtures to mutate
 # FIXOPS_API_TOKEN between test modules without stale-constant failures.

@@ -70,6 +70,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "securitytrails.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store(db_path: Optional[str] = None):
     global _store
     if _store is not None and db_path is None:
@@ -327,6 +328,8 @@ def _fetch_subdomains(
     headers: Dict[str, str],
     timeout: float = DOWNLOAD_TIMEOUT,
 ) -> List[str]:
+    from feeds import assert_feeds_egress_allowed
+    assert_feeds_egress_allowed("securitytrails")
     url = f"{SECURITYTRAILS_BASE_URL}/domain/{domain}/subdomains"
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
         resp = client.get(url, headers=headers)

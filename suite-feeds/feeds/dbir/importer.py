@@ -52,6 +52,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "dbir.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store():
     global _store
     if _store is None:
@@ -265,6 +266,7 @@ def import_incidents_from_archive(tar_bytes: bytes) -> Dict[str, Any]:
 
 def run_import() -> Dict[str, Any]:
     """Download VCDB master archive and import all validated incidents."""
+    assert_feeds_egress_allowed("dbir")
     logger.info("Downloading VCDB from %s", VCDB_TAR_URL)
     with httpx.Client(timeout=DOWNLOAD_TIMEOUT, follow_redirects=True) as client:
         response = client.get(VCDB_TAR_URL)

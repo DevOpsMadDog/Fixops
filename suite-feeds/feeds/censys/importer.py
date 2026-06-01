@@ -70,6 +70,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "censys.db"
 _store = None
 
 
+from feeds import assert_feeds_egress_allowed
 def _get_store(db_path: Optional[str] = None):
     global _store
     if _store is not None and db_path is None:
@@ -267,6 +268,8 @@ def _fetch_cve_hosts(
     timeout: float = DOWNLOAD_TIMEOUT,
 ) -> Dict[str, Any]:
     """Call Censys Search API for hosts vulnerable to *cve_id*."""
+    from feeds import assert_feeds_egress_allowed
+    assert_feeds_egress_allowed("censys")
     try:
         import httpx
     except ImportError as exc:

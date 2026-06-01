@@ -272,8 +272,29 @@ def build_test_blocks(message: str = "Test notification from ALDECI") -> List[Di
 WebhookTransport = Callable[[str, Dict[str, Any]], bool]
 
 
+def _is_airgap_enforced() -> bool:
+    """Local shim delegating to the single authoritative SPEC-005 helper."""
+    try:
+        from core.airgap_config import is_airgap_enforced  # type: ignore[import]
+        return is_airgap_enforced()
+    except Exception:  # noqa: BLE001
+        return os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower() == "enforced"
+
+
 def _default_transport(webhook_url: str, payload: Dict[str, Any]) -> bool:
-    """Send payload to Slack webhook via httpx (sync). Returns True on success."""
+    """Send payload to Slack webhook via httpx (sync). Returns True on success.
+
+    SPEC-005 §3: returns False immediately when air-gap enforced mode is active —
+    Slack is an outbound exfil channel and must be silent in SCIF deployments.
+    """
+    # SPEC-005 §3 — CRITICAL: block outbound Slack POST in enforced air-gap mode
+    if _is_airgap_enforced():
+        _logger.warning(
+            "slack._default_transport: BLOCKED — air-gap enforced mode is active. "
+            "No httpx.post sent to Slack webhook."
+        )
+        return False
+
     try:
         import httpx  # type: ignore[import-untyped]
 
