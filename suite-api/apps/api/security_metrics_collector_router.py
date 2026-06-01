@@ -11,6 +11,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -64,7 +65,7 @@ class AggregateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/metrics", dependencies=[Depends(api_key_auth)], status_code=201)
-def define_metric(body: MetricDefinitionCreate, org_id: str = Query(default="default")):
+def define_metric(body: MetricDefinitionCreate, org_id: str = Depends(get_org_id)):
     """Define a new security metric."""
     try:
         return _get_engine().define_metric(org_id, body.model_dump())
@@ -74,7 +75,7 @@ def define_metric(body: MetricDefinitionCreate, org_id: str = Query(default="def
 
 @router.get("/metrics", dependencies=[Depends(api_key_auth)])
 def list_metrics(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(None),
     enabled_only: bool = Query(default=True),
 ):
@@ -90,7 +91,7 @@ def list_metrics(
 def record_reading(
     metric_id: str,
     body: ReadingCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Record a new metric reading. Auto-evaluates threshold status and creates alerts."""
     try:
@@ -107,7 +108,7 @@ def record_reading(
 @router.get("/metrics/{metric_id}/readings", dependencies=[Depends(api_key_auth)])
 def list_readings(
     metric_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     limit: int = Query(default=30, ge=1, le=500),
 ):
     """List recent readings for a metric (newest first)."""
@@ -122,7 +123,7 @@ def list_readings(
 def calculate_aggregate(
     metric_id: str,
     body: AggregateRequest,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Compute and save an aggregate for a metric over the current period."""
     try:
@@ -133,7 +134,7 @@ def calculate_aggregate(
 
 @router.get("/aggregates", dependencies=[Depends(api_key_auth)])
 def list_aggregates(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     metric_id: Optional[str] = Query(None),
     period_type: Optional[str] = Query(None),
 ):
@@ -147,7 +148,7 @@ def list_aggregates(
 
 @router.get("/alerts", dependencies=[Depends(api_key_auth)])
 def list_alerts(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     acknowledged: bool = Query(default=False),
 ):
     """List metric alerts. Default: unacknowledged only."""
@@ -155,7 +156,7 @@ def list_alerts(
 
 
 @router.post("/alerts/{alert_id}/acknowledge", dependencies=[Depends(api_key_auth)])
-def acknowledge_alert(alert_id: str, org_id: str = Query(default="default")):
+def acknowledge_alert(alert_id: str, org_id: str = Depends(get_org_id)):
     """Acknowledge a metric alert."""
     acked = _get_engine().acknowledge_alert(org_id, alert_id)
     if not acked:
@@ -168,6 +169,6 @@ def acknowledge_alert(alert_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/dashboard", dependencies=[Depends(api_key_auth)])
-def get_dashboard(org_id: str = Query(default="default")):
+def get_dashboard(org_id: str = Depends(get_org_id)):
     """Return a summary dashboard: metrics by category, alert counts, worst metrics."""
     return _get_engine().get_dashboard(org_id)

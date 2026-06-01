@@ -10,6 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class RuleCreate(BaseModel):
 @router.post("/signals")
 def ingest_signal(
     body: SignalIngest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Ingest a threat signal and attempt auto-correlation."""
@@ -100,7 +101,7 @@ def ingest_signal(
 
 @router.get("/signals")
 def list_signals(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     signal_type: Optional[str] = Query(default=None),
     entity_value: Optional[str] = Query(default=None),
     source_engine: Optional[str] = Query(default=None),
@@ -121,7 +122,7 @@ def list_signals(
 
 @router.get("/incidents")
 def list_incidents(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
@@ -138,7 +139,7 @@ def list_incidents(
 @router.get("/incidents/{incident_id}")
 def get_incident(
     incident_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get incident with full signal timeline."""
@@ -151,7 +152,7 @@ def get_incident(
 @router.post("/incidents/{incident_id}/resolve")
 def resolve_incident(
     incident_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Resolve a correlated incident."""
@@ -164,7 +165,7 @@ def resolve_incident(
 @router.post("/rules")
 def create_rule(
     body: RuleCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Create a correlation rule."""
@@ -176,7 +177,7 @@ def create_rule(
 
 @router.get("/rules")
 def list_rules(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """List all correlation rules."""
@@ -185,7 +186,7 @@ def list_rules(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get correlation statistics for an org."""
@@ -195,7 +196,7 @@ def get_stats(
 @router.get("/context/{entity_id}")
 def get_trustgraph_context(
     entity_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for a threat entity (related assets, findings, incidents)."""

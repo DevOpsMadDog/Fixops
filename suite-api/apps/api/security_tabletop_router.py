@@ -23,6 +23,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -85,7 +86,7 @@ class FindingCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/exercises", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_exercise(body: ExerciseCreate, org_id: str = Query(default="default")):
+def create_exercise(body: ExerciseCreate, org_id: str = Depends(get_org_id)):
     """Create a new tabletop exercise."""
     try:
         return _get_engine().create_exercise(org_id, body.model_dump())
@@ -95,7 +96,7 @@ def create_exercise(body: ExerciseCreate, org_id: str = Query(default="default")
 
 @router.get("/exercises", dependencies=[Depends(api_key_auth)])
 def list_exercises(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     scenario_type: Optional[str] = Query(None),
 ):
@@ -104,7 +105,7 @@ def list_exercises(
 
 
 @router.get("/exercises/{exercise_id}", dependencies=[Depends(api_key_auth)])
-def get_exercise(exercise_id: str, org_id: str = Query(default="default")):
+def get_exercise(exercise_id: str, org_id: str = Depends(get_org_id)):
     """Get a single exercise by ID."""
     ex = _get_engine().get_exercise(org_id, exercise_id)
     if not ex:
@@ -113,7 +114,7 @@ def get_exercise(exercise_id: str, org_id: str = Query(default="default")):
 
 
 @router.put("/exercises/{exercise_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Query(default="default")):
+def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Depends(get_org_id)):
     """Mark an exercise as completed with a score."""
     try:
         return _get_engine().complete_exercise(org_id, exercise_id, body.overall_score)
@@ -126,7 +127,7 @@ def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Qu
 # ---------------------------------------------------------------------------
 
 @router.post("/participants", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_participant(body: ParticipantCreate, org_id: str = Query(default="default")):
+def add_participant(body: ParticipantCreate, org_id: str = Depends(get_org_id)):
     """Add a participant to an exercise."""
     try:
         return _get_engine().add_participant(org_id, body.model_dump())
@@ -135,7 +136,7 @@ def add_participant(body: ParticipantCreate, org_id: str = Query(default="defaul
 
 
 @router.get("/exercises/{exercise_id}/participants", dependencies=[Depends(api_key_auth)])
-def list_participants(exercise_id: str, org_id: str = Query(default="default")):
+def list_participants(exercise_id: str, org_id: str = Depends(get_org_id)):
     """List participants for a specific exercise."""
     return _get_engine().list_participants(org_id, exercise_id)
 
@@ -145,7 +146,7 @@ def list_participants(exercise_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/findings", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_finding(body: FindingCreate, org_id: str = Query(default="default")):
+def record_finding(body: FindingCreate, org_id: str = Depends(get_org_id)):
     """Record a finding from a tabletop exercise."""
     try:
         return _get_engine().record_finding(org_id, body.model_dump())
@@ -155,7 +156,7 @@ def record_finding(body: FindingCreate, org_id: str = Query(default="default")):
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     exercise_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -171,6 +172,6 @@ def list_findings(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_tabletop_stats(org_id: str = Query(default="default")):
+def get_tabletop_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated tabletop statistics."""
     return _get_engine().get_tabletop_stats(org_id)

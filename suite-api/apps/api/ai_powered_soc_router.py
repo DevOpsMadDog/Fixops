@@ -24,6 +24,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -115,7 +116,7 @@ class ExecuteAutomationRequest(BaseModel):
 @router.post("/detections", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_detection(
     body: RecordDetectionRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a new AI-driven SOC detection."""
     try:
@@ -129,7 +130,7 @@ def record_detection(
 
 @router.get("/detections", dependencies=[Depends(api_key_auth)])
 def list_detections(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     source_data_type: Optional[str] = Query(default=None),
@@ -154,7 +155,7 @@ def list_detections(
 def triage_detection(
     detection_id: str,
     body: TriageDetectionRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Triage a detection — update status, auto_triaged flag, and triage time."""
     try:
@@ -177,7 +178,7 @@ def triage_detection(
 @router.post("/models", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_model(
     body: RegisterModelRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new AI/ML model."""
     try:
@@ -191,7 +192,7 @@ def register_model(
 
 @router.get("/models", dependencies=[Depends(api_key_auth)])
 def list_models(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     model_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ):
@@ -203,7 +204,7 @@ def list_models(
 def update_model_status(
     model_id: str,
     body: UpdateModelStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update a model's lifecycle status."""
     try:
@@ -222,7 +223,7 @@ def update_model_status(
 @router.post("/automation", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_automation_rule(
     body: CreateAutomationRuleRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a SOC automation rule."""
     try:
@@ -236,7 +237,7 @@ def create_automation_rule(
 
 @router.get("/automation", dependencies=[Depends(api_key_auth)])
 def list_automation_rules(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(default=None),
 ):
     """List automation rules with optional enabled filter."""
@@ -247,7 +248,7 @@ def list_automation_rules(
 def execute_automation(
     rule_id: str,
     body: ExecuteAutomationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record execution of an automation rule."""
     try:
@@ -260,6 +261,6 @@ def execute_automation(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_soc_stats(org_id: str = Query(default="default")):
+def get_soc_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated AI SOC statistics: detections, models, automation, breakdowns."""
     return _get_engine().get_soc_stats(org_id)

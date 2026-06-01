@@ -20,6 +20,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -78,7 +79,7 @@ class IncidentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_vendor(body: VendorCreate, org_id: str = Query(default="default")):
+def register_vendor(body: VendorCreate, org_id: str = Depends(get_org_id)):
     """Register a new third-party vendor."""
     try:
         return _get_engine().register_vendor(org_id, body.model_dump())
@@ -88,7 +89,7 @@ def register_vendor(body: VendorCreate, org_id: str = Query(default="default")):
 
 @router.get("/vendors", dependencies=[Depends(api_key_auth)])
 def list_vendors(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     vendor_category: Optional[str] = Query(None),
     risk_rating: Optional[str] = Query(None),
     contract_status: Optional[str] = Query(None),
@@ -103,7 +104,7 @@ def list_vendors(
 
 
 @router.get("/vendors/{vendor_id}", dependencies=[Depends(api_key_auth)])
-def get_vendor(vendor_id: str, org_id: str = Query(default="default")):
+def get_vendor(vendor_id: str, org_id: str = Depends(get_org_id)):
     """Get a single vendor by ID."""
     vendor = _get_engine().get_vendor(org_id, vendor_id)
     if not vendor:
@@ -116,7 +117,7 @@ def get_vendor(vendor_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors/{vendor_id}/assess", dependencies=[Depends(api_key_auth)], status_code=201)
-def conduct_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Query(default="default")):
+def conduct_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Depends(get_org_id)):
     """Conduct a security assessment for a vendor."""
     try:
         return _get_engine().conduct_assessment(org_id, vendor_id, body.model_dump())
@@ -126,7 +127,7 @@ def conduct_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Que
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     vendor_id: Optional[str] = Query(None),
     assessment_type: Optional[str] = Query(None),
 ):
@@ -141,14 +142,14 @@ def list_assessments(
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors/{vendor_id}/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_incident(vendor_id: str, body: IncidentCreate, org_id: str = Query(default="default")):
+def add_incident(vendor_id: str, body: IncidentCreate, org_id: str = Depends(get_org_id)):
     """Record a vendor-related security incident."""
     return _get_engine().add_incident(org_id, vendor_id, body.model_dump())
 
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     vendor_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -164,7 +165,7 @@ def list_incidents(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_vendor_stats(org_id: str = Query(default="default")):
+def get_vendor_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated third-party vendor statistics for the org."""
     return _get_engine().get_vendor_stats(org_id)
 
@@ -174,7 +175,7 @@ def get_vendor_stats(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_third_party_vendor_root_summary(org_id: str = Query(default="default")):
+def get_third_party_vendor_root_summary(org_id: str = Depends(get_org_id)):
     """Return a 5-state summary envelope for the Third-Party Vendor domain.
 
     States:

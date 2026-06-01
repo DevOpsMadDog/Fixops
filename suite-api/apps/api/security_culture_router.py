@@ -22,6 +22,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -83,7 +84,7 @@ class AssessmentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/metrics", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_metric(body: MetricCreate, org_id: str = Query(default="default")):
+def record_metric(body: MetricCreate, org_id: str = Depends(get_org_id)):
     """Record a security culture metric data point."""
     try:
         return _get_engine().record_metric(
@@ -102,7 +103,7 @@ def record_metric(body: MetricCreate, org_id: str = Query(default="default")):
 @router.get("/metrics/{metric_name}/trend", dependencies=[Depends(api_key_auth)])
 def get_metric_trend(
     metric_name: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     department: Optional[str] = Query(None),
     days: int = Query(90, ge=1),
 ):
@@ -113,7 +114,7 @@ def get_metric_trend(
 
 
 @router.post("/initiatives", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_initiative(body: InitiativeCreate, org_id: str = Query(default="default")):
+def create_initiative(body: InitiativeCreate, org_id: str = Depends(get_org_id)):
     """Create a new security culture initiative."""
     try:
         return _get_engine().create_initiative(
@@ -132,7 +133,7 @@ def create_initiative(body: InitiativeCreate, org_id: str = Query(default="defau
     "/initiatives/{initiative_id}/progress", dependencies=[Depends(api_key_auth)]
 )
 def update_initiative_progress(
-    initiative_id: str, body: InitiativeProgressUpdate, org_id: str = Query(default="default")
+    initiative_id: str, body: InitiativeProgressUpdate, org_id: str = Depends(get_org_id)
 ):
     """Update progress on an initiative."""
     try:
@@ -150,7 +151,7 @@ def update_initiative_progress(
 
 
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_assessment(body: AssessmentCreate, org_id: str = Query(default="default")):
+def create_assessment(body: AssessmentCreate, org_id: str = Depends(get_org_id)):
     """Create a security culture maturity assessment."""
     return _get_engine().create_assessment(
         org_id=org_id,
@@ -163,7 +164,7 @@ def create_assessment(body: AssessmentCreate, org_id: str = Query(default="defau
 
 
 @router.get("/assessments/latest", dependencies=[Depends(api_key_auth)])
-def get_latest_assessment(org_id: str = Query(default="default")):
+def get_latest_assessment(org_id: str = Depends(get_org_id)):
     """Return the most recent culture assessment."""
     assessment = _get_engine().get_latest_assessment(org_id)
     if not assessment:
@@ -172,18 +173,18 @@ def get_latest_assessment(org_id: str = Query(default="default")):
 
 
 @router.get("/departments", dependencies=[Depends(api_key_auth)])
-def get_department_culture_scores(org_id: str = Query(default="default")):
+def get_department_culture_scores(org_id: str = Depends(get_org_id)):
     """Return per-department culture scores."""
     return _get_engine().get_department_culture_scores(org_id)
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_root(org_id: str = Query(default="default")):
+def get_root(org_id: str = Depends(get_org_id)):
     """Root endpoint — returns culture summary for dashboard health-checks."""
     return _get_engine().get_department_culture_scores(org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_culture_summary(org_id: str = Query(default="default")):
+def get_culture_summary(org_id: str = Depends(get_org_id)):
     """Return overall security culture summary."""
     return _get_engine().get_culture_summary(org_id)

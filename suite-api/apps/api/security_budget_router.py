@@ -23,6 +23,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -95,7 +96,7 @@ class RecordROIRequest(BaseModel):
 @router.post("/allocations", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_allocation(
     body: CreateAllocationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new budget allocation."""
     try:
@@ -109,7 +110,7 @@ def create_allocation(
 
 @router.get("/allocations", dependencies=[Depends(api_key_auth)])
 def list_allocations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     fiscal_year: Optional[int] = Query(default=None),
     category: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
@@ -150,7 +151,7 @@ def list_allocations(
 @router.get("/allocations/{allocation_id}", dependencies=[Depends(api_key_auth)])
 def get_allocation(
     allocation_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a specific budget allocation."""
     result = _get_engine().get_allocation(org_id, allocation_id)
@@ -162,7 +163,7 @@ def get_allocation(
 @router.post("/transactions", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_spend(
     body: RecordSpendRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a spend transaction against an allocation."""
     try:
@@ -183,7 +184,7 @@ def record_spend(
 def approve_spend(
     transaction_id: str,
     body: ApproveSpendRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Approve a spend transaction."""
     try:
@@ -197,7 +198,7 @@ def approve_spend(
 
 @router.get("/transactions", dependencies=[Depends(api_key_auth)])
 def list_transactions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     allocation_id: Optional[str] = Query(default=None),
     approval_status: Optional[str] = Query(default=None),
 ):
@@ -212,7 +213,7 @@ def list_transactions(
 )
 def record_roi_assessment(
     body: RecordROIRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record an ROI assessment for a security initiative."""
     try:
@@ -226,7 +227,7 @@ def record_roi_assessment(
 
 @router.get("/roi-assessments", dependencies=[Depends(api_key_auth)])
 def list_roi_assessments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """List all ROI assessments."""
     return _get_engine().list_roi_assessments(org_id)
@@ -234,7 +235,7 @@ def list_roi_assessments(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_budget_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     fiscal_year: Optional[int] = Query(default=None),
 ):
     """Get budget statistics: totals, by_category, utilization, pending count."""

@@ -25,6 +25,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -82,7 +84,7 @@ class RecordDeliveryRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/subscriptions", summary="Create a feed subscription")
-def create_subscription(req: CreateSubscriptionRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def create_subscription(req: CreateSubscriptionRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().create_subscription(
             org_id=org_id,
@@ -100,13 +102,13 @@ def create_subscription(req: CreateSubscriptionRequest, org_id: str = Query(defa
 def list_subscriptions(
     status: Optional[str] = Query(None),
     feed_type: Optional[str] = Query(None),
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_subscriptions(org_id, status=status, feed_type=feed_type)
 
 
 @router.get("/subscriptions/{subscription_id}", summary="Get subscription with ingestion logs")
-def get_subscription(subscription_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_subscription(subscription_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     result = _get_engine().get_subscription(subscription_id, org_id)
     if not result:
         raise HTTPException(status_code=404, detail="Subscription not found")
@@ -114,7 +116,7 @@ def get_subscription(subscription_id: str, org_id: str = Query(default="default"
 
 
 @router.patch("/subscriptions/{subscription_id}/status", summary="Update subscription status")
-def update_status(subscription_id: str, req: UpdateStatusRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def update_status(subscription_id: str, req: UpdateStatusRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().update_subscription_status(subscription_id, org_id, req.status)
     except ValueError as e:
@@ -122,7 +124,7 @@ def update_status(subscription_id: str, req: UpdateStatusRequest, org_id: str = 
 
 
 @router.post("/subscriptions/{subscription_id}/ingestion", summary="Record an ingestion run")
-def record_ingestion(subscription_id: str, req: RecordIngestionRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def record_ingestion(subscription_id: str, req: RecordIngestionRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().record_ingestion(
         subscription_id=subscription_id,
         org_id=org_id,
@@ -139,7 +141,7 @@ def record_ingestion(subscription_id: str, req: RecordIngestionRequest, org_id: 
 # ---------------------------------------------------------------------------
 
 @router.post("/subscriptions/{subscription_id}/deliveries", summary="Create delivery channel")
-def create_delivery(subscription_id: str, req: CreateDeliveryRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def create_delivery(subscription_id: str, req: CreateDeliveryRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().create_delivery(
             subscription_id=subscription_id,
@@ -158,7 +160,7 @@ def create_delivery(subscription_id: str, req: CreateDeliveryRequest, org_id: st
     summary="Record a delivery",
 )
 def record_delivery(
-    subscription_id: str, delivery_id: str, req: RecordDeliveryRequest, org_id: str = Query(default="default")
+    subscription_id: str, delivery_id: str, req: RecordDeliveryRequest, org_id: str = Depends(get_org_id)
 ) -> Dict[str, Any]:
     try:
         return _get_engine().record_delivery(delivery_id, org_id, req.count)
@@ -171,10 +173,10 @@ def record_delivery(
 # ---------------------------------------------------------------------------
 
 @router.get("/due", summary="Get subscriptions due for fetch")
-def get_due(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_due(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().get_due_subscriptions(org_id)
 
 
 @router.get("/stats", summary="Ingestion statistics")
-def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_ingestion_stats(org_id)

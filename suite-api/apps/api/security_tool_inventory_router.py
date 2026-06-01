@@ -23,6 +23,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -112,7 +113,7 @@ class RecordAssessmentRequest(BaseModel):
 @router.post("/tools", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_tool(
     body: RegisterToolRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new security tool in the inventory."""
     try:
@@ -126,7 +127,7 @@ def register_tool(
 
 @router.get("/tools", dependencies=[Depends(api_key_auth)])
 def list_tools(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     tool_category: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ):
@@ -137,7 +138,7 @@ def list_tools(
 @router.get("/tools/{tool_id}", dependencies=[Depends(api_key_auth)])
 def get_tool(
     tool_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a specific tool by ID."""
     result = _get_engine().get_tool(org_id, tool_id)
@@ -150,7 +151,7 @@ def get_tool(
 def update_tool_status(
     tool_id: str,
     body: UpdateToolStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update a tool's status."""
     try:
@@ -165,7 +166,7 @@ def update_tool_status(
 @router.post("/integrations", dependencies=[Depends(api_key_auth)], status_code=201)
 def add_integration(
     body: AddIntegrationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Add an integration between security tools."""
     try:
@@ -179,7 +180,7 @@ def add_integration(
 
 @router.get("/integrations", dependencies=[Depends(api_key_auth)])
 def list_integrations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     tool_id: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ):
@@ -190,7 +191,7 @@ def list_integrations(
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_assessment(
     body: RecordAssessmentRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a security tool assessment."""
     try:
@@ -202,7 +203,7 @@ def record_assessment(
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     tool_id: Optional[str] = Query(default=None),
 ):
     """List assessments, optionally filtered by tool_id."""
@@ -211,7 +212,7 @@ def list_assessments(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_inventory_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return aggregated security tool inventory statistics."""
     return _get_engine().get_inventory_stats(org_id)
