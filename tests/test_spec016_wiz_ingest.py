@@ -161,6 +161,84 @@ def test_req_016_07_prisma_enforced_blocks_saas(client, monkeypatch, _H):
     assert "blocked" in r.json()["detail"].lower() or "saas" in r.json()["detail"].lower()
 
 
+class _FakeVerdict:
+    action = "remediate_critical"
+    confidence = 0.92
+    reasoning = "deterministic test verdict"
+
+
+class _FakeCouncil:
+    def convene(self, finding, context, org_id="default"):
+        return _FakeVerdict()
+
+
+@pytest.fixture
+def fast_council(monkeypatch):
+    # Keep /decide hermetic: patch the council so convene() returns a deterministic verdict
+    # instead of making real OpenRouter network calls. The real build path is covered by
+    # test_req_016_05_council_factory_builds.
+    import core.llm_council as LC
+    monkeypatch.setattr(LC.CouncilFactory, "create_default_council",
+                        lambda self, **k: _FakeCouncil())
+    return None
+
+
+def _make_finding(org="spec016-org", severity="critical"):
+    import uuid
+    from core.security_findings_engine import SecurityFindingsEngine
+    uniq = uuid.uuid4().hex[:8]  # unique per call so record_finding dedup never collides across tests
+    rec = SecurityFindingsEngine().record_finding(
+        org_id=org, title=f"SQLi in checkout {uniq}", finding_type="sast",
+        source_tool="wiz", severity=severity, cvss_score=9.1,
+        asset_id=f"svc-checkout-{uniq}", asset_type="service",
+        description="union-based SQL injection", remediation="parameterize",
+    )
+    return rec["id"]
+
+
+def test_ac_016_05_decide_renders_and_signs(client, _H, fast_council):
+    fid = _make_finding(severity="critical")
+    r = client.post("/api/v1/closed-loop/decide", headers=_H,
+                    json={"finding_id": fid, "targets": ["jira", "servicenow", "splunk"]})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["decision"] in ("block", "defer", "allow")
+    assert j["verdict"]["verdict_source"] in ("council", "severity_fallback")
+    # targets unconfigured in test -> honest per-target receipts (block/defer path)
+    if j["decision"] in ("block", "defer"):
+        statuses = {x["target"]: x["status"] for x in j["receipts"]}
+        assert statuses.get("jira") in ("not_configured", "blocked", "delivered", "failed")
+    # REQ-016-10: signed bundle appended to the evidence chain
+    assert j["evidence_seq"] is not None
+    assert j["deduped"] is False
+
+
+def test_req_016_09_replay_deduped(client, _H, fast_council):
+    fid = _make_finding(severity="critical")
+    a = client.post("/api/v1/closed-loop/decide", headers=_H, json={"finding_id": fid}).json()
+    b = client.post("/api/v1/closed-loop/decide", headers=_H, json={"finding_id": fid}).json()
+    assert a["deduped"] is False
+    assert b["deduped"] is True
+    assert b["receipts"] == a["receipts"]  # no re-write on replay
+
+
+def test_req_016_05_council_factory_builds():
+    # Regression: CouncilFactory.create_default_council is an INSTANCE method — calling it
+    # unbound (CouncilFactory.create_default_council()) raised TypeError and silently forced
+    # the severity fallback, killing the real council path. Lock the instance-call.
+    from core.llm_council import CouncilFactory, LLMCouncilEngine
+    council = CouncilFactory().create_default_council()
+    assert isinstance(council, LLMCouncilEngine)
+    assert hasattr(council, "convene")
+
+
+def test_req_016_08_cross_org_finding_404(client, _H):
+    # a finding that does not exist for this org -> 404 (never act on another org's finding)
+    r = client.post("/api/v1/closed-loop/decide", headers=_H,
+                    json={"finding_id": "does-not-exist-for-org"})
+    assert r.status_code == 404
+
+
 def test_req_016_11_classification_marking():
     from apps.api.scanner_ingest_router import _index_findings_into_brain
     from core.knowledge_brain import get_brain

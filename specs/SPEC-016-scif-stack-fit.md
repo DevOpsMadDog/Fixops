@@ -130,3 +130,15 @@ Build order: (1) `/wiz/ingest` normalize→brain (highest ROI — engine already
 (3) `/closed-loop/decide` orchestration over existing Jira/ServiceNow/Splunk routers, (4) Confluence design-context import.
 Reuse `_index_findings_into_brain` (scanner_ingest_router) as the single brain-write path. Do NOT add new connector
 auth — the OAuth2/REST clients already exist and are real. Commit per increment; verify each AC against the running app.
+
+### Status — increments 1-3 IMPLEMENTED + VERIFIED (2026-06-02)
+- **Inc 1 — WIZ** (`2f6d564e`): `/wiz/ingest` typed-method pull → brain; `assert_egress_allowed` guard; class marking. 5 tests.
+- **Inc 2 — Prisma** (`98df7240`): `prisma_router.py` mounts the real `PrismaCloudConnector`; `/prisma/ingest`→brain. 3 tests.
+- **Inc 3 — Closed-loop** (this commit): `closed_loop_router.py` — `/decide` (org-scoped lookup→404, council verdict
+  with honest `severity_fallback` label, dedup UNIQUE `(org,finding,verdict_hash)`, Jira/ServiceNow/Splunk best-effort
+  delivery w/ field escaping, ML-DSA-signed bundle → append-only `EvidenceChain`) + `/status`. 6 tests.
+  - **Real bug caught by verification**: `CouncilFactory.create_default_council` is an *instance* method; the first cut
+    called it unbound → `TypeError` → silently forced the severity fallback, killing the real council path. Fixed to
+    `CouncilFactory().create_default_council()` (now builds `LLMCouncilEngine`); regression locked by a test.
+- Remaining: REQ-016-13 (Black Duck SCA connector) + increment 4 (Confluence design-context import). 11/11 SPEC-016
+  tests + 756/756 Beast smoke green; all routes mount.

@@ -3461,6 +3461,22 @@ def register_platform_routers(
         _logger.warning("prisma_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Closed-Loop Decision router (SPEC-016 inc3 — verdict -> Jira/ServiceNow/Splunk + signed evidence)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.closed_loop_router import router as closed_loop_router  # noqa: PLC0415
+        app.include_router(
+            closed_loop_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Closed-Loop Decision router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("closed_loop_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Splunk SOAR (Phantom) REST router (suite-core/core/splunk_soar_engine.py) — 2026-05-04
     # GET   /api/v1/splunk-soar-rest/                                    capability summary       (read:scans)
     # GET   /api/v1/splunk-soar-rest/rest/playbook                       list playbooks            (read:scans)
