@@ -46,3 +46,4 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 - 2026-06-02: tenancy-debt wave 6 — allowlist 1368->1228 (-140 across 14 routers). Cumulative 1726->1228 (-498, 46 routers, ~29%). 756/756 Beast, boot 8316, lint clean.
 - 2026-06-02: tenancy-debt wave 7 — allowlist 1228->1101 (-127 across 14 routers). Cumulative 1726->1101 (-625, 60 routers, ~36%). 756/756 Beast, boot 8316, lint clean.
 - 2026-06-02: tenancy-debt wave 8 — allowlist 1101->975 (-126 across 15 routers, broke under 1000). Cumulative 1726->975 (-751, 75 routers, ~44%). 756/756 Beast, boot 8316, lint clean.
+- 2026-06-02: tenancy-debt wave 9 — allowlist 975->831 (-144 across 18 routers). Cumulative 1726->831 (-895, 93 routers, ~52% — past halfway). 756/756 Beast, boot 8316, lint clean.
