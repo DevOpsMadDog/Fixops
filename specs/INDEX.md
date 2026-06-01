@@ -7,6 +7,7 @@
 | SPEC-003 | Per-customer Local LLM (distillation run) | Council/Learning | PLANNED | llm_learning_loop, llm_distill_train |
 | SPEC-004 | Multi-language Reachability (TS/Java/Go) | ASPM | PLANNED | function_reachability_engine |
 | [SPEC-011](SPEC-011-aspm.md) | ASPM — Scanner Ingest, Findings, SmartDedup, Reachability | ASPM | BACKFILL | scanner_ingest_router, findings_routes, security_findings_router, findings_lifecycle_router, function_reachability_router, SecurityFindingsEngine, SmartDedup |
+| [SPEC-016](SPEC-016-scif-stack-fit.md) | SCIF Stack-Fit — correlate existing tools (WIZ/Prisma/Confluence/Splunk/Jira/ServiceNow/GitHub) + close the loop | Connectors/TrustGraph/Orchestration | DRAFT | wiz_router, prisma_router(NEW), connectors.py:Confluence, jira_cloud_router, servicenow_router, splunk_router, github_api_router, pipeline_orchestrator, _index_findings_into_brain |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
 ASPM ingest+findings · CTEM exposure-cases+prioritization · CSPM posture+compliance · Auth/tenancy ·
