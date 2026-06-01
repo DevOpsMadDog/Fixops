@@ -14,9 +14,16 @@ from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
+try:
+    from apps.api.auth_deps import api_key_auth
+except ImportError:
+    def api_key_auth():
+        return "anon"
+
 router = APIRouter(
     prefix="/api/v1/threat-correlation",
     tags=["threat-correlation"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 # ---------------------------------------------------------------------------
@@ -41,11 +48,6 @@ def _get_engine():
 # Auth
 # ---------------------------------------------------------------------------
 
-try:
-    from apps.api.auth_deps import api_key_auth
-except ImportError:
-    def api_key_auth():
-        return "anon"
 
 
 # ---------------------------------------------------------------------------

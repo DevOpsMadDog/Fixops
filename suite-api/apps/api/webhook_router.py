@@ -21,7 +21,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Header, HTTPException, Path, Query, Request, status
+from apps.api.auth_deps import api_key_auth
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, status
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -258,6 +259,7 @@ async def okta_verify(
         "user.authentication.sso, user.account.update_profile."
     ),
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(api_key_auth)],
 )
 async def okta_events(request: Request) -> OktaEventsResponse:
     try:
@@ -289,6 +291,7 @@ async def okta_events(request: Request) -> OktaEventsResponse:
     summary="Generic webhook receiver",
     description="Accept any JSON payload from an arbitrary source and store it verbatim.",
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(api_key_auth)],
 )
 async def generic_webhook(
     request: Request,
@@ -326,6 +329,7 @@ async def generic_webhook(
     response_model=EventsListResponse,
     summary="List recent webhook events",
     description="Return the last 100 stored webhook events, optionally filtered by source or event_type.",
+    dependencies=[Depends(api_key_auth)],
 )
 async def list_events(
     source: Optional[str] = Query(default=None, description="Filter by webhook source"),
@@ -344,7 +348,7 @@ async def list_events(
         )
 
 
-@router.get("/", summary="Webhooks index", tags=["webhooks"])
+@router.get("/", summary="Webhooks index", tags=["webhooks"], dependencies=[Depends(api_key_auth)])
 async def webhooks_index(
     org_id: str = Query(default="default"),
     limit: int = Query(default=20, ge=1, le=200),

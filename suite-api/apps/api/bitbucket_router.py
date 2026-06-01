@@ -26,14 +26,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Query, Response
+from fastapi import Depends, APIRouter, Body, HTTPException, Query, Response
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/bitbucket",
     tags=["bitbucket"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 
@@ -123,6 +125,7 @@ def _raise_unavailable() -> None:
 def _map_bitbucket_error(exc: Exception) -> HTTPException:
     """Translate a Bitbucket error into an HTTPException."""
     from core.bitbucket_engine import (
+
         BitbucketHTTPError,
         BitbucketUnavailable,
     )

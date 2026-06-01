@@ -15,12 +15,15 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/trustgraph/maintenance", tags=["trustgraph-maintenance"])
+router = APIRouter(prefix="/api/v1/trustgraph/maintenance", tags=["trustgraph-maintenance"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 # Lazy singleton — avoids import-time DB access
 _agent = None
@@ -31,6 +34,7 @@ def _get_agent():
     global _agent
     if _agent is None:
         from trustgraph.maintenance_agent import TrustGraphMaintenanceAgent
+
         _agent = TrustGraphMaintenanceAgent()
     return _agent
 

@@ -39,7 +39,14 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from xml.etree import ElementTree as ET
+try:
+    import defusedxml  # type: ignore[import-untyped]
+    defusedxml.defuse_stdlib()  # patch xml.etree.ElementTree globally — mitigates XXE/billion-laughs
+    from defusedxml.ElementTree import fromstring as _ET_fromstring, ParseError as _ET_ParseError  # type: ignore[import-untyped]
+    import defusedxml.ElementTree as ET  # type: ignore[import-untyped, assignment]
+except ImportError:  # pragma: no cover — defusedxml is in requirements.txt
+    from xml.etree.ElementTree import fromstring as _ET_fromstring, ParseError as _ET_ParseError  # type: ignore[assignment]
+    from xml.etree import ElementTree as ET  # type: ignore[assignment]
 
 try:
     import httpx
@@ -320,7 +327,7 @@ def parse_xccdf(xml_bytes: bytes) -> Dict[str, Any]:
 
     Multiple <Benchmark> elements are supported (e.g. concatenated docs).
     """
-    root = ET.fromstring(xml_bytes)
+    root = _ET_fromstring(xml_bytes)  # nosec B314 — defusedxml.ElementTree.fromstring; defuse_stdlib() called at import
     benchmarks_meta: List[Dict[str, Any]] = []
     controls: List[Dict[str, Any]] = []
 

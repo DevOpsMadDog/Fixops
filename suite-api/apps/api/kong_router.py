@@ -30,13 +30,15 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import Depends, APIRouter, HTTPException, Path, Query
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/kong",
     tags=["kong"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 
@@ -68,6 +70,7 @@ def _raise_unavailable() -> None:
 
 def _map_kong_error(exc: Exception) -> HTTPException:
     from core.kong_admin_engine import (
+
         KongAdminHTTPError,
         KongAdminUnavailable,
     )

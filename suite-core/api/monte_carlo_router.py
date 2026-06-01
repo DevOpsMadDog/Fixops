@@ -8,10 +8,19 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter
+try:
+    from apps.api.auth_deps import api_key_auth
+except ImportError:  # pragma: no cover
+    from auth_deps import api_key_auth  # type: ignore
+
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/api/v1/risk/simulate", tags=["Monte Carlo Risk"])
+router = APIRouter(
+    prefix="/api/v1/risk/simulate",
+    tags=["Monte Carlo Risk"],
+    dependencies=[Depends(api_key_auth)],
+)
 
 
 # ---------------------------------------------------------------------------

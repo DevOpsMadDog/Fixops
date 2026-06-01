@@ -19,12 +19,15 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/syft", tags=["syft", "sbom"])
+router = APIRouter(prefix="/api/v1/syft", tags=["syft", "sbom"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +96,7 @@ def list_sboms(limit: int = Query(default=50, ge=1, le=1000)):
 def get_sbom(sbom_id: str):
     """Fetch a previously generated SBOM by id (includes parsed packages)."""
     from core.syft_sbom_engine import get_syft_sbom_engine  # noqa: PLC0415
+
 
     sbom = get_syft_sbom_engine().get_sbom(sbom_id)
     if sbom is None:

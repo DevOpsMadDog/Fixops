@@ -24,14 +24,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Path as FPath, Query
+from fastapi import Depends, APIRouter, HTTPException, Path as FPath, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/gar",
     tags=["gar"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 
@@ -234,6 +236,7 @@ def _raise_unavailable() -> None:
 def _map_gar_error(exc: Exception) -> HTTPException:
     """Translate a GARHTTPError (or unavailable) into an HTTPException."""
     from core.gar_engine import GARHTTPError, GARUnavailable
+
 
     if isinstance(exc, GARUnavailable):
         return HTTPException(

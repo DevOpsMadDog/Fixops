@@ -15,8 +15,9 @@ import logging
 import sys
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 sys.path.insert(0, "suite-core")
 try:
@@ -29,6 +30,7 @@ try:
     )
 except ImportError:
     from core.report_scheduler import (  # type: ignore[no-redef]
+
         CHANNELS,
         FORMATS,
         FREQUENCIES,
@@ -38,7 +40,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
+router = APIRouter(prefix="/api/v1/reports", tags=["reports"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 _scheduler: Optional[ReportScheduler] = None
 

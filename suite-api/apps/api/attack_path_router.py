@@ -12,12 +12,16 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.attack_path_engine import AttackPathEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
+
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/attack-paths", tags=["attack-paths"])
+router = APIRouter(prefix="/api/v1/attack-paths", tags=["attack-paths"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 # ---------------------------------------------------------------------------
 # Singleton engine

@@ -23,9 +23,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import Depends, APIRouter, HTTPException, Path, Query
+from apps.api.auth_deps import api_key_auth
 
 from core.aws_eks_engine import (
+
     AWSEKSNotFoundError,
     AWSEKSUnavailableError,
     get_aws_eks_engine,
@@ -33,7 +35,9 @@ from core.aws_eks_engine import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/aws-eks", tags=["aws-eks"])
+router = APIRouter(prefix="/api/v1/aws-eks", tags=["aws-eks"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 # ---------------------------------------------------------------------------

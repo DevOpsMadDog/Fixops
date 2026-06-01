@@ -17,12 +17,15 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/trustgraph/quality", tags=["trustgraph-quality"])
+router = APIRouter(prefix="/api/v1/trustgraph/quality", tags=["trustgraph-quality"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 # Lazy singleton
 _monitor = None
@@ -33,6 +36,7 @@ def _get_monitor():
     global _monitor
     if _monitor is None:
         from core.trustgraph_quality_monitor import TrustGraphQualityMonitor
+
         _monitor = TrustGraphQualityMonitor()
     return _monitor
 

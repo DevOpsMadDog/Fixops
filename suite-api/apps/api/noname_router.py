@@ -23,15 +23,19 @@ import logging
 from typing import Any, Dict, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/noname", tags=["Noname Security"])
+router = APIRouter(prefix="/api/v1/noname", tags=["Noname Security"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 def _engine():
     from core.noname_engine import get_noname_engine
+
     return get_noname_engine()
 
 

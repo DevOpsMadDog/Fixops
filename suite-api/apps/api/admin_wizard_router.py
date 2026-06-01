@@ -41,8 +41,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
+
 
 _logger = logging.getLogger(__name__)
 
@@ -145,6 +147,7 @@ class WizardStateResponse(BaseModel):
 router = APIRouter(
     prefix="/api/v1/admin",
     tags=["Admin Wizard"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 

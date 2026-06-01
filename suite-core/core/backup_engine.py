@@ -38,16 +38,61 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _FERNET_HEADER = b"ALDECI_ENC_V2:"
 _LEGACY_XOR_HEADER = b"ALDECI_ENC_V1:"
-_PBKDF2_SALT = b"aldeci-backup-pbkdf2-salt-2026"  # static salt; key material comes from env
 _PBKDF2_ITERATIONS = 480_000
+# Salt is derived from env var FIXOPS_BACKUP_SALT (hex or raw).
+# A static salt is a PBKDF2 anti-pattern: it removes the per-deployment
+# uniqueness that protects against precomputation / cross-instance attacks.
+# Existing backups encrypted with the old static salt remain readable via
+# _derive_fernet_key_legacy() for migration purposes only.
+_LEGACY_STATIC_SALT = b"aldeci-backup-pbkdf2-salt-2026"
+
+
+def _get_pbkdf2_salt() -> bytes:
+    """Return the PBKDF2 salt from FIXOPS_BACKUP_SALT env var (hex-encoded).
+
+    If the env var is absent a RuntimeError is raised — we refuse to fall back
+    to the old static salt for new derivations.  Set FIXOPS_BACKUP_SALT to the
+    hex output of ``python -c "import secrets,binascii; print(binascii.hexlify(secrets.token_bytes(32)).decode())"``
+    and store it alongside FIXOPS_BACKUP_KEY.
+    """
+    raw = os.environ.get("FIXOPS_BACKUP_SALT", "").strip()
+    if not raw:
+        raise RuntimeError(
+            "FIXOPS_BACKUP_SALT environment variable is not set. "
+            "Generate a random 32-byte salt and set it before using backup encryption. "
+            "Example: python -c \"import secrets,binascii; "
+            "print(binascii.hexlify(secrets.token_bytes(32)).decode())\""
+        )
+    try:
+        import binascii
+        return binascii.unhexlify(raw)
+    except Exception:
+        # Accept raw bytes string as fallback
+        return raw.encode()
 
 
 def _derive_fernet_key(raw_key: bytes) -> Fernet:
-    """Derive a Fernet key from raw key material using PBKDF2-SHA256."""
+    """Derive a Fernet key from raw key material using PBKDF2-SHA256 + env salt."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=_PBKDF2_SALT,
+        salt=_get_pbkdf2_salt(),
+        iterations=_PBKDF2_ITERATIONS,
+    )
+    key_bytes = kdf.derive(raw_key)
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
+
+
+def _derive_fernet_key_legacy(raw_key: bytes) -> Fernet:
+    """Legacy derivation using the old static salt — for migrating existing backups ONLY.
+
+    Do not use for new encryptions.  Present only to allow one-time re-encryption
+    of backups created before FIXOPS_BACKUP_SALT was introduced.
+    """
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=_LEGACY_STATIC_SALT,
         iterations=_PBKDF2_ITERATIONS,
     )
     key_bytes = kdf.derive(raw_key)

@@ -27,17 +27,21 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import Depends, APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
+from apps.api.auth_deps import api_key_auth
 
 from core.zap_scan_engine import (
+
     PROFILES,
     get_zap_scan_engine,
 )
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/zap", tags=["DAST", "ZAP"])
+router = APIRouter(prefix="/api/v1/zap", tags=["DAST", "ZAP"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 # ---------------------------------------------------------------------------

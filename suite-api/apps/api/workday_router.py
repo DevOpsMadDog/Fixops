@@ -25,14 +25,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/workday",
     tags=["workday-hcm"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 
@@ -83,6 +85,7 @@ def _raise_unavailable() -> None:
 def _map_workday_error(exc: Exception) -> HTTPException:
     """Translate a WorkdayHTTPError (or unavailable) into an HTTPException."""
     from core.workday_engine import WorkdayHTTPError, WorkdayUnavailable
+
 
     if isinstance(exc, WorkdayUnavailable):
         return HTTPException(

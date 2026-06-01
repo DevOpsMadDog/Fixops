@@ -28,7 +28,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import Depends, APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
@@ -47,12 +47,16 @@ SCHEMA_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:Schema"
 
 _DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "scim.db")
 
-router = APIRouter(prefix="/scim/v2", tags=["scim"])
+from apps.api.auth_deps import api_key_auth
+router = APIRouter(prefix="/scim/v2", tags=["scim"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 # ---------------------------------------------------------------------------
 # Strict Pydantic request models — module-level field defs resist linter strips
 # ---------------------------------------------------------------------------
 from pydantic import BaseModel as _PydanticBase, Field as _PydanticField, field_validator as _fv  # noqa: E402, F401
+
 
 _email_value_field = _PydanticField(..., max_length=254)
 _email_type_field = _PydanticField("work", max_length=32)

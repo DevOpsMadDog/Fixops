@@ -44,13 +44,36 @@ def configure_middleware(app: "FastAPI") -> None:
     try:
         from starlette.middleware.cors import CORSMiddleware  # noqa: PLC0415
 
-        origins = os.environ.get("ALDECI_CORS_ORIGINS", "*").split(",")
+        raw_origins = os.environ.get("ALDECI_CORS_ORIGINS", "").strip()
+        if not raw_origins:
+            env_name = os.environ.get("ENVIRONMENT", "development").lower()
+            if env_name == "production":
+                raise RuntimeError(
+                    "ALDECI_CORS_ORIGINS must be set in production. "
+                    "Refusing to start sub-app with wildcard CORS origins."
+                )
+            # Dev/test fallback — localhost only, never wildcard
+            origins = [
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:5173",
+            ]
+            _logger.warning(
+                "ALDECI_CORS_ORIGINS not set; using localhost-only CORS for sub-app "
+                "(set ALDECI_CORS_ORIGINS in production)"
+            )
+        else:
+            origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
         app.add_middleware(
             CORSMiddleware,
             allow_origins=origins,
             allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=[
+                "Authorization", "Content-Type", "X-API-Key", "X-Request-ID",
+                "X-Correlation-ID", "X-Org-ID", "Accept", "Origin", "Cache-Control",
+            ],
         )
         _logger.debug("CORS middleware configured (origins=%s)", origins)
     except Exception as exc:  # noqa: BLE001

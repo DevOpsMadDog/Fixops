@@ -1525,7 +1525,12 @@ async def oauth_start(provider: str, request: Request) -> OAuthStartResponse:
 import base64 as _b64
 import re as _sml_re
 import uuid as _uuid
-import xml.etree.ElementTree as _ET
+try:
+    import defusedxml  # type: ignore[import-untyped]
+    defusedxml.defuse_stdlib()  # patch xml.etree.ElementTree globally — mitigates XXE/billion-laughs
+    from defusedxml.ElementTree import fromstring as _xml_fromstring, ParseError as _xml_ParseError  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover — defusedxml is in requirements.txt
+    from xml.etree.ElementTree import fromstring as _xml_fromstring, ParseError as _xml_ParseError  # type: ignore[assignment]
 import zlib as _zlib
 from urllib.parse import urlencode as _ue, quote as _quote
 
@@ -1584,8 +1589,8 @@ def _parse_saml_response(saml_response_b64: str) -> dict:
         raise HTTPException(status_code=400, detail=f"Invalid SAMLResponse encoding: {exc}") from exc
 
     try:
-        root = _ET.fromstring(xml_bytes)  # noqa: S314 — input validated below
-    except _ET.ParseError as exc:
+        root = _xml_fromstring(xml_bytes)  # nosec B314 — _xml_fromstring is defusedxml.ElementTree.fromstring; defuse_stdlib() also called at import
+    except _xml_ParseError as exc:
         raise HTTPException(status_code=400, detail=f"Malformed SAMLResponse XML: {exc}") from exc
 
     # Validate top-level element is a SAML Response
@@ -1654,7 +1659,7 @@ def _verify_saml_signature(xml_bytes: bytes, x509_cert_pem: str) -> None:
         pub_key = cert.public_key()
 
         # Parse the XML to find the SignatureValue
-        root = _ET.fromstring(xml_bytes)  # noqa: S314
+        root = _xml_fromstring(xml_bytes)  # nosec B314 — defusedxml.ElementTree.fromstring; defuse_stdlib() called at import
         sig_val_el = root.find(".//{http://www.w3.org/2000/09/xmldsig#}SignatureValue")
         if sig_val_el is None:
             if _is_dev_mode_enabled():

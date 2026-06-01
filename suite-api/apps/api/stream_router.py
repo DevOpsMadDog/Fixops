@@ -19,13 +19,17 @@ import logging
 from typing import Any, Dict, Optional
 
 from core.event_stream import EventChannel, EventStream, StreamEvent
-from fastapi import APIRouter, HTTPException, Query, WebSocket, status
+from fastapi import Depends, APIRouter, HTTPException, Query, WebSocket, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
+
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/stream", tags=["event-stream"])
+router = APIRouter(prefix="/api/v1/stream", tags=["event-stream"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 # Process-wide singleton
 _stream = EventStream.instance()

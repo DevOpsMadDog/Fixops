@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
+from apps.api.auth_deps import api_key_auth
 router = APIRouter(
     prefix="/api/v1/security-investment",
     tags=["Security Investment"],
@@ -45,7 +46,6 @@ def _get_engine():
 def _verify_api_key():
     """Stub auth dependency — real implementation in auth_deps."""
     try:
-        from apps.api.auth_deps import api_key_auth
         return api_key_auth
     except ImportError:
         return None

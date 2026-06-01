@@ -24,14 +24,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import Depends, APIRouter, Body, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/circleci",
     tags=["circleci"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 
@@ -252,6 +254,7 @@ def _raise_unavailable() -> None:
 def _map_circleci_error(exc: Exception) -> HTTPException:
     """Translate a CircleCIHTTPError (or unavailable) into an HTTPException."""
     from core.circleci_engine import CircleCIHTTPError, CircleCIUnavailable
+
 
     if isinstance(exc, CircleCIUnavailable):
         return HTTPException(

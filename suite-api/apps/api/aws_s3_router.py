@@ -22,9 +22,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import Depends, APIRouter, HTTPException, Path
+from apps.api.auth_deps import api_key_auth
 
 from core.aws_s3_engine import (
+
     AWSS3NotFoundError,
     AWSS3UnavailableError,
     get_aws_s3_engine,
@@ -32,7 +34,9 @@ from core.aws_s3_engine import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/aws-s3", tags=["aws-s3"])
+router = APIRouter(prefix="/api/v1/aws-s3", tags=["aws-s3"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 # ---------------------------------------------------------------------------

@@ -22,6 +22,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -258,7 +259,15 @@ def get_stats(
 _scan_store: Dict[str, Dict[str, Any]] = {}
 _scan_store_lock = threading.Lock()
 
-_SELF_TEST_AUTH_TOKEN = "ALDECI-SELF-PENTEST-AUTHORIZED"
+def _get_self_test_auth_token() -> str:
+    """Return the self-pentest authorization token from env, failing loudly if unset."""
+    token = os.environ.get("ALDECI_SELF_PENTEST_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError(
+            "ALDECI_SELF_PENTEST_TOKEN environment variable is not set. "
+            "Set it to a strong secret before triggering self-pentest scans."
+        )
+    return token
 _SELF_TEST_ORG = "aldeci_self"
 _SELF_TEST_SCOPE = [
     "localhost:8000",
@@ -347,7 +356,7 @@ def start_self_scan(
         "target_scope": [body.target_url] + _SELF_TEST_SCOPE,
         "attack_tactics": _OWASP_TOP10_TACTICS,
         "operators_count": body.operators_count,
-        "authorization_token": _SELF_TEST_AUTH_TOKEN,
+        "authorization_token": _get_self_test_auth_token(),
         "authorized_by": "ALDECI-SYSTEM",
         "authorized_until": "2099-12-31",
     }

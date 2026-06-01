@@ -23,7 +23,8 @@ import logging
 from typing import Any, Dict, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Path, Query
+from apps.api.auth_deps import api_key_auth
+from fastapi import Depends, APIRouter, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/api/v1/splunk-soar-rest",
     tags=["Splunk SOAR (Phantom)"],
+    dependencies=[Depends(api_key_auth)],
 )
 
 

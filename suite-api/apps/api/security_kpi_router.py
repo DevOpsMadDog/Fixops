@@ -20,12 +20,16 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.security_kpi_tracker import KPI_NAMES, SecurityKPITracker
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
+
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/kpi", tags=["security-kpi"])
+router = APIRouter(prefix="/api/v1/kpi", tags=["security-kpi"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 # Shared tracker instance (file-backed SQLite)
 _tracker: Optional[SecurityKPITracker] = None

@@ -24,14 +24,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, Union
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/ansible-tower",
     tags=["ansible-tower"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 
@@ -92,6 +94,7 @@ def _raise_unavailable() -> None:
 def _map_tower_error(exc: Exception) -> HTTPException:
     """Translate AnsibleTowerHTTPError / Unavailable into an HTTPException."""
     from core.ansible_tower_engine import AnsibleTowerHTTPError, AnsibleTowerUnavailable
+
 
     if isinstance(exc, AnsibleTowerUnavailable):
         return HTTPException(

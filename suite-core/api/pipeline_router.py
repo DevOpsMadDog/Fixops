@@ -18,8 +18,9 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from apps.api.endpoint_rate_limit import enforce as _rl_enforce
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -30,45 +31,69 @@ router = APIRouter(prefix="/api/v1/pipeline", tags=["Brain Pipeline"])
 # Request / Response models
 # ---------------------------------------------------------------------------
 class FindingInput(BaseModel):
-    id: str = ""
-    cve_id: Optional[str] = None
-    severity: str = "medium"
-    asset_name: str = ""
-    title: str = ""
-    description: str = ""
-    source: str = ""
+    id: str = Field("", max_length=256)
+    cve_id: Optional[str] = Field(None, max_length=32)
+    severity: str = Field("medium", max_length=32)
+    asset_name: str = Field("", max_length=512)
+    title: str = Field("", max_length=512)
+    description: str = Field("", max_length=4096)
+    source: str = Field("", max_length=256)
     code_context: Optional[Dict[str, Any]] = None
 
 
 class AssetInput(BaseModel):
-    id: str = ""
-    name: str = ""
-    criticality: float = 1.0
-    url: Optional[str] = None
-    endpoint: Optional[str] = None
-    type: str = "service"
+    id: str = Field("", max_length=256)
+    name: str = Field("", max_length=512)
+    criticality: float = Field(1.0, ge=0.0, le=10.0)
+    url: Optional[str] = Field(None, max_length=2048)
+    endpoint: Optional[str] = Field(None, max_length=2048)
+    type: str = Field("service", max_length=64)
+
+
+# Maximum findings/assets per pipeline run — prevents 40s+ DoS via 10k-item payloads
+_MAX_PIPELINE_FINDINGS = 500
+_MAX_PIPELINE_ASSETS = 200
 
 
 class PipelineRunRequest(BaseModel):
-    org_id: str = "default"
-    findings: List[FindingInput] = Field(default_factory=list)
-    assets: List[AssetInput] = Field(default_factory=list)
-    source: str = "api"
+    org_id: str = Field("default", max_length=128)
+    findings: List[FindingInput] = Field(default_factory=list, max_length=_MAX_PIPELINE_FINDINGS)
+    assets: List[AssetInput] = Field(default_factory=list, max_length=_MAX_PIPELINE_ASSETS)
+    source: str = Field("api", max_length=128)
     run_pentest: bool = False
     run_playbooks: bool = False
     generate_evidence: bool = False
-    evidence_framework: str = "SOC2"
-    evidence_timeframe_days: int = 90
-    policy_rules: Optional[List[Dict[str, Any]]] = None
+    evidence_framework: str = Field("SOC2", max_length=32)
+    evidence_timeframe_days: int = Field(90, ge=1, le=365)
+    policy_rules: Optional[List[Dict[str, Any]]] = Field(None, max_length=100)
+
+    @field_validator("findings", mode="before")
+    @classmethod
+    def _cap_findings(cls, v: Any) -> Any:
+        if isinstance(v, list) and len(v) > _MAX_PIPELINE_FINDINGS:
+            raise ValueError(
+                f"findings list exceeds maximum allowed size of {_MAX_PIPELINE_FINDINGS}. "
+                f"Split into smaller batches."
+            )
+        return v
+
+    @field_validator("assets", mode="before")
+    @classmethod
+    def _cap_assets(cls, v: Any) -> Any:
+        if isinstance(v, list) and len(v) > _MAX_PIPELINE_ASSETS:
+            raise ValueError(
+                f"assets list exceeds maximum allowed size of {_MAX_PIPELINE_ASSETS}."
+            )
+        return v
 
 
 class EvidenceGenerateRequest(BaseModel):
-    org_id: str = "default"
-    timeframe_days: int = 90
-    controls: Optional[List[str]] = None
-    pipeline_run_id: Optional[str] = None
-    findings: List[FindingInput] = Field(default_factory=list)
-    assets: List[AssetInput] = Field(default_factory=list)
+    org_id: str = Field("default", max_length=128)
+    timeframe_days: int = Field(90, ge=1, le=365)
+    controls: Optional[List[str]] = Field(None, max_length=200)
+    pipeline_run_id: Optional[str] = Field(None, max_length=256)
+    findings: List[FindingInput] = Field(default_factory=list, max_length=_MAX_PIPELINE_FINDINGS)
+    assets: List[AssetInput] = Field(default_factory=list, max_length=_MAX_PIPELINE_ASSETS)
 
 
 # ---------------------------------------------------------------------------
@@ -168,10 +193,18 @@ def _extract_verdict(result_dict: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 @router.post("/run")
 async def run_pipeline(
+    request: Request,
     req: PipelineRunRequest,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Execute the full 12-step ALdeci Brain Pipeline synchronously."""
+    """Execute the full 12-step ALdeci Brain Pipeline synchronously.
+
+    Rate-limited to 5 runs/minute per IP — each run is O(findings) CPU/LLM.
+    Max 500 findings and 200 assets per request (validated by PipelineRunRequest).
+    """
+    # Rate-limit: pipeline runs are expensive (LLM calls, graph ops, db writes)
+    _rl_enforce(request, limit_key="pipeline:run", max_per_minute=5)
+
     from core.brain_pipeline import PipelineInput, get_brain_pipeline
 
     # The request body's org_id takes precedence (caller may specify a sub-org);
@@ -199,8 +232,8 @@ async def run_pipeline(
 
 @router.get("/runs")
 async def list_pipeline_runs(
-    limit: int = 20,
-    offset: int = 0,
+    limit: int = Query(20, ge=1, le=500, description="Max results (1-500)"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List past pipeline runs for the authenticated org."""

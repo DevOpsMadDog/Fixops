@@ -27,12 +27,15 @@ from core.integration_models import IntegrationType
 from core.persistent_store import get_persistent_store
 from core.policy_db import PolicyDB
 from core.services.deduplication import ClusterStatus, DeduplicationService
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import Depends, APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/bulk", tags=["bulk"])
+router = APIRouter(prefix="/api/v1/bulk", tags=["bulk"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 # Initialize services
 _DATA_DIR = Path("data/deduplication")
@@ -1275,6 +1278,7 @@ async def bulk_status():
     try:
         import glob
         import json as _json
+
         job_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "bulk_jobs")
         if os.path.isdir(job_dir):
             for fp in sorted(glob.glob(os.path.join(job_dir, "*.json")))[-50:]:

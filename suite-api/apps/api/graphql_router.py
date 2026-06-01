@@ -13,13 +13,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import Depends, APIRouter, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/graphql", tags=["graphql"])
+router = APIRouter(prefix="/api/v1/graphql", tags=["graphql"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +72,7 @@ def _get_schema_module():
     if _graphql_schema_module is None:
         try:
             from core import graphql_schema
+
             _graphql_schema_module = graphql_schema
         except ImportError as exc:
             logger.error("Failed to import graphql_schema: %s", exc)

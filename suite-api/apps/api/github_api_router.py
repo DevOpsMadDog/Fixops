@@ -33,14 +33,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/github-api",
     tags=["github-api"],
+    dependencies=[Depends(api_key_auth)]
 )
 
 
@@ -334,6 +336,7 @@ def _raise_unavailable() -> None:
 def _map_github_error(exc: Exception) -> HTTPException:
     """Translate a GitHubAPIHTTPError (or unavailable) into an HTTPException."""
     from core.github_api_engine import GitHubAPIHTTPError, GitHubAPIUnavailable
+
 
     if isinstance(exc, GitHubAPIUnavailable):
         return HTTPException(

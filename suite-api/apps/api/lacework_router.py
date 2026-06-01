@@ -24,16 +24,20 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.auth_deps import api_key_auth
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/lacework", tags=["Lacework CSPM"])
+router = APIRouter(prefix="/api/v1/lacework", tags=["Lacework CSPM"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 def _engine():
     from core.lacework_engine import get_lacework_engine
+
     return get_lacework_engine()
 
 

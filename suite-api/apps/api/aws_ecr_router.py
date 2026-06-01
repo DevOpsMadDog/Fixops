@@ -24,17 +24,21 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Path, Query
+from fastapi import Depends, APIRouter, Body, HTTPException, Path, Query
 
 from core.aws_ecr_engine import (
+
     AWSECRNotFoundError,
     AWSECRUnavailableError,
     get_aws_ecr_engine,
 )
+from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/aws-ecr", tags=["aws-ecr"])
+router = APIRouter(prefix="/api/v1/aws-ecr", tags=["aws-ecr"],
+    dependencies=[Depends(api_key_auth)]
+)
 
 
 # ---------------------------------------------------------------------------
