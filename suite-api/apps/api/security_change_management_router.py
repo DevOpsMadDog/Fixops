@@ -20,6 +20,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -76,7 +77,7 @@ class ApproverCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/changes", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_change(body: ChangeCreate, org_id: str = Query(default="default")):
+def create_change(body: ChangeCreate, org_id: str = Depends(get_org_id)):
     """Create a new security change request in draft status."""
     try:
         return _get_engine().create_change(org_id, body.model_dump())
@@ -86,7 +87,7 @@ def create_change(body: ChangeCreate, org_id: str = Query(default="default")):
 
 @router.get("/changes", dependencies=[Depends(api_key_auth)])
 def list_changes(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     change_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
@@ -101,7 +102,7 @@ def list_changes(
 
 
 @router.get("/changes/{change_id}", dependencies=[Depends(api_key_auth)])
-def get_change(change_id: str, org_id: str = Query(default="default")):
+def get_change(change_id: str, org_id: str = Depends(get_org_id)):
     """Get a single change by ID."""
     change = _get_engine().get_change(org_id, change_id)
     if not change:
@@ -113,7 +114,7 @@ def get_change(change_id: str, org_id: str = Query(default="default")):
 def update_change_status(
     change_id: str,
     body: ChangeStatusUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update change status. Sets completed_at when status=completed."""
     try:
@@ -132,7 +133,7 @@ def update_change_status(
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_approver(change_id: str, body: ApproverCreate, org_id: str = Query(default="default")):
+def add_approver(change_id: str, body: ApproverCreate, org_id: str = Depends(get_org_id)):
     """Add an approval record (approved/rejected/pending) to a change."""
     try:
         return _get_engine().add_approver(org_id, change_id, body.model_dump())
@@ -146,7 +147,7 @@ def add_approver(change_id: str, body: ApproverCreate, org_id: str = Query(defau
 
 @router.get("/approvals", dependencies=[Depends(api_key_auth)])
 def list_approvals(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     change_id: Optional[str] = Query(None),
 ):
     """List all approvals for an org, optionally filtered by change_id."""
@@ -158,6 +159,6 @@ def list_approvals(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_change_stats(org_id: str = Query(default="default")):
+def get_change_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated change management statistics for an org."""
     return _get_engine().get_change_stats(org_id)

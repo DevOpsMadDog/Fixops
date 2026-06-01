@@ -21,6 +21,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -77,7 +78,7 @@ class ScanJobCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/datastores", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_datastore(body: DatastoreCreate, org_id: str = Query(default="default")):
+def register_datastore(body: DatastoreCreate, org_id: str = Depends(get_org_id)):
     """Register a new datastore for discovery tracking."""
     try:
         return _get_engine().register_datastore(org_id, body.model_dump())
@@ -87,7 +88,7 @@ def register_datastore(body: DatastoreCreate, org_id: str = Query(default="defau
 
 @router.get("/datastores", dependencies=[Depends(api_key_auth)])
 def list_datastores(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     datastore_type: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
@@ -100,7 +101,7 @@ def list_datastores(
 
 
 @router.get("/datastores/{datastore_id}", dependencies=[Depends(api_key_auth)])
-def get_datastore(datastore_id: str, org_id: str = Query(default="default")):
+def get_datastore(datastore_id: str, org_id: str = Depends(get_org_id)):
     """Get a single datastore by ID."""
     result = _get_engine().get_datastore(org_id, datastore_id)
     if result is None:
@@ -120,7 +121,7 @@ def get_datastore(datastore_id: str, org_id: str = Query(default="default")):
 def record_discovery(
     datastore_id: str,
     body: DiscoveryCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Record a data discovery finding for a datastore."""
     try:
@@ -131,7 +132,7 @@ def record_discovery(
 
 @router.get("/discoveries", dependencies=[Depends(api_key_auth)])
 def list_discoveries(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     datastore_id: Optional[str] = Query(None),
     data_type: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
@@ -157,7 +158,7 @@ def list_discoveries(
 def create_scan_job(
     datastore_id: str,
     body: ScanJobCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Create a new scan job for a datastore."""
     return _get_engine().create_scan_job(org_id, datastore_id, body.model_dump())
@@ -165,7 +166,7 @@ def create_scan_job(
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_scan_jobs(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     datastore_id: Optional[str] = Query(None),
     scan_status: Optional[str] = Query(None),
 ):
@@ -182,6 +183,6 @@ def list_scan_jobs(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_discovery_stats(org_id: str = Query(default="default")):
+def get_discovery_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated discovery statistics for an org."""
     return _get_engine().get_discovery_stats(org_id)

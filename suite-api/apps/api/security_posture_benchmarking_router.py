@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -114,7 +115,7 @@ def create_benchmark(req: CreateBenchmarkRequest) -> Dict[str, Any]:
 
 @router.get("/benchmarks", dependencies=[Depends(api_key_auth)])
 def list_benchmarks(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
@@ -179,7 +180,7 @@ class ImportCisRequest(BaseModel):
 @router.post("/import-cis", dependencies=[Depends(api_key_auth)])
 def import_cis_benchmarks(
     req: Optional[ImportCisRequest] = None,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Import CIS Benchmark XCCDF controls into local catalog.
 
@@ -238,7 +239,7 @@ def list_cis_controls(
 @router.get("/benchmarks/{benchmark_id}", dependencies=[Depends(api_key_auth)])
 def get_benchmark(
     benchmark_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single benchmark by ID."""
     try:
@@ -256,7 +257,7 @@ def get_benchmark(
 @router.put("/benchmarks/{benchmark_id}/complete", dependencies=[Depends(api_key_auth)])
 def complete_assessment(
     benchmark_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Complete a benchmark assessment — sets status=active, recomputes score."""
     try:
@@ -285,7 +286,7 @@ def record_control(req: RecordControlRequest) -> Dict[str, Any]:
 
 @router.get("/controls", dependencies=[Depends(api_key_auth)])
 def list_controls(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     benchmark_id: Optional[str] = Query(default=None),
     result: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
@@ -314,7 +315,7 @@ def add_comparison(req: AddComparisonRequest) -> Dict[str, Any]:
 
 @router.get("/comparisons", dependencies=[Depends(api_key_auth)])
 def list_comparisons(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     benchmark_id: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List peer-group comparisons, optionally filtered by benchmark."""
@@ -326,7 +327,7 @@ def list_comparisons(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_benchmarking_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_benchmarking_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate benchmarking statistics for the org."""
     try:
         return _get_engine().get_benchmarking_stats(org_id)

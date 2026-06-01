@@ -23,6 +23,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -77,7 +78,7 @@ class RecordUsageRequest(BaseModel):
 @router.post("/", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_key(
     body: CreateKeyRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new cryptographic key for the org."""
     try:
@@ -89,7 +90,7 @@ def create_key(
 
 @router.get("/expiring", dependencies=[Depends(api_key_auth)])
 def get_expiring_keys(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(default=30, ge=1, le=365),
 ):
     """Return active keys expiring within the next N days."""
@@ -97,14 +98,14 @@ def get_expiring_keys(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_key_stats(org_id: str = Query(default="default")):
+def get_key_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated key statistics for the org."""
     return _get_engine().get_key_stats(org_id)
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
 def list_keys(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     key_type: Optional[str] = Query(default=None),
     purpose: Optional[str] = Query(default=None),
 ):
@@ -115,7 +116,7 @@ def list_keys(
 @router.get("/{key_id}", dependencies=[Depends(api_key_auth)])
 def get_key(
     key_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Fetch a single key by ID (org-scoped)."""
     key = _get_engine().get_key(org_id, key_id)
@@ -127,7 +128,7 @@ def get_key(
 @router.post("/{key_id}/rotate", dependencies=[Depends(api_key_auth)], status_code=201)
 def rotate_key(
     key_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Rotate a key: mark old as 'rotating', create new version."""
     try:
@@ -143,7 +144,7 @@ def rotate_key(
 def revoke_key(
     key_id: str,
     body: RevokeKeyRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Revoke a key with a stated reason."""
     try:
@@ -159,7 +160,7 @@ def revoke_key(
 def record_key_usage(
     key_id: str,
     body: RecordUsageRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a key usage event for the audit trail."""
     try:

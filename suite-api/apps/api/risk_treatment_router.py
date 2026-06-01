@@ -20,6 +20,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -76,7 +77,7 @@ class ProgressNoteCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/treatments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_treatment(body: TreatmentCreate, org_id: str = Query(default="default")):
+def create_treatment(body: TreatmentCreate, org_id: str = Depends(get_org_id)):
     """Create a new risk treatment record."""
     try:
         return _get_engine().create_treatment(org_id, body.model_dump())
@@ -86,7 +87,7 @@ def create_treatment(body: TreatmentCreate, org_id: str = Query(default="default
 
 @router.get("/treatments", dependencies=[Depends(api_key_auth)])
 def list_treatments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     treatment_type: Optional[str] = Query(None),
     treatment_status: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
@@ -130,7 +131,7 @@ def list_treatments(
 
 
 @router.get("/treatments/{treatment_id}", dependencies=[Depends(api_key_auth)])
-def get_treatment(treatment_id: str, org_id: str = Query(default="default")):
+def get_treatment(treatment_id: str, org_id: str = Depends(get_org_id)):
     """Get a single treatment by ID."""
     result = _get_engine().get_treatment(org_id, treatment_id)
     if result is None:
@@ -142,7 +143,7 @@ def get_treatment(treatment_id: str, org_id: str = Query(default="default")):
 def update_treatment_status(
     treatment_id: str,
     body: TreatmentStatusUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update treatment status and optionally progress_pct."""
     try:
@@ -167,7 +168,7 @@ def update_treatment_status(
 def add_progress_note(
     treatment_id: str,
     body: ProgressNoteCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Add a progress note to a treatment."""
     try:
@@ -177,7 +178,7 @@ def add_progress_note(
 
 
 @router.get("/treatments/{treatment_id}/notes", dependencies=[Depends(api_key_auth)])
-def list_progress_notes(treatment_id: str, org_id: str = Query(default="default")):
+def list_progress_notes(treatment_id: str, org_id: str = Depends(get_org_id)):
     """List all progress notes for a treatment, ordered by created_at DESC."""
     return _get_engine().list_progress_notes(org_id, treatment_id)
 
@@ -187,6 +188,6 @@ def list_progress_notes(treatment_id: str, org_id: str = Query(default="default"
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_treatment_stats(org_id: str = Query(default="default")):
+def get_treatment_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated treatment statistics for an org."""
     return _get_engine().get_treatment_stats(org_id)

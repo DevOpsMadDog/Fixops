@@ -23,6 +23,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -84,7 +85,7 @@ class RevokeCertificateRequest(BaseModel):
 @router.post("/", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_certificate(
     body: RegisterCertificateRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new certificate for the org."""
     try:
@@ -96,7 +97,7 @@ def register_certificate(
 
 @router.get("/expiring", dependencies=[Depends(api_key_auth)])
 def get_expiring_certificates(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(default=30, ge=1, le=365),
 ):
     """Return non-revoked certificates expiring within the next N days."""
@@ -104,14 +105,14 @@ def get_expiring_certificates(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_certificate_stats(org_id: str = Query(default="default")):
+def get_certificate_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated certificate statistics for the org."""
     return _get_engine().get_certificate_stats(org_id)
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
 def list_certificates(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     cert_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ):
@@ -122,7 +123,7 @@ def list_certificates(
 @router.get("/{cert_id}", dependencies=[Depends(api_key_auth)])
 def get_certificate(
     cert_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Fetch a single certificate by ID (org-scoped)."""
     cert = _get_engine().get_certificate(org_id, cert_id)
@@ -135,7 +136,7 @@ def get_certificate(
 def renew_certificate(
     cert_id: str,
     body: RenewCertificateRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Renew a certificate with a new expiry date."""
     try:
@@ -151,7 +152,7 @@ def renew_certificate(
 def revoke_certificate(
     cert_id: str,
     body: RevokeCertificateRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Revoke a certificate with a stated reason."""
     try:
@@ -166,7 +167,7 @@ def revoke_certificate(
 @router.get("/{cert_id}/renewal-history", dependencies=[Depends(api_key_auth)])
 def get_renewal_history(
     cert_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return all renewal records for a certificate."""
     return _get_engine().get_renewal_history(org_id, cert_id)

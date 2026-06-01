@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -91,7 +92,7 @@ def register_asset(req: RegisterAssetRequest) -> Dict[str, Any]:
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(default=None),
     exposure_level: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -105,7 +106,7 @@ def list_assets(
 
 @router.get("/top-exposed", dependencies=[Depends(api_key_auth)])
 def get_top_exposed_assets(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=10, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     """Return top-N assets by exposure score."""
@@ -117,7 +118,7 @@ def get_top_exposed_assets(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_exposure_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_exposure_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated exposure statistics."""
     try:
         return _get_engine().get_exposure_stats(org_id)
@@ -127,7 +128,7 @@ def get_exposure_stats(org_id: str = Query(default="default")) -> Dict[str, Any]
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_asset(asset_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single asset by asset_id."""
     try:
         result = _get_engine().get_asset(org_id, asset_id)
@@ -157,7 +158,7 @@ def correlate_threat(req: CorrelateThreatRequest) -> Dict[str, Any]:
 
 @router.get("/correlations", dependencies=[Depends(api_key_auth)])
 def list_correlations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     asset_id: Optional[str] = Query(default=None),
     threat_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -170,7 +171,7 @@ def list_correlations(
 
 
 @router.post("/assets/{asset_id}/calculate", dependencies=[Depends(api_key_auth)])
-def calculate_exposure(asset_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def calculate_exposure(asset_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Recalculate exposure score for an asset from all correlations."""
     try:
         result = _get_engine().calculate_exposure(org_id, asset_id)
@@ -187,7 +188,7 @@ def calculate_exposure(asset_id: str, org_id: str = Query(default="default")) ->
 @router.get("/assets/{asset_id}/history", dependencies=[Depends(api_key_auth)])
 def get_exposure_history(
     asset_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=30, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """Return exposure history for an asset."""

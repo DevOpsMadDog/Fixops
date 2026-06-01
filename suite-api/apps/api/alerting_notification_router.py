@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -90,7 +91,7 @@ class ResolveAlertRequest(BaseModel):
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_alert_policy(
     body: CreateAlertPolicyRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new alert policy with channel routing and severity settings."""
     try:
@@ -104,7 +105,7 @@ def create_alert_policy(
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
 def list_alert_policies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(default=None),
 ):
     """List alert policies, optionally filtered by enabled state."""
@@ -114,7 +115,7 @@ def list_alert_policies(
 @router.post("/trigger", dependencies=[Depends(api_key_auth)], status_code=201)
 def trigger_alert(
     body: TriggerAlertRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Trigger a new alert."""
     try:
@@ -131,7 +132,7 @@ def trigger_alert(
 
 @router.get("/alerts", dependencies=[Depends(api_key_auth)])
 def list_alerts(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     acknowledged: bool = Query(default=False),
@@ -151,7 +152,7 @@ def list_alerts(
 def acknowledge_alert(
     alert_id: str,
     body: AcknowledgeAlertRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Acknowledge an open alert."""
     try:
@@ -167,7 +168,7 @@ def acknowledge_alert(
 def resolve_alert(
     alert_id: str,
     body: ResolveAlertRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Resolve an open or acknowledged alert."""
     try:
@@ -183,7 +184,7 @@ def resolve_alert(
 
 @router.get("/history", dependencies=[Depends(api_key_auth)])
 def get_alert_history(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     policy_id: Optional[str] = Query(default=None),
     hours: int = Query(default=24, ge=1, le=8760),
 ):
@@ -192,6 +193,6 @@ def get_alert_history(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_alerting_stats(org_id: str = Query(default="default")):
+def get_alerting_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated alerting statistics: policy count, 24h alerts, MTTR, severity breakdown."""
     return _get_engine().get_alerting_stats(org_id)

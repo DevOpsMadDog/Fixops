@@ -22,6 +22,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -92,7 +93,7 @@ class UpdatePipelineStatusRequest(BaseModel):
 @router.post("/pipelines", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_pipeline(
     body: RegisterPipelineRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new security data ingestion pipeline."""
     try:
@@ -110,7 +111,7 @@ def register_pipeline(
 
 @router.get("/pipelines", dependencies=[Depends(api_key_auth)])
 def list_pipelines(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     source_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ):
@@ -121,7 +122,7 @@ def list_pipelines(
 @router.get("/pipelines/{pipeline_id}", dependencies=[Depends(api_key_auth)])
 def get_pipeline(
     pipeline_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Fetch a single pipeline by ID."""
     result = _get_engine().get_pipeline(org_id, pipeline_id)
@@ -134,7 +135,7 @@ def get_pipeline(
 def record_pipeline_run(
     pipeline_id: str,
     body: RecordRunRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record an execution run for a pipeline and update its throughput counters."""
     try:
@@ -151,7 +152,7 @@ def record_pipeline_run(
 
 @router.get("/runs", dependencies=[Depends(api_key_auth)])
 def list_runs(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     pipeline_id: Optional[str] = Query(default=None),
     run_status: Optional[str] = Query(default=None),
 ):
@@ -163,7 +164,7 @@ def list_runs(
 def update_pipeline_status(
     pipeline_id: str,
     body: UpdatePipelineStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Change the operational status of a pipeline (active/paused/error/stopped/testing)."""
     try:
@@ -176,6 +177,6 @@ def update_pipeline_status(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_pipeline_stats(org_id: str = Query(default="default")):
+def get_pipeline_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated stats: totals, throughput, error rate, by_source_type breakdown."""
     return _get_engine().get_pipeline_stats(org_id)

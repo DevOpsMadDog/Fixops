@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -72,7 +73,7 @@ class AssetImpactCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/ingest", status_code=201)
-def ingest_from_source(body: SourceIngest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def ingest_from_source(body: SourceIngest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Ingest CVE intelligence from a source feed and fuse into consensus view."""
     try:
         return _get_engine().ingest_from_source(
@@ -92,7 +93,7 @@ def ingest_from_source(body: SourceIngest, org_id: str = Query(default="default"
 
 
 @router.put("/vulns/{cve_id}/patch")
-def mark_patch_available(cve_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def mark_patch_available(cve_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Mark a CVE as having a patch available."""
     try:
         return _get_engine().mark_patch_available(cve_id, org_id)
@@ -104,7 +105,7 @@ def mark_patch_available(cve_id: str, org_id: str = Query(default="default")) ->
 
 
 @router.post("/asset-impacts", status_code=201)
-def add_asset_impact(body: AssetImpactCreate, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def add_asset_impact(body: AssetImpactCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Record that a CVE impacts an asset (idempotent by org/cve/asset)."""
     try:
         return _get_engine().add_asset_impact(
@@ -122,14 +123,14 @@ def add_asset_impact(body: AssetImpactCreate, org_id: str = Query(default="defau
 
 
 @router.get("/summary")
-def get_fusion_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_fusion_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get org-level vulnerability intelligence fusion summary."""
     return _get_engine().get_fusion_summary(org_id)
 
 
 @router.get("/priority-queue")
 def get_priority_queue(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """Get prioritized vulnerability queue (consensus_priority ASC, fusion_score DESC)."""
@@ -137,13 +138,13 @@ def get_priority_queue(
 
 
 @router.get("/kev")
-def get_kev_vulns(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_kev_vulns(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Get all CISA KEV-listed vulnerabilities ordered by fusion_score DESC."""
     return _get_engine().get_kev_vulns(org_id)
 
 
 @router.get("/vulns/{cve_id}")
-def get_vuln_detail(cve_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_vuln_detail(cve_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get full vulnerability detail including source feeds and asset impacts."""
     result = _get_engine().get_vuln_detail(cve_id, org_id)
     if not result:

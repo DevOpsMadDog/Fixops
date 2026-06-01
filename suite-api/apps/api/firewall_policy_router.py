@@ -20,6 +20,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -72,7 +73,7 @@ class RuleCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/firewalls", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_firewall(body: FirewallCreate, org_id: str = Query(default="default")):
+def register_firewall(body: FirewallCreate, org_id: str = Depends(get_org_id)):
     """Register a new firewall device."""
     try:
         return _get_engine().register_firewall(org_id, body.model_dump())
@@ -81,7 +82,7 @@ def register_firewall(body: FirewallCreate, org_id: str = Query(default="default
 
 
 @router.get("/firewalls", dependencies=[Depends(api_key_auth)])
-def list_firewalls(org_id: str = Query(default="default")):
+def list_firewalls(org_id: str = Depends(get_org_id)):
     """List all firewalls for the org."""
     return _get_engine().list_firewalls(org_id)
 
@@ -91,7 +92,7 @@ def list_firewalls(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/firewalls/{firewall_id}/rules", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Query(default="default")):
+def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Depends(get_org_id)):
     """Add a rule to a firewall."""
     try:
         return _get_engine().add_rule(org_id, firewall_id, body.model_dump())
@@ -102,7 +103,7 @@ def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Query(default="de
 @router.get("/firewalls/{firewall_id}/rules", dependencies=[Depends(api_key_auth)])
 def list_rules(
     firewall_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     action: Optional[str] = Query(None),
 ):
     """List rules for a firewall with optional action filter."""
@@ -114,7 +115,7 @@ def list_rules(
 # ---------------------------------------------------------------------------
 
 @router.get("/firewalls/{firewall_id}/conflicts", dependencies=[Depends(api_key_auth)])
-def find_conflicting_rules(firewall_id: str, org_id: str = Query(default="default")):
+def find_conflicting_rules(firewall_id: str, org_id: str = Depends(get_org_id)):
     """Find rules that shadow or conflict with each other."""
     return _get_engine().find_conflicting_rules(org_id, firewall_id)
 
@@ -122,7 +123,7 @@ def find_conflicting_rules(firewall_id: str, org_id: str = Query(default="defaul
 @router.get("/firewalls/{firewall_id}/unused", dependencies=[Depends(api_key_auth)])
 def find_unused_rules(
     firewall_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     days_threshold: int = Query(default=90, ge=1),
 ):
     """Find rules with zero hits or no recent hits."""
@@ -130,7 +131,7 @@ def find_unused_rules(
 
 
 @router.get("/firewalls/{firewall_id}/gaps", dependencies=[Depends(api_key_auth)])
-def analyze_coverage_gaps(firewall_id: str, org_id: str = Query(default="default")):
+def analyze_coverage_gaps(firewall_id: str, org_id: str = Depends(get_org_id)):
     """Analyze coverage gaps and risky configurations."""
     return _get_engine().analyze_coverage_gaps(org_id, firewall_id)
 
@@ -140,6 +141,6 @@ def analyze_coverage_gaps(firewall_id: str, org_id: str = Query(default="default
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_firewall_stats(org_id: str = Query(default="default")):
+def get_firewall_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated firewall statistics for the org."""
     return _get_engine().get_firewall_stats(org_id)

@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -81,7 +82,7 @@ class RecordAlertBody(BaseModel):
 
 
 @router.post("/sessions", dependencies=[Depends(api_key_auth)])
-def start_session(body: StartSessionBody, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def start_session(body: StartSessionBody, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Start a new privileged session recording."""
     try:
         return _get_engine().start_session(org_id, body.model_dump())
@@ -91,7 +92,7 @@ def start_session(body: StartSessionBody, org_id: str = Query(default="default")
 
 @router.get("/sessions", dependencies=[Depends(api_key_auth)])
 def list_sessions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     user: Optional[str] = Query(default=None),
     session_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -109,7 +110,7 @@ def list_sessions(
 
 
 @router.get("/sessions/{session_id}", dependencies=[Depends(api_key_auth)])
-def get_session(session_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_session(session_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Fetch a single session."""
     result = _get_engine().get_session(org_id, session_id)
     if result is None:
@@ -121,7 +122,7 @@ def get_session(session_id: str, org_id: str = Query(default="default")) -> Dict
 def end_session(
     session_id: str,
     body: EndSessionBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """End a privileged session."""
     try:
@@ -134,7 +135,7 @@ def end_session(
 def record_alert(
     session_id: str,
     body: RecordAlertBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record an alert for a session."""
     try:
@@ -145,7 +146,7 @@ def record_alert(
 
 @router.get("/alerts", dependencies=[Depends(api_key_auth)])
 def list_alerts(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     session_id: Optional[str] = Query(default=None),
     alert_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
@@ -157,6 +158,6 @@ def list_alerts(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_recording_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_recording_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate recording stats."""
     return _get_engine().get_recording_stats(org_id)

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ async def create_node(
 
 @router.get("/nodes", summary="List network nodes")
 async def list_nodes(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     node_type: Optional[str] = Query(None),
     criticality: Optional[str] = Query(None),
     _auth=Depends(_verify_api_key),
@@ -114,7 +115,7 @@ async def list_nodes(
 @router.get("/nodes/{node_id}/neighbors", summary="Get neighbors of a node")
 async def get_neighbors(
     node_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(_verify_api_key),
 ) -> List[Dict[str, Any]]:
     try:
@@ -149,7 +150,7 @@ async def create_edge(
 
 @router.get("/edges", summary="List network edges")
 async def list_edges(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     node_id: Optional[str] = Query(None),
     _auth=Depends(_verify_api_key),
 ) -> List[Dict[str, Any]]:
@@ -178,7 +179,7 @@ async def create_segment(
 
 @router.get("/segments", summary="List network segments")
 async def list_segments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(_verify_api_key),
 ) -> List[Dict[str, Any]]:
     try:
@@ -196,7 +197,7 @@ async def list_segments(
 async def find_path(
     src: str,
     dst: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(_verify_api_key),
 ) -> Dict[str, Any]:
     try:
@@ -213,7 +214,7 @@ async def find_path(
 
 @router.get("/stats", summary="Topology statistics")
 async def topology_stats(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(_verify_api_key),
 ) -> Dict[str, Any]:
     try:
@@ -225,7 +226,7 @@ async def topology_stats(
 
 @router.get("/", summary="Network topology index")
 async def network_topology_index(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(_verify_api_key),
 ) -> Dict[str, Any]:
     """Return topology summary: node count, edge count, and stats for the org."""
@@ -248,7 +249,7 @@ async def network_topology_index(
 
 @router.get("/exposure", summary="Detect external exposure to critical nodes")
 async def detect_exposure(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(_verify_api_key),
 ) -> List[Dict[str, Any]]:
     try:
