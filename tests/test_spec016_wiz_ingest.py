@@ -96,6 +96,71 @@ def test_req_016_07_egress_guard_ssrf_and_onprem():
         assert_egress_allowed("", "wiz")
 
 
+class _Outcome:
+    def __init__(self, status, details):
+        self.status, self.details = status, details
+
+
+class _FakePrisma:
+    configured = True
+
+    def __init__(self, settings=None, *a, **k):
+        # honor the base_url the router builds from PRISMA_API_URL (egress-guard test depends on it)
+        self.base_url = (settings or {}).get("base_url") or "https://prisma.acme.local"
+
+    def get_vulnerabilities(self, limit=100):
+        return _Outcome("fetched", {"vulnerabilities": [
+            {"cve": "CVE-2023-9999", "severity": "critical", "packageName": "openssl",
+             "image": "sha256:abc", "cvss": 9.8},
+        ], "count": 1})
+
+    def get_alerts(self, status="open", limit=100):
+        return _Outcome("fetched", {"alerts": [
+            {"id": "AL1", "policy": {"name": "Public S3", "severity": "high", "policyId": "P1"},
+             "resource": {"id": "r1", "name": "bucket", "resourceType": "AWS_S3"}},
+        ], "count": 1})
+
+
+class _UnconfiguredPrisma(_FakePrisma):
+    configured = False
+
+    def get_vulnerabilities(self, limit=100):
+        return _Outcome("skipped", {"reason": "prisma cloud not configured"})
+
+
+def test_ac_016_02_prisma_unconfigured_503(client, monkeypatch, _H):
+    import core.security_connectors as SC
+    monkeypatch.setattr(SC, "PrismaCloudConnector", _UnconfiguredPrisma)
+    monkeypatch.delenv("PRISMA_ACCESS_KEY", raising=False)
+    monkeypatch.setenv("PRISMA_API_URL", "https://prisma.acme.local")
+    r = client.post("/api/v1/prisma/ingest", headers=_H, json={})
+    assert r.status_code == 503
+    assert "not_configured" in r.json()["detail"].lower() or "unavailable" in r.json()["detail"].lower()
+
+
+def test_ac_016_02_prisma_ingest_correlates(client, monkeypatch, _H):
+    import core.security_connectors as SC
+    monkeypatch.setattr(SC, "PrismaCloudConnector", _FakePrisma)
+    monkeypatch.setenv("PRISMA_API_URL", "https://prisma.acme.local")
+    r = client.post("/api/v1/prisma/ingest", headers=_H, json={})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["ingested"] == 2          # 1 vuln + 1 alert
+    assert j["brain_nodes_added"] > 0
+    assert j["correlated"] is True
+    assert j["source"] == "prisma"
+
+
+def test_req_016_07_prisma_enforced_blocks_saas(client, monkeypatch, _H):
+    import core.security_connectors as SC
+    monkeypatch.setattr(SC, "PrismaCloudConnector", _FakePrisma)
+    monkeypatch.setenv("FIXOPS_AIRGAP_MODE", "enforced")
+    monkeypatch.setenv("PRISMA_API_URL", "https://api.prismacloud.io")  # SaaS default
+    r = client.post("/api/v1/prisma/ingest", headers=_H, json={})
+    assert r.status_code == 503
+    assert "blocked" in r.json()["detail"].lower() or "saas" in r.json()["detail"].lower()
+
+
 def test_req_016_11_classification_marking():
     from apps.api.scanner_ingest_router import _index_findings_into_brain
     from core.knowledge_brain import get_brain

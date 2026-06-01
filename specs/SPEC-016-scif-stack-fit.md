@@ -94,7 +94,9 @@ Every connector returns an **honest unconfigured path** (503 `unavailable`/`not_
   flows scanner-ingest → normalize → `_index_findings_into_brain` (wired in increment 1). No work.
 - **Veracode** ✅ real: `VeracodeNormalizer` (SAST XML + Findings API) + DAST parser, registered (`"veracode"`) —
   flows via upload → brain. No work.
-- **Prisma** ✅ real `PrismaCloudConnector`, unmounted → increment 2 (router + registry).
+- **Prisma** ✅ real `PrismaCloudConnector`, now MOUNTED (increment 2): `prisma_router.py` + `/prisma/ingest`
+  (vulns+alerts → brain), egress-guarded, honest 503. (REQ-016-03 satisfied via router mount, not the PullConnector
+  registry — `PrismaCloudConnector` is a `_BaseConnector`, same as the WIZ engine, so it wires by router like WIZ.)
 - **Black Duck** 🔴 build gap → REQ-016-13.
 - All four vendor-SaaS FQDNs (`snyk.io`, `veracode.com`, `blackduck.com`, `synopsys.com`, `prismacloud.io`) are in the
   enforced-mode egress blocklist (`assert_egress_allowed`) so a SCIF deploy must point each at its on-prem endpoint.

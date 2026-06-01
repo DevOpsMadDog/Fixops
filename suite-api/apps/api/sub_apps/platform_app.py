@@ -3445,6 +3445,22 @@ def register_platform_routers(
         _logger.warning("wiz_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Prisma Cloud CNAPP router (SPEC-016 inc2 — wraps real PrismaCloudConnector)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.prisma_router import router as prisma_router  # noqa: PLC0415
+        app.include_router(
+            prisma_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Prisma Cloud CNAPP router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("prisma_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Splunk SOAR (Phantom) REST router (suite-core/core/splunk_soar_engine.py) — 2026-05-04
     # GET   /api/v1/splunk-soar-rest/                                    capability summary       (read:scans)
     # GET   /api/v1/splunk-soar-rest/rest/playbook                       list playbooks            (read:scans)
