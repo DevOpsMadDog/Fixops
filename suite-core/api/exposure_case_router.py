@@ -34,13 +34,12 @@ from pydantic import BaseModel, Field
 # pattern as other suite-core routers (e.g. brain_router.py).
 try:
     from apps.api.auth_deps import api_key_auth
-    from apps.api.dependencies import get_org_id
 except ImportError:  # pragma: no cover — only absent in isolated unit tests
     async def api_key_auth() -> None:  # type: ignore[misc]
         return None
 
-    def get_org_id() -> str:  # type: ignore[misc]
-        return "default"
+# Canonical org resolver (always importable) — no shadow fallback (SPEC-007 V3).
+from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
 router = APIRouter(

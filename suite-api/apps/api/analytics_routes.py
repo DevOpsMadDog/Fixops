@@ -25,15 +25,15 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+# Canonical org resolver (always importable) — not from auth_deps (SPEC-007 V2), no shadow fallback (V3).
+from apps.api.dependencies import get_org_id
+
 try:
-    from apps.api.auth_deps import get_current_user, get_org_id
+    from apps.api.auth_deps import get_current_user
 except ImportError:
     # Fallback for testing
     def get_current_user() -> Dict[str, str]:
         return {"user_id": "default", "role": "analyst"}
-
-    def get_org_id() -> str:
-        return "default"
 
 try:
     from core.analytics_engine import (

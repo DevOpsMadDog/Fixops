@@ -1,11 +1,5 @@
 # SPEC-007 tenancy violation allowlist — frozen debt.
 # Format: relative/path/to/file.py:lineno:CATEGORY
 # This list may only SHRINK. Never add new entries manually.
-# Generated violations: 6
+# Generated violations: 0
 
-suite-api/apps/api/analytics_routes.py:29:V2
-suite-api/apps/api/analytics_routes.py:35:V3
-suite-api/apps/api/exposure_case_router.py:42:V3
-suite-api/apps/api/mcp_routes.py:63:V3
-suite-api/apps/api/trustgraph_routes.py:144:V3
-suite-core/api/exposure_case_router.py:42:V3

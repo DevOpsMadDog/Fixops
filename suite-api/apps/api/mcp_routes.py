@@ -57,11 +57,8 @@ except ImportError:
     _GRAPHRAG_AVAILABLE = False
     logger.warning("GraphRAGEngine not available")
 
-try:
-    from apps.api.dependencies import get_org_id
-except ImportError:
-    def get_org_id():
-        return "org_default"
+# Canonical org resolver (always importable) — no shadow fallback (SPEC-007 V3).
+from apps.api.dependencies import get_org_id
 
 
 # ============================================================================

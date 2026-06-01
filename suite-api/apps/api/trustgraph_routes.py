@@ -141,16 +141,9 @@ class ToolSchema(BaseModel):
 # ============================================================================
 
 
-def get_org_id(org_id: Optional[str] = Query(None)) -> str:
-    """Extract org_id from request context.
-
-    Args:
-        org_id: Organization ID from query parameter
-
-    Returns:
-        Organization ID (or 'default')
-    """
-    return org_id or "default"
+# Canonical org resolver (contextvar > ?org_id= > X-Org-ID > default) — replaces the
+# local query-only shadow def (SPEC-007 V3); superset behaviour, org-isolation-aware.
+from apps.api.dependencies import get_org_id  # noqa: E402
 
 
 # ============================================================================
