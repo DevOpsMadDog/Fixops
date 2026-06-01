@@ -4087,12 +4087,13 @@ def register_platform_routers(
     try:
         from apps.api.billing_router import router as billing_router  # noqa: PLC0415
         from apps.api.billing_router import webhook_router as billing_webhook_router  # noqa: PLC0415
-        app.include_router(
-            billing_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:scans"))],
-        )
+        # Router self-protects via Depends(api_key_auth) (managed-key-aware). Do NOT re-wrap with
+        # _verify_api_key/read:scans — the static-token gate rejected signup-issued managed keys, so
+        # a paying customer got 401 on GET /api/v1/billing/tier while /findings worked. Per-org
+        # scoping is enforced inside the handlers via Depends(get_org_id).
+        app.include_router(billing_router)
         # Webhook receiver — no api_key_auth; Stripe signs the payload
         app.include_router(billing_webhook_router)
-        _logger.info("Mounted Stripe Billing router at /api/v1/billing (read:scans) + webhook (no auth)")
+        _logger.info("Mounted Stripe Billing router at /api/v1/billing (api_key_auth) + webhook (no auth)")
     except ImportError as exc:
         _logger.warning("billing_router not available: %s", exc)

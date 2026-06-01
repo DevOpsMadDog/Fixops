@@ -7027,7 +7027,10 @@ def create_app() -> FastAPI:
     # Billing tier API + Stripe webhook — Commercial P2 (Multica #4101)
     try:
         from apps.api.billing_router import router as billing_router
-        app.include_router(billing_router, dependencies=[Depends(_verify_api_key)])
+        # Router self-protects via Depends(api_key_auth) (managed-key-aware). Do NOT re-wrap with
+        # the static-token-only _verify_api_key — it rejects signup-issued managed keys (a paying
+        # customer could not read their own /billing/tier). See onboarding credential flow.
+        app.include_router(billing_router)
         _logger.info("Mounted Billing router at /api/v1/billing")
     except Exception as _e:
         _logger.warning("billing_router unavailable: %s", _e)
