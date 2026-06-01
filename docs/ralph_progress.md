@@ -19,8 +19,8 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 | 10 | SPEC-008 HA / Litestream replication + restore | P1 | ✅ VERIFIED |
 | 11 | starlette CVE — DEFERRED (needs httpx2 migration, 561 files); torch dispositioned | P1 | 🟡 DOCUMENTED/BLOCKED |
 | 11b | httpx2 migration to close starlette PYSEC-2026-161 (DISQUALIFYING) | P1 | ⏳ TODO (own pass) |
-| 12 | **SPEC-010 dead-router purge + SQLite migration registry** | P2 | 🔄 NEXT |
-| 13 | SPEC-006b FIPS-validated crypto + at-rest encryption + immutable audit + PIV-CAC | P2 | ⏳ TODO (long) |
+| 12 | SPEC-010 maintainability (inventory+gate+schema-registry; only 5 dead, archived) | P2 | ✅ VERIFIED |
+| 13 | **SPEC-006b FIPS/at-rest/immutable-audit (achievable) + PIV-CAC/FIPS-cert (founder-blocked)** | P2 | 🔄 NEXT |
 
 ## Loop log
 - 2026-06-01: stories 1-4 done. Starting story 5 (SPEC-002 Nuclei).
@@ -31,3 +31,4 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 - 2026-06-01: story 9 (SPEC-004 reachability) VERIFIED — TS/JS/Java/Go all work + auto-run + coverage metric. 9 specs done. Next: SPEC-008 HA replication → starlette/torch bump → SPEC-010 → SPEC-006b.
 - 2026-06-01: story 10 (SPEC-008 HA) VERIFIED — litestream config 19 DBs + honest backup_verify + restore runbook + boot durability warning. 10 specs done. Next: starlette/torch CVE bump (careful, own pass).
 - 2026-06-01: story 11 — starlette 1.x bump REVERTED (needs project-wide httpx2 test migration; boot was fine but Beast collection hard-errors on httpx-testclient deprecation). Documented close-path (story 11b). torch = training-only, not in SCIF runtime, no upstream fix. requirements unchanged. Next: SPEC-010.
+- 2026-06-01: story 12 (SPEC-010) VERIFIED — PM-5 '686 dead' was STALE; real=5 unmounted (archived), 875/880 mounted. Inventory tool + CI gate + schema_registry. boot 8301 unchanged. Next: SPEC-006b (achievable FIPS increments).
