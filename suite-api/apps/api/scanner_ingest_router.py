@@ -252,6 +252,155 @@ def _promote_findings_to_issues(
     return promoted
 
 
+def _index_findings_into_brain(
+    findings_dicts: List[Dict[str, Any]],
+    org_id: str,
+) -> Dict[str, Any]:
+    """Index ingested findings into Store B (KnowledgeBrain) so the council can enrich them.
+
+    This is the bridge that was missing: scanner-ingest (pipeline=False path) calls
+    _promote_findings_to_issues() which writes to SecurityFindingsEngine (Store A via
+    UniversalFindingIndexer), but never populated Store B (KnowledgeBrain) which is
+    what BrainCorrelator / the LLM council reads for blast-radius + CVE correlation.
+
+    Constraints:
+    - Best-effort: never raises; failures are logged and the ingest path continues.
+    - Idempotent: KnowledgeBrain.upsert_node / add_edge use INSERT OR REPLACE /
+      INSERT OR IGNORE semantics, so re-ingest never duplicates nodes or edges.
+    - Org-scoped: every node is tagged with org_id; BrainCorrelator's _node_visible()
+      check will allow them.
+    - Only real finding/CVE/asset data is written (no fabricated edges).
+    - Does NOT block the ingest response (called synchronously but wrapped in try/except
+      so any failure is silent to the API caller).
+
+    Returns a stats dict surfaced in the ingest response (nodes_added, edges_added, error).
+    """
+    if not findings_dicts:
+        return {"nodes_added": 0, "edges_added": 0}
+    try:
+        from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode, get_brain
+    except ImportError as exc:
+        logger.debug("_index_findings_into_brain: knowledge_brain unavailable: %s", exc)
+        return {"nodes_added": 0, "edges_added": 0, "skipped": True}
+
+    try:
+        brain = get_brain()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_index_findings_into_brain: get_brain() failed: %s", type(exc).__name__)
+        return {"nodes_added": 0, "edges_added": 0, "error": type(exc).__name__}
+
+    nodes_added = 0
+    edges_added = 0
+    errors = 0
+
+    # Collect unique CVE ids upfront for batch node creation
+    unique_cves: set = {
+        str(f["cve_id"]) for f in findings_dicts if f.get("cve_id")
+    }
+
+    # Upsert one CVE node per unique CVE (deduped)
+    for cve_id in unique_cves:
+        try:
+            brain.upsert_node(GraphNode(
+                node_id=cve_id,
+                node_type=EntityType.CVE,
+                org_id=org_id,
+                properties={"cve_id": cve_id},
+            ))
+            nodes_added += 1
+        except Exception:  # noqa: BLE001
+            errors += 1
+
+    for f in findings_dicts:
+        try:
+            # Stable finding id — prefer existing id/rule_id, fall back to uuid fragment
+            import uuid as _uuid
+            fid = (
+                f.get("id")
+                or f.get("rule_id")
+                or f.get("finding_id")
+                or _uuid.uuid4().hex[:12]
+            )
+            fid = str(fid)
+
+            # Upsert finding node
+            brain.upsert_node(GraphNode(
+                node_id=fid,
+                node_type=EntityType.FINDING,
+                org_id=org_id,
+                properties={
+                    "title": f.get("title") or f.get("name") or fid,
+                    "severity": f.get("severity") or "medium",
+                    "cve_id": f.get("cve_id") or None,
+                },
+            ))
+            nodes_added += 1
+
+            # finding -> CVE edge (REFERENCES) — only when cve_id is present
+            cve_id = f.get("cve_id")
+            if cve_id:
+                cve_id = str(cve_id)
+                try:
+                    brain.add_edge(GraphEdge(
+                        source_id=fid,        # finding -> CVE (correct direction)
+                        target_id=cve_id,
+                        edge_type=EdgeType.REFERENCES,
+                    ))
+                    edges_added += 1
+                except Exception:  # noqa: BLE001
+                    errors += 1
+
+            # finding -> asset edge (AFFECTS) — only when asset id/name present
+            asset_id = (
+                f.get("canonical_asset_id")
+                or f.get("asset_id")
+                or f.get("asset_name")
+            )
+            if asset_id:
+                asset_id = str(asset_id)
+                # Upsert asset node so BrainCorrelator can resolve it
+                try:
+                    brain.upsert_node(GraphNode(
+                        node_id=asset_id,
+                        node_type=EntityType.ASSET,
+                        org_id=org_id,
+                        properties={
+                            "asset_type": f.get("asset_type") or "unknown",
+                            "name": f.get("asset_name") or asset_id,
+                        },
+                    ))
+                    nodes_added += 1
+                except Exception:  # noqa: BLE001
+                    errors += 1
+
+                try:
+                    brain.add_edge(GraphEdge(
+                        source_id=fid,       # finding -> asset (correct direction)
+                        target_id=asset_id,
+                        edge_type=EdgeType.AFFECTS,
+                    ))
+                    edges_added += 1
+                except Exception:  # noqa: BLE001
+                    errors += 1
+
+        except Exception as exc:  # noqa: BLE001
+            errors += 1
+            if errors <= 3:
+                logger.debug(
+                    "_index_findings_into_brain: per-finding error: %s",
+                    type(exc).__name__,
+                )
+
+    result: Dict[str, Any] = {"nodes_added": nodes_added, "edges_added": edges_added}
+    if errors:
+        result["errors"] = errors
+    logger.info(
+        "brain-index: org=%s nodes=%d edges=%d findings=%d errors=%d",
+        org_id, nodes_added, edges_added, len(findings_dicts), errors,
+    )
+    return result
+
+
 def _dedupe_findings(
     findings_dicts: List[Dict[str, Any]],
     org_id: str,
@@ -405,6 +554,10 @@ async def upload_scanner_output(
     # writing them into SecurityFindingsEngine (security_findings table).
     promoted_count = _promote_findings_to_issues(canonical_dicts, detected, org_id)
 
+    # Bridge: index findings into Store B (KnowledgeBrain) so BrainCorrelator /
+    # the LLM council can enrich them.  Best-effort — never blocks the response.
+    brain_index_result = _index_findings_into_brain(canonical_dicts, org_id)
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -457,6 +610,7 @@ async def upload_scanner_output(
         "deduped_count": len(canonical_dicts),
         "duplicates_removed": dedup_summary["duplicate_count"],
         "promoted_to_issues": promoted_count,
+        "brain_index": brain_index_result,
         "pipeline_result": pipeline_result,
     }
 
@@ -534,6 +688,10 @@ async def webhook_ingest(
     # Gap 2: promote canonical findings to /api/v1/issues federation.
     promoted_count = _promote_findings_to_issues(canonical_dicts, scanner, org_id)
 
+    # Bridge: index findings into Store B (KnowledgeBrain) so BrainCorrelator /
+    # the LLM council can enrich them.  Best-effort — never blocks the response.
+    brain_index_result = _index_findings_into_brain(canonical_dicts, org_id)
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -584,6 +742,7 @@ async def webhook_ingest(
         "deduped_count": len(canonical_dicts),
         "duplicates_removed": dedup_summary["duplicate_count"],
         "promoted_to_issues": promoted_count,
+        "brain_index": brain_index_result,
         "pipeline_result": pipeline_result,
     }
 

@@ -5,7 +5,7 @@ Implements SQLite-backed knowledge storage with full-text search, graph traversa
 and multi-tenant support. Provides core statistics and relationship management.
 
 Usage:
-    store = KnowledgeStore(db_path="/tmp/trustgraph.db")
+    store = KnowledgeStore(db_path="data/trustgraph.db")
 
     # Ingest an entity
     entity = KnowledgeEntity(
@@ -188,16 +188,24 @@ class KnowledgeStore:
     - Thread-safe operations
     """
 
-    def __init__(self, db_path: str = "/tmp/trustgraph.db") -> None:  # nosec B108
+    def __init__(self, db_path: str = "data/trustgraph.db") -> None:
         """Initialize knowledge store.
 
         Args:
-            db_path: Path to SQLite database file
+            db_path: Path to SQLite database file.  Defaults to
+                ``data/trustgraph.db`` (persistent across reboots).
+                Override via ``FIXOPS_TRUSTGRAPH_DB_PATH`` env-var so all
+                suites share one file regardless of cwd.
         """
-        self.db_path = db_path
+        import os
+        from pathlib import Path
+        resolved = os.environ.get("FIXOPS_TRUSTGRAPH_DB_PATH", db_path)
+        # Ensure parent directory exists (mirrors KnowledgeBrain behaviour)
+        Path(resolved).parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = resolved
         self._local = threading.local()
         self._init_db()
-        logger.info(f"KnowledgeStore initialized at {db_path}")
+        logger.info(f"KnowledgeStore initialized at {self.db_path}")
 
     def _get_conn(self) -> sqlite3.Connection:
         """Get thread-local database connection."""
