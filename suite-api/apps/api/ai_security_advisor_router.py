@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -100,7 +101,7 @@ class RecommendationStatusUpdate(BaseModel):
 @router.post("/posture-review", dependencies=[Depends(api_key_auth)], status_code=201)
 def generate_posture_recommendations(
     body: PostureReviewRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Generate 5 prioritised security recommendations based on current posture."""
     try:
@@ -113,7 +114,7 @@ def generate_posture_recommendations(
 @router.post("/analyze-incident", dependencies=[Depends(api_key_auth)], status_code=201)
 def analyze_incident(
     body: IncidentAnalysisRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Analyse a security incident: root cause, blast radius, immediate actions."""
     try:
@@ -126,7 +127,7 @@ def analyze_incident(
 @router.post("/remediation-plan", dependencies=[Depends(api_key_auth)], status_code=201)
 def generate_remediation_plan(
     body: RemediationPlanRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Generate a step-by-step remediation plan for a vulnerability."""
     try:
@@ -139,7 +140,7 @@ def generate_remediation_plan(
 @router.post("/threat-briefing", dependencies=[Depends(api_key_auth)], status_code=201)
 def get_threat_briefing(
     body: ThreatBriefingRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Generate an executive threat briefing with top threats and recommended actions."""
     try:
@@ -152,7 +153,7 @@ def get_threat_briefing(
 @router.post("/ask", dependencies=[Depends(api_key_auth)])
 def ask_advisor(
     body: AskAdvisorRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Ask the AI security advisor a free-form security question."""
     try:
@@ -164,7 +165,7 @@ def ask_advisor(
 
 @router.get("/sessions", dependencies=[Depends(api_key_auth)])
 def list_sessions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     session_type: Optional[str] = Query(default=None),
 ):
     """List advisor sessions, optionally filtered by session_type."""
@@ -174,7 +175,7 @@ def list_sessions(
 @router.get("/sessions/{session_id}", dependencies=[Depends(api_key_auth)])
 def get_session(
     session_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a single advisor session with its recommendations."""
     session = _get_engine().get_session(org_id, session_id)
@@ -185,7 +186,7 @@ def get_session(
 
 @router.get("/recommendations", dependencies=[Depends(api_key_auth)])
 def list_recommendations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     priority: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -203,7 +204,7 @@ def list_recommendations(
 def update_recommendation_status(
     rec_id: str,
     body: RecommendationStatusUpdate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update the lifecycle status of a recommendation."""
     try:
@@ -216,6 +217,6 @@ def update_recommendation_status(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated AI advisor statistics for the org."""
     return _get_engine().get_stats(org_id)

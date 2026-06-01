@@ -25,6 +25,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -110,7 +111,7 @@ class UpdateCampaignStatsRequest(BaseModel):
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_asset(
     body: RegisterAssetRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new deception asset (honeypot, canary, lure, etc.)."""
     try:
@@ -124,7 +125,7 @@ def register_asset(
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(default=None),
     active: Optional[bool] = Query(default=None),
 ):
@@ -135,7 +136,7 @@ def list_assets(
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
 def get_asset(
     asset_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Retrieve a single deception asset by ID."""
     asset = _get_engine().get_asset(org_id, asset_id)
@@ -147,7 +148,7 @@ def get_asset(
 @router.put("/assets/{asset_id}/deactivate", dependencies=[Depends(api_key_auth)])
 def deactivate_asset(
     asset_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Deactivate a deception asset."""
     try:
@@ -162,7 +163,7 @@ def deactivate_asset(
 @router.post("/interactions", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_interaction(
     body: RecordInteractionRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record an attacker interaction with a deception asset."""
     try:
@@ -176,7 +177,7 @@ def record_interaction(
 
 @router.get("/interactions", dependencies=[Depends(api_key_auth)])
 def list_interactions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     asset_id: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     attacker_technique: Optional[str] = Query(default=None),
@@ -193,7 +194,7 @@ def list_interactions(
 @router.post("/campaigns", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_campaign(
     body: CreateCampaignRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new deception campaign."""
     try:
@@ -207,7 +208,7 @@ def create_campaign(
 
 @router.get("/campaigns", dependencies=[Depends(api_key_auth)])
 def list_campaigns(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ):
     """List deception campaigns with optional status filter."""
@@ -218,7 +219,7 @@ def list_campaigns(
 def update_campaign_stats(
     campaign_id: str,
     body: UpdateCampaignStatsRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update campaign statistics (asset_count, interaction_count, unique_attacker_ips)."""
     try:
@@ -237,6 +238,6 @@ def update_campaign_stats(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_deception_stats(org_id: str = Query(default="default")):
+def get_deception_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated deception statistics: assets, interactions, campaigns, breakdowns."""
     return _get_engine().get_deception_stats(org_id)

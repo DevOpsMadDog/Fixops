@@ -23,6 +23,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -75,7 +76,7 @@ class LessonReview(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_service_summary(org_id: str = Query(default="default")) -> dict:
+def get_service_summary(org_id: str = Depends(get_org_id)) -> dict:
     """Return incident-lessons service summary (lessons counts + overdue actions).
 
     5-state envelope: items/total/org_id/filters_applied/hint.
@@ -105,7 +106,7 @@ def get_service_summary(org_id: str = Query(default="default")) -> dict:
 
 
 @router.post("/lessons", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_lesson(body: LessonCreate, org_id: str = Query(default="default")):
+def create_lesson(body: LessonCreate, org_id: str = Depends(get_org_id)):
     """Create a new lessons-learned entry."""
     try:
         return _get_engine().create_lesson(
@@ -123,7 +124,7 @@ def create_lesson(body: LessonCreate, org_id: str = Query(default="default")):
 
 @router.get("/lessons", dependencies=[Depends(api_key_auth)])
 def list_lessons(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     lesson_type: Optional[str] = Query(None),
 ):
@@ -132,7 +133,7 @@ def list_lessons(
 
 
 @router.get("/lessons/{lesson_id}", dependencies=[Depends(api_key_auth)])
-def get_lesson(lesson_id: str, org_id: str = Query(default="default")):
+def get_lesson(lesson_id: str, org_id: str = Depends(get_org_id)):
     """Get a lesson with its action_items and reviews."""
     lesson = _get_engine().get_lesson(lesson_id, org_id)
     if not lesson:
@@ -145,7 +146,7 @@ def get_lesson(lesson_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/lessons/{lesson_id}/actions", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_action_item(lesson_id: str, body: ActionItemCreate, org_id: str = Query(default="default")):
+def add_action_item(lesson_id: str, body: ActionItemCreate, org_id: str = Depends(get_org_id)):
     """Add an action item to a lesson."""
     try:
         return _get_engine().add_action_item(
@@ -166,7 +167,7 @@ def add_action_item(lesson_id: str, body: ActionItemCreate, org_id: str = Query(
     "/lessons/{lesson_id}/actions/{action_id}/complete",
     dependencies=[Depends(api_key_auth)],
 )
-def complete_action(lesson_id: str, action_id: str, org_id: str = Query(default="default")):
+def complete_action(lesson_id: str, action_id: str, org_id: str = Depends(get_org_id)):
     """Mark an action item as completed."""
     try:
         return _get_engine().complete_action(lesson_id, action_id, org_id)
@@ -179,7 +180,7 @@ def complete_action(lesson_id: str, action_id: str, org_id: str = Query(default=
 # ---------------------------------------------------------------------------
 
 @router.post("/lessons/{lesson_id}/reviews", dependencies=[Depends(api_key_auth)], status_code=201)
-def review_lesson(lesson_id: str, body: LessonReview, org_id: str = Query(default="default")):
+def review_lesson(lesson_id: str, body: LessonReview, org_id: str = Depends(get_org_id)):
     """Submit a review for a lesson."""
     try:
         return _get_engine().review_lesson(
@@ -196,18 +197,18 @@ def review_lesson(lesson_id: str, body: LessonReview, org_id: str = Query(defaul
 # ---------------------------------------------------------------------------
 
 @router.get("/overdue-actions", dependencies=[Depends(api_key_auth)])
-def get_overdue_actions(org_id: str = Query(default="default")):
+def get_overdue_actions(org_id: str = Depends(get_org_id)):
     """Return action items past their due_date and not completed."""
     return _get_engine().get_overdue_actions(org_id)
 
 
 @router.get("/implementation-rate", dependencies=[Depends(api_key_auth)])
-def get_implementation_rate(org_id: str = Query(default="default")):
+def get_implementation_rate(org_id: str = Depends(get_org_id)):
     """Return implementation rate stats."""
     return _get_engine().get_implementation_rate(org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_summary(org_id: str = Query(default="default")):
+def get_summary(org_id: str = Depends(get_org_id)):
     """Return lessons summary counts by status and lesson_type."""
     return _get_engine().get_lessons_summary(org_id)

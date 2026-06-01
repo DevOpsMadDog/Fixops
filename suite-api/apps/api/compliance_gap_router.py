@@ -24,6 +24,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -97,7 +98,7 @@ class UpdatePlanStatusRequest(BaseModel):
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_assessment(
     body: CreateAssessmentRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new compliance gap assessment."""
     try:
@@ -111,7 +112,7 @@ def create_assessment(
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ):
@@ -124,7 +125,7 @@ def list_assessments(
 @router.get("/assessments/{assessment_id}", dependencies=[Depends(api_key_auth)])
 def get_assessment(
     assessment_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a specific compliance gap assessment."""
     result = _get_engine().get_assessment(org_id, assessment_id)
@@ -139,7 +140,7 @@ def get_assessment(
 )
 def complete_assessment(
     assessment_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Mark an assessment as completed and recalculate compliance percentage."""
     try:
@@ -159,7 +160,7 @@ def complete_assessment(
 @router.post("/gaps", dependencies=[Depends(api_key_auth)], status_code=201)
 def add_control_gap(
     body: AddControlGapRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Add a control gap to an assessment."""
     try:
@@ -173,7 +174,7 @@ def add_control_gap(
 
 @router.get("/gaps", dependencies=[Depends(api_key_auth)])
 def list_gaps(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     assessment_id: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -191,7 +192,7 @@ def list_gaps(
 def update_gap_status(
     gap_id: str,
     body: UpdateGapStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update the status of a control gap."""
     try:
@@ -215,7 +216,7 @@ def update_gap_status(
 def update_plan_status(
     plan_id: str,
     body: UpdatePlanStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update the status of a remediation plan."""
     try:
@@ -232,7 +233,7 @@ def update_plan_status(
 )
 def create_remediation_plan(
     body: CreateRemediationPlanRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a remediation plan for a control gap."""
     try:
@@ -251,7 +252,7 @@ def create_remediation_plan(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_gap_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get compliance gap statistics for an org."""
     return _get_engine().get_gap_stats(org_id)

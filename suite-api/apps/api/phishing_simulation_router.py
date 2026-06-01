@@ -24,6 +24,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -84,7 +85,7 @@ class ResultAction(BaseModel):
 
 @router.get("/campaigns", dependencies=[Depends(api_key_auth)])
 def list_campaigns(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ):
     """List campaigns for an org, optionally filtered by status."""
@@ -92,7 +93,7 @@ def list_campaigns(
 
 
 @router.post("/campaigns", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_campaign(body: CampaignCreate, org_id: str = Query(default="default")):
+def create_campaign(body: CampaignCreate, org_id: str = Depends(get_org_id)):
     """Create a new phishing simulation campaign."""
     try:
         return _get_engine().create_campaign(org_id, body.model_dump())
@@ -101,7 +102,7 @@ def create_campaign(body: CampaignCreate, org_id: str = Query(default="default")
 
 
 @router.get("/campaigns/{campaign_id}", dependencies=[Depends(api_key_auth)])
-def get_campaign(campaign_id: str, org_id: str = Query(default="default")):
+def get_campaign(campaign_id: str, org_id: str = Depends(get_org_id)):
     """Get a single campaign by ID."""
     result = _get_engine()._get_campaign(campaign_id, org_id)
     if not result:
@@ -121,7 +122,7 @@ def get_campaign(campaign_id: str, org_id: str = Query(default="default")):
 def add_target(
     campaign_id: str,
     body: TargetCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Add a target to a campaign."""
     try:
@@ -131,7 +132,7 @@ def add_target(
 
 
 @router.get("/campaigns/{campaign_id}/targets", dependencies=[Depends(api_key_auth)])
-def list_targets(campaign_id: str, org_id: str = Query(default="default")):
+def list_targets(campaign_id: str, org_id: str = Depends(get_org_id)):
     """List all targets for a campaign."""
     return _get_engine().list_targets(org_id, campaign_id)
 
@@ -144,7 +145,7 @@ def list_targets(campaign_id: str, org_id: str = Query(default="default")):
 def record_result(
     target_id: str,
     body: ResultAction,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record an action taken by a target (opened/clicked/reported/data_submitted)."""
     success = _get_engine().record_result(org_id, target_id, body.action)
@@ -161,13 +162,13 @@ def record_result(
 # ---------------------------------------------------------------------------
 
 @router.get("/templates", dependencies=[Depends(api_key_auth)])
-def list_templates(org_id: str = Query(default="default")):
+def list_templates(org_id: str = Depends(get_org_id)):
     """List all phishing templates for an org."""
     return _get_engine().list_templates(org_id)
 
 
 @router.post("/templates", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_template(body: TemplateCreate, org_id: str = Query(default="default")):
+def create_template(body: TemplateCreate, org_id: str = Depends(get_org_id)):
     """Create a new phishing template."""
     try:
         return _get_engine().create_template(org_id, body.model_dump())
@@ -180,12 +181,12 @@ def create_template(body: TemplateCreate, org_id: str = Query(default="default")
 # ---------------------------------------------------------------------------
 
 @router.get("/campaigns/{campaign_id}/stats", dependencies=[Depends(api_key_auth)])
-def get_campaign_stats(campaign_id: str, org_id: str = Query(default="default")):
+def get_campaign_stats(campaign_id: str, org_id: str = Depends(get_org_id)):
     """Return aggregated stats for a specific campaign."""
     return _get_engine().get_campaign_stats(org_id, campaign_id=campaign_id)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_org_stats(org_id: str = Query(default="default")):
+def get_org_stats(org_id: str = Depends(get_org_id)):
     """Return high-level org-wide phishing awareness statistics."""
     return _get_engine().get_org_stats(org_id)

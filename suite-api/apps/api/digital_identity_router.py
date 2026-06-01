@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -86,7 +87,7 @@ class AttributeCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/profiles", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_profile(body: ProfileCreate, org_id: str = Query(default="default")):
+def create_profile(body: ProfileCreate, org_id: str = Depends(get_org_id)):
     """Create a new identity profile."""
     try:
         return _get_engine().create_profile(org_id, body.model_dump())
@@ -96,7 +97,7 @@ def create_profile(body: ProfileCreate, org_id: str = Query(default="default")):
 
 @router.get("/profiles", dependencies=[Depends(api_key_auth)])
 def list_profiles(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     verification_status: Optional[str] = Query(None),
     identity_level: Optional[str] = Query(None),
 ):
@@ -109,7 +110,7 @@ def list_profiles(
 
 
 @router.get("/profiles/{user_id}", dependencies=[Depends(api_key_auth)])
-def get_profile(user_id: str, org_id: str = Query(default="default")):
+def get_profile(user_id: str, org_id: str = Depends(get_org_id)):
     """Get identity profile by user_id."""
     profile = _get_engine().get_profile(org_id, user_id)
     if not profile:
@@ -118,7 +119,7 @@ def get_profile(user_id: str, org_id: str = Query(default="default")):
 
 
 @router.put("/profiles/{user_id}/verify", dependencies=[Depends(api_key_auth)])
-def verify_identity(user_id: str, body: VerifyRequest, org_id: str = Query(default="default")):
+def verify_identity(user_id: str, body: VerifyRequest, org_id: str = Depends(get_org_id)):
     """Verify an identity profile."""
     try:
         return _get_engine().verify_identity(org_id, user_id, body.model_dump())
@@ -129,7 +130,7 @@ def verify_identity(user_id: str, body: VerifyRequest, org_id: str = Query(defau
 
 
 @router.put("/profiles/{user_id}/suspend", dependencies=[Depends(api_key_auth)])
-def suspend_identity(user_id: str, body: SuspendRequest, org_id: str = Query(default="default")):
+def suspend_identity(user_id: str, body: SuspendRequest, org_id: str = Depends(get_org_id)):
     """Suspend an identity profile."""
     try:
         return _get_engine().suspend_identity(org_id, user_id, body.reason)
@@ -142,7 +143,7 @@ def suspend_identity(user_id: str, body: SuspendRequest, org_id: str = Query(def
 # ---------------------------------------------------------------------------
 
 @router.post("/events", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_verification_event(body: EventCreate, org_id: str = Query(default="default")):
+def record_verification_event(body: EventCreate, org_id: str = Depends(get_org_id)):
     """Record a verification event."""
     try:
         return _get_engine().record_verification_event(org_id, body.model_dump())
@@ -153,7 +154,7 @@ def record_verification_event(body: EventCreate, org_id: str = Query(default="de
 @router.get("/events/{user_id}", dependencies=[Depends(api_key_auth)])
 def get_verification_history(
     user_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ):
     """Get verification event history for a user."""
@@ -167,7 +168,7 @@ def get_verification_history(
 @router.post(
     "/attributes/{user_id}", dependencies=[Depends(api_key_auth)], status_code=201
 )
-def add_attribute(user_id: str, body: AttributeCreate, org_id: str = Query(default="default")):
+def add_attribute(user_id: str, body: AttributeCreate, org_id: str = Depends(get_org_id)):
     """Add an identity attribute for a user."""
     try:
         return _get_engine().add_attribute(org_id, user_id, body.model_dump())
@@ -176,7 +177,7 @@ def add_attribute(user_id: str, body: AttributeCreate, org_id: str = Query(defau
 
 
 @router.get("/attributes/{user_id}", dependencies=[Depends(api_key_auth)])
-def list_attributes(user_id: str, org_id: str = Query(default="default")):
+def list_attributes(user_id: str, org_id: str = Depends(get_org_id)):
     """List identity attributes for a user."""
     return _get_engine().list_attributes(org_id, user_id)
 
@@ -186,6 +187,6 @@ def list_attributes(user_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_identity_stats(org_id: str = Query(default="default")):
+def get_identity_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated identity statistics."""
     return _get_engine().get_identity_stats(org_id)

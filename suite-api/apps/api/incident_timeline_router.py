@@ -11,6 +11,7 @@ import logging
 from typing import Any, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -75,7 +76,7 @@ class AffectedSystemCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_timeline(body: TimelineCreate, org_id: str = Query(default="default")):
+def create_timeline(body: TimelineCreate, org_id: str = Depends(get_org_id)):
     """Create a new incident timeline."""
     try:
         return _get_engine().create_timeline(org_id, body.model_dump())
@@ -85,7 +86,7 @@ def create_timeline(body: TimelineCreate, org_id: str = Query(default="default")
 
 @router.get("", dependencies=[Depends(api_key_auth)])
 def list_timelines(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     incident_type: Optional[str] = Query(None),
 ):
@@ -94,13 +95,13 @@ def list_timelines(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregate timeline statistics for an org."""
     return _get_engine().get_timeline_stats(org_id)
 
 
 @router.get("/{timeline_id}", dependencies=[Depends(api_key_auth)])
-def get_timeline(timeline_id: str, org_id: str = Query(default="default")):
+def get_timeline(timeline_id: str, org_id: str = Depends(get_org_id)):
     """Get a single incident timeline by ID."""
     tl = _get_engine().get_timeline(org_id, timeline_id)
     if not tl:
@@ -112,7 +113,7 @@ def get_timeline(timeline_id: str, org_id: str = Query(default="default")):
 def update_status(
     timeline_id: str,
     body: TimelineStatusUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update the status of an incident timeline."""
     try:
@@ -134,7 +135,7 @@ def update_status(
 def add_event(
     timeline_id: str,
     body: EventCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Add an event to an incident timeline."""
     try:
@@ -146,7 +147,7 @@ def add_event(
 @router.get("/{timeline_id}/events", dependencies=[Depends(api_key_auth)])
 def list_events(
     timeline_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     event_type: Optional[str] = Query(None),
 ):
     """List events for a timeline ordered by event_time ascending."""
@@ -161,7 +162,7 @@ def list_events(
 def add_affected_system(
     timeline_id: str,
     body: AffectedSystemCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Add an affected system to an incident timeline."""
     return _get_engine().add_affected_system(org_id, timeline_id, body.model_dump())
@@ -170,7 +171,7 @@ def add_affected_system(
 @router.get("/{timeline_id}/systems", dependencies=[Depends(api_key_auth)])
 def list_affected_systems(
     timeline_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """List affected systems for an incident timeline."""
     return _get_engine().list_affected_systems(org_id, timeline_id)
@@ -183,7 +184,7 @@ def list_affected_systems(
 @router.post("/{timeline_id}/metrics", dependencies=[Depends(api_key_auth)], status_code=201)
 def calculate_metrics(
     timeline_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Calculate and persist MTTD/MTTR/MTTC metrics for a timeline."""
     try:

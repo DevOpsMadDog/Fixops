@@ -24,6 +24,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -94,7 +95,7 @@ class ZoneCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
+def register_asset(body: AssetCreate, org_id: str = Depends(get_org_id)):
     """Register a new OT asset."""
     try:
         return _get_engine().register_asset(org_id, body.model_dump())
@@ -104,7 +105,7 @@ def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(None),
     zone: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -119,7 +120,7 @@ def list_assets(
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query(default="default")):
+def get_asset(asset_id: str, org_id: str = Depends(get_org_id)):
     """Get a single OT asset by ID."""
     result = _get_engine().get_asset(org_id, asset_id)
     if result is None:
@@ -128,7 +129,7 @@ def get_asset(asset_id: str, org_id: str = Query(default="default")):
 
 
 @router.put("/assets/{asset_id}/status", dependencies=[Depends(api_key_auth)])
-def update_asset_status(asset_id: str, body: AssetStatusUpdate, org_id: str = Query(default="default")):
+def update_asset_status(asset_id: str, body: AssetStatusUpdate, org_id: str = Depends(get_org_id)):
     """Update asset operational status."""
     try:
         return _get_engine().update_asset_status(org_id, asset_id, body.status)
@@ -143,7 +144,7 @@ def update_asset_status(asset_id: str, body: AssetStatusUpdate, org_id: str = Qu
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_incident(body: IncidentCreate, org_id: str = Query(default="default")):
+def record_incident(body: IncidentCreate, org_id: str = Depends(get_org_id)):
     """Record an OT security incident."""
     try:
         return _get_engine().record_incident(org_id, body.model_dump())
@@ -153,7 +154,7 @@ def record_incident(body: IncidentCreate, org_id: str = Query(default="default")
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     asset_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -169,7 +170,7 @@ def list_incidents(
 
 @router.put("/incidents/{incident_id}/status", dependencies=[Depends(api_key_auth)])
 def update_incident_status(
-    incident_id: str, body: IncidentStatusUpdate, org_id: str = Query(default="default")
+    incident_id: str, body: IncidentStatusUpdate, org_id: str = Depends(get_org_id)
 ):
     """Update incident status."""
     try:
@@ -185,7 +186,7 @@ def update_incident_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/zones", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_zone(body: ZoneCreate, org_id: str = Query(default="default")):
+def create_zone(body: ZoneCreate, org_id: str = Depends(get_org_id)):
     """Create an OT network zone."""
     try:
         return _get_engine().create_zone(org_id, body.model_dump())
@@ -195,7 +196,7 @@ def create_zone(body: ZoneCreate, org_id: str = Query(default="default")):
 
 @router.get("/zones", dependencies=[Depends(api_key_auth)])
 def list_zones(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     zone_type: Optional[str] = Query(None),
 ):
     """List zones with optional zone_type filter."""
@@ -207,6 +208,6 @@ def list_zones(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_ot_stats(org_id: str = Query(default="default")):
+def get_ot_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated OT security statistics."""
     return _get_engine().get_ot_stats(org_id)

@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -80,7 +81,7 @@ class ResponseActionCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/threats", dependencies=[Depends(api_key_auth)], status_code=201)
-def detect_threat(body: ThreatCreate, org_id: str = Query(default="default")):
+def detect_threat(body: ThreatCreate, org_id: str = Depends(get_org_id)):
     """Record a new identity threat detection."""
     try:
         return _get_engine().detect_threat(org_id, body.model_dump())
@@ -90,7 +91,7 @@ def detect_threat(body: ThreatCreate, org_id: str = Query(default="default")):
 
 @router.get("/threats", dependencies=[Depends(api_key_auth)])
 def list_threats(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     threat_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -105,7 +106,7 @@ def list_threats(
 
 
 @router.get("/threats/{threat_id}", dependencies=[Depends(api_key_auth)])
-def get_threat(threat_id: str, org_id: str = Query(default="default")):
+def get_threat(threat_id: str, org_id: str = Depends(get_org_id)):
     """Get a single identity threat by ID."""
     threat = _get_engine().get_threat(org_id, threat_id)
     if not threat:
@@ -117,7 +118,7 @@ def get_threat(threat_id: str, org_id: str = Query(default="default")):
 def update_threat_status(
     threat_id: str,
     body: ThreatStatusUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update the status of an identity threat."""
     try:
@@ -133,7 +134,7 @@ def update_threat_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/behaviors", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_behavior(body: BehaviorCreate, org_id: str = Query(default="default")):
+def record_behavior(body: BehaviorCreate, org_id: str = Depends(get_org_id)):
     """Record an identity behavior event."""
     try:
         return _get_engine().record_behavior(org_id, body.model_dump())
@@ -143,7 +144,7 @@ def record_behavior(body: BehaviorCreate, org_id: str = Query(default="default")
 
 @router.get("/behaviors", dependencies=[Depends(api_key_auth)])
 def list_behaviors(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     user_id: Optional[str] = Query(None),
     behavior_type: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -162,7 +163,7 @@ def list_behaviors(
 # ---------------------------------------------------------------------------
 
 @router.post("/response-actions", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_response_action(body: ResponseActionCreate, org_id: str = Query(default="default")):
+def create_response_action(body: ResponseActionCreate, org_id: str = Depends(get_org_id)):
     """Create a response action for a threat."""
     try:
         return _get_engine().create_response_action(org_id, body.model_dump())
@@ -174,7 +175,7 @@ def create_response_action(body: ResponseActionCreate, org_id: str = Query(defau
     "/response-actions/{action_id}/execute",
     dependencies=[Depends(api_key_auth)],
 )
-def execute_response_action(action_id: str, org_id: str = Query(default="default")):
+def execute_response_action(action_id: str, org_id: str = Depends(get_org_id)):
     """Execute a response action."""
     try:
         return _get_engine().execute_response_action(org_id, action_id)
@@ -184,7 +185,7 @@ def execute_response_action(action_id: str, org_id: str = Query(default="default
 
 @router.get("/response-actions", dependencies=[Depends(api_key_auth)])
 def list_response_actions(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     threat_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -201,6 +202,6 @@ def list_response_actions(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_itdr_stats(org_id: str = Query(default="default")):
+def get_itdr_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated ITDR statistics."""
     return _get_engine().get_itdr_stats(org_id)

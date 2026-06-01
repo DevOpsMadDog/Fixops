@@ -11,6 +11,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -93,7 +94,7 @@ class GatePolicyCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/pipelines", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_pipeline(body: PipelineCreate, org_id: str = Query(default="default")):
+def register_pipeline(body: PipelineCreate, org_id: str = Depends(get_org_id)):
     """Register a new CI/CD pipeline."""
     try:
         return _wrap(_get_engine().register_pipeline(org_id, body.model_dump()))
@@ -103,7 +104,7 @@ def register_pipeline(body: PipelineCreate, org_id: str = Query(default="default
 
 @router.get("/pipelines", dependencies=[Depends(api_key_auth)])
 def list_pipelines(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     ci_platform: Optional[str] = Query(None),
 ):
     """List pipelines for an org, optionally filtered by ci_platform."""
@@ -115,7 +116,7 @@ def list_pipelines(
 # ---------------------------------------------------------------------------
 
 @router.post("/pipelines/{pipeline_id}/runs", dependencies=[Depends(api_key_auth)], status_code=201)
-def trigger_run(pipeline_id: str, body: RunTrigger, org_id: str = Query(default="default")):
+def trigger_run(pipeline_id: str, body: RunTrigger, org_id: str = Depends(get_org_id)):
     """Trigger a new security-gated pipeline run."""
     try:
         return _wrap(_get_engine().trigger_run(org_id, pipeline_id, body.model_dump()))
@@ -125,7 +126,7 @@ def trigger_run(pipeline_id: str, body: RunTrigger, org_id: str = Query(default=
 
 @router.get("/runs", dependencies=[Depends(api_key_auth)])
 def list_runs(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     pipeline_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(default=20, ge=1, le=100),
@@ -135,7 +136,7 @@ def list_runs(
 
 
 @router.get("/runs/{run_id}", dependencies=[Depends(api_key_auth)])
-def get_run(run_id: str, org_id: str = Query(default="default")):
+def get_run(run_id: str, org_id: str = Depends(get_org_id)):
     """Fetch a single pipeline run by run_id."""
     result = _get_engine().get_run(org_id, run_id)
     if result is None:
@@ -149,7 +150,7 @@ def get_run(run_id: str, org_id: str = Query(default="default")):
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     run_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     suppressed: bool = Query(default=False),
@@ -161,7 +162,7 @@ def list_findings(
 
 
 @router.post("/findings/{finding_id}/suppress", dependencies=[Depends(api_key_auth)])
-def suppress_finding(finding_id: str, org_id: str = Query(default="default")):
+def suppress_finding(finding_id: str, org_id: str = Depends(get_org_id)):
     """Suppress a security finding by finding_id."""
     success = _get_engine().suppress_finding(org_id, finding_id)
     if not success:
@@ -174,7 +175,7 @@ def suppress_finding(finding_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/gate-policies", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_gate_policy(body: GatePolicyCreate, org_id: str = Query(default="default")):
+def create_gate_policy(body: GatePolicyCreate, org_id: str = Depends(get_org_id)):
     """Create a security gate policy."""
     try:
         return _wrap(_get_engine().create_gate_policy(org_id, body.model_dump()))
@@ -184,7 +185,7 @@ def create_gate_policy(body: GatePolicyCreate, org_id: str = Query(default="defa
 
 @router.get("/gate-policies", dependencies=[Depends(api_key_auth)])
 def list_gate_policies(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     pipeline_id: Optional[str] = Query(None),
 ):
     """List gate policies, optionally filtered by pipeline_id."""
@@ -196,6 +197,6 @@ def list_gate_policies(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_devsecops_stats(org_id: str = Query(default="default")):
+def get_devsecops_stats(org_id: str = Depends(get_org_id)):
     """Return DevSecOps aggregate statistics for an org."""
     return _wrap(_get_engine().get_devsecops_stats(org_id))
