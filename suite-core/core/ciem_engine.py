@@ -219,10 +219,24 @@ class CIEMEngine:
                 """
             )
             conn.commit()
+            # PRAGMA-migrate: add org_id column if absent (existing DBs lack it).
+            # Back-fill 'default' so pre-existing rows are safely scoped.
+            existing_cols = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(ciem_risks)").fetchall()
+            }
+            if "org_id" not in existing_cols:
+                conn.execute(
+                    "ALTER TABLE ciem_risks ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'"
+                )
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ciem_org ON ciem_risks(org_id)"
+                )
+                conn.commit()
         finally:
             conn.close()
 
-    def _persist_risks(self, risks: List[EntitlementRisk]) -> None:
+    def _persist_risks(self, risks: List[EntitlementRisk], org_id: str = "default") -> None:
         if not risks:
             return
         conn = self._connect()
@@ -231,8 +245,8 @@ class CIEMEngine:
                 """
                 INSERT OR REPLACE INTO ciem_risks
                     (id, severity, type, principal, permission, resource,
-                     explanation, remediation, detected_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     explanation, remediation, detected_at, org_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 [
                     (
@@ -245,6 +259,7 @@ class CIEMEngine:
                         r.explanation,
                         r.remediation,
                         r.detected_at,
+                        org_id,
                     )
                     for r in risks
                 ],
@@ -940,22 +955,23 @@ class CIEMEngine:
 
     def list_risks(
         self,
+        org_id: str = "default",
         principal: Optional[str] = None,
         severity: Optional[str] = None,
         limit: int = 200,
     ) -> List[Dict[str, Any]]:
-        """Return persisted risks, optionally filtered."""
+        """Return persisted risks for the given org, optionally filtered."""
         conn = self._connect()
         try:
-            conditions = []
-            params: List[Any] = []
+            conditions = ["org_id = ?"]
+            params: List[Any] = [org_id]
             if principal:
                 conditions.append("principal = ?")
                 params.append(principal)
             if severity:
                 conditions.append("severity = ?")
                 params.append(severity)
-            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            where = "WHERE " + " AND ".join(conditions)
             params.append(limit)
             rows = conn.execute(
                 f"SELECT * FROM ciem_risks {where} ORDER BY detected_at DESC LIMIT ?",  # nosec B608

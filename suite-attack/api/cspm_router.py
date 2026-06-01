@@ -11,6 +11,10 @@ Endpoints:
   GET  /api/v1/cspm/compliance-map       — Mapping of CIS checks to compliance frameworks
 
 Auth is applied centrally by app.py (Depends(_verify_api_key)).
+
+Error contract (mirrors gcp_scc_router.py):
+  CSPMNotConfiguredError -> HTTP 503  (no cloud connector configured)
+  All other exceptions   -> HTTP 500
 """
 
 from __future__ import annotations
@@ -26,6 +30,7 @@ from core.cspm_engine import (
     CloudProvider,
     CloudResource,
     CSPMFinding,
+    CSPMNotConfiguredError,
     FindingStatus,
     OrgPosture,
     RemediationPlaybook,
@@ -89,6 +94,18 @@ def _engine():
     return get_cspm_engine()
 
 
+def _not_configured_503(exc: CSPMNotConfiguredError) -> HTTPException:
+    """Translate CSPMNotConfiguredError into an honest HTTP 503."""
+    return HTTPException(
+        status_code=503,
+        detail={
+            "status": "not_configured",
+            "configured": False,
+            "message": str(exc),
+        },
+    )
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -100,8 +117,12 @@ def get_posture(
     """Return the aggregated cloud security posture for the org.
 
     The overall_score is 0-100 where higher is better (less risk).
+    Requires a configured cloud connector — returns HTTP 503 if none is set up.
     """
-    return _engine().get_posture(org_id=org_id)
+    try:
+        return _engine().get_posture(org_id=org_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
 
 
 @router.get("/findings", summary="List CSPM misconfigurations", response_model=List[CSPMFinding])
@@ -111,7 +132,10 @@ def list_findings(
     severity: Optional[Severity] = Query(None, description="Filter by severity"),
 ) -> List[CSPMFinding]:
     """List all CSPM findings for an org with optional filters."""
-    return _engine().list_findings(org_id=org_id, status=status, severity=severity)
+    try:
+        return _engine().list_findings(org_id=org_id, status=status, severity=severity)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
 
 
 @router.get("/resources", summary="Cloud resource inventory", response_model=List[CloudResource])
@@ -119,7 +143,10 @@ def list_resources(
     org_id: str = Query("default", description="Organisation ID"),
 ) -> List[CloudResource]:
     """Return the full cloud resource inventory for an org."""
-    return _engine().list_resources(org_id=org_id)
+    try:
+        return _engine().list_resources(org_id=org_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
 
 
 @router.post("/resources", summary="Register a cloud resource", response_model=CloudResource)
@@ -140,6 +167,8 @@ def register_resource(req: RegisterResourceRequest) -> CloudResource:
     )
     try:
         return _engine().register_resource(resource)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     except Exception as exc:
         logger.exception("Failed to register resource: %s", exc)
         raise HTTPException(status_code=500, detail=f"Failed to register resource: {exc}") from exc
@@ -153,7 +182,10 @@ def get_benchmarks(
 
     Shows total/passing/failing rule counts and per-rule status.
     """
-    return _engine().get_benchmark_status(org_id=org_id)
+    try:
+        return _engine().get_benchmark_status(org_id=org_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
 
 
 @router.post("/scan", summary="Trigger cloud posture scan", response_model=ScanResult)
@@ -163,9 +195,12 @@ def trigger_scan(req: TriggerScanRequest) -> ScanResult:
     Evaluates all applicable CIS Benchmark rules and detects configuration
     drift against the saved baseline. Returns the full scan result including
     the updated posture score.
+    Requires a configured cloud connector — returns HTTP 503 if none is set up.
     """
     try:
         return _engine().run_scan(org_id=req.org_id, rule_ids=req.rule_ids)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     except Exception as exc:
         logger.exception("CSPM scan failed: %s", exc)
         raise HTTPException(status_code=500, detail=f"CSPM scan failed: {exc}") from exc
@@ -180,7 +215,10 @@ def get_drift(
     Drift events include: new public resources, removed security controls,
     changed encryption settings, and modified security metadata.
     """
-    events = _engine().list_drift(org_id=org_id)
+    try:
+        events = _engine().list_drift(org_id=org_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     return {
         "drift_events": [e.model_dump() for e in events],
         "total": len(events),
@@ -193,7 +231,10 @@ def save_baseline(
     org_id: str = Query("default", description="Organisation ID"),
 ) -> Dict[str, Any]:
     """Snapshot the current resource state as the baseline for drift detection."""
-    count = _engine().save_baseline(org_id=org_id)
+    try:
+        count = _engine().save_baseline(org_id=org_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     return {"snapshotted": count, "org_id": org_id}
 
 
@@ -204,7 +245,10 @@ def get_remediation(finding_id: str) -> RemediationPlaybook:
     Includes CLI commands and Terraform blocks where available, plus
     estimated effort and downtime risk indicators.
     """
-    playbook = _engine().get_remediation(finding_id)
+    try:
+        playbook = _engine().get_remediation(finding_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     if not playbook:
         raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
     return playbook
@@ -216,13 +260,19 @@ def get_compliance_map() -> Dict[str, Any]:
 
     Frameworks covered: SOC2, PCI-DSS, HIPAA, FedRAMP, NIST 800-53, CIS.
     """
-    return _engine().get_compliance_map()
+    try:
+        return _engine().get_compliance_map()
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
 
 
 @router.get("/findings/{finding_id}", summary="Get a single finding", response_model=CSPMFinding)
 def get_finding(finding_id: str) -> CSPMFinding:
     """Retrieve a single CSPM finding by ID."""
-    finding = _engine().get_finding(finding_id)
+    try:
+        finding = _engine().get_finding(finding_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     if not finding:
         raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
     return finding
@@ -231,7 +281,10 @@ def get_finding(finding_id: str) -> CSPMFinding:
 @router.post("/findings/{finding_id}/suppress", summary="Suppress a finding", response_model=CSPMFinding)
 def suppress_finding(finding_id: str, req: SuppressFindingRequest) -> CSPMFinding:
     """Mark a finding as suppressed with a documented reason (e.g. accepted risk)."""
-    finding = _engine().suppress_finding(finding_id, req.reason)
+    try:
+        finding = _engine().suppress_finding(finding_id, req.reason)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     if not finding:
         raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
     return finding
@@ -240,7 +293,10 @@ def suppress_finding(finding_id: str, req: SuppressFindingRequest) -> CSPMFindin
 @router.post("/findings/{finding_id}/resolve", summary="Resolve a finding", response_model=CSPMFinding)
 def resolve_finding(finding_id: str) -> CSPMFinding:
     """Mark a finding as resolved after applying remediation."""
-    finding = _engine().resolve_finding(finding_id)
+    try:
+        finding = _engine().resolve_finding(finding_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     if not finding:
         raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
     return finding
@@ -252,14 +308,20 @@ def list_scans(
     limit: int = Query(10, ge=1, le=100, description="Max results"),
 ) -> Dict[str, Any]:
     """Return recent CSPM scan results for an org."""
-    scans = _engine().list_scans(org_id=org_id, limit=limit)
+    try:
+        scans = _engine().list_scans(org_id=org_id, limit=limit)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     return {"scans": [s.model_dump() for s in scans], "total": len(scans)}
 
 
 @router.get("/resources/{resource_id}", summary="Get a single cloud resource", response_model=CloudResource)
 def get_resource(resource_id: str) -> CloudResource:
     """Retrieve a single cloud resource from the inventory by ID."""
-    resource = _engine().get_resource(resource_id)
+    try:
+        resource = _engine().get_resource(resource_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     if not resource:
         raise HTTPException(status_code=404, detail=f"Resource '{resource_id}' not found")
     return resource
@@ -268,7 +330,10 @@ def get_resource(resource_id: str) -> CloudResource:
 @router.delete("/resources/{resource_id}", summary="Remove a cloud resource")
 def delete_resource(resource_id: str) -> Dict[str, Any]:
     """Remove a cloud resource from the CSPM inventory."""
-    deleted = _engine().delete_resource(resource_id)
+    try:
+        deleted = _engine().delete_resource(resource_id)
+    except CSPMNotConfiguredError as exc:
+        raise _not_configured_503(exc) from exc
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Resource '{resource_id}' not found")
     return {"deleted": True, "resource_id": resource_id}
@@ -276,15 +341,25 @@ def delete_resource(resource_id: str) -> Dict[str, Any]:
 
 @router.get("/health", summary="CSPM engine health check")
 def cspm_health() -> Dict[str, Any]:
-    """Health check — returns CSPM engine operational status."""
+    """Health check — returns CSPM engine operational status.
+
+    Returns 'not_configured' when no cloud connector has been set up.
+    The IaC scanner (scan_terraform / scan_cloudformation) is always available.
+    """
     try:
-        engine = _engine()
-        resource_count = len(engine.get_resources())
+        # Verify the engine is importable and instantiable.
+        # The live-cloud posture methods require a connector; we report that
+        # honestly rather than calling them and getting a 503.
+        _engine()
         return {
-            "status": "healthy",
+            "status": "not_configured",
             "engine": "cspm",
             "version": "1.0.0",
-            "resources_tracked": resource_count,
+            "message": (
+                "CSPM IaC scanner is operational. "
+                "Live cloud posture scanning requires a cloud connector (AWS/Azure/GCP)."
+            ),
+            "configured": False,
         }
     except Exception as exc:  # noqa: BLE001
         logger.warning("CSPM health check degraded: %s", exc)
@@ -299,6 +374,7 @@ def cspm_status() -> Dict[str, Any]:
 
 # ---------------------------------------------------------------------------
 # Allowlist / finding-suppression endpoints
+# (Real implementation — no connector required)
 # ---------------------------------------------------------------------------
 
 @router.post(

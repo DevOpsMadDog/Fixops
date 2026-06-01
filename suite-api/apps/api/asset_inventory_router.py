@@ -26,7 +26,8 @@ from core.asset_inventory import (
     RelationshipType,
     get_asset_inventory,
 )
-from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -140,9 +141,13 @@ def _inv() -> AssetInventory:
     return get_asset_inventory()
 
 
-def _require_asset(asset_id: str) -> ManagedAsset:
+def _require_asset(asset_id: str, org_id: str = "default") -> ManagedAsset:
+    """Fetch asset and enforce tenant isolation — 404 if missing or wrong org."""
     asset = _inv().get_asset(asset_id)
     if not asset:
+        raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
+    stored_org = getattr(asset, "org_id", "default") or "default"
+    if stored_org != "default" and stored_org != org_id:
         raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
     return asset
 
@@ -349,15 +354,22 @@ def add_relationship(req: AddRelationshipRequest) -> AssetRelationship:
 # ---------------------------------------------------------------------------
 
 @router.get("/{asset_id}", response_model=ManagedAsset, summary="Get asset")
-def get_asset(asset_id: str) -> ManagedAsset:
-    """Retrieve a single asset by ID."""
-    return _require_asset(asset_id)
+def get_asset(
+    asset_id: str,
+    org_id: str = Depends(get_org_id),
+) -> ManagedAsset:
+    """Retrieve a single asset by ID — enforces tenant isolation."""
+    return _require_asset(asset_id, org_id)
 
 
 @router.put("/{asset_id}", response_model=ManagedAsset, summary="Update asset")
-def update_asset(asset_id: str, req: UpdateAssetRequest) -> ManagedAsset:
-    """Apply partial updates to an existing asset."""
-    _require_asset(asset_id)
+def update_asset(
+    asset_id: str,
+    req: UpdateAssetRequest,
+    org_id: str = Depends(get_org_id),
+) -> ManagedAsset:
+    """Apply partial updates to an existing asset — enforces tenant isolation."""
+    _require_asset(asset_id, org_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     for field in ("criticality", "criticality_tier", "environment", "data_classification"):
         if field in updates and hasattr(updates[field], "value"):
@@ -369,8 +381,12 @@ def update_asset(asset_id: str, req: UpdateAssetRequest) -> ManagedAsset:
 
 
 @router.delete("/{asset_id}", summary="Delete asset")
-def delete_asset(asset_id: str) -> Dict[str, Any]:
-    """Remove an asset from the inventory."""
+def delete_asset(
+    asset_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Remove an asset from the inventory — enforces tenant isolation."""
+    _require_asset(asset_id, org_id)
     deleted = _inv().delete_asset(asset_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
@@ -378,8 +394,13 @@ def delete_asset(asset_id: str) -> Dict[str, Any]:
 
 
 @router.post("/{asset_id}/lifecycle", response_model=ManagedAsset, summary="Transition lifecycle")
-def transition_lifecycle(asset_id: str, req: LifecycleTransitionRequest) -> ManagedAsset:
+def transition_lifecycle(
+    asset_id: str,
+    req: LifecycleTransitionRequest,
+    org_id: str = Depends(get_org_id),
+) -> ManagedAsset:
     """Transition an asset to a new lifecycle state (validated state machine)."""
+    _require_asset(asset_id, org_id)
     try:
         asset = _inv().transition_lifecycle(asset_id, req.new_state)
     except ValueError as exc:
@@ -390,9 +411,13 @@ def transition_lifecycle(asset_id: str, req: LifecycleTransitionRequest) -> Mana
 
 
 @router.post("/{asset_id}/owner", response_model=ManagedAsset, summary="Assign owner")
-def assign_owner(asset_id: str, req: AssignOwnerRequest) -> ManagedAsset:
+def assign_owner(
+    asset_id: str,
+    req: AssignOwnerRequest,
+    org_id: str = Depends(get_org_id),
+) -> ManagedAsset:
     """Assign owner (email, name, team, business unit, cost center) to an asset."""
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     asset = _inv().assign_owner(
         asset_id,
         owner_email=req.owner_email,
@@ -407,9 +432,13 @@ def assign_owner(asset_id: str, req: AssignOwnerRequest) -> ManagedAsset:
 
 
 @router.post("/{asset_id}/tags", response_model=ManagedAsset, summary="Tag asset")
-def tag_asset(asset_id: str, req: TagAssetRequest) -> ManagedAsset:
+def tag_asset(
+    asset_id: str,
+    req: TagAssetRequest,
+    org_id: str = Depends(get_org_id),
+) -> ManagedAsset:
     """Add tags to an asset."""
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     asset = _inv().tag_asset(asset_id, req.tags)
     if not asset:
         raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
@@ -417,12 +446,16 @@ def tag_asset(asset_id: str, req: TagAssetRequest) -> ManagedAsset:
 
 
 @router.post("/{asset_id}/compliance", response_model=ManagedAsset, summary="Apply compliance scope")
-def apply_compliance_scope(asset_id: str, req: ComplianceScopeRequest) -> ManagedAsset:
+def apply_compliance_scope(
+    asset_id: str,
+    req: ComplianceScopeRequest,
+    org_id: str = Depends(get_org_id),
+) -> ManagedAsset:
     """Explicitly tag an asset with compliance frameworks (additive merge).
 
     Valid values: pci, hipaa, sox, itar, gdpr, nist, iso27001.
     """
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     try:
         asset = _inv().apply_compliance_scope(asset_id, req.frameworks)
     except ValueError as exc:
@@ -437,9 +470,10 @@ def get_relationships(
     asset_id: str,
     direction: str = Query("both", description="outbound | inbound | both"),
     relationship_type: Optional[RelationshipType] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> List[AssetRelationship]:
     """Return relationships for an asset (outbound, inbound, or both directions)."""
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     return _inv().get_relationships(asset_id, direction=direction, relationship_type=relationship_type)
 
 
@@ -447,27 +481,28 @@ def get_relationships(
 def get_impact_graph(
     asset_id: str,
     max_depth: int = Query(3, ge=1, le=10, description="Max BFS hops"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return the blast-radius dependency graph starting from this asset.
 
     Performs BFS traversal across all relationship types up to max_depth hops.
     Returns nodes (asset IDs) and edges (source, target, type).
     """
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     return _inv().get_impact_graph(asset_id, max_depth=max_depth)
 
 
 @router.get("/{asset_id}/risk-score", summary="Risk score for asset")
 def get_risk_score(
     asset_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compute and return a 0-10 risk score for an asset.
 
     Score factors: criticality weight + internet exposure + vuln count + patch age.
     Returns: {score, factors, risk_level}.
     """
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     result = _inv().calculate_risk_score(asset_id, org_id)
     if not result:
         raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found in org '{org_id}'")
@@ -477,14 +512,14 @@ def get_risk_score(
 @router.get("/{asset_id}/timeline", summary="Asset event history")
 def get_asset_timeline(
     asset_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return chronological history of changes and security events for an asset.
 
     Merges discovery event, CMDB sync records, lifecycle transitions, and
     finding updates into a single ascending timeline.
     """
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     return _inv().get_asset_timeline(asset_id, org_id)
 
 
@@ -498,9 +533,13 @@ def delete_relationship(rel_id: str) -> Dict[str, Any]:
 
 
 @router.post("/{asset_id}/sync", response_model=CMDBSyncRecord, summary="Sync to CMDB")
-def sync_to_cmdb(asset_id: str, req: CMDBSyncRequest) -> CMDBSyncRecord:
+def sync_to_cmdb(
+    asset_id: str,
+    req: CMDBSyncRequest,
+    org_id: str = Depends(get_org_id),
+) -> CMDBSyncRecord:
     """Record a CMDB sync event for an asset."""
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     try:
         return _inv().sync_to_cmdb(
             asset_id=asset_id,
@@ -514,9 +553,12 @@ def sync_to_cmdb(asset_id: str, req: CMDBSyncRequest) -> CMDBSyncRecord:
 
 
 @router.get("/{asset_id}/sync", response_model=List[CMDBSyncRecord], summary="CMDB sync history")
-def get_sync_history(asset_id: str) -> List[CMDBSyncRecord]:
+def get_sync_history(
+    asset_id: str,
+    org_id: str = Depends(get_org_id),
+) -> List[CMDBSyncRecord]:
     """Return all CMDB sync records for an asset (newest first)."""
-    _require_asset(asset_id)
+    _require_asset(asset_id, org_id)
     return _inv().get_sync_history(asset_id)
 
 

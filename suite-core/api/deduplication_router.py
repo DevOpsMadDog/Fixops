@@ -4,10 +4,24 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 from core.services.deduplication import ClusterStatus, DeduplicationService
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/api/v1/deduplication", tags=["deduplication"])
+# Auth deps: conditional import so this router works when loaded from suite-core
+# without the suite-api apps package on sys.path (e.g. unit tests, standalone).
+try:
+    from apps.api.auth_deps import api_key_auth
+    from apps.api.dependencies import get_org_id as _get_org_id_dep
+    _HAS_AUTH = True
+except ImportError:
+    _HAS_AUTH = False
+    api_key_auth = None  # type: ignore[assignment]
+
+    def _get_org_id_dep(org_id: str = Query(default="default")) -> str:  # type: ignore[misc]
+        return org_id
+
+_router_deps = [Depends(api_key_auth)] if _HAS_AUTH and api_key_auth else []
+router = APIRouter(prefix="/api/v1/deduplication", tags=["deduplication"], dependencies=_router_deps)
 
 # Initialize service with default path
 _DATA_DIR = Path("data/deduplication")
@@ -134,7 +148,7 @@ def process_findings_batch(
 
 @router.get("/clusters")
 def list_clusters(
-    org_id: str,
+    org_id: str = Depends(_get_org_id_dep),
     app_id: Optional[str] = None,
     status: Optional[str] = None,
     severity: Optional[str] = None,
@@ -160,18 +174,23 @@ def list_clusters(
 
 
 @router.get("/clusters/{cluster_id}")
-def get_cluster(cluster_id: str) -> Dict[str, Any]:
+def get_cluster(
+    cluster_id: str,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Get a specific cluster by ID."""
     service = get_dedup_service()
     cluster = service.get_cluster(cluster_id)
-    if not cluster:
+    if not cluster or cluster.get("org_id") != org_id:
         raise HTTPException(status_code=404, detail="Cluster not found")
     return cluster
 
 
 @router.put("/clusters/{cluster_id}/status")
 def update_cluster_status(
-    cluster_id: str, request: UpdateStatusRequest
+    cluster_id: str,
+    request: UpdateStatusRequest,
+    org_id: str = Depends(_get_org_id_dep),
 ) -> Dict[str, Any]:
     """Update cluster status."""
     try:
@@ -184,6 +203,10 @@ def update_cluster_status(
         )
 
     service = get_dedup_service()
+    # Ownership check before mutation
+    cluster = service.get_cluster(cluster_id)
+    if not cluster or cluster.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Cluster not found")
     success = service.update_cluster_status(
         cluster_id=cluster_id,
         new_status=request.status,
@@ -196,9 +219,17 @@ def update_cluster_status(
 
 
 @router.put("/clusters/{cluster_id}/assign")
-def assign_cluster(cluster_id: str, request: AssignClusterRequest) -> Dict[str, Any]:
+def assign_cluster(
+    cluster_id: str,
+    request: AssignClusterRequest,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Assign cluster to a user."""
     service = get_dedup_service()
+    # Ownership check before mutation
+    cluster = service.get_cluster(cluster_id)
+    if not cluster or cluster.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Cluster not found")
     success = service.assign_cluster(cluster_id, request.assignee)
     if not success:
         raise HTTPException(status_code=404, detail="Cluster not found")
@@ -210,9 +241,17 @@ def assign_cluster(cluster_id: str, request: AssignClusterRequest) -> Dict[str, 
 
 
 @router.put("/clusters/{cluster_id}/ticket")
-def link_ticket(cluster_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
+def link_ticket(
+    cluster_id: str,
+    request: LinkTicketRequest,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Link cluster to external ticket."""
     service = get_dedup_service()
+    # Ownership check before mutation
+    cluster = service.get_cluster(cluster_id)
+    if not cluster or cluster.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Cluster not found")
     success = service.link_to_ticket(
         cluster_id=cluster_id,
         ticket_id=request.ticket_id,
@@ -229,10 +268,15 @@ def link_ticket(cluster_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
 
 @router.get("/clusters/{cluster_id}/related")
 def get_related_clusters(
-    cluster_id: str, min_confidence: float = Query(default=0.5, ge=0.0, le=1.0)
+    cluster_id: str,
+    min_confidence: float = Query(default=0.5, ge=0.0, le=1.0),
+    org_id: str = Depends(_get_org_id_dep),
 ) -> Dict[str, Any]:
     """Get clusters related to the given cluster."""
     service = get_dedup_service()
+    cluster = service.get_cluster(cluster_id)
+    if not cluster or cluster.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail="Cluster not found")
     related = service.get_related_clusters(cluster_id, min_confidence)
     return {"cluster_id": cluster_id, "related_clusters": related}
 
@@ -406,16 +450,20 @@ def merge_clusters(request: MergeClustersRequest) -> Dict[str, Any]:
 
 
 @router.post("/clusters/{cluster_id}/split")
-def split_cluster(cluster_id: str, request: SplitClusterRequest) -> Dict[str, Any]:
+def split_cluster(
+    cluster_id: str,
+    request: SplitClusterRequest,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Split a cluster by moving specified events to new clusters.
 
     If event_ids is empty, each event in the cluster becomes its own cluster.
     """
     service = get_dedup_service()
 
-    # Verify cluster exists
+    # Verify cluster exists and belongs to caller's org
     cluster = service.get_cluster(cluster_id)
-    if not cluster:
+    if not cluster or cluster.get("org_id") != org_id:
         raise HTTPException(status_code=404, detail="Cluster not found")
 
     # Record the split as operator feedback with event_ids

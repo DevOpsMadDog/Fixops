@@ -254,10 +254,16 @@ async def delete_integration(
 
 
 @router.post("/{id}/test")
-async def test_integration(id: str):
-    """Test integration connection."""
+async def test_integration(
+    id: str,
+    org_id: str = Depends(get_org_id),
+):
+    """Test integration connection — restricted to the caller's org."""
     integration = db.get_integration(id)
     if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    stored_org = integration.config.get("_org_id", "default")
+    if stored_org != "default" and stored_org != org_id:
         raise HTTPException(status_code=404, detail="Integration not found")
 
     if integration.status != IntegrationStatus.ACTIVE:
@@ -433,10 +439,16 @@ async def test_integration(id: str):
 
 
 @router.get("/{id}/sync-status")
-async def get_sync_status(id: str):
-    """Get integration sync status."""
+async def get_sync_status(
+    id: str,
+    org_id: str = Depends(get_org_id),
+):
+    """Get integration sync status — restricted to the caller's org."""
     integration = db.get_integration(id)
     if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    stored_org = integration.config.get("_org_id", "default")
+    if stored_org != "default" and stored_org != org_id:
         raise HTTPException(status_code=404, detail="Integration not found")
 
     return {
@@ -450,8 +462,11 @@ async def get_sync_status(id: str):
 
 
 @router.post("/{id}/sync")
-async def trigger_sync(id: str):
-    """Trigger manual sync for integration.
+async def trigger_sync(
+    id: str,
+    org_id: str = Depends(get_org_id),
+):
+    """Trigger manual sync for integration — restricted to the caller's org.
 
     Performs actual synchronization with the external system based on integration type:
     - Jira/ServiceNow/GitLab/GitHub/Azure DevOps: Validates connection and syncs metadata
@@ -462,6 +477,9 @@ async def trigger_sync(id: str):
     """
     integration = db.get_integration(id)
     if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    stored_org = integration.config.get("_org_id", "default")
+    if stored_org != "default" and stored_org != org_id:
         raise HTTPException(status_code=404, detail="Integration not found")
 
     if integration.status != IntegrationStatus.ACTIVE:

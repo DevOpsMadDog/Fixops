@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 import structlog
+from apps.api.dependencies import get_org_id
 from core.risk_register import (
     KRIRecord,
     Risk,
@@ -26,7 +27,7 @@ from core.risk_register import (
     TreatmentAction,
     get_risk_register,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
@@ -321,17 +322,34 @@ async def board_report(org_id: str = Query("default")) -> Dict[str, Any]:
 # Endpoint 1 — Risk CRUD with /{risk_id}
 # ---------------------------------------------------------------------------
 
-@router.get("/{risk_id}", summary="Get a risk", response_model=Dict[str, Any])
-async def get_risk(risk_id: str) -> Dict[str, Any]:
+def _require_risk(risk_id: str, org_id: str):
+    """Fetch risk and enforce tenant isolation — 404 if missing or wrong org."""
     register = get_risk_register()
     risk = register.get_risk(risk_id)
     if not risk:
         raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
+    stored_org = getattr(risk, "org_id", "default") or "default"
+    if stored_org != "default" and stored_org != org_id:
+        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
+    return risk
+
+
+@router.get("/{risk_id}", summary="Get a risk", response_model=Dict[str, Any])
+async def get_risk(
+    risk_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    risk = _require_risk(risk_id, org_id)
     return risk.model_dump()
 
 
 @router.patch("/{risk_id}", summary="Update a risk", response_model=Dict[str, Any])
-async def update_risk(risk_id: str, body: UpdateRiskRequest) -> Dict[str, Any]:
+async def update_risk(
+    risk_id: str,
+    body: UpdateRiskRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    _require_risk(risk_id, org_id)
     register = get_risk_register()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     updated = register.update_risk(risk_id, updates)
@@ -341,7 +359,11 @@ async def update_risk(risk_id: str, body: UpdateRiskRequest) -> Dict[str, Any]:
 
 
 @router.delete("/{risk_id}", summary="Delete a risk")
-async def delete_risk(risk_id: str) -> Dict[str, Any]:
+async def delete_risk(
+    risk_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    _require_risk(risk_id, org_id)
     register = get_risk_register()
     ok = register.delete_risk(risk_id)
     if not ok:
@@ -351,7 +373,12 @@ async def delete_risk(risk_id: str) -> Dict[str, Any]:
 
 @router.post("/{risk_id}/controls/map", summary="Map a control to a risk",
              response_model=Dict[str, Any])
-async def map_control(risk_id: str, body: MapControlRequest) -> Dict[str, Any]:
+async def map_control(
+    risk_id: str,
+    body: MapControlRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    _require_risk(risk_id, org_id)
     register = get_risk_register()
     updated = register.map_control_to_risk(risk_id, body.ctrl_id)
     if not updated:
@@ -364,7 +391,12 @@ async def map_control(risk_id: str, body: MapControlRequest) -> Dict[str, Any]:
 
 @router.delete("/{risk_id}/controls/{ctrl_id}", summary="Unmap a control from a risk",
                response_model=Dict[str, Any])
-async def unmap_control(risk_id: str, ctrl_id: str) -> Dict[str, Any]:
+async def unmap_control(
+    risk_id: str,
+    ctrl_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    _require_risk(risk_id, org_id)
     register = get_risk_register()
     updated = register.unmap_control_from_risk(risk_id, ctrl_id)
     if not updated:
@@ -374,6 +406,10 @@ async def unmap_control(risk_id: str, ctrl_id: str) -> Dict[str, Any]:
 
 @router.get("/{risk_id}/treatments", summary="List treatment plans for a risk",
             response_model=List[Dict[str, Any]])
-async def list_treatments(risk_id: str) -> List[Dict[str, Any]]:
+async def list_treatments(
+    risk_id: str,
+    org_id: str = Depends(get_org_id),
+) -> List[Dict[str, Any]]:
+    _require_risk(risk_id, org_id)
     register = get_risk_register()
     return [p.model_dump() for p in register.list_treatments(risk_id)]

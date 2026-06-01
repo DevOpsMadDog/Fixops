@@ -15,10 +15,21 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
+
+try:
+    from apps.api.auth_deps import api_key_auth
+    from apps.api.dependencies import get_org_id as _get_org_id_dep
+    _HAS_AUTH = True
+except ImportError:
+    _HAS_AUTH = False
+    api_key_auth = None  # type: ignore[assignment]
+
+    def _get_org_id_dep(org_id: str = Query(default="default")) -> str:  # type: ignore[misc]
+        return org_id
 
 try:
     from core.incident_response import (
@@ -41,7 +52,8 @@ except ImportError as _exc:
     _logger.warning("incident_response_router: incident_response unavailable: %s", _exc)
     _HAS_IR = False
 
-router = APIRouter(prefix="/api/v1/incidents", tags=["incident-response"])
+_router_deps = [Depends(api_key_auth)] if _HAS_AUTH and api_key_auth else []
+router = APIRouter(prefix="/api/v1/incidents", tags=["incident-response"], dependencies=_router_deps)
 
 
 # ---------------------------------------------------------------------------
@@ -132,18 +144,22 @@ def _parse_incident_status(value: str) -> IncidentStatus:
 
 
 @router.post("")
-def create_incident(request: CreateIncidentRequest) -> Dict[str, Any]:
+def create_incident(
+    request: CreateIncidentRequest,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Create a new incident with auto-populated playbook steps."""
     _require_ir()
     manager = _get_manager()
     inc_type = _parse_incident_type(request.type)
     severity = _parse_incident_severity(request.severity)
+    # org_id from authenticated context overrides body to prevent tenant spoofing
     incident = manager.create_incident(
         title=request.title,
         type=inc_type,
         severity=severity,
         reported_by=request.reported_by,
-        org_id=request.org_id,
+        org_id=org_id,
     )
     result = incident.model_dump(mode="json")
     # TrustGraph async indexing (fire-and-forget, non-blocking)
@@ -166,7 +182,7 @@ def create_incident(request: CreateIncidentRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats")
-def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(_get_org_id_dep)) -> Dict[str, Any]:
     """Return incident statistics by type, severity, status, and resolution time."""
     _require_ir()
     manager = _get_manager()
@@ -189,7 +205,7 @@ def get_playbook_template(incident_type: str) -> Dict[str, Any]:
 
 @router.get("")
 def list_incidents(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(_get_org_id_dep),
     status: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
@@ -210,21 +226,32 @@ def list_incidents(
 
 
 @router.get("/{incident_id}")
-def get_incident(incident_id: str) -> Dict[str, Any]:
+def get_incident(
+    incident_id: str,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Get a single incident by ID."""
     _require_ir()
     manager = _get_manager()
     incident = manager.get_incident(incident_id)
-    if incident is None:
+    if incident is None or incident.org_id != org_id:
         raise HTTPException(status_code=404, detail="Incident not found")
     return incident.model_dump(mode="json")
 
 
 @router.put("/{incident_id}/status")
-def update_status(incident_id: str, request: UpdateStatusRequest) -> Dict[str, Any]:
+def update_status(
+    incident_id: str,
+    request: UpdateStatusRequest,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Update incident status via state machine transitions."""
     _require_ir()
     manager = _get_manager()
+    # Ownership check before mutation
+    existing = manager.get_incident(incident_id)
+    if existing is None or existing.org_id != org_id:
+        raise HTTPException(status_code=404, detail="Incident not found")
     new_status = _parse_incident_status(request.new_status)
     try:
         incident = manager.update_status(incident_id, new_status)
@@ -235,11 +262,17 @@ def update_status(incident_id: str, request: UpdateStatusRequest) -> Dict[str, A
 
 @router.post("/{incident_id}/steps/{step_order}/assign")
 def assign_step(
-    incident_id: str, step_order: int, request: AssignStepRequest
+    incident_id: str,
+    step_order: int,
+    request: AssignStepRequest,
+    org_id: str = Depends(_get_org_id_dep),
 ) -> Dict[str, Any]:
     """Assign a responder to a playbook step."""
     _require_ir()
     manager = _get_manager()
+    existing = manager.get_incident(incident_id)
+    if existing is None or existing.org_id != org_id:
+        raise HTTPException(status_code=404, detail="Incident not found")
     try:
         incident = manager.assign_step(incident_id, step_order, request.assignee)
     except ValueError as exc:
@@ -249,11 +282,17 @@ def assign_step(
 
 @router.post("/{incident_id}/steps/{step_order}/complete")
 def complete_step(
-    incident_id: str, step_order: int, request: CompleteStepRequest
+    incident_id: str,
+    step_order: int,
+    request: CompleteStepRequest,
+    org_id: str = Depends(_get_org_id_dep),
 ) -> Dict[str, Any]:
     """Mark a playbook step as completed."""
     _require_ir()
     manager = _get_manager()
+    existing = manager.get_incident(incident_id)
+    if existing is None or existing.org_id != org_id:
+        raise HTTPException(status_code=404, detail="Incident not found")
     try:
         incident = manager.complete_step(incident_id, step_order, request.notes)
     except ValueError as exc:
@@ -263,11 +302,16 @@ def complete_step(
 
 @router.post("/{incident_id}/timeline")
 def add_timeline_event(
-    incident_id: str, request: AddTimelineEventRequest
+    incident_id: str,
+    request: AddTimelineEventRequest,
+    org_id: str = Depends(_get_org_id_dep),
 ) -> Dict[str, Any]:
     """Append an event to the incident timeline."""
     _require_ir()
     manager = _get_manager()
+    existing = manager.get_incident(incident_id)
+    if existing is None or existing.org_id != org_id:
+        raise HTTPException(status_code=404, detail="Incident not found")
     try:
         incident = manager.add_timeline_event(
             incident_id, request.event_description, request.author
@@ -279,11 +323,16 @@ def add_timeline_event(
 
 @router.post("/{incident_id}/post-mortem")
 def create_post_mortem(
-    incident_id: str, request: CreatePostMortemRequest
+    incident_id: str,
+    request: CreatePostMortemRequest,
+    org_id: str = Depends(_get_org_id_dep),
 ) -> Dict[str, Any]:
     """Create a post-mortem for a closed incident."""
     _require_ir()
     manager = _get_manager()
+    existing = manager.get_incident(incident_id)
+    if existing is None or existing.org_id != org_id:
+        raise HTTPException(status_code=404, detail="Incident not found")
     try:
         pm = manager.create_post_mortem(
             incident_id=incident_id,
@@ -301,10 +350,17 @@ def create_post_mortem(
 
 
 @router.get("/{incident_id}/post-mortem")
-def get_post_mortem(incident_id: str) -> Dict[str, Any]:
+def get_post_mortem(
+    incident_id: str,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Retrieve the post-mortem for an incident."""
     _require_ir()
     manager = _get_manager()
+    # Verify incident ownership before returning post-mortem
+    incident = manager.get_incident(incident_id)
+    if incident is None or incident.org_id != org_id:
+        raise HTTPException(status_code=404, detail="Post-mortem not found")
     pm = manager.get_post_mortem(incident_id)
     if pm is None:
         raise HTTPException(status_code=404, detail="Post-mortem not found")
@@ -313,7 +369,7 @@ def get_post_mortem(incident_id: str) -> Dict[str, Any]:
 
 @router.get("/", summary="Incidents index", tags=["incident-response"])
 async def incidents_index(
-    org_id: str = Query("default"),
+    org_id: str = Depends(_get_org_id_dep),
     status: Optional[str] = Query(None, description="Filter by status (open, investigating, contained, closed, post_mortem)"),
     severity: Optional[str] = Query(None, description="Filter by severity (critical, high, medium, low)"),
     limit: int = Query(default=50, ge=1, le=500),

@@ -8,11 +8,17 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.ciem_engine import CIEMEngine, get_ciem_engine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/api/v1/ciem", tags=["ciem"])
+router = APIRouter(
+    prefix="/api/v1/ciem",
+    tags=["ciem"],
+    dependencies=[Depends(api_key_auth)],
+)
 
 
 def _engine() -> CIEMEngine:
@@ -81,7 +87,10 @@ class RiskResponse(BaseModel):
     summary="Analyze a single AWS IAM policy",
     response_model=List[RiskResponse],
 )
-def analyze_policy(req: AnalyzePolicyRequest) -> List[RiskResponse]:
+def analyze_policy(
+    req: AnalyzePolicyRequest,
+    org_id: str = Depends(get_org_id),
+) -> List[RiskResponse]:
     """
     Analyze a single AWS IAM policy document for entitlement risks.
 
@@ -91,6 +100,8 @@ def analyze_policy(req: AnalyzePolicyRequest) -> List[RiskResponse]:
     """
     try:
         risks = _engine().analyze_aws_iam_policy(req.policy, req.principal)
+        # Persist with authenticated org so stored risks are org-scoped
+        _engine()._persist_risks(risks, org_id=org_id)
         return [RiskResponse(**r.to_dict()) for r in risks]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -100,7 +111,10 @@ def analyze_policy(req: AnalyzePolicyRequest) -> List[RiskResponse]:
     "/analyze/account",
     summary="Analyze all IAM policies for an AWS account",
 )
-def analyze_account(req: AnalyzeAccountRequest) -> Dict[str, Any]:
+def analyze_account(
+    req: AnalyzeAccountRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """
     Run a full entitlement analysis across all supplied policies for an account.
 
@@ -117,7 +131,10 @@ def analyze_account(req: AnalyzeAccountRequest) -> Dict[str, Any]:
     "/suggest/least-privilege",
     summary="Suggest a least-privilege rewrite of an IAM policy",
 )
-def suggest_least_privilege(req: LeastPrivilegeRequest) -> Dict[str, Any]:
+def suggest_least_privilege(
+    req: LeastPrivilegeRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """
     Return a trimmed IAM policy containing only the permissions that appear
     in the supplied used_permissions list.
@@ -137,13 +154,14 @@ def suggest_least_privilege(req: LeastPrivilegeRequest) -> Dict[str, Any]:
     response_model=List[RiskResponse],
 )
 def list_risks(
+    org_id: str = Depends(get_org_id),
     principal: Optional[str] = Query(None, description="Filter by principal"),
     severity: Optional[str] = Query(None, description="Filter by severity (critical/high/medium/low)"),
     limit: int = Query(200, ge=1, le=1000, description="Max results"),
 ) -> List[RiskResponse]:
-    """Return previously identified entitlement risks from the local database."""
+    """Return previously identified entitlement risks for the authenticated org."""
     try:
-        rows = _engine().list_risks(principal=principal, severity=severity, limit=limit)
+        rows = _engine().list_risks(org_id=org_id, principal=principal, severity=severity, limit=limit)
         return [RiskResponse(**r) for r in rows]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -154,7 +172,10 @@ def list_risks(
     summary="Detect privilege escalation chains across multiple policies",
     response_model=List[RiskResponse],
 )
-def detect_escalation_paths(req: EscalationPathsRequest) -> List[RiskResponse]:
+def detect_escalation_paths(
+    req: EscalationPathsRequest,
+    org_id: str = Depends(get_org_id),
+) -> List[RiskResponse]:
     """
     Analyse a set of principals + policies for privilege escalation paths.
 
@@ -174,7 +195,10 @@ def detect_escalation_paths(req: EscalationPathsRequest) -> List[RiskResponse]:
     summary="Analyze an Azure role definition or assignment",
     response_model=List[RiskResponse],
 )
-def analyze_azure(req: AzureAnalyzeRequest) -> List[RiskResponse]:
+def analyze_azure(
+    req: AzureAnalyzeRequest,
+    org_id: str = Depends(get_org_id),
+) -> List[RiskResponse]:
     """
     Analyse an Azure role definition or assignment for entitlement risks.
 
@@ -192,7 +216,10 @@ def analyze_azure(req: AzureAnalyzeRequest) -> List[RiskResponse]:
     "/score",
     summary="Score an IAM policy (0=over-privileged, 100=least-privilege)",
 )
-def score_policy(req: AnalyzePolicyRequest) -> Dict[str, Any]:
+def score_policy(
+    req: AnalyzePolicyRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """
     Return a numeric score for an IAM policy.
 

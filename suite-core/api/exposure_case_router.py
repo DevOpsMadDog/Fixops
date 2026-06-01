@@ -26,11 +26,28 @@ from core.exposure_case import (
     ExposureCase,
     get_case_manager,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+# Auth: suite-core routers are mounted into the suite-api app, so
+# apps.api is on sys.path at runtime. Use the same conditional-import
+# pattern as other suite-core routers (e.g. brain_router.py).
+try:
+    from apps.api.auth_deps import api_key_auth
+    from apps.api.dependencies import get_org_id
+except ImportError:  # pragma: no cover — only absent in isolated unit tests
+    async def api_key_auth() -> None:  # type: ignore[misc]
+        return None
+
+    def get_org_id() -> str:  # type: ignore[misc]
+        return "default"
+
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1/cases", tags=["exposure-cases"])
+router = APIRouter(
+    prefix="/api/v1/cases",
+    tags=["exposure-cases"],
+    dependencies=[Depends(api_key_auth)],
+)
 
 
 # ---------------------------------------------------------------------------
@@ -87,21 +104,21 @@ class AddClustersRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 @router.get("/stats/summary")
-async def case_stats(org_id: Optional[str] = Query(None)):
+async def case_stats(org_id: str = Depends(get_org_id)):
     """Get aggregated exposure case statistics."""
     mgr = get_case_manager()
     return mgr.stats(org_id=org_id)
 
 
 @router.post("")
-async def create_case(req: CreateCaseRequest):
+async def create_case(req: CreateCaseRequest, org_id: str = Depends(get_org_id)):
     """Create a new Exposure Case."""
     mgr = get_case_manager()
     case = ExposureCase(
         case_id="",
         title=req.title,
         description=req.description,
-        org_id=req.org_id,
+        org_id=org_id,  # always from authenticated context, never from body
         priority=CasePriority(req.priority),
         root_cve=req.root_cve,
         root_cwe=req.root_cwe,
@@ -125,13 +142,13 @@ async def create_case(req: CreateCaseRequest):
 
 @router.get("")
 async def list_cases(
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    """List Exposure Cases with optional filtering."""
+    """List Exposure Cases for the authenticated org."""
     mgr = get_case_manager()
     return mgr.list_cases(
         org_id=org_id, status=status, priority=priority, limit=limit, offset=offset
@@ -139,19 +156,22 @@ async def list_cases(
 
 
 @router.get("/{case_id}")
-async def get_case(case_id: str):
-    """Get a single Exposure Case by ID."""
+async def get_case(case_id: str, org_id: str = Depends(get_org_id)):
+    """Get a single Exposure Case by ID — 404 if not owned by caller org."""
     mgr = get_case_manager()
     case = mgr.get_case(case_id)
-    if not case:
+    if not case or case.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     return case.to_dict()
 
 
 @router.patch("/{case_id}")
-async def update_case(case_id: str, req: UpdateCaseRequest):
-    """Update Exposure Case fields (not lifecycle state)."""
+async def update_case(case_id: str, req: UpdateCaseRequest, org_id: str = Depends(get_org_id)):
+    """Update Exposure Case fields — 404 if not owned by caller org."""
     mgr = get_case_manager()
+    case = mgr.get_case(case_id)
+    if not case or case.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -163,9 +183,12 @@ async def update_case(case_id: str, req: UpdateCaseRequest):
 
 
 @router.post("/{case_id}/transition")
-async def transition_case(case_id: str, req: TransitionRequest):
-    """Transition an Exposure Case to a new lifecycle state."""
+async def transition_case(case_id: str, req: TransitionRequest, org_id: str = Depends(get_org_id)):
+    """Transition an Exposure Case to a new lifecycle state — 404 if not owned by caller org."""
     mgr = get_case_manager()
+    existing = mgr.get_case(case_id)
+    if not existing or existing.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     try:
         new_status = CaseStatus(req.new_status)
     except ValueError:
@@ -182,22 +205,25 @@ async def transition_case(case_id: str, req: TransitionRequest):
 
 
 @router.post("/{case_id}/clusters")
-async def add_clusters(case_id: str, req: AddClustersRequest):
-    """Add deduplication clusters to an existing Exposure Case."""
+async def add_clusters(case_id: str, req: AddClustersRequest, org_id: str = Depends(get_org_id)):
+    """Add deduplication clusters to an Exposure Case — 404 if not owned by caller org."""
     mgr = get_case_manager()
+    case = mgr.get_case(case_id)
+    if not case or case.org_id != org_id:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     try:
-        case = mgr.add_clusters(case_id, req.cluster_ids, req.finding_count_delta)
-        return case.to_dict()
+        updated = mgr.add_clusters(case_id, req.cluster_ids, req.finding_count_delta)
+        return updated.to_dict()
     except ValueError as e:
         raise HTTPException(status_code=404, detail=type(e).__name__)
 
 
 @router.get("/{case_id}/transitions")
-async def get_valid_transitions(case_id: str):
-    """Get valid transitions for the current state of a case."""
+async def get_valid_transitions(case_id: str, org_id: str = Depends(get_org_id)):
+    """Get valid transitions for the current state — 404 if not owned by caller org."""
     mgr = get_case_manager()
     case = mgr.get_case(case_id)
-    if not case:
+    if not case or case.org_id != org_id:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     allowed = VALID_TRANSITIONS.get(case.status, set())
     return {

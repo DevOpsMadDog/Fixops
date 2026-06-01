@@ -37,6 +37,7 @@ router = APIRouter(prefix="/api/v1/risk-scoring", tags=["Risk Scoring"])
 
 try:
     from apps.api.auth_deps import api_key_auth as _api_key_auth
+    from apps.api.dependencies import get_org_id as _get_org_id
     from fastapi import Depends
 
     _AUTH_DEP: list = [Depends(_api_key_auth)]
@@ -46,6 +47,7 @@ except ImportError:
         "relying on app.py mount-level auth"
     )
     _AUTH_DEP = []
+    _get_org_id = None
 
 # ---------------------------------------------------------------------------
 # Lazy engine accessors
@@ -316,7 +318,27 @@ def exposure_trend(
     description="Risk exposure score 0-100 for a single asset.",
     dependencies=_AUTH_DEP,
 )
-def asset_exposure(asset_id: str) -> Dict[str, Any]:
+def asset_exposure(
+    asset_id: str,
+    org_id: str = Depends(_get_org_id),
+) -> Dict[str, Any]:
+    """Return exposure score — org ownership verified via asset inventory."""
+    # Enforce tenant isolation: confirm the asset belongs to the caller's org.
+    try:
+        from core.asset_inventory import get_asset_inventory
+        inv = get_asset_inventory()
+        asset = inv.get_asset(asset_id)
+        if asset is None:
+            raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
+        stored_org = getattr(asset, "org_id", "default") or "default"
+        if stored_org != "default" and stored_org != org_id:
+            raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("asset_exposure ownership check error asset=%s: %s", asset_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
     scorer = _get_scorer()
     try:
         result = scorer.get_asset_exposure(asset_id)

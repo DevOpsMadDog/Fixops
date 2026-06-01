@@ -18,7 +18,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -45,7 +47,11 @@ except ImportError as _exc:
     _logger.warning("cspm_engine_router: cspm module unavailable: %s", _exc)
     _HAS_ENGINE = False
 
-router = APIRouter(prefix="/api/v1/cspm-engine", tags=["cspm-engine"])
+router = APIRouter(
+    prefix="/api/v1/cspm-engine",
+    tags=["cspm-engine"],
+    dependencies=[Depends(api_key_auth)],
+)
 
 
 # ---------------------------------------------------------------------------
@@ -55,13 +61,13 @@ router = APIRouter(prefix="/api/v1/cspm-engine", tags=["cspm-engine"])
 
 class SyncResourceRequest(BaseModel):
     provider: str
-    org_id: str = "default"
     resources: List[Dict[str, Any]]
+    # org_id intentionally removed — always sourced from authenticated context
 
 
 class ScanRequest(BaseModel):
-    org_id: str = "default"
     provider: Optional[str] = None
+    # org_id intentionally removed — always sourced from authenticated context
 
 
 # ---------------------------------------------------------------------------
@@ -70,8 +76,11 @@ class ScanRequest(BaseModel):
 
 
 @router.post("/sync")
-def sync_resources(request: SyncResourceRequest) -> Dict[str, Any]:
-    """Bulk-import cloud resources for an org/provider. Returns count of upserted records."""
+def sync_resources(
+    request: SyncResourceRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Bulk-import cloud resources for the authenticated org/provider."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     try:
@@ -83,21 +92,22 @@ def sync_resources(request: SyncResourceRequest) -> Dict[str, Any]:
         )
     engine = _get_engine()
     try:
-        resources = [CloudResource(**r) for r in request.resources]
+        # Inject authenticated org_id into every resource — body org_id ignored
+        resources = [CloudResource(**{**r, "org_id": org_id}) for r in request.resources]
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Invalid resource data: {exc}")
-    count = engine.sync_resources(resources, provider, request.org_id)
-    return {"synced": count, "provider": provider.value, "org_id": request.org_id}
+    count = engine.sync_resources(resources, provider, org_id)
+    return {"synced": count, "provider": provider.value, "org_id": org_id}
 
 
 @router.get("/resources")
 def list_resources(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
     public_only: bool = Query(default=False),
 ) -> Dict[str, Any]:
-    """List cloud resources with optional filters."""
+    """List cloud resources for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()
@@ -123,20 +133,26 @@ def list_resources(
 
 
 @router.get("/resources/{resource_id}")
-def get_resource(resource_id: str) -> Dict[str, Any]:
-    """Get a cloud resource by its internal UUID."""
+def get_resource(
+    resource_id: str,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Get a cloud resource by internal UUID — 404 if not owned by caller org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()
     resource = engine.get_resource(resource_id)
-    if resource is None:
+    if resource is None or resource.org_id != org_id:
         raise HTTPException(status_code=404, detail="Resource not found")
     return resource.model_dump(mode="json")
 
 
 @router.post("/scan")
-def run_scan(request: ScanRequest) -> Dict[str, Any]:
-    """Run all applicable security checks for an org. Returns check results."""
+def run_scan(
+    request: ScanRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Run all applicable security checks for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     provider_filter: Optional[CloudProvider] = None
@@ -149,7 +165,7 @@ def run_scan(request: ScanRequest) -> Dict[str, Any]:
                 detail=f"Invalid provider '{request.provider}'. Valid: {[p.value for p in CloudProvider]}",
             )
     engine = _get_engine()
-    results = engine.run_security_checks(org_id=request.org_id, provider=provider_filter)
+    results = engine.run_security_checks(org_id=org_id, provider=provider_filter)
     # TrustGraph explicit indexing (fire-and-forget)
     try:
         from core.trustgraph_event_bus import EVENT_FINDING_CREATED
@@ -158,26 +174,26 @@ def run_scan(request: ScanRequest) -> Dict[str, Any]:
         if _bus and _bus.enabled and results:
             import asyncio as _asyncio
             _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
-                "finding_id": f"cspm-scan-{request.org_id}-{len(results)}",
+                "finding_id": f"cspm-scan-{org_id}-{len(results)}",
                 "type": "cspm_finding", "severity": "medium",
-                "source": "cspm_engine_router", "data": {"count": len(results), "org_id": request.org_id},
+                "source": "cspm_engine_router", "data": {"count": len(results), "org_id": org_id},
             }))
     except Exception:
         pass
     return {
         "results": [r.model_dump(mode="json") for r in results],
         "count": len(results),
-        "org_id": request.org_id,
+        "org_id": org_id,
     }
 
 
 @router.get("/results")
 def get_results(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """Retrieve stored check results with optional filters."""
+    """Retrieve stored check results for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()
@@ -201,10 +217,10 @@ def get_results(
 
 @router.get("/summary")
 def get_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """Return compliance summary: pass/fail counts, compliance rate, and breakdown by category."""
+    """Return compliance summary for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()
@@ -218,8 +234,8 @@ def get_summary(
 
 
 @router.get("/public")
-def get_public_resources(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Return internet-exposed cloud resources."""
+def get_public_resources(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return internet-exposed cloud resources for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()
@@ -228,8 +244,8 @@ def get_public_resources(org_id: str = Query(default="default")) -> Dict[str, An
 
 
 @router.get("/unencrypted")
-def get_unencrypted_resources(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Return cloud resources with encryption disabled."""
+def get_unencrypted_resources(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return cloud resources with encryption disabled for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()
@@ -239,10 +255,10 @@ def get_unencrypted_resources(org_id: str = Query(default="default")) -> Dict[st
 
 @router.get("/iam")
 def get_iam_findings(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """Return IAM resources with overly permissive policies or misconfigurations."""
+    """Return IAM findings for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()
@@ -257,8 +273,8 @@ def get_iam_findings(
 
 
 @router.get("/score")
-def get_cspm_score(org_id: str = Query(default="default")) -> Dict[str, Any]:
-    """Return a 0-100 cloud security posture score for the org."""
+def get_cspm_score(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return a 0-100 cloud security posture score for the authenticated org."""
     if not _HAS_ENGINE:
         raise HTTPException(status_code=501, detail="CSPMEngine not available")
     engine = _get_engine()

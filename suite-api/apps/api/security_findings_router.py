@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -64,19 +65,16 @@ class FindingCreate(BaseModel):
 
 
 class FindingStatusUpdate(BaseModel):
-    org_id: str
     status: str
     assigned_to: Optional[str] = None
 
 
 class EvidenceAdd(BaseModel):
-    org_id: str
     evidence_type: str = "log"
     content: str = ""
 
 
 class FindingSuppress(BaseModel):
-    org_id: str
     reason: str
     suppressed_by: str
     expires_at: str
@@ -115,11 +113,15 @@ def record_finding(body: FindingCreate) -> Dict[str, Any]:
 
 
 @router.patch("/findings/{finding_id}/status", dependencies=[Depends(api_key_auth)])
-def update_status(finding_id: str, body: FindingStatusUpdate) -> Dict[str, Any]:
-    """Update the status of a finding."""
+def update_status(
+    finding_id: str,
+    body: FindingStatusUpdate,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Update the status of a finding — org_id comes from auth token, not body."""
     result = _get_engine().update_status(
         finding_id=finding_id,
-        org_id=body.org_id,
+        org_id=org_id,
         status=body.status,
         assigned_to=body.assigned_to,
     )
@@ -129,22 +131,41 @@ def update_status(finding_id: str, body: FindingStatusUpdate) -> Dict[str, Any]:
 
 
 @router.post("/findings/{finding_id}/evidence", dependencies=[Depends(api_key_auth)])
-def add_evidence(finding_id: str, body: EvidenceAdd) -> Dict[str, Any]:
-    """Add evidence to a finding."""
+def add_evidence(
+    finding_id: str,
+    body: EvidenceAdd,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Add evidence to a finding — org_id comes from auth token, not body."""
+    # Verify the finding belongs to the caller's org before inserting evidence.
+    # The engine's add_evidence does a blind INSERT with no org ownership check.
+    existing = _get_engine().get_finding(finding_id=finding_id, org_id=org_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Finding not found")
     return _get_engine().add_evidence(
         finding_id=finding_id,
-        org_id=body.org_id,
+        org_id=org_id,
         evidence_type=body.evidence_type,
         content=body.content,
     )
 
 
 @router.post("/findings/{finding_id}/suppress", dependencies=[Depends(api_key_auth)])
-def suppress_finding(finding_id: str, body: FindingSuppress) -> Dict[str, Any]:
-    """Suppress a finding with reason and expiry."""
+def suppress_finding(
+    finding_id: str,
+    body: FindingSuppress,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Suppress a finding — org_id comes from auth token, not body."""
+    # Verify the finding belongs to the caller's org before inserting suppression.
+    # The engine's suppress_finding INSERTs the suppression record before the org-guarded
+    # UPDATE, so it would succeed (non-None) even for a cross-org finding_id.
+    existing = _get_engine().get_finding(finding_id=finding_id, org_id=org_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Finding not found")
     result = _get_engine().suppress_finding(
         finding_id=finding_id,
-        org_id=body.org_id,
+        org_id=org_id,
         reason=body.reason,
         suppressed_by=body.suppressed_by,
         expires_at=body.expires_at,
