@@ -53,3 +53,74 @@ specs/
 4. Data contracts are explicit (request/response shape, status codes incl the honest 503 path).
 5. Every spec names its **engine(s)** and **store(s)** so tenancy + persistence are unambiguous.
 6. Cross-tenant: every tenant-scoped REQ states the org_id source + the cross-org expectation (404).
+
+---
+
+## Canonical tenancy pattern (REQ-007-04)
+
+Every router that needs the caller's org must use `Depends(get_org_id)` from the canonical module.
+**Never** use `Query(default="default")` or a bare `= "default"` for an org_id parameter.
+
+### Correct pattern
+
+```python
+# Always import from ONE of these two canonical locations:
+from apps.api.org_middleware import get_org_id      # preferred
+# or:
+from apps.api.dependencies import get_org_id        # re-export of the above
+
+from fastapi import APIRouter, Depends
+
+router = APIRouter(prefix="/api/v1/my-resource")
+
+@router.get("/")
+async def list_resources(org_id: str = Depends(get_org_id)):
+    # org_id is now the authenticated tenant — never "default" in prod.
+    return db.query(org_id=org_id)
+```
+
+### Anti-patterns — the lint gate (scripts/tenancy_lint.py) will FAIL on these
+
+```python
+# BAD — V1: Query with a "default" fallback silently accepts any tenant's data
+async def list_resources(org_id: str = Query(default="default")):
+    ...
+
+# BAD — V1: bare string default, same problem
+async def list_resources(org_id: str = "default"):
+    ...
+
+# BAD — V2: importing get_org_id from anywhere except the two canonical modules
+from core.some_engine import get_org_id   # shadow import
+
+# BAD — V3: defining a local get_org_id that may diverge from canonical logic
+def get_org_id() -> str:
+    return request.headers.get("X-Org-ID", "default")  # local shadow
+```
+
+### Why ContextVar, not threading.local
+
+`TenantContext` (suite-core/core/tenant_isolation.py) uses `contextvars.ContextVar`.
+Under asyncio every `Task` inherits a **snapshot** of the current context at creation time
+and owns its own copy thereafter — concurrent requests on the same OS thread are fully
+isolated.  `threading.local` had a critical bug: all coroutines on the same thread shared
+one storage slot, so Request B's `TenantContext.set()` could overwrite Request A's org_id
+mid-flight.
+
+### CI gate
+
+`scripts/tenancy_lint.py` scans `suite-api/apps/api` and `suite-core/api` for violations
+and compares against `specs/tenancy_allowlist.txt` (frozen debt — **may only shrink**).
+Run it locally:
+
+```bash
+# Check for new violations (exit 1 if any new ones found):
+python scripts/tenancy_lint.py
+
+# After fixing a violation, verify the count drops:
+python scripts/tenancy_lint.py --generate-allowlist  # regenerate smaller allowlist
+```
+
+Tests:
+- `tests/test_tenant_context_asyncio.py` — asyncio isolation proof (AC-007-01)
+- `tests/test_tenancy_lint.py` — lint gate correctness (AC-007-02 / AC-007-03)

@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import shutil
 import sqlite3
-import threading
+from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -96,15 +96,27 @@ def _data_root() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# TenantContext — thread-local storage for current org_id
+# TenantContext — asyncio-safe ContextVar storage for current org_id
 # ---------------------------------------------------------------------------
 
-class TenantContext:
-    """Thread-local storage for the current request's org_id.
+# Module-level ContextVar: each asyncio Task (coroutine) gets its own copy
+# via the Task's context snapshot — concurrent requests on the same thread
+# can NEVER see each other's org_id.  This replaces threading.local which
+# was BROKEN under asyncio (all coroutines share one OS thread → one .local).
+_tenant_org_id_var: ContextVar[Optional[str]] = ContextVar(
+    "tenant_org_id", default=None
+)
 
-    Uses ``threading.local()`` so that each thread (including async worker
-    threads) sees its own isolated tenant context.  For asyncio code running
-    on a single thread, callers must explicitly set/clear the context.
+
+class TenantContext:
+    """asyncio-correct storage for the current request's org_id.
+
+    Uses ``contextvars.ContextVar`` so that each asyncio Task (and each OS
+    thread) has an isolated copy.  Concurrent coroutines running on the same
+    event-loop thread cannot overwrite each other's org_id.
+
+    The public API (set / get / clear) is identical to the old threading.local
+    implementation — callers do not need to change.
 
     Example::
 
@@ -114,22 +126,24 @@ class TenantContext:
         assert TenantContext.get() is None
     """
 
-    _local: threading.local = threading.local()
-
     @classmethod
-    def set(cls, org_id: str) -> None:
-        """Set the current tenant org_id for this thread."""
-        cls._local.org_id = org_id
+    def set(cls, org_id: str) -> Token:
+        """Set the current tenant org_id for this async task / thread.
+
+        Returns the ``contextvars.Token`` so callers that want scoped
+        reset (e.g. middleware) can call ``_tenant_org_id_var.reset(token)``.
+        """
+        return _tenant_org_id_var.set(org_id)
 
     @classmethod
     def get(cls) -> Optional[str]:
         """Return the current tenant org_id or None if not set."""
-        return getattr(cls._local, "org_id", None)
+        return _tenant_org_id_var.get()
 
     @classmethod
     def clear(cls) -> None:
-        """Clear the current tenant org_id for this thread."""
-        cls._local.org_id = None
+        """Clear the current tenant org_id for this async task / thread."""
+        _tenant_org_id_var.set(None)
 
 
 # ---------------------------------------------------------------------------
