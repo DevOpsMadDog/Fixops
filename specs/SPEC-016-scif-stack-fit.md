@@ -143,5 +143,9 @@ auth — the OAuth2/REST clients already exist and are real. Commit per incremen
     `CouncilFactory().create_default_council()` (now builds `LLMCouncilEngine`); regression locked by a test.
 - **REQ-016-13 — Black Duck SCA** (this commit): `BlackDuckConnector` (Hub REST) + `BlackDuckNormalizer`
   (registered for upload) + `blackduck_router.py` `/ingest` → brain. 3 tests.
-- Remaining: increment 4 (Confluence design-context import). 15/15 SPEC-016 tests + 756/756 Beast smoke green
-  (1 timing-flake under load, passes isolated); all routes mount.
+- **Inc 4 — Confluence design-context** (this commit): `design_context_router.py`
+  `/design-context/confluence/import` reuses the real `ConfluenceConnector.get_page` → creates an
+  `EVIDENCE` design-context node (context_type=design_adr, classified) → links to org-scoped findings via
+  `REFERENCES` (design→runtime provenance). Egress-guarded; honest 503. 3 tests.
+- **SPEC-016 COMPLETE**: all 4 increments + REQ-016-13 IMPLEMENTED + VERIFIED. 18/18 SPEC-016 tests +
+  756/756 Beast smoke green; all routes mount. Status → IMPLEMENTED.

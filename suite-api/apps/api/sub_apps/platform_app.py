@@ -3493,6 +3493,22 @@ def register_platform_routers(
         _logger.warning("blackduck_router not available: %s", exc)
 
     # ------------------------------------------------------------------
+    # Design-Context Import router (SPEC-016 inc4 — Confluence ADR -> brain design node)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.design_context_router import router as design_context_router  # noqa: PLC0415
+        app.include_router(
+            design_context_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("read:scans")),
+            ],
+        )
+        _logger.info("Mounted Design-Context Import router (read:scans)")
+    except ImportError as exc:
+        _logger.warning("design_context_router not available: %s", exc)
+
+    # ------------------------------------------------------------------
     # Splunk SOAR (Phantom) REST router (suite-core/core/splunk_soar_engine.py) — 2026-05-04
     # GET   /api/v1/splunk-soar-rest/                                    capability summary       (read:scans)
     # GET   /api/v1/splunk-soar-rest/rest/playbook                       list playbooks            (read:scans)

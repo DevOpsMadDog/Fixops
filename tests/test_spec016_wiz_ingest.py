@@ -310,6 +310,64 @@ def test_req_016_13_blackduck_ingest_correlates(client, monkeypatch, _H):
     assert j["source"] == "blackduck"
 
 
+class _OutcomeCf:
+    def __init__(self, status, details):
+        self.status, self.details = status, details
+
+
+class _FakeConfluence:
+    configured = True
+
+    def __init__(self, settings=None, *a, **k):
+        self.base_url = (settings or {}).get("base_url") or "https://confluence.acme.local"
+
+    def get_page(self, page_id):
+        return _OutcomeCf("fetched", {"page_id": page_id,
+                                      "title": "ADR-007: Checkout service auth",
+                                      "data": {"id": page_id, "title": "ADR-007"}})
+
+
+class _UnconfiguredConfluence(_FakeConfluence):
+    configured = False
+
+    def get_page(self, page_id):
+        return _OutcomeCf("skipped", {"reason": "confluence connector not fully configured"})
+
+
+def test_ac_016_04_confluence_unconfigured_503(client, monkeypatch, _H):
+    import core.connectors as CN
+    monkeypatch.setattr(CN, "ConfluenceConnector", _UnconfiguredConfluence)
+    monkeypatch.delenv("CONFLUENCE_SPACE_KEY", raising=False)
+    monkeypatch.setenv("CONFLUENCE_BASE_URL", "https://confluence.acme.local")
+    r = client.post("/api/v1/design-context/confluence/import", headers=_H,
+                    json={"page_id": "12345"})
+    assert r.status_code == 503
+
+
+def test_ac_016_04_confluence_import_links_finding(client, monkeypatch, _H):
+    import core.connectors as CN
+    monkeypatch.setattr(CN, "ConfluenceConnector", _FakeConfluence)
+    monkeypatch.setenv("CONFLUENCE_BASE_URL", "https://confluence.acme.local")
+    fid = _make_finding(severity="high")
+    r = client.post("/api/v1/design-context/confluence/import", headers=_H,
+                    json={"page_id": "ADR-007", "link_finding_ids": [fid]})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["context_nodes"] == 1
+    assert j["linked_findings"] == 1   # design-context -> finding edge created (AC-016-04)
+    assert j["source"] == "confluence"
+
+
+def test_ac_016_04_confluence_does_not_link_cross_org(client, monkeypatch, _H):
+    import core.connectors as CN
+    monkeypatch.setattr(CN, "ConfluenceConnector", _FakeConfluence)
+    monkeypatch.setenv("CONFLUENCE_BASE_URL", "https://confluence.acme.local")
+    r = client.post("/api/v1/design-context/confluence/import", headers=_H,
+                    json={"page_id": "ADR-008", "link_finding_ids": ["nonexistent-other-org"]})
+    assert r.status_code == 200
+    assert r.json()["linked_findings"] == 0  # never link a finding that isn't this org's
+
+
 def test_req_016_11_classification_marking():
     from apps.api.scanner_ingest_router import _index_findings_into_brain
     from core.knowledge_brain import get_brain
